@@ -77,7 +77,7 @@ interface Canvas3D {
 
     handleResize(): void
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
-    requestCameraReset(durationMs?: number): void
+    requestCameraReset(options?: { durationMs?: number, snapshot?: Partial<Camera.Snapshot> }): void
     readonly camera: Camera
     readonly boundingSphere: Readonly<Sphere3D>
     downloadScreenshot(): void
@@ -191,6 +191,7 @@ namespace Canvas3D {
         let drawPending = false
         let cameraResetRequested = false
         let nextCameraResetDuration: number | undefined = void 0
+        let nextCameraResetSnapshot: Partial<Camera.Snapshot> | undefined = void 0
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -290,9 +291,15 @@ namespace Canvas3D {
         function resolveCameraReset() {
             if (!cameraResetRequested) return;
             const { center, radius } = scene.boundingSphere;
-            const duration = nextCameraResetDuration === undefined ? p.cameraResetDurationMs : nextCameraResetDuration
-            camera.focus(center, radius, radius, duration);
+            if (radius >= 0) {
+                const duration = nextCameraResetDuration === undefined ? p.cameraResetDurationMs : nextCameraResetDuration
+                const focus = camera.getFocus(center, radius, radius);
+                const snapshot = nextCameraResetSnapshot ? { ...focus, ...nextCameraResetSnapshot } : focus;
+                camera.setState(snapshot, duration);
+            }
+
             nextCameraResetDuration = void 0;
+            nextCameraResetSnapshot = void 0;
             cameraResetRequested = false;
         }
 
@@ -388,8 +395,9 @@ namespace Canvas3D {
             getLoci,
 
             handleResize,
-            requestCameraReset: (durationMs) => {
-                nextCameraResetDuration = durationMs;
+            requestCameraReset: options => {
+                nextCameraResetDuration = options?.durationMs;
+                nextCameraResetSnapshot = options?.snapshot;
                 cameraResetRequested = true;
             },
             camera,

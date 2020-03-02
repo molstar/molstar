@@ -15,8 +15,8 @@ export function registerDefault(ctx: PluginContext) {
 }
 
 export function Reset(ctx: PluginContext) {
-    PluginCommands.Camera.Reset.subscribe(ctx, () => {
-        ctx.canvas3d?.requestCameraReset();
+    PluginCommands.Camera.Reset.subscribe(ctx, options => {
+        ctx.canvas3d?.requestCameraReset(options);
     })
 }
 
