@@ -78,7 +78,7 @@ function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, ac
         // first check if data reading is already done
         if (isDone(data)) {
             const { error } = data as FileReader;
-            if (error !== null) {
+            if (error !== null && error !== undefined) {
                 reject(error ?? 'Failed.');
             } else {
                 resolve(data);
