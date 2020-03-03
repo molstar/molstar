@@ -79,7 +79,7 @@ class PluginState {
             this.animation.setSnapshot(snapshot.animation);
         }
         if (snapshot.camera) {
-            PluginCommands.Camera.SetSnapshot(this.plugin, {
+            PluginCommands.Camera.Reset(this.plugin, {
                 snapshot: snapshot.camera.current,
                 durationMs: snapshot.camera.transitionStyle === 'animate'
                     ? snapshot.camera.transitionDurationInMs

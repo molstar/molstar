@@ -310,6 +310,7 @@ namespace Canvas3D {
             if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) return false;
 
             if (debugHelper.isEnabled) debugHelper.update();
+            if (reprCount.value === 0) cameraResetRequested = true;
             reprCount.next(reprRenderObjects.size);
             return true;
         }
