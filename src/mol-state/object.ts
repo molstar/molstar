@@ -100,8 +100,8 @@ namespace StateObjectCell {
         const ref = typeof refOrCellOrSelector === 'string'
             ? refOrCellOrSelector
             : StateObjectCell.is(refOrCellOrSelector)
-            ? refOrCellOrSelector.transform.ref
-            : refOrCellOrSelector.ref;
+                ? refOrCellOrSelector.transform.ref
+                : refOrCellOrSelector.ref;
         return state.cells.get(ref);
     }
 }
