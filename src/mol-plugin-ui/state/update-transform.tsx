@@ -89,7 +89,8 @@ class UpdateTransformControl extends TransformControlBase<UpdateTransformControl
             transform: props.transform,
             params: (cell.params && cell.params.values) || { },
             isInitial: true,
-            error: void 0
+            error: void 0,
+            simpleOnly: state.simpleOnly
         };
         return newState;
     }

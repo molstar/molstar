@@ -31,7 +31,7 @@ class StateTransformParameters extends PurePluginUIComponent<StateTransformParam
     };
 
     render() {
-        return <ParameterControls params={this.props.info.params} values={this.props.params} onChange={this.onChange} onEnter={this.props.events.onEnter} isDisabled={this.props.isDisabled} />;
+        return <ParameterControls params={this.props.info.params} values={this.props.params} onChange={this.onChange} onEnter={this.props.events.onEnter} isDisabled={this.props.isDisabled} categoryFilter={this.props.simpleOnly ? PD.Categories.Simple : void 0} />;
     }
 }
 
@@ -50,7 +50,8 @@ namespace StateTransformParameters {
         params: any,
         isDisabled?: boolean,
         a?: StateObject,
-        b?: StateObject
+        b?: StateObject,
+        simpleOnly?: boolean
     }
 
     export type Class = React.ComponentClass<Props>
@@ -95,6 +96,7 @@ namespace TransformControlBase {
         error?: string,
         busy: boolean,
         isInitial: boolean,
+        simpleOnly?: boolean,
         isCollapsed?: boolean
     }
 }
@@ -170,6 +172,10 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         this.setState({ isCollapsed: !this.state.isCollapsed });
     }
 
+    toggleSimple = () => {
+        this.setState({ simpleOnly: !this.state.simpleOnly });
+    }
+
     render() {
         const info = this.getInfo();
         const isEmpty = info.isEmpty && this.isUpdate();
@@ -197,7 +203,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
                 </button>
             </div>}
             {!isEmpty && !this.state.isCollapsed && <>
-                <ParamEditor info={info} a={a} b={b} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
+                <ParamEditor info={info} a={a} b={b} events={this.events} params={this.state.params} isDisabled={this.state.busy} simpleOnly={this.state.simpleOnly} />
 
                 <div className='msp-transform-apply-wrap'>
                     <button className='msp-btn msp-btn-block msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params'><Icon name='cw' /></button>
@@ -210,6 +216,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
                             {this.applyText()}
                         </button>
                     </div>
+                    {this.isUpdate() && <button className='msp-btn msp-btn-block msp-transform-default-params' style={{ left: '33px' }}  onClick={this.toggleSimple} disabled={this.state.busy} title='Show/hide simple params'><Icon name='log' /></button>}
                 </div>
             </>}
         </div>

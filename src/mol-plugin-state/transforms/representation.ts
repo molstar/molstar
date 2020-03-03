@@ -151,14 +151,16 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
                     const p = themeCtx.colorThemeRegistry.get(name)
                     const ct = p.factory({}, params)
                     return { description: ct.description, legend: ct.legend }
-                }
+                },
+                category: PD.Categories.Simple
             }
 
             return {
                 type: PD.Mapped<any>(
                     registry.default.name,
                     registry.types,
-                    name => PD.Group<any>(registry.get(name).getParams(themeCtx, Structure.Empty))),
+                    name => PD.Group<any>(registry.get(name).getParams(themeCtx, Structure.Empty)),
+                    PD.SimpleCategory),
                 colorTheme: PD.Mapped<any>(
                     type.defaultColorTheme.name,
                     themeCtx.colorThemeRegistry.types,
@@ -168,7 +170,8 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
                 sizeTheme: PD.Mapped<any>(
                     type.defaultSizeTheme.name,
                     themeCtx.sizeThemeRegistry.types,
-                    name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ structure: Structure.Empty }))
+                    name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ structure: Structure.Empty })),
+                    PD.SimpleCategory
                 )
             }
         }
@@ -180,14 +183,16 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
                 const p = themeCtx.colorThemeRegistry.get(name)
                 const ct = p.factory(dataCtx, params)
                 return { description: ct.description, legend: ct.legend }
-            }
+            },
+            category: PD.Categories.Simple
         }
 
         return ({
             type: PD.Mapped<any>(
                 registry.default.name,
                 registry.getApplicableTypes(a.data),
-                name => PD.Group<any>(registry.get(name).getParams(themeCtx, a.data))),
+                name => PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
+                PD.SimpleCategory),
             colorTheme: PD.Mapped<any>(
                 type.defaultColorTheme.name,
                 themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
@@ -197,7 +202,8 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             sizeTheme: PD.Mapped<any>(
                 type.defaultSizeTheme.name,
                 themeCtx.sizeThemeRegistry.types,
-                name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx))
+                name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx)),
+                PD.SimpleCategory
             )
         })
     }

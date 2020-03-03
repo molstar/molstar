@@ -35,8 +35,8 @@ export const VisualQualityOptions = PD.arrayToOptions(VisualQualityNames)
 
 export namespace BaseGeometry {
     export const Params = {
-        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
-        quality: PD.Select<VisualQuality>('auto', VisualQualityOptions),
+        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity', category: PD.Categories.Simple }),
+        quality: PD.Select<VisualQuality>('auto', VisualQualityOptions, PD.SimpleCategory),
     }
     export type Params = typeof Params
 

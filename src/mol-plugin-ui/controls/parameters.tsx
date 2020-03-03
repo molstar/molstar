@@ -24,11 +24,15 @@ import { ParamMapping } from '../../mol-util/param-mapping';
 import { PluginContext } from '../../mol-plugin/context';
 import { ActionMenu } from './action-menu';
 
+export type ParameterControlsCategoryFilter = string | null | (string | null)[]
+
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
     values: any,
     onChange: ParamsOnChange<PD.Values<P>>,
     isDisabled?: boolean,
+    /** null <=> "support" PD.categories === undefined */
+    categoryFilter?: ParameterControlsCategoryFilter
     onEnter?: () => void
 }
 
@@ -38,7 +42,8 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
     render() {
         const params = this.props.params;
         const values = this.props.values;
-        const keys = Object.keys(params);
+        const filter = this.props.categoryFilter;
+        const keys = filterParamKeys(params, filter);
         if (keys.length === 0 || values === undefined) return null;
         return <>
             {keys.map(key => {
@@ -46,7 +51,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
                 if (param.isHidden) return null;
                 const Control = controlFor(param);
                 if (!Control) return null;
-                return <Control param={param} key={key} onChange={this.onChange} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} name={key} value={values[key]} />
+                return <Control param={param} key={key} onChange={this.onChange} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} name={key} value={values[key]} categoryFilter={filter} />
             })}
         </>;
     }
@@ -69,6 +74,10 @@ export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: 
         const params = this.props.mapping.params(this.plugin) as any as PD.Params;
         return <ParameterControls params={params} values={values} onChange={this.setSettings} />
     }
+}
+
+function filterParamKeys(params: PD.Params, filter: ParameterControlsCategoryFilter | undefined) {
+    return filter === void 0 ? Object.keys(params) : Object.keys(params).filter(key => PD.hasCategory(params[key], filter));
 }
 
 function controlFor(param: PD.Any): ParamControl | undefined {
@@ -122,6 +131,7 @@ export interface ParamProps<P extends PD.Base<any> = PD.Base<any>> {
     value: P['defaultValue'],
     param: P,
     isDisabled?: boolean,
+    categoryFilter?: ParameterControlsCategoryFilter
     onChange: ParamOnChange,
     onEnter?: () => void
 }
@@ -418,7 +428,7 @@ export class IntervalControl extends React.PureComponent<ParamProps<PD.Interval>
                 </div>
             </div>
             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
-                <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} />
+                <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} categoryFilter={this.props.categoryFilter} />
             </div>
         </>;
     }
@@ -543,7 +553,7 @@ export class Vec3Control extends React.PureComponent<ParamProps<PD.Vec3>, { isEx
                 </div>
             </div>
             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
-                <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} />
+                <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} categoryFilter={this.props.categoryFilter} />
             </div>
         </>;
     }
@@ -658,11 +668,11 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
         const params = this.props.param.params;
 
         // Do not show if there are no params.
-        if (Object.keys(params).length === 0) return null;
+        if (filterParamKeys(params, this.props.categoryFilter).length === 0) return null;
 
         const label = this.props.param.label || camelCaseToWords(this.props.name);
 
-        const controls = <ParameterControls params={params} onChange={this.onChangeParam} values={this.props.value} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />;
+        const controls = <ParameterControls params={params} onChange={this.onChangeParam} values={this.props.value} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} categoryFilter={this.props.categoryFilter} />;
 
         if (this.props.inMapped) {
             return <div className='msp-control-offset'>{controls}</div>;
@@ -738,22 +748,26 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
             return Select;
         }
 
-        if (param.type === 'group' && !param.isFlat && Object.keys(param.params).length > 0) {
-            return <div className='msp-mapped-parameter-group'>
-                {Select}
-                <IconButton icon='log' onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`${label} Properties`} />
-                {this.state.isExpanded && <GroupControl inMapped param={param} value={value.params} name={`${label} Properties`} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />}
-            </div>
+        if (param.type === 'group' && !param.isFlat) {
+            if (filterParamKeys(param.params, this.props.categoryFilter).length > 0) {
+                return <div className='msp-mapped-parameter-group'>
+                    {Select}
+                    <IconButton icon='log' onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`${label} Properties`} />
+                    {this.state.isExpanded && <GroupControl inMapped param={param} value={value.params} name={`${label} Properties`} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} categoryFilter={this.props.categoryFilter} />}
+                </div>
+            }
+
+            return Select;
         }
 
         return <>
             {Select}
-            <Mapped param={param} value={value.params} name={`${label} Properties`} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
+            <Mapped param={param} value={value.params} name={`${label} Properties`} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} categoryFilter={this.props.categoryFilter} />
         </>
     }
 }
 
-class ObjectListEditor extends React.PureComponent<{ params: PD.Params, value: object, isUpdate?: boolean, apply: (value: any) => void, isDisabled?: boolean }, { params: PD.Params, value: object, current: object }> {
+class ObjectListEditor extends React.PureComponent<{ params: PD.Params, value: object, isUpdate?: boolean, apply: (value: any) => void, isDisabled?: boolean, categoryFilter?: ParameterControlsCategoryFilter }, { params: PD.Params, value: object, current: object }> {
     state = { params: {}, value: void 0 as any, current: void 0 as any };
 
     onChangeParam: ParamOnChange = e => {
@@ -775,7 +789,7 @@ class ObjectListEditor extends React.PureComponent<{ params: PD.Params, value: o
 
     render() {
         return <>
-            <ParameterControls params={this.props.params} onChange={this.onChangeParam} values={this.state.current} onEnter={this.apply} isDisabled={this.props.isDisabled} />
+            <ParameterControls params={this.props.params} onChange={this.onChangeParam} values={this.state.current} onEnter={this.apply} isDisabled={this.props.isDisabled} categoryFilter={this.props.categoryFilter} />
             <button className={`msp-btn msp-btn-block msp-form-control msp-control-top-offset`} onClick={this.apply} disabled={this.props.isDisabled}>
                 {this.props.isUpdate ? 'Update' : 'Add'}
             </button>
@@ -783,7 +797,7 @@ class ObjectListEditor extends React.PureComponent<{ params: PD.Params, value: o
     }
 }
 
-class ObjectListItem extends React.PureComponent<{ param: PD.ObjectList, value: object, index: number, actions: ObjectListControl['actions'], isDisabled?: boolean }, { isExpanded: boolean }> {
+class ObjectListItem extends React.PureComponent<{ param: PD.ObjectList, value: object, index: number, actions: ObjectListControl['actions'], isDisabled?: boolean, categoryFilter?: ParameterControlsCategoryFilter }, { isExpanded: boolean }> {
     state = { isExpanded: false };
 
     update = (v: object) => {
@@ -832,7 +846,7 @@ class ObjectListItem extends React.PureComponent<{ param: PD.ObjectList, value: 
                 </div>
             </div>
             {this.state.isExpanded && <div className='msp-control-offset'>
-                <ObjectListEditor params={this.props.param.element} apply={this.update} value={this.props.value} isUpdate isDisabled={this.props.isDisabled} />
+                <ObjectListEditor params={this.props.param.element} apply={this.update} value={this.props.value} isUpdate isDisabled={this.props.isDisabled} categoryFilter={this.props.categoryFilter} />
             </div>}
         </>;
     }
@@ -896,9 +910,9 @@ export class ObjectListControl extends React.PureComponent<ParamProps<PD.ObjectL
             </div>
 
             {this.state.isExpanded && <div className='msp-control-offset'>
-                {this.props.value.map((v, i) => <ObjectListItem key={i} param={this.props.param} value={v} index={i} actions={this.actions} />)}
+                {this.props.value.map((v, i) => <ObjectListItem key={i} param={this.props.param} value={v} index={i} actions={this.actions} categoryFilter={this.props.categoryFilter} />)}
                 <ControlGroup header='New Item'>
-                    <ObjectListEditor params={this.props.param.element} apply={this.add} value={this.props.param.ctor()} isDisabled={this.props.isDisabled} />
+                    <ObjectListEditor params={this.props.param.element} apply={this.add} value={this.props.param.ctor()} isDisabled={this.props.isDisabled} categoryFilter={this.props.categoryFilter} />
                 </ControlGroup>
             </div>}
         </>;
