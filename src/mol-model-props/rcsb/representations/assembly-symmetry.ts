@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { AssemblySymmetryValue, getSymmetrySelectParam, AssemblySymmetryProvider } from '../assembly-symmetry';
+import { AssemblySymmetryValue, getSymmetrySelectParam, AssemblySymmetryProvider, AssemblySymmetry } from '../assembly-symmetry';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
@@ -29,7 +29,6 @@ import { TetrahedronCage } from '../../../mol-geo/primitive/tetrahedron';
 import { IcosahedronCage } from '../../../mol-geo/primitive/icosahedron';
 import { degToRad, radToDeg } from '../../../mol-math/misc';
 import { Mutable } from '../../../mol-util/type-helpers';
-import { ReadonlyVec3 } from '../../../mol-math/linear-algebra/3d/vec3';
 import { equalEps } from '../../../mol-math/linear-algebra/3d/common';
 import { Structure } from '../../../mol-model/structure';
 import { isInteger } from '../../../mol-util/number';
@@ -87,11 +86,6 @@ export type AssemblySymmetryProps = PD.Values<AssemblySymmetryParams>
 
 //
 
-type RotationAxes = ReadonlyArray<{ order: number, start: ReadonlyVec3, end: ReadonlyVec3 }>
-function isRotationAxes(x: AssemblySymmetryValue[0]['rotation_axes']): x is RotationAxes {
-    return !!x && x.length > 0
-}
-
 function getAssemblyName(s: Structure) {
     const { id } = s.units[0].conformation.operator.assembly
     return isInteger(id) ? `Assembly ${id}` : id
@@ -122,7 +116,7 @@ function getAxesMesh(data: AssemblySymmetryValue, props: PD.Values<AxesParams>, 
     const { symmetryIndex, scale } = props
 
     const { rotation_axes } = data[symmetryIndex]
-    if (!isRotationAxes(rotation_axes)) return Mesh.createEmpty(mesh)
+    if (!AssemblySymmetry.isRotationAxes(rotation_axes)) return Mesh.createEmpty(mesh)
 
     const { start, end } = rotation_axes[0]
     const radius = (Vec3.distance(start, end) / 500) * scale
@@ -227,11 +221,11 @@ function getSymbolScale(symbol: string) {
     return 1
 }
 
-function setSymbolTransform(t: Mat4, symbol: string, axes: RotationAxes, size: number, structure: Structure) {
+function setSymbolTransform(t: Mat4, symbol: string, axes: AssemblySymmetry.RotationAxes, size: number, structure: Structure) {
     const eye = Vec3()
     const target = Vec3()
     const up = Vec3()
-    let pair: Mutable<RotationAxes> | undefined = undefined
+    let pair: Mutable<AssemblySymmetry.RotationAxes> | undefined = undefined
 
     if (symbol.startsWith('C')) {
         pair = [axes[0]]
@@ -288,7 +282,7 @@ function getCageMesh(data: Structure, props: PD.Values<CageParams>, mesh?: Mesh)
     const { symmetryIndex, scale } = props
 
     const { rotation_axes, symbol } = assemblySymmetry[symmetryIndex]
-    if (!isRotationAxes(rotation_axes)) return Mesh.createEmpty(mesh)
+    if (!AssemblySymmetry.isRotationAxes(rotation_axes)) return Mesh.createEmpty(mesh)
 
     const cage = getSymbolCage(symbol)
     if (!cage) return Mesh.createEmpty(mesh)

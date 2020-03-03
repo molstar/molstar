@@ -15,6 +15,7 @@ import { CustomProperty } from '../common/custom-property';
 import { NonNullableArray } from '../../mol-util/type-helpers';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { ReadonlyVec3 } from '../../mol-math/linear-algebra/3d/vec3';
 
 const BiologicalAssemblyNames = new Set([
     'author_and_software_defined_assembly',
@@ -64,6 +65,11 @@ export namespace AssemblySymmetry {
             return []
         }
         return result.assembly.rcsb_struct_symmetry as AssemblySymmetryValue
+    }
+
+    export type RotationAxes = ReadonlyArray<{ order: number, start: ReadonlyVec3, end: ReadonlyVec3 }>
+    export function isRotationAxes(x: AssemblySymmetryValue[0]['rotation_axes']): x is RotationAxes {
+        return !!x && x.length > 0
     }
 }
 
