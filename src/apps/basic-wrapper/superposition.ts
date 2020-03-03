@@ -9,9 +9,9 @@
 import { PluginContext } from '../../mol-plugin/context';
 import { Mat4 } from '../../mol-math/linear-algebra';
 import { StateHelper } from './helpers';
-import { PluginCommands } from '../../mol-plugin/command';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { StateSelection, StateBuilder } from '../../mol-state';
-import { PluginStateObject as PSO } from '../../mol-plugin/state/objects';
+import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { StructureSelection, QueryContext } from '../../mol-model/structure';
@@ -71,7 +71,7 @@ export async function dynamicSuperpositionTest(ctx: PluginContext, src: string[]
             StateHelper.getModel(StateHelper.download(structures, `https://www.ebi.ac.uk/pdbe/static/entry/${s}_updated.cif`), 'cif'));
     }
 
-    await PluginCommands.State.Update.dispatch(ctx, { state, tree: structures });
+    await PluginCommands.State.Update(ctx, { state, tree: structures });
 
     const pivot = MS.struct.filter.first([
         MS.struct.generator.atomGroups({
@@ -99,7 +99,7 @@ export async function dynamicSuperpositionTest(ctx: PluginContext, src: string[]
             pivot, rest);
     }
 
-    await PluginCommands.State.Update.dispatch(ctx, { state, tree: visuals });
+    await PluginCommands.State.Update(ctx, { state, tree: visuals });
 }
 
 function siteVisual(ctx: PluginContext, b: StateBuilder.To<PSO.Molecule.Structure>, pivot: Expression, rest: Expression) {

@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginStateObject as SO, PluginStateTransform } from '../../../state/objects';
+import { PluginStateObject as SO, PluginStateTransform } from '../../../../mol-plugin-state/objects';
 import { VolumeServerInfo, VolumeServerHeader } from './model';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { Task } from '../../../../mol-task';
@@ -16,7 +16,7 @@ import { VolumeIsoValue } from '../../../../mol-model/volume';
 import { StateAction, StateObject, StateTransformer } from '../../../../mol-state';
 import { getStreamingMethod, getIds, getContourLevel, getEmdbIds } from './util';
 import { VolumeStreaming } from './behavior';
-import { VolumeRepresentation3DHelpers } from '../../../../mol-plugin/state/transforms/representation';
+import { VolumeRepresentation3DHelpers } from '../../../../mol-plugin-state/transforms/representation';
 import { BuiltInVolumeRepresentations } from '../../../../mol-repr/volume/registry';
 import { Theme } from '../../../../mol-theme/theme';
 import { Box3D } from '../../../../mol-math/geometry';

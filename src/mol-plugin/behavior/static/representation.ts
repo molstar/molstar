@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginStateObject as SO } from '../../state/objects';
+import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { PluginContext } from '../../../mol-plugin/context';
 import { Representation } from '../../../mol-repr/representation';
 import { StateObjectCell } from '../../../mol-state';

@@ -4,12 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginStateObject as PSO } from '../../mol-plugin/state/objects';
-import { StateTransforms } from '../../mol-plugin/state/transforms';
+import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { StateTransformer, StateSelection, StateObjectCell, StateTransform, StateBuilder } from '../../mol-state';
 import { StructureElement, Structure, StructureSelection, QueryContext } from '../../mol-model/structure';
 import { PluginContext } from '../context';
-import { StructureRepresentation3DHelpers } from '../state/transforms/representation';
+import { StructureRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
 import Expression from '../../mol-script/language/expression';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { VisualQuality } from '../../mol-geo/geometry/base';

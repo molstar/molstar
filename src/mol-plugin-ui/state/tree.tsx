@@ -5,9 +5,9 @@
  */
 
 import * as React from 'react';
-import { PluginStateObject } from '../../mol-plugin/state/objects';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { State, StateObject, StateTransform, StateObjectCell } from '../../mol-state'
-import { PluginCommands } from '../../mol-plugin/command';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginUIComponent, _Props, _State } from '../base';
 import { Icon } from '../controls/common';
 
@@ -165,41 +165,41 @@ class StateTreeNodeLabel extends PluginUIComponent<
     setCurrent = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         e.currentTarget.blur();
-        PluginCommands.State.SetCurrentObject.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref });
+        PluginCommands.State.SetCurrentObject(this.plugin, { state: this.props.cell.parent, ref: this.ref });
     }
 
     setCurrentRoot = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         e.currentTarget.blur();
-        PluginCommands.State.SetCurrentObject.dispatch(this.plugin, { state: this.props.cell.parent, ref: StateTransform.RootRef });
+        PluginCommands.State.SetCurrentObject(this.plugin, { state: this.props.cell.parent, ref: StateTransform.RootRef });
     }
 
     remove = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref, removeParentGhosts: true });
+        PluginCommands.State.RemoveObject(this.plugin, { state: this.props.cell.parent, ref: this.ref, removeParentGhosts: true });
     }
 
     toggleVisible = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.ToggleVisibility.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref });
+        PluginCommands.State.ToggleVisibility(this.plugin, { state: this.props.cell.parent, ref: this.ref });
         e.currentTarget.blur();
     }
 
     toggleExpanded = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.ToggleExpanded.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref });
+        PluginCommands.State.ToggleExpanded(this.plugin, { state: this.props.cell.parent, ref: this.ref });
         e.currentTarget.blur();
     }
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.Highlight.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref });
+        PluginCommands.State.Highlight(this.plugin, { state: this.props.cell.parent, ref: this.ref });
         e.currentTarget.blur();
     }
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.ClearHighlight.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref });
+        PluginCommands.State.ClearHighlight(this.plugin, { state: this.props.cell.parent, ref: this.ref });
         e.currentTarget.blur();
     }
 

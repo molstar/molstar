@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginCommands } from '../mol-plugin/command';
+import { PluginCommands } from '../mol-plugin/commands';
 import * as React from 'react';
 import { PluginUIComponent } from './base';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -29,12 +29,12 @@ class CameraSnapshotControls extends PluginUIComponent<{ }, { name: string, desc
     state = PD.getDefaultValues(CameraSnapshotControls.Params);
 
     add = () => {
-        PluginCommands.Camera.Snapshots.Add.dispatch(this.plugin, this.state);
+        PluginCommands.Camera.Snapshots.Add(this.plugin, this.state);
         this.setState({ name: '', description: '' })
     }
 
     clear = () => {
-        PluginCommands.Camera.Snapshots.Clear.dispatch(this.plugin, {});
+        PluginCommands.Camera.Snapshots.Clear(this.plugin, {});
     }
 
     render() {
@@ -55,12 +55,12 @@ class CameraSnapshotList extends PluginUIComponent<{ }, { }> {
     }
 
     apply(id: string) {
-        return () => PluginCommands.Camera.Snapshots.Apply.dispatch(this.plugin, { id });
+        return () => PluginCommands.Camera.Snapshots.Apply(this.plugin, { id });
     }
 
     remove(id: string) {
         return () => {
-            PluginCommands.Camera.Snapshots.Remove.dispatch(this.plugin, { id });
+            PluginCommands.Camera.Snapshots.Remove(this.plugin, { id });
         }
     }
 

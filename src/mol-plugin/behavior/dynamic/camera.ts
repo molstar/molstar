@@ -10,7 +10,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginBehavior } from '../behavior';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
 import { Binding } from '../../../mol-util/binding';
-import { PluginCommands } from '../../command';
+import { PluginCommands } from '../../commands';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -42,7 +42,7 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                 if (Binding.match(this.params.bindings.clickCenterFocus, button, modifiers)) {
                     const loci = Loci.normalize(current.loci, this.ctx.interactivity.props.granularity)
                     if (Loci.isEmpty(loci)) {
-                        PluginCommands.Camera.Reset.dispatch(this.ctx, { })
+                        PluginCommands.Camera.Reset(this.ctx, { })
                     } else {
                         const sphere = Loci.getBoundingSphere(loci);
                         if (sphere) {

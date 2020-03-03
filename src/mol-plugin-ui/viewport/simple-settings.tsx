@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
-import { PluginCommands } from '../../mol-plugin/command';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParameterMappingControl } from '../controls/parameters';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -97,6 +97,6 @@ const SimpleSettingsMapping = ParamMapping({
         t.cameraClipFar = s.clipFar;
     },
     apply(settings, ctx) {
-        return PluginCommands.Canvas3D.SetSettings.dispatch(ctx, { settings });
+        return PluginCommands.Canvas3D.SetSettings(ctx, { settings });
     }
 })

@@ -6,7 +6,7 @@
  */
 
 import { PluginContext } from '../../../mol-plugin/context';
-import { PluginCommands } from '../../../mol-plugin/command';
+import { PluginCommands } from '../../commands';
 
 export function registerDefault(ctx: PluginContext) {
     Canvas3DSetSettings(ctx);

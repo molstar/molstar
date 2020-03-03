@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginCommands } from '../../mol-plugin/command';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { State, StateTransform, StateAction } from '../../mol-state';
 import { memoizeLatest } from '../../mol-util/memoize';
@@ -35,7 +35,7 @@ namespace ApplyActionControl {
 
 class ApplyActionControl extends TransformControlBase<ApplyActionControl.Props, ApplyActionControl.ComponentState> {
     applyAction() {
-        return PluginCommands.State.ApplyAction.dispatch(this.plugin, {
+        return PluginCommands.State.ApplyAction(this.plugin, {
             state: this.props.state,
             action: this.props.action.create(this.state.params),
             ref: this.props.nodeRef

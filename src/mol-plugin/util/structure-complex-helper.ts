@@ -6,10 +6,10 @@
 
 import { PluginContext } from '../context';
 import { StateBuilder } from '../../mol-state';
-import { PluginStateObject } from '../state/objects';
-import { StateTransforms } from '../state/transforms';
-import { StructureRepresentation3DHelpers } from '../state/transforms/representation';
-import { StructureComplexElementTypes } from '../state/transforms/model';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { StructureRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
+import { StructureComplexElementTypes } from '../../mol-plugin-state/transforms/model';
 
 export function createDefaultStructureComplex(
     ctx: PluginContext, root: StateBuilder.To<PluginStateObject.Molecule.Structure>

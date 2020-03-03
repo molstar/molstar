@@ -7,10 +7,10 @@
 
 import { Structure, StructureElement, Bond } from '../../../../mol-model/structure';
 import { PluginBehavior } from '../../../../mol-plugin/behavior';
-import { PluginCommands } from '../../../../mol-plugin/command';
-import { PluginStateObject } from '../../../../mol-plugin/state/objects';
-import { StateTransforms } from '../../../../mol-plugin/state/transforms';
-import { StructureRepresentation3DHelpers } from '../../../../mol-plugin/state/transforms/representation';
+import { PluginCommands } from '../../../commands';
+import { PluginStateObject } from '../../../../mol-plugin-state/objects';
+import { StateTransforms } from '../../../../mol-plugin-state/transforms';
+import { StructureRepresentation3DHelpers } from '../../../../mol-plugin-state/transforms/representation';
 import { BuiltInStructureRepresentations } from '../../../../mol-repr/structure/registry';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 import { StateObjectCell, StateSelection, StateTransform } from '../../../../mol-state';
@@ -129,7 +129,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
             if (surr) update.to(surr).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression }));
         }
 
-        PluginCommands.State.Update.dispatch(this.plugin, { state, tree: update, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
+        PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
     }
 
     register(ref: string): void {
@@ -197,7 +197,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
                 builder.to(refs[Tags.ResidueSel]!).update(StateTransforms.Model.StructureSelectionFromBundle, old => ({ ...old, bundle: residueBundle }));
                 builder.to(refs[Tags.SurrSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: surroundings }));
 
-                PluginCommands.State.Update.dispatch(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
+                PluginCommands.State.Update(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
             }
         });
     }

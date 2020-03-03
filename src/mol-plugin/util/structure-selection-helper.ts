@@ -7,14 +7,14 @@
 
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { StateSelection, StateBuilder } from '../../mol-state';
-import { PluginStateObject } from '../state/objects';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { QueryContext, StructureSelection, StructureQuery, StructureElement, Structure } from '../../mol-model/structure';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { Loci } from '../../mol-model/loci';
 import { PluginContext } from '../context';
 import Expression from '../../mol-script/language/expression';
 import { BondType, ProteinBackboneAtoms, NucleicBackboneAtoms, SecondaryStructureType } from '../../mol-model/structure/model/types';
-import { StateTransforms } from '../state/transforms';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { SetUtils } from '../../mol-util/set';
 import { ValidationReport, ValidationReportProvider } from '../../mol-model-props/rcsb/validation-report';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';

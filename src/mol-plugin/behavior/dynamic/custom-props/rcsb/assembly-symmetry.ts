@@ -9,7 +9,7 @@ import { AssemblySymmetryProvider, AssemblySymmetry, getSymmetrySelectParam } fr
 import { PluginBehavior } from '../../../behavior';
 import { AssemblySymmetryParams, AssemblySymmetryRepresentation } from '../../../../../mol-model-props/rcsb/representations/assembly-symmetry';
 import { AssemblySymmetryClusterColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/assembly-symmetry-cluster';
-import { PluginStateTransform, PluginStateObject } from '../../../../state/objects';
+import { PluginStateTransform, PluginStateObject } from '../../../../../mol-plugin-state/objects';
 import { Task } from '../../../../../mol-task';
 import { PluginContext } from '../../../../context';
 import { StateTransformer, StateAction, StateObject } from '../../../../../mol-state';

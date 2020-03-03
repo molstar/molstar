@@ -6,7 +6,7 @@
 
 import { StateAction } from '../../../../mol-state';
 import { PluginContext } from '../../../../mol-plugin/context';
-import { PluginStateObject as PSO } from '../../../../mol-plugin/state/objects';
+import { PluginStateObject as PSO } from '../../../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { Ingredient, CellPacking, Cell } from './data';
 import { getFromPdb, getFromCellPackDB } from './util';
@@ -16,8 +16,8 @@ import { trajectoryFromPDB } from '../../../../mol-model-formats/structure/pdb';
 import { Mat4, Vec3, Quat } from '../../../../mol-math/linear-algebra';
 import { SymmetryOperator } from '../../../../mol-math/geometry';
 import { Task } from '../../../../mol-task';
-import { StructureRepresentation3DHelpers } from '../../../../mol-plugin/state/transforms/representation';
-import { StateTransforms } from '../../../../mol-plugin/state/transforms';
+import { StructureRepresentation3DHelpers } from '../../../../mol-plugin-state/transforms/representation';
+import { StateTransforms } from '../../../../mol-plugin-state/transforms';
 import { distinctColors } from '../../../../mol-util/color/distinct';
 import { ModelIndexColorThemeProvider } from '../../../../mol-theme/color/model-index';
 import { Hcl } from '../../../../mol-util/color/spaces/hcl';

@@ -6,7 +6,7 @@
  */
 
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { PluginStateObject } from '../../../state/objects';
+import { PluginStateObject } from '../../../../mol-plugin-state/objects';
 import { VolumeIsoValue, VolumeData } from '../../../../mol-model/volume';
 import { createIsoValueParam } from '../../../../mol-repr/volume/isosurface';
 import { VolumeServerHeader, VolumeServerInfo } from './model';
@@ -18,7 +18,7 @@ import { LRUCache } from '../../../../mol-util/lru-cache';
 import { urlCombine } from '../../../../mol-util/url';
 import { CIF } from '../../../../mol-io/reader/cif';
 import { volumeFromDensityServerData } from '../../../../mol-model-formats/volume/density-server';
-import { PluginCommands } from '../../../command';
+import { PluginCommands } from '../../../commands';
 import { StateSelection } from '../../../../mol-state';
 import { Representation } from '../../../../mol-repr/representation';
 import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-observer';
@@ -222,7 +222,7 @@ export namespace VolumeStreaming {
             };
             const update = state.build().to(this.ref).update(newParams);
 
-            PluginCommands.State.Update.dispatch(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
+            PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
         }
 
         private getStructureRoot() {

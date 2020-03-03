@@ -8,7 +8,7 @@
 import { StateTransformer, StateAction } from '../mol-state';
 import { StateTransformParameters } from '../mol-plugin-ui/state/common';
 import { PluginLayoutStateProps } from './layout';
-import { PluginStateAnimation } from './state/animation/model';
+import { PluginStateAnimation } from '../mol-plugin-state/animation/model';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { PluginConfigItem } from './config';
 
@@ -25,7 +25,7 @@ interface PluginSpec {
         viewport?: React.ComponentClass
     },
     components?: {
-        remoteState?: 'none' | 'default' // TODO: props for server etc
+        remoteState?: 'none' | 'default'
     },
     config?: Map<PluginConfigItem, unknown>
 }

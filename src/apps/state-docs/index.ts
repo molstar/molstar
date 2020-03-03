@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as _ from '../../mol-plugin/state/transforms'
+import * as _ from '../../mol-plugin-state/transforms'
 import { StateTransformer, StateObject } from '../../mol-state';
 import { StringBuilder } from '../../mol-util';
 import * as fs from 'fs';

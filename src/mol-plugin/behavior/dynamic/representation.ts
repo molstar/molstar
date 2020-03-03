@@ -7,7 +7,7 @@
 
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { PluginContext } from '../../../mol-plugin/context';
-import { PluginStateObject as SO } from '../../state/objects';
+import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { lociLabel } from '../../../mol-theme/label';
 import { PluginBehavior } from '../behavior';
 import { Interactivity } from '../../util/interactivity';

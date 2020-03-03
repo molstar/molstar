@@ -8,7 +8,7 @@
 import { PluginContext } from '../context';
 import { ImagePass } from '../../mol-canvas3d/passes/image';
 import { StateSelection } from '../../mol-state';
-import { PluginStateObject } from '../state/objects';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { Task, RuntimeContext } from '../../mol-task';
 import { canvasToBlob } from '../../mol-canvas3d/util';
 import { download } from '../../mol-util/download';

@@ -5,8 +5,8 @@
  */
 
 import { PluginContext } from '../../../mol-plugin/context';
-import { PluginCommands } from '../../../mol-plugin/command';
-import { CameraSnapshotManager } from '../../../mol-plugin/state/camera';
+import { PluginCommands } from '../../commands';
+import { CameraSnapshotManager } from '../../../mol-plugin-state/camera';
 
 export function registerDefault(ctx: PluginContext) {
     Reset(ctx);
@@ -42,6 +42,6 @@ export function Snapshots(ctx: PluginContext) {
 
     PluginCommands.Camera.Snapshots.Apply.subscribe(ctx, ({ id }) => {
         const e = ctx.state.cameraSnapshots.getEntry(id);
-        return PluginCommands.Camera.SetSnapshot.dispatch(ctx, { snapshot: e.snapshot, durationMs: 200 });
+        return PluginCommands.Camera.SetSnapshot(ctx, { snapshot: e.snapshot, durationMs: 200 });
     });
 }

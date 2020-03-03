@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginStateObject } from '../../mol-plugin/state/objects';
-import { StateTransforms } from '../../mol-plugin/state/transforms';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { StateSelection, StateObjectCell, StateTransform, StateBuilder } from '../../mol-state';
 import { Structure, StructureElement, StructureSelection, QueryContext } from '../../mol-model/structure';
 import { PluginContext } from '../context';

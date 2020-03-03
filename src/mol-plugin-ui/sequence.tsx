@@ -7,7 +7,7 @@
 
 import * as React from 'react'
 import { PluginUIComponent } from './base';
-import { PluginStateObject as PSO } from '../mol-plugin/state/objects';
+import { PluginStateObject as PSO } from '../mol-plugin-state/objects';
 import { Sequence } from './sequence/sequence';
 import { Structure, StructureElement, StructureProperties as SP, Unit } from '../mol-model/structure';
 import { SequenceWrapper } from './sequence/wrapper';

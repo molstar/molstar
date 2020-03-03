@@ -8,7 +8,7 @@
 import * as React from 'react';
 import { CollapsableControls, CollapsableState } from '../base';
 import { StructureSelectionQuery, SelectionModifier, StructureSelectionQueryList } from '../../mol-plugin/util/structure-selection-helper';
-import { PluginCommands } from '../../mol-plugin/command';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Interactivity } from '../../mol-plugin/util/interactivity';
 import { ParameterControls } from '../controls/parameters';
@@ -107,7 +107,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
         if (p.name === 'granularity') {
-            PluginCommands.Interactivity.SetProps.dispatch(this.plugin, { props: { granularity: p.value } });
+            PluginCommands.Interactivity.SetProps(this.plugin, { props: { granularity: p.value } });
         }
     }
 

@@ -8,12 +8,12 @@ import * as ReactDOM from 'react-dom';
 import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
 import './index.html'
 import { PluginContext } from '../../mol-plugin/context';
-import { PluginCommands } from '../../mol-plugin/command';
-import { StateTransforms } from '../../mol-plugin/state/transforms';
-import { StructureRepresentation3DHelpers } from '../../mol-plugin/state/transforms/representation';
+import { PluginCommands } from '../../mol-plugin/commands';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { StructureRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
 import { Color } from '../../mol-util/color';
-import { PluginStateObject as PSO, PluginStateObject } from '../../mol-plugin/state/objects';
-import { AnimateModelIndex } from '../../mol-plugin/state/animation/built-in';
+import { PluginStateObject as PSO, PluginStateObject } from '../../mol-plugin-state/objects';
+import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in';
 import { StateBuilder, StateObject, StateSelection } from '../../mol-state';
 import { EvolutionaryConservation } from './annotation';
 import { LoadParams, SupportedFormats, RepresentationStyle, ModelInfo, StateElements } from './helpers';
@@ -192,7 +192,7 @@ class MolStarProteopediaWrapper {
     }
 
     private applyState(tree: StateBuilder) {
-        return PluginCommands.State.Update.dispatch(this.plugin, { state: this.plugin.state.dataState, tree });
+        return PluginCommands.State.Update(this.plugin, { state: this.plugin.state.dataState, tree });
     }
 
     private loadedParams: LoadParams = { url: '', format: 'cif', assemblyId: '' };
@@ -208,7 +208,7 @@ class MolStarProteopediaWrapper {
         }
 
         if (loadType === 'full') {
-            await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state, ref: state.tree.root.ref });
+            await PluginCommands.State.RemoveObject(this.plugin, { state, ref: state.tree.root.ref });
             const modelTree = this.model(this.download(state.build().toRoot(), url), format);
             await this.applyState(modelTree);
             const info = await this.doInfo(true);
@@ -232,32 +232,32 @@ class MolStarProteopediaWrapper {
         await this.updateStyle(representationStyle);
 
         this.loadedParams = { url, format, assemblyId };
-        Scheduler.setImmediate(() => PluginCommands.Camera.Reset.dispatch(this.plugin, { }));
+        Scheduler.setImmediate(() => PluginCommands.Camera.Reset(this.plugin, { }));
     }
 
     async updateStyle(style?: RepresentationStyle, partial?: boolean) {
         const tree = this.visual(style, partial);
         if (!tree) return;
-        await PluginCommands.State.Update.dispatch(this.plugin, { state: this.plugin.state.dataState, tree });
+        await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.dataState, tree });
     }
 
     setBackground(color: number) {
         if (!this.plugin.canvas3d) return;
         const renderer = this.plugin.canvas3d.props.renderer;
-        PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer,  backgroundColor: Color(color) } } });
+        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { renderer: { ...renderer,  backgroundColor: Color(color) } } });
     }
 
     toggleSpin() {
         if (!this.plugin.canvas3d) return;
         const trackball = this.plugin.canvas3d.props.trackball;
         const spinning = trackball.spin;
-        PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { trackball: { ...trackball, spin: !trackball.spin } } });
-        if (!spinning) PluginCommands.Camera.Reset.dispatch(this.plugin, { });
+        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { trackball: { ...trackball, spin: !trackball.spin } } });
+        if (!spinning) PluginCommands.Camera.Reset(this.plugin, { });
     }
 
     viewport = {
         setSettings: (settings?: Canvas3DProps) => {
-            PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, {
+            PluginCommands.Canvas3D.SetSettings(this.plugin, {
                 settings: settings || DefaultCanvas3DParams
             });
         }
@@ -265,10 +265,10 @@ class MolStarProteopediaWrapper {
 
     camera = {
         toggleSpin: () => this.toggleSpin(),
-        resetPosition: () => PluginCommands.Camera.Reset.dispatch(this.plugin, { }),
+        resetPosition: () => PluginCommands.Camera.Reset(this.plugin, { }),
         // setClip: (options?: { distance?: number, near?: number, far?: number }) => {
         //     if (!options) {
-        //         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, {
+        //         PluginCommands.Canvas3D.SetSettings(this.plugin, {
         //             settings: {
         //                 cameraClipDistance: DefaultCanvas3DParams.cameraClipDistance,
         //                 clip: DefaultCanvas3DParams.clip
@@ -281,7 +281,7 @@ class MolStarProteopediaWrapper {
         //     const props = this.plugin.canvas3d.props;
         //     const clipNear = typeof options.near === 'undefined' ? props.clip[0] : options.near;
         //     const clipFar = typeof options.far === 'undefined' ? props.clip[1] : options.far;
-        //     PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, {
+        //     PluginCommands.Canvas3D.SetSettings(this.plugin, {
         //         settings: { cameraClipDistance: options.distance, clip: [clipNear, clipFar] }
         //     });
         // }
@@ -320,7 +320,7 @@ class MolStarProteopediaWrapper {
                 tree.to(StateElements.HetVisual).update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));
             }
 
-            await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
+            await PluginCommands.State.Update(this.plugin, { state, tree });
         }
     }
 
@@ -340,7 +340,7 @@ class MolStarProteopediaWrapper {
         remove: () => {
             const r = this.state.select(StateSelection.Generators.ofTransformer(CreateVolumeStreamingInfo))[0];
             if (!r) return;
-            PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.state, ref: r.transform.ref });
+            PluginCommands.State.RemoveObject(this.plugin, { state: this.state, ref: r.transform.ref });
             if (this.experimentalDataElement) {
                 ReactDOM.unmountComponentAtNode(this.experimentalDataElement);
                 this.experimentalDataElement = void 0;
@@ -351,12 +351,12 @@ class MolStarProteopediaWrapper {
     hetGroups = {
         reset: () => {
             const update = this.state.build().delete(StateElements.HetGroupFocusGroup);
-            PluginCommands.State.Update.dispatch(this.plugin, { state: this.state, tree: update });
-            PluginCommands.Camera.Reset.dispatch(this.plugin, { });
+            PluginCommands.State.Update(this.plugin, { state: this.state, tree: update });
+            PluginCommands.Camera.Reset(this.plugin, { });
         },
         focusFirst: async (compId: string) => {
             if (!this.state.transforms.has(StateElements.Assembly)) return;
-            await PluginCommands.Camera.Reset.dispatch(this.plugin, { });
+            await PluginCommands.Camera.Reset(this.plugin, { });
 
             // const asm = (this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure).data;
 
@@ -389,7 +389,7 @@ class MolStarProteopediaWrapper {
             //     }
             // });
 
-            await PluginCommands.State.Update.dispatch(this.plugin, { state: this.state, tree: update });
+            await PluginCommands.State.Update(this.plugin, { state: this.state, tree: update });
 
             const focus = (this.state.select(StateElements.HetGroupFocus)[0].obj as PluginStateObject.Molecule.Structure).data;
             const sphere = focus.boundary.sphere;
@@ -399,7 +399,7 @@ class MolStarProteopediaWrapper {
             // Vec3.scaleAndAdd(position, sphere.center, position, sphere.radius);
             const radius = Math.max(sphere.radius, 5)
             const snapshot = this.plugin.canvas3d!.camera.getFocus(sphere.center, radius, radius);
-            PluginCommands.Camera.SetSnapshot.dispatch(this.plugin, { snapshot, durationMs: 250 });
+            PluginCommands.Camera.SetSnapshot(this.plugin, { snapshot, durationMs: 250 });
         }
     }
 

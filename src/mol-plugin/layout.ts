@@ -8,7 +8,7 @@
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { PluginComponent } from './component';
 import { PluginContext } from './context';
-import { PluginCommands } from './command';
+import { PluginCommands } from './commands';
 
 const regionStateOptions = [
     ['full', 'Full'] as const,

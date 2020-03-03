@@ -5,15 +5,15 @@
  */
 
 import { State } from '../mol-state';
-import { PluginStateObject as SO } from './state/objects';
+import { PluginStateObject as SO } from '../mol-plugin-state/objects';
 import { Camera } from '../mol-canvas3d/camera';
 import { PluginBehavior } from './behavior';
-import { CameraSnapshotManager } from './state/camera';
-import { PluginStateSnapshotManager } from './state/snapshots';
+import { CameraSnapshotManager } from '../mol-plugin-state/camera';
+import { PluginStateSnapshotManager } from '../mol-plugin-state/snapshots';
 import { RxEventHelper } from '../mol-util/rx-event-helper';
 import { Canvas3DProps } from '../mol-canvas3d/canvas3d';
-import { PluginCommands } from './command';
-import { PluginAnimationManager } from './state/animation/manager';
+import { PluginCommands } from './commands';
+import { PluginAnimationManager } from '../mol-plugin-state/animation/manager';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { UUID } from '../mol-util';
 import { Interactivity } from './util/interactivity';
@@ -69,17 +69,17 @@ class PluginState {
         if (snapshot.behaviour) await this.plugin.runTask(this.behaviorState.setSnapshot(snapshot.behaviour));
         if (snapshot.data) await this.plugin.runTask(this.dataState.setSnapshot(snapshot.data));
         if (snapshot.canvas3d) {
-            if (snapshot.canvas3d.props) await PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: snapshot.canvas3d.props });
+            if (snapshot.canvas3d.props) await PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: snapshot.canvas3d.props });
         }
         if (snapshot.interactivity) {
-            if (snapshot.interactivity.props) await PluginCommands.Interactivity.SetProps.dispatch(this.plugin, { props: snapshot.interactivity.props });
+            if (snapshot.interactivity.props) await PluginCommands.Interactivity.SetProps(this.plugin, { props: snapshot.interactivity.props });
         }
         if (snapshot.cameraSnapshots) this.cameraSnapshots.setStateSnapshot(snapshot.cameraSnapshots);
         if (snapshot.animation) {
             this.animation.setSnapshot(snapshot.animation);
         }
         if (snapshot.camera) {
-            PluginCommands.Camera.SetSnapshot.dispatch(this.plugin, {
+            PluginCommands.Camera.SetSnapshot(this.plugin, {
                 snapshot: snapshot.camera.current,
                 durationMs: snapshot.camera.transitionStyle === 'animate'
                     ? snapshot.camera.transitionDurationInMs

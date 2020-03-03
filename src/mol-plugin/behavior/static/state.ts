@@ -5,11 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginCommands } from '../../command';
+import { PluginCommands } from '../../commands';
 import { PluginContext } from '../../context';
 import { StateTree, StateTransform, State } from '../../../mol-state';
-import { PluginStateSnapshotManager } from '../../../mol-plugin/state/snapshots';
-import { PluginStateObject as SO } from '../../state/objects';
+import { PluginStateSnapshotManager } from '../../../mol-plugin-state/snapshots';
+import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { getFormattedTime } from '../../../mol-util/date';
 import { readFromFile } from '../../../mol-util/data-source';
 import { download } from '../../../mol-util/download';

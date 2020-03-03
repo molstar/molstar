@@ -14,7 +14,7 @@ import { StructureElementSelectionManager } from './structure-element-selection'
 import { PluginContext } from '../context';
 import { Structure } from '../../mol-model/structure';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { PluginCommands } from '../command';
+import { PluginCommands } from '../commands';
 
 export { Interactivity }
 

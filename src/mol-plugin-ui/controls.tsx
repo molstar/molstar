@@ -6,15 +6,15 @@
  */
 
 import * as React from 'react';
-import { PluginCommands } from '../mol-plugin/command';
-import { UpdateTrajectory } from '../mol-plugin/state/actions/structure';
+import { PluginCommands } from '../mol-plugin/commands';
+import { UpdateTrajectory } from '../mol-plugin-state/actions/structure';
 import { PluginUIComponent } from './base';
 import { LociLabelEntry } from '../mol-plugin/util/loci-label-manager';
 import { IconButton, Icon } from './controls/common';
-import { PluginStateObject } from '../mol-plugin/state/objects';
-import { StateTransforms } from '../mol-plugin/state/transforms';
+import { PluginStateObject } from '../mol-plugin-state/objects';
+import { StateTransforms } from '../mol-plugin-state/transforms';
 import { StateTransformer } from '../mol-state';
-import { ModelFromTrajectory } from '../mol-plugin/state/transforms/model';
+import { ModelFromTrajectory } from '../mol-plugin-state/transforms/model';
 import { AnimationControls } from './state/animation';
 import { StructureRepresentationControls } from './structure/representation';
 import { StructureSelectionControls } from './structure/selection';
@@ -62,17 +62,17 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
         this.subscribe(this.plugin.behaviors.state.isAnimating, this.update);
     }
 
-    reset = () => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
+    reset = () => PluginCommands.State.ApplyAction(this.plugin, {
         state: this.plugin.state.dataState,
         action: UpdateTrajectory.create({ action: 'reset' })
     });
 
-    prev = () => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
+    prev = () => PluginCommands.State.ApplyAction(this.plugin, {
         state: this.plugin.state.dataState,
         action: UpdateTrajectory.create({ action: 'advance', by: -1 })
     });
 
-    next = () => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
+    next = () => PluginCommands.State.ApplyAction(this.plugin, {
         state: this.plugin.state.dataState,
         action: UpdateTrajectory.create({ action: 'advance', by: 1 })
     });
@@ -146,7 +146,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
 
     async update(id: string) {
         this.setState({ isBusy: true });
-        await PluginCommands.State.Snapshots.Apply.dispatch(this.plugin, { id });
+        await PluginCommands.State.Snapshots.Apply(this.plugin, { id });
         this.setState({ isBusy: false });
     }
 

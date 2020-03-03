@@ -10,7 +10,7 @@ import { StateTree } from './state/tree';
 import { IconButton, SectionHeader } from './controls/common';
 import { StateObjectActions } from './state/actions';
 import { StateTransform } from '../mol-state';
-import { PluginCommands } from '../mol-plugin/command';
+import { PluginCommands } from '../mol-plugin/commands';
 import { ParameterControls } from './controls/parameters';
 import { Canvas3DParams } from '../mol-canvas3d/canvas3d';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -35,7 +35,7 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
     set = (tab: LeftPanelTabName) => {
         if (this.state.tab === tab) {
             this.setState({ tab: 'none' }, () => this.plugin.behaviors.layout.leftPanelTabName.next('none'));
-            PluginCommands.Layout.Update.dispatch(this.plugin, { state: { regionState: { ...this.plugin.layout.state.regionState, left: 'collapsed' } } });
+            PluginCommands.Layout.Update(this.plugin, { state: { regionState: { ...this.plugin.layout.state.regionState, left: 'collapsed' } } });
             return;
         }
 
@@ -46,7 +46,7 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
 
         this.setState({ tab }, () => this.plugin.behaviors.layout.leftPanelTabName.next(tab));
         if (this.plugin.layout.state.regionState.left !== 'full') {
-            PluginCommands.Layout.Update.dispatch(this.plugin, { state: { regionState: { ...this.plugin.layout.state.regionState, left: 'full' } } });
+            PluginCommands.Layout.Update(this.plugin, { state: { regionState: { ...this.plugin.layout.state.regionState, left: 'full' } } });
         }
     }
 
@@ -121,7 +121,7 @@ class DataIcon extends PluginUIComponent<{ set: (tab: LeftPanelTabName) => void 
 
 class FullSettings extends PluginUIComponent {
     private setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
-        PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { [p.name]: p.value } });
+        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { [p.name]: p.value } });
     }
 
     componentDidMount() {
@@ -159,7 +159,7 @@ export class RemoveAllButton extends PluginUIComponent<{ }> {
 
     remove = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.plugin.state.dataState, ref: StateTransform.RootRef });
+        PluginCommands.State.RemoveObject(this.plugin, { state: this.plugin.state.dataState, ref: StateTransform.RootRef });
     }
 
     render() {

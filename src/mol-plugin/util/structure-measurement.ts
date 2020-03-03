@@ -7,8 +7,8 @@
 import { StructureElement } from '../../mol-model/structure';
 import { PluginContext } from '../context';
 import { StateSelection, StateTransform } from '../../mol-state';
-import { StateTransforms } from '../state/transforms';
-import { PluginCommands } from '../command';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { PluginCommands } from '../commands';
 import { arraySetAdd } from '../../mol-util/array';
 
 export { StructureMeasurementManager }
@@ -47,7 +47,7 @@ class StructureMeasurementManager {
             .apply(StateTransforms.Representation.StructureSelectionsDistance3D)
 
         const state = this.context.state.dataState;
-        await PluginCommands.State.Update.dispatch(this.context, { state, tree: update, options: { doNotLogTiming: true } });
+        await PluginCommands.State.Update(this.context, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
     async addAngle(a: StructureElement.Loci, b: StructureElement.Loci, c: StructureElement.Loci) {
@@ -75,7 +75,7 @@ class StructureMeasurementManager {
             .apply(StateTransforms.Representation.StructureSelectionsAngle3D)
 
         const state = this.context.state.dataState;
-        await PluginCommands.State.Update.dispatch(this.context, { state, tree: update, options: { doNotLogTiming: true } });
+        await PluginCommands.State.Update(this.context, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
     async addDihedral(a: StructureElement.Loci, b: StructureElement.Loci, c: StructureElement.Loci, d: StructureElement.Loci) {
@@ -106,7 +106,7 @@ class StructureMeasurementManager {
             .apply(StateTransforms.Representation.StructureSelectionsDihedral3D)
 
         const state = this.context.state.dataState;
-        await PluginCommands.State.Update.dispatch(this.context, { state, tree: update, options: { doNotLogTiming: true } });
+        await PluginCommands.State.Update(this.context, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
     async addLabel(a: StructureElement.Loci) {
@@ -128,7 +128,7 @@ class StructureMeasurementManager {
             .apply(StateTransforms.Representation.StructureSelectionsLabel3D)
 
         const state = this.context.state.dataState;
-        await PluginCommands.State.Update.dispatch(this.context, { state, tree: update, options: { doNotLogTiming: true } });
+        await PluginCommands.State.Update(this.context, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
     async addOrientation(a: StructureElement.Loci) {
@@ -150,7 +150,7 @@ class StructureMeasurementManager {
             .apply(StateTransforms.Representation.StructureSelectionsOrientation3D)
 
         const state = this.context.state.dataState;
-        await PluginCommands.State.Update.dispatch(this.context, { state, tree: update, options: { doNotLogTiming: true } });
+        await PluginCommands.State.Update(this.context, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
     constructor(private context: PluginContext) {

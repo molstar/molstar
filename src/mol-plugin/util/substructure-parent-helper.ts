@@ -7,7 +7,7 @@
 import { Structure } from '../../mol-model/structure';
 import { State, StateObject, StateSelection, StateObjectCell } from '../../mol-state';
 import { PluginContext } from '../context';
-import { PluginStateObject } from '../state/objects';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 
 export { SubstructureParentHelper };
 

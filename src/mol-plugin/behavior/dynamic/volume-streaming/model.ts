@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginStateObject } from '../../../state/objects';
+import { PluginStateObject } from '../../../../mol-plugin-state/objects';
 import { VolumeIsoValue } from '../../../../mol-model/volume';
 import { Structure } from '../../../../mol-model/structure';
 

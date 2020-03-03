@@ -8,7 +8,7 @@ import { PluginBehavior } from '../../../behavior';
 import { ParamDefinition as PD } from '../../../../../mol-util/param-definition';
 import { ValenceModelProvider } from '../../../../../mol-model-props/computed/valence-model';
 import { Loci } from '../../../../../mol-model/loci';
-import { PluginStateObject } from '../../../../state/objects';
+import { PluginStateObject } from '../../../../../mol-plugin-state/objects';
 import { StateSelection } from '../../../../../mol-state';
 import { Structure, StructureElement } from '../../../../../mol-model/structure';
 import { OrderedSet } from '../../../../../mol-data/int';

@@ -4,71 +4,100 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Camera } from '../mol-canvas3d/camera';
-import { PluginCommand } from './command/base';
-import { StateTransform, State, StateAction } from '../mol-state';
-import { Canvas3DProps } from '../mol-canvas3d/canvas3d';
-import { PluginLayoutStateProps } from './layout';
-import { StructureElement } from '../mol-model/structure';
-import { PluginState } from './state';
-import { Interactivity } from './util/interactivity';
-import { PluginToast } from './state/toast';
+import { PluginContext } from './context';
+import { UUID } from '../mol-util';
 
-export * from './command/base';
+export { PluginCommand, PluginCommandManager }
 
-export const PluginCommands = {
-    State: {
-        SetCurrentObject: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
-        ApplyAction: PluginCommand<{ state: State, action: StateAction.Instance, ref?: StateTransform.Ref }>(),
-        Update: PluginCommand<{ state: State, tree: State.Tree | State.Builder, options?: Partial<State.UpdateOptions> }>(),
+interface PluginCommand<T = unknown> {
+    (ctx: PluginContext, params?: T): Promise<void>,
+    readonly id: UUID,
+    subscribe(ctx: PluginContext, action: PluginCommand.Action<T>): PluginCommand.Subscription
+}
 
-        RemoveObject: PluginCommand<{ state: State, ref: StateTransform.Ref, removeParentGhosts?: boolean }>(),
+function PluginCommand<T>(): PluginCommand<T> {
+    const ret: PluginCommand<T> = ((ctx, params) => ctx.commands.dispatch(ret, params || {} as any)) as PluginCommand<T>;
+    ret.subscribe = (ctx, action) => ctx.commands.subscribe(ret, action);
+    (ret.id as UUID) = UUID.create22();
 
-        ToggleExpanded: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
-        ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
-        Highlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
-        ClearHighlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
+    return ret;
+}
 
-        Snapshots: {
-            Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.GetSnapshotParams }>(),
-            Replace: PluginCommand<{ id: string, params?: PluginState.GetSnapshotParams }>(),
-            Move: PluginCommand<{ id: string, dir: -1 | 1 }>(),
-            Remove: PluginCommand<{ id: string }>(),
-            Apply: PluginCommand<{ id: string }>(),
-            Clear: PluginCommand<{}>(),
+namespace PluginCommand {
+    export type Id = string & { '@type': 'plugin-command-id' }
 
-            Upload: PluginCommand<{ name?: string, description?: string, playOnLoad?: boolean, serverUrl: string }>(),
-            Fetch: PluginCommand<{ url: string }>(),
+    export interface Subscription {
+        unsubscribe(): void
+    }
 
-            DownloadToFile: PluginCommand<{ name?: string }>(),
-            OpenFile: PluginCommand<{ file: File }>(),
+    export type Action<T> = (params: T) => unknown | Promise<unknown>
+}
+
+type Instance = { cmd: PluginCommand<any>, params: any, resolve: () => void, reject: (e: any) => void }
+class PluginCommandManager {
+    private subs = new Map<string, PluginCommand.Action<any>[]>();
+    private disposing = false;
+
+    subscribe<T>(cmd: PluginCommand<T>, action: PluginCommand.Action<T>): PluginCommand.Subscription {
+        let actions = this.subs.get(cmd.id);
+        if (!actions) {
+            actions = [];
+            this.subs.set(cmd.id, actions);
         }
-    },
-    Interactivity: {
-        SetProps: PluginCommand<{ props: Partial<Interactivity.Props> }>(),
-        Structure: {
-            Highlight: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>(),
-            Select: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>()
+        actions.push(action);
+
+        return {
+            unsubscribe: () => {
+                const actions = this.subs.get(cmd.id);
+                if (!actions) return;
+                const idx = actions.indexOf(action);
+                if (idx < 0) return;
+                for (let i = idx + 1; i < actions.length; i++) {
+                    actions[i - 1] = actions[i];
+                }
+                actions.pop();
+            }
         }
-    },
-    Layout: {
-        Update: PluginCommand<{ state: Partial<PluginLayoutStateProps> }>()
-    },
-    Toast: {
-        Show: PluginCommand<PluginToast>(),
-        Hide: PluginCommand<{ key: string }>()
-    },
-    Camera: {
-        Reset: PluginCommand<{ durationMs?: number, snapshot?: Partial<Camera.Snapshot> }>(),
-        SetSnapshot: PluginCommand<{ snapshot: Partial<Camera.Snapshot>, durationMs?: number }>(),
-        Snapshots: {
-            Add: PluginCommand<{ name?: string, description?: string }>(),
-            Remove: PluginCommand<{ id: string }>(),
-            Apply: PluginCommand<{ id: string }>(),
-            Clear: PluginCommand<{}>(),
+    }
+
+
+    /** Resolves after all actions have completed */
+    dispatch<T>(cmd: PluginCommand<T>, params: T) {
+        return new Promise<void>((resolve, reject) => {
+            if (this.disposing) {
+                reject('disposed');
+                return;
+            }
+
+            const actions = this.subs.get(cmd.id);
+            if (!actions) {
+                resolve();
+                return;
+            }
+
+            this.resolve({ cmd, params, resolve, reject });
+        });
+    }
+
+    dispose() {
+        this.subs.clear();
+    }
+
+    private async resolve(instance: Instance) {
+        const actions = this.subs.get(instance.cmd.id);
+        if (!actions) {
+            instance.resolve();
+            return;
         }
-    },
-    Canvas3D: {
-        SetSettings: PluginCommand<{ settings: Partial<Canvas3DProps> }>()
+
+        try {
+            // TODO: should actions be called "asynchronously" ("setImmediate") instead?
+            for (const a of actions) {
+                await a(instance.params);
+            }
+            instance.resolve();
+        } catch (e) {
+            instance.reject(e);
+        }
     }
 }

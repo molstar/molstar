@@ -21,11 +21,12 @@ import { RxEventHelper } from '../mol-util/rx-event-helper';
 import { merge } from 'rxjs';
 import { BuiltInPluginBehaviors } from './behavior';
 import { PluginBehavior } from './behavior/behavior';
-import { PluginCommand, PluginCommands } from './command';
+import { PluginCommands } from './commands';
+import { PluginCommandManager } from './command';
 import { PluginLayout, LeftPanelTabName } from './layout';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
-import { DataFormatRegistry } from './state/actions/data-format';
+import { DataFormatRegistry } from '../mol-plugin-state/actions/data-format';
 import { StateTransformParameters } from '../mol-plugin-ui/state/common';
 import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
 import { TaskManager } from './util/task-manager';
@@ -39,22 +40,12 @@ import { Interactivity } from './util/interactivity';
 import { StructureRepresentationHelper } from './util/structure-representation-helper';
 import { StructureSelectionHelper } from './util/structure-selection-helper';
 import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
-import { PluginToastManager } from './state/toast';
+import { PluginToastManager } from './util/toast';
 import { StructureMeasurementManager } from './util/structure-measurement';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
-import { StructureRepresentationManager } from './state/representation/structure';
-import { DataManager } from './state/manager/data';
+import { StructureRepresentationManager } from '../mol-plugin-state/representation/structure';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { PluginConfigManager } from './config';
-
-interface Log {
-    entries: List<LogEntry>
-    readonly entry: (e: LogEntry) => void
-    readonly error: (msg: string) => void
-    readonly message: (msg: string) => void
-    readonly info: (msg: string) => void
-    readonly warn: (msg: string) => void
-}
 
 export class PluginContext {
     private disposed = false;
@@ -62,7 +53,7 @@ export class PluginContext {
     private tasks = new TaskManager();
 
     readonly state = new PluginState(this);
-    readonly commands = new PluginCommand.Manager();
+    readonly commands = new PluginCommandManager();
 
     readonly events = {
         state: {
@@ -137,10 +128,6 @@ export class PluginContext {
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
-    readonly managers = {
-        data: new DataManager(this),
-    } as const;
-
     readonly helpers = {
         measurement: new StructureMeasurementManager(this),
         structureSelectionManager: new StructureElementSelectionManager(this),
@@ -166,7 +153,7 @@ export class PluginContext {
             this.events.canvas3d.initialized.next()
             this.events.canvas3d.initialized.isStopped = true // TODO is this a good way?
             const renderer = this.canvas3d!.props.renderer;
-            PluginCommands.Canvas3D.SetSettings.dispatch(this, { settings: { renderer: { ...renderer, backgroundColor: Color(0xFCFBF9) } } });
+            PluginCommands.Canvas3D.SetSettings(this, { settings: { renderer: { ...renderer, backgroundColor: Color(0xFCFBF9) } } });
             this.canvas3d!.animate();
             (this.helpers.viewportScreenshot as ViewportScreenshotHelper) = new ViewportScreenshotHelper(this);
             return true;
@@ -177,7 +164,7 @@ export class PluginContext {
         }
     }
 
-    readonly log: Log = {
+    readonly log = {
         entries: List<LogEntry>(),
         entry: (e: LogEntry) => this.events.log.next(e),
         error: (msg: string) => this.events.log.next(LogEntry.error(msg)),
@@ -218,12 +205,12 @@ export class PluginContext {
 
     applyTransform(state: State, a: StateTransform.Ref, transformer: StateTransformer, params: any) {
         const tree = state.build().to(a).apply(transformer, params);
-        return PluginCommands.State.Update.dispatch(this, { state, tree });
+        return PluginCommands.State.Update(this, { state, tree });
     }
 
     updateTransform(state: State, a: StateTransform.Ref, params: any) {
         const tree = state.build().to(a).update(params);
-        return PluginCommands.State.Update.dispatch(this, { state, tree });
+        return PluginCommands.State.Update(this, { state, tree });
     }
 
     private initBehaviorEvents() {

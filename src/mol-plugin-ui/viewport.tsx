@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { resizeCanvas } from '../mol-canvas3d/util';
-import { PluginCommands } from '../mol-plugin/command';
+import { PluginCommands } from '../mol-plugin/commands';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { PluginUIComponent } from './base';
 import { ControlGroup, IconButton } from './controls/common';
@@ -31,7 +31,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     state = { ...this.allCollapsedState } as ViewportControlsState;
 
     resetCamera = () => {
-        PluginCommands.Camera.Reset.dispatch(this.plugin, {});
+        PluginCommands.Camera.Reset(this.plugin, {});
     }
 
     private toggle(panel: keyof ViewportControlsState) {
@@ -45,23 +45,23 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     toggleScreenshotExpanded = this.toggle('isScreenshotExpanded');
 
     toggleControls = () => {
-        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { showControls: !this.plugin.layout.state.showControls } });
+        PluginCommands.Layout.Update(this.plugin, { state: { showControls: !this.plugin.layout.state.showControls } });
     }
 
     toggleExpanded = () => {
-        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { isExpanded: !this.plugin.layout.state.isExpanded } });
+        PluginCommands.Layout.Update(this.plugin, { state: { isExpanded: !this.plugin.layout.state.isExpanded } });
     }
 
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
-        PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { [p.name]: p.value } });
+        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { [p.name]: p.value } });
     }
 
     setLayout = (p: { param: PD.Base<any>, name: string, value: any }) => {
-        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { [p.name]: p.value } });
+        PluginCommands.Layout.Update(this.plugin, { state: { [p.name]: p.value } });
     }
 
     setInteractivityProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
-        PluginCommands.Interactivity.SetProps.dispatch(this.plugin, { props: { [p.name]: p.value } });
+        PluginCommands.Interactivity.SetProps(this.plugin, { props: { [p.name]: p.value } });
     }
 
     screenshot = () => {

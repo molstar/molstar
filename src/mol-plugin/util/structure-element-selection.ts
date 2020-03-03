@@ -10,7 +10,7 @@ import { EmptyLoci, Loci } from '../../mol-model/loci';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { StateObject } from '../../mol-state';
 import { PluginContext } from '../context';
-import { PluginStateObject } from '../state/objects';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { structureElementStatsLabel } from '../../mol-theme/label';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';

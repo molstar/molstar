@@ -10,13 +10,13 @@ import { Plugin } from '../mol-plugin-ui/plugin'
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { PluginSpec } from './spec';
-import { StateTransforms } from './state/transforms';
+import { StateTransforms } from '../mol-plugin-state/transforms';
 import { PluginBehaviors } from './behavior';
-import { AnimateModelIndex, AnimateAssemblyUnwind, AnimateUnitsExplode, AnimateStateInterpolation } from './state/animation/built-in';
-import { StateActions } from './state/actions';
+import { AnimateModelIndex, AnimateAssemblyUnwind, AnimateUnitsExplode, AnimateStateInterpolation } from '../mol-plugin-state/animation/built-in';
+import { StateActions } from '../mol-plugin-state/actions';
 import { InitVolumeStreaming, BoxifyVolumeStreaming, CreateVolumeStreamingBehavior } from './behavior/dynamic/volume-streaming/transformers';
 import { StructureRepresentationInteraction } from './behavior/dynamic/selection/structure-representation-interaction';
-import { TransformStructureConformation } from './state/actions/structure';
+import { TransformStructureConformation } from '../mol-plugin-state/actions/structure';
 import { VolumeStreamingCustomControls } from '../mol-plugin-ui/custom/volume';
 import { PluginConfig } from './config';
 

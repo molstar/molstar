@@ -15,7 +15,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { VisualQuality, VisualQualityOptions } from '../../mol-geo/geometry/base';
 import { CollapsableControls } from '../base';
 import { StateSelection, StateObject } from '../../mol-state';
-import { PluginStateObject } from '../../mol-plugin/state/objects';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { ColorOptions } from '../controls/color';
 
 interface BaseStructureRepresentationControlsState {

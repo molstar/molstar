@@ -10,11 +10,11 @@ import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
 import './index.html'
 import './favicon.ico'
 import { PluginContext } from '../../mol-plugin/context';
-import { PluginCommands } from '../../mol-plugin/command';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { LoadCellPackModel } from './extensions/cellpack/model';
 import { StructureFromCellpack } from './extensions/cellpack/state';
-import { DownloadStructure } from '../../mol-plugin/state/actions/structure';
+import { DownloadStructure } from '../../mol-plugin-state/actions/structure';
 require('mol-plugin-ui/skin/light.scss')
 
 function getParam(name: string, regex: string): string {
@@ -60,7 +60,7 @@ async function trySetSnapshot(ctx: PluginContext) {
         const url = snapshotId
             ? `https://webchem.ncbr.muni.cz/molstar-state/get/${snapshotId}`
             : snapshotUrl;
-        await PluginCommands.State.Snapshots.Fetch.dispatch(ctx, { url })
+        await PluginCommands.State.Snapshots.Fetch(ctx, { url })
     } catch (e) {
         ctx.log.error('Failed to load snapshot.');
         console.warn('Failed to load snapshot', e);

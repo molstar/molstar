@@ -7,12 +7,12 @@
 import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
 import './index.html'
 import { PluginContext } from '../../mol-plugin/context';
-import { PluginCommands } from '../../mol-plugin/command';
-import { StateTransforms } from '../../mol-plugin/state/transforms';
-import { StructureRepresentation3DHelpers } from '../../mol-plugin/state/transforms/representation';
+import { PluginCommands } from '../../mol-plugin/commands';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { StructureRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
 import { Color } from '../../mol-util/color';
-import { PluginStateObject as PSO, PluginStateObject } from '../../mol-plugin/state/objects';
-import { AnimateModelIndex } from '../../mol-plugin/state/animation/built-in';
+import { PluginStateObject as PSO, PluginStateObject } from '../../mol-plugin-state/objects';
+import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in';
 import { StateBuilder, StateTransform } from '../../mol-state';
 import { StripedResidues } from './coloring';
 import { StaticSuperpositionTestData, buildStaticSuperposition, dynamicSuperpositionTest } from './superposition';
@@ -103,7 +103,7 @@ class BasicWrapper {
 
         let tree: StateBuilder.Root;
         if (loadType === 'full') {
-            await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state, ref: state.tree.root.ref });
+            await PluginCommands.State.RemoveObject(this.plugin, { state, ref: state.tree.root.ref });
             tree = state.build();
             this.visual(this.parse(this.download(tree.toRoot(), url), format, assemblyId));
         } else {
@@ -118,14 +118,14 @@ class BasicWrapper {
             tree.to('asm').update(StateTransforms.Model.StructureFromModel, p => ({ ...p, ...props }));
         }
 
-        await PluginCommands.State.Update.dispatch(this.plugin, { state: this.plugin.state.dataState, tree });
+        await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.dataState, tree });
         this.loadedParams = { url, format, assemblyId };
-        PluginCommands.Camera.Reset.dispatch(this.plugin, { });
+        PluginCommands.Camera.Reset(this.plugin, { });
     }
 
     setBackground(color: number) {
         const renderer = this.plugin.canvas3d!.props.renderer;
-        PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer,  backgroundColor: Color(color) } } });
+        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { renderer: { ...renderer,  backgroundColor: Color(color) } } });
     }
 
     toggleSpin() {
@@ -133,8 +133,8 @@ class BasicWrapper {
 
         const trackball = this.plugin.canvas3d.props.trackball;
         const spinning = trackball.spin;
-        PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { trackball: { ...trackball, spin: !trackball.spin } } });
-        if (!spinning) PluginCommands.Camera.Reset.dispatch(this.plugin, { });
+        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { trackball: { ...trackball, spin: !trackball.spin } } });
+        if (!spinning) PluginCommands.Camera.Reset(this.plugin, { });
     }
 
     animate = {
@@ -160,7 +160,7 @@ class BasicWrapper {
                 tree.to(v).update(old => ({ ...old, colorTheme }));
             }
 
-            await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
+            await PluginCommands.State.Update(this.plugin, { state, tree });
         }
     }
 
@@ -184,34 +184,34 @@ class BasicWrapper {
         staticSuperposition: async () => {
             const state = this.plugin.state.dataState;
             const tree = buildStaticSuperposition(this.plugin, StaticSuperpositionTestData);
-            await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state, ref: StateTransform.RootRef });
-            await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
+            await PluginCommands.State.RemoveObject(this.plugin, { state, ref: StateTransform.RootRef });
+            await PluginCommands.State.Update(this.plugin, { state, tree });
         },
         dynamicSuperposition: async () => {
-            await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.plugin.state.dataState, ref: StateTransform.RootRef });
+            await PluginCommands.State.RemoveObject(this.plugin, { state: this.plugin.state.dataState, ref: StateTransform.RootRef });
             await dynamicSuperpositionTest(this.plugin, ['1tqn', '2hhb', '4hhb'], 'HEM');
         },
         toggleValidationTooltip: async () => {
             const state = this.plugin.state.behaviorState;
             const tree = state.build().to(PDBeStructureQualityReport.id).update(PDBeStructureQualityReport, p => ({ ...p, showTooltip: !p.showTooltip }));
-            await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
+            await PluginCommands.State.Update(this.plugin, { state, tree });
         },
         showToasts: () => {
-            PluginCommands.Toast.Show.dispatch(this.plugin, {
+            PluginCommands.Toast.Show(this.plugin, {
                 title: 'Toast 1',
                 message: 'This is an example text, timeout 3s',
                 key: 'toast-1',
                 timeoutMs: 3000
             });
-            PluginCommands.Toast.Show.dispatch(this.plugin, {
+            PluginCommands.Toast.Show(this.plugin, {
                 title: 'Toast 2',
                 message: CustomToastMessage,
                 key: 'toast-2'
             });
         },
         hideToasts: () => {
-            PluginCommands.Toast.Hide.dispatch(this.plugin, { key: 'toast-1' });
-            PluginCommands.Toast.Hide.dispatch(this.plugin, { key: 'toast-2' });
+            PluginCommands.Toast.Hide(this.plugin, { key: 'toast-1' });
+            PluginCommands.Toast.Hide(this.plugin, { key: 'toast-2' });
         }
     }
 }

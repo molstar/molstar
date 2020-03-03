@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginCommands } from '../../mol-plugin/command';
+import { PluginCommands } from '../../mol-plugin/commands';
 import * as React from 'react';
 import { PluginUIComponent, PurePluginUIComponent } from '../base';
 import { shallowEqualObjects } from '../../mol-util';
@@ -19,13 +19,13 @@ import { PluginConfig } from '../../mol-plugin/config';
 
 export class StateSnapshots extends PluginUIComponent<{ }> {
     downloadToFile = () => {
-        PluginCommands.State.Snapshots.DownloadToFile.dispatch(this.plugin, { });
+        PluginCommands.State.Snapshots.DownloadToFile(this.plugin, { });
     }
 
     open = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || !e.target.files![0]) return;
 
-        PluginCommands.State.Snapshots.OpenFile.dispatch(this.plugin, { file: e.target.files![0] });
+        PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: e.target.files![0] });
     }
 
     render() {
@@ -60,7 +60,7 @@ class LocalStateSnapshots extends PluginUIComponent<
     };
 
     add = () => {
-        PluginCommands.State.Snapshots.Add.dispatch(this.plugin, {
+        PluginCommands.State.Snapshots.Add(this.plugin, {
             name: this.state.params.name,
             description: this.state.params.options.description,
             params: this.state.params.options
@@ -77,7 +77,7 @@ class LocalStateSnapshots extends PluginUIComponent<
     }
 
     clear = () => {
-        PluginCommands.State.Snapshots.Clear.dispatch(this.plugin, {});
+        PluginCommands.State.Snapshots.Clear(this.plugin, {});
     }
 
     shouldComponentUpdate(nextProps: any, nextState: any) {
@@ -111,31 +111,31 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
     apply = (e: React.MouseEvent<HTMLElement>) => {
         const id = e.currentTarget.getAttribute('data-id');
         if (!id) return;
-        PluginCommands.State.Snapshots.Apply.dispatch(this.plugin, { id });
+        PluginCommands.State.Snapshots.Apply(this.plugin, { id });
     }
 
     remove = (e: React.MouseEvent<HTMLElement>) => {
         const id = e.currentTarget.getAttribute('data-id');
         if (!id) return;
-        PluginCommands.State.Snapshots.Remove.dispatch(this.plugin, { id });
+        PluginCommands.State.Snapshots.Remove(this.plugin, { id });
     }
 
     moveUp = (e: React.MouseEvent<HTMLElement>) => {
         const id = e.currentTarget.getAttribute('data-id');
         if (!id) return;
-        PluginCommands.State.Snapshots.Move.dispatch(this.plugin, { id, dir: -1 });
+        PluginCommands.State.Snapshots.Move(this.plugin, { id, dir: -1 });
     }
 
     moveDown = (e: React.MouseEvent<HTMLElement>) => {
         const id = e.currentTarget.getAttribute('data-id');
         if (!id) return;
-        PluginCommands.State.Snapshots.Move.dispatch(this.plugin, { id, dir: 1 });
+        PluginCommands.State.Snapshots.Move(this.plugin, { id, dir: 1 });
     }
 
     replace = (e: React.MouseEvent<HTMLElement>) => {
         const id = e.currentTarget.getAttribute('data-id');
         if (!id) return;
-        PluginCommands.State.Snapshots.Replace.dispatch(this.plugin, { id, params: this.plugin.state.snapshots.currentGetSnapshotParams });
+        PluginCommands.State.Snapshots.Replace(this.plugin, { id, params: this.plugin.state.snapshots.currentGetSnapshotParams });
     }
 
     render() {
@@ -224,14 +224,14 @@ export class RemoteStateSnapshots extends PluginUIComponent<
         this.plugin.config.set(PluginConfig.State.CurrentServer, this.state.params.options.serverUrl);
 
         if (this.plugin.state.snapshots.state.entries.size === 0) {
-            await PluginCommands.State.Snapshots.Add.dispatch(this.plugin, {
+            await PluginCommands.State.Snapshots.Add(this.plugin, {
                 name: this.state.params.name,
                 description: this.state.params.options.description,
                 params: this.plugin.state.snapshots.currentGetSnapshotParams
             });
         }
 
-        await PluginCommands.State.Snapshots.Upload.dispatch(this.plugin, {
+        await PluginCommands.State.Snapshots.Upload(this.plugin, {
             name: this.state.params.name,
             description: this.state.params.options.description,
             playOnLoad: this.state.params.options.playOnLoad,
@@ -250,7 +250,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
 
         this.setState({ isBusy: true });
         try {
-            await PluginCommands.State.Snapshots.Fetch.dispatch(this.plugin, { url: entry.url });
+            await PluginCommands.State.Snapshots.Fetch(this.plugin, { url: entry.url });
         } finally {
             this.setState({ isBusy: false });
         }

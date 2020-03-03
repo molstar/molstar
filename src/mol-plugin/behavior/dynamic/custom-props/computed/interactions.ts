@@ -9,7 +9,7 @@ import { ParamDefinition as PD } from '../../../../../mol-util/param-definition'
 import { InteractionsProvider } from '../../../../../mol-model-props/computed/interactions';
 import { Structure } from '../../../../../mol-model/structure';
 import { StateSelection } from '../../../../../mol-state';
-import { PluginStateObject } from '../../../../state/objects';
+import { PluginStateObject } from '../../../../../mol-plugin-state/objects';
 import StructureElement from '../../../../../mol-model/structure/structure/element';
 import { OrderedSet } from '../../../../../mol-data/int';
 import { featureGroupLabel, featureTypeLabel } from '../../../../../mol-model-props/computed/interactions/common';

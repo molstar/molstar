@@ -7,10 +7,10 @@
 import { createPlugin, DefaultPluginSpec } from '../../../mol-plugin';
 import './index.html'
 import { PluginContext } from '../../../mol-plugin/context';
-import { PluginCommands } from '../../../mol-plugin/command';
-import { StateTransforms } from '../../../mol-plugin/state/transforms';
-import { StructureRepresentation3DHelpers } from '../../../mol-plugin/state/transforms/representation';
-import { PluginStateObject as PSO } from '../../../mol-plugin/state/objects';
+import { PluginCommands } from '../../../mol-plugin/commands';
+import { StateTransforms } from '../../../mol-plugin-state/transforms';
+import { StructureRepresentation3DHelpers } from '../../../mol-plugin-state/transforms/representation';
+import { PluginStateObject as PSO } from '../../../mol-plugin-state/objects';
 import { StateBuilder } from '../../../mol-state';
 import { Canvas3DProps } from '../../../mol-canvas3d/canvas3d';
 require('mol-plugin-ui/skin/light.scss')
@@ -94,7 +94,7 @@ class LightingDemo {
 
     setPreset(preset: Canvas3DPreset) {
         const props = getPreset(preset)
-        PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: {
+        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: {
             ...props,
             multiSample: {
                 ...this.plugin.canvas3d!.props.multiSample,
@@ -155,7 +155,7 @@ class LightingDemo {
 
         let tree: StateBuilder.Root;
         if (loadType === 'full') {
-            await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state, ref: state.tree.root.ref });
+            await PluginCommands.State.RemoveObject(this.plugin, { state, ref: state.tree.root.ref });
             tree = state.build();
             this.visual(this.parse(this.download(tree.toRoot(), url), format, assemblyId));
         } else {
@@ -169,9 +169,9 @@ class LightingDemo {
             tree.to('asm').update(StateTransforms.Model.StructureFromModel, p => ({ ...p, ...props }));
         }
 
-        await PluginCommands.State.Update.dispatch(this.plugin, { state: this.plugin.state.dataState, tree });
+        await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.dataState, tree });
         this.loadedParams = { url, format, assemblyId };
-        PluginCommands.Camera.Reset.dispatch(this.plugin, { });
+        PluginCommands.Camera.Reset(this.plugin, { });
     }
 }
 
