@@ -34,63 +34,63 @@ export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     onEnter?: () => void
 }
 
-export class ParameterControls<P extends PD.Params> extends React.PureComponent<ParameterControlsProps<P>, { isExpanded: boolean }> {
-    state = { isExpanded: false };
-
+export class ParameterControls<P extends PD.Params> extends React.PureComponent<ParameterControlsProps<P>> {
     onChange: ParamOnChange = (params) => this.props.onChange(params, this.props.values);
 
-    renderControls(keys: string[], essentials: boolean) {
-        const params = this.props.params;
+    renderGroup(group: ParamInfo[]) {
+        if (group.length === 0) return null;
+
         const values = this.props.values;
+        let ctrls: JSX.Element[] | null = null;
+        let category: string | undefined = void 0;
 
-        return <>
-            {keys.map(key => {                
-                const param = params[key];
-                if (param.isHidden) return null;
-                if ((essentials && !param.isEssential) || (!essentials && param.isEssential)) return null;
-                const Control = controlFor(param);
-                if (!Control) return null;
-                return <Control param={param} key={key} onChange={this.onChange} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} name={key} value={values[key]} />
-            })}
-        </>;
-    }
+        for (const [key, p, Control] of group) {
+            if (p.hideIf?.(values)) continue;
 
-    toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
-
-    renderCategories(keys: string[]) {
-        return <>
-            {this.renderControls(keys, true)}
-            <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
-                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
-                    <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
-                    {'Advanced Parameters'}
-                </button>
-            </div>
-            {this.state.isExpanded && <div className='msp-control-offset'>
-                {this.renderControls(keys, false)}
-            </div>}
-        </>;
-    }
-
-    render() {
-        const params = this.props.params;
-        const values = this.props.values;
-        const keys = Object.keys(params);
-        if (keys.length === 0 || values === undefined) return null;
-
-        let essentialCount = 0, nonEssentialCount = 0;
-        for (const k of keys) {
-            const p = params[k];
-            if (p.isEssential) essentialCount += p.isHidden ? 0 : 1;
-            else nonEssentialCount += p.isHidden ? 0 : 1;
+            if (!ctrls) ctrls = [];
+            category = p.category;
+            ctrls.push(<Control param={p} key={key} onChange={this.onChange} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} name={key} value={values[key]} />)
         }
 
-        if (essentialCount === 0 && nonEssentialCount === 0) return null;
+        if (!ctrls) return null;
 
-        if (essentialCount === 0) return this.renderControls(keys, false);
-        if (nonEssentialCount === 0) return this.renderControls(keys, true);
+        if (category) {
+            return [<ExpandGroup header={category}>{ctrls}</ExpandGroup>];
+        }
+        return ctrls;
+    }
 
-        return this.renderCategories(keys);
+    renderPart(groups: ParamInfo[][]) {
+        let parts: JSX.Element[] | null = null;
+        for (const g of groups) {
+            const ctrls = this.renderGroup(g);
+            if (!ctrls) continue;
+            if (!parts) parts = [];
+            for (const c of ctrls) parts.push(c);
+        }
+        return parts;
+    }
+
+    paramGroups = memoize1((params: PD.Params) => classifyParams(params));
+
+    render() {
+        const groups = this.paramGroups(this.props.params);
+
+        const essentials = this.renderPart(groups.essentials);
+        const advanced = this.renderPart(groups.advanced);
+        
+        if (essentials && advanced) {
+            return <>
+                {essentials}
+                <ExpandGroup header='Advanced Options'>
+                    {advanced}
+                </ExpandGroup>
+            </>;
+        } else if (essentials) {
+            return essentials;
+        } else {
+            return advanced;
+        }
     }
 }
 
@@ -111,6 +111,74 @@ export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: 
         const params = this.props.mapping.params(this.plugin) as any as PD.Params;
         return <ParameterControls params={params} values={values} onChange={this.setSettings} />
     }
+}
+
+class ExpandGroup extends React.PureComponent<{ header: string, initiallyExpanded?: boolean, noOffset?: boolean }, { isExpanded: boolean }> {
+    state = { isExpanded: !!this.props.initiallyExpanded };
+
+    toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
+
+    render() {
+        return <>
+            <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
+                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
+                    <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
+                    {this.props.header}
+                </button>
+            </div>
+            {this.state.isExpanded &&
+                (this.props.noOffset
+                    ? this.props.children
+                    : <div className='msp-control-offset'>
+                        {this.props.children}
+                    </div>)}
+        </>;
+    }
+}
+
+type ParamInfo = [string, PD.Any, ParamControl];
+function classifyParams(params: PD.Params) {
+    function addParam(k: string, p: PD.Any, group: typeof essentials) {
+        const ctrl = controlFor(p);
+        if (!ctrl) return;
+
+        if (!p.category) group.params[0].push([k, p, ctrl]);
+        else {
+            if (!group.map) group.map = new Map();
+            let c = group.map.get(p.category);
+            if (!c) {
+                c = [];
+                group.map.set(p.category, c);
+                group.params.push(c);
+            }
+            c.push([k, p, ctrl]);
+        }
+    }
+
+    function sortGroups(x: ParamInfo[], y: ParamInfo[]) {
+        const a = x[0], b = y[0];
+        if (!a || !a[1].category) return -1;
+        if (!b || !b[1].category) return 1;
+        return a[1].category < b[1].category ? -1 : 1;
+    }
+
+    const keys = Object.keys(params);
+
+    const essentials: { params: ParamInfo[][], map: Map<string, ParamInfo[]> | undefined } = { params: [[]], map: void 0 };
+    const advanced: typeof essentials = { params: [[]], map: void 0 };
+
+    for (const k of keys) {
+        const p = params[k];
+        if (p.isHidden) continue;
+
+        if (p.isEssential) addParam(k, p, essentials)
+        else addParam(k, p, advanced);
+    }
+
+    essentials.params.sort(sortGroups);
+    advanced.params.sort(sortGroups);
+
+    return { essentials: essentials.params, advanced: advanced.params };
 }
 
 function controlFor(param: PD.Any): ParamControl | undefined {
@@ -350,7 +418,7 @@ export class TextControl extends SimpleParam<PD.Text> {
     }
 }
 
-export class PureSelectControl extends  React.PureComponent<ParamProps<PD.Select<string | number>> & { title?: string }> {
+export class PureSelectControl extends React.PureComponent<ParamProps<PD.Select<string | number>> & { title?: string }> {
     protected update(value: string | number) {
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
     }
@@ -395,9 +463,9 @@ export class SelectControl extends React.PureComponent<ParamProps<PD.Select<stri
         const label = current
             ? current.label
             : typeof this.props.value === 'undefined'
-            ? `${ActionMenu.getFirstItem(items)?.label || ''} [Default]`
-            : `[Invalid] ${this.props.value}`;
-        
+                ? `${ActionMenu.getFirstItem(items)?.label || ''} [Default]`
+                : `[Invalid] ${this.props.value}`;
+
         return <ToggleButton disabled={this.props.isDisabled} style={{ textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}
             label={label} title={label as string} toggle={this.toggle} isSelected={this.state.showOptions} />;
     }

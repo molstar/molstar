@@ -40,6 +40,11 @@ export namespace BaseGeometry {
     }
     export type Params = typeof Params
 
+    export const CustomQualityParamInfo: PD.Info = { 
+        category: 'Custom Quality',
+        hideIf: (params: PD.Values<Params>) => typeof params.quality !== 'undefined' && params.quality !== 'custom'
+    };
+
     export type Counts = { drawCount: number, groupCount: number, instanceCount: number }
 
     export function createSimple(colorValue = ColorNames.grey, sizeValue = 1, transform?: TransformData) {

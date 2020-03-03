@@ -18,10 +18,11 @@ import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 export const PolymerBackboneCylinderParams = {
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
-    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
+    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
 }
 export const DefaultPolymerBackboneCylinderProps = PD.getDefaultValues(PolymerBackboneCylinderParams)
 export type PolymerBackboneCylinderProps = typeof DefaultPolymerBackboneCylinderProps

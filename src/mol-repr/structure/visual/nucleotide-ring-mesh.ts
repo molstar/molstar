@@ -20,6 +20,7 @@ import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideElement } from './util/nucleotide';
 import { VisualUpdateState } from '../../util';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const pTrace = Vec3.zero()
 const pN1 = Vec3.zero()
@@ -35,8 +36,8 @@ const normal = Vec3.zero()
 
 export const NucleotideRingMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
-    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
+    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
 }
 export const DefaultNucleotideRingMeshProps = PD.getDefaultValues(NucleotideRingMeshParams)
 export type NucleotideRingProps = typeof DefaultNucleotideRingMeshProps

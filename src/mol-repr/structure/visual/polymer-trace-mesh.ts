@@ -20,14 +20,15 @@ import { SecondaryStructureProvider } from '../../../mol-model-props/computed/se
 import { addRibbon } from '../../../mol-geo/geometry/mesh/builder/ribbon';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { Vec3 } from '../../../mol-math/linear-algebra';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 export const PolymerTraceMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
-    linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }),
-    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
     aspectRatio: PD.Numeric(5, { min: 0.1, max: 10, step: 0.1 }),
     arrowFactor: PD.Numeric(1.5, { min: 0, max: 3, step: 0.1 }),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
+    linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }, BaseGeometry.CustomQualityParamInfo),
+    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo)
 }
 export const DefaultPolymerTraceMeshProps = PD.getDefaultValues(PolymerTraceMeshParams)
 export type PolymerTraceMeshProps = typeof DefaultPolymerTraceMeshProps

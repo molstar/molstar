@@ -22,8 +22,10 @@ export namespace ParamDefinition {
         isHidden?: boolean,
         shortLabel?: boolean,
         twoColumns?: boolean,
-        isEssential?: boolean
+        isEssential?: boolean,
+        category?: string,
 
+        hideIf?: (currentGroup: any) => boolean,
         help?: (value: any) => { description?: string, legend?: Legend }
     }
 
@@ -39,7 +41,9 @@ export namespace ParamDefinition {
         if (info.shortLabel) param.shortLabel = info.shortLabel;
         if (info.twoColumns) param.twoColumns = info.twoColumns;
         if (info.isEssential) param.isEssential = info.isEssential;
+        if (info.category) param.category = info.category;
 
+        if (info.hideIf) param.hideIf = info.hideIf;
         if (info.help) param.help = info.help;
         return param;
     }

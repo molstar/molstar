@@ -11,12 +11,13 @@ import { MeshBuilder } from '../../../../mol-geo/geometry/mesh/mesh-builder';
 import { CylinderProps } from '../../../../mol-geo/primitive/cylinder';
 import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from '../../../../mol-geo/geometry/mesh/builder/cylinder';
 import { VisualContext } from '../../../visual';
+import { BaseGeometry } from '../../../../mol-geo/geometry/base';
 
 export const LinkCylinderParams = {
     linkScale: PD.Numeric(0.4, { min: 0, max: 1, step: 0.1 }),
     linkSpacing: PD.Numeric(1, { min: 0, max: 2, step: 0.01 }),
     linkCap: PD.Boolean(false),
-    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
+    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
 }
 export const DefaultLinkCylinderProps = PD.getDefaultValues(LinkCylinderParams)
 export type LinkCylinderProps = typeof DefaultLinkCylinderProps

@@ -16,13 +16,14 @@ import { PolymerGapIterator, PolymerGapLocationIterator, getPolymerGapElementLoc
 import { addFixedCountDashedCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 // import { TriangularPyramid } from '../../../mol-geo/primitive/pyramid';
 
 const segmentCount = 10
 
 export const PolymerGapCylinderParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
+    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
 }
 export const DefaultPolymerGapCylinderProps = PD.getDefaultValues(PolymerGapCylinderParams)
 export type PolymerGapCylinderProps = typeof DefaultPolymerGapCylinderProps

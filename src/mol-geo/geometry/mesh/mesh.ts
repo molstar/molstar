@@ -319,12 +319,15 @@ export namespace Mesh {
 
     //
 
+
+    const ShadingCategory: PD.Info = { category: 'Shading' };
+
     export const Params = {
         ...BaseGeometry.Params,
-        doubleSided: PD.Boolean(false),
-        flipSided: PD.Boolean(false),
-        flatShaded: PD.Boolean(false),
-        ignoreLight: PD.Boolean(false),
+        doubleSided: PD.Boolean(false, ShadingCategory),
+        flipSided: PD.Boolean(false, ShadingCategory),
+        flatShaded: PD.Boolean(false, ShadingCategory),
+        ignoreLight: PD.Boolean(false, ShadingCategory),
     }
     export type Params = typeof Params
 
