@@ -14,27 +14,20 @@ import { Legend } from './legend';
 import { stringToWords } from './string';
 
 export namespace ParamDefinition {
-    interface InfoBase {
+    export interface Info {
         label?: string,
         description?: string,
         legend?: Legend,
         fieldLabels?: { [name: string]: string },
         isHidden?: boolean,
         shortLabel?: boolean,
-        twoColumns?: boolean
+        twoColumns?: boolean,
+        isEssential?: boolean
 
         help?: (value: any) => { description?: string, legend?: Legend }
     }
 
-    export enum Categories {
-        Simple = 'Simple'
-    }
-
-    export const SimpleCategory = { category: [Categories.Simple] };
-
-    export interface Info extends InfoBase {
-        category?: string | string[]
-    }
+    export const Essential = { isEssential: true };
 
     function setInfo<T extends Base<any>>(param: T, info?: Info): T {
         if (!info) return param;
@@ -45,16 +38,13 @@ export namespace ParamDefinition {
         if (info.isHidden) param.isHidden = info.isHidden;
         if (info.shortLabel) param.shortLabel = info.shortLabel;
         if (info.twoColumns) param.twoColumns = info.twoColumns;
-        if (info.category) {
-            param.categories = typeof info.category === 'string' ? [info.category] : info.category.length > 0 ? info.category : void 0;
-        }
+        if (info.isEssential) param.isEssential = info.isEssential;
 
         if (info.help) param.help = info.help;
         return param;
     }
 
-    export interface Base<T> extends InfoBase {
-        categories?: ReadonlyArray<string>
+    export interface Base<T> extends Info {
         isOptional?: boolean,
         defaultValue: T
     }
@@ -384,21 +374,6 @@ export namespace ParamDefinition {
         }
 
         // a === b was checked at the top.
-        return false;
-    }
-
-    const _isNullish = (x: any) => !x;
-    export function hasCategory(param: Any, filter?: string | null | (string | null)[]) {
-        if (!filter || filter.length === 0) return filter === null || filter?.length === 0 ? !param.categories : false;
-        if (!param.categories) return !filter || (typeof filter !== 'string' && filter.some(_isNullish));
-        if (typeof filter === 'string') return param.categories.indexOf(filter) >= 0;
-        if (filter.length === 1 && filter[0]) return param.categories.indexOf(filter[0]) >= 0;
-
-        for (const c of param.categories) {
-            for (const d of filter) {
-                if (c === d) return true;
-            }
-        }
         return false;
     }
 
