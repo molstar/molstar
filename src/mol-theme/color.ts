@@ -13,7 +13,6 @@ import { deepEqual } from '../mol-util';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { ThemeDataContext, ThemeRegistry, ThemeProvider } from './theme';
 import { ChainIdColorThemeProvider } from './color/chain-id';
-import { CrossLinkColorThemeProvider } from './color/cross-link';
 import { ElementIndexColorThemeProvider } from './color/element-index';
 import { ElementSymbolColorThemeProvider } from './color/element-symbol';
 import { MoleculeTypeColorThemeProvider } from './color/molecule-type';
@@ -47,6 +46,15 @@ interface ColorTheme<P extends PD.Params> {
     readonly legend?: Readonly<ScaleLegend | TableLegend>
 }
 namespace ColorTheme {
+    export const enum Category {
+        Atom = 'Atom Property',
+        Chain = 'Chain Property',
+        Residue = 'Residue Property',
+        Symmetry = 'Symmetry',
+        Validation = 'Validation',
+        Misc = 'Miscellaneous',
+    }
+
     export type Props = { [k: string]: any }
     export type Factory<P extends PD.Params> = (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P>
     export const EmptyFactory = () => Empty
@@ -63,7 +71,7 @@ namespace ColorTheme {
     }
 
     export interface Provider<P extends PD.Params> extends ThemeProvider<ColorTheme<P>, P> { }
-    export const EmptyProvider: Provider<{}> = { label: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true }
+    export const EmptyProvider: Provider<{}> = { label: '', category: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true }
 
     export type Registry = ThemeRegistry<ColorTheme<any>>
     export function createRegistry() {
@@ -76,7 +84,6 @@ namespace ColorTheme {
 export const BuiltInColorThemes = {
     'carbohydrate-symbol': CarbohydrateSymbolColorThemeProvider,
     'chain-id': ChainIdColorThemeProvider,
-    'cross-link': CrossLinkColorThemeProvider,
     'element-index': ElementIndexColorThemeProvider,
     'element-symbol': ElementSymbolColorThemeProvider,
     'entity-source': EntitySourceColorThemeProvider,

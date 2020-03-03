@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -16,7 +16,6 @@ import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
 import { InterUnitBonds, computeInterUnitBonds, Bond } from './unit/bonds';
-import { PairRestraints, CrossLinkRestraint, extractCrossLinkRestraints } from './unit/pair-restraints';
 import StructureSymmetry from './symmetry';
 import StructureProperties from './properties';
 import { ResidueIndex, ChainIndex, EntityIndex } from '../model/indexing';
@@ -41,7 +40,6 @@ class Structure {
         parent?: Structure,
         lookup3d?: StructureLookup3D,
         interUnitBonds?: InterUnitBonds,
-        crossLinkRestraints?: PairRestraints<CrossLinkRestraint>,
         unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
         unitSymmetryGroupsIndexMap?: IntMap<number>,
         carbohydrates?: Carbohydrates,
@@ -226,12 +224,6 @@ class Structure {
         if (this._props.interUnitBonds) return this._props.interUnitBonds;
         this._props.interUnitBonds = computeInterUnitBonds(this);
         return this._props.interUnitBonds;
-    }
-
-    get crossLinkRestraints() {
-        if (this._props.crossLinkRestraints) return this._props.crossLinkRestraints;
-        this._props.crossLinkRestraints = extractCrossLinkRestraints(this);
-        return this._props.crossLinkRestraints;
     }
 
     get unitSymmetryGroups(): ReadonlyArray<Unit.SymmetryGroup> {

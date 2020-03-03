@@ -42,7 +42,8 @@ export function isDataLoci(x?: Loci): x is DataLoci {
     return !!x && x.kind === 'data-loci';
 }
 export function areDataLociEqual(a: DataLoci, b: DataLoci) {
-    if (a.data !== b.data || a.tag !== b.tag) return false
+    // use shallowEqual to allow simple data objects that are contructed on-the-fly
+    if (!shallowEqual(a.data, b.data) || a.tag !== b.tag) return false
     if (a.elements.length !== b.elements.length) return false
     for (let i = 0, il = a.elements.length; i < il; ++i) {
         if (!shallowEqual(a.elements[i], b.elements[i])) return false

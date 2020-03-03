@@ -1,28 +1,26 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import * as React from 'react';
 import { CollapsableControls, CollapsableState } from '../base';
-import { StructureSelectionQueries, SelectionModifier } from '../../mol-plugin/util/structure-selection-helper';
-import { ButtonSelect, Options } from '../controls/common';
+import { StructureSelectionQuery, SelectionModifier, StructureSelectionQueryList } from '../../mol-plugin/util/structure-selection-helper';
 import { PluginCommands } from '../../mol-plugin/command';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Interactivity } from '../../mol-plugin/util/interactivity';
 import { ParameterControls } from '../controls/parameters';
 import { stripTags } from '../../mol-util/string';
 import { StructureElement } from '../../mol-model/structure';
+import { ActionMenu } from '../controls/action-menu';
+import { ToggleButton } from '../controls/common';
 
-const SSQ = StructureSelectionQueries
-const DefaultQueries: (keyof typeof SSQ)[] = [
-    'all', 'polymer', 'trace', 'backbone', 'protein', 'nucleic',
-    'helix', 'beta',
-    'water', 'branched', 'ligand', 'nonStandardPolymer',
-    'ring', 'aromaticRing',
-    'surroundings', 'complement', 'bonded'
-]
+export const DefaultQueries = ActionMenu.createItems(StructureSelectionQueryList, {
+    label: q => q.label,
+    category: q => q.category
+});
 
 const StructureSelectionParams = {
     granularity: Interactivity.Params.granularity,
@@ -33,7 +31,9 @@ interface StructureSelectionControlsState extends CollapsableState {
     extraRadius: number,
     durationMs: number,
 
-    isDisabled: boolean
+    isDisabled: boolean,
+
+    queryAction?: SelectionModifier
 }
 
 export class StructureSelectionControls<P, S extends StructureSelectionControlsState> extends CollapsableControls<P, S> {
@@ -46,7 +46,9 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             this.forceUpdate()
         });
 
-        this.subscribe(this.plugin.state.dataState.events.isUpdating, v => this.setState({ isDisabled: v }))
+        this.subscribe(this.plugin.state.dataState.events.isUpdating, v => {
+            this.setState({ isDisabled: v, queryAction: void 0 })
+        })
     }
 
     get stats() {
@@ -115,38 +117,41 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         }
     }
 
-    set = (modifier: SelectionModifier, value: string) => {
-        const query = SSQ[value as keyof typeof SSQ]
-        this.plugin.helpers.structureSelection.set(modifier, query.query, false)
+    set = (modifier: SelectionModifier, selectionQuery: StructureSelectionQuery) => {
+        this.plugin.helpers.structureSelection.set(modifier, selectionQuery, false)
     }
 
-    add = (value: string) => this.set('add', value)
-    remove = (value: string) => this.set('remove', value)
-    only = (value: string) => this.set('only', value)
+    selectQuery: ActionMenu.OnSelect = item => {
+        if (!item || !this.state.queryAction) {
+            this.setState({ queryAction: void 0 });
+            return;
+        }
+        const q = this.state.queryAction!;
+        this.setState({ queryAction: void 0 }, () => {
+            this.set(q, item.value as StructureSelectionQuery);
+        })
+    }
 
-    queries = Options(Object.keys(StructureSelectionQueries)
-            .map(name => [name, SSQ[name as keyof typeof SSQ].label] as [string, string])
-            .filter(pair => DefaultQueries.includes(pair[0] as keyof typeof SSQ)));
+    queries = DefaultQueries
 
-    controls = <div className='msp-control-row'>
-        <div className='msp-select-row'>
-            <ButtonSelect label='Select' onChange={this.add} disabled={this.state.isDisabled}>
-                <optgroup label='Select'>
-                    {this.queries}
-                </optgroup>
-            </ButtonSelect>
-            <ButtonSelect label='Deselect' onChange={this.remove} disabled={this.state.isDisabled}>
-                <optgroup label='Deselect'>
-                    {this.queries}
-                </optgroup>
-            </ButtonSelect>
-            <ButtonSelect label='Only' onChange={this.only} disabled={this.state.isDisabled}>
-                <optgroup label='Only'>
-                    {this.queries}
-                </optgroup>
-            </ButtonSelect>
+    private showQueries(q: SelectionModifier) {
+        return () => this.setState({ queryAction: this.state.queryAction === q ? void 0 : q });
+    }
+
+    toggleAdd = this.showQueries('add')
+    toggleRemove = this.showQueries('remove')
+    toggleOnly = this.showQueries('only')
+
+    get controls() {
+        return <div>
+            <div className='msp-control-row msp-button-row'>
+                <ToggleButton label='Select' toggle={this.toggleAdd} isSelected={this.state.queryAction === 'add'} disabled={this.state.isDisabled} />
+                <ToggleButton label='Deselect' toggle={this.toggleRemove} isSelected={this.state.queryAction === 'remove'} disabled={this.state.isDisabled} />
+                <ToggleButton label='Only' toggle={this.toggleOnly} isSelected={this.state.queryAction === 'only'} disabled={this.state.isDisabled} />
+            </div>
+            {this.state.queryAction && <ActionMenu items={this.queries} onSelect={this.selectQuery} />}
         </div>
-    </div>
+    }
 
     defaultState() {
         return {
@@ -156,6 +161,8 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             minRadius: 8,
             extraRadius: 4,
             durationMs: 250,
+
+            queryAction: void 0,
 
             isDisabled: false
         } as S

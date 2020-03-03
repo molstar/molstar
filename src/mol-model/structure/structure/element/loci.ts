@@ -98,6 +98,24 @@ export namespace Loci {
         return Location.create(loci.structure, unit, element);
     }
 
+    export function firstElement(loci: Loci): Loci {
+        if (isEmpty(loci)) return loci;
+        return Loci(loci.structure, [{
+            unit: loci.elements[0].unit,
+            indices: OrderedSet.ofSingleton(OrderedSet.start(loci.elements[0].indices))
+        }])
+    }
+
+    export function firstResidue(loci: Loci): Loci {
+        if (isEmpty(loci)) return loci;
+        return extendToWholeResidues(firstElement(loci))
+    }
+
+    export function firstChain(loci: Loci): Loci {
+        if (isEmpty(loci)) return loci;
+        return extendToWholeChains(firstElement(loci))
+    }
+
     export function toStructure(loci: Loci): Structure {
         const units: Unit[] = []
         for (const e of loci.elements) {

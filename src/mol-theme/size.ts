@@ -32,7 +32,7 @@ namespace SizeTheme {
     }
 
     export interface Provider<P extends PD.Params> extends ThemeProvider<SizeTheme<P>, P> { }
-    export const EmptyProvider: Provider<{}> = { label: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true }
+    export const EmptyProvider: Provider<{}> = { label: '', category: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true }
 
     export type Registry = ThemeRegistry<SizeTheme<any>>
     export function createRegistry() {

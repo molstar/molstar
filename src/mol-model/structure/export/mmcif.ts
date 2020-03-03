@@ -11,7 +11,6 @@ import { Structure } from '../structure'
 import { _atom_site } from './categories/atom_site';
 import CifCategory = CifWriter.Category
 import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
-import { _pdbx_struct_mod_residue } from './categories/modified-residues';
 import { _chem_comp, _pdbx_chem_comp_identifier, _pdbx_nonpoly_scheme } from './categories/misc';
 import { Model } from '../model';
 import { getUniqueEntityIndicesFromStructures, copy_mmCif_category } from './categories/utils';
@@ -83,7 +82,6 @@ const Categories = [
     copy_mmCif_category('atom_sites'),
 
     _pdbx_nonpoly_scheme,
-    _pdbx_struct_mod_residue,
 
     // Atoms
     _atom_site

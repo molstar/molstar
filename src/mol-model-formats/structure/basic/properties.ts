@@ -6,29 +6,12 @@
  */
 
 import { Model } from '../../../mol-model/structure/model/model';
-import { ChemicalComponent, MissingResidue } from '../../../mol-model/structure/model/properties/common';
+import { ChemicalComponent, MissingResidue, StructAsym } from '../../../mol-model/structure/model/properties/common';
 import { getMoleculeType, MoleculeType, getDefaultChemicalComponent } from '../../../mol-model/structure/model/types';
 import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from '../../../mol-model/structure/structure/carbohydrates/constants';
 import { memoize1 } from '../../../mol-util/memoize';
 import { BasicData } from './schema';
 import { Table } from '../../../mol-data/db';
-
-function getModifiedResidueNameMap(data: BasicData): Model['properties']['modifiedResidues'] {
-    const parentId = new Map<string, string>();
-    const details = new Map<string, string>();
-
-    const c = data.pdbx_struct_mod_residue;
-    const comp_id = c.label_comp_id.isDefined ? c.label_comp_id : c.auth_comp_id;
-    const parent_id = c.parent_comp_id, details_data = c.details;
-
-    for (let i = 0; i < c._rowCount; i++) {
-        const id = comp_id.value(i);
-        parentId.set(id, parent_id.value(i));
-        details.set(id, details_data.value(i));
-    }
-
-    return { parentId, details };
-}
 
 function getMissingResidues(data: BasicData): Model['properties']['missingResidues'] {
     const map = new Map<string, MissingResidue>();
@@ -124,11 +107,43 @@ const getUniqueComponentNames = memoize1((data: BasicData) => {
     return uniqueNames
 })
 
+
+function getStructAsymMap(data: BasicData): Model['properties']['structAsymMap'] {
+    const map = new Map<string, StructAsym>();
+
+    const { label_asym_id, auth_asym_id, label_entity_id } = data.atom_site
+    for (let i = 0, il = label_asym_id.rowCount; i < il; ++i) {
+        const id = label_asym_id.value(i)
+        if (!map.has(id)) {
+            map.set(id, {
+                id,
+                auth_id: auth_asym_id.value(i),
+                entity_id: label_entity_id.value(i)
+            })
+        }
+    }
+
+    if (data.struct_asym._rowCount > 0) {
+        const { id, entity_id } = data.struct_asym
+        for (let i = 0, il = id.rowCount; i < il; ++i) {
+            const _id = id.value(i)
+            if (!map.has(_id)) {
+                map.set(_id, {
+                    id: _id,
+                    auth_id: '',
+                    entity_id: entity_id.value(i)
+                })
+            }
+        }
+    }
+    return map
+}
+
 export function getProperties(data: BasicData): Model['properties'] {
     return {
-        modifiedResidues: getModifiedResidueNameMap(data),
         missingResidues: getMissingResidues(data),
         chemicalComponentMap: getChemicalComponentMap(data),
-        saccharideComponentMap: getSaccharideComponentMap(data)
+        saccharideComponentMap: getSaccharideComponentMap(data),
+        structAsymMap: getStructAsymMap(data)
     }
 }

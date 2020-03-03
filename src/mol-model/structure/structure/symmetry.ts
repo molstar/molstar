@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,10 +11,11 @@ import { Spacegroup, SpacegroupCell, SymmetryOperator } from '../../../mol-math/
 import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { RuntimeContext, Task } from '../../../mol-task';
 import { Symmetry, Model } from '../model';
-import { QueryContext, StructureSelection } from '../query';
+import { QueryContext, StructureSelection, Queries as Q } from '../query';
 import Structure from './structure';
 import Unit from './unit';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
+import StructureProperties from './properties';
 
 namespace StructureSymmetry {
     export function buildAssembly(structure: Structure, asmName: string) {
@@ -40,6 +41,40 @@ namespace StructureSymmetry {
                 for (const oper of g.operators) {
                     for (const unit of units) {
                         assembler.addWithOperator(unit, oper);
+                    }
+                }
+            }
+
+            return assembler.getStructure();
+        });
+    }
+
+    export type Generators = { operators: { index: number, shift: Vec3 }[], asymIds: string[] }[]
+
+    export function buildSymmetryAssembly(structure: Structure, generators: Generators, symmetry: Symmetry) {
+        return Task.create('Build Symmetry Assembly', async ctx => {
+            const models = structure.models;
+            if (models.length !== 1) throw new Error('Can only build symmetry assemblies from structures based on 1 model.');
+
+            const modelCenter = Vec3()
+            const assembler = Structure.Builder({ label: structure.label });
+
+            const queryCtx = new QueryContext(structure);
+
+            for (const g of generators) {
+                const selector = getSelector(g.asymIds);
+                const selection = selector(queryCtx);
+                if (StructureSelection.structureCount(selection) === 0) {
+                    continue;
+                }
+                const { units } = StructureSelection.unionStructure(selection);
+
+                for (const { index, shift: [i, j, k] } of g.operators) {
+                    const operators = getOperatorsForIndex(symmetry, index, i, j, k, modelCenter)
+                    for (const unit of units) {
+                        for (const op of operators) {
+                            assembler.addWithOperator(unit, op);
+                        }
                     }
                 }
             }
@@ -96,7 +131,35 @@ namespace StructureSymmetry {
     }
 }
 
-function getOperators(symmetry: Symmetry, ijkMin: Vec3, ijkMax: Vec3, modelCenter: Vec3) {
+function getSelector(asymIds: string[]) {
+    return Q.generators.atoms({ chainTest: Q.pred.and(
+        Q.pred.eq(ctx => StructureProperties.unit.operator_name(ctx.element), SymmetryOperator.DefaultName),
+        Q.pred.inSet(ctx => StructureProperties.chain.label_asym_id(ctx.element), asymIds)
+    )});
+}
+
+function getOperatorsForIndex(symmetry: Symmetry, index: number, i: number, j: number, k: number, modelCenter: Vec3) {
+    const { spacegroup, ncsOperators } = symmetry;
+    const operators: SymmetryOperator[] = []
+
+    const { toFractional } = spacegroup.cell
+    const ref = Vec3.transformMat4(Vec3(), modelCenter, toFractional)
+
+    const symOp = Spacegroup.getSymmetryOperatorRef(spacegroup, index, i, j, k, ref)
+    if (ncsOperators && ncsOperators.length) {
+        for (let u = 0, ul = ncsOperators.length; u < ul; ++u) {
+            const ncsOp = ncsOperators![u]
+            const matrix = Mat4.mul(Mat4(), symOp.matrix, ncsOp.matrix)
+            const operator = SymmetryOperator.create(`${symOp.name} ${ncsOp.name}`, matrix, symOp.assembly, ncsOp.ncsId, symOp.hkl, symOp.spgrOp);
+            operators.push(operator)
+        }
+    } else {
+        operators.push(symOp)
+    }
+    return operators
+}
+
+function getOperatorsForRange(symmetry: Symmetry, ijkMin: Vec3, ijkMax: Vec3, modelCenter: Vec3) {
     const { spacegroup, ncsOperators } = symmetry;
     const ncsCount = (ncsOperators && ncsOperators.length) || 0
     const operators: SymmetryOperator[] = [];
@@ -117,18 +180,7 @@ function getOperators(symmetry: Symmetry, ijkMin: Vec3, ijkMax: Vec3, modelCente
                 for (let k = ijkMin[2]; k <= ijkMax[2]; k++) {
                     // check if we have added identity as the 1st operator.
                     if (!ncsCount && op === 0 && i === 0 && j === 0 && k === 0) continue;
-
-                    const symOp = Spacegroup.getSymmetryOperatorRef(spacegroup, op, i, j, k, ref)
-                    if (ncsCount) {
-                        for (let u = 0; u < ncsCount; ++u) {
-                            const ncsOp = ncsOperators![u]
-                            const matrix = Mat4.mul(Mat4.zero(), symOp.matrix, ncsOp.matrix)
-                            const operator = SymmetryOperator.create(`${symOp.name} ${ncsOp.name}`, matrix, symOp.assembly, ncsOp.ncsId, symOp.hkl, symOp.spgrOp);
-                            operators[operators.length] = operator;
-                        }
-                    } else {
-                        operators[operators.length] = symOp;
-                    }
+                    operators.push(...getOperatorsForIndex(symmetry, op, i, j, k, ref))
                 }
             }
         }
@@ -142,7 +194,7 @@ function getOperatorsCached333(symmetry: Symmetry, ref: Vec3) {
     }
     symmetry._operators_333 = {
         ref: Vec3.clone(ref),
-        operators: getOperators(symmetry, Vec3.create(-3, -3, -3), Vec3.create(3, 3, 3), ref)
+        operators: getOperatorsForRange(symmetry, Vec3.create(-3, -3, -3), Vec3.create(3, 3, 3), ref)
     };
     return symmetry._operators_333.operators;
 }
@@ -181,7 +233,7 @@ async function findSymmetryRange(ctx: RuntimeContext, structure: Structure, ijkM
     if (SpacegroupCell.isZero(spacegroup.cell)) return structure;
 
     const modelCenter = Model.getCenter(models[0])
-    const operators = getOperators(symmetry, ijkMin, ijkMax, modelCenter);
+    const operators = getOperatorsForRange(symmetry, ijkMin, ijkMax, modelCenter);
     return assembleOperators(structure, operators);
 }
 

@@ -72,13 +72,14 @@ export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: P
         granularity: 'group',
         color: color,
         props: props,
-        description: 'Assigns residue colors according to the number of issues or a specific issue in the PDBe Validation Report.',
+        description: 'Assigns residue colors according to the number of quality issues or a specific quality issue. Data from wwPDB Validation Report, obtained via PDBe.',
         legend: TableLegend(ValidationColorTable)
     }
 }
 
 export const StructureQualityReportColorThemeProvider: ColorTheme.Provider<Params> =  {
-    label: 'PDBe Structure Quality Report',
+    label: 'Structure Quality Report',
+    category: ColorTheme.Category.Validation,
     factory: StructureQualityReportColorTheme,
     getParams: ctx => {
         const issueTypes = StructureQualityReport.getIssueTypes(ctx.structure);

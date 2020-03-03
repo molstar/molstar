@@ -67,7 +67,13 @@ export namespace StateHelper {
     }
 
     export function assemble(b: StateBuilder.To<PSO.Molecule.Model>, id?: string) {
-        return b.apply(StateTransforms.Model.StructureAssemblyFromModel, { id: id || 'deposited' }, { tags: 'asm' })
+        const props = {
+            type: {
+                name: 'assembly' as const,
+                params: { id: id || 'deposited' }
+            }
+        }
+        return b.apply(StateTransforms.Model.StructureFromModel, props, { tags: 'asm' })
     }
 
     export function visual(ctx: PluginContext, visualRoot: StateBuilder.To<PSO.Molecule.Structure>) {

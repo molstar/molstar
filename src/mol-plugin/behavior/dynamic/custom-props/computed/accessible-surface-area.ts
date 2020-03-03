@@ -11,6 +11,7 @@ import { Loci } from '../../../../../mol-model/loci';
 import { AccessibleSurfaceAreaColorThemeProvider } from '../../../../../mol-model-props/computed/themes/accessible-surface-area';
 import { OrderedSet } from '../../../../../mol-data/int';
 import { arraySum } from '../../../../../mol-util/array';
+import { DefaultQueryRuntimeTable } from '../../../../../mol-script/runtime/query/compiler';
 
 export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'computed-accessible-surface-area-prop',
@@ -36,12 +37,17 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
         }
 
         register(): void {
+            DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
+
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('accessible-surface-area', AccessibleSurfaceAreaColorThemeProvider)
             this.ctx.lociLabels.addProvider(this.label);
         }
 
         unregister() {
+            // TODO
+            // DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
+
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('accessible-surface-area')
             this.ctx.lociLabels.removeProvider(this.label);

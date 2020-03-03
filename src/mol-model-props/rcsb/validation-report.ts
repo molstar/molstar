@@ -19,6 +19,9 @@ import { arrayMax } from '../../mol-util/array';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { QuerySymbolRuntime } from '../../mol-script/runtime/query/compiler';
+import { CustomPropSymbol } from '../../mol-script/language/symbol';
+import Type from '../../mol-script/language/type';
 
 export { ValidationReport }
 
@@ -118,6 +121,25 @@ namespace ValidationReport {
             case 'server': return fetch(ctx, model, props.source.params)
         }
     }
+
+    export const symbols = {
+        hasClash: QuerySymbolRuntime.Dynamic(CustomPropSymbol('rcsb', 'validation-report.has-clash', Type.Bool),
+            ctx => {
+                const { unit, element } = ctx.element
+                if (!Unit.isAtomic(unit)) return 0
+                const validationReport = ValidationReportProvider.get(unit.model).value
+                return validationReport && validationReport.clashes.getVertexEdgeCount(element) > 0
+            }
+        ),
+        issueCount: QuerySymbolRuntime.Dynamic(CustomPropSymbol('rcsb', 'validation-report.issue-count', Type.Num),
+            ctx => {
+                const { unit, element } = ctx.element
+                if (!Unit.isAtomic(unit)) return 0
+                const validationReport = ValidationReportProvider.get(unit.model).value
+                return validationReport?.geometryIssues.get(unit.residueIndex[element])?.size || 0
+            }
+        ),
+    }
 }
 
 const FileSourceParams = {
@@ -140,10 +162,10 @@ export type ValidationReportParams = typeof ValidationReportParams
 export type ValidationReportProps = PD.Values<ValidationReportParams>
 
 export const ValidationReportProvider: CustomModelProperty.Provider<ValidationReportParams, ValidationReport> = CustomModelProperty.createProvider({
-    label: 'RCSB Validation Report',
+    label: 'Validation Report',
     descriptor: CustomPropertyDescriptor({
         name: 'rcsb_validation_report',
-        // TODO `cifExport` and `symbol`
+        symbols: ValidationReport.symbols
     }),
     type: 'dynamic',
     defaultParams: ValidationReportParams,

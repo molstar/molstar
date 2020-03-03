@@ -61,10 +61,16 @@ class BasicWrapper {
             ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
             : b.apply(StateTransforms.Model.TrajectoryFromPDB);
 
+        const props = {
+            type: {
+                name: 'assembly' as const,
+                params: { id: assemblyId || 'deposited' }
+            }
+        }
         return parsed
             .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
             .apply(StateTransforms.Model.CustomModelProperties, { autoAttach: [StripedResidues.propertyProvider.descriptor.name], properties: {} }, { ref: 'props', state: { isGhost: false } })
-            .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: 'asm' });
+            .apply(StateTransforms.Model.StructureFromModel, props, { ref: 'asm' });
     }
 
     private visual(visualRoot: StateBuilder.To<PSO.Molecule.Structure>) {
@@ -101,8 +107,15 @@ class BasicWrapper {
             tree = state.build();
             this.visual(this.parse(this.download(tree.toRoot(), url), format, assemblyId));
         } else {
+            const props = {
+                type: {
+                    name: 'assembly' as const,
+                    params: { id: assemblyId || 'deposited' }
+                }
+            }
+
             tree = state.build();
-            tree.to('asm').update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: assemblyId || 'deposited' }));
+            tree.to('asm').update(StateTransforms.Model.StructureFromModel, p => ({ ...p, ...props }));
         }
 
         await PluginCommands.State.Update.dispatch(this.plugin, { state: this.plugin.state.dataState, tree });

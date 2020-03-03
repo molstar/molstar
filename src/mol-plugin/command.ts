@@ -59,7 +59,7 @@ export const PluginCommands = {
         Hide: PluginCommand<{ key: string }>()
     },
     Camera: {
-        Reset: PluginCommand<{}>(),
+        Reset: PluginCommand<{ durationMs?: number, snapshot?: Partial<Camera.Snapshot> }>(),
         SetSnapshot: PluginCommand<{ snapshot: Partial<Camera.Snapshot>, durationMs?: number }>(),
         Snapshots: {
             Add: PluginCommand<{ name?: string, description?: string }>(),

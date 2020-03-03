@@ -9,7 +9,7 @@ import UUID from '../../../mol-util/uuid';
 import StructureSequence from './properties/sequence';
 import { AtomicHierarchy, AtomicConformation, AtomicRanges } from './properties/atomic';
 import { CoarseHierarchy, CoarseConformation } from './properties/coarse';
-import { Entities, ChemicalComponentMap, MissingResidues } from './properties/common';
+import { Entities, ChemicalComponentMap, MissingResidues, StructAsymMap } from './properties/common';
 import { CustomProperties } from '../common/custom-property';
 import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
 import { ModelFormat } from '../../../mol-model-formats/structure/format';
@@ -53,17 +53,14 @@ export interface Model extends Readonly<{
     atomicRanges: AtomicRanges,
 
     properties: {
-        /** maps modified residue name to its parent */
-        readonly modifiedResidues: Readonly<{
-            parentId: ReadonlyMap<string, string>,
-            details: ReadonlyMap<string, string>
-        }>,
         /** map that holds details about unobserved or zero occurrence residues */
         readonly missingResidues: MissingResidues,
         /** maps residue name to `ChemicalComponent` data */
         readonly chemicalComponentMap: ChemicalComponentMap
         /** maps residue name to `SaccharideComponent` data */
         readonly saccharideComponentMap: SaccharideComponentMap
+        /** maps label_asym_id name to `StructAsym` data */
+        readonly structAsymMap: StructAsymMap
     },
 
     customProperties: CustomProperties,

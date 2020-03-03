@@ -14,17 +14,22 @@ import { Task } from '../../../../../mol-task';
 import { PluginContext } from '../../../../context';
 import { StateTransformer, StateAction, StateObject } from '../../../../../mol-state';
 
+const Tag = AssemblySymmetry.Tag
+
 export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'rcsb-assembly-symmetry-prop',
     category: 'custom-props',
-    display: { name: 'RCSB Assembly Symmetry' },
+    display: {
+        name: 'Assembly Symmetry',
+        description: 'Assembly Symmetry data calculated with BioJava, obtained via RCSB PDB.'
+    },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private provider = AssemblySymmetryProvider
 
         register(): void {
             this.ctx.state.dataState.actions.add(InitAssemblySymmetry3D)
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('rcsb-assembly-symmetry-cluster', AssemblySymmetryClusterColorThemeProvider)
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(Tag.Cluster, AssemblySymmetryClusterColorThemeProvider)
         }
 
         update(p: { autoAttach: boolean }) {
@@ -37,7 +42,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         unregister() {
             this.ctx.state.dataState.actions.remove(InitAssemblySymmetry3D)
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('rcsb-assembly-symmetry-cluster')
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(Tag.Cluster)
         }
     },
     params: () => ({
@@ -47,24 +52,32 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
 });
 
 const InitAssemblySymmetry3D = StateAction.build({
-    display: { name: 'RCSB Assembly Symmetry' },
+    display: {
+        name: 'Assembly Symmetry',
+        description: 'Initialize Assembly Symmetry axes and cage. Data calculated with BioJava, obtained via RCSB PDB.'
+    },
     from: PluginStateObject.Molecule.Structure,
     isApplicable: (a) => AssemblySymmetry.isApplicable(a.data)
-})(({ a, ref, state }, plugin: PluginContext) => Task.create('Init RCSB Assembly Symmetry', async ctx => {
+})(({ a, ref, state }, plugin: PluginContext) => Task.create('Init Assembly Symmetry', async ctx => {
     try {
         await AssemblySymmetryProvider.attach({ runtime: ctx, fetch: plugin.fetch }, a.data)
     } catch(e) {
-        plugin.log.error(`RCSB Assembly Symmetry: ${e}`)
+        plugin.log.error(`Assembly Symmetry: ${e}`)
         return
     }
     const tree = state.build().to(ref).apply(AssemblySymmetry3D);
     await state.updateTree(tree).runInContext(ctx);
 }));
 
+export { AssemblySymmetry3D }
+
 type AssemblySymmetry3D = typeof AssemblySymmetry3D
 const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
-    name: 'rcsb-assembly-symmetry-3d',
-    display: 'RCSB Assembly Symmetry',
+    name: Tag.Representation,
+    display: {
+        name: 'Assembly Symmetry',
+        description: 'Assembly Symmetry axes and cage. Data calculated with BioJava, obtained via RCSB PDB.'
+    },
     from: PluginStateObject.Molecule.Structure,
     to: PluginStateObject.Shape.Representation3D,
     params: (a) => {
@@ -78,7 +91,7 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
         return true;
     },
     apply({ a, params }, plugin: PluginContext) {
-        return Task.create('RCSB Assembly Symmetry', async ctx => {
+        return Task.create('Assembly Symmetry', async ctx => {
             await AssemblySymmetryProvider.attach({ runtime: ctx, fetch: plugin.fetch }, a.data)
             const assemblySymmetry = AssemblySymmetryProvider.get(a.data).value
             if (!assemblySymmetry || assemblySymmetry.length === 0) {
@@ -91,7 +104,7 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
         });
     },
     update({ a, b, newParams }, plugin: PluginContext) {
-        return Task.create('RCSB Assembly Symmetry', async ctx => {
+        return Task.create('Assembly Symmetry', async ctx => {
             await AssemblySymmetryProvider.attach({ runtime: ctx, fetch: plugin.fetch }, a.data)
             const assemblySymmetry = AssemblySymmetryProvider.get(a.data).value
             if (!assemblySymmetry || assemblySymmetry.length === 0) {

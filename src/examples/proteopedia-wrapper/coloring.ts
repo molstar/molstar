@@ -96,6 +96,7 @@ export function createProteopediaCustomTheme(colors: number[]) {
 
     const ProteopediaCustomColorThemeProvider: ColorTheme.Provider<ProteopediaCustomColorThemeParams> = {
         label: 'Proteopedia Custom',
+        category: 'Custom',
         factory: ProteopediaCustomColorTheme,
         getParams: getChainIdColorThemeParams,
         defaultValues: PD.getDefaultValues(ProteopediaCustomColorThemeParams),

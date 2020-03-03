@@ -46,13 +46,14 @@ export function RandomCoilIndexColorTheme(ctx: ThemeDataContext, props: {}): Col
         color,
         props,
         contextHash,
-        description: 'Assigns residue colors according to the Random Coil Index value.',
+        description: 'Assigns residue colors according to the Random Coil Index value. Data from wwPDB Validation Report, obtained via RCSB PDB.',
         legend: scale.legend
     }
 }
 
 export const RandomCoilIndexColorThemeProvider: ColorTheme.Provider<{}> = {
-    label: 'RCSB Random Coil Index',
+    label: 'Random Coil Index',
+    category: ColorTheme.Category.Validation,
     factory: RandomCoilIndexColorTheme,
     getParams: () => ({}),
     defaultValues: PD.getDefaultValues({}),

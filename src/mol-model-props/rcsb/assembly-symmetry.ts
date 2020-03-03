@@ -15,6 +15,7 @@ import { CustomProperty } from '../common/custom-property';
 import { NonNullableArray } from '../../mol-util/type-helpers';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { ReadonlyVec3 } from '../../mol-math/linear-algebra/3d/vec3';
 
 const BiologicalAssemblyNames = new Set([
     'author_and_software_defined_assembly',
@@ -26,6 +27,11 @@ const BiologicalAssemblyNames = new Set([
 ])
 
 export namespace AssemblySymmetry {
+    export enum Tag {
+        Cluster = 'rcsb-assembly-symmetry-cluster',
+        Representation = 'rcsb-assembly-symmetry-3d'
+    }
+
     export const DefaultServerUrl = 'https://data-beta.rcsb.org/graphql'
 
     export function isApplicable(structure?: Structure): boolean {
@@ -37,6 +43,7 @@ export namespace AssemblySymmetry {
         const mmcif = structure.models[0].sourceData.data.db
         if (!mmcif.pdbx_struct_assembly.details.isDefined) return false
         const id = structure.units[0].conformation.operator.assembly.id
+        if (id === '' || id === 'deposited') return true
         const indices = Column.indicesOf(mmcif.pdbx_struct_assembly.id, e => e === id)
         if (indices.length !== 1) return false
         const details = mmcif.pdbx_struct_assembly.details.value(indices[0])
@@ -48,27 +55,35 @@ export namespace AssemblySymmetry {
 
         const client = new GraphQLClient(props.serverUrl, ctx.fetch)
         const variables: AssemblySymmetryQueryVariables = {
-            assembly_id: structure.units[0].conformation.operator.assembly.id,
+            assembly_id: structure.units[0].conformation.operator.assembly.id || 'deposited',
             entry_id: structure.units[0].model.entryId
         }
         const result = await client.request<AssemblySymmetryQuery>(ctx.runtime, query, variables)
 
         if (!result.assembly?.rcsb_struct_symmetry) {
-            throw new Error('missing fields')
+            console.error('expected `rcsb_struct_symmetry` field')
+            return []
         }
         return result.assembly.rcsb_struct_symmetry as AssemblySymmetryValue
+    }
+
+    export type RotationAxes = ReadonlyArray<{ order: number, start: ReadonlyVec3, end: ReadonlyVec3 }>
+    export function isRotationAxes(x: AssemblySymmetryValue[0]['rotation_axes']): x is RotationAxes {
+        return !!x && x.length > 0
     }
 }
 
 export function getSymmetrySelectParam(structure?: Structure) {
-    const param = PD.Select<number>(0, [[0, 'No Symmetries']])
+    const param = PD.Select<number>(-1, [[-1, 'No Symmetries']])
     if (structure) {
         const assemblySymmetry = AssemblySymmetryProvider.get(structure).value
         if (assemblySymmetry) {
             const options: [number, string][] = []
             for (let i = 0, il = assemblySymmetry.length; i < il; ++i) {
                 const { symbol, kind } = assemblySymmetry[i]
-                options.push([ i, `${i + 1}: ${symbol} ${kind}` ])
+                if (symbol !== 'C1') {
+                    options.push([ i, `${i + 1}: ${symbol} ${kind}` ])
+                }
             }
             if (options.length) {
                 param.options = options

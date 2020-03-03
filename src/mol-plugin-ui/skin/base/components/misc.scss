@@ -167,3 +167,20 @@
         left: $row-height + 1px;
     }
 }
+
+.msp-mapped-parameter-group {
+    position: relative;
+
+    > .msp-control-row:first-child {
+        > div:nth-child(2) {
+            right: 33px;
+        }
+    }
+
+    > .msp-btn-icon {
+        position: absolute;
+        right: 0;
+        width: 32px;
+        top: 0;
+    }
+}

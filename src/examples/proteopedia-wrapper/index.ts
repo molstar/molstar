@@ -92,10 +92,16 @@ class MolStarProteopediaWrapper {
 
     private structure(assemblyId: string) {
         const model = this.state.build().to(StateElements.Model);
+        const props = {
+            type: {
+                name: 'assembly' as const,
+                params: { id: assemblyId || 'deposited' }
+            }
+        }
 
         const s = model
             .apply(StateTransforms.Model.CustomModelProperties, { autoAttach: [EvolutionaryConservation.propertyProvider.descriptor.name], properties: {} }, { ref: StateElements.ModelProps, state: { isGhost: false } })
-            .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: StateElements.Assembly });
+            .apply(StateTransforms.Model.StructureFromModel, props, { ref: StateElements.Assembly });
 
         s.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' }, { ref: StateElements.Sequence });
         s.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' }, { ref: StateElements.Het });
@@ -213,7 +219,13 @@ class MolStarProteopediaWrapper {
             const tree = state.build();
             const info = await this.doInfo(true);
             const asmId = (assemblyId === 'preferred' && info && info.preferredAssemblyId) || assemblyId;
-            tree.to(StateElements.Assembly).update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: asmId }));
+            const props = {
+                type: {
+                    name: 'assembly' as const,
+                    params: { id: asmId || 'deposited' }
+                }
+            }
+            tree.to(StateElements.Assembly).update(StateTransforms.Model.StructureFromModel, p => ({ ...p, ...props }));
             await this.applyState(tree);
         }
 

@@ -14,6 +14,10 @@ class FormatRegistry<T> {
         this.map.set(kind, obtain)
     }
 
+    remove(kind: ModelFormat['kind']) {
+        this.map.delete(kind)
+    }
+
     get(kind: ModelFormat['kind']) {
         return this.map.get(kind)
     }

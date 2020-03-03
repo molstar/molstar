@@ -65,9 +65,9 @@ export namespace ParamDefinition {
     export interface Select<T extends string | number> extends Base<T> {
         type: 'select'
         /** array of (value, label) tuples */
-        options: readonly (readonly [T, string])[]
+        options: readonly (readonly [T, string] | readonly [T, string, string])[]
     }
-    export function Select<T extends string | number>(defaultValue: T, options: readonly (readonly [T, string])[], info?: Info): Select<T> {
+    export function Select<T extends string | number>(defaultValue: T, options: readonly (readonly [T, string] | readonly [T, string, string])[], info?: Info): Select<T> {
         return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options }, info)
     }
 
@@ -111,11 +111,11 @@ export namespace ParamDefinition {
         return setInfo<Color>({ type: 'color', defaultValue }, info)
     }
 
-    export interface Vec3 extends Base<Vec3Data> {
+    export interface Vec3 extends Base<Vec3Data>, Range {
         type: 'vec3'
     }
-    export function Vec3(defaultValue: Vec3Data, info?: Info): Vec3 {
-        return setInfo<Vec3>({ type: 'vec3', defaultValue }, info)
+    export function Vec3(defaultValue: Vec3Data, range?: { min?: number, max?: number, step?: number }, info?: Info): Vec3 {
+        return setInfo<Vec3>(setRange({ type: 'vec3', defaultValue }, range), info)
     }
 
     export interface FileParam extends Base<File> {
@@ -149,7 +149,7 @@ export namespace ParamDefinition {
          */
         step?: number
     }
-    function setRange<T extends Numeric | Interval>(p: T, range?: { min?: number, max?: number, step?: number }) {
+    function setRange<T extends Numeric | Interval | Vec3>(p: T, range?: { min?: number, max?: number, step?: number }) {
         if (!range) return p;
         if (typeof range.min !== 'undefined') p.min = range.min;
         if (typeof range.max !== 'undefined') p.max = range.max;
@@ -201,7 +201,7 @@ export namespace ParamDefinition {
         select: Select<string>,
         map(name: string): Any
     }
-    export function Mapped<T>(defaultKey: string, names: [string, string][], map: (name: string) => Any, info?: Info): Mapped<NamedParams<T>> {
+    export function Mapped<T>(defaultKey: string, names: ([string, string] | [string, string, string])[], map: (name: string) => Any, info?: Info): Mapped<NamedParams<T>> {
         const name = checkDefaultKey(defaultKey, names);
         return setInfo<Mapped<NamedParams<T>>>({
             type: 'mapped',
@@ -406,7 +406,7 @@ export namespace ParamDefinition {
         return ret;
     }
 
-    function checkDefaultKey<T>(k: T, options: readonly (readonly [T, string])[]) {
+    function checkDefaultKey<T>(k: T, options: readonly (readonly [T, string] | readonly [T, string, string])[]) {
         for (const o of options) {
             if (o[0] === k) return k;
         }

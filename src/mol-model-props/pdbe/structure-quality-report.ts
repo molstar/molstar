@@ -119,7 +119,7 @@ export type StructureQualityReportParams = typeof StructureQualityReportParams
 export type StructureQualityReportProps = PD.Values<StructureQualityReportParams>
 
 export const StructureQualityReportProvider: CustomModelProperty.Provider<StructureQualityReportParams, StructureQualityReport> = CustomModelProperty.createProvider({
-    label: 'PDBe Structure Quality Report',
+    label: 'Structure Quality Report',
     descriptor: CustomPropertyDescriptor<ReportExportContext, any>({
         name: 'pdbe_structure_quality_report',
         cifExport: {

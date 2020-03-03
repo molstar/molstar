@@ -16,7 +16,7 @@ import { ColorLists } from '../../mol-util/color/lists';
 
 const DefaultList = 'dark-2'
 const DefaultColor = Color(0xCCCCCC)
-const Description = 'Gives every polymer a unique color based on the position (index) of the polymer in the list of polymers in the structure.'
+const Description = 'Gives every polymer chain instance a unique color based on the position (index) of the polymer in the list of polymers in the structure.'
 
 export const PolymerIndexColorThemeParams = {
     ...getPaletteParams({ type: 'set', setList: DefaultList }),
@@ -87,7 +87,8 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<P
 }
 
 export const PolymerIndexColorThemeProvider: ColorTheme.Provider<PolymerIndexColorThemeParams> = {
-    label: 'Polymer Index',
+    label: 'Polymer Chain Instance',
+    category: ColorTheme.Category.Chain,
     factory: PolymerIndexColorTheme,
     getParams: getPolymerIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(PolymerIndexColorThemeParams),

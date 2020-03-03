@@ -95,13 +95,14 @@ export function GeometryQualityColorTheme(ctx: ThemeDataContext, props: PD.Value
         color,
         props,
         contextHash,
-        description: 'Assigns residue colors according to the number of (filtered) geometry issues.',
+        description: 'Assigns residue colors according to the number of (filtered) geometry issues. Data from wwPDB Validation Report, obtained via RCSB PDB.',
         legend: ColorLegend
     }
 }
 
 export const GeometryQualityColorThemeProvider: ColorTheme.Provider<GeometricQualityColorThemeParams> = {
-    label: 'RCSB Geometry Quality',
+    label: 'Geometry Quality',
+    category: ColorTheme.Category.Validation,
     factory: GeometryQualityColorTheme,
     getParams: getGeometricQualityColorThemeParams,
     defaultValues: PD.getDefaultValues(getGeometricQualityColorThemeParams({})),

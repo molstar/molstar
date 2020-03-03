@@ -45,7 +45,7 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
     }
 
     const coarse = EmptyCoarse;
-    const sequence = getSequence(data, entities, atomic.hierarchy, coarse.hierarchy, properties.modifiedResidues.parentId)
+    const sequence = getSequence(data, entities, atomic.hierarchy, coarse.hierarchy)
     const atomicRanges = getAtomicRanges(atomic.hierarchy, entities, atomic.conformation, sequence)
 
     const entry = data.entry.id.valueKind(0) === Column.ValueKind.Present
@@ -80,7 +80,7 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
 function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Model['properties'], format: ModelFormat): Model {
     const atomic = getAtomicHierarchyAndConformation(ihm.atom_site, ihm.atom_site_sourceIndex, ihm.entities, properties.chemicalComponentMap);
     const coarse = getCoarse(ihm, properties);
-    const sequence = getSequence(data, ihm.entities, atomic.hierarchy, coarse.hierarchy, properties.modifiedResidues.parentId)
+    const sequence = getSequence(data, ihm.entities, atomic.hierarchy, coarse.hierarchy)
     const atomicRanges = getAtomicRanges(atomic.hierarchy, ihm.entities, atomic.conformation, sequence)
 
     const entry = data.entry.id.valueKind(0) === Column.ValueKind.Present

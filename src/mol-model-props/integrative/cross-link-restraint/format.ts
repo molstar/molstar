@@ -4,12 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from '../../../../mol-model/structure/model/model'
-import { Table } from '../../../../mol-data/db'
-import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
-import { Unit, CustomPropertyDescriptor } from '../../../../mol-model/structure';
-import { ElementIndex } from '../../../../mol-model/structure/model/indexing';
-import { FormatPropertyProvider } from '../../common/property';
+import { Model } from '../../../mol-model/structure/model/model'
+import { Table } from '../../../mol-data/db'
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
+import { Unit, CustomPropertyDescriptor } from '../../../mol-model/structure';
+import { ElementIndex } from '../../../mol-model/structure/model/indexing';
+import { FormatPropertyProvider } from '../../../mol-model-formats/structure/common/property';
 
 export { ModelCrossLinkRestraint }
 

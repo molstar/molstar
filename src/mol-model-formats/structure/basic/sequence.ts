@@ -13,9 +13,9 @@ import { Sequence } from '../../../mol-model/sequence';
 import { CoarseHierarchy } from '../../../mol-model/structure/model/properties/coarse';
 import { BasicData } from './schema';
 
-export function getSequence(data: BasicData, entities: Entities, atomicHierarchy: AtomicHierarchy, coarseHierarchy: CoarseHierarchy, modResMap: ReadonlyMap<string, string>): StructureSequence {
+export function getSequence(data: BasicData, entities: Entities, atomicHierarchy: AtomicHierarchy, coarseHierarchy: CoarseHierarchy): StructureSequence {
     if (!data.entity_poly_seq || !data.entity_poly_seq._rowCount) {
-        return StructureSequence.fromHierarchy(entities, atomicHierarchy, coarseHierarchy, modResMap);
+        return StructureSequence.fromHierarchy(entities, atomicHierarchy, coarseHierarchy);
     }
 
     const { entity_id, num, mon_id } = data.entity_poly_seq;
@@ -37,7 +37,7 @@ export function getSequence(data: BasicData, entities: Entities, atomicHierarchy
 
         byEntityKey[entityKey] = {
             entityId: id,
-            sequence: Sequence.ofResidueNames(compId, seqId, modResMap)
+            sequence: Sequence.ofResidueNames(compId, seqId)
         };
 
         sequences.push(byEntityKey[entityKey]);

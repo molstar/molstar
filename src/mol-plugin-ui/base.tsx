@@ -25,6 +25,7 @@ export abstract class PluginUIComponent<P = {}, S = {}, SS = {}> extends React.C
     componentWillUnmount() {
         if (!this.subs) return;
         for (const s of this.subs) s.unsubscribe();
+        this.subs = [];
     }
 
     protected init?(): void;

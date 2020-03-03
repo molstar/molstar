@@ -80,11 +80,11 @@ namespace Sequence {
         return code
     }
 
-    export function ofResidueNames(compId: Column<string>, seqId: Column<number>, modifiedMap?: ReadonlyMap<string, string>): Sequence {
+    export function ofResidueNames(compId: Column<string>, seqId: Column<number>): Sequence {
         if (seqId.rowCount === 0) throw new Error('cannot be empty');
 
         const kind = determineKind(compId);
-        return new ResidueNamesImpl(kind, compId, seqId, modifiedMap) as Sequence;
+        return new ResidueNamesImpl(kind, compId, seqId) as Sequence;
     }
 
     class ResidueNamesImpl<K extends Kind, Alphabet extends string> implements Base<K, Alphabet> {
@@ -154,11 +154,7 @@ namespace Sequence {
                 const code = this.codeFromName(name);
                 // in case of MICROHETEROGENEITY `sequenceArray[idx]` may already be set
                 if (!sequenceArray[idx] || sequenceArray[idx] === '-') {
-                    if (code === 'X' && this.modifiedMap && this.modifiedMap.has(name)) {
-                        sequenceArray[idx] = this.modifiedMap.get(name)!
-                    } else {
-                        sequenceArray[idx] = code;
-                    }
+                    sequenceArray[idx] = code;
                 }
                 labels[idx].push(code === 'X' ? name : code);
                 compIds[seqId].push(name);
@@ -183,7 +179,7 @@ namespace Sequence {
             this._length = count
         }
 
-        constructor(public kind: K, public compId: Column<string>, public seqId: Column<number>, private modifiedMap?: ReadonlyMap<string, string>) {
+        constructor(public kind: K, public compId: Column<string>, public seqId: Column<number>) {
 
             this.codeFromName = codeProvider(kind)
         }

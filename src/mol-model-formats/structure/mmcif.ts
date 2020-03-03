@@ -17,7 +17,6 @@ import { Table } from '../../mol-data/db';
 import { AtomSiteAnisotrop } from './property/anisotropic';
 import { ComponentBond } from './property/bonds/comp';
 import { StructConn } from './property/bonds/struct_conn';
-import { ModelCrossLinkRestraint } from './property/pair-restraints/cross-links';
 
 function modelSymmetryFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
@@ -64,14 +63,6 @@ function structConnFromMmcif(model: Model) {
     }
 }
 StructConn.Provider.formatRegistry.add('mmCIF', structConnFromMmcif)
-
-function crossLinkRestraintFromMmcif(model: Model) {
-    if (!MmcifFormat.is(model.sourceData)) return;
-    const { ihm_cross_link_restraint } = model.sourceData.data.db;
-    if (ihm_cross_link_restraint._rowCount === 0) return;
-    return ModelCrossLinkRestraint.fromTable(ihm_cross_link_restraint, model)
-}
-ModelCrossLinkRestraint.Provider.formatRegistry.add('mmCIF', crossLinkRestraintFromMmcif)
 
 //
 

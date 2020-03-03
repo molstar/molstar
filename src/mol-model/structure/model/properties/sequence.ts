@@ -37,13 +37,13 @@ namespace StructureSequence {
         return { sequences, byEntityKey }
     }
 
-    export function fromHierarchy(entities: Entities, atomicHierarchy: AtomicHierarchy, coarseHierarchy: CoarseHierarchy, modResMap?: ReadonlyMap<string, string>): StructureSequence {
-        const atomic = fromAtomicHierarchy(entities, atomicHierarchy, modResMap)
+    export function fromHierarchy(entities: Entities, atomicHierarchy: AtomicHierarchy, coarseHierarchy: CoarseHierarchy): StructureSequence {
+        const atomic = fromAtomicHierarchy(entities, atomicHierarchy)
         const coarse = coarseHierarchy.isDefined ? fromCoarseHierarchy(entities, coarseHierarchy) : Empty
         return merge(atomic, coarse)
     }
 
-    export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy, modResMap?: ReadonlyMap<string, string>): StructureSequence {
+    export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy): StructureSequence {
         const { label_comp_id, label_seq_id } = hierarchy.residues
         const { chainAtomSegments, residueAtomSegments } = hierarchy
         const { count, offsets } = chainAtomSegments
@@ -75,7 +75,7 @@ namespace StructureSequence {
             const num = Column.window(label_seq_id, rStart, rEnd);
             byEntityKey[entityKey] = {
                 entityId: entities.data.id.value(entityKey),
-                sequence: Sequence.ofResidueNames(compId, num, modResMap)
+                sequence: Sequence.ofResidueNames(compId, num)
             };
 
             sequences.push(byEntityKey[entityKey]);

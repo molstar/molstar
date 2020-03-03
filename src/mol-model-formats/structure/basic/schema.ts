@@ -8,7 +8,6 @@ import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { Table } from '../../../mol-data/db';
 
 // TODO split into conformation and hierarchy parts
-// TODO extract `pdbx_struct_mod_residue` as property?
 
 export type Entry = Table<mmCIF_Schema['entry']>
 export type Struct = Table<mmCIF_Schema['struct']>
@@ -22,7 +21,6 @@ export type EntityPolySeq = Table<mmCIF_Schema['entity_poly_seq']>
 export type EntityBranch = Table<mmCIF_Schema['pdbx_entity_branch']>
 export type ChemComp = Table<mmCIF_Schema['chem_comp']>
 export type ChemCompIdentifier = Table<mmCIF_Schema['pdbx_chem_comp_identifier']>
-export type StructModResidue = Table<mmCIF_Schema['pdbx_struct_mod_residue']>
 export type AtomSite = Table<mmCIF_Schema['atom_site']>
 export type IhmSphereObjSite = Table<mmCIF_Schema['ihm_sphere_obj_site']>
 export type IhmGaussianObjSite =Table<mmCIF_Schema['ihm_gaussian_obj_site']>
@@ -41,7 +39,6 @@ export const BasicSchema = {
     pdbx_entity_branch: mmCIF_Schema.pdbx_entity_branch,
     chem_comp: mmCIF_Schema.chem_comp,
     pdbx_chem_comp_identifier: mmCIF_Schema.pdbx_chem_comp_identifier,
-    pdbx_struct_mod_residue: mmCIF_Schema.pdbx_struct_mod_residue,
     atom_site: mmCIF_Schema.atom_site,
     ihm_sphere_obj_site: mmCIF_Schema.ihm_sphere_obj_site,
     ihm_gaussian_obj_site: mmCIF_Schema.ihm_gaussian_obj_site,
@@ -61,7 +58,6 @@ export interface BasicData {
     pdbx_entity_branch: EntityBranch
     chem_comp: ChemComp
     pdbx_chem_comp_identifier: ChemCompIdentifier
-    pdbx_struct_mod_residue: StructModResidue
     atom_site: AtomSite
     ihm_sphere_obj_site: IhmSphereObjSite
     ihm_gaussian_obj_site: IhmGaussianObjSite

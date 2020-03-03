@@ -99,6 +99,7 @@ namespace CustomElementProperty {
 
         return {
             label: modelProperty.label,
+            category: 'Custom',
             factory: Coloring,
             getParams: () => ({}),
             defaultValues: {},

@@ -4,9 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { iterableToArray } from '../mol-data/util/array';
+
 // TODO use set@@iterator when targeting es6
 
 export namespace SetUtils {
+    export function toArray<T>(set: ReadonlySet<T>) {
+        return iterableToArray(set.values())
+    }
+
     /** Test if set a contains all elements of set b. */
     export function isSuperset<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>) {
         let flag = true

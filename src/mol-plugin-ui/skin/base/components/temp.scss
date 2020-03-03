@@ -66,6 +66,7 @@
         text-align-last: center;
         background: none;
         padding: 0 $control-spacing;
+        overflow: hidden;
 
         > option[value = _] {
             display: none;
@@ -273,5 +274,35 @@
 .msp-state-actions {
     .msp-transform-wrapper:last-child {
         margin-bottom: 10px;
+    }
+}
+
+.msp-button-row {
+    display:flex;
+    flex-direction:row;
+    height: $row-height;
+    width: inherit;
+
+    > button {
+        margin: 0;
+        flex: 1 1 auto;
+        margin-right: 1px;
+        height: $row-height;
+
+        text-align-last: center;
+        background: none;
+        padding: 0 $control-spacing;
+        overflow: hidden;
+    }
+}
+
+.msp-action-menu-options {
+    .msp-control-row, button, .msp-icon {
+        height: 24px;
+        line-height: 24px;
+    }
+
+    button {
+        text-align: left;
     }
 }

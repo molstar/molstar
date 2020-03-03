@@ -1,12 +1,13 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Model, Structure, StructureSymmetry } from '../../../mol-model/structure';
 import { stringToWords } from '../../../mol-util/string';
-import { SpacegroupCell } from '../../../mol-math/geometry';
+import { SpacegroupCell, Spacegroup } from '../../../mol-math/geometry';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../../mol-task';
@@ -16,11 +17,27 @@ import { PluginStateObject as SO } from '../objects';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 
 export namespace ModelStructureRepresentation {
-    export function getParams(model?: Model, defaultValue?: 'deposited' | 'assembly' | 'symmetry' | 'symmetry-mates') {
+    export function getParams(model?: Model, defaultValue?: 'deposited' | 'assembly' | 'symmetry' | 'symmetry-mates' | 'symmetry-assembly') {
         const symmetry = model && ModelSymmetry.Provider.get(model)
 
         const assemblyIds = symmetry ? symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]) : [];
         const showSymm = !symmetry ? true : !SpacegroupCell.isZero(symmetry.spacegroup.cell);
+
+        const operatorOptions: [number, string][] = []
+        if (symmetry) {
+            const { operators } = symmetry.spacegroup
+            for (let i = 0, il = operators.length; i < il; i++) {
+                operatorOptions.push([i, `${i + 1}: ${Spacegroup.getOperatorXyz(operators[i])}`])
+            }
+        }
+
+        const asymIdsOptions: [string, string][] = []
+        if (model) {
+            model.properties.structAsymMap.forEach(v => {
+                const label = v.id === v.auth_id ? v.id : `${v.id} [auth ${v.auth_id}]`
+                asymIdsOptions.push([v.id, label])
+            })
+        }
 
         const modes = {
             deposited: PD.EmptyGroup(),
@@ -33,8 +50,21 @@ export namespace ModelStructureRepresentation {
                 radius: PD.Numeric(5)
             }, { isFlat: true }),
             'symmetry': PD.Group({
-                ijkMin: PD.Vec3(Vec3.create(-1, -1, -1), { label: 'Min IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } }),
-                ijkMax: PD.Vec3(Vec3.create(1, 1, 1), { label: 'Max IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } })
+                ijkMin: PD.Vec3(Vec3.create(-1, -1, -1), { step: 1 }, { label: 'Min IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } }),
+                ijkMax: PD.Vec3(Vec3.create(1, 1, 1), { step: 1 }, { label: 'Max IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } })
+            }, { isFlat: true }),
+            'symmetry-assembly': PD.Group({
+                generators: PD.ObjectList({
+                    operators: PD.ObjectList({
+                        index: PD.Select(0, operatorOptions),
+                        shift: PD.Vec3(Vec3(), { step: 1 }, { label: 'IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } })
+                    }, e => `${e.index + 1}_${e.shift.map(a => a + 5).join('')}`, {
+                        defaultValue: [] as { index: number, shift: Vec3 }[]
+                    }),
+                    asymIds: PD.MultiSelect([] as string[], asymIdsOptions)
+                }, e => `${e.asymIds.length} asym ids, ${e.operators.length} operators`, {
+                    defaultValue: [] as { operators: { index: number, shift: Vec3 }[], asymIds: string[] }[]
+                })
             }, { isFlat: true })
         };
 
@@ -49,6 +79,7 @@ export namespace ModelStructureRepresentation {
         if (showSymm) {
             options.push(['symmetry-mates', 'Symmetry Mates']);
             options.push(['symmetry', 'Symmetry (indices)']);
+            options.push(['symmetry-assembly', 'Symmetry (assembly)']);
         }
 
         return {
@@ -105,8 +136,16 @@ export namespace ModelStructureRepresentation {
         return new SO.Molecule.Structure(s, props);
     }
 
+    async function buildSymmetryAssembly(ctx: RuntimeContext, model: Model, generators: StructureSymmetry.Generators, symmetry: Symmetry) {
+        const base = Structure.ofModel(model);
+        const s = await StructureSymmetry.buildSymmetryAssembly(base, generators, symmetry).runInContext(ctx);
+        const props = { label: `Symmetry Assembly`, description: Structure.elementDescription(s) };
+        return new SO.Molecule.Structure(s, props);
+    }
+
     export async function create(plugin: PluginContext, ctx: RuntimeContext, model: Model, params?: Params): Promise<SO.Molecule.Structure> {
-        if (!params || params.name === 'deposited') {
+        const symmetry = ModelSymmetry.Provider.get(model)
+        if (!symmetry || !params || params.name === 'deposited') {
             const s = Structure.ofModel(model);
             return new SO.Molecule.Structure(s, { label: 'Deposited', description: Structure.elementDescription(s) });
         }
@@ -118,6 +157,9 @@ export namespace ModelStructureRepresentation {
         }
         if (params.name === 'symmetry-mates') {
             return buildSymmetryMates(ctx, model, params.params.radius)
+        }
+        if (params.name === 'symmetry-assembly') {
+            return buildSymmetryAssembly(ctx, model, params.params.generators, symmetry)
         }
 
         throw new Error(`Unknown represetation type: ${(params as any).name}`);
