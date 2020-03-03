@@ -55,7 +55,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
         if (!ctrls) return null;
 
         if (category) {
-            return [<ExpandGroup header={category}>{ctrls}</ExpandGroup>];
+            return [<ExpandGroup key={category} header={category}>{ctrls}</ExpandGroup>];
         }
         return ctrls;
     }
