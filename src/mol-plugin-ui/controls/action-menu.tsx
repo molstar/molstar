@@ -41,23 +41,24 @@ export namespace ActionMenu {
         return { label, value: iconOrValue };
     }
 
-    function createSpecFromSelectParamSimple(param: ParamDefinition.Select<any>) {
-        const items: Item[] = [];
-        for (const [v, l] of param.options) {
-            items.push(ActionMenu.Item(l, v));
-        }
-        return items as Items;
-    }
+    export function createItems<T>(xs: ArrayLike<T>, options?: { label?: (t: T) => string, value?: (t: T) => any, category?: (t: T) => string | undefined }) {
+        const { label, value, category } = options || { };
+        let cats: Map<string, (ActionMenu.Item | string)[]> | undefined = void 0;
+        const items: (ActionMenu.Item | (ActionMenu.Item | string)[] | string)[] = [];
+        for (let i = 0; i < xs.length; i++) {
+            const x = xs[i];
 
-    function createSpecFromSelectParamCategories(param: ParamDefinition.Select<any>) {
-        const cats = new Map<string, (Item | string)[]>();
-        const items: (Item | (Item | string)[] | string)[] = [];
-        for (const [v, l, c] of param.options) {
-            if (!!c) {
-                let cat = cats.get(c);
+            const catName = category?.(x);
+            const l = label ? label(x) : '' + x;
+            const v = value ? value(x) : x;
+
+            if (!!catName) {
+                if (!cats) cats = new Map<string, (ActionMenu.Item | string)[]>();
+
+                let cat = cats.get(catName);
                 if (!cat) {
-                    cat = [c];
-                    cats.set(c, cat);
+                    cat = [catName];
+                    cats.set(catName, cat);
                     items.push(cat);
                 }
                 cat.push(ActionMenu.Item(l, v));
@@ -65,21 +66,21 @@ export namespace ActionMenu {
                 items.push(ActionMenu.Item(l, v));
             }
         }
-        return items as Items;
+        return items as ActionMenu.Items;
+    }
+    
+    type Opt = ParamDefinition.Select<any>['options'][0];
+    const _selectOptions = { value: (o: Opt) => o[0], label: (o: Opt) => o[1], category: (o: Opt) => o[2] };
+
+    export function createItemsFromSelectParam(param: ParamDefinition.Select<any>) {
+        return createItems(param.options, _selectOptions);
     }
 
-    export function createSpecFromSelectParam(param: ParamDefinition.Select<any>) {
-        for (const o of param.options) {
-            if (!!o[2]) return createSpecFromSelectParamCategories(param);
-        }
-        return createSpecFromSelectParamSimple(param);
-    }
-
-    export function findCurrent(items: Items, value: any): Item | undefined {
+    export function findItem(items: Items, value: any): Item | undefined {
         if (typeof items === 'string') return;
         if (isItem(items)) return items.value === value ? items : void 0;
         for (const s of items) {
-            const found = findCurrent(s, value);
+            const found = findItem(s, value);
             if (found) return found;
         }
     }
@@ -101,7 +102,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
     state = {
         items: this.props.items,
         current: this.props.current,
-        isExpanded: !!this.props.current && !!ActionMenu.findCurrent(this.props.items, this.props.current.value)
+        isExpanded: !!this.props.current && !!ActionMenu.findItem(this.props.items, this.props.current.value)
     }
 
     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -111,7 +112,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
 
     static getDerivedStateFromProps(props: SectionProps, state: SectionState) {
         if (props.items === state.items && props.current === state.current) return null;
-        return { items: props.items, current: props.current, isExpanded: props.current && !!ActionMenu.findCurrent(props.items, props.current.value) }
+        return { items: props.items, current: props.current, isExpanded: props.current && !!ActionMenu.findItem(props.items, props.current.value) }
     }
 
     render() {
@@ -120,7 +121,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         if (typeof items === 'string') return null;
         if (isItem(items)) return <Action item={items} onSelect={onSelect} current={current} />
 
-        const hasCurrent = header && current && !!ActionMenu.findCurrent(items, current.value)
+        const hasCurrent = header && current && !!ActionMenu.findItem(items, current.value)
 
         return <div>
             {header && <div className='msp-control-group-header' style={{ marginTop: '1px' }}>

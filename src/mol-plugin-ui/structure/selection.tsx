@@ -17,26 +17,10 @@ import { StructureElement } from '../../mol-model/structure';
 import { ActionMenu } from '../controls/action-menu';
 import { ToggleButton } from '../controls/common';
 
-function createDefaultQueries() {
-    const cats = new Map<string, (ActionMenu.Item | string)[]>();
-    const items: (ActionMenu.Item | (ActionMenu.Item | string)[] | string)[] = [];
-    for (const q of StructureSelectionQueryList) {
-        if (!!q.category) {
-            let cat = cats.get(q.category);
-            if (!cat) {
-                cat = [q.category];
-                cats.set(q.category, cat);
-                items.push(cat);
-            }
-            cat.push(ActionMenu.Item(q.label, q));
-        } else {
-            items.push(ActionMenu.Item(q.label, q));
-        }
-    }
-    return items as ActionMenu.Items;
-}
-
-export const DefaultQueries = createDefaultQueries()
+export const DefaultQueries = ActionMenu.createItems(StructureSelectionQueryList, {
+    label: q => q.label,
+    category: q => q.category
+});
 
 const StructureSelectionParams = {
     granularity: Interactivity.Params.granularity,

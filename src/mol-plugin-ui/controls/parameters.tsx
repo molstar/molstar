@@ -345,16 +345,17 @@ export class SelectControl extends React.PureComponent<ParamProps<PD.Select<stri
 
     toggle = () => this.setState({ showOptions: !this.state.showOptions });
 
-    items = memoizeLatest((param: PD.Select<any>) => ActionMenu.createSpecFromSelectParam(param));
+    items = memoizeLatest((param: PD.Select<any>) => ActionMenu.createItemsFromSelectParam(param));
 
     renderControl() {
         const items = this.items(this.props.param);
-        const current = this.props.value !== undefined ? ActionMenu.findCurrent(items, this.props.value) : void 0;
+        const current = this.props.value !== undefined ? ActionMenu.findItem(items, this.props.value) : void 0;
         const label = current
             ? current.label
             : typeof this.props.value === 'undefined'
-                ? `${ActionMenu.getFirstItem(items)?.label || ''} [Default]`
-                : `[Invalid] ${this.props.value}`
+            ? `${ActionMenu.getFirstItem(items)?.label || ''} [Default]`
+            : `[Invalid] ${this.props.value}`;
+        
         return <ToggleButton disabled={this.props.isDisabled} style={{ textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}
             label={label} title={label as string} toggle={this.toggle} isSelected={this.state.showOptions} />;
     }
@@ -363,7 +364,7 @@ export class SelectControl extends React.PureComponent<ParamProps<PD.Select<stri
         if (!this.state.showOptions) return null;
 
         const items = this.items(this.props.param);
-        const current = ActionMenu.findCurrent(items, this.props.value);
+        const current = ActionMenu.findItem(items, this.props.value);
 
         return <ActionMenu items={items} current={current} onSelect={this.onSelect} />;
     }
