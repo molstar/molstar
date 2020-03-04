@@ -126,6 +126,26 @@ class State {
         });
     }
 
+    /** Apply series of updates to the state. If any of them fail, revert to the original state. */
+    transaction(edits: () => Promise<void> | void) {
+        return Task.create('State Transaction', async ctx => {
+            const snapshot = this._tree.asImmutable();
+            let restored = false;
+            try {
+                await edits();
+
+                let hasError = false;
+                this.cells.forEach(c => hasError = hasError || c.state === 'error');
+                if (hasError) {
+                    restored = true;
+                    this.updateTree(snapshot).runInContext(ctx);
+                }
+            } catch (e) {
+                if (!restored) this.updateTree(snapshot).runInContext(ctx);
+            }
+        });
+    }
+
     /**
      * Queues up a reconciliation of the existing state tree.
      *
@@ -142,8 +162,8 @@ class State {
             if (!removed) return;
 
             try {
-                const ret = options && options.revertIfAborted
-                    ? await this._revertibleTreeUpdate(taskCtx, params)
+                const ret = options && (options.revertIfAborted || options.revertOnError)
+                    ? await this._revertibleTreeUpdate(taskCtx, params, options)
                     : await this._updateTree(taskCtx, params);
                 return ret.cell;
             } finally {
@@ -156,10 +176,11 @@ class State {
 
     private updateQueue = new AsyncQueue<UpdateParams>();
 
-    private async _revertibleTreeUpdate(taskCtx: RuntimeContext, params: UpdateParams) {
+    private async _revertibleTreeUpdate(taskCtx: RuntimeContext, params: UpdateParams, options: Partial<State.UpdateOptions>) {
         const old = this.tree;
         const ret = await this._updateTree(taskCtx, params);
-        if (ret.ctx.wasAborted) return await this._updateTree(taskCtx, { tree: old, options: params.options });
+        let revert = ((ret.ctx.hadError || ret.ctx.wasAborted) && options.revertOnError) || (ret.ctx.wasAborted && options.revertIfAborted);
+        if (revert) return await this._updateTree(taskCtx, { tree: old, options: params.options });
         return ret;
     }
 
@@ -256,7 +277,8 @@ namespace State {
     export interface UpdateOptions {
         doNotLogTiming: boolean,
         doNotUpdateCurrent: boolean,
-        revertIfAborted: boolean
+        revertIfAborted: boolean,
+        revertOnError: boolean
     }
 
     export function create(rootObject: StateObject, params?: { globalContext?: unknown, rootState?: StateTransform.State }) {
@@ -267,7 +289,8 @@ namespace State {
 const StateUpdateDefaultOptions: State.UpdateOptions = {
     doNotLogTiming: false,
     doNotUpdateCurrent: false,
-    revertIfAborted: false
+    revertIfAborted: false,
+    revertOnError: false
 };
 
 type Ref = StateTransform.Ref

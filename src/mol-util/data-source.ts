@@ -73,25 +73,33 @@ function isDone(data: XMLHttpRequest | FileReader) {
     throw new Error('unknown data type')
 }
 
+function genericError(isDownload: boolean) {
+    if (isDownload) return 'Failed to download data. Possible reasons: Resource is not available, or CORS is not allowed on the server.';
+    return 'Failed to open file.';
+}
+
 function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, action: string, data: T): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {        
         // first check if data reading is already done
         if (isDone(data)) {
             const { error } = data as FileReader;
             if (error !== null && error !== undefined) {
-                reject(error ?? 'Failed.');
+                reject(error ?? genericError(data instanceof XMLHttpRequest));
             } else {
                 resolve(data);
             }
             return
         }
 
+        let hasError = false;
+
         data.onerror = (e: ProgressEvent) => {
+            if (hasError) return;
+
             const { error } = e.target as FileReader;
-            reject(error ?? 'Failed.');
+            reject(error ?? genericError(data instanceof XMLHttpRequest));
         };
 
-        let hasError = false;
         data.onprogress = (e: ProgressEvent) => {
             if (!ctx.shouldUpdate || hasError) return;
 

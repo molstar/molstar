@@ -234,25 +234,27 @@ const DownloadStructure = StateAction.build({
 
     const createRepr = !params.source.params.structure.noRepresentation;
 
-    if (downloadParams.length > 0 && asTrajectory) {
-        const traj = await createSingleTrajectoryModel(plugin, state, downloadParams);
-        const struct = createStructure(state.build().to(traj), supportProps, src.params.structure.type);
-        await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
-        if (createRepr) {
-            await plugin.structureRepresentation.manager.apply(struct.ref, plugin.structureRepresentation.manager.defaultProvider);
-        }
-    } else {
-        for (const download of downloadParams) {
-            const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
-            const traj = createModelTree(state.build().to(data), format);
-
-            const struct = createStructure(traj, supportProps, src.params.structure.type);
+    state.transaction(async () => {
+        if (downloadParams.length > 0 && asTrajectory) {
+            const traj = await createSingleTrajectoryModel(plugin, state, downloadParams);
+            const struct = createStructure(state.build().to(traj), supportProps, src.params.structure.type);
             await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
             if (createRepr) {
                 await plugin.structureRepresentation.manager.apply(struct.ref, plugin.structureRepresentation.manager.defaultProvider);
             }
+        } else {
+            for (const download of downloadParams) {
+                const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
+                const traj = createModelTree(state.build().to(data), format);
+
+                const struct = createStructure(traj, supportProps, src.params.structure.type);
+                await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
+                if (createRepr) {
+                    await plugin.structureRepresentation.manager.apply(struct.ref, plugin.structureRepresentation.manager.defaultProvider);
+                }
+            }
         }
-    }
+    }).runInContext(ctx);
 }));
 
 function getDownloadParams(src: string, url: (id: string) => string, label: (id: string) => string, isBinary: boolean): StateTransformer.Params<Download>[] {
