@@ -221,7 +221,7 @@ export namespace ParamDefinition {
     export function MappedStatic<C extends Params>(defaultKey: keyof C, map: C, info?: Info & { options?: [keyof C, string][] }): Mapped<NamedParamUnion<C>> {
         const options: [string, string][] = info && info.options
             ? info.options as [string, string][]
-            : Object.keys(map).map(k => [k, stringToWords(k)]) as [string, string][];
+            : Object.keys(map).map(k => [k, map[k].label || stringToWords(k)]) as [string, string][];
         const name = checkDefaultKey(defaultKey, options);
         return setInfo<Mapped<NamedParamUnion<C>>>({
             type: 'mapped',

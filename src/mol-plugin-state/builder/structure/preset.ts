@@ -71,7 +71,7 @@ const defaultPreset = StructureRepresentationProvider({
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsWithTheme(plugin, 'spacefill', 'polymer-id', structure, {}));
 
-        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
 
         return {
             ligand: {
@@ -98,7 +98,7 @@ const proteinAndNucleic = StructureRepresentationProvider({
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParams(plugin, 'gaussian-surface', structure));
 
-        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
         return {};
     }
 });
@@ -119,7 +119,7 @@ const capsid = StructureRepresentationProvider({
         applySelection(root, 'polymer')
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
 
-        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
         return {};
     }
 });
@@ -143,7 +143,7 @@ const coarseCapsid = StructureRepresentationProvider({
         applySelection(root, 'trace')
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
 
-        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
         return {};
     }
 });
@@ -164,7 +164,7 @@ const cartoon = StructureRepresentationProvider({
         applySelection(root, 'polymer')
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
 
-        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
         return {};
     }
 });
@@ -187,3 +187,4 @@ export const PresetStructureReprentations = {
     coarseCapsid,
     cartoon
 };
+export type PresetStructureReprentations = typeof PresetStructureReprentations;

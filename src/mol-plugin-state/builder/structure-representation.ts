@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { arrayFind } from '../../mol-data/util';
 import { Structure } from '../../mol-model/structure';
-import { StateTransform, StateTree, StateSelection } from '../../mol-state';
+import { StateTransform, StateTree, StateSelection, StateObjectRef } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { isProductionMode } from '../../mol-util/debug';
 import { objectForEach } from '../../mol-util/object';
@@ -19,11 +19,19 @@ import { UniqueArray } from '../../mol-data/generic';
 // TODO: support quality
 // TODO: support ignore hydrogens
 
-export class StructureRepresentationManager {
+export type StructureRepresentationProviderRef = keyof PresetStructureReprentations | StructureRepresentationProvider | string
+
+export class StructureRepresentationBuilder {
     private providers: StructureRepresentationProvider[] = [];
     private providerMap: Map<string, StructureRepresentationProvider> = new Map();
 
     readonly defaultProvider = PresetStructureReprentations.auto;
+
+    private resolveProvider(ref: StructureRepresentationProviderRef) {
+        return typeof ref === 'string'
+            ? PresetStructureReprentations[ref as keyof PresetStructureReprentations] ?? arrayFind(this.providers, p => p.id === ref)
+            : ref;
+    }
 
     hasProvider(s: Structure) {
         for (const p of this.providers) {
@@ -45,10 +53,12 @@ export class StructureRepresentationManager {
         return PD.MappedStatic(options[0][0], map, { options });
     }
 
-    hasManagedRepresentation(ref: StateTransform.Ref) {
-        const tree = this.plugin.state.dataState.tree;
+    hasManagedRepresentation(ref: StateObjectRef) {
         // TODO: make this state selection function?
-        return StateTree.doPreOrder(tree, tree.transforms.get(ref), { found: false, map: this.providerMap }, (n, _, s) => {
+        const tree = this.plugin.state.dataState.tree;
+        const root = StateObjectRef.resolve(this.plugin.state.dataState, ref);
+        if (!root) return false;
+        return StateTree.doPreOrder(tree, root.transform,  { found: false, map: this.providerMap }, (n, _, s) => {
             if (!n.tags) return;
             for (const t of n.tags) {
                 if (s.map.has(t)) {
@@ -59,10 +69,11 @@ export class StructureRepresentationManager {
         }).found;
     }
 
-    getManagedRepresentations(ref: StateTransform.Ref) {
-        // TODO: check if Structure etc.
+    getManagedRepresentations(ref: StateObjectRef) {
         const tree = this.plugin.state.dataState.tree;
-        return StateTree.doPreOrder(tree, tree.transforms.get(ref), { found: UniqueArray.create<string, StructureRepresentationProvider>(), map: this.providerMap }, (n, _, s) => {
+        const root = StateObjectRef.resolve(this.plugin.state.dataState, ref);
+        if (!root) return [];
+        return StateTree.doPreOrder(tree, root.transform, { found: UniqueArray.create<string, StructureRepresentationProvider>(), map: this.providerMap }, (n, _, s) => {
             if (!n.tags) return;
             for (const t of n.tags) {
                 if (s.map.has(t)) UniqueArray.add(s.found, t, s.map.get(t)!);
@@ -79,11 +90,12 @@ export class StructureRepresentationManager {
         this.providerMap.set(provider.id, provider);
     }
 
-    remove(providerOrId: StructureRepresentationProvider | string, structureRoot?: StateTransform.Ref) {
-        const root = structureRoot || StateTransform.RootRef;
-        const id = typeof providerOrId === 'string' ? providerOrId : providerOrId.id;
-
+    remove(providerRef: StructureRepresentationProviderRef, structureRoot?: StateObjectRef) {
+        const id = this.resolveProvider(providerRef)?.id;
+        if (!id) return;
+        
         const state = this.plugin.state.dataState;
+        const root = StateObjectRef.resolveRef(state, structureRoot) || StateTransform.RootRef;
         const reprs = StateSelection.findWithAllTags(state.tree, root, new Set([id, RepresentationProviderTags.Representation]));
 
         const builder = state.build();
@@ -101,32 +113,29 @@ export class StructureRepresentationManager {
         if (builder.editInfo.count === 0) return;
         return this.plugin.runTask(state.updateTree(builder));
     }
-
-    apply<P = any, S = {}>(ref: StateTransform.Ref, providerOrId: StructureRepresentationProvider<P, S> | string, params?: P) {
-        const provider = typeof providerOrId === 'string'
-            ? arrayFind(this.providers, p => p.id === providerOrId)
-            : providerOrId;
+    
+    apply<K extends keyof PresetStructureReprentations>(parent: StateObjectRef, preset: K, params?: StructureRepresentationProvider.Params<PresetStructureReprentations[K]>): Promise<StructureRepresentationProvider.State<PresetStructureReprentations[K]>> | undefined
+    apply<P = any, S = {}>(parent: StateObjectRef, providers: StructureRepresentationProvider<P, S>, params?: P): Promise<S> | undefined
+    apply(parent: StateObjectRef, providerId: string, params?: any): Promise<any> | undefined
+    apply(parent: StateObjectRef, providerRef: string | StructureRepresentationProvider, params?: any): Promise<any> | undefined {
+        const provider = this.resolveProvider(providerRef);
         if (!provider) return;
 
         const state = this.plugin.state.dataState;
-        const cell = state.cells.get(ref);
-        if (!cell || !cell.obj || cell.status !== 'ok') {
+        const cell = StateObjectRef.resolveAndCheck(state, parent);
+        if (!cell) {
             if (!isProductionMode) console.warn(`Applying structure repr. provider to bad cell.`);
             return;
         }
 
         const prms = params || (provider.params
-            ? PD.getDefaultValues(provider.params(cell.obj.data, this.plugin))
+            ? PD.getDefaultValues(provider.params(cell.obj!.data, this.plugin))
             : {})
 
 
-        const task = Task.create<S>(`${provider.display.name}`, ctx => provider.apply(ctx, state, cell, prms, this.plugin) as Promise<S>);
+        const task = Task.create(`${provider.display.name}`, ctx => provider.apply(ctx, state, cell, prms, this.plugin) as Promise<any>);
         return this.plugin.runTask(task);
     }
-
-    // init() {
-    //     objectForEach(PresetStructureReprentations, r => this.register(r));
-    // }
 
     constructor(public plugin: PluginContext) {
         objectForEach(PresetStructureReprentations, r => this.register(r));
