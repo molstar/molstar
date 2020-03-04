@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Fred Ludlow <fred.ludlow@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -53,7 +53,7 @@ export const DefaultMolecularSurfaceCalculationProps = PD.getDefaultValues(Molec
 export type MolecularSurfaceCalculationProps = typeof DefaultMolecularSurfaceCalculationProps
 
 
-export async function calcMolecularSurface(ctx: RuntimeContext, position: Required<PositionData>, maxRadius: number,  props: MolecularSurfaceCalculationProps) {
+export async function calcMolecularSurface(ctx: RuntimeContext, position: Required<PositionData>, maxRadius: number, box: Box3D | null, props: MolecularSurfaceCalculationProps) {
     // Field generation method adapted from AstexViewer (Mike Hartshorn) by Fred Ludlow.
     // Other parts based heavily on NGL (Alexander Rose) EDT Surface class
 
@@ -78,7 +78,7 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
         }
 
         for (let j = 0, jl = neighbours.count; j < jl; ++j) {
-            const ai = OrderedSet.getAt(position.indices, neighbours.indices[j])
+            const ai = OrderedSet.getAt(indices, neighbours.indices[j])
             if (ai !== a && ai !== b && singleAtomObscures(ai, x, y, z)) {
                 lastClip = ai
                 return ai
@@ -281,7 +281,7 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
                                 // Is this grid point closer to a or b?
                                 // Take dot product of atob and gridpoint->p (dx, dy, dz)
                                 const dp = dx * atob[0] + dy * atob[1] + dz * atob[2]
-                                idData[idx] = id[OrderedSet.indexOf(position.indices, dp < 0.0 ? b : a)]
+                                idData[idx] = id[OrderedSet.indexOf(indices, dp < 0.0 ? b : a)]
                             }
                         }
                     }
@@ -317,15 +317,16 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
     const scaleFactor = 1 / resolution
     const ngTorus = Math.max(5, 2 + Math.floor(probeRadius * scaleFactor))
 
-    const cellSize =  Vec3.create(maxRadius, maxRadius, maxRadius)
+    const cellSize = Vec3.create(maxRadius, maxRadius, maxRadius)
     Vec3.scale(cellSize, cellSize, 2)
     const lookup3d = GridLookup3D(position, cellSize)
     const neighbours = lookup3d.result
-    const box = lookup3d.boundary.box
+    if (box === null) box = lookup3d.boundary.box
+
     const { indices, x: px, y: py, z: pz, id, radius } = position
     const n = OrderedSet.size(indices)
 
-    const pad = maxRadius * 2 + resolution
+    const pad = maxRadius + resolution
     const expandedBox = Box3D.expand(Box3D(), box, Vec3.create(pad, pad, pad));
     const [ minX, minY, minZ ] = expandedBox.min
     const scaledBox = Box3D.scale(Box3D(), expandedBox, scaleFactor)

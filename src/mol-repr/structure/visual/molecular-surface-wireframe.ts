@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,19 +15,19 @@ import { computeUnitMolecularSurface, MolecularSurfaceProps } from './util/molec
 import { computeMarchingCubesLines } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
+import { CommonSurfaceParams } from './util/common';
 
 export const MolecularSurfaceWireframeParams = {
     ...UnitsLinesParams,
     ...MolecularSurfaceCalculationParams,
+    ...CommonSurfaceParams,
     sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
-    ignoreHydrogens: PD.Boolean(false),
 }
 export type MolecularSurfaceWireframeParams = typeof MolecularSurfaceWireframeParams
 
 //
 
 async function createMolecularSurfaceWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceProps, lines?: Lines): Promise<Lines> {
-
     const { transform, field, idField } = await computeUnitMolecularSurface(structure, unit, props).runInContext(ctx.runtime)
     const params = {
         isoLevel: props.probeRadius,
@@ -53,6 +53,7 @@ export function MolecularSurfaceWireframeVisual(materialId: number): UnitsVisual
             if (newProps.probeRadius !== currentProps.probeRadius) state.createGeometry = true
             if (newProps.probePositions !== currentProps.probePositions) state.createGeometry = true
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true
+            if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true
         }
     }, materialId)
 }

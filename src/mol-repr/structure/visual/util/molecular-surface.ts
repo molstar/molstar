@@ -1,23 +1,21 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Unit, Structure } from '../../../../mol-model/structure';
 import { Task, RuntimeContext } from '../../../../mol-task';
-import { getUnitConformationAndRadius } from './common';
-import { PositionData, DensityData } from '../../../../mol-math/geometry';
+import { getUnitConformationAndRadius, CommonSurfaceProps } from './common';
+import { PositionData, DensityData, Box3D } from '../../../../mol-math/geometry';
 import { MolecularSurfaceCalculationProps, calcMolecularSurface } from '../../../../mol-math/geometry/molecular-surface';
 import { OrderedSet } from '../../../../mol-data/int';
 
-export type MolecularSurfaceProps = MolecularSurfaceCalculationProps & {
-    ignoreHydrogens: boolean
-}
+export type MolecularSurfaceProps = MolecularSurfaceCalculationProps & CommonSurfaceProps
 
 function getPositionDataAndMaxRadius(structure: Structure, unit: Unit, props: MolecularSurfaceProps) {
-    const { probeRadius, ignoreHydrogens } = props
-    const { position, radius } = getUnitConformationAndRadius(structure, unit, ignoreHydrogens)
+    const { probeRadius } = props
+    const { position, radius } = getUnitConformationAndRadius(structure, unit, props)
     const { indices } = position
     const n = OrderedSet.size(indices)
     const radii = new Float32Array(OrderedSet.end(indices))
@@ -34,14 +32,15 @@ function getPositionDataAndMaxRadius(structure: Structure, unit: Unit, props: Mo
 }
 
 export function computeUnitMolecularSurface(structure: Structure, unit: Unit, props: MolecularSurfaceProps) {
+    const { box } = unit.lookup3d.boundary
     const { position, maxRadius } = getPositionDataAndMaxRadius(structure, unit, props)
     return Task.create('Molecular Surface', async ctx => {
-        return await MolecularSurface(ctx, position, maxRadius, props);
+        return await MolecularSurface(ctx, position, maxRadius, box, props);
     });
 }
 
 //
 
-async function MolecularSurface(ctx: RuntimeContext, position: Required<PositionData>, maxRadius: number,  props: MolecularSurfaceCalculationProps): Promise<DensityData> {
-    return calcMolecularSurface(ctx, position, maxRadius, props)
+async function MolecularSurface(ctx: RuntimeContext, position: Required<PositionData>, maxRadius: number, box: Box3D | null, props: MolecularSurfaceCalculationProps): Promise<DensityData> {
+    return calcMolecularSurface(ctx, position, maxRadius, box, props)
 }

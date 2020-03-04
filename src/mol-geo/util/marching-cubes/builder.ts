@@ -44,8 +44,13 @@ export function MarchinCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): M
             ChunkedArray.add(groups, group);
         },
         addTriangle: (vertList: number[], a: number, b: number, c: number) => {
-            ++triangleCount
-            ChunkedArray.add3(indices, vertList[a], vertList[b], vertList[c]);
+            const i = vertList[a], j = vertList[b], k = vertList[c]
+            // vertex indices <0 mean that the vertex was ignored and is not available
+            // and hence we don't add a triangle when this occurs
+            if (i >= 0 && j >= 0 && k >= 0) {
+                ++triangleCount
+                ChunkedArray.add3(indices, i, j, k)
+            }
         },
         get: () => {
             const vb = ChunkedArray.compact(vertices, true) as Float32Array;
@@ -73,17 +78,22 @@ export function MarchinCubesLinesBuilder(vertexChunkSize: number, lines?: Lines)
             ChunkedArray.add(groups, group);
         },
         addTriangle: (vertList: number[], a: number, b: number, c: number, edgeFilter: number) => {
-            if (AllowedContours[a][b] & edgeFilter) {
-                ++linesCount
-                ChunkedArray.add2(indices, vertList[a], vertList[b])
-            }
-            if (AllowedContours[b][c] & edgeFilter) {
-                ++linesCount
-                ChunkedArray.add2(indices, vertList[b], vertList[c])
-            }
-            if (AllowedContours[a][c] & edgeFilter) {
-                ++linesCount
-                ChunkedArray.add2(indices, vertList[a], vertList[c])
+            const i = vertList[a], j = vertList[b], k = vertList[c]
+            // vertex indices <0 mean that the vertex was ignored and is not available
+            // and hence we don't add a triangle when this occurs
+            if (i >= 0 && j >= 0 && k >= 0) {
+                if (AllowedContours[a][b] & edgeFilter) {
+                    ++linesCount
+                    ChunkedArray.add2(indices, vertList[a], vertList[b])
+                }
+                if (AllowedContours[b][c] & edgeFilter) {
+                    ++linesCount
+                    ChunkedArray.add2(indices, vertList[b], vertList[c])
+                }
+                if (AllowedContours[a][c] & edgeFilter) {
+                    ++linesCount
+                    ChunkedArray.add2(indices, vertList[a], vertList[c])
+                }
             }
         },
         get: () => {

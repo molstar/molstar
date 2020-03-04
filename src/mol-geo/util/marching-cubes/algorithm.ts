@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -166,6 +166,19 @@ class MarchingCubesState {
         const v1 = sfg(sf, hi, hj, hk);
         const t = (this.isoLevel - v0) / (v0 - v1);
 
+        if (this.idField) {
+            const u = this.idFieldGet!(this.idField, li, lj, lk);
+            const v = this.idFieldGet!(this.idField, hi, hj, hk)
+            let a = t < 0.5 ? u : v;
+            // -1 means 'no id', check if the other cell has an id
+            if (a === -1) a = t < 0.5 ? v : u;
+            // -2 means 'ignore this cell'
+            if (a === -2) return -1
+            this.builder.addGroup(a);
+        } else {
+            this.builder.addGroup(0);
+        }
+
         const id = this.builder.addVertex(
             li + t * (li - hi),
             lj + t * (lj - hj),
@@ -188,16 +201,6 @@ class MarchingCubesState {
             n0y + t * (n0y - n1y),
             n0z + t * (n0z - n1z)
         )
-
-        if (this.idField) {
-            const u = this.idFieldGet!(this.idField, li, lj, lk);
-            const v = this.idFieldGet!(this.idField, hi, hj, hk)
-            let a = t < 0.5 ? u : v;
-            if (a < 0) a = t < 0.5 ? v : u;
-            this.builder.addGroup(a);
-        } else {
-            this.builder.addGroup(0);
-        }
 
         return id;
     }

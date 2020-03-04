@@ -1,17 +1,19 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Unit, Structure, ElementIndex, StructureElement, ResidueIndex } from '../../../../mol-model/structure';
-import { Mat4 } from '../../../../mol-math/linear-algebra';
+import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
 import { TransformData, createTransform } from '../../../../mol-geo/geometry/transform-data';
 import { OrderedSet, SortedArray } from '../../../../mol-data/int';
 import { EmptyLoci, Loci } from '../../../../mol-model/loci';
 import { PhysicalSizeTheme } from '../../../../mol-theme/size/physical';
 import { AtomicNumbers, AtomNumber } from '../../../../mol-model/structure/model/properties/atomic';
 import { fillSerial } from '../../../../mol-util/array';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { AssignableArrayLike } from '../../../../mol-util/type-helpers';
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
@@ -105,37 +107,71 @@ export function getConformation(unit: Unit) {
     }
 }
 
-export function getUnitConformationAndRadius(structure: Structure, unit: Unit, ignoreHydrogens = false) {
-    const conformation = getConformation(unit)
-    const { elements } = unit
+export const CommonSurfaceParams = {
+    ignoreHydrogens: PD.Boolean(false),
+    includeParent: PD.Boolean(true, { description: 'Include elements of the parent structure in surface calculation to get a surface patch of the current structure.' }),
+}
+export const DefaultCommonSurfaceProps = PD.getDefaultValues(CommonSurfaceParams)
+export type CommonSurfaceProps = typeof DefaultCommonSurfaceProps
+
+const v = Vec3()
+function squaredDistance(x: number, y: number, z: number, center: Vec3) {
+    return Vec3.squaredDistance(Vec3.set(v, x, y, z), center)
+}
+
+/** marks `indices` for filtering/ignoring in `id` when not in `elements` */
+function filterId(id: AssignableArrayLike<number>, elements: SortedArray, indices: SortedArray) {
+    let start = 0
+    const end = elements.length
+    for (let i = 0, il = indices.length; i < il; ++i) {
+        const idx = SortedArray.indexOfInRange(elements, indices[i], start, end)
+        if (idx === -1) {
+            id[i] = -2
+        } else {
+            id[i] = idx
+            start = idx
+        }
+    }
+}
+
+export function getUnitConformationAndRadius(structure: Structure, unit: Unit, props: CommonSurfaceProps) {
+    const { ignoreHydrogens, includeParent } = props
+    const rootUnit = includeParent ? structure.root.unitMap.get(unit.id) : unit
+
+    const { x, y, z } = getConformation(rootUnit)
+    const { elements } = rootUnit
+    const { center, radius: sphereRadius } = unit.lookup3d.boundary.sphere
+    const extraRadius = (2 + 1.5) * 2 // TODO should be twice (the max vdW/sphere radius plus the probe radius)
+    const radiusSq = (sphereRadius + extraRadius) * (sphereRadius + extraRadius)
 
     let indices: SortedArray<ElementIndex>
-    let id: ArrayLike<number>
+    let id: AssignableArrayLike<number>
 
-    if (ignoreHydrogens) {
+    if (ignoreHydrogens || (includeParent && rootUnit !== unit)) {
         const _indices = []
         const _id = []
         for (let i = 0, il = elements.length; i < il; ++i) {
-            if (isHydrogen(unit, elements[i])) continue
-            _indices.push(elements[i])
+            const eI = elements[i]
+            if (ignoreHydrogens && isHydrogen(rootUnit, eI)) continue
+            if (includeParent && squaredDistance(x[eI], y[eI], z[eI], center) > radiusSq) continue
+
+            _indices.push(eI)
             _id.push(i)
         }
         indices = SortedArray.ofSortedArray(_indices)
         id = _id
     } else {
         indices = elements
-        id = fillSerial(new Uint32Array(indices.length))
+        id = fillSerial(new Int32Array(indices.length))
     }
 
-    const position = {
-        indices,
-        x: conformation.x,
-        y: conformation.y,
-        z: conformation.z,
-        id
+    if (includeParent && rootUnit !== unit) {
+        filterId(id, unit.elements, indices)
     }
 
-    const l = StructureElement.Location.create(structure, unit)
+    const position = { indices, x, y, z, id }
+
+    const l = StructureElement.Location.create(structure, rootUnit)
     const sizeTheme = PhysicalSizeTheme({}, {})
     const radius = (index: number) => {
         l.element = index as ElementIndex
@@ -145,7 +181,7 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, i
     return { position, radius }
 }
 
-export function getStructureConformationAndRadius(structure: Structure, ignoreHydrogens = false) {
+export function getStructureConformationAndRadius(structure: Structure, ignoreHydrogens: boolean) {
     const l = StructureElement.Location.create(structure)
     const sizeTheme = PhysicalSizeTheme({}, {})
 
@@ -165,10 +201,11 @@ export function getStructureConformationAndRadius(structure: Structure, ignoreHy
             const unit = structure.units[i]
             const { elements } = unit
             const { x, y, z } = unit.conformation
+
             l.unit = unit
             for (let j = 0, jl = elements.length; j < jl; ++j) {
                 const eI = elements[j]
-                if (ignoreHydrogens && isHydrogen(unit, eI)) continue
+                if (isHydrogen(unit, eI)) continue
 
                 _xs.push(x(eI))
                 _ys.push(y(eI))

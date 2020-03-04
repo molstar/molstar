@@ -66,6 +66,7 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
             if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true
+            if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true
         }
     }, materialId)
 }
@@ -109,6 +110,7 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
             if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true
+            if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true
         }
     }, materialId)
 }
@@ -154,6 +156,7 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true
+            if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true
         }
     }, materialId)
 }
