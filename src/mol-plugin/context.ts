@@ -46,6 +46,7 @@ import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { StructureRepresentationManager } from '../mol-plugin-state/representation/structure';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { PluginConfigManager } from './config';
+import { DataBuilder } from '../mol-plugin-state/builder/data';
 
 export class PluginContext {
     private disposed = false;
@@ -123,6 +124,10 @@ export class PluginContext {
     readonly dataFormat = {
         registry: new DataFormatRegistry()
     } as const
+
+    readonly builders = {
+        data: new DataBuilder(this)
+    };
 
     readonly customModelProperties = new CustomProperty.Registry<Model>();
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();

@@ -235,16 +235,16 @@ const DownloadStructure = StateAction.build({
     const createRepr = !params.source.params.structure.noRepresentation;
 
     if (downloadParams.length > 0 && asTrajectory) {
-        const traj = createSingleTrajectoryModel(downloadParams, state.build());
-        const struct = createStructure(traj, supportProps, src.params.structure.type);
+        const traj = await createSingleTrajectoryModel(plugin, state, downloadParams);
+        const struct = createStructure(state.build().to(traj), supportProps, src.params.structure.type);
         await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
         if (createRepr) {
             await plugin.structureRepresentation.manager.apply(struct.ref, plugin.structureRepresentation.manager.defaultProvider);
         }
     } else {
         for (const download of downloadParams) {
-            const data = state.build().toRoot().apply(StateTransforms.Data.Download, download, { state: { isGhost: true } });
-            const traj = createModelTree(data, format);
+            const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
+            const traj = createModelTree(state.build().to(data), format);
 
             const struct = createStructure(traj, supportProps, src.params.structure.type);
             await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
@@ -264,16 +264,21 @@ function getDownloadParams(src: string, url: (id: string) => string, label: (id:
     return ret;
 }
 
-function createSingleTrajectoryModel(sources: StateTransformer.Params<Download>[], b: StateBuilder.Root) {
-    return b.toRoot()
-        .apply(StateTransforms.Data.DownloadBlob, {
-            sources: sources.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
-            maxConcurrency: 6
-        }, { state: { isGhost: true } }).apply(StateTransforms.Data.ParseBlob, {
+async function createSingleTrajectoryModel(plugin: PluginContext, state: State, sources: StateTransformer.Params<Download>[]) {
+    const data = await plugin.builders.data.downloadBlob({
+        sources: sources.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
+        maxConcurrency: 6
+    }, { state: { isGhost: true } });
+
+    const trajectory = state.build().to(data)
+        .apply(StateTransforms.Data.ParseBlob, {
             formats: sources.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' }))
         }, { state: { isGhost: true } })
         .apply(StateTransforms.Model.TrajectoryFromBlob)
         .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
+
+    await plugin.runTask(state.updateTree(trajectory, { revertIfAborted: true }));
+    return trajectory.selector;
 }
 
 export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: StructureFormat = 'cif') {
