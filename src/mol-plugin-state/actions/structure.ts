@@ -225,7 +225,7 @@ const DownloadStructure = StateAction.build({
 
     const createRepr = !params.source.params.structure.noRepresentation;
 
-    state.transaction(async () => {
+    await state.transaction(async () => {
         if (downloadParams.length > 0 && asTrajectory) {
             const traj = await createSingleTrajectoryModel(plugin, state, downloadParams);
             const struct = createStructure(state.build().to(traj), supportProps, src.params.structure.type);

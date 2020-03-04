@@ -31,6 +31,7 @@ import { parseDcd } from '../../mol-io/reader/dcd/parser';
 import { coordinatesFromDcd } from '../../mol-model-formats/structure/dcd';
 import { topologyFromPsf } from '../../mol-model-formats/structure/psf';
 import { deepEqual } from '../../mol-util';
+import { StructureComponentParams, createStructureComponent, updateStructureComponent } from '../helpers/structure-component';
 
 export { CoordinatesFromDcd };
 export { TopologyFromPsf };
@@ -50,6 +51,7 @@ export { MultiStructureSelectionFromExpression }
 export { StructureSelectionFromScript };
 export { StructureSelectionFromBundle };
 export { StructureComplexElement };
+export { StructureComponent }
 export { CustomModelProperties };
 export { CustomStructureProperties };
 
@@ -665,6 +667,22 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
 
         if (s.elementCount === 0) return StateObject.Null;
         return new SO.Molecule.Structure(s, { label, description: Structure.elementDescription(s) });
+    }
+});
+
+type StructureComponent = typeof StructureComponent
+const StructureComponent = PluginStateTransform.BuiltIn({
+    name: 'structure-component',
+    display: { name: 'Component', description: 'A molecular structure component.' },
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    params: StructureComponentParams
+})({
+    apply({ a, params, cache }) {
+        return createStructureComponent(a.data, params, cache as any);
+    },
+    update: ({ a, b, oldParams, newParams, cache }) => {
+        return updateStructureComponent(a.data, b, oldParams, newParams, cache as any);
     }
 });
 
