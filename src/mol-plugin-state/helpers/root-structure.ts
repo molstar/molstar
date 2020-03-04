@@ -16,7 +16,7 @@ import { Assembly, Symmetry } from '../../mol-model/structure/model/properties/s
 import { PluginStateObject as SO } from '../objects';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 
-export namespace ModelStructureRepresentation {
+export namespace RootStructureDefinition {
     export function getParams(model?: Model, defaultValue?: 'deposited' | 'assembly' | 'symmetry' | 'symmetry-mates' | 'symmetry-assembly') {
         const symmetry = model && ModelSymmetry.Provider.get(model)
 

@@ -21,6 +21,11 @@ export interface StructureRepresentationProvider<P = any, S = {}> {
     // remove?(state: State, ref: string, plugin: PluginContext): void
 }
 
+export namespace StructureRepresentationProvider {
+    export type Params<P extends StructureRepresentationProvider> = P extends StructureRepresentationProvider<infer T> ? T : never;
+    export type State<P extends StructureRepresentationProvider> = P extends StructureRepresentationProvider<infer _, infer S> ? S : never;
+}
+
 export const enum RepresentationProviderTags {
     Representation = 'preset-structure-representation',
     Selection = 'preset-structure-selection'

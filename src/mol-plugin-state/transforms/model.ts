@@ -26,11 +26,12 @@ import { parse3DG } from '../../mol-io/reader/3dg/parser';
 import { trajectoryFrom3DG } from '../../mol-model-formats/structure/3dg';
 import { StructureSelectionQueries } from '../../mol-plugin/util/structure-selection-helper';
 import { StructureQueryHelper } from '../../mol-plugin/util/structure-query';
-import { ModelStructureRepresentation } from '../representation/model';
+import { RootStructureDefinition } from '../helpers/root-structure';
 import { parseDcd } from '../../mol-io/reader/dcd/parser';
 import { coordinatesFromDcd } from '../../mol-model-formats/structure/dcd';
 import { topologyFromPsf } from '../../mol-model-formats/structure/psf';
 import { deepEqual } from '../../mol-util';
+import { StructureComponentParams, createStructureComponent, updateStructureComponent } from '../helpers/structure-component';
 
 export { CoordinatesFromDcd };
 export { TopologyFromPsf };
@@ -50,6 +51,7 @@ export { MultiStructureSelectionFromExpression }
 export { StructureSelectionFromScript };
 export { StructureSelectionFromBundle };
 export { StructureComplexElement };
+export { StructureComponent }
 export { CustomModelProperties };
 export { CustomStructureProperties };
 
@@ -273,11 +275,11 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
     display: { name: 'Structure', description: 'Create a molecular structure (deposited, assembly, or symmetry) from the specified model.' },
     from: SO.Molecule.Model,
     to: SO.Molecule.Structure,
-    params(a) { return ModelStructureRepresentation.getParams(a && a.data); }
+    params(a) { return RootStructureDefinition.getParams(a && a.data); }
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Structure', async ctx => {
-            return ModelStructureRepresentation.create(plugin, ctx, a.data, params && params.type);
+            return RootStructureDefinition.create(plugin, ctx, a.data, params && params.type);
         })
     },
     update: ({ a, b, oldParams, newParams }) => {
@@ -665,6 +667,22 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
 
         if (s.elementCount === 0) return StateObject.Null;
         return new SO.Molecule.Structure(s, { label, description: Structure.elementDescription(s) });
+    }
+});
+
+type StructureComponent = typeof StructureComponent
+const StructureComponent = PluginStateTransform.BuiltIn({
+    name: 'structure-component',
+    display: { name: 'Component', description: 'A molecular structure component.' },
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    params: StructureComponentParams
+})({
+    apply({ a, params, cache }) {
+        return createStructureComponent(a.data, params, cache as any);
+    },
+    update: ({ a, b, oldParams, newParams, cache }) => {
+        return updateStructureComponent(a.data, b, oldParams, newParams, cache as any);
     }
 });
 

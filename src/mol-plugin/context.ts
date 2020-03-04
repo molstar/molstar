@@ -43,9 +43,10 @@ import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
 import { PluginToastManager } from './util/toast';
 import { StructureMeasurementManager } from './util/structure-measurement';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
-import { StructureRepresentationManager } from '../mol-plugin-state/representation/structure';
+import { StructureRepresentationBuilder } from '../mol-plugin-state/builder/structure-representation';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { PluginConfigManager } from './config';
+import { DataBuilder } from '../mol-plugin-state/builder/data';
 
 export class PluginContext {
     private disposed = false;
@@ -112,7 +113,6 @@ export class PluginContext {
     readonly structureRepresentation = {
         registry: new StructureRepresentationRegistry(),
         themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext,
-        manager: void 0 as any as StructureRepresentationManager
     } as const
 
     readonly volumeRepresentation = {
@@ -123,6 +123,11 @@ export class PluginContext {
     readonly dataFormat = {
         registry: new DataFormatRegistry()
     } as const
+
+    readonly builders = {
+        data: new DataBuilder(this),
+        structureRepresentation: void 0 as any as StructureRepresentationBuilder
+    };
 
     readonly customModelProperties = new CustomProperty.Registry<Model>();
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
@@ -277,7 +282,7 @@ export class PluginContext {
         this.interactivity = new Interactivity(this);
         this.lociLabels = new LociLabelManager(this);
 
-        (this.structureRepresentation.manager as StructureRepresentationManager)= new StructureRepresentationManager(this);
+        (this.builders.structureRepresentation as StructureRepresentationBuilder)= new StructureRepresentationBuilder(this);
 
         this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
         if (!isProductionMode) this.log.message(`Development mode enabled`);

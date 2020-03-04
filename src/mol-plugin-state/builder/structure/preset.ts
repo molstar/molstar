@@ -5,13 +5,13 @@
  */
 
 import { StateTransforms } from '../../transforms';
-import { StructureComplexElementTypes } from '../../transforms/model';
 import { StructureRepresentation3DHelpers } from '../../transforms/representation';
 import { StructureSelectionQueries as Q } from '../../../mol-plugin/util/structure-selection-helper';
 import { BuiltInStructureRepresentations } from '../../../mol-repr/structure/registry';
 import { StructureRepresentationProvider, RepresentationProviderTags } from './provider';
 import { StateBuilder } from '../../../mol-state';
 import { PluginStateObject } from '../../objects';
+import { StaticStructureComponentType } from '../../helpers/structure-component';
 
 const auto = StructureRepresentationProvider({
     id: 'preset-structure-representation-auto',
@@ -71,7 +71,7 @@ const defaultPreset = StructureRepresentationProvider({
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsWithTheme(plugin, 'spacefill', 'polymer-id', structure, {}));
 
-        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
 
         return {
             ligand: {
@@ -98,7 +98,7 @@ const proteinAndNucleic = StructureRepresentationProvider({
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParams(plugin, 'gaussian-surface', structure));
 
-        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
         return {};
     }
 });
@@ -119,7 +119,7 @@ const capsid = StructureRepresentationProvider({
         applySelection(root, 'polymer')
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
 
-        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
         return {};
     }
 });
@@ -143,7 +143,7 @@ const coarseCapsid = StructureRepresentationProvider({
         applySelection(root, 'trace')
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
 
-        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
         return {};
     }
 });
@@ -164,19 +164,26 @@ const cartoon = StructureRepresentationProvider({
         applySelection(root, 'polymer')
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
 
-        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
         return {};
     }
 });
 
-function applyComplex(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, type: keyof typeof StructureComplexElementTypes) {
-    return to.applyOrUpdateTagged(type, StateTransforms.Model.StructureComplexElement, { type }, { tags: RepresentationProviderTags.Selection });
+function applyComplex(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, type: StaticStructureComponentType) {
+    return to.applyOrUpdateTagged(type, StateTransforms.Model.StructureComponent, { 
+        type: { name: 'static', params: type },
+        nullIfEmpty: true,
+        label: ''
+    }, { tags: RepresentationProviderTags.Selection });
 }
 
 function applySelection(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, query: keyof typeof Q) {
-    return to.applyOrUpdateTagged(query, StateTransforms.Model.StructureSelectionFromExpression,
-        { expression: Q[query].expression, label: Q[query].label },
-        { tags: RepresentationProviderTags.Selection });
+    return to.applyOrUpdateTagged(query, StateTransforms.Model.StructureComponent, { 
+        type: { name: 'expression', params: Q[query].expression },
+        nullIfEmpty: true,
+        label: Q[query].label
+    },
+    { tags: RepresentationProviderTags.Selection });
 }
 
 export const PresetStructureReprentations = {
@@ -187,3 +194,4 @@ export const PresetStructureReprentations = {
     coarseCapsid,
     cartoon
 };
+export type PresetStructureReprentations = typeof PresetStructureReprentations;

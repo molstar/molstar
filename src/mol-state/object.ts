@@ -170,3 +170,27 @@ export namespace StateObjectSelector {
     export type Obj<S extends StateObjectSelector> = S extends StateObjectSelector<infer A> ? A : never
     export type Transformer<S extends StateObjectSelector> = S extends StateObjectSelector<any, infer T> ? T : never
 }
+
+export type StateObjectRef<S extends StateObject = StateObject> = StateObjectSelector<S> | StateObjectCell<S> | StateTransform.Ref
+
+export namespace StateObjectRef {
+    export function resolveRef<S extends StateObject>(state: State, ref?: StateObjectRef<S>): StateTransform.Ref | undefined {
+        if (!ref) return;
+        if (typeof ref === 'string') return ref;
+        if (StateObjectCell.is(ref)) return ref.transform.ref;
+        return ref.cell?.transform.ref;
+    }
+
+    export function resolve<S extends StateObject>(state: State, ref?: StateObjectRef<S>): StateObjectCell<S> | undefined {
+        if (!ref) return;
+        if (StateObjectCell.is(ref)) return ref;
+        if (typeof ref === 'string') return state.cells.get(ref) as StateObjectCell<S> | undefined;
+        return ref.cell;
+    }
+
+    export function resolveAndCheck<S extends StateObject>(state: State, ref?: StateObjectRef<S>): StateObjectCell<S> | undefined {
+        const cell = resolve(state, ref);
+        if (!cell || !cell.obj || cell.status !== 'ok') return;
+        return cell;
+    }
+}

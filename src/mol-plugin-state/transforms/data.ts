@@ -17,6 +17,7 @@ import * as CCP4 from '../../mol-io/reader/ccp4/parser'
 import * as DSN6 from '../../mol-io/reader/dsn6/parser'
 import * as PLY from '../../mol-io/reader/ply/parser'
 import { parsePsf } from '../../mol-io/reader/psf/parser';
+import { isTypedArray } from '../../mol-data/db/column-helpers';
 
 export { Download }
 type Download = typeof Download
@@ -93,6 +94,38 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
     //     // }
     //     // return StateTransformer.UpdateResult.Unchanged;
     // }
+});
+
+export { RawData }
+type RawData = typeof RawData
+const RawData = PluginStateTransform.BuiltIn({
+    name: 'raw-data',
+    display: { name: 'Raw Data', description: 'Raw data supplied by value.' },
+    from: [SO.Root],
+    to: [SO.Data.String, SO.Data.Binary],
+    params: {
+        data: PD.Value<string | number[]>('', { isHidden: true }),
+        label: PD.Optional(PD.Text(''))
+    }
+})({
+    apply({ params: p }) {
+        return Task.create('Raw Data', async () => {
+            if (typeof p.data !== 'string' && isTypedArray(p.data)) {
+                throw new Error('Supplied binary data must be a plain array.');
+            }
+            return typeof p.data === 'string'
+                ? new SO.Data.String(p.data as string, { label: p.label ? p.label : 'String' })
+                : new SO.Data.Binary(new Uint8Array(p.data), { label: p.label ? p.label : 'Binary' });
+        });
+    },
+    update({ oldParams, newParams, b }) {
+        if (oldParams.data !== newParams.data) return StateTransformer.UpdateResult.Recreate;
+        if (oldParams.label !== newParams.label) {
+            b.label = newParams.label || b.label;
+            return StateTransformer.UpdateResult.Updated;
+        }
+        return StateTransformer.UpdateResult.Unchanged;
+    }
 });
 
 export { ReadFile }

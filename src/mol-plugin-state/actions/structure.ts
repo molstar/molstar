@@ -17,7 +17,7 @@ import { FileInfo } from '../../mol-util/file-info';
 import { Task } from '../../mol-task';
 import { StructureElement } from '../../mol-model/structure';
 import { createDefaultStructureComplex } from '../../mol-plugin/util/structure-complex-helper';
-import { ModelStructureRepresentation } from '../representation/model';
+import { RootStructureDefinition } from '../helpers/root-structure';
 
 export const MmcifProvider: DataFormatProvider<any> = {
     label: 'mmCIF',
@@ -121,7 +121,7 @@ type StructureFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 //
 
 const DownloadModelRepresentationOptions = PD.Group({
-    type: ModelStructureRepresentation.getParams(void 0, 'assembly').type,
+    type: RootStructureDefinition.getParams(void 0, 'assembly').type,
     noRepresentation: PD.Optional(PD.Boolean(false, { description: 'Omit creating default representation.' }))
 }, { isExpanded: false });
 
@@ -141,27 +141,27 @@ const DownloadStructure = StateAction.build({
                 id: PD.Text('1cbs', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
                 structure: DownloadModelRepresentationOptions,
                 options: DownloadStructurePdbIdSourceOptions
-            }, { isFlat: true }),
+            }, { isFlat: true, label: 'PDBe Updated' }),
             'rcsb': PD.Group({
                 id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
                 structure: DownloadModelRepresentationOptions,
                 options: DownloadStructurePdbIdSourceOptions
-            }, { isFlat: true }),
+            }, { isFlat: true, label: 'RCSB' }),
             'pdb-dev': PD.Group({
                 id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma separated ids.' }),
                 structure: DownloadModelRepresentationOptions,
                 options: DownloadStructurePdbIdSourceOptions
-            }, { isFlat: true }),
+            }, { isFlat: true, label: 'PDBDEV' }),
             'bcif-static': PD.Group({
                 id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
                 structure: DownloadModelRepresentationOptions,
                 options: DownloadStructurePdbIdSourceOptions
-            }, { isFlat: true }),
+            }, { isFlat: true, label: 'BinaryCIF (static PDBe Updated)' }),
             'swissmodel': PD.Group({
                 id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma separated ACs.' }),
                 structure: DownloadModelRepresentationOptions,
                 options: DownloadStructurePdbIdSourceOptions
-            }, { isFlat: true, description: 'Loads the best homology model or experimental structure' }),
+            }, { isFlat: true, label: 'SWISS-MODEL', description: 'Loads the best homology model or experimental structure' }),
             'url': PD.Group({
                 url: PD.Text(''),
                 format: PD.Select('cif', [['cif', 'CIF'], ['pdb', 'PDB']] as ['cif' | 'pdb', string][]),
@@ -171,16 +171,7 @@ const DownloadStructure = StateAction.build({
                     supportProps: PD.Optional(PD.Boolean(false)),
                     createRepresentation: PD.Optional(PD.Boolean(true))
                 })
-            }, { isFlat: true })
-        }, {
-            options: [
-                ['pdbe-updated', 'PDBe Updated'],
-                ['rcsb', 'RCSB'],
-                ['pdb-dev', 'PDBDEV'],
-                ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
-                ['swissmodel', 'SWISS-MODEL'],
-                ['url', 'URL']
-            ]
+            }, { isFlat: true, label: 'URL' })
         })
     }
 })(({ params, state }, plugin: PluginContext) => Task.create('Download Structure', async ctx => {
@@ -234,25 +225,27 @@ const DownloadStructure = StateAction.build({
 
     const createRepr = !params.source.params.structure.noRepresentation;
 
-    if (downloadParams.length > 0 && asTrajectory) {
-        const traj = createSingleTrajectoryModel(downloadParams, state.build());
-        const struct = createStructure(traj, supportProps, src.params.structure.type);
-        await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
-        if (createRepr) {
-            await plugin.structureRepresentation.manager.apply(struct.ref, plugin.structureRepresentation.manager.defaultProvider);
-        }
-    } else {
-        for (const download of downloadParams) {
-            const data = state.build().toRoot().apply(StateTransforms.Data.Download, download, { state: { isGhost: true } });
-            const traj = createModelTree(data, format);
-
-            const struct = createStructure(traj, supportProps, src.params.structure.type);
+    await state.transaction(async () => {
+        if (downloadParams.length > 0 && asTrajectory) {
+            const traj = await createSingleTrajectoryModel(plugin, state, downloadParams);
+            const struct = createStructure(state.build().to(traj), supportProps, src.params.structure.type);
             await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
             if (createRepr) {
-                await plugin.structureRepresentation.manager.apply(struct.ref, plugin.structureRepresentation.manager.defaultProvider);
+                await plugin.builders.structureRepresentation.apply(struct.ref, 'auto');
+            }
+        } else {
+            for (const download of downloadParams) {
+                const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
+                const traj = createModelTree(state.build().to(data), format);
+
+                const struct = createStructure(traj, supportProps, src.params.structure.type);
+                await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
+                if (createRepr) {
+                    await plugin.builders.structureRepresentation.apply(struct.ref, 'auto');
+                }
             }
         }
-    }
+    }).runInContext(ctx);
 }));
 
 function getDownloadParams(src: string, url: (id: string) => string, label: (id: string) => string, isBinary: boolean): StateTransformer.Params<Download>[] {
@@ -264,16 +257,21 @@ function getDownloadParams(src: string, url: (id: string) => string, label: (id:
     return ret;
 }
 
-function createSingleTrajectoryModel(sources: StateTransformer.Params<Download>[], b: StateBuilder.Root) {
-    return b.toRoot()
-        .apply(StateTransforms.Data.DownloadBlob, {
-            sources: sources.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
-            maxConcurrency: 6
-        }, { state: { isGhost: true } }).apply(StateTransforms.Data.ParseBlob, {
+async function createSingleTrajectoryModel(plugin: PluginContext, state: State, sources: StateTransformer.Params<Download>[]) {
+    const data = await plugin.builders.data.downloadBlob({
+        sources: sources.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
+        maxConcurrency: 6
+    }, { state: { isGhost: true } });
+
+    const trajectory = state.build().to(data)
+        .apply(StateTransforms.Data.ParseBlob, {
             formats: sources.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' }))
         }, { state: { isGhost: true } })
         .apply(StateTransforms.Model.TrajectoryFromBlob)
         .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
+
+    await plugin.runTask(state.updateTree(trajectory, { revertIfAborted: true }));
+    return trajectory.selector;
 }
 
 export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: StructureFormat = 'cif') {
@@ -299,7 +297,7 @@ export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary
     return parsed.apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 }
 
-function createStructure(b: StateBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean, params?: ModelStructureRepresentation.Params) {
+function createStructure(b: StateBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean, params?: RootStructureDefinition.Params) {
     let root = b;
     if (supportProps) {
         root = root.apply(StateTransforms.Model.CustomModelProperties);
@@ -307,7 +305,7 @@ function createStructure(b: StateBuilder.To<PluginStateObject.Molecule.Model>, s
     return root.apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } });
 }
 
-function createStructureAndVisuals(ctx: PluginContext, b: StateBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean, params?: ModelStructureRepresentation.Params) {
+function createStructureAndVisuals(ctx: PluginContext, b: StateBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean, params?: RootStructureDefinition.Params) {
     const structure = createStructure(b, supportProps, params);
     createDefaultStructureComplex(ctx, structure);
     return b;
@@ -316,28 +314,28 @@ function createStructureAndVisuals(ctx: PluginContext, b: StateBuilder.To<Plugin
 export const Create3DRepresentationPreset = StateAction.build({
     display: { name: '3D Representation Preset', description: 'Create one of preset 3D representations.' },
     from: PluginStateObject.Molecule.Structure,
-    isApplicable(a, _, plugin: PluginContext) { return plugin.structureRepresentation.manager.hasProvider(a.data); },
+    isApplicable(a, _, plugin: PluginContext) { return plugin.builders.structureRepresentation.hasProvider(a.data); },
     params(a, plugin: PluginContext) {
         return {
-            type: plugin.structureRepresentation.manager.getOptions(a.data)
+            type: plugin.builders.structureRepresentation.getOptions(a.data)
         };
     }
 })(({ ref, params }, plugin: PluginContext) => {
-    plugin.structureRepresentation.manager.apply(ref, params.type.name, params.type.params);
+    plugin.builders.structureRepresentation.apply(ref, params.type.name, params.type.params);
 });
 
 export const Remove3DRepresentationPreset = StateAction.build({
     display: { name: 'Remove 3D Representation Preset', description: 'Remove 3D representations.' },
     from: PluginStateObject.Molecule.Structure,
-    isApplicable(_, t, plugin: PluginContext) { return plugin.structureRepresentation.manager.hasManagedRepresentation(t.ref); },
+    isApplicable(_, t, plugin: PluginContext) { return plugin.builders.structureRepresentation.hasManagedRepresentation(t.ref); },
     params(a, plugin: PluginContext) {
         return {
-            type: plugin.structureRepresentation.manager.getOptions(a.data).select
+            type: plugin.builders.structureRepresentation.getOptions(a.data).select
         };
     }
 })(({ ref, params }, plugin: PluginContext) => {
     // TODO: this will be completely handled by the managed and is just for testing purposes
-    plugin.structureRepresentation.manager.remove(params.type, ref);
+    plugin.builders.structureRepresentation.remove(params.type, ref);
 });
 
 export const UpdateTrajectory = StateAction.build({
