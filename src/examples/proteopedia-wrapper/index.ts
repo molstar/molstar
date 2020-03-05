@@ -35,8 +35,8 @@ import { DefaultCanvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3
 require('../../mol-plugin-ui/skin/light.scss')
 
 class MolStarProteopediaWrapper {
-    static VERSION_MAJOR = 3;
-    static VERSION_MINOR = 4;
+    static VERSION_MAJOR = 4;
+    static VERSION_MINOR = 0;
 
     private _ev = RxEventHelper.create();
 
@@ -62,6 +62,9 @@ class MolStarProteopediaWrapper {
                 controls: {
                     right: ControlsWrapper
                 }
+            },
+            components: {
+                remoteState: 'none'
             }
         });
 
