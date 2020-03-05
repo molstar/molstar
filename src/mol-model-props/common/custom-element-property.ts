@@ -66,7 +66,7 @@ namespace CustomElementProperty {
         })
     }
 
-    function createColorThemeProvider<T>(modelProperty: CustomModelProperty.Provider<{}, Value<T>>, getColor: (p: T) => Color, defaultColor: Color) {
+    function createColorThemeProvider<T>(modelProperty: CustomModelProperty.Provider<{}, Value<T>>, getColor: (p: T) => Color, defaultColor: Color): ColorTheme.Provider<{}> {
 
         function Coloring(ctx: ThemeDataContext, props: {}): ColorTheme<{}> {
             let color: LocationColor;
@@ -103,7 +103,10 @@ namespace CustomElementProperty {
             factory: Coloring,
             getParams: () => ({}),
             defaultValues: {},
-            isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && !!modelProperty.get(ctx.structure.models[0]).value
+            isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && !!modelProperty.get(ctx.structure.models[0]).value,
+            ensureCustomProperties: (ctx: CustomProperty.Context, data: ThemeDataContext) => {
+                return data.structure ? modelProperty.attach(ctx, data.structure.models[0]) : Promise.resolve()
+            }
         }
     }
 
