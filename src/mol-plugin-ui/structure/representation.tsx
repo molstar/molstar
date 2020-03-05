@@ -17,6 +17,7 @@ import { CollapsableControls } from '../base';
 import { StateSelection, StateObject } from '../../mol-state';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { ColorOptions } from '../controls/color';
+import { InteractionsProvider } from '../../mol-model-props/computed/interactions';
 
 interface BaseStructureRepresentationControlsState {
     isDisabled: boolean
@@ -135,6 +136,7 @@ export class StructureRepresentationControls extends CollapsableControls<Collaps
         if (p.name === 'options') {
             await this.plugin.helpers.structureRepresentation.setIgnoreHydrogens(!p.value.showHydrogens)
             await this.plugin.helpers.structureRepresentation.setQuality(p.value.visualQuality)
+            await this.plugin.helpers.structureRepresentation.setInteractionsProps(p.value.interactions)
             this.forceUpdate()
         }
     }
@@ -145,6 +147,7 @@ export class StructureRepresentationControls extends CollapsableControls<Collaps
             options: PD.Group({
                 showHydrogens: PD.Boolean(options.showHydrogens, { description: 'Toggle display of hydrogen atoms in representations' }),
                 visualQuality: PD.Select<VisualQuality>(options.visualQuality, VisualQualityOptions, { description: 'Control the visual/rendering quality of representations' }),
+                interactions: PD.Group(InteractionsProvider.defaultParams, { label: 'Non-covalent Interactions' }),
             }, { isExpanded: true })
         }
     }
@@ -155,6 +158,7 @@ export class StructureRepresentationControls extends CollapsableControls<Collaps
             options: {
                 showHydrogens: !rep.ignoreHydrogens,
                 visualQuality: rep.quality,
+                interactions: rep.interactionProps,
             }
         }
     }

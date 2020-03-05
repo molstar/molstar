@@ -9,10 +9,13 @@ import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { StateTransformer, StateSelection, StateObjectCell, StateTransform, StateBuilder } from '../../mol-state';
 import { StructureElement, Structure, StructureSelection, QueryContext } from '../../mol-model/structure';
 import { PluginContext } from '../context';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StructureRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
 import Expression from '../../mol-script/language/expression';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { VisualQuality } from '../../mol-geo/geometry/base';
+import { InteractionsProps } from '../../mol-model-props/computed/interactions/interactions';
+import { InteractionsProvider } from '../../mol-model-props/computed/interactions';
 
 type StructureTransform = StateObjectCell<PSO.Molecule.Structure, StateTransform<StateTransformer<any, PSO.Molecule.Structure, any>>>
 type RepresentationTransform = StateObjectCell<PSO.Molecule.Structure.Representation3D, StateTransform<StateTransformer<any, PSO.Molecule.Structure.Representation3D, any>>>
@@ -238,6 +241,34 @@ export class StructureRepresentationHelper {
             }
         })
         this._quality = quality
+    }
+
+    private _interactionProps = PD.getDefaultValues(InteractionsProvider.defaultParams)
+    get interactionProps () { return this._interactionProps }
+    async setInteractionsProps(interactionProps: InteractionsProps) {
+        const state = this.plugin.state.dataState;
+        const update = state.build()
+        const structures = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure))
+        for (const structure of structures) {
+            const reprStructure = this.getRepresentationStructure(structure.transform.ref, 'interactions') // TODO use enum for type name
+            if (reprStructure) {
+                const customStructureProps = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Model.CustomStructureProperties, reprStructure.transform.ref))[0]
+
+                const params = PD.getDefaultValues(this.plugin.customStructureProperties.getParams(structure.obj?.data))
+                params.autoAttach.push(InteractionsProvider.descriptor.name)
+                params.properties[InteractionsProvider.descriptor.name] = interactionProps
+
+                if (customStructureProps) {
+                    update.to(customStructureProps).update(params)
+                } else {
+                    update.to(reprStructure)
+                        .insert(StateTransforms.Model.CustomStructureProperties, params)
+                }
+            }
+        }
+        await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }))
+
+        this._interactionProps = interactionProps
     }
 
     constructor(private plugin: PluginContext) {
