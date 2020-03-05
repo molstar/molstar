@@ -29,6 +29,7 @@ namespace CustomProperty {
         readonly label: string
         readonly descriptor: CustomPropertyDescriptor
         readonly getParams: (data: Data) => Params
+        readonly defaultParams: Params
         readonly isApplicable: (data: Data) => boolean
         readonly attach: (ctx: Context, data: Data, props?: Partial<PD.Values<Params>>) => Promise<void>
         readonly get: (data: Data) => ValueBox<Value | undefined>

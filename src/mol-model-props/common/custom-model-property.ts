@@ -49,6 +49,7 @@ namespace CustomModelProperty {
             label: builder.label,
             descriptor: builder.descriptor,
             getParams: builder.getParams,
+            defaultParams: builder.defaultParams,
             isApplicable: builder.isApplicable,
             attach: async (ctx: CustomProperty.Context, data: Model, props: Partial<PD.Values<Params>> = {}) => {
                 const property = get(data)

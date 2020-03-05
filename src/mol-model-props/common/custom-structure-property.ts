@@ -49,6 +49,7 @@ namespace CustomStructureProperty {
             label: builder.label,
             descriptor: builder.descriptor,
             getParams: builder.getParams,
+            defaultParams: builder.defaultParams,
             isApplicable: builder.isApplicable,
             attach: async (ctx: CustomProperty.Context, data: Structure, props: Partial<PD.Values<Params>> = {}) => {
                 if (builder.type === 'root') data = data.root
