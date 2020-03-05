@@ -23,14 +23,12 @@ attribute mat4 aTransform;
 attribute float aInstance;
 attribute float aGroup;
 
-#if !defined(dFlatShaded) || !defined(enabledStandardDerivatives) || defined(dIgnoreLight)
-    #ifdef dGeoTexture
-        uniform sampler2D tNormal;
-    #else
-        attribute vec3 aNormal;
-    #endif
-    varying vec3 vNormal;
+#ifdef dGeoTexture
+    uniform sampler2D tNormal;
+#else
+    attribute vec3 aNormal;
 #endif
+varying vec3 vNormal;
 
 void main(){
     #include assign_group
@@ -38,18 +36,16 @@ void main(){
     #include assign_marker_varying
     #include assign_position
 
-    #if !defined(dFlatShaded) || !defined(enabledStandardDerivatives) || defined(dIgnoreLight)
-        #ifdef dGeoTexture
-            vec3 normal = readFromTexture(tNormal, aGroup, uGeoTexDim).xyz;
-        #else
-            vec3 normal = aNormal;
-        #endif
-        mat3 normalMatrix = transpose3(inverse3(mat3(modelView)));
-        vec3 transformedNormal = normalize(normalMatrix * normalize(normal));
-        #if defined(dFlipSided) && !defined(dDoubleSided) // TODO checking dDoubleSided should not be required, ASR
-            transformedNormal = -transformedNormal;
-        #endif
-        vNormal = transformedNormal;
+    #ifdef dGeoTexture
+        vec3 normal = readFromTexture(tNormal, aGroup, uGeoTexDim).xyz;
+    #else
+        vec3 normal = aNormal;
     #endif
+    mat3 normalMatrix = transpose3(inverse3(mat3(modelView)));
+    vec3 transformedNormal = normalize(normalMatrix * normalize(normal));
+    #if defined(dFlipSided) && !defined(dDoubleSided) // TODO checking dDoubleSided should not be required, ASR
+        transformedNormal = -transformedNormal;
+    #endif
+    vNormal = transformedNormal;
 }
 `

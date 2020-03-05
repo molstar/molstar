@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,7 +15,18 @@ precision highp int;
 #include normal_frag_params
 
 void main() {
-    interior = !gl_FrontFacing; // TODO take dFlipSided into account
+    // Workaround for buggy gl_FrontFacing (e.g. on some integrated Intel GPUs)
+    #if defined(enabledStandardDerivatives)
+        vec3 fdx = dFdx(vViewPosition);
+        vec3 fdy = dFdy(vViewPosition);
+        vec3 faceNormal = normalize(cross(fdx,fdy));
+        bool frontFacing = dot(vNormal, faceNormal) > 0.0;
+    #else
+        bool frontFacing = dot(vNormal, vViewPosition) < 0.0;
+    #endif
+
+    interior = !frontFacing; // TODO take dFlipSided into account
+
     #include assign_material_color
 
     #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
