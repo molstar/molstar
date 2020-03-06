@@ -138,10 +138,13 @@ class State {
                 this.cells.forEach(c => hasError = hasError || c.state === 'error');
                 if (hasError) {
                     restored = true;
-                    this.updateTree(snapshot).runInContext(ctx);
+                    await this.updateTree(snapshot).runInContext(ctx);
                 }
             } catch (e) {
-                if (!restored) this.updateTree(snapshot).runInContext(ctx);
+                if (!restored) {
+                    await this.updateTree(snapshot).runInContext(ctx);
+                    this.events.log.error(e);
+                }
             }
         });
     }
