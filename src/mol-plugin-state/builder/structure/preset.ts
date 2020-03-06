@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -9,9 +9,10 @@ import { StructureRepresentation3DHelpers } from '../../transforms/representatio
 import { StructureSelectionQueries as Q } from '../../../mol-plugin/util/structure-selection-helper';
 import { BuiltInStructureRepresentations } from '../../../mol-repr/structure/registry';
 import { StructureRepresentationProvider, RepresentationProviderTags } from './provider';
-import { StateBuilder } from '../../../mol-state';
+import { StateObjectRef } from '../../../mol-state';
 import { PluginStateObject } from '../../objects';
 import { StaticStructureComponentType } from '../../helpers/structure-component';
+import { PluginContext } from '../../../mol-plugin/context';
 
 const auto = StructureRepresentationProvider({
     id: 'preset-structure-representation-auto',
@@ -39,46 +40,43 @@ const defaultPreset = StructureRepresentationProvider({
     id: 'preset-structure-representation-default',
     display: { name: 'Default', group: 'Preset' },
     async apply(ctx, state, structureCell, _, plugin) {
-        const root = state.build().to(structureCell.transform.ref);
-        const structure = structureCell.obj!.data;
-
+        const structure = structureCell.obj?.data!;
         const reprTags = [this.id, RepresentationProviderTags.Representation];
-
-        applyComplex(root, 'protein-or-nucleic')
-            .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParams(plugin, 'cartoon', structure));
-
-        const ligand = applyComplex(root, 'ligand');
-        const ligandRepr = ligand.applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
-            StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure));
-
-        applyComplex(root, 'non-standard')
-            .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsWithTheme(plugin, 'ball-and-stick', 'polymer-id', structure, void 0));
-
-        const branched = applyComplex(root, 'branched');
-
-        branched.applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
-            StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure, { alpha: 0.15 }));
-        branched.applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
-            StructureRepresentation3DHelpers.getDefaultParams(plugin, 'carbohydrate', structure));
-
-        applyComplex(root, 'water')
-            .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure, { alpha: 0.51 }));
-
-        applyComplex(root, 'coarse')
-            .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsWithTheme(plugin, 'spacefill', 'polymer-id', structure, {}));
-
-        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
-
-        return {
-            ligand: {
-                selection: ligand.selector,
-                repr: ligandRepr.selector
-            }
+        
+        const components = {
+            proteinOrNucleic: await staticComponent(plugin, structureCell, 'protein-or-nucleic'),
+            ligand: await staticComponent(plugin, structureCell, 'ligand'),
+            nonStandard: await staticComponent(plugin, structureCell, 'non-standard'),
+            branched: await staticComponent(plugin, structureCell, 'branched'),
+            water: await staticComponent(plugin, structureCell, 'water'),
+            coarse: await staticComponent(plugin, structureCell, 'coarse')
         };
+                
+        const builder = state.build();
+        const representations = {
+            proteinOrNucleic: components.proteinOrNucleic && builder
+                .to(components.proteinOrNucleic)
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, StructureRepresentation3DHelpers.getDefaultParams(plugin, 'cartoon', structure)).selector,
+            ligand: components.ligand && builder
+                .to(components.ligand)
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure)).selector,
+            nonStandard: components.nonStandard && builder
+                .to(components.nonStandard)
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, StructureRepresentation3DHelpers.getDefaultParamsWithTheme(plugin, 'ball-and-stick', 'polymer-id', structure, void 0)).selector,
+            branched: components.branched && {
+                ballAndStick: builder.to(components.branched).applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure, { alpha: 0.15 })).selector,
+                snfg3d: builder.to(components.branched).applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, StructureRepresentation3DHelpers.getDefaultParams(plugin, 'carbohydrate', structure)).selector
+            },
+            water: components.water && builder
+                .to(components.water)
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure, { alpha: 0.51 })).selector,
+            coarse: components.coarse && builder
+                .to(components.coarse)
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, StructureRepresentation3DHelpers.getDefaultParamsWithTheme(plugin, 'spacefill', 'polymer-id', structure, {}))
+        };
+        
+        await state.updateTree(builder, { revertOnError: false }).runInContext(ctx);
+        return { components, representations };
     }
 });
 
@@ -86,20 +84,26 @@ const proteinAndNucleic = StructureRepresentationProvider({
     id: 'preset-structure-representation-protein-and-nucleic',
     display: { name: 'Protein & Nucleic', group: 'Preset' },
     async apply(ctx, state, structureCell, _, plugin) {
-        const root = plugin.state.dataState.build().to(structureCell.transform.ref);
         const structure = structureCell.obj!.data;
         const reprTags = [this.id, RepresentationProviderTags.Representation];
 
-        applySelection(root, 'protein')
-            .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParams(plugin, 'cartoon', structure));
+        const components = {
+            protein: await selectionComponent(plugin, structureCell, 'protein'),
+            nucleic: await selectionComponent(plugin, structureCell, 'nucleic'),
+        };
 
-        applySelection(root, 'nucleic')
-            .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParams(plugin, 'gaussian-surface', structure));
-
-        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
-        return {};
+        const builder = state.build();
+        const representations = {
+            protein: components.protein && builder
+                .to(components.protein)
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, StructureRepresentation3DHelpers.getDefaultParams(plugin, 'cartoon', structure)).selector,
+            nucleic: components.nucleic && builder
+                .to(components.nucleic)
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, StructureRepresentation3DHelpers.getDefaultParams(plugin, 'gaussian-surface', structure)).selector,
+        };
+      
+        await state.updateTree(builder, { revertOnError: true }).runInContext(ctx);
+        return { components, representations };
     }
 });
 
@@ -116,11 +120,19 @@ const capsid = StructureRepresentationProvider({
 
         const reprTags = [this.id, RepresentationProviderTags.Representation];
 
-        applySelection(root, 'polymer')
-            .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
+        const components = {
+            polymer: await selectionComponent(plugin, structureCell, 'polymer')
+        };
+
+        const builder = state.build();
+        const representations = {
+            polymer: components.polymer && builder
+                .to(components.polymer)
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params).selector,
+        };
 
         await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
-        return {};
+        return { components, representations };
     }
 });
 
@@ -140,50 +152,36 @@ const coarseCapsid = StructureRepresentationProvider({
 
         const reprTags = [this.id, RepresentationProviderTags.Representation];
 
-        applySelection(root, 'trace')
-            .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
+        const components = {
+            trace: await selectionComponent(plugin, structureCell, 'trace')
+        };
+
+        const builder = state.build();
+        const representations = {
+            polymer: components.trace && builder
+                .to(components.trace)
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params).selector,
+        };
 
         await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
-        return {};
+        return { components, representations };
     }
 });
 
-const cartoon = StructureRepresentationProvider({
-    id: 'preset-structure-representation-cartoon',
-    display: { name: 'Cartoon', group: 'Preset' },
-    async apply(ctx, state, structureCell, _, plugin) {
-        const root = plugin.state.dataState.build().to(structureCell.transform.ref);
-        const structure = structureCell.obj!.data;
-
-        const params = StructureRepresentation3DHelpers.createParams(plugin, structure, {
-            repr: BuiltInStructureRepresentations['cartoon']
-        });
-
-        const reprTags = [this.id, RepresentationProviderTags.Representation];
-
-        applySelection(root, 'polymer')
-            .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
-
-        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
-        return {};
-    }
-});
-
-function applyComplex(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, type: StaticStructureComponentType) {
-    return to.applyOrUpdateTagged(type, StateTransforms.Model.StructureComponent, { 
+function staticComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, type: StaticStructureComponentType) {
+    return plugin.builders.structure.tryCreateComponent(structure, { 
         type: { name: 'static', params: type },
         nullIfEmpty: true,
         label: ''
-    }, { tags: RepresentationProviderTags.Selection });
+    }, `static-${type}`);
 }
 
-function applySelection(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, query: keyof typeof Q) {
-    return to.applyOrUpdateTagged(query, StateTransforms.Model.StructureComponent, { 
+function selectionComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, query: keyof typeof Q) {
+    return plugin.builders.structure.tryCreateComponent(structure, { 
         type: { name: 'expression', params: Q[query].expression },
         nullIfEmpty: true,
         label: Q[query].label
-    },
-    { tags: RepresentationProviderTags.Selection });
+    }, `selection-${query}`);
 }
 
 export const PresetStructureReprentations = {
@@ -191,7 +189,6 @@ export const PresetStructureReprentations = {
     default: defaultPreset,
     proteinAndNucleic,
     capsid,
-    coarseCapsid,
-    cartoon
+    coarseCapsid
 };
 export type PresetStructureReprentations = typeof PresetStructureReprentations;

@@ -154,12 +154,13 @@ export class StateObjectSelector<S extends StateObject = StateObject, T extends 
         }
         if (cell.status === 'ok') return true;
         if (cell.status === 'error') throw new Error(cell.errorText);
+        if (cell.obj === StateObject.Null) throw new Error('The object is Null.');
         throw new Error(`Unresolved. Did you await/then the corresponding state update?`);
     }
 
     get isOk() {
         const cell = this.cell;
-        return cell && cell.status === 'ok';
+        return cell && cell.status === 'ok' && cell.obj !== StateObject.Null;
     }
 
     constructor(public ref: StateTransform.Ref, public state?: State) {

@@ -9,6 +9,7 @@ import { StateBuilder, StateObjectRef, StateObjectSelector, StateTransformer } f
 import { PluginStateObject as SO } from '../objects';
 import { StateTransforms } from '../transforms';
 import { RootStructureDefinition } from '../helpers/root-structure';
+import { StructureComponentParams } from '../helpers/structure-component';
 
 type TrajectoryFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
@@ -16,7 +17,8 @@ export enum StructureBuilderTags {
     Trajectory = 'trajectory',
     Model = 'model',
     ModelProperties = 'model-properties',
-    Structure = 'structure'
+    Structure = 'structure',
+    Component = 'structure-component'
 }
 
 export class StructureBuilder {
@@ -100,9 +102,31 @@ export class StructureBuilder {
         return structure.selector;
     }
 
-    // TODO
-    async makeComponent() {
+    /** returns undefined if the component is empty/null */
+    async tryCreateComponent(structure: StateObjectRef<SO.Molecule.Structure>, params: StructureComponentParams, tag?: string): Promise<StateObjectRef<SO.Molecule.Structure> | undefined> {
+        const state = this.dataState;
 
+        const root = state.build().to(structure);
+        let component: StateBuilder.To<SO.Molecule.Structure>;
+
+        if (tag) {
+            const typeTag = `structure-component-${tag}`;
+            component = root.applyOrUpdateTagged(typeTag, StateTransforms.Model.StructureComponent, params, { tags: [StructureBuilderTags.Component, typeTag] });
+        } else {
+            component = root.apply(StateTransforms.Model.StructureComponent, params, { tags: StructureBuilderTags.Component });
+        }
+
+        await this.plugin.runTask(this.dataState.updateTree(component));
+
+        const selector = component.selector;
+
+        if (!selector.isOk || selector.cell?.obj?.data.elementCount === 0) {
+            const del = state.build().delete(selector.ref);
+            await this.plugin.runTask(this.dataState.updateTree(del));
+            return;
+        }
+
+        return selector;
     }
 
     constructor(public plugin: PluginContext) {
