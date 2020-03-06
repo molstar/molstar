@@ -19,28 +19,28 @@ import { UniqueArray } from '../../mol-data/generic';
 // TODO: support quality
 // TODO: support ignore hydrogens
 
-export type StructureRepresentationProviderRef = keyof PresetStructureReprentations | StructureRepresentationProvider | string
+export type RepresentationProviderRef = keyof PresetStructureReprentations | StructureRepresentationProvider | string
 
-export class StructureRepresentationBuilder {
+export class RepresentationBuilder {
     private providers: StructureRepresentationProvider[] = [];
     private providerMap: Map<string, StructureRepresentationProvider> = new Map();
 
     readonly defaultProvider = PresetStructureReprentations.auto;
 
-    private resolveProvider(ref: StructureRepresentationProviderRef) {
+    private resolveProvider(ref: RepresentationProviderRef) {
         return typeof ref === 'string'
             ? PresetStructureReprentations[ref as keyof PresetStructureReprentations] ?? arrayFind(this.providers, p => p.id === ref)
             : ref;
     }
 
-    hasProvider(s: Structure) {
+    hasPreset(s: Structure) {
         for (const p of this.providers) {
             if (!p.isApplicable || p.isApplicable(s, this.plugin)) return true;
         }
         return false;
     }
 
-    getOptions(s: Structure) {
+    getPresets(s: Structure) {
         const options: [string, string][] = [];
         const map: { [K in string]: PD.Any } = Object.create(null);
         for (const p of this.providers) {
@@ -53,7 +53,7 @@ export class StructureRepresentationBuilder {
         return PD.MappedStatic(options[0][0], map, { options });
     }
 
-    hasManagedRepresentation(ref: StateObjectRef) {
+    hasPresetRepresentation(ref: StateObjectRef) {
         // TODO: make this state selection function?
         const tree = this.plugin.state.dataState.tree;
         const root = StateObjectRef.resolve(this.plugin.state.dataState, ref);
@@ -69,7 +69,7 @@ export class StructureRepresentationBuilder {
         }).found;
     }
 
-    getManagedRepresentations(ref: StateObjectRef) {
+    getPresetRepresentations(ref: StateObjectRef) {
         const tree = this.plugin.state.dataState.tree;
         const root = StateObjectRef.resolve(this.plugin.state.dataState, ref);
         if (!root) return [];
@@ -81,7 +81,7 @@ export class StructureRepresentationBuilder {
         }).found.array;
     }
 
-    register(provider: StructureRepresentationProvider) {
+    registerPreset(provider: StructureRepresentationProvider) {
         if (this.providerMap.has(provider.id)) {
             throw new Error(`Repr. provider with id '${provider.id}' already registered.`);
         }
@@ -90,7 +90,7 @@ export class StructureRepresentationBuilder {
         this.providerMap.set(provider.id, provider);
     }
 
-    remove(providerRef: StructureRepresentationProviderRef, structureRoot?: StateObjectRef) {
+    removePreset(providerRef: RepresentationProviderRef, structureRoot?: StateObjectRef) {
         const id = this.resolveProvider(providerRef)?.id;
         if (!id) return;
         
@@ -114,10 +114,10 @@ export class StructureRepresentationBuilder {
         return this.plugin.runTask(state.updateTree(builder));
     }
     
-    apply<K extends keyof PresetStructureReprentations>(parent: StateObjectRef, preset: K, params?: StructureRepresentationProvider.Params<PresetStructureReprentations[K]>): Promise<StructureRepresentationProvider.State<PresetStructureReprentations[K]>> | undefined
-    apply<P = any, S = {}>(parent: StateObjectRef, providers: StructureRepresentationProvider<P, S>, params?: P): Promise<S> | undefined
-    apply(parent: StateObjectRef, providerId: string, params?: any): Promise<any> | undefined
-    apply(parent: StateObjectRef, providerRef: string | StructureRepresentationProvider, params?: any): Promise<any> | undefined {
+    structurePreset<K extends keyof PresetStructureReprentations>(parent: StateObjectRef, preset: K, params?: StructureRepresentationProvider.Params<PresetStructureReprentations[K]>): Promise<StructureRepresentationProvider.State<PresetStructureReprentations[K]>> | undefined
+    structurePreset<P = any, S = {}>(parent: StateObjectRef, providers: StructureRepresentationProvider<P, S>, params?: P): Promise<S> | undefined
+    structurePreset(parent: StateObjectRef, providerId: string, params?: any): Promise<any> | undefined
+    structurePreset(parent: StateObjectRef, providerRef: string | StructureRepresentationProvider, params?: any): Promise<any> | undefined {
         const provider = this.resolveProvider(providerRef);
         if (!provider) return;
 
@@ -137,7 +137,10 @@ export class StructureRepresentationBuilder {
         return this.plugin.runTask(task);
     }
 
+    // TODO
+    // createOrUpdate(component: any, ) { }
+
     constructor(public plugin: PluginContext) {
-        objectForEach(PresetStructureReprentations, r => this.register(r));
+        objectForEach(PresetStructureReprentations, r => this.registerPreset(r));
     }
 }

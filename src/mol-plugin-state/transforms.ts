@@ -17,3 +17,5 @@ export const StateTransforms = {
     Volume,
     Representation
 }
+
+export type StateTransforms = typeof StateTransforms
