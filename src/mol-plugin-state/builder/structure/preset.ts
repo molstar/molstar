@@ -111,7 +111,6 @@ const capsid = StructureRepresentationProvider({
     id: 'preset-structure-representation-capsid',
     display: { name: 'Capsid', group: 'Preset' },
     async apply(ctx, state, structureCell, _, plugin) {
-        const root = plugin.state.dataState.build().to(structureCell.transform.ref);
         const structure = structureCell.obj!.data;
 
         const params = StructureRepresentation3DHelpers.createParams(plugin, structure, {
@@ -131,7 +130,7 @@ const capsid = StructureRepresentationProvider({
                 .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params).selector,
         };
 
-        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
+        await state.updateTree(builder, { revertOnError: true }).runInContext(ctx);
         return { components, representations };
     }
 });
@@ -140,7 +139,6 @@ const coarseCapsid = StructureRepresentationProvider({
     id: 'preset-structure-representation-coarse-capsid',
     display: { name: 'Coarse Capsid', group: 'Preset' },
     async apply(ctx, state, structureCell, _, plugin) {
-        const root = plugin.state.dataState.build().to(structureCell.transform.ref);
         const structure = structureCell.obj!.data;
 
         const params = StructureRepresentation3DHelpers.createParams(plugin, structure, {
@@ -158,12 +156,13 @@ const coarseCapsid = StructureRepresentationProvider({
 
         const builder = state.build();
         const representations = {
-            polymer: components.trace && builder
+            trace: components.trace && builder
                 .to(components.trace)
                 .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params).selector,
         };
+        
+        await state.updateTree(builder, { revertOnError: true }).runInContext(ctx);
 
-        await state.updateTree(root, { revertOnError: true }).runInContext(ctx);
         return { components, representations };
     }
 });
