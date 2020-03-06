@@ -70,9 +70,9 @@ export namespace TextureMesh {
 
     export const Params = {
         ...BaseGeometry.Params,
-        doubleSided: PD.Boolean(false),
-        flipSided: PD.Boolean(false),
-        flatShaded: PD.Boolean(false),
+        doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
+        flipSided: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
     }
     export type Params = typeof Params
 
