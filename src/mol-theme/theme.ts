@@ -52,8 +52,13 @@ namespace Theme {
     }
 
     export async function ensureDependencies(ctx: CustomProperty.Context, theme: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
-        await theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.(ctx, data)
-        await theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.(ctx, data)
+        await theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.attach(ctx, data)
+        await theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.attach(ctx, data)
+    }
+
+    export async function releaseDependencies(ctx: CustomProperty.Context, theme: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
+        await theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.detach(ctx, data)
+        await theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.detach(ctx, data)
     }
 }
 
@@ -66,7 +71,10 @@ export interface ThemeProvider<T extends ColorTheme<P> | SizeTheme<P>, P extends
     readonly getParams: (ctx: ThemeDataContext) => P
     readonly defaultValues: PD.Values<P>
     readonly isApplicable: (ctx: ThemeDataContext) => boolean
-    readonly ensureCustomProperties?: (ctx: CustomProperty.Context, data: ThemeDataContext) => Promise<void>
+    readonly ensureCustomProperties?: {
+        attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => Promise<void>,
+        detach: (ctx: CustomProperty.Context, data: ThemeDataContext) => void
+    }
 }
 
 function getTypes(list: { name: string, provider: ThemeProvider<any, any> }[]) {

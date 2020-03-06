@@ -51,7 +51,8 @@ namespace CustomStructureProperty {
             getParams: builder.getParams,
             defaultParams: builder.defaultParams,
             isApplicable: builder.isApplicable,
-            attach: async (ctx: CustomProperty.Context, data: Structure, props: Partial<PD.Values<Params>> = {}) => {
+            attach: async (ctx: CustomProperty.Context, data: Structure, props: Partial<PD.Values<Params>> = {}, addRef) => {
+                if (addRef) data.customPropertyDescriptors.reference(builder.descriptor, true);
                 if (builder.type === 'root') data = data.root
                 const property = get(data)
                 const p = { ...property.props, ...props }
@@ -60,6 +61,7 @@ namespace CustomStructureProperty {
                 data.customPropertyDescriptors.add(builder.descriptor);
                 set(data, p, value);
             },
+            ref: (data: Structure, add: boolean) => data.customPropertyDescriptors.reference(builder.descriptor, add),
             get: (data: Structure) => get(data).data,
             set: (data: Structure, props: Partial<PD.Values<Params>> = {}, value?: Value) => {
                 if (builder.type === 'root') data = data.root

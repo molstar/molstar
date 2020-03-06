@@ -68,7 +68,8 @@ export const CrossLinkColorThemeProvider: ColorTheme.Provider<CrossLinkColorThem
     getParams: getCrossLinkColorThemeParams,
     defaultValues: PD.getDefaultValues(CrossLinkColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && CrossLinkRestraint.isApplicable(ctx.structure),
-    ensureCustomProperties: (ctx: CustomProperty.Context, data: ThemeDataContext) => {
-        return data.structure ? CrossLinkRestraintProvider.attach(ctx, data.structure) : Promise.resolve()
-    }
+    ensureCustomProperties: {
+        attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? CrossLinkRestraintProvider.attach(ctx, data.structure, void 0, true) : Promise.resolve(),
+        detach: (_, data) => data.structure && data.structure.customPropertyDescriptors.reference(CrossLinkRestraintProvider.descriptor, false)
+    }    
 }

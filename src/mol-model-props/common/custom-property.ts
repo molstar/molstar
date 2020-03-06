@@ -31,7 +31,8 @@ namespace CustomProperty {
         readonly getParams: (data: Data) => Params
         readonly defaultParams: Params
         readonly isApplicable: (data: Data) => boolean
-        readonly attach: (ctx: Context, data: Data, props?: Partial<PD.Values<Params>>) => Promise<void>
+        readonly attach: (ctx: Context, data: Data, props?: Partial<PD.Values<Params>>, addRef?: boolean) => Promise<void>
+        readonly ref: (data: Data, add: boolean) => void
         readonly get: (data: Data) => ValueBox<Value | undefined>
         readonly set: (data: Data, props: PD.Values<Params>, value?: Value) => void
     }

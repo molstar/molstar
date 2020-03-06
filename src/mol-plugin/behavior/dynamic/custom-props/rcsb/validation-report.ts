@@ -90,6 +90,7 @@ function geometryQualityLabel(loci: Loci): string | undefined {
 
             const validationReport = ValidationReportProvider.get(unit.model).value
             if (!validationReport) return
+            if (unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) return
 
             const { bondOutliers, angleOutliers } = validationReport
             const eI = unit.elements[OrderedSet.start(indices)]
@@ -170,6 +171,7 @@ function densityFitLabel(loci: Loci): string | undefined {
         for (const { indices, unit } of loci.elements) {
             const validationReport = ValidationReportProvider.get(unit.model).value
             if (!validationReport) continue
+            if (unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue
 
             const { rsrz, rscc } = validationReport
             const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index
@@ -226,6 +228,7 @@ function randomCoilIndexLabel(loci: Loci): string | undefined {
         for (const { indices, unit } of loci.elements) {
             const validationReport = ValidationReportProvider.get(unit.model).value
             if (!validationReport) continue
+            if (unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue
 
             const { rci } = validationReport
             const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index

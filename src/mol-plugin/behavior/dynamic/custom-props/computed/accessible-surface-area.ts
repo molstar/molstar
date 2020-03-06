@@ -64,7 +64,7 @@ function accessibleSurfaceAreaLabel(loci: Loci): string | undefined {
         if (loci.elements.length === 0) return;
 
         const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(loci.structure).value
-        if (!accessibleSurfaceArea) return;
+        if (!accessibleSurfaceArea || loci.structure.customPropertyDescriptors.hasReference(AccessibleSurfaceAreaProvider.descriptor)) return;
 
         const { getSerialIndex } = loci.structure.root.serialMapping
         const { area, serialResidueIndex } = accessibleSurfaceArea
@@ -73,6 +73,7 @@ function accessibleSurfaceAreaLabel(loci: Loci): string | undefined {
 
         for (const { indices, unit } of loci.elements) {
             const { elements } = unit
+
             OrderedSet.forEach(indices, idx => {
                 const rSI = serialResidueIndex[getSerialIndex(unit, elements[idx])]
                 if (rSI !== -1 && !seen.has(rSI)) {
@@ -88,7 +89,7 @@ function accessibleSurfaceAreaLabel(loci: Loci): string | undefined {
 
     } else if(loci.kind === 'structure-loci') {
         const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(loci.structure).value
-        if (!accessibleSurfaceArea) return;
+        if (!accessibleSurfaceArea || loci.structure.customPropertyDescriptors.hasReference(AccessibleSurfaceAreaProvider.descriptor)) return;
 
         return `Accessible Surface Area <small>(Whole Structure)</small>: ${arraySum(accessibleSurfaceArea.area).toFixed(2)} \u212B<sup>2</sup>`;
     }

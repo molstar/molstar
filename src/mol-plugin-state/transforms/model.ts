@@ -701,6 +701,17 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
             await attachModelProps(a.data, ctx, taskCtx, params);
             return new SO.Molecule.Model(a.data, { label: 'Model Props' });
         });
+    },
+    update({ a, oldParams, newParams }, ctx: PluginContext) {
+        return Task.create('Custom Props', async taskCtx => {
+            for (const name of oldParams.autoAttach) {
+                const property = ctx.customModelProperties.get(name);
+                if (!property) continue;
+                a.data.customProperties.reference(property.descriptor, false);
+            }
+            await attachModelProps(a.data, ctx, taskCtx, newParams);
+            return StateTransformer.UpdateResult.Updated;
+        });
     }
 });
 async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomModelProperties['createDefaultParams']>) {
@@ -711,7 +722,7 @@ async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: Runti
         const props = properties[name]
         if (autoAttach.includes(name)) {
             try {
-                await property.attach(propertyCtx, model, props)
+                await property.attach(propertyCtx, model, props, true)
             } catch (e) {
                 ctx.log.warn(`Error attaching model prop '${name}': ${e}`);
             }
@@ -736,6 +747,17 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
             await attachStructureProps(a.data, ctx, taskCtx, params);
             return new SO.Molecule.Structure(a.data, { label: 'Structure Props' });
         });
+    },
+    update({ a, oldParams, newParams }, ctx: PluginContext) {
+        return Task.create('Custom Props', async taskCtx => {
+            for (const name of oldParams.autoAttach) {
+                const property = ctx.customModelProperties.get(name);
+                if (!property) continue;
+                a.data.customPropertyDescriptors.reference(property.descriptor, false);
+            }
+            await attachStructureProps(a.data, ctx, taskCtx, newParams);
+            return StateTransformer.UpdateResult.Updated;
+        });
     }
 });
 async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomStructureProperties['createDefaultParams']>) {
@@ -746,7 +768,7 @@ async function attachStructureProps(structure: Structure, ctx: PluginContext, ta
         const props = properties[name]
         if (autoAttach.includes(name)) {
             try {
-                await property.attach(propertyCtx, structure, props)
+                await property.attach(propertyCtx, structure, props, true)
             } catch (e) {
                 ctx.log.warn(`Error attaching structure prop '${name}': ${e}`);
             }

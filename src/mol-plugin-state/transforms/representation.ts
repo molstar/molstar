@@ -15,7 +15,7 @@ import { BuiltInVolumeRepresentationsName } from '../../mol-repr/volume/registry
 import { VolumeParams } from '../../mol-repr/volume/representation';
 import { StateTransformer, StateObject } from '../../mol-state';
 import { Task } from '../../mol-task';
-import { BuiltInColorThemeName, ColorTheme, BuiltInColorThemes } from '../../mol-theme/color';
+import { BuiltInColorThemeName, ColorTheme } from '../../mol-theme/color';
 import { BuiltInSizeThemeName, SizeTheme } from '../../mol-theme/size';
 import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -227,6 +227,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             const provider = plugin.structureRepresentation.registry.get(newParams.type.name)
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties(propertyCtx, a.data)
             const props = { ...b.data.repr.props, ...newParams.type.params }
+            await Theme.releaseDependencies(propertyCtx, plugin.structureRepresentation.themeCtx, { structure: a.data }, oldParams)
             await Theme.ensureDependencies(propertyCtx, plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams)
             b.data.repr.setTheme(Theme.create(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
@@ -238,7 +239,6 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
         if (src.colorTheme.name !== 'uniform' || tar.colorTheme.name !== 'uniform') {
             return t <= 0.5 ? src : tar;
         }
-        BuiltInColorThemes
         const from = src.colorTheme.params.value as Color, to = tar.colorTheme.params.value as Color;
         const value = Color.interpolate(from, to, t);
         return {
