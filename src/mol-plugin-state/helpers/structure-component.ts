@@ -17,7 +17,7 @@ import { Script } from '../../mol-script/script';
 export const StaticStructureComponentTypes = [
     'all',
 
-    'protein-or-nucleic',
+    'polymer',
 
     'protein',
     'nucleic',
@@ -34,7 +34,7 @@ export type StaticStructureComponentType = (typeof StaticStructureComponentTypes
 
 export const StructureComponentParams = {
     type: PD.MappedStatic('static', {
-        static: PD.Text<StaticStructureComponentType>('protein-or-nucleic'),
+        static: PD.Text<StaticStructureComponentType>('polymer'),
         expression: PD.Value<Expression>(MolScriptBuilder.struct.generator.all),
         bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
         script: PD.Script({ language: 'mol-script', expression: '(sel.atom.all)' }),
@@ -53,21 +53,21 @@ export function createStructureComponent(a: Structure, params: StructureComponen
         case 'static': {
             let query: StructureQuery;
             switch (params.type.params) {
-                case 'all': query = StructureSelectionQueries.all.query; label = 'Sequence'; break;
+                case 'all': query = StructureSelectionQueries.all.query; label = 'All'; break;
 
-                case 'protein-or-nucleic': query = StructureSelectionQueries.proteinOrNucleic.query; label = 'Sequence'; break;
-    
+                case 'polymer': query = StructureSelectionQueries.polymer.query; label = 'Polymer'; break;
+
                 case 'protein': query = StructureSelectionQueries.protein.query; label = 'Protein'; break;
                 case 'nucleic': query = StructureSelectionQueries.nucleic.query; label = 'Nucleic'; break;
                 case 'water': query = Queries.internal.water(); label = 'Water'; break;
-    
+
                 case 'branched': query = StructureSelectionQueries.branchedPlusConnected.query; label = 'Branched'; break;
                 case 'ligand': query = StructureSelectionQueries.ligandPlusConnected.query; label = 'Ligand'; break;
-    
+
                 case 'non-standard': query = StructureSelectionQueries.nonStandardPolymer.query; label = 'Non-standard'; break;
-    
+
                 case 'coarse': query = StructureSelectionQueries.coarse.query; label = 'Coarse'; break;
-        
+
                 default: throw new Error(`${params.type} is a not valid complex element.`);
             }
             const result = query(new QueryContext(a));
@@ -96,7 +96,7 @@ export function createStructureComponent(a: Structure, params: StructureComponen
 
 export function updateStructureComponent(a: Structure, b: SO.Molecule.Structure, oldParams: StructureComponentParams, newParams: StructureComponentParams, cache: { source: Structure, entry?: StructureQueryHelper.CacheEntry }) {
     if (oldParams.type.name !== newParams.type.name) return StateTransformer.UpdateResult.Recreate;
-    
+
     let updated = false;
 
     switch (newParams.type.name) {

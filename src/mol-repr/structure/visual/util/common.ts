@@ -109,7 +109,7 @@ export function getConformation(unit: Unit) {
 
 export const CommonSurfaceParams = {
     ignoreHydrogens: PD.Boolean(false),
-    includeParent: PD.Boolean(true, { description: 'Include elements of the parent structure in surface calculation to get a surface patch of the current structure.' }),
+    includeParent: PD.Boolean(false, { description: 'Include elements of the parent structure in surface calculation to get a surface patch of the current structure.' }),
 }
 export const DefaultCommonSurfaceProps = PD.getDefaultValues(CommonSurfaceParams)
 export type CommonSurfaceProps = typeof DefaultCommonSurfaceProps

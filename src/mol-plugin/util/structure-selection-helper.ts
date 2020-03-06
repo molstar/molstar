@@ -75,7 +75,13 @@ const all = StructureSelectionQuery('All', MS.struct.generator.all(), { category
 
 const polymer = StructureSelectionQuery('Polymer', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
-        'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer'])
+        'entity-test': MS.core.logic.and([
+            MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+            MS.core.str.match([
+                MS.re('(polypeptide|cyclic-pseudo-peptide|nucleotide|peptide nucleic acid)', 'i'),
+                MS.ammp('entitySubtype')
+            ])
+        ])
     })
 ]), { category: StructureSelectionCategory.Type })
 
@@ -149,18 +155,6 @@ const nucleic = StructureSelectionQuery('Nucleic', MS.struct.modifier.union([
             MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
             MS.core.str.match([
                 MS.re('(nucleotide|peptide nucleic acid)', 'i'),
-                MS.ammp('entitySubtype')
-            ])
-        ])
-    })
-]), { category: StructureSelectionCategory.Type })
-
-const proteinOrNucleic = StructureSelectionQuery('Protein or Nucleic', MS.struct.modifier.union([
-    MS.struct.generator.atomGroups({
-        'entity-test': MS.core.logic.and([
-            MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
-            MS.core.str.match([
-                MS.re('(polypeptide|cyclic-pseudo-peptide|nucleotide|peptide nucleic acid)', 'i'),
                 MS.ammp('entitySubtype')
             ])
         ])
@@ -265,7 +259,7 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
             })
         ])
     ]),
-]), { category: StructureSelectionCategory.Residue })
+]), { category: StructureSelectionCategory.Type })
 
 // don't include branched entities as they have their own link representation
 const ligandPlusConnected = StructureSelectionQuery('Ligand with Connected', MS.struct.modifier.union([
@@ -329,7 +323,7 @@ const coarse = StructureSelectionQuery('Coarse Elements', MS.struct.modifier.uni
             MS.set('sphere', 'gaussian'), MS.ammp('objectPrimitive')
         ])
     })
-]), { category: StructureSelectionCategory.Residue })
+]), { category: StructureSelectionCategory.Type })
 
 const ring = StructureSelectionQuery('Rings in Residues', MS.struct.modifier.union([
     MS.struct.generator.rings()
@@ -471,7 +465,6 @@ export const StructureSelectionQueries = {
     backbone,
     protein,
     nucleic,
-    proteinOrNucleic,
     helix,
     beta,
     water,

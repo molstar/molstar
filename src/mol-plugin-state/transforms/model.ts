@@ -608,7 +608,7 @@ const StructureSelectionFromBundle = PluginStateTransform.BuiltIn({
 });
 
 export const StructureComplexElementTypes = {
-    'protein-or-nucleic': 'protein-or-nucleic',
+    'polymer': 'polymer',
 
     'protein': 'protein',
     'nucleic': 'nucleic',
@@ -642,7 +642,7 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
 
         let query: StructureQuery, label: string;
         switch (params.type) {
-            case 'protein-or-nucleic': query = StructureSelectionQueries.proteinOrNucleic.query; label = 'Sequence'; break;
+            case 'polymer': query = StructureSelectionQueries.polymer.query; label = 'Polymer'; break;
 
             case 'protein': query = StructureSelectionQueries.protein.query; label = 'Protein'; break;
             case 'nucleic': query = StructureSelectionQueries.nucleic.query; label = 'Nucleic'; break;

@@ -93,7 +93,7 @@ export class RepresentationBuilder {
     removePreset(providerRef: RepresentationProviderRef, structureRoot?: StateObjectRef) {
         const id = this.resolveProvider(providerRef)?.id;
         if (!id) return;
-        
+
         const state = this.plugin.state.dataState;
         const root = StateObjectRef.resolveRef(state, structureRoot) || StateTransform.RootRef;
         const reprs = StateSelection.findWithAllTags(state.tree, root, new Set([id, RepresentationProviderTags.Representation]));
@@ -113,7 +113,7 @@ export class RepresentationBuilder {
         if (builder.editInfo.count === 0) return;
         return this.plugin.runTask(state.updateTree(builder));
     }
-    
+
     structurePreset<K extends keyof PresetStructureReprentations>(parent: StateObjectRef, preset: K, params?: StructureRepresentationProvider.Params<PresetStructureReprentations[K]>): Promise<StructureRepresentationProvider.State<PresetStructureReprentations[K]>> | undefined
     structurePreset<P = any, S = {}>(parent: StateObjectRef, providers: StructureRepresentationProvider<P, S>, params?: P): Promise<S> | undefined
     structurePreset(parent: StateObjectRef, providerId: string, params?: any): Promise<any> | undefined

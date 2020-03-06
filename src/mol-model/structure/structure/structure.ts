@@ -991,6 +991,62 @@ namespace Structure {
             }
         }
     }
+
+    //
+
+    const DefaultSizeThresholds = {
+        smallResidueCount: 10,
+        mediumResidueCount: 1500,
+        largeResidueCount: 12000,
+        highSymmetryUnitCount: 10,
+        fiberResidueCount: 15
+    }
+    type SizeThresholds = typeof DefaultSizeThresholds
+
+    function getPolymerSymmetryGroups(structure: Structure) {
+        return structure.unitSymmetryGroups.filter(ug => ug.units[0].polymerElements.length > 0)
+    }
+
+    /**
+     * Try to match fiber-like structures like 6nk4
+     */
+    function isFiberLike(structure: Structure, thresholds: SizeThresholds) {
+        const polymerSymmetryGroups = getPolymerSymmetryGroups(structure)
+        return (
+            polymerSymmetryGroups.length === 1 &&
+            polymerSymmetryGroups[0].units.length > 2 &&
+            polymerSymmetryGroups[0].units[0].polymerElements.length < thresholds.fiberResidueCount
+        )
+    }
+
+    function hasHighSymmetry(structure: Structure, thresholds: SizeThresholds) {
+        const polymerSymmetryGroups = getPolymerSymmetryGroups(structure)
+        return (
+            polymerSymmetryGroups.length > 1 &&
+            polymerSymmetryGroups[0].units.length > thresholds.highSymmetryUnitCount
+        )
+    }
+
+    export enum Size { Small, Medium, Large, Huge, Gigantic }
+
+    export function getSize(structure: Structure, thresholds: Partial<SizeThresholds> = {}): Size {
+        const t = { ...DefaultSizeThresholds, thresholds }
+        if (structure.polymerResidueCount >= t.largeResidueCount) {
+            if (hasHighSymmetry(structure, t)) {
+                return Size.Huge
+            } else {
+                return Size.Gigantic
+            }
+        } else if (isFiberLike(structure, t)) {
+            return Size.Small
+        } else if (structure.polymerResidueCount < t.smallResidueCount) {
+            return Size.Small
+        } else if (structure.polymerResidueCount < t.mediumResidueCount) {
+            return Size.Medium
+        } else {
+            return Size.Large
+        }
+    }
 }
 
 export default Structure
