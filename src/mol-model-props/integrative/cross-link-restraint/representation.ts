@@ -143,7 +143,8 @@ export const CrossLinkRestraintRepresentationProvider: StructureRepresentationPr
     defaultColorTheme: { name: CrossLinkRestraint.Tag.CrossLinkRestraint },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => CrossLinkRestraint.isApplicable(structure),
-    ensureCustomProperties: (ctx: CustomProperty.Context, structure: Structure) => {
-        return CrossLinkRestraintProvider.attach(ctx, structure)
+    ensureCustomProperties: {
+        attach: (ctx: CustomProperty.Context, structure: Structure) => CrossLinkRestraintProvider.attach(ctx, structure, void 0, true),
+        detach: (_, data) => CrossLinkRestraintProvider.ref(data, false)
     }
 }

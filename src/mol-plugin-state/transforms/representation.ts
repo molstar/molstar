@@ -210,7 +210,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Structure Representation', async ctx => {
             const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
             const provider = plugin.structureRepresentation.registry.get(params.type.name)
-            if (provider.ensureCustomProperties) await provider.ensureCustomProperties(propertyCtx, a.data)
+            if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data)
             const props = params.type.params || {}
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, provider.getParams)
             await Theme.ensureDependencies(propertyCtx, plugin.structureRepresentation.themeCtx, { structure: a.data }, params)
@@ -222,12 +222,15 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
-            if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
+            const oldProvider = plugin.structureRepresentation.registry.get(oldParams.type.name);
             const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
+            if (oldProvider.ensureCustomProperties) oldProvider.ensureCustomProperties.detach(propertyCtx, a.data);
+            Theme.releaseDependencies(propertyCtx, plugin.structureRepresentation.themeCtx, { structure: a.data }, oldParams);
+
+            if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
             const provider = plugin.structureRepresentation.registry.get(newParams.type.name)
-            if (provider.ensureCustomProperties) await provider.ensureCustomProperties(propertyCtx, a.data)
+            if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data)
             const props = { ...b.data.repr.props, ...newParams.type.params }
-            await Theme.releaseDependencies(propertyCtx, plugin.structureRepresentation.themeCtx, { structure: a.data }, oldParams)
             await Theme.ensureDependencies(propertyCtx, plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams)
             b.data.repr.setTheme(Theme.create(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
@@ -587,7 +590,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Volume Representation', async ctx => {
             const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
             const provider = plugin.volumeRepresentation.registry.get(params.type.name)
-            if (provider.ensureCustomProperties) await provider.ensureCustomProperties(propertyCtx, a.data)
+            if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data)
             const props = params.type.params || {}
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
             repr.setTheme(Theme.create(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))
@@ -598,7 +601,14 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
-            if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
+            if (newParams.type.name !== oldParams.type.name) {
+                const oldProvider = plugin.volumeRepresentation.registry.get(oldParams.type.name);
+                if (oldProvider.ensureCustomProperties) {
+                    const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
+                    oldProvider.ensureCustomProperties.detach(propertyCtx, a.data)
+                }
+                return StateTransformer.UpdateResult.Recreate;
+            }
             const props = { ...b.data.repr.props, ...newParams.type.params }
             b.data.repr.setTheme(Theme.create(plugin.volumeRepresentation.themeCtx, { volume: a.data }, newParams))
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);

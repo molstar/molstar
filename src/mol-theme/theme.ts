@@ -56,9 +56,9 @@ namespace Theme {
         await theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.attach(ctx, data)
     }
 
-    export async function releaseDependencies(ctx: CustomProperty.Context, theme: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
-        await theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.detach(ctx, data)
-        await theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.detach(ctx, data)
+    export function releaseDependencies(ctx: CustomProperty.Context, theme: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
+        theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.detach(ctx, data)
+        theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.detach(ctx, data)
     }
 }
 

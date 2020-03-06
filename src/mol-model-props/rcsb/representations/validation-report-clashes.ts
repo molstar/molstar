@@ -287,7 +287,8 @@ export const ClashesRepresentationProvider: StructureRepresentationProvider<Clas
     defaultColorTheme: { name: 'uniform', props: { value: Color(0xFA28FF) } },
     defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0,
-    ensureCustomProperties: (ctx: CustomProperty.Context, structure: Structure) => {
-        return ClashesProvider.attach(ctx, structure)
+    ensureCustomProperties: {
+        attach: (ctx: CustomProperty.Context, structure: Structure) => ClashesProvider.attach(ctx, structure, void 0, true),
+        detach: (_, data) => ClashesProvider.ref(data, false)
     }
 }
