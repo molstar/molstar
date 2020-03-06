@@ -279,12 +279,19 @@ export namespace ParamDefinition {
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
+    /** This is required for params with optional values */
+    export type ValuesFor<T extends For<any>> = Normalize<{ [k in keyof T]: T[k]['defaultValue'] }>
 
     type Optionals<P> = { [K in keyof P]-?: undefined extends P[K] ? K : never }[keyof P]
     type NonOptionals<P> = { [K in keyof P]-?: undefined extends P[K] ? never: K }[keyof P]
     export type Normalize<P> = Pick<P, NonOptionals<P>> & Partial<Pick<P, Optionals<P>>>
     export type For<P> = { [K in keyof P]-?: Base<P[K]> }
     export type Def<P> = { [K in keyof P]: Any }
+
+
+    export function For<P>(params: For<P>): For<P> {
+        return 0 as any;
+    }
 
     export function getDefaultValues<T extends Params>(params: T) {
         const d: { [k: string]: any } = {}

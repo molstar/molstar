@@ -39,10 +39,10 @@ export const StructureComponentParams = {
         bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
         script: PD.Script({ language: 'mol-script', expression: '(sel.atom.all)' }),
     }, { isHidden: true }),
-    nullIfEmpty: PD.Boolean(true, { isHidden: true }),
+    nullIfEmpty: PD.Optional(PD.Boolean(true, { isHidden: true })),
     label: PD.Text('', { isHidden: true })
 };
-export type StructureComponentParams = PD.Values<typeof StructureComponentParams>
+export type StructureComponentParams = PD.ValuesFor<typeof StructureComponentParams>
 
 export function createStructureComponent(a: Structure, params: StructureComponentParams, cache: { source: Structure, entry?: StructureQueryHelper.CacheEntry }) {
     cache.source = a;
