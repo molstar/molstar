@@ -48,7 +48,10 @@ export interface RepresentationProvider<D, P extends PD.Params, S extends Repres
     readonly defaultColorTheme: { name: string, props?: {} }
     readonly defaultSizeTheme: { name: string, props?: {} }
     readonly isApplicable: (data: D) => boolean
-    readonly ensureCustomProperties?: (ctx: CustomProperty.Context, data: D) => Promise<void>
+    readonly ensureCustomProperties?: {
+        attach: (ctx: CustomProperty.Context, data: D) => Promise<void>,
+        detach: (ctx: CustomProperty.Context, data: D) => void
+    }
 }
 
 export namespace RepresentationProvider {

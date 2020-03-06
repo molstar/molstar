@@ -43,10 +43,11 @@ import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
 import { PluginToastManager } from './util/toast';
 import { StructureMeasurementManager } from './util/structure-measurement';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
-import { StructureRepresentationBuilder } from '../mol-plugin-state/builder/structure-representation';
+import { RepresentationBuilder } from '../mol-plugin-state/builder/representation';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { PluginConfigManager } from './config';
 import { DataBuilder } from '../mol-plugin-state/builder/data';
+import { StructureBuilder } from '../mol-plugin-state/builder/structure';
 
 export class PluginContext {
     private disposed = false;
@@ -126,7 +127,8 @@ export class PluginContext {
 
     readonly builders = {
         data: new DataBuilder(this),
-        structureRepresentation: void 0 as any as StructureRepresentationBuilder
+        structure: new StructureBuilder(this),
+        representation: void 0 as any as RepresentationBuilder
     };
 
     readonly customModelProperties = new CustomProperty.Registry<Model>();
@@ -282,7 +284,7 @@ export class PluginContext {
         this.interactivity = new Interactivity(this);
         this.lociLabels = new LociLabelManager(this);
 
-        (this.builders.structureRepresentation as StructureRepresentationBuilder)= new StructureRepresentationBuilder(this);
+        (this.builders.representation as RepresentationBuilder)= new RepresentationBuilder(this);
 
         this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
         if (!isProductionMode) this.log.message(`Development mode enabled`);

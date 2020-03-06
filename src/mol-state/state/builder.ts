@@ -6,7 +6,7 @@
 
 import { StateTree } from '../tree/immutable';
 import { TransientTree } from '../tree/transient';
-import { StateObject, StateObjectCell, StateObjectSelector } from '../object';
+import { StateObject, StateObjectCell, StateObjectSelector, StateObjectRef } from '../object';
 import { StateTransform } from '../transform';
 import { StateTransformer } from '../transformer';
 import { State } from '../state';
@@ -80,6 +80,7 @@ namespace StateBuilder {
         get currentTree() { return this.state.tree; }
 
         to<A extends StateObject, T extends StateTransformer>(ref: StateTransform.Ref): To<A, T>
+        to<A extends StateObject, T extends StateTransformer>(ref: StateObjectRef<A>): To<A, T>
         to<C extends StateObjectCell>(cell: C): To<StateObjectCell.Obj<C>, StateObjectCell.Transformer<C>>
         to<S extends StateObjectSelector>(selector: S): To<StateObjectSelector.Obj<S>, StateObjectSelector.Transformer<S>>
         to(refOrCellOrSelector: StateTransform.Ref | StateObjectCell | StateObjectSelector) {

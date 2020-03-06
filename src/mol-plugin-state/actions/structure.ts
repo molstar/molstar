@@ -227,21 +227,26 @@ const DownloadStructure = StateAction.build({
 
     await state.transaction(async () => {
         if (downloadParams.length > 0 && asTrajectory) {
-            const traj = await createSingleTrajectoryModel(plugin, state, downloadParams);
-            const struct = createStructure(state.build().to(traj), supportProps, src.params.structure.type);
-            await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
+            const data = await plugin.builders.data.downloadBlob({
+                sources: downloadParams.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
+                maxConcurrency: 6
+            }, { state: { isGhost: true } });        
+            const traj = await plugin.builders.structure.parseTrajectory(data, {
+                formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' }))
+            });
+            const model = await plugin.builders.structure.createModel(traj, void 0, supportProps);
+            const struct = await plugin.builders.structure.createStructure(model, src.params.structure.type);
             if (createRepr) {
-                await plugin.builders.structureRepresentation.apply(struct.ref, 'auto');
+                await plugin.builders.representation.structurePreset(struct.ref, 'auto');
             }
         } else {
             for (const download of downloadParams) {
                 const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
-                const traj = createModelTree(state.build().to(data), format);
-
-                const struct = createStructure(traj, supportProps, src.params.structure.type);
-                await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
+                const traj = await plugin.builders.structure.parseTrajectory(data, format);
+                const model = await plugin.builders.structure.createModel(traj, void 0, supportProps);
+                const struct = await plugin.builders.structure.createStructure(model, src.params.structure.type);
                 if (createRepr) {
-                    await plugin.builders.structureRepresentation.apply(struct.ref, 'auto');
+                    await plugin.builders.representation.structurePreset(struct.ref, 'auto');
                 }
             }
         }
@@ -255,23 +260,6 @@ function getDownloadParams(src: string, url: (id: string) => string, label: (id:
         ret.push({ url: url(id), isBinary, label: label(id) })
     }
     return ret;
-}
-
-async function createSingleTrajectoryModel(plugin: PluginContext, state: State, sources: StateTransformer.Params<Download>[]) {
-    const data = await plugin.builders.data.downloadBlob({
-        sources: sources.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
-        maxConcurrency: 6
-    }, { state: { isGhost: true } });
-
-    const trajectory = state.build().to(data)
-        .apply(StateTransforms.Data.ParseBlob, {
-            formats: sources.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' }))
-        }, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.TrajectoryFromBlob)
-        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
-
-    await plugin.runTask(state.updateTree(trajectory, { revertIfAborted: true }));
-    return trajectory.selector;
 }
 
 export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: StructureFormat = 'cif') {
@@ -314,28 +302,28 @@ function createStructureAndVisuals(ctx: PluginContext, b: StateBuilder.To<Plugin
 export const Create3DRepresentationPreset = StateAction.build({
     display: { name: '3D Representation Preset', description: 'Create one of preset 3D representations.' },
     from: PluginStateObject.Molecule.Structure,
-    isApplicable(a, _, plugin: PluginContext) { return plugin.builders.structureRepresentation.hasProvider(a.data); },
+    isApplicable(a, _, plugin: PluginContext) { return plugin.builders.representation.hasPreset(a.data); },
     params(a, plugin: PluginContext) {
         return {
-            type: plugin.builders.structureRepresentation.getOptions(a.data)
+            type: plugin.builders.representation.getPresets(a.data)
         };
     }
 })(({ ref, params }, plugin: PluginContext) => {
-    plugin.builders.structureRepresentation.apply(ref, params.type.name, params.type.params);
+    plugin.builders.representation.structurePreset(ref, params.type.name, params.type.params);
 });
 
 export const Remove3DRepresentationPreset = StateAction.build({
     display: { name: 'Remove 3D Representation Preset', description: 'Remove 3D representations.' },
     from: PluginStateObject.Molecule.Structure,
-    isApplicable(_, t, plugin: PluginContext) { return plugin.builders.structureRepresentation.hasManagedRepresentation(t.ref); },
+    isApplicable(_, t, plugin: PluginContext) { return plugin.builders.representation.hasPresetRepresentation(t.ref); },
     params(a, plugin: PluginContext) {
         return {
-            type: plugin.builders.structureRepresentation.getOptions(a.data).select
+            type: plugin.builders.representation.getPresets(a.data).select
         };
     }
 })(({ ref, params }, plugin: PluginContext) => {
     // TODO: this will be completely handled by the managed and is just for testing purposes
-    plugin.builders.structureRepresentation.remove(params.type, ref);
+    plugin.builders.representation.removePreset(params.type, ref);
 });
 
 export const UpdateTrajectory = StateAction.build({

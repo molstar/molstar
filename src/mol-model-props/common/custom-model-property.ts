@@ -51,7 +51,8 @@ namespace CustomModelProperty {
             getParams: builder.getParams,
             defaultParams: builder.defaultParams,
             isApplicable: builder.isApplicable,
-            attach: async (ctx: CustomProperty.Context, data: Model, props: Partial<PD.Values<Params>> = {}) => {
+            attach: async (ctx: CustomProperty.Context, data: Model, props: Partial<PD.Values<Params>> = {}, addRef) => {
+                if (addRef) data.customProperties.reference(builder.descriptor, true);
                 const property = get(data)
                 const p = { ...property.props, ...props }
                 if (property.data.value && PD.areEqual(builder.defaultParams, property.props, p)) return
@@ -59,6 +60,7 @@ namespace CustomModelProperty {
                 data.customProperties.add(builder.descriptor);
                 set(data, p, value);
             },
+            ref: (data: Model, add: boolean) => data.customProperties.reference(builder.descriptor, add),
             get: (data: Model) => get(data)?.data,
             set: (data: Model, props: Partial<PD.Values<Params>> = {}) => {
                 const property = get(data)

@@ -102,7 +102,8 @@ export const StructureQualityReportColorThemeProvider: ColorTheme.Provider<Param
     },
     defaultValues: PD.getDefaultValues(StructureQualityReportColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => StructureQualityReport.isApplicable(ctx.structure?.models[0]),
-    ensureCustomProperties: (ctx: CustomProperty.Context, data: ThemeDataContext) => {
-        return data.structure ? StructureQualityReportProvider.attach(ctx, data.structure.models[0]) : Promise.resolve()
+    ensureCustomProperties: {
+        attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? StructureQualityReportProvider.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
+        detach: (_, data) => data.structure && data.structure.models[0].customProperties.reference(StructureQualityReportProvider.descriptor, false)
     }
 }

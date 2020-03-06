@@ -118,7 +118,8 @@ export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<Secondary
     getParams: getSecondaryStructureColorThemeParams,
     defaultValues: PD.getDefaultValues(SecondaryStructureColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
-    ensureCustomProperties: (ctx: CustomProperty.Context, data: ThemeDataContext) => {
-        return data.structure ? SecondaryStructureProvider.attach(ctx, data.structure) : Promise.resolve()
-    }
+    ensureCustomProperties: {
+        attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? SecondaryStructureProvider.attach(ctx, data.structure, void 0, true) : Promise.resolve(),
+        detach: (_, data) => data.structure && data.structure.customPropertyDescriptors.reference(SecondaryStructureProvider.descriptor, false)
+    }    
 }

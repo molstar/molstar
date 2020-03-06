@@ -41,6 +41,7 @@ namespace CustomPropertyDescriptor {
 class CustomProperties {
     private _list: CustomPropertyDescriptor[] = [];
     private _set = new Set<CustomPropertyDescriptor>();
+    private _refs = new Map<CustomPropertyDescriptor, number>();
 
     get all(): ReadonlyArray<CustomPropertyDescriptor> {
         return this._list;
@@ -53,7 +54,21 @@ class CustomProperties {
         this._set.add(desc);
     }
 
+    reference(desc: CustomPropertyDescriptor<any>, add: boolean) {
+        let refs = this._refs.get(desc);
+        if (refs === void 0) {
+            refs = 0;
+            this._refs.set(desc, refs);
+        }
+        refs += add ? 1 : -1;
+        this._refs.set(desc, Math.max(refs, 0));
+    }
+
+    hasReference(desc: CustomPropertyDescriptor<any>) {
+        return (this._refs.get(desc) || 0) > 0;
+    }
+
     has(desc: CustomPropertyDescriptor<any>): boolean {
-        return this._set.has(desc);
+        return this._refs.has(desc);
     }
 }

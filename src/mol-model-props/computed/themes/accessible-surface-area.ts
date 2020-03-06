@@ -71,7 +71,8 @@ export const AccessibleSurfaceAreaColorThemeProvider: ColorTheme.Provider<Access
     getParams: getAccessibleSurfaceAreaColorThemeParams,
     defaultValues: PD.getDefaultValues(AccessibleSurfaceAreaColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
-    ensureCustomProperties: (ctx: CustomProperty.Context, data: ThemeDataContext) => {
-        return data.structure ? AccessibleSurfaceAreaProvider.attach(ctx, data.structure) : Promise.resolve()
+    ensureCustomProperties: {
+        attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? AccessibleSurfaceAreaProvider.attach(ctx, data.structure, void 0, true) : Promise.resolve(),
+        detach: (_, data) => data.structure && data.structure.customPropertyDescriptors.reference(AccessibleSurfaceAreaProvider.descriptor, false)
     }
 }

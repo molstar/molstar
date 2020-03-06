@@ -113,7 +113,8 @@ export const InteractionTypeColorThemeProvider: ColorTheme.Provider<InteractionT
     getParams: getInteractionTypeColorThemeParams,
     defaultValues: PD.getDefaultValues(InteractionTypeColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
-    ensureCustomProperties: (ctx: CustomProperty.Context, data: ThemeDataContext) => {
-        return data.structure ? InteractionsProvider.attach(ctx, data.structure) : Promise.resolve()
+    ensureCustomProperties: {
+        attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? InteractionsProvider.attach(ctx, data.structure, void 0, true) : Promise.resolve(),
+        detach: (_, data) => data.structure && data.structure.customPropertyDescriptors.reference(InteractionsProvider.descriptor, false)
     }
 }

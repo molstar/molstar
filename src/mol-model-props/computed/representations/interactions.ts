@@ -46,7 +46,8 @@ export const InteractionsRepresentationProvider: StructureRepresentationProvider
     defaultColorTheme: { name: 'interaction-type' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0,
-    ensureCustomProperties: (ctx: CustomProperty.Context, structure: Structure) => {
-        return InteractionsProvider.attach(ctx, structure)
+    ensureCustomProperties: {
+        attach: (ctx: CustomProperty.Context, structure: Structure) => InteractionsProvider.attach(ctx, structure, void 0, true),
+        detach: (_, data) => InteractionsProvider.ref(data, false)
     }
 }

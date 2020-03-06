@@ -104,8 +104,9 @@ namespace CustomElementProperty {
             getParams: () => ({}),
             defaultValues: {},
             isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && !!modelProperty.get(ctx.structure.models[0]).value,
-            ensureCustomProperties: (ctx: CustomProperty.Context, data: ThemeDataContext) => {
-                return data.structure ? modelProperty.attach(ctx, data.structure.models[0]) : Promise.resolve()
+            ensureCustomProperties: {
+                attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? modelProperty.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
+                detach: (_, data: ThemeDataContext) => data.structure && data.structure.models[0].customProperties.reference(modelProperty.descriptor, false)
             }
         }
     }
