@@ -114,8 +114,8 @@ export namespace Spheres {
     export const Params = {
         ...BaseGeometry.Params,
         sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
-        doubleSided: PD.Boolean(false),
-        ignoreLight: PD.Boolean(false),
+        doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
+        ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
     }
     export type Params = typeof Params
 

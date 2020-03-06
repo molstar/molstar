@@ -40,7 +40,8 @@ export namespace BaseGeometry {
     }
     export type Params = typeof Params
 
-    export const CustomQualityParamInfo: PD.Info = { 
+    export const ShadingCategory: PD.Info = { category: 'Shading' };
+    export const CustomQualityParamInfo: PD.Info = {
         category: 'Custom Quality',
         hideIf: (params: PD.Values<Params>) => typeof params.quality !== 'undefined' && params.quality !== 'custom'
     };
