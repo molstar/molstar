@@ -74,9 +74,10 @@ export namespace ParamDefinition {
         type: 'select'
         /** array of (value, label) tuples */
         options: readonly (readonly [T, string] | readonly [T, string, string])[]
+        cycle?: boolean
     }
-    export function Select<T extends string | number>(defaultValue: T, options: readonly (readonly [T, string] | readonly [T, string, string])[], info?: Info): Select<T> {
-        return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options }, info)
+    export function Select<T extends string | number>(defaultValue: T, options: readonly (readonly [T, string] | readonly [T, string, string])[], info?: Info & { cycle?: boolean }): Select<T> {
+        return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options, cycle: info?.cycle }, info)
     }
 
     export interface ColorList<T extends string> extends Base<T> {
@@ -209,7 +210,7 @@ export namespace ParamDefinition {
         select: Select<string>,
         map(name: string): Any
     }
-    export function Mapped<T>(defaultKey: string, names: ([string, string] | [string, string, string])[], map: (name: string) => Any, info?: Info): Mapped<NamedParams<T>> {
+    export function Mapped<T>(defaultKey: string, names: ([string, string] | [string, string, string])[], map: (name: string) => Any, info?: Info & { cycle?: boolean }): Mapped<NamedParams<T>> {
         const name = checkDefaultKey(defaultKey, names);
         return setInfo<Mapped<NamedParams<T>>>({
             type: 'mapped',
@@ -218,7 +219,7 @@ export namespace ParamDefinition {
             map
         }, info);
     }
-    export function MappedStatic<C extends Params>(defaultKey: keyof C, map: C, info?: Info & { options?: [keyof C, string][] }): Mapped<NamedParamUnion<C>> {
+    export function MappedStatic<C extends Params>(defaultKey: keyof C, map: C, info?: Info & { options?: [keyof C, string][], cycle?: boolean }): Mapped<NamedParamUnion<C>> {
         const options: [string, string][] = info && info.options
             ? info.options as [string, string][]
             : Object.keys(map).map(k => [k, map[k].label || stringToWords(k)]) as [string, string][];

@@ -78,7 +78,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
 
         const essentials = this.renderPart(groups.essentials);
         const advanced = this.renderPart(groups.advanced);
-        
+
         if (essentials && advanced) {
             return <>
                 {essentials}
@@ -455,6 +455,13 @@ export class SelectControl extends React.PureComponent<ParamProps<PD.Select<stri
 
     toggle = () => this.setState({ showOptions: !this.state.showOptions });
 
+    cycle = () => {
+        const { options } = this.props.param
+        const current = options.findIndex(o => o[0] === this.props.value)
+        const next = current === options.length - 1 ? 0 : current + 1
+        this.props.onChange({ param: this.props.param, name: this.props.name, value: options[next][0] });
+    };
+
     items = memoizeLatest((param: PD.Select<any>) => ActionMenu.createItemsFromSelectParam(param));
 
     renderControl() {
@@ -466,8 +473,15 @@ export class SelectControl extends React.PureComponent<ParamProps<PD.Select<stri
                 ? `${ActionMenu.getFirstItem(items)?.label || ''} [Default]`
                 : `[Invalid] ${this.props.value}`;
 
-        return <ToggleButton disabled={this.props.isDisabled} style={{ textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}
-            label={label} title={label as string} toggle={this.toggle} isSelected={this.state.showOptions} />;
+        const toggle = this.props.param.cycle ? this.cycle : this.toggle
+        const textAlign = this.props.param.cycle ? 'center' : 'left'
+        const icon = this.props.param.cycle
+            ? (this.props.value === 'on' ? 'ok'
+                : this.props.value === 'off' ? 'off' : '')
+            : ''
+
+        return <ToggleButton disabled={this.props.isDisabled} style={{ textAlign, overflow: 'hidden', textOverflow: 'ellipsis' }}
+            label={label} title={label as string} icon={icon} toggle={toggle} isSelected={this.state.showOptions} />;
     }
 
     renderAddOn() {
