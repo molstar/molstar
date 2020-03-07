@@ -13,9 +13,10 @@ import { ParameterControls } from '../controls/parameters';
 import { ParamDefinition as PD} from '../../mol-util/param-definition';
 import { PluginState } from '../../mol-plugin/state';
 import { urlCombine } from '../../mol-util/url';
-import { IconButton, Icon, SectionHeader } from '../controls/common';
+import { IconButton, SectionHeader } from '../controls/common';
 import { formatTimespan } from '../../mol-util/now';
 import { PluginConfig } from '../../mol-plugin/config';
+import { Icon } from '../controls/icons';
 
 export class StateSnapshots extends PluginUIComponent<{ }> {
     downloadToFile = () => {

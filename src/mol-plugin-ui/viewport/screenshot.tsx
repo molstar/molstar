@@ -9,7 +9,7 @@ import * as React from 'react';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParameterControls } from '../controls/parameters';
 import { PluginUIComponent } from '../base';
-import { Icon } from '../controls/common';
+import { Icon } from '../controls/icons';
 import { debounceTime } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { ViewportScreenshotHelper } from '../../mol-plugin/util/viewport-screenshot';

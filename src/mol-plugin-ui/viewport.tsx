@@ -13,6 +13,7 @@ import { PluginUIComponent } from './base';
 import { ControlGroup, IconButton } from './controls/common';
 import { SimpleSettingsControl } from './viewport/simple-settings';
 import { DownloadScreenshotControls } from './viewport/screenshot';
+import { IconName } from './controls/icons';
 
 interface ViewportControlsState {
     isSettingsExpanded: boolean,
@@ -74,7 +75,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         this.subscribe(this.plugin.events.interactivity.propsUpdated, () => this.forceUpdate());
     }
 
-    icon(name: string, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
+    icon(name: IconName, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
         return <IconButton icon={name} toggleState={isOn} onClick={onClick} title={title} />;
     }
 

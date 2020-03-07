@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -7,13 +7,14 @@
 import * as React from 'react';
 import { Color } from '../../mol-util/color';
 import { PurePluginUIComponent } from '../base';
+import { IconName, Icon } from './icons';
 
 export class ControlGroup extends React.Component<{
     header: string,
     initialExpanded?: boolean,
     hideExpander?: boolean,
     hideOffset?: boolean,
-    topRightIcon?: string,
+    topRightIcon?: IconName,
     onHeaderClick?: () => void
 }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initialExpanded }
@@ -222,33 +223,6 @@ export class NumericInput extends React.PureComponent<{
     }
 }
 
-export function Icon(props: {
-    name: string,
-    style?: React.CSSProperties
-}) {
-    return <span className={`msp-icon msp-icon-${props.name}`} style={props.style} />;
-}
-
-export function IconButton(props: {
-    icon: string,
-    isSmall?: boolean,
-    onClick: (e: React.MouseEvent<HTMLButtonElement>) => void,
-    title?: string,
-    toggleState?: boolean,
-    disabled?: boolean,
-    customClass?: string,
-    style?: React.CSSProperties,
-    'data-id'?: string,
-    extraContent?: JSX.Element
-}) {
-    let className = `msp-btn-link msp-btn-icon${props.isSmall ? '-small' : ''}${props.customClass ? ' ' + props.customClass : ''}`;
-    if (typeof props.toggleState !== 'undefined') className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
-    return <button className={className} onClick={props.onClick} title={props.title} disabled={props.disabled} data-id={props['data-id']} style={props.style}>
-        <span className={`msp-icon msp-icon-${props.icon}`}/>
-        {props.extraContent}
-    </button>;
-}
-
 export class ExpandableGroup extends React.Component<{
     label: string,
     colorStripe?: Color,
@@ -268,7 +242,7 @@ export class ExpandableGroup extends React.Component<{
                     {label}
                     <button className='msp-btn-link msp-btn-icon msp-control-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Less' : 'More'} options`}
                         style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                        <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'minus' : 'plus'}`} style={{ display: 'inline-block' }} />
+                        <Icon name={this.state.isExpanded ? 'minus' : 'plus'} style={{ display: 'inline-block' }} />
                     </button>
                 </span>
                 <div>{pivot}</div>
@@ -279,6 +253,26 @@ export class ExpandableGroup extends React.Component<{
             </div>}
         </>;
     }
+}
+
+export function IconButton(props: {
+    icon: IconName,
+    isSmall?: boolean,
+    onClick: (e: React.MouseEvent<HTMLButtonElement>) => void,
+    title?: string,
+    toggleState?: boolean,
+    disabled?: boolean,
+    customClass?: string,
+    style?: React.CSSProperties,
+    'data-id'?: string,
+    extraContent?: JSX.Element
+}) {
+    let className = `msp-btn-link msp-btn-icon${props.isSmall ? '-small' : ''}${props.customClass ? ' ' + props.customClass : ''}`;
+    if (typeof props.toggleState !== 'undefined') className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
+    return <button className={className} onClick={props.onClick} title={props.title} disabled={props.disabled} data-id={props['data-id']} style={props.style}>
+        <Icon name={props.icon} />
+        {props.extraContent}
+    </button>;
 }
 
 export class ButtonSelect extends React.PureComponent<{ label: string, onChange: (value: string) => void, disabled?: boolean }> {
@@ -301,7 +295,7 @@ export function Options(options: [string, string][]) {
     return options.map(([value, label]) => <option key={value} value={value}>{label}</option>)
 }
 
-export function SectionHeader(props: { icon?: string, title: string | JSX.Element, desc?: string}) {
+export function SectionHeader(props: { icon?: IconName, title: string | JSX.Element, desc?: string}) {
     return <div className='msp-section-header'>
         {props.icon && <Icon name={props.icon} />}
         {props.title} <small>{props.desc}</small>
@@ -314,7 +308,7 @@ export type ToggleButtonProps = {
     disabled?: boolean,
     label: string | JSX.Element,
     title?: string,
-    icon?: string,
+    icon?: IconName,
     isSelected?: boolean,
     toggle: () => void
 }
@@ -330,7 +324,7 @@ export class ToggleButton extends React.PureComponent<ToggleButtonProps> {
         const label = props.label;
         return <button onClick={this.onClick} title={this.props.title}
             disabled={props.disabled} style={props.style} className={props.className}>
-            {this.props.icon ? <span className={`msp-icon msp-icon-${this.props.icon}`} /> : ''}
+            <Icon name={this.props.icon} />
             {this.props.isSelected ? <b>{label}</b> : label}
         </button>;
     }

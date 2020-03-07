@@ -9,7 +9,7 @@ import * as React from 'react';
 import { PluginUIComponent } from './base';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
-import { Icon } from './controls/common';
+import { Icon } from './controls/icons';
 
 export class CameraSnapshots extends PluginUIComponent<{ }, { }> {
     render() {
@@ -69,7 +69,7 @@ class CameraSnapshotList extends PluginUIComponent<{ }, { }> {
             {this.plugin.state.cameraSnapshots.state.entries.valueSeq().map(e =><li key={e!.id}>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.apply(e!.id)}>{e!.name || e!.timestamp} <small>{e!.description}</small></button>
                 <button onClick={this.remove(e!.id)} className='msp-btn msp-btn-link msp-state-list-remove-button'>
-                    <span className='msp-icon msp-icon-remove' />
+                    <Icon name='remove' />
                 </button>
             </li>)}
         </ul>;

@@ -9,7 +9,7 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { State, StateObject, StateTransform, StateObjectCell } from '../../mol-state'
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginUIComponent, _Props, _State } from '../base';
-import { Icon } from '../controls/common';
+import { Icon } from '../controls/icons';
 
 export class StateTree extends PluginUIComponent<{ state: State }, { showActions: boolean }> {
     state = { showActions: true };
@@ -235,7 +235,7 @@ class StateTreeNodeLabel extends PluginUIComponent<
         const cellState = cell.state;
 
         const visibility = <button onClick={this.toggleVisible} className={`msp-btn msp-btn-link msp-tree-visibility${cellState.isHidden ? ' msp-tree-visibility-hidden' : ''}`}>
-            <span className='msp-icon msp-icon-visual-visibility' />
+            <Icon name='visual-visibility' />
         </button>;
 
         const style: React.HTMLAttributes<HTMLDivElement>['style'] = {
@@ -247,10 +247,10 @@ class StateTreeNodeLabel extends PluginUIComponent<
         const row = <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={style}>
             {label}
             {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
-                <span className={`msp-icon msp-icon-${cellState.isCollapsed ? 'expand' : 'collapse'}`} />
+                <Icon name={cellState.isCollapsed ? 'expand' : 'collapse'} />
             </button>}
             {!cell.state.isLocked && <button onClick={this.remove} className='msp-btn msp-btn-link msp-tree-remove-button'>
-                <span className='msp-icon msp-icon-remove' />
+                <Icon name='remove' />
             </button>}{visibility}
         </div>;
 

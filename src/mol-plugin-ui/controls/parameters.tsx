@@ -23,6 +23,7 @@ import { getPrecision } from '../../mol-util/number';
 import { ParamMapping } from '../../mol-util/param-mapping';
 import { PluginContext } from '../../mol-plugin/context';
 import { ActionMenu } from './action-menu';
+import { Icon } from './icons';
 
 export type ParameterControlsCategoryFilter = string | null | (string | null)[]
 
@@ -122,7 +123,7 @@ class ExpandGroup extends React.PureComponent<{ header: string, initiallyExpande
         return <>
             <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
                 <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
-                    <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
+                    <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
                     {this.props.header}
                 </button>
             </div>
@@ -218,7 +219,7 @@ export class ParamHelp<L extends LegendData> extends React.PureComponent<{ legen
 
         return <div className='msp-control-row msp-help-text'>
             <div>
-                <div className='msp-help-description'><span className={`msp-icon msp-icon-help-circle`} />{description}</div>
+                <div className='msp-help-description'><Icon name='help-circle' />{description}</div>
                 {Legend && <div className='msp-help-legend'><Legend legend={legend} /></div>}
             </div>
         </div>
@@ -259,7 +260,7 @@ function renderSimple(options: { props: ParamProps<any>, state: { showHelp: bool
                     <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={toggleHelp}
                         title={desc || `${state.showHelp ? 'Hide' : 'Show'} help`}
                         style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                        <span className={`msp-icon msp-icon-help-circle-${state.showHelp ? 'collapse' : 'expand'}`} />
+                        <Icon name={state.showHelp ? 'help-circle-collapse' : 'help-circle-expand'} />
                     </button>
                 }
             </span>
@@ -301,7 +302,7 @@ export class BoolControl extends SimpleParam<PD.BooleanParam> {
     onClick = (e: React.MouseEvent<HTMLButtonElement>) => { this.update(!this.props.value); e.currentTarget.blur(); }
     renderControl() {
         return <button onClick={this.onClick} disabled={this.props.isDisabled}>
-            <span className={`msp-icon msp-icon-${this.props.value ? 'ok' : 'off'}`} />
+            <Icon name={this.props.value ? 'ok' : 'off'} />
             {this.props.value ? 'On' : 'Off'}
         </button>;
     }
@@ -799,7 +800,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
                 <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
-                    <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
+                    <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
                     {label}
                 </button>
             </div>

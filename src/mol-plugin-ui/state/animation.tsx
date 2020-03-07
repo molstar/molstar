@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { PluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
-import { Icon } from '../controls/common';
+import { Icon } from '../controls/icons';
 
 export class AnimationControlsWrapper extends PluginUIComponent<{ }> {
     render() {

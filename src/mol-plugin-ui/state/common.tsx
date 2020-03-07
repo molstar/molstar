@@ -11,7 +11,7 @@ import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { PluginContext } from '../../mol-plugin/context';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Subject } from 'rxjs';
-import { Icon } from '../controls/common';
+import { Icon } from '../controls/icons';
 
 export { StateTransformParameters, TransformControlBase };
 
@@ -193,7 +193,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         return <div className={wrapClass}>
             {display !== 'none' && <div className='msp-transform-header'>
                 <button className={`msp-btn msp-btn-block${isEmpty ? '' : ' msp-btn-collapse'}`} onClick={this.toggleExpanded} title={display.description}>
-                    {!isEmpty && <span className={`msp-icon msp-icon-${this.state.isCollapsed ? 'expand' : 'collapse'}`} />}
+                    {!isEmpty && <Icon name={this.state.isCollapsed ? 'expand' : 'collapse'} />}
                     {display.name}
                 </button>
             </div>}

@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { Icon } from './common';
+import { Icon, IconName } from './icons';
 import { ParamDefinition } from '../../mol-util/param-definition';
 
 export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
@@ -32,7 +32,7 @@ export namespace ActionMenu {
     export type OnSelect = (item: Item | undefined) => void
 
     export type Items = string | Item | [Items]
-    export type Item = { label: string, icon?: string, value: unknown }
+    export type Item = { label: string, icon?: IconName, value: unknown }
 
     export function Item(label: string, value: unknown): Item
     export function Item(label: string, icon: string, value: unknown): Item
@@ -126,7 +126,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         return <div>
             {header && <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
                 <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
-                    <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
+                    <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
                     {hasCurrent ? <b>{header}</b> : header}
                 </button>
             </div>}

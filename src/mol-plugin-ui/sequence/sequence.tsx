@@ -290,8 +290,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         // residue spans are updated as react won't update them
         this.updateMarker()
 
-        // <span className={`msp-icon msp-icon-help`} style={{ cursor: 'help' }} title='This shows a single sequence. Use the menu on the left to show a different sequence.' />
-
         return <div
             className='msp-sequence-wrapper msp-sequence-wrapper-non-empty'
             onContextMenu={this.contextMenu}

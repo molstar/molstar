@@ -10,7 +10,7 @@ import { PluginUIComponent } from '../base';
 import { StateTransformer, StateSelection } from '../../mol-state';
 import { SelectLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { StructureRepresentationInteraction } from '../../mol-plugin/behavior/dynamic/selection/structure-representation-interaction';
-import { Icon } from '../controls/common';
+import { Icon } from '../controls/icons';
 
 function getBindingsList(bindings: { [k: string]: Binding }) {
     return Object.keys(bindings).map(k => [k, bindings[k]] as [string, Binding])
@@ -54,7 +54,7 @@ class HelpGroup extends React.Component<{ header: string, initiallyExpanded?: bo
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
                 <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
-                    <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
+                    <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
                     {this.props.header}
                 </button>
             </div>

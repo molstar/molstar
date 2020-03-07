@@ -10,7 +10,7 @@ import { PluginCommands } from '../mol-plugin/commands';
 import { UpdateTrajectory } from '../mol-plugin-state/actions/structure';
 import { PluginUIComponent } from './base';
 import { LociLabelEntry } from '../mol-plugin/util/loci-label-manager';
-import { IconButton, Icon } from './controls/common';
+import { IconButton } from './controls/common';
 import { PluginStateObject } from '../mol-plugin-state/objects';
 import { StateTransforms } from '../mol-plugin-state/transforms';
 import { StateTransformer } from '../mol-state';
@@ -19,6 +19,7 @@ import { AnimationControls } from './state/animation';
 import { StructureRepresentationControls } from './structure/representation';
 import { StructureSelectionControls } from './structure/selection';
 import { StructureMeasurementsControls } from './structure/measurements';
+import { Icon } from './controls/icons';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' }

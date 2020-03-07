@@ -17,6 +17,7 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { StateSnapshots, RemoteStateSnapshots } from './state/snapshots';
 import { HelpContent } from './viewport/help';
 import { LeftPanelTabName } from '../mol-plugin/layout';
+import { IconName } from './controls/icons';
 
 export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTabName }> {
     state = { tab: this.plugin.behaviors.layout.leftPanelTabName.value };
@@ -130,7 +131,7 @@ class FullSettings extends PluginUIComponent {
         this.subscribe(this.plugin.events.interactivity.propsUpdated, () => this.forceUpdate());
     }
 
-    icon(name: string, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
+    icon(name: IconName, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
         return <IconButton icon={name} toggleState={isOn} onClick={onClick} title={title} />;
     }
 
