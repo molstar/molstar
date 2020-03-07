@@ -11,7 +11,7 @@ import { ValenceModelProvider } from '../valence-model';
 import { InteractionsIntraContacts, InteractionsInterContacts, FeatureType, interactionTypeLabel } from './common';
 import { IntraContactsBuilder, InterContactsBuilder } from './contacts-builder';
 import { IntMap } from '../../../mol-data/int';
-import { addUnitContacts, ContactTester, addStructureContacts, ContactProvider, ContactsParams, ContactsProps } from './contacts';
+import { addUnitContacts, ContactTester, addStructureContacts, ContactsParams, ContactsProps } from './contacts';
 import { HalogenDonorProvider, HalogenAcceptorProvider, HalogenBondsProvider } from './halogen-bonds';
 import { HydrogenDonorProvider, WeakHydrogenDonorProvider, HydrogenAcceptorProvider, HydrogenBondsProvider, WeakHydrogenBondsProvider } from './hydrogen-bonds';
 import { NegativChargeProvider, PositiveChargeProvider, AromaticRingProvider, IonicProvider, PiStackingProvider, CationPiProvider } from './charged';
@@ -25,6 +25,7 @@ import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { DataLoci } from '../../../mol-model/loci';
 import { bondLabel, LabelGranularity } from '../../../mol-theme/label';
+import { ObjectKeys } from '../../../mol-util/type-helpers';
 
 export { Interactions }
 
@@ -147,26 +148,34 @@ const ContactProviders = {
 }
 type ContactProviders = typeof ContactProviders
 
-function getProvidersParams() {
-    const params: { [k in keyof ContactProviders]: PD.Group<ContactProviders[k]['params']> } = Object.create(null)
+function getProvidersParams(defaultOn: string[] = []) {
+    const params: { [k in keyof ContactProviders]: PD.Mapped<PD.NamedParamUnion<{
+        on: PD.Group<ContactProviders[k]['params']>
+        off: PD.Group<{}>
+    }>> } = Object.create(null)
+
     Object.keys(ContactProviders).forEach(k => {
-        (params as any)[k] = PD.Group(ContactProviders[k as keyof ContactProviders].params)
+        (params as any)[k] = PD.MappedStatic(defaultOn.includes(k) ? 'on' : 'off', {
+            on: PD.Group(ContactProviders[k as keyof ContactProviders].params),
+            off: PD.Group({})
+        }, { cycle: true })
     })
     return params
 }
+export const ContactProviderParams = getProvidersParams([
+    // 'ionic',
+    'cation-pi',
+    'pi-stacking',
+    'hydrogen-bonds',
+    'halogen-bonds',
+    // 'hydrophobic',
+    'metal-coordination',
+    // 'weak-hydrogen-bonds',
+])
+
 export const InteractionsParams = {
-    types: PD.MultiSelect([
-        // 'ionic',
-        'cation-pi',
-        'pi-stacking',
-        'hydrogen-bonds',
-        'halogen-bonds',
-        // 'hydrophobic',
-        'metal-coordination',
-        // 'weak-hydrogen-bonds',
-    ], PD.objectToOptions(ContactProviders)),
-    contacts: PD.Group(ContactsParams, { isFlat: true }),
-    ...getProvidersParams()
+    providers: PD.Group(ContactProviderParams, { isFlat: true }),
+    contacts: PD.Group(ContactsParams, { label: 'Advanced Options' }),
 }
 export type InteractionsParams = typeof InteractionsParams
 export type InteractionsProps = PD.Values<InteractionsParams>
@@ -175,11 +184,13 @@ export async function computeInteractions(ctx: CustomProperty.Context, structure
     const p = { ...PD.getDefaultValues(InteractionsParams), ...props }
     await ValenceModelProvider.attach(ctx, structure)
 
-    const contactProviders: ContactProvider<any>[] = []
-    Object.keys(ContactProviders).forEach(k => {
-        if (p.types.includes(k)) contactProviders.push(ContactProviders[k as keyof typeof ContactProviders])
+    const contactTesters: ContactTester[] = [];
+    ObjectKeys(ContactProviders).forEach(k => {
+        const { name, params } = p.providers[k]
+        if (name === 'on') {
+            contactTesters.push(ContactProviders[k].createTester(params as any))
+        }
     })
-    const contactTesters = contactProviders.map(l => l.createTester(p[l.name as keyof InteractionsProps]))
 
     const requiredFeatures = new Set<FeatureType>()
     contactTesters.forEach(l => SetUtils.add(requiredFeatures, l.requiredFeatures))
