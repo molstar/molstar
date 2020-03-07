@@ -6,14 +6,14 @@
 
 import { StructureElement } from '../../mol-model/structure';
 import { PluginContext } from '../context';
-import { StateSelection, StateTransform } from '../../mol-state';
+import { StateSelection, StateTransform, StateTransformer } from '../../mol-state';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { PluginCommands } from '../commands';
 import { arraySetAdd } from '../../mol-util/array';
 
 export { StructureMeasurementManager }
 
-const MeasurementGroupTag = 'measurement-group';
+export const MeasurementGroupTag = 'measurement-group';
 
 class StructureMeasurementManager {
     private getGroup() {
@@ -23,6 +23,37 @@ class StructureMeasurementManager {
 
         if (groupRef) return builder.to(groupRef);
         return builder.toRoot().group(StateTransforms.Misc.CreateGroup, { label: `Measurements` }, { tags: MeasurementGroupTag });
+    }
+
+    private getTransforms(transformer: StateTransformer) {
+        const state = this.context.state.dataState;
+        const groupRef = StateSelection.findTagInSubtree(state.tree, StateTransform.RootRef, MeasurementGroupTag);
+        return groupRef ? state.select(StateSelection.Generators.ofTransformer(transformer, groupRef)) : []
+    }
+
+    getLabels() {
+        return this.getTransforms(StateTransforms.Representation.StructureSelectionsLabel3D)
+    }
+
+    getDistances() {
+        return this.getTransforms(StateTransforms.Representation.StructureSelectionsDistance3D)
+    }
+
+    getAngles() {
+        return this.getTransforms(StateTransforms.Representation.StructureSelectionsAngle3D)
+    }
+
+    getDihedrals() {
+        return this.getTransforms(StateTransforms.Representation.StructureSelectionsDihedral3D)
+    }
+
+    getMeasurements() {
+        return {
+            labels: this.getLabels(),
+            distances: this.getDistances(),
+            angles: this.getAngles(),
+            dihedrals: this.getDihedrals(),
+        }
     }
 
     async addDistance(a: StructureElement.Loci, b: StructureElement.Loci) {

@@ -180,7 +180,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             latest.push(<li key={e!.label}>
                 <button className='msp-btn msp-btn-block msp-form-control' style={{ borderRight: '6px solid transparent', overflow: 'hidden' }}
                     title='Click to focus.' onClick={this.focusLoci(e.loci)}>
-                    <span dangerouslySetInnerHTML={{ __html: e.label }} />
+                    <span dangerouslySetInnerHTML={{ __html: e.label.split('|').reverse().join(' | ') }} />
                 </button>
                 {/* <div>
                     <IconButton icon='remove' title='Remove' onClick={() => {}} />
