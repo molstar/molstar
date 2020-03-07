@@ -13,7 +13,7 @@ export { CreateGroup };
 type CreateGroup = typeof CreateGroup
 const CreateGroup = PluginStateTransform.BuiltIn({
     name: 'create-group',
-    display: { name: 'Parse CIF', description: 'Parse CIF from String or Binary data' },
+    display: { name: 'Group' },
     from: [],
     to: SO.Group,
     params: {
