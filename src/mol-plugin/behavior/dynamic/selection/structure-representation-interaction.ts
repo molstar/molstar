@@ -78,7 +78,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
         if (!refs['structure-interaction-group']) {
             refs['structure-interaction-group'] = builder.to(cell).group(StateTransforms.Misc.CreateGroup,
-                { label: 'Current Interaction' }, { tags: Tags.Group }).ref;
+                { label: 'Current Focus' }, { tags: Tags.Group }).ref;
         }
 
         // Selections

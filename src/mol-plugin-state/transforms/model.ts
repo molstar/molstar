@@ -570,8 +570,7 @@ const StructureSelectionFromBundle = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params, cache }) {
         if (params.bundle.hash !== a.data.hashCode) {
-            // Bundle not compatible with given structure, set to empty bundle
-            params.bundle = StructureElement.Bundle.Empty
+            return StateObject.Null;
         }
 
         (cache as { source: Structure }).source = a.data;
@@ -588,8 +587,7 @@ const StructureSelectionFromBundle = PluginStateTransform.BuiltIn({
         }
 
         if (newParams.bundle.hash !== a.data.hashCode) {
-            // Bundle not compatible with given structure, set to empty bundle
-            newParams.bundle = StructureElement.Bundle.Empty
+            return StateTransformer.UpdateResult.Null;
         }
 
         if ((cache as { source: Structure }).source === a.data) {
