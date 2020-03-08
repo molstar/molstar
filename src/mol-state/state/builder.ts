@@ -10,6 +10,7 @@ import { StateObject, StateObjectCell, StateObjectSelector, StateObjectRef } fro
 import { StateTransform } from '../transform';
 import { StateTransformer } from '../transformer';
 import { State } from '../state';
+import { produce } from 'immer';
 
 export { StateBuilder }
 
@@ -231,7 +232,7 @@ namespace StateBuilder {
             let params: any;
             if (provider) {
                 const old = this.state.tree.transforms.get(this.ref)!;
-                params = provider(old.params as any);
+                params = produce(old.params, provider);
             } else {
                 params = typeof paramsOrTransformer === 'function'
                     ? paramsOrTransformer(this.state.tree.transforms.get(this.ref)!.params)
