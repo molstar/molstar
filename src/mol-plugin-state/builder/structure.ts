@@ -89,10 +89,10 @@ export class StructureBuilder {
         return {
             trajectory,
             model: modelProperties || model,
-            modelBase: model,
+            modelRoot: model,
             modelProperties,
             structure: structureProperties || structure,
-            structureBase: structure,
+            structureRoot: structure,
             structureProperties
         };
     }
