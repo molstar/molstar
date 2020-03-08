@@ -689,7 +689,7 @@ const StructureComponent = PluginStateTransform.BuiltIn({
 type CustomModelProperties = typeof CustomModelProperties
 const CustomModelProperties = PluginStateTransform.BuiltIn({
     name: 'custom-model-properties',
-    display: { name: 'Custom Properties' },
+    display: { name: 'Custom Model Properties' },
     from: SO.Molecule.Model,
     to: SO.Molecule.Model,
     params: (a, ctx: PluginContext) => {
@@ -699,7 +699,7 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
     apply({ a, params }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
             await attachModelProps(a.data, ctx, taskCtx, params);
-            return new SO.Molecule.Model(a.data, { label: 'Model Props' });
+            return a;
         });
     },
     update({ a, oldParams, newParams }, ctx: PluginContext) {
@@ -745,7 +745,7 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
     apply({ a, params }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
             await attachStructureProps(a.data, ctx, taskCtx, params);
-            return new SO.Molecule.Structure(a.data, { label: 'Structure Props' });
+            return a;
         });
     },
     update({ a, oldParams, newParams }, ctx: PluginContext) {

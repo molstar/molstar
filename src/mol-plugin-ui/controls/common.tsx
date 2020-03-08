@@ -329,3 +329,26 @@ export class ToggleButton extends React.PureComponent<ToggleButtonProps> {
         </button>;
     }
 }
+
+export class ExpandGroup extends React.PureComponent<{ header: string, initiallyExpanded?: boolean, noOffset?: boolean }, { isExpanded: boolean }> {
+    state = { isExpanded: !!this.props.initiallyExpanded };
+
+    toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
+
+    render() {
+        return <>
+            <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
+                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
+                    <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
+                    {this.props.header}
+                </button>
+            </div>
+            {this.state.isExpanded &&
+                (this.props.noOffset
+                    ? this.props.children
+                    : <div className='msp-control-offset'>
+                        {this.props.children}
+                    </div>)}
+        </>;
+    }
+}

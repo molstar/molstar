@@ -14,6 +14,7 @@ interface Transform<T extends StateTransformer = StateTransformer> {
     readonly transformer: T,
     readonly state: Transform.State,
     readonly tags?: string[],
+    readonly isDecorator?: boolean,
     readonly ref: Transform.Ref,
     /**
      * Sibling-like dependency
@@ -90,6 +91,7 @@ namespace Transform {
     export interface Options {
         ref?: string,
         tags?: string | string[],
+        isDecorator?: boolean,
         state?: State,
         dependsOn?: Ref[]
     }
@@ -105,8 +107,9 @@ namespace Transform {
         return {
             parent,
             transformer,
-            state: (options && options.state) || { },
+            state: options?.state || { },
             tags,
+            isDecorator: options?.isDecorator,
             ref,
             dependsOn: options && options.dependsOn,
             params,
@@ -161,6 +164,7 @@ namespace Transform {
         params: any,
         state?: State,
         tags?: string[],
+        isDecorator?: boolean,
         ref: string,
         dependsOn?: string[]
         version: string
@@ -184,6 +188,7 @@ namespace Transform {
             params: t.params ? pToJson(t.params) : void 0,
             state,
             tags: t.tags,
+            isDecorator: t.isDecorator || void 0,
             ref: t.ref,
             dependsOn: t.dependsOn,
             version: t.version
@@ -201,6 +206,7 @@ namespace Transform {
             params: t.params ? pFromJson(t.params) : void 0,
             state: t.state || { },
             tags: t.tags,
+            isDecorator: t.isDecorator,
             ref: t.ref as Ref,
             dependsOn: t.dependsOn,
             version: t.version

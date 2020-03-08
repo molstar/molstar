@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { State, StateObject, StateTransform, StateObjectCell } from '../../mol-state'
+import { State, StateTree as _StateTree, StateObject, StateTransform, StateObjectCell } from '../../mol-state'
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginUIComponent, _Props, _State } from '../base';
 import { Icon } from '../controls/icons';
@@ -85,6 +85,12 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
         return { isCollapsed: !!props.cell.state.isCollapsed };
     }
 
+    hasDecorator(children: _StateTree.ChildSet) {
+        if (children.size !== 1) return false;
+        const ref = children.values().next().value;
+        return !!this.props.cell.parent.tree.transforms.get(ref).isDecorator;
+    }
+
     render() {
         const cell = this.props.cell;
         if (!cell || cell.obj === StateObject.Null || !cell.parent.tree.transforms.has(cell.transform.ref)) {
@@ -92,17 +98,17 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
         }
 
         const cellState = cell.state;
-        const showLabel = (cell.transform.ref !== StateTransform.RootRef) && (cell.status !== 'ok' || !cell.state.isGhost);
         const children = cell.parent.tree.children.get(this.ref);
-        const newDepth = showLabel ? this.props.depth + 1 : this.props.depth;
-
+        const showLabel = (cell.transform.ref !== StateTransform.RootRef) && (cell.status !== 'ok' || (!cell.state.isGhost && !this.hasDecorator(children)));
+        
         if (!showLabel) {
             if (children.size === 0) return null;
             return <div style={{ display: cellState.isCollapsed ? 'none' : 'block' }}>
-                {children.map(c => <StateTreeNode cell={cell.parent.cells.get(c!)!} key={c} depth={newDepth} />)}
+                {children.map(c => <StateTreeNode cell={cell.parent.cells.get(c!)!} key={c} depth={this.props.depth} />)}
             </div>;
         }
-
+        
+        const newDepth = this.props.depth + 1;
         return <>
             <StateTreeNodeLabel cell={cell} depth={this.props.depth} />
             {children.size === 0

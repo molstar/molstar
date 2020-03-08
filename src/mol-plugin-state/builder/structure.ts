@@ -18,6 +18,7 @@ export enum StructureBuilderTags {
     Model = 'model',
     ModelProperties = 'model-properties',
     Structure = 'structure',
+    StructureProperties = 'structure-properties',
     Component = 'structure-component'
 }
 
@@ -78,28 +79,43 @@ export class StructureBuilder {
         }
     }
 
-    async createModel(trajectory: StateObjectRef<SO.Molecule.Trajectory>, params?: StateTransformer.Params<StateTransforms['Model']['ModelFromTrajectory']>, supportProps?: boolean) {
+    async createModel(trajectory: StateObjectRef<SO.Molecule.Trajectory>, params?: {
+        model?: StateTransformer.Params<StateTransforms['Model']['ModelFromTrajectory']>,
+        properties?: boolean | StateTransformer.Params<StateTransforms['Model']['CustomModelProperties']>
+    }) {
         const state = this.dataState;
-        if (supportProps) {
-            const model = state.build().to(trajectory)
-                .apply(StateTransforms.Model.ModelFromTrajectory, params || { modelIndex: 0 })
-                .apply(StateTransforms.Model.CustomModelProperties, void 0, { tags: [StructureBuilderTags.Model, StructureBuilderTags.ModelProperties] });
-            await this.plugin.runTask(this.dataState.updateTree(model, { revertOnError: true }));
-            return model.selector;
-        } else {
-            const model = state.build().to(trajectory)
-                .apply(StateTransforms.Model.ModelFromTrajectory, params || { modelIndex: 0 }, { tags: StructureBuilderTags.Model });        
-            await this.plugin.runTask(this.dataState.updateTree(model, { revertOnError: true }));
-            return model.selector;
-        }
+
+        const model = state.build().to(trajectory)
+            .apply(StateTransforms.Model.ModelFromTrajectory, params?.model || void 0, { tags: StructureBuilderTags.Model });
+
+        const props = !!params?.properties 
+            ? model.apply(StateTransforms.Model.CustomModelProperties, typeof params?.properties !== 'boolean' ? params?.properties : void 0, { tags: StructureBuilderTags.ModelProperties, isDecorator: true })
+            : void 0;
+
+        await this.plugin.runTask(this.dataState.updateTree(model, { revertOnError: true }));
+
+        const modelSelector = model.selector, propertiesSelector = props?.selector;
+
+        return { model: propertiesSelector || modelSelector, index: modelSelector, properties: propertiesSelector };
     }
 
-    async createStructure(model: StateObjectRef<SO.Molecule.Model>, params?: RootStructureDefinition.Params) {
+    async createStructure(model: StateObjectRef<SO.Molecule.Model>, params?: {
+        structure?: RootStructureDefinition.Params,
+        properties?: boolean | StateTransformer.Params<StateTransforms['Model']['CustomStructureProperties']>
+    }) {
         const state = this.dataState;
         const structure = state.build().to(model)
-            .apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } }, { tags: StructureBuilderTags.Structure });        
+            .apply(StateTransforms.Model.StructureFromModel, { type: params?.structure || { name: 'assembly', params: { } } }, { tags: StructureBuilderTags.Structure });        
+
+        const props = !!params?.properties 
+            ? structure.apply(StateTransforms.Model.CustomStructureProperties, typeof params?.properties !== 'boolean' ? params?.properties : void 0, { tags: StructureBuilderTags.StructureProperties, isDecorator: true })
+            : void 0;
+
         await this.plugin.runTask(this.dataState.updateTree(structure, { revertOnError: true }));
-        return structure.selector;
+
+        const structureSelector = structure.selector, propertiesSelector = props?.selector;
+
+        return { structure: propertiesSelector || structureSelector, definition: structureSelector, properties: propertiesSelector };
     }
 
     /** returns undefined if the component is empty/null */

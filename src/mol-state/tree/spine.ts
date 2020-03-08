@@ -49,8 +49,18 @@ namespace StateTreeSpine {
         }
 
         constructor(private cells: State.Cells) {
-
         }
+    }
+
+    export function getDecoratorChain(state: State, currentRef: StateTransform.Ref): StateObjectCell[] {
+        const cells = state.cells;
+        let current = cells.get(currentRef)!;
+        const ret: StateObjectCell[] = [current];
+        while (current?.transform.isDecorator) {
+            current = cells.get(current.transform.parent)!;
+            ret.push(current);
+        }
+        return ret;
     }
 
     export function getRootOfType<T extends StateObject.Ctor>(state: State, t: T, ref: string): StateObject.From<T> | undefined {

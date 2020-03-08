@@ -115,6 +115,11 @@ namespace StateBuilder {
          * If no params are specified (params <- undefined), default params are lazily resolved.
          */
         apply<T extends StateTransformer<A, any, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {
+            if (options?.isDecorator) {
+                const children = this.state.tree.children.get(this.ref);
+                if (children.size > 0) throw new Error('Decorators can only be applied to childless nodes.');
+            }
+
             const t = tr.apply(this.ref, params, options);
             this.state.tree.add(t);
             this.editInfo.count++;

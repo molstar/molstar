@@ -234,19 +234,19 @@ const DownloadStructure = StateAction.build({
             const traj = await plugin.builders.structure.parseTrajectory(data, {
                 formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' }))
             });
-            const model = await plugin.builders.structure.createModel(traj, void 0, supportProps);
-            const struct = await plugin.builders.structure.createStructure(model, src.params.structure.type);
+            const { model } = await plugin.builders.structure.createModel(traj, { properties: supportProps });
+            const { structure } = await plugin.builders.structure.createStructure(model, { structure: src.params.structure.type, properties: supportProps });
             if (createRepr) {
-                await plugin.builders.representation.structurePreset(struct.ref, 'auto');
+                await plugin.builders.representation.structurePreset(structure, 'auto');
             }
         } else {
             for (const download of downloadParams) {
                 const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
                 const traj = await plugin.builders.structure.parseTrajectory(data, format);
-                const model = await plugin.builders.structure.createModel(traj, void 0, supportProps);
-                const struct = await plugin.builders.structure.createStructure(model, src.params.structure.type);
+                const { model } = await plugin.builders.structure.createModel(traj, { properties: supportProps });
+                const { structure } = await plugin.builders.structure.createStructure(model, { structure: src.params.structure.type, properties: supportProps });
                 if (createRepr) {
-                    await plugin.builders.representation.structurePreset(struct.ref, 'auto');
+                    await plugin.builders.representation.structurePreset(structure, 'auto');
                 }
             }
         }

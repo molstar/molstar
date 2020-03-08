@@ -14,7 +14,7 @@ import { camelCaseToWords } from '../../mol-util/string';
 import * as React from 'react';
 import LineGraphComponent from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
-import { NumericInput, IconButton, ControlGroup, ToggleButton } from './common';
+import { NumericInput, IconButton, ControlGroup, ToggleButton, ExpandGroup } from './common';
 import { _Props, _State, PluginUIComponent } from '../base';
 import { legendFor } from './legend';
 import { Legend as LegendData } from '../../mol-util/legend';
@@ -111,29 +111,6 @@ export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: 
         const values = this.props.mapping.getValues(t, this.plugin);
         const params = this.props.mapping.params(this.plugin) as any as PD.Params;
         return <ParameterControls params={params} values={values} onChange={this.setSettings} />
-    }
-}
-
-class ExpandGroup extends React.PureComponent<{ header: string, initiallyExpanded?: boolean, noOffset?: boolean }, { isExpanded: boolean }> {
-    state = { isExpanded: !!this.props.initiallyExpanded };
-
-    toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
-
-    render() {
-        return <>
-            <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
-                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
-                    <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
-                    {this.props.header}
-                </button>
-            </div>
-            {this.state.isExpanded &&
-                (this.props.noOffset
-                    ? this.props.children
-                    : <div className='msp-control-offset'>
-                        {this.props.children}
-                    </div>)}
-        </>;
     }
 }
 

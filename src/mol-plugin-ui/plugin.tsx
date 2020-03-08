@@ -19,8 +19,9 @@ import { StateTransform } from '../mol-state';
 import { UpdateTransformControl } from './state/update-transform';
 import { SequenceView } from './sequence';
 import { Toasts } from './toast';
-import { SectionHeader } from './controls/common';
+import { SectionHeader, ExpandGroup } from './controls/common';
 import { LeftPanelControls } from './left-panel';
+import { StateTreeSpine } from '../mol-state/tree/spine';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
@@ -228,16 +229,34 @@ export class CurrentObject extends PluginUIComponent {
 
         if (!showActions) return null;
 
-        return <>
-            {(cell.status === 'ok' || cell.status === 'error') && <>
+        const actions = cell.status === 'ok' && <StateObjectActionSelect state={current.state} nodeRef={ref} plugin={this.plugin} />
+
+        if (cell.status === 'error') {
+            return <>            
                 <SectionHeader icon='flow-cascade' title={`${cell.obj?.label || transform.transformer.definition.display.name}`} desc={transform.transformer.definition.display.name} />
                 <UpdateTransformControl state={current.state} transform={transform} customHeader='none' />
-            </> }
-            {cell.status === 'ok' &&
-                <StateObjectActionSelect state={current.state} nodeRef={ref} plugin={this.plugin} />
-            }
+                {actions}
+            </>;
+        }
 
-            {/* <StateObjectActions state={current.state} nodeRef={ref} initiallyCollapsed />} */}
+        if (cell.status !== 'ok') return null;
+
+        const decoratorChain = StateTreeSpine.getDecoratorChain(this.current.state, this.current.ref);
+        const parent = decoratorChain[decoratorChain.length - 1];
+
+        let decorators: JSX.Element[] | undefined = decoratorChain.length > 1 ? [] : void 0;
+        for (let i = decoratorChain.length - 2; i >= 0; i--) {
+            const d = decoratorChain[i];
+            decorators!.push(<ExpandGroup header={d.transform.transformer.definition.display.name}>
+                <UpdateTransformControl state={current.state} transform={d.transform} customHeader='none' />
+            </ExpandGroup>);
+        }
+
+        return <>            
+            <SectionHeader icon='flow-cascade' title={`${parent.obj?.label || parent.transform.transformer.definition.display.name}`} desc={parent.transform.transformer.definition.display.name} />
+            <UpdateTransformControl state={current.state} transform={parent.transform} customHeader='none' />
+            {decorators && <div className='msp-controls-section'>{decorators}</div>}
+            {actions}
         </>;
     }
 }
