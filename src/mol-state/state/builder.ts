@@ -114,13 +114,7 @@ namespace StateBuilder {
          * Apply the transformed to the parent node
          * If no params are specified (params <- undefined), default params are lazily resolved.
          */
-        apply<T extends StateTransformer<A, any, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {
-            if (options?.isDecorator) {
-                const children = this.state.tree.children.get(this.ref);
-                if (children.size > 0) throw new Error('Decorators can only be applied to childless nodes.');
-            }
-
-            const t = tr.apply(this.ref, params, options);
+        apply<T extends StateTransformer<A, any, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {const t = tr.apply(this.ref, params, options);
             this.state.tree.add(t);
             this.editInfo.count++;
             this.editInfo.lastUpdate = t.ref;
@@ -231,8 +225,8 @@ namespace StateBuilder {
             }
         }
 
-        update<T extends StateTransformer<any, A, any>>(transformer: T, params: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>): Root
-        update(params: StateTransformer.Params<T> | ((old: StateTransformer.Params<T>) => StateTransformer.Params<T>)): Root
+        update<T extends StateTransformer<any, A, any>>(transformer: T, params: (old: StateTransformer.Params<T>) => StateTransformer.Params<T> | void): Root
+        update(params: StateTransformer.Params<T> | ((old: StateTransformer.Params<T>) => StateTransformer.Params<T> | void)): Root
         update<T extends StateTransformer<any, A, any>>(paramsOrTransformer: T | any, provider?: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>) {
             let params: any;
             if (provider) {

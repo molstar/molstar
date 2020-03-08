@@ -146,8 +146,8 @@ export class StateObjectSelector<S extends StateObject = StateObject, T extends 
 
     /** Create a new build and apply update or use the provided one. */
     update(params: StateTransformer.Params<T>, builder?: StateBuilder.Root | StateBuilder.To<any>): StateBuilder
-    update(params: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>, builder?: StateBuilder.Root | StateBuilder.To<any>): StateBuilder
-    update(params: ((old: StateTransformer.Params<T>) => StateTransformer.Params<T>) | StateTransformer.Params<T>, builder?: StateBuilder.Root | StateBuilder.To<any>): StateBuilder {
+    update(params: (old: StateTransformer.Params<T>) => StateTransformer.Params<T> | void, builder?: StateBuilder.Root | StateBuilder.To<any>): StateBuilder
+    update(params: ((old: StateTransformer.Params<T>) => StateTransformer.Params<T> | void) | StateTransformer.Params<T>, builder?: StateBuilder.Root | StateBuilder.To<any>): StateBuilder {
         if (!this.state) throw new Error(`To use update() from StateObjectSelector, 'state' must be defined.`);
         if (!builder) builder = this.state.build();
         (builder || this.state.build()).to(this).update(params);

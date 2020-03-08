@@ -247,7 +247,7 @@ export class CurrentObject extends PluginUIComponent {
         let decorators: JSX.Element[] | undefined = decoratorChain.length > 1 ? [] : void 0;
         for (let i = decoratorChain.length - 2; i >= 0; i--) {
             const d = decoratorChain[i];
-            decorators!.push(<ExpandGroup header={d.transform.transformer.definition.display.name}>
+            decorators!.push(<ExpandGroup key={`${d.transform.transformer.id}-${i}`} header={d.transform.transformer.definition.display.name}>
                 <UpdateTransformControl state={current.state} transform={d.transform} customHeader='none' />
             </ExpandGroup>);
         }

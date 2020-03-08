@@ -227,24 +227,28 @@ const DownloadStructure = StateAction.build({
 
     await state.transaction(async () => {
         if (downloadParams.length > 0 && asTrajectory) {
-            const data = await plugin.builders.data.downloadBlob({
+            const blob = await plugin.builders.data.downloadBlob({
                 sources: downloadParams.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
                 maxConcurrency: 6
             }, { state: { isGhost: true } });        
-            const traj = await plugin.builders.structure.parseTrajectory(data, {
-                formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' }))
+            const { structure } = await plugin.builders.structure.parseStructure({
+                blob,
+                blobParams:  { formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' })) },
+                modelProperties: supportProps,
+                structureProperties: supportProps
             });
-            const { model } = await plugin.builders.structure.createModel(traj, { properties: supportProps });
-            const { structure } = await plugin.builders.structure.createStructure(model, { structure: src.params.structure.type, properties: supportProps });
             if (createRepr) {
                 await plugin.builders.representation.structurePreset(structure, 'auto');
             }
         } else {
             for (const download of downloadParams) {
                 const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
-                const traj = await plugin.builders.structure.parseTrajectory(data, format);
-                const { model } = await plugin.builders.structure.createModel(traj, { properties: supportProps });
-                const { structure } = await plugin.builders.structure.createStructure(model, { structure: src.params.structure.type, properties: supportProps });
+                const { structure } = await plugin.builders.structure.parseStructure({
+                    data,
+                    dataFormat: format,
+                    modelProperties: supportProps,
+                    structureProperties: supportProps
+                });
                 if (createRepr) {
                     await plugin.builders.representation.structurePreset(structure, 'auto');
                 }
@@ -366,10 +370,7 @@ export const EnableModelCustomProps = StateAction.build({
     isApplicable(a, t, ctx: PluginContext) {
         return t.transformer !== CustomModelProperties;
     }
-})(({ ref, params, state }, ctx: PluginContext) => {
-    const root = state.build().to(ref).insert(CustomModelProperties, params);
-    return state.updateTree(root);
-});
+})(({ ref, params }, ctx: PluginContext) => ctx.builders.structure.insertModelProperties(ref, params));
 
 export const EnableStructureCustomProps = StateAction.build({
     display: { name: 'Custom Structure Properties', description: 'Enable parameters for custom properties of the structure.' },
@@ -380,10 +381,7 @@ export const EnableStructureCustomProps = StateAction.build({
     isApplicable(a, t, ctx: PluginContext) {
         return t.transformer !== CustomStructureProperties;
     }
-})(({ ref, params, state }, ctx: PluginContext) => {
-    const root = state.build().to(ref).insert(CustomStructureProperties, params);
-    return state.updateTree(root);
-});
+})(({ ref, params }, ctx: PluginContext) => ctx.builders.structure.insertStructureProperties(ref, params));
 
 export const TransformStructureConformation = StateAction.build({
     display: { name: 'Transform Conformation' },
