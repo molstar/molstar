@@ -235,7 +235,7 @@ namespace StateBuilder {
                 params = produce(old.params, provider);
             } else {
                 params = typeof paramsOrTransformer === 'function'
-                    ? paramsOrTransformer(this.state.tree.transforms.get(this.ref)!.params)
+                    ? produce(this.state.tree.transforms.get(this.ref)!.params, paramsOrTransformer)
                     : paramsOrTransformer;
             }
 

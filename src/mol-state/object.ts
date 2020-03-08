@@ -9,6 +9,7 @@ import { StateTransform } from './transform';
 import { ParamDefinition } from '../mol-util/param-definition';
 import { State } from './state';
 import { StateSelection, StateTransformer } from '../mol-state';
+import { StateBuilder } from './state/builder';
 
 export { StateObject, StateObjectCell }
 
@@ -141,6 +142,16 @@ export class StateObjectSelector<S extends StateObject = StateObject, T extends 
 
     get data(): S['data'] | undefined {
         return this.obj?.data;
+    }
+
+    /** Create a new build and apply update or use the provided one. */
+    update(params: StateTransformer.Params<T>, builder?: StateBuilder.Root | StateBuilder.To<any>): StateBuilder
+    update(params: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>, builder?: StateBuilder.Root | StateBuilder.To<any>): StateBuilder
+    update(params: ((old: StateTransformer.Params<T>) => StateTransformer.Params<T>) | StateTransformer.Params<T>, builder?: StateBuilder.Root | StateBuilder.To<any>): StateBuilder {
+        if (!this.state) throw new Error(`To use update() from StateObjectSelector, 'state' must be defined.`);
+        if (!builder) builder = this.state.build();
+        (builder || this.state.build()).to(this).update(params);
+        return builder;
     }
 
     /** Checks if the object exists. If not throw an error. */
