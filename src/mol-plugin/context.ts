@@ -48,6 +48,7 @@ import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { PluginConfigManager } from './config';
 import { DataBuilder } from '../mol-plugin-state/builder/data';
 import { StructureBuilder } from '../mol-plugin-state/builder/structure';
+import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure';
 
 export class PluginContext {
     private disposed = false;
@@ -129,6 +130,10 @@ export class PluginContext {
         data: new DataBuilder(this),
         structure: new StructureBuilder(this),
         representation: void 0 as any as RepresentationBuilder
+    };
+
+    readonly managers = {
+        structureHierarchy: new StructureHierarchyManager(this)
     };
 
     readonly customModelProperties = new CustomProperty.Registry<Model>();

@@ -27,7 +27,7 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
             if (this.state.tab !== tab) this.setState({ tab });
         });
 
-        this.subscribe(this.plugin.state.dataState.events.changed, state => {
+        this.subscribe(this.plugin.state.dataState.events.changed, ({ state }) => {
             if (this.state.tab !== 'data') return;
             if (state.cells.size === 1) this.set('root');
         });

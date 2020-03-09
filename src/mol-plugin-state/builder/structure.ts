@@ -166,18 +166,15 @@ export class StructureBuilder {
     }
 
     /** returns undefined if the component is empty/null */
-    async tryCreateComponent(structure: StateObjectRef<SO.Molecule.Structure>, params: StructureComponentParams, tag?: string): Promise<StateObjectRef<SO.Molecule.Structure> | undefined> {
+    async tryCreateComponent(structure: StateObjectRef<SO.Molecule.Structure>, params: StructureComponentParams, key: string, tags?: string[]): Promise<StateObjectRef<SO.Molecule.Structure> | undefined> {
         const state = this.dataState;
 
         const root = state.build().to(structure);
-        let component: StateBuilder.To<SO.Molecule.Structure>;
 
-        if (tag) {
-            const typeTag = `structure-component-${tag}`;
-            component = root.applyOrUpdateTagged(typeTag, StateTransforms.Model.StructureComponent, params, { tags: [StructureBuilderTags.Component, typeTag] });
-        } else {
-            component = root.apply(StateTransforms.Model.StructureComponent, params, { tags: StructureBuilderTags.Component });
-        }
+        const keyTag = `structure-component-${key}`;
+        const component = root.applyOrUpdateTagged(keyTag, StateTransforms.Model.StructureComponent, params, { 
+            tags: tags ? [...tags, StructureBuilderTags.Component, keyTag] : [StructureBuilderTags.Component, keyTag]
+        });
 
         await this.plugin.runTask(this.dataState.updateTree(component));
 

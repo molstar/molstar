@@ -28,7 +28,7 @@ export namespace StructureRepresentationProvider {
 
 export const enum RepresentationProviderTags {
     Representation = 'preset-structure-representation',
-    Selection = 'preset-structure-selection'
+    Component = 'preset-structure-component'
 }
 
 export function StructureRepresentationProvider<P, S>(repr: StructureRepresentationProvider<P, S>) { return repr; }

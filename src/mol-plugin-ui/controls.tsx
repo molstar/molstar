@@ -20,6 +20,7 @@ import { StructureRepresentationControls } from './structure/representation';
 import { StructureSelectionControls } from './structure/selection';
 import { StructureMeasurementsControls } from './structure/measurements';
 import { Icon } from './controls/icons';
+import { StructureComponentControls } from './structure/components';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' }
@@ -269,6 +270,7 @@ export class StructureToolsWrapper extends PluginUIComponent {
             <StructureSelectionControls />
             <StructureRepresentationControls />
             <StructureMeasurementsControls />
+            <StructureComponentControls />
         </div>;
     }
 }

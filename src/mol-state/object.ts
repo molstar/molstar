@@ -47,6 +47,14 @@ namespace StateObject {
         }
     }
 
+    export function hasTag(o: StateObject, t: string) {
+        if (!o.tags) return false;
+        for (const s of o.tags) {
+            if (s === t) return true;
+        }
+        return false;
+    }
+
     /** A special object indicating a transformer result has no value. */
     export const Null: StateObject<any, any> = {
         id: UUID.create22(),

@@ -46,7 +46,7 @@ class State {
             removed: this.ev<State.ObjectEvent & { obj?: StateObject }>()
         },
         log: this.ev<LogEntry>(),
-        changed: this.ev<State>(),
+        changed: this.ev<{ state: State, inTransaction: boolean }>(),
         isUpdating: this.ev<boolean>()
     };
 
@@ -126,12 +126,15 @@ class State {
         });
     }
 
+    private inTransaction = false;
+
     /** Apply series of updates to the state. If any of them fail, revert to the original state. */
     transaction(edits: () => Promise<void> | void) {
         return Task.create('State Transaction', async ctx => {
             const snapshot = this._tree.asImmutable();
             let restored = false;
             try {
+                this.inTransaction = true;
                 await edits();
 
                 let hasError = false;
@@ -145,6 +148,9 @@ class State {
                     await this.updateTree(snapshot).runInContext(ctx);
                     this.events.log.error(e);
                 }
+            } finally {
+                this.inTransaction = false;
+                this.events.changed.next({ state: this, inTransaction: false });
             }
         });
     }
@@ -201,7 +207,7 @@ class State {
         } finally {
             this.spine.current = undefined;
 
-            if (updated) this.events.changed.next(this);
+            if (updated) this.events.changed.next({ state: this, inTransaction: this.inTransaction });
             this.events.isUpdating.next(false);
         }
     }

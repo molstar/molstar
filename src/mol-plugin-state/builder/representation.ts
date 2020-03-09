@@ -104,7 +104,7 @@ export class RepresentationBuilder {
         }
 
         const tree = builder.currentTree;
-        const selections = StateSelection.findWithAllTags(tree, root, new Set([RepresentationProviderTags.Selection]));
+        const selections = StateSelection.findWithAllTags(tree, root, new Set([RepresentationProviderTags.Component]));
 
         for (const s of selections) {
             if (!tree.children.has(s.ref) || tree.children.get(s.ref).size === 0) builder.delete(s.ref);

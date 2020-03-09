@@ -206,7 +206,7 @@ function staticComponent(plugin: PluginContext, structure: StateObjectRef<Plugin
         type: { name: 'static', params: type },
         nullIfEmpty: true,
         label: ''
-    }, `static-${type}`);
+    }, `static-${type}`, [RepresentationProviderTags.Component]);
 }
 
 function selectionComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, query: keyof typeof Q) {
@@ -214,7 +214,7 @@ function selectionComponent(plugin: PluginContext, structure: StateObjectRef<Plu
         type: { name: 'expression', params: Q[query].expression },
         nullIfEmpty: true,
         label: Q[query].label
-    }, `selection-${query}`);
+    }, `selection-${query}`, [RepresentationProviderTags.Component]);
 }
 
 export const PresetStructureReprentations = {
