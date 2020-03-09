@@ -49,9 +49,13 @@ export class StructureHierarchyManager {
 
     constructor(private plugin: PluginContext) {
         plugin.state.dataState.events.changed.subscribe(e => {
-            if (e.inTransaction) return;
+            if (e.inTransaction || plugin.behaviors.state.isAnimating.value) return;
             this.sync();
         });
+
+        plugin.behaviors.state.isAnimating.subscribe(isAnimating => {
+            if (!isAnimating && !plugin.behaviors.state.isUpdating.value) this.sync();
+        })
     }
 }
 

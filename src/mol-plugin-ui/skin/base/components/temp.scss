@@ -57,7 +57,7 @@
     height: $row-height;
     width: inherit;
 
-    > select {
+    > select, > button {
         margin: 0;
         flex: 1 1 auto;
         margin-right: 1px;
@@ -67,7 +67,9 @@
         background: none;
         padding: 0 $control-spacing;
         overflow: hidden;
+    }
 
+    > select {
         > option[value = _] {
             display: none;
         }

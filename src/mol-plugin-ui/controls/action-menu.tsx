@@ -31,7 +31,7 @@ export namespace ActionMenu {
 
     export type OnSelect = (item: Item | undefined) => void
 
-    export type Items = string | Item | [Items]
+    export type Items =  string | Item | Items[]
     export type Item = { label: string, icon?: IconName, value: unknown }
 
     export function Item(label: string, value: unknown): Item

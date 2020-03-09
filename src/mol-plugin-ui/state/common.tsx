@@ -100,7 +100,7 @@ namespace TransformControlBase {
     }
 }
 
-abstract class TransformControlBase<P, S extends TransformControlBase.ComponentState> extends PurePluginUIComponent<P, S> {
+abstract class TransformControlBase<P, S extends TransformControlBase.ComponentState> extends PurePluginUIComponent<P & { noMargin?: boolean, onApply?: () => void, applyLabel?: string }, S> {
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
     abstract getHeader(): StateTransformer.Definition['display'] | 'none';
@@ -141,6 +141,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     }
 
     apply = async () => {
+        this.props.onApply?.();
         this.clearAutoApply();
         this.setState({ busy: true });
         try {
@@ -190,7 +191,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
 
         const showBack = this.isUpdate() && !(this.state.busy || this.state.isInitial);
 
-        return <div className={wrapClass}>
+        return <div className={wrapClass} style={{ marginBottom: this.props.noMargin ? 0 : void 0 }}>
             {display !== 'none' && <div className='msp-transform-header'>
                 <button className={`msp-btn msp-btn-block${isEmpty ? '' : ' msp-btn-collapse'}`} onClick={this.toggleExpanded} title={display.description}>
                     {!isEmpty && <Icon name={this.state.isCollapsed ? 'expand' : 'collapse'} />}
@@ -208,7 +209,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
                     <div className={`msp-transform-apply${!showBack ? ' msp-transform-apply-wider' : ''}`}>
                         <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-${this.canApply() ? 'on' : 'off'}`} onClick={this.apply} disabled={!this.canApply()}>
                             {this.canApply() && <Icon name='ok' />}
-                            {this.applyText()}
+                            {this.props.applyLabel || this.applyText()}
                         </button>
                     </div>
                 </div>

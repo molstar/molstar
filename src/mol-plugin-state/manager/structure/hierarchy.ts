@@ -192,7 +192,12 @@ function visitCell(t: StateTransform, tree: StateTree, state: BuildState): boole
         if (StateObject.hasTag(cell.obj!, t)) {
             const stop = f(state, cell);
             if (stop === false) return false;
+            return true;
         }
+    }
+
+    if (state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj)) {
+        createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
     }
 
     return true;
