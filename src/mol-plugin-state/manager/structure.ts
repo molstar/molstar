@@ -34,6 +34,10 @@ export class StructureHierarchyManager {
             newCurrent.push(ref);
         }
 
+        if (newCurrent.length === 0 && hierarchy.trajectories[0]?.models) {
+            this.behaviors.currentModels.next(hierarchy.trajectories[0]?.models);
+        }
+
         this.behaviors.currentModels.next(newCurrent);
     }
 
