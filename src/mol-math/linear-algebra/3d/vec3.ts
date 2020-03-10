@@ -436,7 +436,7 @@ namespace Vec3 {
         return out;
     }
 
-    /** Computes the angle between 2 vectors, reports in rad. */
+    /** Computes the angle between 2 vectors, reports in radians. */
     export function angle(a: Vec3, b: Vec3) {
         const theta = dot(a, b) / Math.sqrt(squaredMagnitude(a) * squaredMagnitude(b));
         return Math.acos(clamp(theta, -1, 1)); // clamp to avoid numerical problems
@@ -450,7 +450,7 @@ namespace Vec3 {
     const tmp_dh_bcd = zero();
     const tmp_dh_cross = zero();
     /**
-     * Computes the dihedral angles of 4 points.
+     * Computes the dihedral angles of 4 points, reports in radians.
      */
     export function dihedralAngle(a: Vec3, b: Vec3, c: Vec3, d: Vec3): number {
         sub(tmp_dh_ab, a, b);
@@ -461,7 +461,7 @@ namespace Vec3 {
         cross(tmp_dh_abc, tmp_dh_ab, tmp_dh_cb);
         cross(tmp_dh_bcd, tmp_dh_bc, tmp_dh_dc);
 
-        const _angle = angle(tmp_dh_abc, tmp_dh_bcd) * 360.0 / (2 * Math.PI);
+        const _angle = angle(tmp_dh_abc, tmp_dh_bcd);
         cross(tmp_dh_cross, tmp_dh_abc, tmp_dh_bcd);
         return dot(tmp_dh_cb, tmp_dh_cross) > 0 ? _angle : -_angle;
     }

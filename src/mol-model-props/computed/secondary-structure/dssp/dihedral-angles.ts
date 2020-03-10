@@ -9,6 +9,7 @@ import { Unit } from '../../../../mol-model/structure';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { ProteinInfo } from './protein-info';
 import { ElementIndex } from '../../../../mol-model/structure/model';
+import { radToDeg } from '../../../../mol-math/misc';
 
 export interface DihedralAngles {
     phi: Float32Array
@@ -50,8 +51,8 @@ export function calculateUnitDihedralAngles(unit: Unit.Atomic, proteinInfo: Prot
         if (index.findAtomOnResidue(residueIndices[i], 'OXT') !== -1) continue
 
         // returns NaN for missing atoms
-        phi[i] = Vec3.dihedralAngle(cPosPrev, nPos, caPos, cPos)
-        psi[i] = Vec3.dihedralAngle(nPos, caPos, cPos, nPosNext)
+        phi[i] = radToDeg(Vec3.dihedralAngle(cPosPrev, nPos, caPos, cPos))
+        psi[i] = radToDeg(Vec3.dihedralAngle(nPos, caPos, cPos, nPosNext))
 
         cPosPrev = cPos, caPosPrev = caPos, nPosPrev = nPos
         cPos = cPosNext, caPos = caPosNext, nPos = nPosNext
