@@ -132,10 +132,12 @@ class State {
     /** Apply series of updates to the state. If any of them fail, revert to the original state. */
     transaction(edits: () => Promise<void> | void) {
         return Task.create('State Transaction', async ctx => {
+            const isNested = this.inTransaction;
+
             const snapshot = this._tree.asImmutable();
             let restored = false;
             try {
-                this.events.isUpdating.next(true);
+                if (!isNested) this.events.isUpdating.next(true);
                 this.inTransaction = true;
                 await edits();
 
@@ -150,7 +152,12 @@ class State {
                     await this.updateTree(snapshot).runInContext(ctx);
                     this.events.log.error(e);
                 }
+                if (isNested) throw e;
             } finally {
+                if (isNested) {
+                    return;
+                }
+                
                 this.inTransaction = false;
                 this.events.changed.next({ state: this, inTransaction: false });
                 this.events.isUpdating.next(false);
