@@ -13,6 +13,7 @@ import { Structure } from './structure/structure';
 import { PrincipalAxes } from '../mol-math/linear-algebra/matrix/principal-axes';
 import { ParamDefinition } from '../mol-util/param-definition';
 import { shallowEqual } from '../mol-util';
+import { FiniteArray } from '../mol-util/type-helpers';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -62,7 +63,6 @@ export { Loci }
 type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci
 
 namespace Loci {
-    interface FiniteArray<T, L extends number = number> extends ReadonlyArray<T> { length: L };
     export interface Bundle<L extends number> { loci: FiniteArray<Loci, L> }
 
     export function getBundleBoundingSphere(bundle: Bundle<any>): Sphere3D {

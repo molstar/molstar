@@ -24,3 +24,4 @@ export type NonNullableArray<T extends any[] | ReadonlyArray<any>> = T extends a
 export function ObjectKeys<T extends object>(o: T) {
     return Object.keys(o) as (keyof T)[]
 }
+export interface FiniteArray<T, L extends number = number> extends ReadonlyArray<T> { length: L };
