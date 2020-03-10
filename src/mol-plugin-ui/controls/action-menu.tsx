@@ -145,7 +145,7 @@ const Action: React.FC<{ item: ActionMenu.Item, onSelect: ActionMenu.OnSelect, c
     const isCurrent = current === item;
     return <div className='msp-control-row'>
         <button onClick={() => onSelect(item)}>
-            {item.icon && <Icon name={item.icon} />}
+            {item.icon && <Icon name={item.icon} style={{ fontSize: '80%', marginRight: '6px' }} />}
             {isCurrent ? <b>{item.label}</b> : item.label}
         </button>
     </div>;

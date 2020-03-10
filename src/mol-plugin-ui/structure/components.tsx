@@ -79,7 +79,7 @@ class StructureComponentEntry extends PurePluginUIComponent<{ component: Structu
     
     get removeActions(): ActionMenu.Items {
         const ret = [
-            ActionMenu.Item('Remove Component', 'remove', this.remove(this.ref))
+            ActionMenu.Item('Remove Selection', 'remove', this.remove(this.ref))
         ];
         for (const repr of this.props.component.representations) {
             ret.push(ActionMenu.Item(`Remove ${repr.cell.obj?.label}`, 'remove', this.remove(repr.cell.transform.ref)))
