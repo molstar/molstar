@@ -11,13 +11,15 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download, ParsePsf } from '../transforms/data';
-import { CustomModelProperties, StructureSelectionFromExpression, CustomStructureProperties, CoordinatesFromDcd, TrajectoryFromModelAndCoordinates, TopologyFromPsf } from '../transforms/model';
+import { CustomModelProperties, CustomStructureProperties, CoordinatesFromDcd, TrajectoryFromModelAndCoordinates, TopologyFromPsf } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from './data-format';
 import { FileInfo } from '../../mol-util/file-info';
 import { Task } from '../../mol-task';
 import { StructureElement } from '../../mol-model/structure';
 import { createDefaultStructureComplex } from '../../mol-plugin/util/structure-complex-helper';
 import { RootStructureDefinition } from '../helpers/root-structure';
+import { UUID } from '../../mol-util';
+import { Loci } from '../../mol-model/loci';
 
 export const MmcifProvider: DataFormatProvider<any> = {
     label: 'mmCIF',
@@ -401,13 +403,17 @@ export const StructureFromSelection = StateAction.build({
     // isApplicable(a, t, ctx: PluginContext) {
     //     return t.transformer !== CustomModelProperties;
     // }
-})(({ a, ref, params, state }, plugin: PluginContext) => {
-    const sel = plugin.helpers.structureSelectionManager.get(a.data);
-    if (sel.kind === 'empty-loci') return Task.constant('', void 0);
+})(async ({ a, ref, params, state }, plugin: PluginContext) => {
+    const sel = plugin.managers.structure.selection.getLoci(a.data);
+    if (Loci.isEmpty(sel)) return;
 
-    const expression = StructureElement.Loci.toExpression(sel);
-    const root = state.build().to(ref).apply(StructureSelectionFromExpression, { expression, label: params.label });
-    return state.updateTree(root);
+    const bundle = StructureElement.Bundle.fromLoci(sel);
+
+    await plugin.builders.structure.tryCreateComponent(ref, {
+        type: { name: 'bundle', params: bundle },
+        nullIfEmpty: true,
+        label: params.label
+    }, UUID.create22());
 });
 
 export const AddTrajectory = StateAction.build({

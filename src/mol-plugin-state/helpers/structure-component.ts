@@ -8,9 +8,9 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import Expression from '../../mol-script/language/expression';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 import { StructureElement, Structure, StructureSelection as Sel, StructureQuery, Queries, QueryContext } from '../../mol-model/structure';
-import { StructureQueryHelper } from '../../mol-plugin/util/structure-query';
+import { StructureQueryHelper } from './structure-query';
 import { PluginStateObject as SO } from '../objects';
-import { StructureSelectionQueries } from '../../mol-plugin/util/structure-selection-helper';
+import { StructureSelectionQueries } from '../../mol-plugin/util/structure-selection-query';
 import { StateTransformer, StateObject } from '../../mol-state';
 import { Script } from '../../mol-script/script';
 

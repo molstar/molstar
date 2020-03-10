@@ -118,7 +118,7 @@ class EverythingStructureRepresentationControls extends BaseStructureRepresentat
 class SelectionStructureRepresentationControls extends BaseStructureRepresentationControls {
     label = 'Selection'
     lociGetter = (structure: Structure) => {
-        const loci = this.plugin.helpers.structureSelectionManager.get(structure)
+        const loci = this.plugin.managers.structure.selection.getLoci(structure)
         return isEmptyLoci(loci) ? StructureElement.Loci.none(structure) : loci
     }
 }

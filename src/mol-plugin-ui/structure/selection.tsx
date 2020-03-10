@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { CollapsableControls, CollapsableState } from '../base';
-import { StructureSelectionQuery, SelectionModifier, StructureSelectionQueryList } from '../../mol-plugin/util/structure-selection-helper';
+import { StructureSelectionQuery, StructureSelectionQueryList } from '../../mol-plugin/util/structure-selection-query';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Interactivity } from '../../mol-plugin/util/interactivity';
@@ -17,6 +17,7 @@ import { StructureElement } from '../../mol-model/structure';
 import { ActionMenu } from '../controls/action-menu';
 import { ToggleButton } from '../controls/common';
 import { Icon } from '../controls/icons';
+import { StructureSelectionModifier } from '../../mol-plugin-state/manager/structure/selection';
 
 export const DefaultQueries = ActionMenu.createItems(StructureSelectionQueryList, {
     label: q => q.label,
@@ -34,12 +35,12 @@ interface StructureSelectionControlsState extends CollapsableState {
 
     isDisabled: boolean,
 
-    queryAction?: SelectionModifier
+    queryAction?: StructureSelectionModifier
 }
 
 export class StructureSelectionControls<P, S extends StructureSelectionControlsState> extends CollapsableControls<P, S> {
     componentDidMount() {
-        this.subscribe(this.plugin.events.interactivity.selectionUpdated, () => {
+        this.subscribe(this.plugin.managers.structure.selection.events.changed, () => {
             this.forceUpdate()
         });
 
@@ -47,13 +48,13 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             this.forceUpdate()
         });
 
-        this.subscribe(this.plugin.state.dataState.events.isUpdating, v => {
+        this.subscribe(this.plugin.behaviors.state.isBusy, v => {
             this.setState({ isDisabled: v, queryAction: void 0 })
         })
     }
 
     get stats() {
-        const stats = this.plugin.helpers.structureSelectionManager.stats
+        const stats = this.plugin.managers.structure.selection.stats
         if (stats.structureCount === 0 || stats.elementCount === 0) {
             return 'Selected nothing'
         } else {
@@ -63,10 +64,10 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     focus = () => {
         const { extraRadius, minRadius, durationMs } = this.state
-        if (this.plugin.helpers.structureSelectionManager.stats.elementCount === 0) return
-        const principalAxes = this.plugin.helpers.structureSelectionManager.getPrincipalAxes();
+        if (this.plugin.managers.structure.selection.stats.elementCount === 0) return
+        const principalAxes = this.plugin.managers.structure.selection.getPrincipalAxes();
         const { origin, dirA, dirC } = principalAxes.boxAxes
-        const { sphere } = this.plugin.helpers.structureSelectionManager.getBoundary()
+        const { sphere } = this.plugin.managers.structure.selection.getBoundary()
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
         this.plugin.canvas3d?.camera.focus(origin, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs, dirA, dirC);
     }
@@ -74,7 +75,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     focusLoci(loci: StructureElement.Loci) {
         return () => {
             const { extraRadius, minRadius, durationMs } = this.state
-            if (this.plugin.helpers.structureSelectionManager.stats.elementCount === 0) return
+            if (this.plugin.managers.structure.selection.stats.elementCount === 0) return
             const { sphere } = StructureElement.Loci.getBoundary(loci)
             const radius = Math.max(sphere.radius + extraRadius, minRadius);
             this.plugin.canvas3d?.camera.focus(sphere.center, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs);
@@ -82,27 +83,27 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     }
 
     measureDistance = () => {
-        const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
+        const loci = this.plugin.managers.structure.selection.history;
         this.plugin.managers.structure.measurement.addDistance(loci[0].loci, loci[1].loci);
     }
 
     measureAngle = () => {
-        const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
+        const loci = this.plugin.managers.structure.selection.history;
         this.plugin.managers.structure.measurement.addAngle(loci[0].loci, loci[1].loci, loci[2].loci);
     }
 
     measureDihedral = () => {
-        const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
+        const loci = this.plugin.managers.structure.selection.history;
         this.plugin.managers.structure.measurement.addDihedral(loci[0].loci, loci[1].loci, loci[2].loci, loci[3].loci);
     }
 
     addLabel = () => {
-        const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
+        const loci = this.plugin.managers.structure.selection.history;
         this.plugin.managers.structure.measurement.addLabel(loci[0].loci);
     }
 
     addOrientation = () => {
-        const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
+        const loci = this.plugin.managers.structure.selection.history;
         this.plugin.managers.structure.measurement.addOrientation(loci[0].loci);
     }
 
@@ -118,8 +119,8 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         }
     }
 
-    set = (modifier: SelectionModifier, selectionQuery: StructureSelectionQuery) => {
-        this.plugin.helpers.structureSelection.set(modifier, selectionQuery, false)
+    set = (modifier: StructureSelectionModifier, selectionQuery: StructureSelectionQuery) => {
+        this.plugin.managers.structure.selection.fromSelectionQuery(modifier, selectionQuery, false)
     }
 
     selectQuery: ActionMenu.OnSelect = item => {
@@ -135,20 +136,20 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     queries = DefaultQueries
 
-    private showQueries(q: SelectionModifier) {
+    private showQueries(q: StructureSelectionModifier) {
         return () => this.setState({ queryAction: this.state.queryAction === q ? void 0 : q });
     }
 
     toggleAdd = this.showQueries('add')
     toggleRemove = this.showQueries('remove')
-    toggleOnly = this.showQueries('only')
+    toggleOnly = this.showQueries('set')
 
     get controls() {
         return <div>
             <div className='msp-control-row msp-button-row'>
                 <ToggleButton label='Select' toggle={this.toggleAdd} isSelected={this.state.queryAction === 'add'} disabled={this.state.isDisabled} />
                 <ToggleButton label='Deselect' toggle={this.toggleRemove} isSelected={this.state.queryAction === 'remove'} disabled={this.state.isDisabled} />
-                <ToggleButton label='Only' toggle={this.toggleOnly} isSelected={this.state.queryAction === 'only'} disabled={this.state.isDisabled} />
+                <ToggleButton label='Only' toggle={this.toggleOnly} isSelected={this.state.queryAction === 'set'} disabled={this.state.isDisabled} />
             </div>
             {this.state.queryAction && <ActionMenu items={this.queries} onSelect={this.selectQuery} />}
         </div>
@@ -172,12 +173,12 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     renderControls() {
         const latest: JSX.Element[] = [];
 
-        const mng = this.plugin.helpers.structureSelectionManager;
+        const mng = this.plugin.managers.structure.selection;
 
         // TODO: fix the styles, move them to CSS
 
-        for (let i = 0, _i = Math.min(4, mng.latestLoci.length); i < _i; i++) {
-            const e = mng.latestLoci[i];
+        for (let i = 0, _i = Math.min(4, mng.history.length); i < _i; i++) {
+            const e = mng.history[i];
             latest.push(<li key={e!.label}>
                 <button className='msp-btn msp-btn-block msp-form-control' style={{ borderRight: '6px solid transparent', overflow: 'hidden' }}
                     title='Click to focus.' onClick={this.focusLoci(e.loci)}>

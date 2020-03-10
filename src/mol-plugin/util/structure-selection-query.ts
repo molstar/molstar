@@ -5,22 +5,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
-import { StateSelection, StateBuilder } from '../../mol-state';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { QueryContext, StructureSelection, StructureQuery, StructureElement, Structure } from '../../mol-model/structure';
-import { compile } from '../../mol-script/runtime/query/compiler';
-import { Loci } from '../../mol-model/loci';
-import { PluginContext } from '../context';
-import Expression from '../../mol-script/language/expression';
-import { BondType, ProteinBackboneAtoms, NucleicBackboneAtoms, SecondaryStructureType } from '../../mol-model/structure/model/types';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { SetUtils } from '../../mol-util/set';
-import { ValidationReport, ValidationReportProvider } from '../../mol-model-props/rcsb/validation-report';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
-import { Task, RuntimeContext } from '../../mol-task';
-import { AccessibleSurfaceAreaSymbols, AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
+import { AccessibleSurfaceAreaProvider, AccessibleSurfaceAreaSymbols } from '../../mol-model-props/computed/accessible-surface-area';
+import { ValidationReport, ValidationReportProvider } from '../../mol-model-props/rcsb/validation-report';
+import { QueryContext, Structure, StructureQuery, StructureSelection } from '../../mol-model/structure';
+import { BondType, NucleicBackboneAtoms, ProteinBackboneAtoms, SecondaryStructureType } from '../../mol-model/structure/model/types';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
+import Expression from '../../mol-script/language/expression';
+import { compile } from '../../mol-script/runtime/query/compiler';
+import { StateBuilder } from '../../mol-state';
+import { RuntimeContext } from '../../mol-task';
+import { SetUtils } from '../../mol-util/set';
 import { stringToWords } from '../../mol-util/string';
+import { PluginContext } from '../context';
 
 export enum StructureSelectionCategory {
     Type = 'Type',
@@ -36,7 +35,7 @@ export enum StructureSelectionCategory {
     Internal = 'Internal',
 }
 
-export { StructureSelectionQuery }
+export { StructureSelectionQuery };
 
 interface StructureSelectionQuery {
     readonly label: string
@@ -512,53 +511,5 @@ namespace StructureSelectionQuery {
 
         const result = selectionQuery.query(new QueryContext(structure, { currentSelection }))
         return StructureSelection.toLociWithSourceUnits(result)
-    }
-}
-
-//
-
-export type SelectionModifier = 'add' | 'remove' | 'only'
-
-export class StructureSelectionHelper {
-    private get structures() {
-        return this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure)).map(s => s.obj!.data)
-    }
-
-    private _set(modifier: SelectionModifier, loci: Loci, applyGranularity = true) {
-        switch (modifier) {
-            case 'add':
-                this.plugin.interactivity.lociSelects.select({ loci }, applyGranularity)
-                break
-            case 'remove':
-                this.plugin.interactivity.lociSelects.deselect({ loci }, applyGranularity)
-                break
-            case 'only':
-                this.plugin.interactivity.lociSelects.selectOnly({ loci }, applyGranularity)
-                break
-        }
-    }
-
-    set(modifier: SelectionModifier, selectionQuery: StructureSelectionQuery, applyGranularity = true) {
-        this.plugin.runTask(Task.create('Structure Selection', async runtime => {
-            const ctx = { fetch: this.plugin.fetch, runtime }
-            for (const s of this.structures) {
-                const current = this.plugin.helpers.structureSelectionManager.get(s)
-                const currentSelection = Loci.isEmpty(current)
-                    ? StructureSelection.Empty(s)
-                    : StructureSelection.Singletons(s, StructureElement.Loci.toStructure(current))
-
-                if (selectionQuery.ensureCustomProperties) {
-                    await selectionQuery.ensureCustomProperties(ctx, s)
-                }
-
-                const result = selectionQuery.query(new QueryContext(s, { currentSelection }))
-                const loci = StructureSelection.toLociWithSourceUnits(result)
-                this._set(modifier, loci, applyGranularity)
-            }
-        }))
-    }
-
-    constructor(private plugin: PluginContext) {
-
     }
 }

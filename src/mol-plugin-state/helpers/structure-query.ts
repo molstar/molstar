@@ -8,7 +8,7 @@ import Expression from '../../mol-script/language/expression';
 import { QueryFn, Structure, StructureSelection as Sel, QueryContext } from '../../mol-model/structure';
 import { Script } from '../../mol-script/script';
 import { compile } from '../../mol-script/runtime/query/compiler';
-import { PluginStateObject as SO } from '../../mol-plugin-state/objects';
+import { PluginStateObject as SO } from '../objects';
 
 export { StructureQueryHelper }
 namespace StructureQueryHelper {

@@ -18,7 +18,7 @@ import { arrayRemoveAtInPlace } from '../../../mol-util/array';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { StateObject, StateSelection } from '../../../mol-state';
 import { PluginStateObject } from '../../objects';
-import { StructureSelectionQuery } from '../../../mol-plugin/util/structure-selection-helper';
+import { StructureSelectionQuery } from '../../../mol-plugin/util/structure-selection-query';
 import { Task } from '../../../mol-task';
 
 interface StructureSelectionManagerState {
@@ -203,7 +203,8 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
             s.selection = StructureElement.Loci(s.selection.structure, []);
         }
         this.referenceLoci = undefined
-        this.plugin.events.interactivity.selectionUpdated.next()
+        this.state.stats = void 0;
+        this.events.changed.next()
         return selections;
     }
 
@@ -325,7 +326,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
         return PrincipalAxes.ofPositions(positions)
     }
 
-    applyLoci(modifier: StructureSelectionModifier, loci: Loci) {
+    modify(modifier: StructureSelectionModifier, loci: Loci) {
         let changed = false;
         switch (modifier) {
             case 'add': changed = this.add(loci); break;

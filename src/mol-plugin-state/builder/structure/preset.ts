@@ -7,7 +7,7 @@
 
 import { StateTransforms } from '../../transforms';
 import { StructureRepresentation3DHelpers } from '../../transforms/representation';
-import { StructureSelectionQueries as Q } from '../../../mol-plugin/util/structure-selection-helper';
+import { StructureSelectionQueries as Q } from '../../../mol-plugin/util/structure-selection-query';
 import { BuiltInStructureRepresentations } from '../../../mol-repr/structure/registry';
 import { StructureRepresentationProvider, RepresentationProviderTags } from './provider';
 import { StateObjectRef } from '../../../mol-state';

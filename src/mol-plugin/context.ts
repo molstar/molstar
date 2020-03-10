@@ -31,14 +31,12 @@ import { StateTransformParameters } from '../mol-plugin-ui/state/common';
 import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
 import { TaskManager } from './util/task-manager';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
-import { StructureElementSelectionManager } from './util/structure-element-selection';
 import { SubstructureParentHelper } from './util/substructure-parent-helper';
 import { ModifiersKeys } from '../mol-util/input/input-observer';
 import { isProductionMode, isDebugMode } from '../mol-util/debug';
 import { Model, Structure } from '../mol-model/structure';
 import { Interactivity } from './util/interactivity';
 import { StructureRepresentationHelper } from './util/structure-representation-helper';
-import { StructureSelectionHelper } from './util/structure-selection-helper';
 import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
 import { PluginToastManager } from './util/toast';
 import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
@@ -81,8 +79,7 @@ export class PluginContext {
             settingsUpdated: this.ev()
         },
         interactivity: {
-            propsUpdated: this.ev(),
-            selectionUpdated: this.ev()
+            propsUpdated: this.ev()
         }
     } as const
 
@@ -147,8 +144,6 @@ export class PluginContext {
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
     readonly helpers = {
-        structureSelectionManager: new StructureElementSelectionManager(this),
-        structureSelection: new StructureSelectionHelper(this),
         structureRepresentation: new StructureRepresentationHelper(this),
         structureOverpaint: new StructureOverpaintHelper(this),
         substructureParent: new SubstructureParentHelper(this),

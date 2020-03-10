@@ -10,11 +10,11 @@ import { ModifiersKeys, ButtonsType } from '../../mol-util/input/input-observer'
 import { Representation } from '../../mol-repr/representation';
 import { StructureElement } from '../../mol-model/structure';
 import { MarkerAction } from '../../mol-util/marker-action';
-import { StructureElementSelectionManager } from './structure-element-selection';
 import { PluginContext } from '../context';
 import { Structure } from '../../mol-model/structure';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginCommands } from '../commands';
+import { StructureSelectionManager } from '../../mol-plugin-state/manager/structure/selection';
 
 export { Interactivity }
 
@@ -64,7 +64,7 @@ namespace Interactivity {
 
     export abstract class LociMarkManager {
         protected providers: LociMarkProvider[] = [];
-        protected sel: StructureElementSelectionManager
+        protected sel: StructureSelectionManager
 
         readonly props: Readonly<Props> = PD.getDefaultValues(Params)
 
@@ -92,7 +92,7 @@ namespace Interactivity {
         }
 
         constructor(public readonly ctx: PluginContext, props: Partial<Props> = {}) {
-            this.sel = ctx.helpers.structureSelectionManager
+            this.sel = ctx.managers.structure.selection
             this.setProps(props)
         }
     }
@@ -178,7 +178,7 @@ namespace Interactivity {
         select(current: Loci<ModelLoci>, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
-                this.sel.add(normalized.loci);
+                this.sel.modify('add', normalized.loci);
             }
             this.mark(normalized, MarkerAction.Select);
         }
@@ -187,7 +187,7 @@ namespace Interactivity {
             this.deselectAll()
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
-                this.sel.set(normalized.loci);
+                this.sel.modify('set', normalized.loci);
             }
             this.mark(normalized, MarkerAction.Select);
         }
@@ -195,7 +195,7 @@ namespace Interactivity {
         deselect(current: Loci<ModelLoci>, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
-                this.sel.remove(normalized.loci);
+                this.sel.modify('remove', normalized.loci);
             }
             this.mark(normalized, MarkerAction.Deselect);
         }
@@ -215,7 +215,7 @@ namespace Interactivity {
                 // do a full deselect/select for the current structure so visuals
                 // that are marked with granularity unequal to 'element' are handled properly
                 super.mark({ loci: Structure.Loci(loci.structure) }, MarkerAction.Deselect)
-                super.mark({ loci: this.sel.get(loci.structure) }, MarkerAction.Select)
+                super.mark({ loci: this.sel.getLoci(loci.structure) }, MarkerAction.Select)
             } else {
                 super.mark(current, action)
             }
@@ -223,10 +223,10 @@ namespace Interactivity {
 
         private toggleSel(current: Loci<ModelLoci>) {
             if (this.sel.has(current.loci)) {
-                this.sel.remove(current.loci);
+                this.sel.modify('remove', current.loci);
                 this.mark(current, MarkerAction.Deselect);
             } else {
-                this.sel.add(current.loci);
+                this.sel.modify('add', current.loci);
                 this.mark(current, MarkerAction.Select);
             }
         }

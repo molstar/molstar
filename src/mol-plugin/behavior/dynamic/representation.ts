@@ -105,7 +105,7 @@ export const SelectLoci = PluginBehavior.create({
                     if (clear) {
                         this.lociMarkProvider({ loci: Structure.Loci(so.data) }, MarkerAction.Deselect)
                     }
-                    const loci = this.ctx.helpers.structureSelectionManager.get(so.data)
+                    const loci = this.ctx.managers.structure.selection.getLoci(so.data)
                     this.lociMarkProvider({ loci }, MarkerAction.Select)
                 }
             }

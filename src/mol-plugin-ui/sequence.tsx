@@ -12,7 +12,6 @@ import { Sequence } from './sequence/sequence';
 import { Structure, StructureElement, StructureProperties as SP, Unit } from '../mol-model/structure';
 import { SequenceWrapper } from './sequence/wrapper';
 import { PolymerSequenceWrapper } from './sequence/polymer';
-import { StructureElementSelectionManager } from '../mol-plugin/util/structure-element-selection';
 import { MarkerAction } from '../mol-util/marker-action';
 import { PureSelectControl } from './controls/parameters';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -22,6 +21,7 @@ import { ChainSequenceWrapper } from './sequence/chain';
 import { ElementSequenceWrapper } from './sequence/element';
 import { elementLabel } from '../mol-theme/label';
 import { Icon } from './controls/icons';
+import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
 
 const MaxDisplaySequenceLength = 5000
 
@@ -38,7 +38,7 @@ function splitModelEntityId(modelEntityId: string) {
     return [ parseInt(modelIdx), entityId ]
 }
 
-function getSequenceWrapper(state: SequenceViewState, structureSelection: StructureElementSelectionManager): SequenceWrapper.Any | string {
+function getSequenceWrapper(state: SequenceViewState, structureSelection: StructureSelectionManager): SequenceWrapper.Any | string {
     const { structure, modelEntityId, chainGroupId, operatorKey } = state
     const l = StructureElement.Location.create(structure)
     const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId)
@@ -84,7 +84,7 @@ function getSequenceWrapper(state: SequenceViewState, structureSelection: Struct
             sw = new ChainSequenceWrapper(data)
         }
 
-        sw.markResidue(structureSelection.get(structure), MarkerAction.Select)
+        sw.markResidue(structureSelection.getLoci(structure), MarkerAction.Select)
         return sw
     } else {
         return 'No sequence available'
@@ -223,7 +223,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     }
 
     private getSequenceWrapper() {
-        return getSequenceWrapper(this.state, this.plugin.helpers.structureSelectionManager)
+        return getSequenceWrapper(this.state, this.plugin.managers.structure.selection)
     }
 
     private getInitialState(): SequenceViewState {
