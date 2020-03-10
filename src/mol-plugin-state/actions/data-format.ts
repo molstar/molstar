@@ -4,17 +4,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import msgpackDecode from '../../mol-io/common/msgpack/decode';
 import { PluginContext } from '../../mol-plugin/context';
-import { State, StateBuilder, StateAction } from '../../mol-state';
+import { State, StateAction, StateObjectRef } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { FileInfo, getFileInfo } from '../../mol-util/file-info';
-import { PluginStateObject } from '../objects';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Ccp4Provider, Dsn6Provider, DscifProvider } from './volume';
-import { StateTransforms } from '../transforms';
-import { MmcifProvider, PdbProvider, GroProvider, Provider3dg, DcdProvider, PsfProvider } from './structure';
-import msgpackDecode from '../../mol-io/common/msgpack/decode'
+import { PluginStateObject } from '../objects';
 import { PlyProvider } from './shape';
+import { DcdProvider, GroProvider, MmcifProvider, PdbProvider, Provider3dg, PsfProvider } from './structure';
+import { Ccp4Provider, DscifProvider, Dsn6Provider } from './volume';
 
 export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String> {
     private _list: { name: string, provider: DataFormatProvider<D> }[] = []
@@ -114,7 +113,7 @@ export interface DataFormatProvider<D extends PluginStateObject.Data.Binary | Pl
     stringExtensions: string[]
     binaryExtensions: string[]
     isApplicable(info: FileInfo, data: string | Uint8Array): boolean
-    getDefaultBuilder(ctx: PluginContext, data: StateBuilder.To<D>, options: DataFormatBuilderOptions, state?: State): Task<void>
+    getDefaultBuilder(ctx: PluginContext, data: StateObjectRef<D>, options: DataFormatBuilderOptions, state: State): Task<void>
 }
 
 //
@@ -130,24 +129,27 @@ export const OpenFiles = StateAction.build({
             visuals: PD.Boolean(true, { description: 'Add default visuals' }),
         }
     }
-})(({ params, state }, ctx: PluginContext) => Task.create('Open Files', async taskCtx => {
-    for (let i = 0, il = params.files.length; i < il; ++i) {
-        try {
-            const file = params.files[i]
-            const info = getFileInfo(file)
-            const isBinary = ctx.dataFormat.registry.binaryExtensions.has(info.ext)
-            const data = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file, isBinary });
-            const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
-            const provider = params.format === 'auto'
-                ? ctx.dataFormat.registry.auto(info, dataStateObject)
-                : ctx.dataFormat.registry.get(params.format)
-            const b = state.build().to(data.ref);
-            // need to await so that the enclosing Task finishes after the update is done.
-            await provider.getDefaultBuilder(ctx, b, { visuals: params.visuals }, state).runInContext(taskCtx)
-        } catch (e) {
-            ctx.log.error(e)
+})(({ params, state }, plugin: PluginContext) => Task.create('Open Files', async taskCtx => {
+    await state.transaction(async () => {
+        for (let i = 0, il = params.files.length; i < il; ++i) {
+            try {
+                const file = params.files[i]
+                const info = getFileInfo(file)
+                const isBinary = plugin.dataFormat.registry.binaryExtensions.has(info.ext)
+                const { data } = await plugin.builders.data.readFile({ file, isBinary });
+                //const data = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file, isBinary });
+                // const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
+                const provider = params.format === 'auto'
+                    ? plugin.dataFormat.registry.auto(info, data.cell?.obj!)
+                    : plugin.dataFormat.registry.get(params.format)
+                
+                // need to await so that the enclosing Task finishes after the update is done.
+                await provider.getDefaultBuilder(plugin, data, { visuals: params.visuals }, state).runInContext(taskCtx)
+            } catch (e) {
+                plugin.log.error(e)
+            }
         }
-    }
+    }).runInContext(taskCtx);
 }));
 
 //

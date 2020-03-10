@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { CollapsableControls, CollapsableState } from '../base';
-import { StructureSelectionQuery, StructureSelectionQueryList } from '../../mol-plugin/util/structure-selection-query';
+import { StructureSelectionQuery, StructureSelectionQueryList } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Interactivity } from '../../mol-plugin/util/interactivity';

@@ -26,9 +26,10 @@ export const Ccp4Provider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: Uint8Array) => {
         return info.ext === 'ccp4' || info.ext === 'mrc' || info.ext === 'map'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, options: DataFormatBuilderOptions, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('CCP4/MRC/BRIX default builder', async taskCtx => {
-            let tree: StateBuilder.To<any> = data.apply(StateTransforms.Data.ParseCcp4, {}, { state: { isGhost: true } })
+            let tree: StateBuilder.To<any> = state.build().to(data)
+                .apply(StateTransforms.Data.ParseCcp4, {}, { state: { isGhost: true } })
                 .apply(StateTransforms.Volume.VolumeFromCcp4)
             if (options.visuals) {
                 tree = tree.apply(StateTransforms.Representation.VolumeRepresentation3D)
@@ -46,9 +47,10 @@ export const Dsn6Provider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: Uint8Array) => {
         return info.ext === 'dsn6' || info.ext === 'brix'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, options: DataFormatBuilderOptions, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('DSN6/BRIX default builder', async taskCtx => {
-            let tree: StateBuilder.To<any> = data.apply(StateTransforms.Data.ParseDsn6, {}, { state: { isGhost: true } })
+            let tree: StateBuilder.To<any> = state.build().to(data)
+                .apply(StateTransforms.Data.ParseDsn6, {}, { state: { isGhost: true } })
                 .apply(StateTransforms.Volume.VolumeFromDsn6)
             if (options.visuals) {
                 tree = tree.apply(StateTransforms.Representation.VolumeRepresentation3D)
@@ -66,9 +68,9 @@ export const DscifProvider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: Uint8Array | string) => {
         return guessCifVariant(info, data) === 'dscif' ? true : false
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('DensityServer CIF default builder', async taskCtx => {
-            const cifBuilder = data.apply(StateTransforms.Data.ParseCif)
+            const cifBuilder = state.build().to(data).apply(StateTransforms.Data.ParseCif)
             const cifStateObject = await state.updateTree(cifBuilder).runInContext(taskCtx)
             const b = state.build().to(cifBuilder.ref);
             const blocks = cifStateObject.data.blocks.slice(1); // zero block contains query meta-data
@@ -185,13 +187,13 @@ const DownloadDensity = StateAction.build({
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
-    const data = state.build().toRoot().apply(StateTransforms.Data.Download, downloadParams);
-    const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
+    const data = await ctx.builders.data.download(downloadParams);
+    //const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
 
     switch (src.name) {
         case 'url':
             downloadParams = src.params;
-            provider = src.params.format === 'auto' ? ctx.dataFormat.registry.auto(getFileInfo(downloadParams.url), dataStateObject) : ctx.dataFormat.registry.get(src.params.format)
+            provider = src.params.format === 'auto' ? ctx.dataFormat.registry.auto(getFileInfo(downloadParams.url), data.cell?.obj!) : ctx.dataFormat.registry.get(src.params.format)
             break;
         case 'pdbe':
             provider = ctx.dataFormat.registry.get('ccp4')
@@ -206,6 +208,5 @@ const DownloadDensity = StateAction.build({
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
-    const b = state.build().to(data.ref);
-    await provider.getDefaultBuilder(ctx, b, { visuals: true }, state).runInContext(taskCtx)
+    await provider.getDefaultBuilder(ctx, data, { visuals: true }, state).runInContext(taskCtx)
 }));

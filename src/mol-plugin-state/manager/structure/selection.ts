@@ -18,7 +18,7 @@ import { arrayRemoveAtInPlace } from '../../../mol-util/array';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { StateObject, StateSelection } from '../../../mol-state';
 import { PluginStateObject } from '../../objects';
-import { StructureSelectionQuery } from '../../../mol-plugin/util/structure-selection-query';
+import { StructureSelectionQuery } from '../../helpers/structure-selection-query';
 import { Task } from '../../../mol-task';
 
 interface StructureSelectionManagerState {

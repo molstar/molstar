@@ -11,7 +11,7 @@ import { StateTransforms } from '../transforms';
 import { RootStructureDefinition } from '../helpers/root-structure';
 import { StructureComponentParams } from '../helpers/structure-component';
 
-type TrajectoryFormat = 'pdb' | 'cif' | 'gro' | '3dg'
+export type TrajectoryFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
 export enum StructureBuilderTags {
     Trajectory = 'trajectory',

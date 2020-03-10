@@ -5,23 +5,23 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Loci } from '../../mol-model/loci';
+import { StructureElement } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateAction, StateBuilder, StateSelection, StateTransformer, State } from '../../mol-state';
+import { StateAction, StateBuilder, StateSelection, StateTransformer } from '../../mol-state';
+import { Task } from '../../mol-task';
+import { UUID } from '../../mol-util';
+import { FileInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { RootStructureDefinition } from '../helpers/root-structure';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download, ParsePsf } from '../transforms/data';
-import { CustomModelProperties, CustomStructureProperties, CoordinatesFromDcd, TrajectoryFromModelAndCoordinates, TopologyFromPsf } from '../transforms/model';
-import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from './data-format';
-import { FileInfo } from '../../mol-util/file-info';
-import { Task } from '../../mol-task';
-import { StructureElement } from '../../mol-model/structure';
-import { createDefaultStructureComplex } from '../../mol-plugin/util/structure-complex-helper';
-import { RootStructureDefinition } from '../helpers/root-structure';
-import { UUID } from '../../mol-util';
-import { Loci } from '../../mol-model/loci';
+import { CoordinatesFromDcd, CustomModelProperties, CustomStructureProperties, TopologyFromPsf, TrajectoryFromModelAndCoordinates } from '../transforms/model';
+import { DataFormatProvider, guessCifVariant } from './data-format';
+import { TrajectoryFormat } from '../builder/structure';
 
-export const MmcifProvider: DataFormatProvider<any> = {
+export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | PluginStateObject.Data.Binary> = {
     label: 'mmCIF',
     description: 'mmCIF',
     stringExtensions: ['cif', 'mmcif', 'mcif'],
@@ -32,10 +32,12 @@ export const MmcifProvider: DataFormatProvider<any> = {
         if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) !== 'dscif'
         return false
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('mmCIF default builder', async taskCtx => {
-            const traj = createModelTree(data, 'cif');
-            await state.updateTree(options.visuals ? createStructureAndVisuals(ctx, traj, false) : traj).runInContext(taskCtx)
+            const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'cif' });
+            if (options.visuals) {
+                await ctx.builders.representation.structurePreset(structure, 'auto');
+            }
         })
     }
 }
@@ -48,10 +50,12 @@ export const PdbProvider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: string) => {
         return info.ext === 'pdb' || info.ext === 'ent'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
-        return Task.create('PDB default builder', async taskCtx => {
-            const traj = createModelTree(data, 'pdb');
-            await state.updateTree(options.visuals ? createStructureAndVisuals(ctx, traj, false) : traj).runInContext(taskCtx)
+    getDefaultBuilder: (ctx: PluginContext, data, options) => {
+        return Task.create('PDB default builder', async () => {
+            const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'cif' });
+            if (options.visuals) {
+                await ctx.builders.representation.structurePreset(structure, 'auto');
+            }
         })
     }
 }
@@ -64,10 +68,12 @@ export const GroProvider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: string) => {
         return info.ext === 'gro'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
-        return Task.create('GRO default builder', async taskCtx => {
-            const traj = createModelTree(data, 'gro');
-            await state.updateTree(options.visuals ? createStructureAndVisuals(ctx, traj, false) : traj).runInContext(taskCtx)
+    getDefaultBuilder: (ctx: PluginContext, data, options) => {
+        return Task.create('GRO default builder', async () => {
+            const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'gro' });
+            if (options.visuals) {
+                await ctx.builders.representation.structurePreset(structure, 'auto');
+            }
         })
     }
 }
@@ -80,10 +86,12 @@ export const Provider3dg: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: string) => {
         return info.ext === '3dg'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
-        return Task.create('3DG default builder', async taskCtx => {
-            const traj = createModelTree(data, '3dg');
-            await state.updateTree(options.visuals ? createStructureAndVisuals(ctx, traj, false) : traj).runInContext(taskCtx)
+    getDefaultBuilder: (ctx: PluginContext, data, options) => {
+        return Task.create('3DG default builder', async () => {
+            const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: '3dg' });
+            if (options.visuals) {
+                await ctx.builders.representation.structurePreset(structure, 'auto');
+            }
         })
     }
 }
@@ -96,9 +104,10 @@ export const PsfProvider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: string) => {
         return info.ext === 'psf'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data, options, state) => {
         return Task.create('PSF default builder', async taskCtx => {
-            await state.updateTree(data.apply(ParsePsf, {}, { state: { isGhost: true } }).apply(TopologyFromPsf)).runInContext(taskCtx)
+            const build = state.build().to(data).apply(ParsePsf, {}, { state: { isGhost: true } }).apply(TopologyFromPsf)
+            await state.updateTree(build).runInContext(taskCtx)
         })
     }
 }
@@ -111,14 +120,13 @@ export const DcdProvider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: string) => {
         return info.ext === 'dcd'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, options: DataFormatBuilderOptions, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data, options, state) => {
         return Task.create('DCD default builder', async taskCtx => {
-            await state.updateTree(data.apply(CoordinatesFromDcd)).runInContext(taskCtx)
+            const build = state.build().to(data).apply(CoordinatesFromDcd);
+            await state.updateTree(build).runInContext(taskCtx)
         })
     }
 }
-
-type StructureFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
 //
 
@@ -181,7 +189,7 @@ const DownloadStructure = StateAction.build({
 
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
-    let supportProps = false, asTrajectory = false, format: StructureFormat = 'cif';
+    let supportProps = false, asTrajectory = false, format: TrajectoryFormat = 'cif';
 
     switch (src.name) {
         case 'url':
@@ -268,7 +276,7 @@ function getDownloadParams(src: string, url: (id: string) => string, label: (id:
     return ret;
 }
 
-export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: StructureFormat = 'cif') {
+export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: TrajectoryFormat = 'cif') {
     let parsed: StateBuilder.To<PluginStateObject.Molecule.Trajectory>
     switch (format) {
         case 'cif':
@@ -289,20 +297,6 @@ export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary
     }
 
     return parsed.apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
-}
-
-function createStructure(b: StateBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean, params?: RootStructureDefinition.Params) {
-    let root = b;
-    if (supportProps) {
-        root = root.apply(StateTransforms.Model.CustomModelProperties);
-    }
-    return root.apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } });
-}
-
-function createStructureAndVisuals(ctx: PluginContext, b: StateBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean, params?: RootStructureDefinition.Params) {
-    const structure = createStructure(b, supportProps, params);
-    createDefaultStructureComplex(ctx, structure);
-    return b;
 }
 
 export const Create3DRepresentationPreset = StateAction.build({
@@ -433,13 +427,18 @@ export const AddTrajectory = StateAction.build({
             coordinates: PD.Select(coordOptions.length ? coordOptions[0][0] : '', coordOptions)
         }
     }
-})(({ ref, params, state }, ctx: PluginContext) => {
-    const dependsOn = [params.model, params.coordinates];
-    const root = state.build().toRoot()
-        .apply(TrajectoryFromModelAndCoordinates, {
-            modelRef: params.model,
-            coordinatesRef: params.coordinates
-        }, { dependsOn })
-        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
-    return state.updateTree(createStructureAndVisuals(ctx, root, false));
-});
+})(({ params, state }, ctx: PluginContext) => Task.create('Add Trajectory', taskCtx => {
+    return state.transaction(async () => {
+        const dependsOn = [params.model, params.coordinates];
+        const model = state.build().toRoot()
+            .apply(TrajectoryFromModelAndCoordinates, {
+                modelRef: params.model,
+                coordinatesRef: params.coordinates
+            }, { dependsOn })
+            .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
+
+        await state.updateTree(model).runInContext(taskCtx);
+        const structure = await ctx.builders.structure.createStructure(model.selector);
+        await ctx.builders.representation.structurePreset(structure, 'auto');
+    }).runInContext(taskCtx)
+}));

@@ -24,7 +24,7 @@ import { SymmetryOperator } from '../../mol-math/geometry';
 import { Script } from '../../mol-script/script';
 import { parse3DG } from '../../mol-io/reader/3dg/parser';
 import { trajectoryFrom3DG } from '../../mol-model-formats/structure/3dg';
-import { StructureSelectionQueries } from '../../mol-plugin/util/structure-selection-query';
+import { StructureSelectionQueries } from '../helpers/structure-selection-query';
 import { StructureQueryHelper } from '../helpers/structure-query';
 import { RootStructureDefinition } from '../helpers/root-structure';
 import { parseDcd } from '../../mol-io/reader/dcd/parser';

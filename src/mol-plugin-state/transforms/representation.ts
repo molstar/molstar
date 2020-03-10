@@ -29,7 +29,7 @@ import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { Script } from '../../mol-script/script';
-import { getUnitcellRepresentation, UnitcellParams } from '../../mol-plugin/util/model-unitcell';
+import { getUnitcellRepresentation, UnitcellParams } from '../helpers/model-unitcell';
 import { DistanceParams, DistanceRepresentation } from '../../mol-repr/shape/loci/distance';
 import { getDistanceDataFromStructureSelections, getLabelDataFromStructureSelections, getOrientationDataFromStructureSelections, getAngleDataFromStructureSelections, getDihedralDataFromStructureSelections } from './helpers';
 import { LabelParams, LabelRepresentation } from '../../mol-repr/shape/loci/label';
