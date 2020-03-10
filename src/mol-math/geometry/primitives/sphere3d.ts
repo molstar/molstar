@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,6 +11,7 @@ import { OrderedSet } from '../../../mol-data/int';
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { Box3D } from './box3d';
 import { Axes3D } from './axes3d';
+import { BoundaryHelper } from '../boundary-helper';
 
 interface Sphere3D { center: Vec3, radius: number }
 
@@ -92,6 +93,15 @@ namespace Sphere3D {
         Vec3.copy(out.center, axes.origin)
         out.radius = Math.max(Vec3.magnitude(axes.dirA), Vec3.magnitude(axes.dirB), Vec3.magnitude(axes.dirC))
         return out
+    }
+
+    const boundaryHelper = new BoundaryHelper();
+    export function fromSphere3Ds(spheres: Sphere3D[]): Sphere3D {
+        boundaryHelper.reset(0);
+        for (const s of spheres) boundaryHelper.boundaryStep(s.center, s.radius);
+        boundaryHelper.finishBoundaryStep();
+        for (const s of spheres) boundaryHelper.extendStep(s.center, s.radius);
+        return boundaryHelper.getSphere();
     }
 
     const tmpAddVec3 = Vec3()

@@ -65,6 +65,11 @@ namespace Loci {
     interface FiniteArray<T, L extends number = number> extends ReadonlyArray<T> { length: L };
     export interface Bundle<L extends number> { loci: FiniteArray<Loci, L> }
 
+    export function getBundleBoundingSphere(bundle: Bundle<any>): Sphere3D {
+        const spheres = bundle.loci.map(l => getBoundingSphere(l)).filter(s => !!s)
+        return Sphere3D.fromSphere3Ds(spheres as Sphere3D[])
+    }
+
     export function areEqual(lociA: Loci, lociB: Loci) {
         if (isEveryLoci(lociA) && isEveryLoci(lociB)) return true
         if (isEmptyLoci(lociA) && isEmptyLoci(lociB)) return true
