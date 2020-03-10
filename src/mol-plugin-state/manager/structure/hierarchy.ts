@@ -19,8 +19,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         currentModels: this.ev.behavior(this.state.currentModels)
     }
 
-    private syncCurrent() {
-        const hierarchy = this.behaviors.hierarchy.value;
+    private syncCurrent(hierarchy: StructureHierarchy) {
         const current = this.behaviors.currentModels.value;
         if (current.length === 0) {
             const models = hierarchy.trajectories[0]?.models;
@@ -50,10 +49,10 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
             return;
         }
 
-        const currentModels = this.syncCurrent();
+        const currentModels = this.syncCurrent(update.hierarchy);
         this.updateState({ hierarchy: update.hierarchy, currentModels });
 
-        this.behaviors.hierarchy.next(this.state.hierarchy)
+        this.behaviors.hierarchy.next(this.state.hierarchy);
         this.behaviors.currentModels.next(this.state.currentModels);
     }
 

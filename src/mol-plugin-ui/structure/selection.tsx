@@ -15,7 +15,7 @@ import { ParameterControls } from '../controls/parameters';
 import { stripTags } from '../../mol-util/string';
 import { StructureElement } from '../../mol-model/structure';
 import { ActionMenu } from '../controls/action-menu';
-import { ToggleButton } from '../controls/common';
+import { ToggleButton, ExpandGroup } from '../controls/common';
 import { Icon } from '../controls/icons';
 import { StructureSelectionModifier } from '../../mol-plugin-state/manager/structure/selection';
 
@@ -56,7 +56,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     get stats() {
         const stats = this.plugin.managers.structure.selection.stats
         if (stats.structureCount === 0 || stats.elementCount === 0) {
-            return 'Selected nothing'
+            return 'Nothing Selected'
         } else {
             return `Selected ${stripTags(stats.label)}`
         }
@@ -80,31 +80,6 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             const radius = Math.max(sphere.radius + extraRadius, minRadius);
             this.plugin.canvas3d?.camera.focus(sphere.center, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs);
         }
-    }
-
-    measureDistance = () => {
-        const loci = this.plugin.managers.structure.selection.history;
-        this.plugin.managers.structure.measurement.addDistance(loci[0].loci, loci[1].loci);
-    }
-
-    measureAngle = () => {
-        const loci = this.plugin.managers.structure.selection.history;
-        this.plugin.managers.structure.measurement.addAngle(loci[0].loci, loci[1].loci, loci[2].loci);
-    }
-
-    measureDihedral = () => {
-        const loci = this.plugin.managers.structure.selection.history;
-        this.plugin.managers.structure.measurement.addDihedral(loci[0].loci, loci[1].loci, loci[2].loci, loci[3].loci);
-    }
-
-    addLabel = () => {
-        const loci = this.plugin.managers.structure.selection.history;
-        this.plugin.managers.structure.measurement.addLabel(loci[0].loci);
-    }
-
-    addOrientation = () => {
-        const loci = this.plugin.managers.structure.selection.history;
-        this.plugin.managers.structure.measurement.addOrientation(loci[0].loci);
     }
 
     setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
@@ -146,10 +121,10 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     get controls() {
         return <div>
-            <div className='msp-control-row msp-button-row'>
-                <ToggleButton label='Select' toggle={this.toggleAdd} isSelected={this.state.queryAction === 'add'} disabled={this.state.isDisabled} />
-                <ToggleButton label='Deselect' toggle={this.toggleRemove} isSelected={this.state.queryAction === 'remove'} disabled={this.state.isDisabled} />
-                <ToggleButton label='Only' toggle={this.toggleOnly} isSelected={this.state.queryAction === 'set'} disabled={this.state.isDisabled} />
+            <div className='msp-control-row msp-select-row'>
+                <ToggleButton icon='plus' label='Select' toggle={this.toggleAdd} isSelected={this.state.queryAction === 'add'} disabled={this.state.isDisabled} />
+                <ToggleButton icon='minus' label='Deselect' toggle={this.toggleRemove} isSelected={this.state.queryAction === 'remove'} disabled={this.state.isDisabled} />
+                <ToggleButton icon='flash' label='Only' toggle={this.toggleOnly} isSelected={this.state.queryAction === 'set'} disabled={this.state.isDisabled} />
             </div>
             {this.state.queryAction && <ActionMenu items={this.queries} onSelect={this.selectQuery} />}
         </div>
@@ -171,7 +146,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     }
 
     renderControls() {
-        const latest: JSX.Element[] = [];
+        const history: JSX.Element[] = [];
 
         const mng = this.plugin.managers.structure.selection;
 
@@ -179,7 +154,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
         for (let i = 0, _i = Math.min(4, mng.history.length); i < _i; i++) {
             const e = mng.history[i];
-            latest.push(<li key={e!.label}>
+            history.push(<li key={e!.label}>
                 <button className='msp-btn msp-btn-block msp-form-control' style={{ borderRight: '6px solid transparent', overflow: 'hidden' }}
                     title='Click to focus.' onClick={this.focusLoci(e.loci)}>
                     <span dangerouslySetInnerHTML={{ __html: e.label.split('|').reverse().join(' | ') }} />
@@ -199,38 +174,11 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             </div>
             <ParameterControls params={StructureSelectionParams} values={this.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
             {this.controls}
-            { latest.length > 0 &&
-            <>
-                <div className='msp-control-group-header' style={{ marginTop: '1px' }}><span>Latest Selections &amp; Measurement</span></div>
+            {history.length > 0 && <ExpandGroup header='Selection History'>
                 <ul style={{ listStyle: 'none', marginTop: '1px', marginBottom: '0' }} className='msp-state-list'>
-                    {latest}
+                    {history}
                 </ul>
-                {latest.length >= 1 && <div className='msp-control-row msp-row-text'>
-                    <button className='msp-btn msp-btn-block' onClick={this.addLabel} title='Add label for latest selection'>
-                        Add Label
-                    </button>
-                </div>}
-                {latest.length >= 1 && <div className='msp-control-row msp-row-text'>
-                    <button className='msp-btn msp-btn-block' onClick={this.addOrientation} title='Add orientation box/axes for latest selection'>
-                        Add Orientation
-                    </button>
-                </div>}
-                {latest.length >= 2 && <div className='msp-control-row msp-row-text'>
-                    <button className='msp-btn msp-btn-block' onClick={this.measureDistance} title='Measure distance between latest 2 selections'>
-                        Measure Distance
-                    </button>
-                </div>}
-                {latest.length >= 3 && <div className='msp-control-row msp-row-text'>
-                    <button className='msp-btn msp-btn-block' onClick={this.measureAngle} title='Measure angle between latest 3 selections'>
-                        Measure Angle
-                    </button>
-                </div>}
-                {latest.length >= 4 && <div className='msp-control-row msp-row-text'>
-                    <button className='msp-btn msp-btn-block' onClick={this.measureDihedral} title='Measure dihedral between latest 4 selections'>
-                        Measure Dihedral
-                    </button>
-                </div>}
-            </>}
+            </ExpandGroup>}
         </div>
     }
 }

@@ -33,7 +33,7 @@ export interface StructureMeasurementManagerState {
     distances: StructureMeasurementCell[],
     angles: StructureMeasurementCell[],
     dihedrals: StructureMeasurementCell[],
-    // TODO: orientations
+    orientations: StructureMeasurementCell[],
     options: StructureMeasurementOptions
 }
 
@@ -56,12 +56,7 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
     }
 
     async setOptions(options: StructureMeasurementOptions) {
-        this.updateState({ options });
-
-        if (this.state.distances.length === 0) {
-            this.stateUpdated();
-            return;
-        }
+        if (this.updateState({ options })) this.stateUpdated();
 
         const update = this.plugin.state.dataState.build();
         for (const cell of this.state.distances) {
@@ -80,6 +75,9 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
         for (const cell of this.state.dihedrals) {
             update.to(cell).update((old: any) => { old.textColor = options.textColor; old.textSize = options.textSize; });
         }
+        
+        if (update.editInfo.count === 0) return;
+
         await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.dataState, tree: update, options: { doNotLogTiming: true } });
     }
 
@@ -102,7 +100,11 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
                 isTransitive: true,
                 label: 'Distance'
             }, { dependsOn })
-            .apply(StateTransforms.Representation.StructureSelectionsDistance3D, { unitLabel: this.state.options.distanceUnitLabel })
+            .apply(StateTransforms.Representation.StructureSelectionsDistance3D, {
+                unitLabel: this.state.options.distanceUnitLabel,
+                textSize: this.state.options.textSize,
+                textColor: this.state.options.textColor
+            })
 
         const state = this.plugin.state.dataState;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
@@ -130,7 +132,10 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
                 isTransitive: true,
                 label: 'Angle'
             }, { dependsOn })
-            .apply(StateTransforms.Representation.StructureSelectionsAngle3D)
+            .apply(StateTransforms.Representation.StructureSelectionsAngle3D, {
+                textSize: this.state.options.textSize,
+                textColor: this.state.options.textColor
+            })
 
         const state = this.plugin.state.dataState;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
@@ -161,7 +166,10 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
                 isTransitive: true,
                 label: 'Dihedral'
             }, { dependsOn })
-            .apply(StateTransforms.Representation.StructureSelectionsDihedral3D)
+            .apply(StateTransforms.Representation.StructureSelectionsDihedral3D, {
+                textSize: this.state.options.textSize,
+                textColor: this.state.options.textColor
+            })
 
         const state = this.plugin.state.dataState;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
@@ -183,7 +191,10 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
                 isTransitive: true,
                 label: 'Label'
             }, { dependsOn })
-            .apply(StateTransforms.Representation.StructureSelectionsLabel3D)
+            .apply(StateTransforms.Representation.StructureSelectionsLabel3D, {
+                textSize: this.state.options.textSize,
+                textColor: this.state.options.textColor
+            })
 
         const state = this.plugin.state.dataState;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
@@ -225,13 +236,14 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
             labels: this.getTransforms(StateTransforms.Representation.StructureSelectionsLabel3D),
             distances: this.getTransforms(StateTransforms.Representation.StructureSelectionsDistance3D),
             angles: this.getTransforms(StateTransforms.Representation.StructureSelectionsAngle3D),
-            dihedrals: this.getTransforms(StateTransforms.Representation.StructureSelectionsDihedral3D)
+            dihedrals: this.getTransforms(StateTransforms.Representation.StructureSelectionsDihedral3D),
+            orientations: this.getTransforms(StateTransforms.Representation.StructureSelectionsOrientation3D)
         });
         if (updated) this.stateUpdated();
     }
 
     constructor(private plugin: PluginContext) {
-        super({ labels: [], distances: [], angles: [], dihedrals: [], options: DefaultStructureMeasurementOptions });
+        super({ labels: [], distances: [], angles: [], dihedrals: [], orientations: [], options: DefaultStructureMeasurementOptions });
 
         plugin.state.dataState.events.changed.subscribe(e => {
             if (e.inTransaction || plugin.behaviors.state.isAnimating.value) return;
