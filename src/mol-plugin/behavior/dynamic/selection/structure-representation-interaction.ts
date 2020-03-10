@@ -35,7 +35,7 @@ const StructureRepresentationInteractionParams = {
 }
 type StructureRepresentationInteractionProps = PD.Values<typeof StructureRepresentationInteractionParams>
 
-enum Tags {
+export enum StructureRepresentationInteractionTags {
     Group = 'structure-interaction-group',
     ResidueSel = 'structure-interaction-residue-sel',
     ResidueRepr = 'structure-interaction-residue-repr',
@@ -44,7 +44,7 @@ enum Tags {
     SurrNciRepr = 'structure-interaction-surr-nci-repr'
 }
 
-const TagSet: Set<Tags> = new Set([Tags.Group, Tags.ResidueSel, Tags.ResidueRepr, Tags.SurrSel, Tags.SurrRepr, Tags.SurrNciRepr])
+const TagSet: Set<StructureRepresentationInteractionTags> = new Set([StructureRepresentationInteractionTags.Group, StructureRepresentationInteractionTags.ResidueSel, StructureRepresentationInteractionTags.ResidueRepr, StructureRepresentationInteractionTags.SurrSel, StructureRepresentationInteractionTags.SurrRepr, StructureRepresentationInteractionTags.SurrNciRepr])
 
 export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<StructureRepresentationInteractionProps> {
 
@@ -78,35 +78,35 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
         if (!refs['structure-interaction-group']) {
             refs['structure-interaction-group'] = builder.to(cell).group(StateTransforms.Misc.CreateGroup,
-                { label: 'Current Focus' }, { tags: Tags.Group }).ref;
+                { label: 'Current Focus' }, { tags: StructureRepresentationInteractionTags.Group }).ref;
         }
 
         // Selections
-        if (!refs[Tags.ResidueSel]) {
-            refs[Tags.ResidueSel] = builder.to(refs['structure-interaction-group']).apply(StateTransforms.Model.StructureSelectionFromBundle,
-                { bundle: { } as any, label: 'Residue' }, { tags: Tags.ResidueSel }).ref;
+        if (!refs[StructureRepresentationInteractionTags.ResidueSel]) {
+            refs[StructureRepresentationInteractionTags.ResidueSel] = builder.to(refs['structure-interaction-group']).apply(StateTransforms.Model.StructureSelectionFromBundle,
+                { bundle: { } as any, label: 'Residue' }, { tags: StructureRepresentationInteractionTags.ResidueSel }).ref;
         }
 
-        if (!refs[Tags.SurrSel]) {
-            refs[Tags.SurrSel] = builder.to(refs['structure-interaction-group']).apply(StateTransforms.Model.StructureSelectionFromExpression,
-                { expression: { } as any, label: 'Surroundings' }, { tags: Tags.SurrSel }).ref;
+        if (!refs[StructureRepresentationInteractionTags.SurrSel]) {
+            refs[StructureRepresentationInteractionTags.SurrSel] = builder.to(refs['structure-interaction-group']).apply(StateTransforms.Model.StructureSelectionFromExpression,
+                { expression: { } as any, label: 'Surroundings' }, { tags: StructureRepresentationInteractionTags.SurrSel }).ref;
         }
 
         // Representations
         // TODO: ability to customize how it looks in the behavior params
-        if (!refs[Tags.ResidueRepr]) {
-            refs[Tags.ResidueRepr] = builder.to(refs['structure-interaction-residue-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
-                this.createResVisualParams(cell.obj!.data), { tags: Tags.ResidueRepr }).ref;
+        if (!refs[StructureRepresentationInteractionTags.ResidueRepr]) {
+            refs[StructureRepresentationInteractionTags.ResidueRepr] = builder.to(refs['structure-interaction-residue-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
+                this.createResVisualParams(cell.obj!.data), { tags: StructureRepresentationInteractionTags.ResidueRepr }).ref;
         }
 
-        if (!refs[Tags.SurrRepr]) {
-            refs[Tags.SurrRepr] = builder.to(refs['structure-interaction-surr-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
-                this.createSurVisualParams(cell.obj!.data), { tags: Tags.SurrRepr }).ref;
+        if (!refs[StructureRepresentationInteractionTags.SurrRepr]) {
+            refs[StructureRepresentationInteractionTags.SurrRepr] = builder.to(refs['structure-interaction-surr-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
+                this.createSurVisualParams(cell.obj!.data), { tags: StructureRepresentationInteractionTags.SurrRepr }).ref;
         }
 
-        if (!refs[Tags.SurrNciRepr]) {
-            refs[Tags.SurrNciRepr] = builder.to(refs['structure-interaction-surr-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
-                this.createSurNciVisualParams(cell.obj!.data), { tags: Tags.SurrNciRepr }).ref;
+        if (!refs[StructureRepresentationInteractionTags.SurrNciRepr]) {
+            refs[StructureRepresentationInteractionTags.SurrNciRepr] = builder.to(refs['structure-interaction-surr-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
+                this.createSurNciVisualParams(cell.obj!.data), { tags: StructureRepresentationInteractionTags.SurrNciRepr }).ref;
         }
 
         return { state, builder, refs };
@@ -114,7 +114,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
     private clear(root: StateTransform.Ref) {
         const state = this.plugin.state.dataState;
-        const groups = state.select(StateSelection.Generators.byRef(root).subtree().withTag(Tags.Group));
+        const groups = state.select(StateSelection.Generators.byRef(root).subtree().withTag(StructureRepresentationInteractionTags.Group));
         if (groups.length === 0) return;
 
         const update = state.build();
@@ -123,8 +123,8 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         for (const g of groups) {
             // TODO: update props of the group node to ghost
 
-            const res = StateSelection.findTagInSubtree(state.tree, g.transform.ref, Tags.ResidueSel);
-            const surr = StateSelection.findTagInSubtree(state.tree, g.transform.ref, Tags.SurrSel);
+            const res = StateSelection.findTagInSubtree(state.tree, g.transform.ref, StructureRepresentationInteractionTags.ResidueSel);
+            const surr = StateSelection.findTagInSubtree(state.tree, g.transform.ref, StructureRepresentationInteractionTags.SurrSel);
             if (res) update.to(res).update(StateTransforms.Model.StructureSelectionFromBundle, old => ({ ...old, bundle }));
             if (surr) update.to(surr).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression }));
         }
@@ -194,8 +194,8 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
                 const { state, builder, refs } = this.ensureShape(parent);
 
-                builder.to(refs[Tags.ResidueSel]!).update(StateTransforms.Model.StructureSelectionFromBundle, old => ({ ...old, bundle: residueBundle }));
-                builder.to(refs[Tags.SurrSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: surroundings }));
+                builder.to(refs[StructureRepresentationInteractionTags.ResidueSel]!).update(StateTransforms.Model.StructureSelectionFromBundle, old => ({ ...old, bundle: residueBundle }));
+                builder.to(refs[StructureRepresentationInteractionTags.SurrSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: surroundings }));
 
                 PluginCommands.State.Update(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
             }

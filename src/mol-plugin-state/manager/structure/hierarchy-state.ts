@@ -8,10 +8,12 @@ import { PluginStateObject as SO } from '../../objects';
 import { StateObject, StateTransform, State, StateObjectCell, StateTree } from '../../../mol-state';
 import { StructureBuilderTags } from '../../builder/structure';
 import { RepresentationProviderTags } from '../../builder/structure/provider';
+import { StructureRepresentationInteractionTags } from '../../../mol-plugin/behavior/dynamic/selection/structure-representation-interaction';
 
 export function buildStructureHierarchy(state: State, previous?: StructureHierarchy) {
     const build = BuildState(state, previous || StructureHierarchy());
-    StateTree.doPreOrder(state.tree, state.tree.root, build, visitCell);
+//    StateTree.doPreOrder(state.tree, state.tree.root, build, visitCell);
+    doPreOrder(state.tree, build);
     if (previous) previous.refs.forEach(isRemoved, build);
     return { hierarchy: build.hierarchy, added: build.added, updated: build.updated, removed: build.removed };
 }
@@ -147,34 +149,46 @@ function createOrUpdateRef<R extends HierarchyRef, C extends any[]>(state: Build
     return ref;
 }
 
-const tagMap: [string, (state: BuildState, cell: StateObjectCell) => boolean | void][] = [
+const tagMap: [string, (state: BuildState, cell: StateObjectCell) => boolean | void, (state: BuildState) => any][] = [
     [StructureBuilderTags.Trajectory, (state, cell) => {
         state.currentTrajectory = createOrUpdateRefList(state, cell, state.hierarchy.trajectories, TrajectoryRef, cell);
-    }],
+    }, state => state.currentTrajectory = void 0],
     [StructureBuilderTags.Model, (state, cell) => {
         if (!state.currentTrajectory) return false;
         state.currentModel = createOrUpdateRefList(state, cell, state.currentTrajectory.models, ModelRef, cell, state.currentTrajectory);
-    }],
+    }, state => state.currentModel = void 0],
     [StructureBuilderTags.ModelProperties, (state, cell) => {
         if (!state.currentModel) return false;
         state.currentModel.properties = createOrUpdateRef(state, cell, state.currentModel.properties, ModelPropertiesRef, cell, state.currentModel);
-    }],
+    }, state => { }],
     [StructureBuilderTags.Structure, (state, cell) => {
         if (!state.currentModel) return false;
         state.currentStructure = createOrUpdateRefList(state, cell, state.currentModel.structures, StructureRef, cell, state.currentModel);
-    }],
+    }, state => state.currentStructure = void 0],
     [StructureBuilderTags.StructureProperties, (state, cell) => {
         if (!state.currentStructure) return false;
         state.currentStructure.properties = createOrUpdateRef(state, cell, state.currentStructure.properties, StructurePropertiesRef, cell, state.currentStructure);
-    }],
+    }, state => { }],
     [StructureBuilderTags.Component, (state, cell) => {
         if (!state.currentStructure) return false;
         state.currentComponent = createOrUpdateRefList(state, cell, state.currentStructure.components, StructureComponentRef, cell, state.currentStructure);
-    }],
+    }, state => state.currentComponent = void 0],
     [RepresentationProviderTags.Representation, (state, cell) => {
         if (!state.currentComponent) return false;
         createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
-    }]
+    }, state => { }],
+    [StructureRepresentationInteractionTags.ResidueSel, (state, cell) => {
+        if (!state.currentStructure) return false;
+        if (!state.currentStructure.currentFocus) state.currentStructure.currentFocus = { };
+        state.currentStructure.currentFocus.focus = StructureComponentRef(cell, state.currentStructure);
+        state.currentComponent = state.currentStructure.currentFocus.focus;
+    }, state => state.currentComponent = void 0],
+    [StructureRepresentationInteractionTags.SurrSel, (state, cell) => {
+        if (!state.currentStructure) return false;
+        if (!state.currentStructure.currentFocus) state.currentStructure.currentFocus = { };
+        state.currentStructure.currentFocus.surroundings = StructureComponentRef(cell, state.currentStructure);
+        state.currentComponent = state.currentStructure.currentFocus.surroundings;
+    }, state => state.currentComponent = void 0]
 ]
 
 function isValidCell(cell?: StateObjectCell): cell is StateObjectCell {
@@ -184,27 +198,44 @@ function isValidCell(cell?: StateObjectCell): cell is StateObjectCell {
     return true;
 }
 
-function visitCell(t: StateTransform, tree: StateTree, state: BuildState): boolean {
-    const cell = state.state.cells.get(t.ref);
-    if (!isValidCell(cell)) return false;
-
-    for (const [t, f] of tagMap) {
-        if (StateObject.hasTag(cell.obj!, t)) {
-            const stop = f(state, cell);
-            if (stop === false) return false;
-            return true;
-        }
-    }
-
-    if (state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj)) {
-        createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
-    }
-
-    return true;
-}
-
 function isRemoved(this: BuildState, ref: HierarchyRef) {
     const { cell } = ref;
     if (isValidCell(cell)) return;
     this.removed.push(ref);
+}
+
+type VisitorCtx = { tree: StateTree, state: BuildState };
+
+function _preOrderFunc(this: VisitorCtx, c: StateTransform.Ref | undefined) { _doPreOrder(this, this.tree.transforms.get(c!)!); }
+function _doPreOrder(ctx: VisitorCtx, root: StateTransform) {
+    const { state } = ctx;
+    const cell = state.state.cells.get(root.ref);
+    if (!isValidCell(cell)) return;
+
+    let onLeave: undefined | ((state: BuildState) => any) = void 0;
+    for (const [t, f, l] of tagMap) {
+        if (StateObject.hasTag(cell.obj!, t)) {
+            const stop = f(state, cell);
+            if (stop === false) return;
+            onLeave = l;
+            break;
+        }
+    }
+
+    if (!onLeave && state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj)) {
+        createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
+    }
+
+    const children = ctx.tree.children.get(root.ref);
+    if (children && children.size) {
+        children.forEach(_preOrderFunc, ctx);
+    }
+
+    if (onLeave) onLeave(state);
+}
+
+function doPreOrder(tree: StateTree, state: BuildState): BuildState {
+    const ctx: VisitorCtx = { tree, state };
+    _doPreOrder(ctx, tree.root);
+    return ctx.state;
 }
