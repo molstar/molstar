@@ -8,10 +8,9 @@ import * as React from 'react';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure';
 import { StructureComponentRef, StructureRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy';
-import { Icon } from '../controls/icons';
 import { State, StateAction } from '../../mol-state';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { ExpandGroup, IconButton } from '../controls/common';
+import { ExpandGroup, IconButton, ControlGroup } from '../controls/common';
 import { UpdateTransformControl } from '../state/update-transform';
 import { ActionMenu } from '../controls/action-menu';
 import { ApplyActionControl } from '../state/apply-action';
@@ -21,9 +20,15 @@ interface StructureComponentControlState extends CollapsableState {
     isDisabled: boolean
 }
 
+const MeasurementFocusOptions = {
+    minRadius: 6,
+    extraRadius: 6,
+    durationMs: 250,
+}
+
 export class StructureComponentControls extends CollapsableControls<{}, StructureComponentControlState> {
     protected defaultState(): StructureComponentControlState {
-        return { header: 'Structure Components', isCollapsed: false, isDisabled: false };
+        return { header: 'Components', isCollapsed: false, isDisabled: false };
     }
 
     get currentModels() {
@@ -42,13 +47,11 @@ export class StructureComponentControls extends CollapsableControls<{}, Structur
     }
 }
 
-const createRepr = StateAction.fromTransformer(StateTransforms.Representation.StructureRepresentation3D);
-class StructureComponentEntry extends PurePluginUIComponent<{ component: StructureComponentRef }, { showActions: boolean, showAddRepr: boolean }> {
-    state = { showActions: false, showAddRepr: false }
+type StructureComponentEntryActions = 'add-repr' | 'remove' | 'none'
 
-    is(e: State.ObjectEvent) {
-        return e.ref === this.ref && e.state === this.props.component.cell.parent;
-    }
+const createRepr = StateAction.fromTransformer(StateTransforms.Representation.StructureRepresentation3D);
+class StructureComponentEntry extends PurePluginUIComponent<{ component: StructureComponentRef }, { action: StructureComponentEntryActions }> {
+    state = { action: 'none' as StructureComponentEntryActions }
 
     get ref() {
         return this.props.component.cell.transform.ref;
@@ -56,7 +59,7 @@ class StructureComponentEntry extends PurePluginUIComponent<{ component: Structu
 
     componentDidMount() {
         this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
-            if (this.is(e)) this.forceUpdate();
+            if (State.ObjectEvent.isCell(e, this.props.component.cell)) this.forceUpdate();
         });
     }
 
@@ -68,16 +71,15 @@ class StructureComponentEntry extends PurePluginUIComponent<{ component: Structu
 
     remove(ref: string) {
         return () => {
-            this.setState({ showActions: false });
+            this.setState({ action: 'none' });
             PluginCommands.State.RemoveObject(this.plugin, { state: this.props.component.cell.parent, ref, removeParentGhosts: true });
         }
     }
 
     
-    get actions(): ActionMenu.Items {
+    get removeActions(): ActionMenu.Items {
         const ret = [
-            ActionMenu.Item(`${this.state.showAddRepr ? 'Hide ' : ''}Add Representation`, 'plus', this.toggleAddRepr),
-            ActionMenu.Item('Remove', 'remove', this.remove(this.ref))
+            ActionMenu.Item('Remove Component', 'remove', this.remove(this.ref))
         ];
         for (const repr of this.props.component.representations) {
             ret.push(ActionMenu.Item(`Remove ${repr.cell.obj?.label}`, 'remove', this.remove(repr.cell.transform.ref)))
@@ -85,13 +87,32 @@ class StructureComponentEntry extends PurePluginUIComponent<{ component: Structu
         return ret;
     }
     
-    selectAction: ActionMenu.OnSelect = item => {
+    selectRemoveAction: ActionMenu.OnSelect = item => {
         if (!item) return;
         (item?.value as any)();
     }
     
-    toggleAddRepr = () => this.setState({ showActions: false, showAddRepr: !this.state.showAddRepr });
-    toggleActions = () => this.setState({ showActions: !this.state.showActions });
+    toggleAddRepr = () => this.setState({ action: this.state.action === 'none' ? 'add-repr' : 'none' });
+    toggleRemoveActions = () => this.setState({ action: this.state.action === 'none' ? 'remove' : 'none' });
+
+    highlight = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        PluginCommands.State.Highlight(this.plugin, { state: this.props.component.cell.parent, ref: this.ref });
+    }
+
+    clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        PluginCommands.State.ClearHighlight(this.plugin, { state: this.props.component.cell.parent, ref: this.ref });
+    }
+
+    focus = () => {
+        const sphere = this.props.component.cell.obj?.data.boundary.sphere;
+        if (sphere) {
+            const { extraRadius, minRadius, durationMs } = MeasurementFocusOptions;
+            const radius = Math.max(sphere.radius + extraRadius, minRadius);
+            PluginCommands.Camera.Focus(this.plugin, { center: sphere.center, radius, durationMs });
+        }
+    }
 
     render() {
         const component = this.props.component;
@@ -99,16 +120,21 @@ class StructureComponentEntry extends PurePluginUIComponent<{ component: Structu
         const label = cell.obj?.label;
         return <>
             <div className='msp-control-row'>
-                <span title={label}>{label}</span>
+                <button className='msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
+                    {label}
+                </button>
                 <div className='msp-select-row'>
-                    <button onClick={this.toggleVisible}><Icon name='visual-visibility' style={{ fontSize: '80%' }} /> {cell.state.isHidden ? 'Show' : 'Hide'}</button>
-                    <IconButton onClick={this.toggleActions} icon='menu' style={{ width: '64px' }} toggleState={this.state.showActions} title='Actions' />
+                    <IconButton onClick={this.toggleVisible} icon='visual-visibility' toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small />
+                    <IconButton onClick={this.toggleRemoveActions} icon='remove' title='Remove' small toggleState={this.state.action === 'remove'} />
+                    <IconButton onClick={this.toggleAddRepr} icon='plus' title='Add Representation' toggleState={this.state.action === 'add-repr'} />
                 </div>
             </div>
-            {this.state.showActions && <ActionMenu items={this.actions} onSelect={this.selectAction} />}
+            {this.state.action === 'remove' && <ActionMenu items={this.removeActions} onSelect={this.selectRemoveAction} />}
             <div className='msp-control-offset'>
-                {this.state.showAddRepr && 
-                    <ApplyActionControl plugin={this.plugin} state={cell.parent} action={createRepr} nodeRef={this.ref} hideHeader noMargin onApply={this.toggleAddRepr} applyLabel='Add' />}
+                {this.state.action === 'add-repr' && 
+                <ControlGroup header='Add Representation' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleAddRepr} topRightIcon='off'>
+                    <ApplyActionControl plugin={this.plugin} state={cell.parent} action={createRepr} nodeRef={this.ref} hideHeader noMargin onApply={this.toggleAddRepr} applyLabel='Add' />
+                </ControlGroup>}
                 {component.representations.map(r => <StructureRepresentationEntry key={r.cell.transform.ref} representation={r} />)}
             </div>
         </>;
@@ -118,7 +144,7 @@ class StructureComponentEntry extends PurePluginUIComponent<{ component: Structu
 class StructureRepresentationEntry extends PurePluginUIComponent<{ representation: StructureRepresentationRef }> {
     render() {
         const repr = this.props.representation.cell;
-        return <ExpandGroup header={repr.obj?.label || ''} noOffset>
+        return <ExpandGroup header={`${repr.obj?.label || ''} Representation`} noOffset>
             <UpdateTransformControl state={repr.parent} transform={repr.transform} customHeader='none' noMargin />
         </ExpandGroup>;
     }

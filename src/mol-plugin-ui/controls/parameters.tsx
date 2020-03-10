@@ -939,9 +939,9 @@ class ObjectListItem extends React.PureComponent<{ param: PD.ObjectList, value: 
                     {this.props.param.getLabel(this.props.value)}
                 </button>
                 <div>
-                    <IconButton icon='up-thin' title='Move Up' onClick={this.moveUp} isSmall={true} />
-                    <IconButton icon='down-thin' title='Move Down' onClick={this.moveDown} isSmall={true} />
-                    <IconButton icon='remove' title='Remove' onClick={this.remove} isSmall={true} />
+                    <IconButton icon='up-thin' title='Move Up' onClick={this.moveUp} small={true} />
+                    <IconButton icon='down-thin' title='Move Down' onClick={this.moveDown} small={true} />
+                    <IconButton icon='remove' title='Remove' onClick={this.remove} small={true} />
                 </div>
             </div>
             {this.state.isExpanded && <div className='msp-control-offset'>

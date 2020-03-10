@@ -29,7 +29,7 @@ export class ControlGroup extends React.Component<{
 
     render() {
         // TODO: customize header style (bg color, togle button etc)
-        return <div className='msp-control-group-wrapper'>
+        return <div className='msp-control-group-wrapper' style={{ position: 'relative' }}>
             <div className='msp-control-group-header'>
                 <button className='msp-btn msp-btn-block' onClick={this.headerClicked}>
                     {!this.props.hideExpander && <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />}
@@ -257,7 +257,7 @@ export class ExpandableGroup extends React.Component<{
 
 export function IconButton(props: {
     icon: IconName,
-    isSmall?: boolean,
+    small?: boolean,
     onClick: (e: React.MouseEvent<HTMLButtonElement>) => void,
     title?: string,
     toggleState?: boolean,
@@ -267,12 +267,13 @@ export function IconButton(props: {
     'data-id'?: string,
     extraContent?: JSX.Element
 }) {
-    let className = `msp-btn-link msp-btn-icon${props.isSmall ? '-small' : ''}${props.customClass ? ' ' + props.customClass : ''}`;
+    let className = `msp-btn-link msp-btn-icon${props.small ? '-small' : ''}${props.customClass ? ' ' + props.customClass : ''}`;
     if (typeof props.toggleState !== 'undefined') {
         className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
     }
+    const iconStyle = props.small ? { fontSize: '80%' } : void 0;
     return <button className={className} onClick={props.onClick} title={props.title} disabled={props.disabled} data-id={props['data-id']} style={props.style}>
-        <Icon name={props.icon} />
+        <Icon name={props.icon} style={iconStyle} />
         {props.extraContent}
     </button>;
 }

@@ -23,13 +23,10 @@ const MeasurementFocusOptions = {
     minRadius: 8,
     extraRadius: 4,
     durationMs: 250,
-    unitLabel: '\u212B',
 }
 
 interface StructureMeasurementsControlsState extends CollapsableState {
-    unitLabel: string,
-
-    isDisabled: boolean,
+    isDisabled: boolean
 }
 
 export class StructureMeasurementsControls extends CollapsableControls<{}, StructureMeasurementsControlsState> {
@@ -47,7 +44,6 @@ export class StructureMeasurementsControls extends CollapsableControls<{}, Struc
         return {
             isCollapsed: false,
             header: 'Measurements',
-            unitLabel: '\u212B',
             isDisabled: false
         } as StructureMeasurementsControlsState
     }
@@ -145,7 +141,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         if (sphere) {
             const { extraRadius, minRadius, durationMs } = MeasurementFocusOptions;
             const radius = Math.max(sphere.radius + extraRadius, minRadius);
-            this.plugin.canvas3d?.camera.focus(sphere.center, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs);
+            PluginCommands.Camera.Focus(this.plugin, { center: sphere.center, radius, durationMs });
         }
     }
 
@@ -169,8 +165,8 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
             <button className='msp-btn msp-btn-block msp-form-control' title='Click to focus. Hover to highlight.' onClick={this.focus}>
                 <span dangerouslySetInnerHTML={{ __html: this.label }} />
             </button>
-            <IconButton isSmall={true} customClass='msp-form-control' onClick={this.delete} icon='remove' style={{ width: '52px' }} title='Delete' />
-            <IconButton isSmall={true} customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ width: '52px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
+            <IconButton small={true} customClass='msp-form-control' onClick={this.delete} icon='remove' style={{ width: '52px' }} title='Delete' />
+            <IconButton small={true} customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ width: '52px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
         </div>
     }
 

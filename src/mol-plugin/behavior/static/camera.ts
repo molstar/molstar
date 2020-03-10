@@ -10,6 +10,7 @@ import { CameraSnapshotManager } from '../../../mol-plugin-state/camera';
 
 export function registerDefault(ctx: PluginContext) {
     Reset(ctx);
+    Focus(ctx);
     SetSnapshot(ctx);
     Snapshots(ctx);
 }
@@ -23,6 +24,12 @@ export function Reset(ctx: PluginContext) {
 export function SetSnapshot(ctx: PluginContext) {
     PluginCommands.Camera.SetSnapshot.subscribe(ctx, ({ snapshot, durationMs }) => {
         ctx.canvas3d?.camera.transition.apply(snapshot, durationMs);
+    })
+}
+
+export function Focus(ctx: PluginContext) {
+    PluginCommands.Camera.Focus.subscribe(ctx, ({ center, radius, durationMs }) => {
+        ctx.canvas3d?.camera.focus(center, radius, ctx.canvas3d?.boundingSphere.radius, durationMs);
     })
 }
 

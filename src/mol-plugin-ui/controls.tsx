@@ -269,8 +269,8 @@ export class StructureToolsWrapper extends PluginUIComponent {
 
             <StructureSelectionControls />
             <StructureRepresentationControls />
-            <StructureMeasurementsControls />
             <StructureComponentControls />
+            <StructureMeasurementsControls />
         </div>;
     }
 }

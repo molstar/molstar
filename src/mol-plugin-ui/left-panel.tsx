@@ -25,6 +25,9 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
     componentDidMount() {
         this.subscribe(this.plugin.behaviors.layout.leftPanelTabName, tab => {
             if (this.state.tab !== tab) this.setState({ tab });
+            if (tab === 'none' && this.plugin.layout.state.regionState.left !== 'collapsed') {
+                PluginCommands.Layout.Update(this.plugin, { state: { regionState: { ...this.plugin.layout.state.regionState, left: 'collapsed' } } });
+            }
         });
 
         this.subscribe(this.plugin.state.dataState.events.changed, ({ state }) => {

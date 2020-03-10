@@ -13,6 +13,7 @@ import { StructureElement } from '../mol-model/structure';
 import { PluginState } from './state';
 import { Interactivity } from './util/interactivity';
 import { PluginToast } from './util/toast';
+import { Vec3 } from '../mol-math/linear-algebra';
 
 export const PluginCommands = {
     State: {
@@ -59,6 +60,7 @@ export const PluginCommands = {
     Camera: {
         Reset: PluginCommand<{ durationMs?: number, snapshot?: Partial<Camera.Snapshot> }>(),
         SetSnapshot: PluginCommand<{ snapshot: Partial<Camera.Snapshot>, durationMs?: number }>(),
+        Focus: PluginCommand<{ center: Vec3, radius: number, durationMs?: number }>(),
         Snapshots: {
             Add: PluginCommand<{ name?: string, description?: string }>(),
             Remove: PluginCommand<{ id: string }>(),

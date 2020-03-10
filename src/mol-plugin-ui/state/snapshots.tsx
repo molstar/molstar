@@ -150,10 +150,10 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
                     </small>
                 </button>
                 <div>
-                    <IconButton data-id={e!.snapshot.id} icon='up-thin' title='Move Up' onClick={this.moveUp} isSmall={true} />
-                    <IconButton data-id={e!.snapshot.id} icon='down-thin' title='Move Down' onClick={this.moveDown} isSmall={true} />
-                    <IconButton data-id={e!.snapshot.id} icon='switch' title='Replace' onClick={this.replace} isSmall={true} />
-                    <IconButton data-id={e!.snapshot.id} icon='remove' title='Remove' onClick={this.remove} isSmall={true} />
+                    <IconButton data-id={e!.snapshot.id} icon='up-thin' title='Move Up' onClick={this.moveUp} small={true} />
+                    <IconButton data-id={e!.snapshot.id} icon='down-thin' title='Move Down' onClick={this.moveDown} small={true} />
+                    <IconButton data-id={e!.snapshot.id} icon='switch' title='Replace' onClick={this.replace} small={true} />
+                    <IconButton data-id={e!.snapshot.id} icon='remove' title='Remove' onClick={this.remove} small={true} />
                 </div>
             </li>)}
         </ul>;

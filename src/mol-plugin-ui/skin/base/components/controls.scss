@@ -21,7 +21,7 @@
     background: $default-background;
     margin-top: 1px;
 
-    > span {
+    > span:first-child, > button.msp-control-button-label {
         line-height: $row-height;
         display: block;
         width: $control-label-width + $control-spacing;
@@ -34,6 +34,11 @@
         position: relative;
 
         @include non-selectable;
+    }
+
+    > button.msp-control-button-label {
+        background: $default-background;
+        cursor: pointer;
     }
 
     select, button, input[type=text] {
