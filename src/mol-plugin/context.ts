@@ -90,7 +90,8 @@ export class PluginContext {
     readonly behaviors = {
         state: {
             isAnimating: this.ev.behavior<boolean>(false),
-            isUpdating: this.ev.behavior<boolean>(false)
+            isUpdating: this.ev.behavior<boolean>(false),
+            isBusy: this.ev.behavior<boolean>(false)
         },
         interaction: {
             hover: this.ev.behavior<Interactivity.HoverEvent>({ current: Interactivity.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
@@ -231,6 +232,15 @@ export class PluginContext {
         merge(this.state.dataState.events.isUpdating, this.state.behaviorState.events.isUpdating).subscribe(u => {
             this.behaviors.state.isUpdating.next(u);
         });
+
+        merge(this.behaviors.state.isAnimating, this.behaviors.state.isAnimating).subscribe(() => {
+            const isUpdating = this.behaviors.state.isUpdating.value;
+            const isAnimating = this.behaviors.state.isAnimating.value;
+            const isBusy = this.behaviors.state.isAnimating;
+
+            if ((isUpdating || isAnimating) && !isBusy.value) isBusy.next(true);
+            else if (isBusy.value) isBusy.next(false);
+        })
     }
 
     private initBuiltInBehavior() {

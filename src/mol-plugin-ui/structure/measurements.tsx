@@ -35,7 +35,7 @@ export class StructureMeasurementsControls extends CollapsableControls<{}, Struc
             this.forceUpdate();
         });
 
-        this.subscribe(this.plugin.state.dataState.events.isUpdating, v => {
+        this.subscribe(this.plugin.behaviors.state.isBusy, v => {
             this.setState({ isDisabled: v })
         });
     }
