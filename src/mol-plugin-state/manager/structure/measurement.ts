@@ -11,7 +11,7 @@ import { StateTransforms } from '../../transforms';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { arraySetAdd } from '../../../mol-util/array';
 import { PluginStateObject } from '../../objects';
-import { PluginComponent } from '../../../mol-plugin/component';
+import { PluginComponent } from '../../component';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MeasurementRepresentationCommonTextParams } from '../../../mol-repr/shape/loci/common';
 

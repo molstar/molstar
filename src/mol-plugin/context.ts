@@ -48,7 +48,7 @@ import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { PluginConfigManager } from './config';
 import { DataBuilder } from '../mol-plugin-state/builder/data';
 import { StructureBuilder } from '../mol-plugin-state/builder/structure';
-import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure';
+import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure/hierarchy';
 
 export class PluginContext {
     private disposed = false;

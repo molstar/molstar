@@ -7,7 +7,7 @@
 import { List } from 'immutable';
 import { UUID } from '../mol-util';
 import { PluginState } from '../mol-plugin/state';
-import { PluginComponent } from '../mol-plugin/component';
+import { PluginComponent } from './component';
 import { PluginContext } from '../mol-plugin/context';
 
 export { PluginStateSnapshotManager }

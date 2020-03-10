@@ -7,7 +7,7 @@
 import { Camera } from '../mol-canvas3d/camera';
 import { OrderedMap } from 'immutable';
 import { UUID } from '../mol-util';
-import { PluginComponent } from '../mol-plugin/component';
+import { PluginComponent } from './component';
 
 export { CameraSnapshotManager }
 

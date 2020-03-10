@@ -6,8 +6,8 @@
 
 import * as React from 'react';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
-import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure';
-import { StructureComponentRef, StructureRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy';
+import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
+import { StructureComponentRef, StructureRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { State, StateAction } from '../../mol-state';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { ExpandGroup, IconButton, ControlGroup } from '../controls/common';

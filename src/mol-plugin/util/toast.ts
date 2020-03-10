@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginComponent } from '../component';
+import { PluginComponent } from '../../mol-plugin-state/component';
 import { OrderedMap } from 'immutable';
 import { PluginContext } from '../context';
 import { PluginCommands } from '../commands';

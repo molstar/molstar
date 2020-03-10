@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginComponent } from '../../mol-plugin/component';
+import { PluginComponent } from '../component';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginStateAnimation } from './model';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';

@@ -6,7 +6,7 @@
  */
 
 import { ParamDefinition as PD } from '../mol-util/param-definition';
-import { PluginComponent } from './component';
+import { PluginComponent } from '../mol-plugin-state/component';
 import { PluginContext } from './context';
 import { PluginCommands } from './commands';
 
