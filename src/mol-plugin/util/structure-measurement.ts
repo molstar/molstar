@@ -6,10 +6,11 @@
 
 import { StructureElement } from '../../mol-model/structure';
 import { PluginContext } from '../context';
-import { StateSelection, StateTransform, StateTransformer } from '../../mol-state';
+import { StateSelection, StateTransform, StateTransformer, StateObject } from '../../mol-state';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { PluginCommands } from '../commands';
 import { arraySetAdd } from '../../mol-util/array';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 
 export { StructureMeasurementManager }
 
@@ -25,7 +26,7 @@ class StructureMeasurementManager {
         return builder.toRoot().group(StateTransforms.Misc.CreateGroup, { label: `Measurements` }, { tags: MeasurementGroupTag });
     }
 
-    private getTransforms(transformer: StateTransformer) {
+    private getTransforms<T extends StateTransformer<A, B, any>, A extends PluginStateObject.Molecule.Structure.Selections, B extends StateObject>(transformer: T) {
         const state = this.context.state.dataState;
         const groupRef = StateSelection.findTagInSubtree(state.tree, StateTransform.RootRef, MeasurementGroupTag);
         return groupRef ? state.select(StateSelection.Generators.ofTransformer(transformer, groupRef)) : []

@@ -6,17 +6,26 @@
 
 import * as React from 'react';
 import { CollapsableControls, CollapsableState } from '../base';
-import { lociLabel } from '../../mol-theme/label';
-import { StructureElement } from '../../mol-model/structure';
+import { lociLabel, dihedralLabel, angleLabel, distanceLabel } from '../../mol-theme/label';
+import { Loci } from '../../mol-model/loci';
+import { FiniteArray } from '../../mol-util/type-helpers';
+import { StateObjectCell, StateTransform, StateTransformer } from '../../mol-state';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { ShapeRepresentation } from '../../mol-repr/shape/representation';
+import { IconButton } from '../controls/common';
+import { PluginCommands } from '../../mol-plugin/commands';
 
-// TODO hide/show, delete, details, options (e.g. change text for labels)
-// TODO better labels: shorter, include measure
+// TODO details, options (e.g. change text for labels)
 // TODO better updates on state changes
+
+type MeasurementTransform = StateObjectCell<PluginStateObject.Shape.Representation3D, StateTransform<StateTransformer<PluginStateObject.Molecule.Structure.Selections, PluginStateObject.Shape.Representation3D, any>>>
+
 
 interface StructureMeasurementsControlsState extends CollapsableState {
     minRadius: number,
     extraRadius: number,
     durationMs: number,
+    unitLabel: string,
 
     isDisabled: boolean,
 }
@@ -43,13 +52,14 @@ export class StructureMeasurementsControls<P, S extends StructureMeasurementsCon
         })
     }
 
-    focusLoci(loci: StructureElement.Loci) {
+    focus(selections: PluginStateObject.Molecule.Structure.Selections) {
         return () => {
-            const { extraRadius, minRadius, durationMs } = this.state
-            if (this.plugin.helpers.structureSelectionManager.stats.elementCount === 0) return
-            const { sphere } = StructureElement.Loci.getBoundary(loci)
-            const radius = Math.max(sphere.radius + extraRadius, minRadius);
-            this.plugin.canvas3d?.camera.focus(sphere.center, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs);
+            const sphere = Loci.getBundleBoundingSphere(toLociBundle(selections.data))
+            if (sphere) {
+                const { extraRadius, minRadius, durationMs } = this.state
+                const radius = Math.max(sphere.radius + extraRadius, minRadius);
+                this.plugin.canvas3d?.camera.focus(sphere.center, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs);
+            }
         }
     }
 
@@ -61,9 +71,69 @@ export class StructureMeasurementsControls<P, S extends StructureMeasurementsCon
             minRadius: 8,
             extraRadius: 4,
             durationMs: 250,
+            unitLabel: '\u212B',
 
             isDisabled: false
         } as S
+    }
+
+    getLabel(selections: PluginStateObject.Molecule.Structure.Selections) {
+        switch (selections.data.length) {
+            case 1: return lociLabel(selections.data[0].loci, { condensed: true })
+            case 2: return distanceLabel(toLociBundle(selections.data), { condensed: true })
+            case 3: return angleLabel(toLociBundle(selections.data), { condensed: true })
+            case 4: return dihedralLabel(toLociBundle(selections.data), { condensed: true })
+        }
+        return ''
+    }
+
+    highlight(repr: ShapeRepresentation<any, any, any>, selections: PluginStateObject.Molecule.Structure.Selections) {
+        return () => {
+            this.plugin.interactivity.lociHighlights.clearHighlights();
+            for (const d of selections.data) {
+                this.plugin.interactivity.lociHighlights.highlight({ loci: d.loci }, false);
+            }
+            this.plugin.interactivity.lociHighlights.highlight({ loci: repr.getLoci() }, false);
+        }
+    }
+
+    clearHighlight() {
+        return () => {
+            this.plugin.interactivity.lociHighlights.clearHighlights();
+        }
+    }
+
+    delete(cell: MeasurementTransform) {
+        return () => {
+            PluginCommands.State.RemoveObject(this.plugin, { state: cell.parent, ref: cell.transform.parent, removeParentGhosts: true });
+        }
+    }
+
+    toggleVisibility(cell: MeasurementTransform) {
+        return (e: React.MouseEvent<HTMLElement>) => {
+            e.preventDefault();
+            PluginCommands.State.ToggleVisibility(this.plugin, { state: cell.parent, ref: cell.transform.parent });
+            e.currentTarget.blur();
+        }
+    }
+
+    getRow(cell: MeasurementTransform) {
+        const { obj } = cell
+        if (!obj) return null
+
+        const selections = obj.data.source as PluginStateObject.Molecule.Structure.Selections
+
+        return <div className='msp-btn-row-group' key={obj.id} onMouseEnter={this.highlight(obj.data.repr, selections)} onMouseLeave={this.clearHighlight()}>
+            <button className='msp-btn msp-btn-block msp-form-control' title='Click to focus. Hover to highlight.' onClick={this.focus(selections)}>
+                <span dangerouslySetInnerHTML={{ __html: this.getLabel(selections) }} />
+            </button>
+            <IconButton isSmall={true} customClass='msp-form-control' onClick={this.delete(cell)} icon='remove' style={{ width: '52px' }} title='Delete' />
+            <IconButton isSmall={true} customClass='msp-form-control' onClick={this.toggleVisibility(cell)} icon='eye' style={{ width: '52px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={cell.state.isHidden} />
+        </div>
+    }
+
+    getData() {
+
     }
 
     renderControls() {
@@ -75,96 +145,46 @@ export class StructureMeasurementsControls<P, S extends StructureMeasurementsCon
         const measurements = this.plugin.helpers.measurement.getMeasurements();
 
         for (const d of measurements.labels) {
-            const source = d.obj?.data.source
-            if (source) {
-                const lA = simpleLabel(source.data[0].loci)
-                labels.push(<li key={source.id}>
-                    <button className='msp-btn msp-btn-block msp-form-control' style={{ borderRight: '6px solid transparent', overflow: 'hidden' }}
-                        title='Click to focus.' onClick={this.focusLoci(source.data[0].loci)}>
-                        <span dangerouslySetInnerHTML={{ __html: `${lA}` }} />
-                    </button>
-                </li>)
-            }
+            const row = this.getRow(d)
+            if (row) labels.push(row)
         }
 
         for (const d of measurements.distances) {
-            const source = d.obj?.data.source
-            if (source) {
-                const lA = simpleLabel(source.data[0].loci)
-                const lB = simpleLabel(source.data[1].loci)
-                distances.push(<li key={source.id}>
-                    <button className='msp-btn msp-btn-block msp-form-control' style={{ borderRight: '6px solid transparent', overflow: 'hidden' }}
-                        title='Click to focus.' onClick={this.focusLoci(source.data[0].loci)}>
-                        <span dangerouslySetInnerHTML={{ __html: `${lA} \u2014 ${lB}` }} />
-                    </button>
-                </li>)
-            }
+            const row = this.getRow(d)
+            if (row) distances.push(row)
         }
 
         for (const d of measurements.angles) {
-            const source = d.obj?.data.source
-            if (source) {
-                const lA = simpleLabel(source.data[0].loci)
-                const lB = simpleLabel(source.data[1].loci)
-                const lC = simpleLabel(source.data[2].loci)
-                angles.push(<li key={source.id}>
-                    <button className='msp-btn msp-btn-block msp-form-control' style={{ borderRight: '6px solid transparent', overflow: 'hidden' }}
-                        title='Click to focus.' onClick={this.focusLoci(source.data[0].loci)}>
-                        <span dangerouslySetInnerHTML={{ __html: `${lA} \u2014 ${lB} \u2014 ${lC}` }} />
-                    </button>
-                </li>)
-            }
+            const row = this.getRow(d)
+            if (row) angles.push(row)
         }
 
         for (const d of measurements.dihedrals) {
-            const source = d.obj?.data.source
-            if (source) {
-                const lA = simpleLabel(source.data[0].loci)
-                const lB = simpleLabel(source.data[1].loci)
-                const lC = simpleLabel(source.data[2].loci)
-                const lD = simpleLabel(source.data[3].loci)
-                dihedrals.push(<li key={source.id}>
-                    <button className='msp-btn msp-btn-block msp-form-control' style={{ borderRight: '6px solid transparent', overflow: 'hidden' }}
-                        title='Click to focus.' onClick={this.focusLoci(source.data[0].loci)}>
-                        <span dangerouslySetInnerHTML={{ __html: `${lA} \u2014 ${lB} \u2014 ${lC} \u2014 ${lD}` }} />
-                    </button>
-                </li>)
-            }
+            const row = this.getRow(d)
+            if (row) dihedrals.push(row)
         }
 
         return <div>
             {labels.length > 0 && <div>
                 <div className='msp-control-group-header' style={{ marginTop: '1px' }}><span>Labels</span></div>
-                <ul style={{ listStyle: 'none', marginTop: '1px', marginBottom: '0' }} className='msp-state-list'>
-                    {labels}
-                </ul>
+                <div className='msp-control-offset'>{labels}</div>
             </div>}
             {distances.length > 0 && <div>
                 <div className='msp-control-group-header' style={{ marginTop: '1px' }}><span>Distances</span></div>
-                <ul style={{ listStyle: 'none', marginTop: '1px', marginBottom: '0' }} className='msp-state-list'>
-                    {distances}
-                </ul>
+                <div className='msp-control-offset'>{distances}</div>
             </div>}
             {angles.length > 0 && <div>
                 <div className='msp-control-group-header' style={{ marginTop: '1px' }}><span>Angles</span></div>
-                <ul style={{ listStyle: 'none', marginTop: '1px', marginBottom: '0' }} className='msp-state-list'>
-                    {angles}
-                </ul>
+                <div className='msp-control-offset'>{angles}</div>
             </div>}
             {dihedrals.length > 0 && <div>
                 <div className='msp-control-group-header' style={{ marginTop: '1px' }}><span>Dihedrals</span></div>
-                <ul style={{ listStyle: 'none', marginTop: '1px', marginBottom: '0' }} className='msp-state-list'>
-                    {dihedrals}
-                </ul>
+                <div className='msp-control-offset'>{dihedrals}</div>
             </div>}
         </div>
     }
 }
 
-function simpleLabel(loci: StructureElement.Loci) {
-    return lociLabel(loci, { htmlStyling: false })
-        .split('|')
-        .reverse()[0]
-        .replace(/\[.*\]/g, '')
-        .trim()
+function toLociBundle(data: FiniteArray<{ loci: Loci }, any>): { loci: FiniteArray<Loci, any> } {
+    return { loci: (data.map(d => d.loci) as unknown as FiniteArray<Loci, any>) }
 }
