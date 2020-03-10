@@ -17,7 +17,7 @@ import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
-import { bundleLabel } from '../../../mol-theme/label';
+import { distanceLabel } from '../../../mol-theme/label';
 
 export interface DistanceData {
     pairs: Loci.Bundle<2>[]
@@ -88,13 +88,8 @@ function setDistanceState(pair: Loci.Bundle<2>, state: DistanceState) {
 
 const tmpState = getDistanceState()
 
-function distanceLabel(pair: Loci.Bundle<2>, unitLabel: string) {
-    setDistanceState(pair, tmpState)
-    return `Distance ${tmpState.distance.toFixed(2)} ${unitLabel}`
-}
-
 function getDistanceName(data: DistanceData, unitLabel: string) {
-    return data.pairs.length === 1 ? distanceLabel(data.pairs[0], unitLabel) : `${data.pairs.length} Distances`
+    return data.pairs.length === 1 ? `Distance ${distanceLabel(data.pairs[0], { unitLabel, measureOnly: true })}` : `${data.pairs.length} Distances`
 }
 
 //
@@ -111,13 +106,7 @@ function buildLines(data: DistanceData, props: DistanceProps, lines?: Lines): Li
 function getLinesShape(ctx: RuntimeContext, data: DistanceData, props: DistanceProps, shape?: Shape<Lines>) {
     const lines = buildLines(data, props, shape && shape.geometry);
     const name = getDistanceName(data, props.unitLabel)
-    const getLabel = function (groupId: number ) {
-        const pair = data.pairs[groupId]
-        return [
-            distanceLabel(pair, props.unitLabel),
-            bundleLabel(pair)
-        ].join('</br>')
-    }
+    const getLabel = (groupId: number ) => distanceLabel(data.pairs[groupId], props)
     return Shape.create(name, data, lines, () => props.linesColor, () => props.linesSize, getLabel)
 }
 
@@ -137,13 +126,7 @@ function buildText(data: DistanceData, props: DistanceProps, text?: Text): Text 
 function getTextShape(ctx: RuntimeContext, data: DistanceData, props: DistanceProps, shape?: Shape<Text>) {
     const text = buildText(data, props, shape && shape.geometry);
     const name = getDistanceName(data, props.unitLabel)
-    const getLabel = function (groupId: number ) {
-        const pair = data.pairs[groupId]
-        return [
-            distanceLabel(pair, props.unitLabel),
-            bundleLabel(pair)
-        ].join('</br>')
-    }
+    const getLabel = (groupId: number ) => distanceLabel(data.pairs[groupId], props)
     return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel)
 }
 

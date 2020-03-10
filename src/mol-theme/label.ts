@@ -10,11 +10,15 @@ import { Loci } from '../mol-model/loci';
 import { OrderedSet } from '../mol-data/int';
 import { capitalize, stripTags } from '../mol-util/string';
 import { Column } from '../mol-data/db';
+import { Vec3 } from '../mol-math/linear-algebra';
+import { radToDeg } from '../mol-math/misc';
 
 export type LabelGranularity = 'element' | 'conformation' | 'residue' | 'chain' | 'structure'
 
 export const DefaultLabelOptions = {
     granularity: 'element' as LabelGranularity,
+    condensed: false,
+    reverse: false,
     countsOnly: false,
     hidePrefix: false,
     htmlStyling: true,
@@ -63,40 +67,40 @@ function getResidueCount(unit: Unit.Atomic) {
 
 export function structureElementStatsLabel(stats: StructureElement.Stats, options: Partial<LabelOptions> = {}): string {
     const o = { ...DefaultLabelOptions, ...options }
-    const label = _structureElementStatsLabel(stats, o.countsOnly, o.hidePrefix)
+    const label = _structureElementStatsLabel(stats, o.countsOnly, o.hidePrefix, o.condensed)
     return o.htmlStyling ? label : stripTags(label)
 }
 
-function _structureElementStatsLabel(stats: StructureElement.Stats, countsOnly = false, hidePrefix = false): string {
+function _structureElementStatsLabel(stats: StructureElement.Stats, countsOnly = false, hidePrefix = false, condensed = false): string {
     const { structureCount, chainCount, residueCount, conformationCount, elementCount } = stats
 
     if (!countsOnly && elementCount === 1 && residueCount === 0 && chainCount === 0) {
-        return elementLabel(stats.firstElementLoc, { hidePrefix, granularity: 'element' })
+        return elementLabel(stats.firstElementLoc, { hidePrefix, condensed, granularity: 'element' })
     } else if (!countsOnly && elementCount === 0 && residueCount === 1 && chainCount === 0) {
-        return elementLabel(stats.firstResidueLoc, { hidePrefix, granularity: 'residue' })
+        return elementLabel(stats.firstResidueLoc, { hidePrefix, condensed, granularity: 'residue' })
     } else if (!countsOnly && elementCount === 0 && residueCount === 0 && chainCount === 1) {
         const { unit } = stats.firstChainLoc
         const granularity = (Unit.isAtomic(unit) && getResidueCount(unit) === 1) ? 'residue' : 'chain'
-        return elementLabel(stats.firstChainLoc, { hidePrefix, granularity })
+        return elementLabel(stats.firstChainLoc, { hidePrefix, condensed, granularity })
     } else if (!countsOnly) {
         const label: string[] = []
         if (structureCount > 0) {
-            label.push(structureCount === 1 ? elementLabel(stats.firstStructureLoc, { hidePrefix, granularity: 'structure' }) : otherLabel(structureCount, stats.firstStructureLoc, 'structure', false))
+            label.push(structureCount === 1 ? elementLabel(stats.firstStructureLoc, { hidePrefix, condensed, granularity: 'structure' }) : otherLabel(structureCount, stats.firstStructureLoc, 'structure', false))
         }
         if (chainCount > 0) {
-            label.push(chainCount === 1 ? elementLabel(stats.firstChainLoc, { granularity: 'chain' }) : otherLabel(chainCount, stats.firstChainLoc, 'chain', false))
+            label.push(chainCount === 1 ? elementLabel(stats.firstChainLoc, { condensed, granularity: 'chain' }) : otherLabel(chainCount, stats.firstChainLoc, 'chain', false))
             hidePrefix = true;
         }
         if (residueCount > 0) {
-            label.push(residueCount === 1 ? elementLabel(stats.firstResidueLoc, { granularity: 'residue', hidePrefix }) : otherLabel(residueCount, stats.firstResidueLoc, 'residue', hidePrefix))
+            label.push(residueCount === 1 ? elementLabel(stats.firstResidueLoc, { condensed, granularity: 'residue', hidePrefix }) : otherLabel(residueCount, stats.firstResidueLoc, 'residue', hidePrefix))
             hidePrefix = true;
         }
         if (conformationCount > 0) {
-            label.push(conformationCount === 1 ? elementLabel(stats.firstConformationLoc, { granularity: 'conformation', hidePrefix }) : otherLabel(conformationCount, stats.firstConformationLoc, 'conformation', hidePrefix))
+            label.push(conformationCount === 1 ? elementLabel(stats.firstConformationLoc, { condensed, granularity: 'conformation', hidePrefix }) : otherLabel(conformationCount, stats.firstConformationLoc, 'conformation', hidePrefix))
             hidePrefix = true;
         }
         if (elementCount > 0) {
-            label.push(elementCount === 1 ? elementLabel(stats.firstElementLoc, { granularity: 'element', hidePrefix }) : otherLabel(elementCount, stats.firstElementLoc, 'element', hidePrefix))
+            label.push(elementCount === 1 ? elementLabel(stats.firstElementLoc, { condensed, granularity: 'element', hidePrefix }) : otherLabel(elementCount, stats.firstElementLoc, 'element', hidePrefix))
         }
         return label.join('<small> + </small>')
     } else {
@@ -111,20 +115,21 @@ function _structureElementStatsLabel(stats: StructureElement.Stats, countsOnly =
 }
 
 export function bondLabel(bond: Bond.Location, options: Partial<LabelOptions> = {}): string {
-    const o = { ...DefaultLabelOptions, ...options }
-    const locA = StructureElement.Location.create(bond.aStructure, bond.aUnit, bond.aUnit.elements[bond.aIndex])
-    const locB = StructureElement.Location.create(bond.bStructure, bond.bUnit, bond.bUnit.elements[bond.bIndex])
-    const labelA = _elementLabel(locA, o.granularity, o.hidePrefix)
-    const labelB = _elementLabel(locB, o.granularity, o.hidePrefix)
-    let offset = 0
-    for (let i = 0, il = Math.min(labelA.length, labelB.length); i < il; ++i) {
-        if (labelA[i] === labelB[i]) offset += 1
-        else break
-    }
-    return `${labelA.join(' | ')} \u2014 ${labelB.slice(offset).join(' | ')}`
+    return bundleLabel({ loci: [
+        StructureElement.Loci(bond.aStructure, [{ unit: bond.aUnit, indices: OrderedSet.ofSingleton(bond.aIndex) }]),
+        StructureElement.Loci(bond.bStructure, [{ unit: bond.bUnit, indices: OrderedSet.ofSingleton(bond.bIndex) }])
+    ]}, options)
 }
 
-export function bundleLabel(bundle: Loci.Bundle<any>, options: Partial<LabelOptions> = {}) {
+export function bundleLabel(bundle: Loci.Bundle<any>, options: Partial<LabelOptions> = {}): string {
+    const o = { ...DefaultLabelOptions, ...options }
+    const label = _bundleLabel(bundle, o)
+    return o.htmlStyling ? label : stripTags(label)
+}
+
+export function _bundleLabel(bundle: Loci.Bundle<any>, options: LabelOptions) {
+    const { granularity, hidePrefix, reverse, condensed } = options
+
     let isSingleElements = true
     for (const l of bundle.loci) {
         if (!StructureElement.Loci.is(l) || StructureElement.Loci.size(l) !== 1) {
@@ -134,12 +139,15 @@ export function bundleLabel(bundle: Loci.Bundle<any>, options: Partial<LabelOpti
     }
 
     if (isSingleElements) {
-        const o = { ...DefaultLabelOptions, ...options }
         const locations = (bundle.loci as StructureElement.Loci[]).map(l => {
             const { unit, indices } = l.elements[0]
             return StructureElement.Location.create(l.structure, unit, unit.elements[OrderedSet.start(indices)])
         })
-        const labels = locations.map(l => _elementLabel(l, o.granularity, o.hidePrefix))
+        const labels = locations.map(l => _elementLabel(l, granularity, hidePrefix, reverse || condensed))
+
+        if (condensed) {
+            return labels.map(l => l[0].replace(/\[.*\]/g, '').trim()).join(' \u2014 ')
+        }
 
         let offset = 0
         for (let i = 0, il = Math.min(...labels.map(l => l.length)); i < il; ++i) {
@@ -164,21 +172,23 @@ export function bundleLabel(bundle: Loci.Bundle<any>, options: Partial<LabelOpti
             return labels.map(l => l.join(' | ')).join('</br>')
         }
     } else {
-        return bundle.loci.map(l => lociLabel(l)).join('</br>')
+        const labels = bundle.loci.map(l => lociLabel(l, options))
+        return labels.join(condensed ? ' \u2014 ' : '</br>')
     }
 }
 
 export function elementLabel(location: StructureElement.Location, options: Partial<LabelOptions> = {}): string {
     const o = { ...DefaultLabelOptions, ...options }
-    const label = _elementLabel(location, o.granularity, o.hidePrefix).join(' | ')
+    const _label = _elementLabel(location, o.granularity, o.hidePrefix, o.reverse || o.condensed)
+    const label = o.condensed ? _label[0].replace(/\[.*\]/g, '').trim() : _label.join(' | ')
     return o.htmlStyling ? label : stripTags(label)
 }
 
-function _elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element', hidePrefix = false): string[] {
+function _elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element', hidePrefix = false, reverse = false): string[] {
     const label: string[] = [];
     if (!hidePrefix) {
         let entry = location.unit.model.entry;
-        if (entry.length > 30) entry = entry.substr(0, 27) + '...';
+        if (entry.length > 30) entry = entry.substr(0, 27) + '\u2026'; // ellipsis
         label.push(`<small>${entry}</small>`) // entry
         if (granularity !== 'structure') {
             label.push(`<small>Model ${location.unit.model.modelNum}</small>`) // model
@@ -194,7 +204,7 @@ function _elementLabel(location: StructureElement.Location, granularity: LabelGr
         label.push('Unknown')
     }
 
-    return label
+    return reverse ? label.reverse() : label
 }
 
 function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, granularity: LabelGranularity): string[] {
@@ -269,4 +279,35 @@ function _coarseElementLabel(location: StructureElement.Location<Unit.Spheres | 
     }
 
     return label.reverse()
+}
+
+//
+
+export function distanceLabel(pair: Loci.Bundle<2>, options: Partial<LabelOptions & { measureOnly: boolean, unitLabel: string }> = {}) {
+    const o = { ...DefaultLabelOptions, measureOnly: false, unitLabel: '\u212B', ...options }
+    const [cA, cB] = pair.loci.map(l => Loci.getCenter(l)!)
+    const distance = `${Vec3.distance(cA, cB).toFixed(2)} ${o.unitLabel}`
+    if (o.measureOnly) return distance
+    const label = bundleLabel(pair, o)
+    return o.condensed ? `${distance} | ${label}` : `Distance ${distance}</br>${label}`
+}
+
+export function angleLabel(triple: Loci.Bundle<3>, options: Partial<LabelOptions & { measureOnly: boolean }> = {}) {
+    const o = { ...DefaultLabelOptions, measureOnly: false, ...options }
+    const [cA, cB, cC] = triple.loci.map(l => Loci.getCenter(l)!)
+    const vAB = Vec3.sub(Vec3(), cA, cB)
+    const vCB = Vec3.sub(Vec3(), cC, cB)
+    const angle = `${radToDeg(Vec3.angle(vAB, vCB)).toFixed(2)}\u00B0`
+    if (o.measureOnly) return angle
+    const label = bundleLabel(triple, o)
+    return o.condensed ? `${angle} | ${label}` : `Angle ${angle}</br>${label}`
+}
+
+export function dihedralLabel(quad: Loci.Bundle<4>, options: Partial<LabelOptions & { measureOnly: boolean }> = {}) {
+    const o = { ...DefaultLabelOptions, measureOnly: false, ...options }
+    const [cA, cB, cC, cD] = quad.loci.map(l => Loci.getCenter(l)!)
+    const dihedral = `${radToDeg(Vec3.dihedralAngle(cA, cB, cC, cD)).toFixed(2)}\u00B0`
+    if (o.measureOnly) return dihedral
+    const label = bundleLabel(quad, o)
+    return o.condensed ? `${dihedral} | ${label}` : `Dihedral ${dihedral}</br>${label}`
 }

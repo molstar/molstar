@@ -22,7 +22,7 @@ import { arcLength, halfPI, radToDeg } from '../../../mol-math/misc';
 import { Circle } from '../../../mol-geo/primitive/circle';
 import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
 import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
-import { bundleLabel } from '../../../mol-theme/label';
+import { dihedralLabel } from '../../../mol-theme/label';
 
 export interface DihedralData {
     quads: Loci.Bundle<4>[]
@@ -183,14 +183,9 @@ function getCircle(state: DihedralState, segmentLength?: number) {
 }
 
 const tmpState = getDihedralState()
-function dihedralLabel(quad: Loci.Bundle<4>) {
-    setDihedralState(quad, tmpState, 1)
-    const angle = radToDeg(tmpState.angle).toFixed(2)
-    return `Dihedral ${angle}\u00B0`
-}
 
 function getDihedralName(data: DihedralData) {
-    return data.quads.length === 1 ? dihedralLabel(data.quads[0]) : `${data.quads.length} Dihedrals`
+    return data.quads.length === 1 ? dihedralLabel(data.quads[0], { measureOnly: true }) : `${data.quads.length} Dihedrals`
 }
 
 //
@@ -276,13 +271,7 @@ function buildSectorMesh(data: DihedralData, props: DihedralProps, mesh?: Mesh):
 function getSectorShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Mesh>) {
     const mesh = buildSectorMesh(data, props, shape && shape.geometry);
     const name = getDihedralName(data)
-    const getLabel = function (groupId: number ) {
-        const quad = data.quads[groupId]
-        return [
-            dihedralLabel(quad),
-            bundleLabel(quad)
-        ].join('</br>')
-    }
+    const getLabel = (groupId: number ) => dihedralLabel(data.quads[groupId])
     return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel)
 }
 
@@ -307,13 +296,7 @@ function buildText(data: DihedralData, props: DihedralProps, text?: Text): Text 
 function getTextShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Text>) {
     const text = buildText(data, props, shape && shape.geometry);
     const name = getDihedralName(data)
-    const getLabel = function (groupId: number ) {
-        const quad = data.quads[groupId]
-        return [
-            dihedralLabel(quad),
-            bundleLabel(quad)
-        ].join('</br>')
-    }
+    const getLabel = (groupId: number ) => dihedralLabel(data.quads[groupId])
     return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel)
 }
 

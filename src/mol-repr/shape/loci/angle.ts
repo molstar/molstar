@@ -22,7 +22,7 @@ import { radToDeg, arcLength } from '../../../mol-math/misc';
 import { Circle } from '../../../mol-geo/primitive/circle';
 import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
 import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
-import { bundleLabel } from '../../../mol-theme/label';
+import { angleLabel } from '../../../mol-theme/label';
 
 export interface AngleData {
     triples: Loci.Bundle<3>[]
@@ -141,14 +141,8 @@ function getCircle(state: AngleState, segmentLength?: number) {
 
 const tmpState = getAngleState()
 
-function angleLabel(triple: Loci.Bundle<3>) {
-    setAngleState(triple, tmpState, 1)
-    const angle = radToDeg(tmpState.angle).toFixed(2)
-    return `Angle ${angle}\u00B0`
-}
-
 function getAngleName(data: AngleData) {
-    return data.triples.length === 1 ? angleLabel(data.triples[0]) : `${data.triples.length} Angles`
+    return data.triples.length === 1 ? angleLabel(data.triples[0], { measureOnly: true }) : `${data.triples.length} Angles`
 }
 
 //
@@ -216,13 +210,7 @@ function buildSectorMesh(data: AngleData, props: AngleProps, mesh?: Mesh): Mesh 
 function getSectorShape(ctx: RuntimeContext, data: AngleData, props: AngleProps, shape?: Shape<Mesh>) {
     const mesh = buildSectorMesh(data, props, shape && shape.geometry);
     const name = getAngleName(data)
-    const getLabel = function (groupId: number ) {
-        const triple = data.triples[groupId]
-        return [
-            angleLabel(triple),
-            bundleLabel(triple)
-        ].join('</br>')
-    }
+    const getLabel = (groupId: number ) => angleLabel(data.triples[groupId])
     return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel)
 }
 
@@ -247,13 +235,7 @@ function buildText(data: AngleData, props: AngleProps, text?: Text): Text {
 function getTextShape(ctx: RuntimeContext, data: AngleData, props: AngleProps, shape?: Shape<Text>) {
     const text = buildText(data, props, shape && shape.geometry);
     const name = getAngleName(data)
-    const getLabel = function (groupId: number ) {
-        const triple = data.triples[groupId]
-        return [
-            angleLabel(triple),
-            bundleLabel(triple)
-        ].join('</br>')
-    }
+    const getLabel = (groupId: number ) => angleLabel(data.triples[groupId])
     return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel)
 }
 
