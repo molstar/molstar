@@ -48,6 +48,7 @@ import { DataBuilder } from '../mol-plugin-state/builder/data';
 import { StructureBuilder } from '../mol-plugin-state/builder/structure';
 import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure/hierarchy';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
+import { TrajectoryFormatRegistry } from '../mol-plugin-state/formats/trajectory';
 
 export class PluginContext {
     private disposed = false;
@@ -117,6 +118,7 @@ export class PluginContext {
     } as const
 
     readonly dataFormat = {
+        trajectory: TrajectoryFormatRegistry(),
         registry: new DataFormatRegistry()
     } as const
 

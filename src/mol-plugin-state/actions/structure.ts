@@ -20,6 +20,7 @@ import { Download, ParsePsf } from '../transforms/data';
 import { CoordinatesFromDcd, CustomModelProperties, CustomStructureProperties, TopologyFromPsf, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant } from './data-format';
 import { TrajectoryFormat } from '../builder/structure';
+import { BuildInTrajectoryFormat } from '../formats/trajectory';
 
 export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | PluginStateObject.Data.Binary> = {
     label: 'mmCIF',
@@ -34,7 +35,7 @@ export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | P
     },
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('mmCIF default builder', async taskCtx => {
-            const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'cif' });
+            const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'mmcif' });
             if (options.visuals) {
                 await ctx.builders.representation.structurePreset(structure, 'auto');
             }
@@ -52,7 +53,7 @@ export const PdbProvider: DataFormatProvider<any> = {
     },
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('PDB default builder', async () => {
-            const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'cif' });
+            const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'pdb' });
             if (options.visuals) {
                 await ctx.builders.representation.structurePreset(structure, 'auto');
             }
@@ -174,7 +175,7 @@ const DownloadStructure = StateAction.build({
             }, { isFlat: true, label: 'SWISS-MODEL', description: 'Loads the best homology model or experimental structure' }),
             'url': PD.Group({
                 url: PD.Text(''),
-                format: PD.Select('cif', [['cif', 'CIF'], ['pdb', 'PDB']] as ['cif' | 'pdb', string][]),
+                format: PD.Select('mmcif', [['mmcif', 'CIF'], ['pdb', 'PDB']] as ['mmcif' | 'pdb', string][]),
                 isBinary: PD.Boolean(false),
                 structure: DownloadModelRepresentationOptions,
                 options: PD.Group({
@@ -185,11 +186,11 @@ const DownloadStructure = StateAction.build({
         })
     }
 })(({ params, state }, plugin: PluginContext) => Task.create('Download Structure', async ctx => {
-    // plugin.behaviors.layout.leftPanelTabName.next('data');
+    plugin.behaviors.layout.leftPanelTabName.next('data');
 
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
-    let supportProps = false, asTrajectory = false, format: TrajectoryFormat = 'cif';
+    let supportProps = false, asTrajectory = false, format: BuildInTrajectoryFormat = 'mmcif';
 
     switch (src.name) {
         case 'url':
