@@ -23,6 +23,7 @@ import { AsyncQueue } from '../mol-util/async-queue';
 import { isProductionMode } from '../mol-util/debug'
 import { arraySetAdd, arraySetRemove } from '../mol-util/array';
 import { UniqueArray } from '../mol-data/generic';
+import { assignIfUndefined } from '../mol-util/object';
 
 export { State }
 
@@ -134,6 +135,7 @@ class State {
             const snapshot = this._tree.asImmutable();
             let restored = false;
             try {
+                this.events.isUpdating.next(true);
                 this.inTransaction = true;
                 await edits();
 
@@ -151,6 +153,7 @@ class State {
             } finally {
                 this.inTransaction = false;
                 this.events.changed.next({ state: this, inTransaction: false });
+                this.events.isUpdating.next(false);
             }
         });
     }
@@ -170,6 +173,7 @@ class State {
             const removed = await this.updateQueue.enqueue(params);
             if (!removed) return;
 
+            if (!this.inTransaction) this.events.isUpdating.next(true);
             try {
                 const ret = options && (options.revertIfAborted || options.revertOnError)
                     ? await this._revertibleTreeUpdate(taskCtx, params, options)
@@ -177,6 +181,7 @@ class State {
                 return ret.cell;
             } finally {
                 this.updateQueue.handled(params);
+                if (!this.inTransaction) this.events.isUpdating.next(false);
             }
         }, () => {
             this.updateQueue.remove(params);
@@ -194,7 +199,6 @@ class State {
     }
 
     private async _updateTree(taskCtx: RuntimeContext, params: UpdateParams) {
-        this.events.isUpdating.next(true);
         let updated = false;
         const ctx = this.updateTreeAndCreateCtx(params.tree, taskCtx, params.options);
         try {
@@ -208,7 +212,6 @@ class State {
             this.spine.current = undefined;
 
             if (updated) this.events.changed.next({ state: this, inTransaction: this.inTransaction });
-            this.events.isUpdating.next(false);
         }
     }
 
@@ -277,6 +280,12 @@ namespace State {
     export interface ObjectEvent {
         state: State,
         ref: Ref
+    }
+
+    export namespace ObjectEvent {
+        export function isCell(e: ObjectEvent, cell: StateObjectCell) {
+            return e.ref === cell.transform.ref && e.state === cell.parent
+        }
     }
 
     export interface Snapshot {
@@ -697,8 +706,11 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
 function resolveParams(ctx: UpdateContext, transform: StateTransform, src: StateObject) {
     const prms = transform.transformer.definition.params;
     const definition = prms ? prms(src, ctx.parent.globalContext) : {};
-    const values = transform.params ? transform.params : ParamDefinition.getDefaultValues(definition);
-    return { definition, values };
+    const defaultValues = ParamDefinition.getDefaultValues(definition);
+    (transform.params as any) = transform.params 
+        ? assignIfUndefined(transform.params, defaultValues)
+        : defaultValues;
+    return { definition, values: transform.params };
 }
 
 async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNodeResult> {

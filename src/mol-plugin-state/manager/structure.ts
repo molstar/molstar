@@ -59,7 +59,7 @@ export class StructureHierarchyManager {
 
         plugin.behaviors.state.isAnimating.subscribe(isAnimating => {
             if (!isAnimating && !plugin.behaviors.state.isUpdating.value) this.sync();
-        })
+        });
     }
 }
 

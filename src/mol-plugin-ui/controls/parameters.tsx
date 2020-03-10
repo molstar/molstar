@@ -30,13 +30,20 @@ export type ParameterControlsCategoryFilter = string | null | (string | null)[]
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
     values: any,
-    onChange: ParamsOnChange<PD.Values<P>>,
+    onChange?: ParamsOnChange<PD.ValuesFor<P>>,
+    onChangeObject?: (values: PD.ValuesFor<P>, prev: PD.ValuesFor<P>) => void,
     isDisabled?: boolean,
     onEnter?: () => void
 }
 
 export class ParameterControls<P extends PD.Params> extends React.PureComponent<ParameterControlsProps<P>> {
-    onChange: ParamOnChange = (params) => this.props.onChange(params, this.props.values);
+    onChange: ParamOnChange = (params) => {
+        this.props.onChange?.(params, this.props.values);
+        if (this.props.onChangeObject) {
+            const values = { ...this.props.values, [params.name]: params.value };
+            this.props.onChangeObject(values, this.props.values);
+        }
+    }
 
     renderGroup(group: ParamInfo[]) {
         if (group.length === 0) return null;

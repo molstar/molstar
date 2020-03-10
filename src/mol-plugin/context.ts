@@ -41,7 +41,7 @@ import { StructureRepresentationHelper } from './util/structure-representation-h
 import { StructureSelectionHelper } from './util/structure-selection-helper';
 import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
 import { PluginToastManager } from './util/toast';
-import { StructureMeasurementManager } from './util/structure-measurement';
+import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { RepresentationBuilder } from '../mol-plugin-state/builder/representation';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
@@ -133,7 +133,10 @@ export class PluginContext {
     };
 
     readonly managers = {
-        structureHierarchy: new StructureHierarchyManager(this)
+        structure: {
+            hierarchy: new StructureHierarchyManager(this),
+            measurement: new StructureMeasurementManager(this)
+        }
     };
 
     readonly customModelProperties = new CustomProperty.Registry<Model>();
@@ -141,7 +144,6 @@ export class PluginContext {
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
     readonly helpers = {
-        measurement: new StructureMeasurementManager(this),
         structureSelectionManager: new StructureElementSelectionManager(this),
         structureSelection: new StructureSelectionHelper(this),
         structureRepresentation: new StructureRepresentationHelper(this),

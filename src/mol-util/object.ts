@@ -7,6 +7,18 @@
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
+/** Assign to the object if a given property in update is undefined */
+export function assignIfUndefined<T>(to: Partial<T>, full: T): T {
+    for (const k of Object.keys(full)) {
+        if (!hasOwnProperty.call(full, k)) continue;
+
+        if (typeof (to as any)[k] === 'undefined') {
+            (to as any)[k] = (full as any)[k];
+        }
+    }
+    return to as T;
+}
+
 /** Create new object if any property in "update" changes in "source". */
 export function shallowMerge2<T>(source: T, update: Partial<T>): T {
     // Adapted from LiteMol (https://github.com/dsehnal/LiteMol)

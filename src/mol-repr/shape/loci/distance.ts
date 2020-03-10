@@ -18,20 +18,21 @@ import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
 import { distanceLabel } from '../../../mol-theme/label';
+import { MeasurementRepresentationCommonTextParams } from './common';
 
 export interface DistanceData {
     pairs: Loci.Bundle<2>[]
 }
 
 const SharedParams = {
-    unitLabel: PD.Text('\u212B')
+    unitLabel: PD.Text('\u212B', { isEssential: true })
 }
 
 const LineParams = {
     ...Lines.Params,
     ...SharedParams,
     lineSizeAttenuation: PD.Boolean(true),
-    linesColor: PD.Color(ColorNames.lightgreen),
+    linesColor: PD.Color(ColorNames.lightgreen, { isEssential: true }),
     linesSize: PD.Numeric(0.075, { min: 0.01, max: 5, step: 0.01 }),
     dashLength: PD.Numeric(0.2, { min: 0.01, max: 0.2, step: 0.01 }),
 }
@@ -41,8 +42,7 @@ const TextParams = {
     ...Text.Params,
     ...SharedParams,
     borderWidth: PD.Numeric(0.2, { min: 0, max: 0.5, step: 0.01 }),
-    textColor: PD.Color(ColorNames.black),
-    textSize: PD.Numeric(0.4, { min: 0.1, max: 5, step: 0.1 }),
+    ...MeasurementRepresentationCommonTextParams
 }
 type TextParams = typeof TextParams
 

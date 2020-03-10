@@ -27,7 +27,7 @@ export class StructureComponentControls extends CollapsableControls<{}, Structur
     }
 
     get currentModels() {
-        return this.plugin.managers.structureHierarchy.behaviors.currentModels;
+        return this.plugin.managers.structure.hierarchy.behaviors.currentModels;
     }
 
     componentDidMount() {

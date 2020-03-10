@@ -83,27 +83,27 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     measureDistance = () => {
         const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
-        this.plugin.helpers.measurement.addDistance(loci[0].loci, loci[1].loci);
+        this.plugin.managers.structure.measurement.addDistance(loci[0].loci, loci[1].loci);
     }
 
     measureAngle = () => {
         const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
-        this.plugin.helpers.measurement.addAngle(loci[0].loci, loci[1].loci, loci[2].loci);
+        this.plugin.managers.structure.measurement.addAngle(loci[0].loci, loci[1].loci, loci[2].loci);
     }
 
     measureDihedral = () => {
         const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
-        this.plugin.helpers.measurement.addDihedral(loci[0].loci, loci[1].loci, loci[2].loci, loci[3].loci);
+        this.plugin.managers.structure.measurement.addDihedral(loci[0].loci, loci[1].loci, loci[2].loci, loci[3].loci);
     }
 
     addLabel = () => {
         const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
-        this.plugin.helpers.measurement.addLabel(loci[0].loci);
+        this.plugin.managers.structure.measurement.addLabel(loci[0].loci);
     }
 
     addOrientation = () => {
         const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
-        this.plugin.helpers.measurement.addOrientation(loci[0].loci);
+        this.plugin.managers.structure.measurement.addOrientation(loci[0].loci);
     }
 
     setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {

@@ -23,6 +23,7 @@ import { Circle } from '../../../mol-geo/primitive/circle';
 import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
 import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
 import { dihedralLabel } from '../../../mol-theme/label';
+import { MeasurementRepresentationCommonTextParams } from './common';
 
 export interface DihedralData {
     quads: Loci.Bundle<4>[]
@@ -67,8 +68,7 @@ type SectorParams = typeof SectorParams
 const TextParams = {
     ...Text.Params,
     borderWidth: PD.Numeric(0.2, { min: 0, max: 0.5, step: 0.01 }),
-    textColor: PD.Color(ColorNames.black),
-    textSize: PD.Numeric(0.4, { min: 0.1, max: 5, step: 0.1 }),
+    ...MeasurementRepresentationCommonTextParams
 }
 type TextParams = typeof TextParams
 

@@ -114,7 +114,7 @@ namespace StateBuilder {
          * Apply the transformed to the parent node
          * If no params are specified (params <- undefined), default params are lazily resolved.
          */
-        apply<T extends StateTransformer<A, any, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {const t = tr.apply(this.ref, params, options);
+        apply<T extends StateTransformer<A, any, any>>(tr: T, params?: Partial<StateTransformer.Params<T>>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {const t = tr.apply(this.ref, params, options);
             this.state.tree.add(t);
             this.editInfo.count++;
             this.editInfo.lastUpdate = t.ref;
@@ -127,7 +127,7 @@ namespace StateBuilder {
          * If the ref is present, the transform is applied.
          * Otherwise a transform with the specifed ref is created.
          */
-        applyOrUpdate<T extends StateTransformer<A, any, any>>(ref: StateTransform.Ref, tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {
+        applyOrUpdate<T extends StateTransformer<A, any, any>>(ref: StateTransform.Ref, tr: T, params?: Partial<StateTransformer.Params<T>>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {
             if (this.state.tree.transforms.has(ref)) {
                 const to = this.to<StateTransformer.To<T>, T>(ref);
                 if (params) to.update(params);
@@ -141,7 +141,7 @@ namespace StateBuilder {
          * Apply the transformed to the parent node
          * If no params are specified (params <- undefined), default params are lazily resolved.
          */
-        applyOrUpdateTagged<T extends StateTransformer<A, any, any>>(tags: string | string[], tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {
+        applyOrUpdateTagged<T extends StateTransformer<A, any, any>>(tags: string | string[], tr: T, params?: Partial<StateTransformer.Params<T>>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {
             const children = this.state.tree.children.get(this.ref).values();
             while (true) {
                 const child = children.next();
@@ -174,7 +174,7 @@ namespace StateBuilder {
         /**
          * Inserts a new transform that does not change the object type and move the original children to it.
          */
-        insert<T extends StateTransformer<A, A, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {
+        insert<T extends StateTransformer<A, A, any>>(tr: T, params?: Partial<StateTransformer.Params<T>>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {
             // cache the children
             const children = this.state.tree.children.get(this.ref).toArray();
 
@@ -195,28 +195,6 @@ namespace StateBuilder {
             return new To(this.state, t.ref, this.root);
         }
 
-        // /**
-        //  * Updates a transform in an instantiated tree, passing the transform's source into the providers
-        //  *
-        //  * This only works if the transform source is NOT updated by the builder. Use at own discression.
-        //  */
-        // updateInState<T extends StateTransformer<any, A, any>>(transformer: T, state: State, provider: (old: StateTransformer.Params<T>, a: StateTransformer.From<T>) => StateTransformer.Params<T>): Root {
-        //     const old = this.state.tree.transforms.get(this.ref)!;
-        //     const cell = state.cells.get(this.ref);
-        //     if (!cell || !cell.sourceRef) throw new Error('Source cell is not present in the tree.');
-        //     const parent = state.cells.get(cell.sourceRef);
-        //     if (!parent || !parent.obj) throw new Error('Parent cell is not present or computed.');
-
-        //     const params = provider(old.params as any, parent.obj as any);
-
-        //     if (this.state.tree.setParams(this.ref, params)) {
-        //         this.editInfo.count++;
-        //         this.editInfo.lastUpdate = this.ref;
-        //     }
-
-        //     return this.root;
-        // }
-
         private updateTagged(params: any, tags: string | string[] | undefined) {
             if (this.state.tree.setParams(this.ref, params) || this.state.tree.setTags(this.ref, tags)) {
                 this.editInfo.count++;
@@ -225,8 +203,8 @@ namespace StateBuilder {
             }
         }
 
-        update<T extends StateTransformer<any, A, any>>(transformer: T, params: (old: StateTransformer.Params<T>) => StateTransformer.Params<T> | void): Root
-        update(params: StateTransformer.Params<T> | ((old: StateTransformer.Params<T>) => StateTransformer.Params<T> | void)): Root
+        update<T extends StateTransformer<any, A, any>>(transformer: T, params: (old: StateTransformer.Params<T>) => Partial<StateTransformer.Params<T>> | void): Root
+        update(params: Partial<StateTransformer.Params<T>> | ((old: StateTransformer.Params<T>) => Partial<StateTransformer.Params<T>> | void)): Root
         update<T extends StateTransformer<any, A, any>>(paramsOrTransformer: T | any, provider?: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>) {
             let params: any;
             if (provider) {

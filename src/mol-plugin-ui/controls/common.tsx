@@ -268,7 +268,9 @@ export function IconButton(props: {
     extraContent?: JSX.Element
 }) {
     let className = `msp-btn-link msp-btn-icon${props.isSmall ? '-small' : ''}${props.customClass ? ' ' + props.customClass : ''}`;
-    if (typeof props.toggleState !== 'undefined') className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
+    if (typeof props.toggleState !== 'undefined') {
+        className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
+    }
     return <button className={className} onClick={props.onClick} title={props.title} disabled={props.disabled} data-id={props['data-id']} style={props.style}>
         <Icon name={props.icon} />
         {props.extraContent}
