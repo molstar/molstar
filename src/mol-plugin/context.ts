@@ -49,6 +49,7 @@ import { PluginConfigManager } from './config';
 import { DataBuilder } from '../mol-plugin-state/builder/data';
 import { StructureBuilder } from '../mol-plugin-state/builder/structure';
 import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure/hierarchy';
+import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
 
 export class PluginContext {
     private disposed = false;
@@ -136,7 +137,8 @@ export class PluginContext {
     readonly managers = {
         structure: {
             hierarchy: new StructureHierarchyManager(this),
-            measurement: new StructureMeasurementManager(this)
+            measurement: new StructureMeasurementManager(this),
+            selection: new StructureSelectionManager(this)
         }
     };
 

@@ -18,7 +18,7 @@ import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { SetUtils } from '../../mol-util/set';
 import { ValidationReport, ValidationReportProvider } from '../../mol-model-props/rcsb/validation-report';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
-import { Task } from '../../mol-task';
+import { Task, RuntimeContext } from '../../mol-task';
 import { AccessibleSurfaceAreaSymbols, AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
 import { stringToWords } from '../../mol-util/string';
 
@@ -501,6 +501,20 @@ export function applyBuiltInSelection(to: StateBuilder.To<PluginStateObject.Mole
         { tags: customTag ? [query, customTag] : [query] });
 }
 
+namespace StructureSelectionQuery {
+    export async function getLoci(plugin: PluginContext, runtime: RuntimeContext, selectionQuery: StructureSelectionQuery, structure: Structure) {
+        const current = plugin.managers.structure.selection.getStructure(structure)
+        const currentSelection = current ? StructureSelection.Singletons(structure, current) : StructureSelection.Empty(structure);
+
+        if (selectionQuery.ensureCustomProperties) {
+            await selectionQuery.ensureCustomProperties({ fetch: plugin.fetch, runtime }, structure)
+        }
+
+        const result = selectionQuery.query(new QueryContext(structure, { currentSelection }))
+        return StructureSelection.toLociWithSourceUnits(result)
+    }
+}
+
 //
 
 export type SelectionModifier = 'add' | 'remove' | 'only'
@@ -524,7 +538,7 @@ export class StructureSelectionHelper {
         }
     }
 
-    async set(modifier: SelectionModifier, selectionQuery: StructureSelectionQuery, applyGranularity = true) {
+    set(modifier: SelectionModifier, selectionQuery: StructureSelectionQuery, applyGranularity = true) {
         this.plugin.runTask(Task.create('Structure Selection', async runtime => {
             const ctx = { fetch: this.plugin.fetch, runtime }
             for (const s of this.structures) {
