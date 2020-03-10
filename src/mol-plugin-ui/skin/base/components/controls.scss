@@ -51,12 +51,19 @@
     }
 
     > div:nth-child(2) {
-        background: $msp-form-control-background;
         position: absolute;
         left: $control-label-width + $control-spacing;
         top: 0;
         right: 0;
         bottom: 0;
+    }
+
+    > div {
+        background: $msp-form-control-background;
+    }
+
+    > .msp-select-row {
+        background: $default-background;
     }
 }
 

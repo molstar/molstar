@@ -56,6 +56,7 @@
     flex-direction:row;
     height: $row-height;
     width: inherit;
+    background: $default-background;
 
     > select, > button {
         margin: 0;
@@ -64,18 +65,19 @@
         height: $row-height;
 
         text-align-last: center;
-        background: none;
         padding: 0 $control-spacing;
         overflow: hidden;
     }
 
     > select {
+        background: none;
+
         > option[value = _] {
             display: none;
         }
     }
 
-    > select:last-child {
+    > select:last-child, > button:last-child {
         margin-right: 0;
     }
 }
