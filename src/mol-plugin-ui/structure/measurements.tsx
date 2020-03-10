@@ -208,15 +208,15 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         const selections = this.selections;
         if (!selections) return;
 
-        this.plugin.interactivity.lociHighlights.clearHighlights();
+        this.plugin.managers.interactivity.lociHighlights.clearHighlights();
         for (const d of selections.data) {
-            this.plugin.interactivity.lociHighlights.highlight({ loci: d.loci }, false);
+            this.plugin.managers.interactivity.lociHighlights.highlight({ loci: d.loci }, false);
         }
-        this.plugin.interactivity.lociHighlights.highlight({ loci: this.props.cell.obj?.data.repr.getLoci()! }, false);
+        this.plugin.managers.interactivity.lociHighlights.highlight({ loci: this.props.cell.obj?.data.repr.getLoci()! }, false);
     }
 
     clearHighlight = () => {
-        this.plugin.interactivity.lociHighlights.clearHighlights();
+        this.plugin.managers.interactivity.lociHighlights.clearHighlights();
     }
 
     focus = () => {

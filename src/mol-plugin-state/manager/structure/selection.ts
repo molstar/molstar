@@ -348,13 +348,13 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
     private triggerInteraction(modifier: StructureSelectionModifier, loci: Loci, applyGranularity = true) {
         switch (modifier) {
             case 'add':
-                this.plugin.interactivity.lociSelects.select({ loci }, applyGranularity)
+                this.plugin.managers.interactivity.lociSelects.select({ loci }, applyGranularity)
                 break
             case 'remove':
-                this.plugin.interactivity.lociSelects.deselect({ loci }, applyGranularity)
+                this.plugin.managers.interactivity.lociSelects.deselect({ loci }, applyGranularity)
                 break
             case 'set':
-                this.plugin.interactivity.lociSelects.selectOnly({ loci }, applyGranularity)
+                this.plugin.managers.interactivity.lociSelects.selectOnly({ loci }, applyGranularity)
                 break
         }
     }

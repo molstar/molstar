@@ -10,7 +10,7 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { lociLabel } from '../../../mol-theme/label';
 import { PluginBehavior } from '../behavior';
-import { Interactivity } from '../../util/interactivity';
+import { InteractivityManager } from '../../../mol-plugin-state/manager/interactivity';
 import { StateTreeSpine } from '../../../mol-state/tree/spine';
 import { StateSelection } from '../../../mol-state';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
@@ -39,7 +39,7 @@ export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<HighlightLociProps> {
-        private lociMarkProvider = (interactionLoci: Interactivity.Loci, action: MarkerAction) => {
+        private lociMarkProvider = (interactionLoci: InteractivityManager.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d) return;
             this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action)
         }
@@ -49,23 +49,23 @@ export const HighlightLoci = PluginBehavior.create({
                 let matched = false
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnly, buttons, modifiers)) {
-                    this.ctx.interactivity.lociHighlights.highlightOnly(current)
+                    this.ctx.managers.interactivity.lociHighlights.highlightOnly(current)
                     matched = true
                 }
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnlyExtend, buttons, modifiers)) {
-                    this.ctx.interactivity.lociHighlights.highlightOnlyExtend(current)
+                    this.ctx.managers.interactivity.lociHighlights.highlightOnlyExtend(current)
                     matched = true
                 }
 
                 if (!matched) {
-                    this.ctx.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EmptyLoci })
+                    this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EmptyLoci })
                 }
             });
-            this.ctx.interactivity.lociHighlights.addProvider(this.lociMarkProvider)
+            this.ctx.managers.interactivity.lociHighlights.addProvider(this.lociMarkProvider)
         }
         unregister() {
-            this.ctx.interactivity.lociHighlights.removeProvider(this.lociMarkProvider)
+            this.ctx.managers.interactivity.lociHighlights.removeProvider(this.lociMarkProvider)
         }
     },
     params: () => HighlightLociParams,
@@ -92,7 +92,7 @@ export const SelectLoci = PluginBehavior.create({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<SelectLociProps> {
         private spine: StateTreeSpine.Impl
-        private lociMarkProvider = (interactionLoci: Interactivity.Loci, action: MarkerAction) => {
+        private lociMarkProvider = (interactionLoci: InteractivityManager.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d) return;
             this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action)
         }
@@ -111,16 +111,16 @@ export const SelectLoci = PluginBehavior.create({
             }
         }
         register() {
-            const lociIsEmpty = (current: Interactivity.Loci) => Loci.isEmpty(current.loci)
-            const lociIsNotEmpty = (current: Interactivity.Loci) => !Loci.isEmpty(current.loci)
+            const lociIsEmpty = (current: InteractivityManager.Loci) => Loci.isEmpty(current.loci)
+            const lociIsNotEmpty = (current: InteractivityManager.Loci) => !Loci.isEmpty(current.loci)
 
-            const actions: [keyof typeof DefaultSelectLociBindings, (current: Interactivity.Loci) => void, ((current: Interactivity.Loci) => boolean) | undefined][] = [
-                ['clickSelect', current => this.ctx.interactivity.lociSelects.select(current), lociIsNotEmpty],
-                ['clickToggle', current => this.ctx.interactivity.lociSelects.toggle(current), lociIsNotEmpty],
-                ['clickToggleExtend', current => this.ctx.interactivity.lociSelects.toggleExtend(current), lociIsNotEmpty],
-                ['clickSelectOnly', current => this.ctx.interactivity.lociSelects.selectOnly(current), lociIsNotEmpty],
-                ['clickDeselect', current => this.ctx.interactivity.lociSelects.deselect(current), lociIsNotEmpty],
-                ['clickDeselectAllOnEmpty', () => this.ctx.interactivity.lociSelects.deselectAll(), lociIsEmpty],
+            const actions: [keyof typeof DefaultSelectLociBindings, (current: InteractivityManager.Loci) => void, ((current: InteractivityManager.Loci) => boolean) | undefined][] = [
+                ['clickSelect', current => this.ctx.managers.interactivity.lociSelects.select(current), lociIsNotEmpty],
+                ['clickToggle', current => this.ctx.managers.interactivity.lociSelects.toggle(current), lociIsNotEmpty],
+                ['clickToggleExtend', current => this.ctx.managers.interactivity.lociSelects.toggleExtend(current), lociIsNotEmpty],
+                ['clickSelectOnly', current => this.ctx.managers.interactivity.lociSelects.selectOnly(current), lociIsNotEmpty],
+                ['clickDeselect', current => this.ctx.managers.interactivity.lociSelects.deselect(current), lociIsNotEmpty],
+                ['clickDeselectAllOnEmpty', () => this.ctx.managers.interactivity.lociSelects.deselectAll(), lociIsEmpty],
             ];
 
             // sort the action so that the ones with more modifiers trigger sooner.
@@ -142,7 +142,7 @@ export const SelectLoci = PluginBehavior.create({
                     }
                 }
             });
-            this.ctx.interactivity.lociSelects.addProvider(this.lociMarkProvider)
+            this.ctx.managers.interactivity.lociSelects.addProvider(this.lociMarkProvider)
 
             this.subscribeObservable(this.ctx.events.state.object.created, ({ ref }) => this.applySelectMark(ref));
 
@@ -156,7 +156,7 @@ export const SelectLoci = PluginBehavior.create({
             });
         }
         unregister() {
-            this.ctx.interactivity.lociSelects.removeProvider(this.lociMarkProvider)
+            this.ctx.managers.interactivity.lociSelects.removeProvider(this.lociMarkProvider)
         }
         constructor(ctx: PluginContext, params: SelectLociProps) {
             super(ctx, params)
@@ -172,8 +172,8 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
     category: 'interaction',
     ctor: class implements PluginBehavior<undefined> {
         private f = (loci: Loci) => lociLabel(loci);
-        register() { this.ctx.lociLabels.addProvider(this.f); }
-        unregister() { this.ctx.lociLabels.removeProvider(this.f); }
+        register() { this.ctx.managers.lociLabels.addProvider(this.f); }
+        unregister() { this.ctx.managers.lociLabels.removeProvider(this.f); }
         constructor(protected ctx: PluginContext) { }
     },
     display: { name: 'Provide Default Loci Label' }

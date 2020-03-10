@@ -15,7 +15,7 @@ import { Loci } from '../../mol-model/loci';
 import { OrderedSet } from '../../mol-data/int';
 import { CustomModelProperty } from './custom-model-property';
 import { CustomProperty } from './custom-property';
-import { LociLabelProvider } from '../../mol-plugin/util/loci-label-manager';
+import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
 
 export { CustomElementProperty };
 

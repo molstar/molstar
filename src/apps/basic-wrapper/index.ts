@@ -48,7 +48,7 @@ class BasicWrapper {
         });
 
         this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(StripedResidues.propertyProvider.descriptor.name, StripedResidues.colorThemeProvider!);
-        this.plugin.lociLabels.addProvider(StripedResidues.labelProvider!);
+        this.plugin.managers.lociLabels.addProvider(StripedResidues.labelProvider!);
         this.plugin.customModelProperties.register(StripedResidues.propertyProvider, true);
     }
 
@@ -173,10 +173,10 @@ class BasicWrapper {
                 'group-by': Q.struct.atomProperty.macromolecular.residueKey()
             }), data);
             const loci = StructureSelection.toLociWithSourceUnits(sel);
-            this.plugin.interactivity.lociHighlights.highlightOnly({ loci });
+            this.plugin.managers.interactivity.lociHighlights.highlightOnly({ loci });
         },
         clearHighlight: () => {
-            this.plugin.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci });
+            this.plugin.managers.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci });
         }
     }
 

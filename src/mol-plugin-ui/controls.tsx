@@ -9,7 +9,7 @@ import * as React from 'react';
 import { PluginCommands } from '../mol-plugin/commands';
 import { UpdateTrajectory } from '../mol-plugin-state/actions/structure';
 import { PluginUIComponent } from './base';
-import { LociLabelEntry } from '../mol-plugin/util/loci-label-manager';
+import { LociLabelEntry } from '../mol-plugin-state/manager/loci-label';
 import { IconButton } from './controls/common';
 import { PluginStateObject } from '../mol-plugin-state/objects';
 import { StateTransforms } from '../mol-plugin-state/transforms';

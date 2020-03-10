@@ -72,7 +72,7 @@ class MolStarProteopediaWrapper {
 
         this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add('proteopedia-custom', customColoring);
         this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(EvolutionaryConservation.propertyProvider.descriptor.name, EvolutionaryConservation.colorThemeProvider!);
-        this.plugin.lociLabels.addProvider(EvolutionaryConservation.labelProvider!);
+        this.plugin.managers.lociLabels.addProvider(EvolutionaryConservation.labelProvider!);
         this.plugin.customModelProperties.register(EvolutionaryConservation.propertyProvider, true);
     }
 

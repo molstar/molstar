@@ -28,14 +28,14 @@ import { PluginSpec } from './spec';
 import { PluginState } from './state';
 import { DataFormatRegistry } from '../mol-plugin-state/actions/data-format';
 import { StateTransformParameters } from '../mol-plugin-ui/state/common';
-import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
+import { LociLabelEntry, LociLabelManager } from '../mol-plugin-state/manager/loci-label';
 import { TaskManager } from './util/task-manager';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { SubstructureParentHelper } from './util/substructure-parent-helper';
 import { ModifiersKeys } from '../mol-util/input/input-observer';
 import { isProductionMode, isDebugMode } from '../mol-util/debug';
 import { Model, Structure } from '../mol-model/structure';
-import { Interactivity } from './util/interactivity';
+import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
 import { StructureRepresentationHelper } from './util/structure-representation-helper';
 import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
 import { PluginToastManager } from './util/toast';
@@ -92,8 +92,8 @@ export class PluginContext {
             isBusy: this.ev.behavior<boolean>(false)
         },
         interaction: {
-            hover: this.ev.behavior<Interactivity.HoverEvent>({ current: Interactivity.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
-            click: this.ev.behavior<Interactivity.ClickEvent>({ current: Interactivity.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 })
+            hover: this.ev.behavior<InteractivityManager.HoverEvent>({ current: InteractivityManager.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
+            click: this.ev.behavior<InteractivityManager.ClickEvent>({ current: InteractivityManager.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 })
         },
         labels: {
             highlight: this.ev.behavior<{ entries: ReadonlyArray<LociLabelEntry> }>({ entries: [] })
@@ -105,11 +105,6 @@ export class PluginContext {
 
     readonly canvas3d: Canvas3D | undefined;
     readonly layout = new PluginLayout(this);
-    readonly toasts = new PluginToastManager(this);
-    readonly interactivity: Interactivity;
-
-    readonly lociLabels: LociLabelManager;
-
 
     readonly structureRepresentation = {
         registry: new StructureRepresentationRegistry(),
@@ -136,8 +131,11 @@ export class PluginContext {
             hierarchy: new StructureHierarchyManager(this),
             measurement: new StructureMeasurementManager(this),
             selection: new StructureSelectionManager(this)
-        }
-    };
+        },
+        interactivity: void 0 as any as InteractivityManager,
+        lociLabels: void 0 as any as LociLabelManager,
+        toast: new PluginToastManager(this)
+    } as const
 
     readonly customModelProperties = new CustomProperty.Registry<Model>();
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
@@ -295,8 +293,8 @@ export class PluginContext {
         this.initAnimations();
         this.initCustomParamEditors();
 
-        this.interactivity = new Interactivity(this);
-        this.lociLabels = new LociLabelManager(this);
+        (this.managers.interactivity as InteractivityManager) = new InteractivityManager(this);
+        (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
 
         (this.builders.representation as RepresentationBuilder)= new RepresentationBuilder(this);
 

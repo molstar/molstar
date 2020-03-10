@@ -41,7 +41,7 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
 
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('accessible-surface-area', AccessibleSurfaceAreaColorThemeProvider)
-            this.ctx.lociLabels.addProvider(this.label);
+            this.ctx.managers.lociLabels.addProvider(this.label);
         }
 
         unregister() {
@@ -50,7 +50,7 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
 
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('accessible-surface-area')
-            this.ctx.lociLabels.removeProvider(this.label);
+            this.ctx.managers.lociLabels.removeProvider(this.label);
         }
     },
     params: () => ({

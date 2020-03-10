@@ -10,7 +10,7 @@ import { CollapsableControls, CollapsableState } from '../base';
 import { StructureSelectionQuery, StructureSelectionQueryList } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Interactivity } from '../../mol-plugin/util/interactivity';
+import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
 import { ParameterControls } from '../controls/parameters';
 import { stripTags } from '../../mol-util/string';
 import { StructureElement } from '../../mol-model/structure';
@@ -25,7 +25,7 @@ export const DefaultQueries = ActionMenu.createItems(StructureSelectionQueryList
 });
 
 const StructureSelectionParams = {
-    granularity: Interactivity.Params.granularity,
+    granularity: InteractivityManager.Params.granularity,
 }
 
 interface StructureSelectionControlsState extends CollapsableState {
@@ -90,7 +90,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     get values () {
         return {
-            granularity: this.plugin.interactivity.props.granularity,
+            granularity: this.plugin.managers.interactivity.props.granularity,
         }
     }
 

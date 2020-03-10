@@ -86,12 +86,12 @@ export const ValenceModel = PluginBehavior.create<{ autoAttach: boolean, showToo
 
         register(): void {
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
-            this.ctx.lociLabels.addProvider(this.label);
+            this.ctx.managers.lociLabels.addProvider(this.label);
         }
 
         unregister() {
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
-            this.ctx.lociLabels.removeProvider(this.label);
+            this.ctx.managers.lociLabels.removeProvider(this.label);
         }
     },
     params: () => ({

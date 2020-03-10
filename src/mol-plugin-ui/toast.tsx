@@ -40,11 +40,11 @@ class ToastEntry extends PluginUIComponent<{ entry: PluginToastManager.Entry }> 
 
 export class Toasts extends PluginUIComponent {
     componentDidMount() {
-        this.subscribe(this.plugin.toasts.events.changed, () => this.forceUpdate());
+        this.subscribe(this.plugin.managers.toast.events.changed, () => this.forceUpdate());
     }
 
     render() {
-        const state = this.plugin.toasts.state;
+        const state = this.plugin.managers.toast.state;
 
         if (!state.entries.count()) return null;
 

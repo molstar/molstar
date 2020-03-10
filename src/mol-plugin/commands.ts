@@ -11,7 +11,7 @@ import { Canvas3DProps } from '../mol-canvas3d/canvas3d';
 import { PluginLayoutStateProps } from './layout';
 import { StructureElement } from '../mol-model/structure';
 import { PluginState } from './state';
-import { Interactivity } from './util/interactivity';
+import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
 import { PluginToast } from './util/toast';
 import { Vec3 } from '../mol-math/linear-algebra';
 
@@ -44,7 +44,7 @@ export const PluginCommands = {
         }
     },
     Interactivity: {
-        SetProps: PluginCommand<{ props: Partial<Interactivity.Props> }>(),
+        SetProps: PluginCommand<{ props: Partial<InteractivityManager.Props> }>(),
         Structure: {
             Highlight: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>(),
             Select: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>()
