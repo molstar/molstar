@@ -16,7 +16,7 @@ export class EposHelper {
     private minDist: number[] = []
     private maxDist: number[] = []
     private extrema: Vec3[] = []
-    private centroidHelper = new CentroidHelper()
+    centroidHelper = new CentroidHelper()
 
     private computeExtrema(i: number, p: Vec3) {
         const d = Vec3.dot(this.dir[i], p)
@@ -31,9 +31,28 @@ export class EposHelper {
         }
     }
 
+    private computeSphereExtrema(i: number, center: Vec3, radius: number) {
+        const d = Vec3.dot(this.dir[i], center)
+
+        if (d - radius < this.minDist[i]) {
+            this.minDist[i] = d - radius
+            Vec3.scaleAndSub(this.extrema[i * 2], center, this.dir[i], radius)
+        }
+        if (d + radius > this.maxDist[i]) {
+            this.maxDist[i] = d + radius
+            Vec3.scaleAndAdd(this.extrema[i * 2 + 1], center, this.dir[i], radius)
+        }
+    }
+
     includeStep(p: Vec3) {
         for (let i = 0, il = this.dir.length; i < il; ++i) {
             this.computeExtrema(i, p)
+        }
+    }
+
+    includeSphereStep(center: Vec3, radius: number) {
+        for (let i = 0, il = this.dir.length; i < il; ++i) {
+            this.computeSphereExtrema(i, center, radius)
         }
     }
 
@@ -48,8 +67,8 @@ export class EposHelper {
         this.centroidHelper.radiusStep(p);
     }
 
-    paddedRadiusStep(p: Vec3, padding: number) {
-        this.centroidHelper.paddedRadiusStep(p, padding);
+    radiusSphereStep(center: Vec3, radius: number) {
+        this.centroidHelper.radiusSphereStep(center, radius);
     }
 
     getSphere(sphere?: Sphere3D) {

@@ -24,13 +24,13 @@ function calculateBoundingSphere(renderables: Renderable<RenderableValues & Base
     for (let i = 0, il = renderables.length; i < il; ++i) {
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
-        eposHelper98.includeStep(boundingSphere.center);
+        eposHelper98.includeSphereStep(boundingSphere.center, boundingSphere.radius);
     }
     eposHelper98.finishedIncludeStep();
     for (let i = 0, il = renderables.length; i < il; ++i) {
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
-        eposHelper98.paddedRadiusStep(boundingSphere.center, boundingSphere.radius);
+        eposHelper98.radiusSphereStep(boundingSphere.center, boundingSphere.radius);
     }
 
     return eposHelper98.getSphere(boundingSphere);

@@ -101,12 +101,12 @@ export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere
     eposHelper98.reset()
     for (let i = 0, _i = transformCount; i < _i; ++i) {
         Vec3.transformMat4Offset(v, center, transform, 0, 0, i * 16)
-        eposHelper98.includeStep(v)
+        eposHelper98.includeSphereStep(v, radius)
     }
     eposHelper98.finishedIncludeStep()
     for (let i = 0, _i = transformCount; i < _i; ++i) {
         Vec3.transformMat4Offset(v, center, transform, 0, 0, i * 16)
-        eposHelper98.paddedRadiusStep(v, radius)
+        eposHelper98.radiusSphereStep(v, radius)
     }
     return eposHelper98.getSphere()
 }
