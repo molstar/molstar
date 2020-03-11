@@ -22,7 +22,7 @@ export function Canvas3DSetSettings(ctx: PluginContext) {
 
 export function InteractivitySetProps(ctx: PluginContext) {
     PluginCommands.Interactivity.SetProps.subscribe(ctx, e => {
-        ctx.interactivity.setProps(e.props);
+        ctx.managers.interactivity.setProps(e.props);
         ctx.events.interactivity.propsUpdated.next();
     })
 }

@@ -100,14 +100,14 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
         register(): void {
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('interaction-type', InteractionTypeColorThemeProvider)
-            this.ctx.lociLabels.addProvider(this.label);
+            this.ctx.managers.lociLabels.addProvider(this.label);
             this.ctx.structureRepresentation.registry.add('interactions', InteractionsRepresentationProvider)
         }
 
         unregister() {
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('interaction-type')
-            this.ctx.lociLabels.removeProvider(this.label);
+            this.ctx.managers.lociLabels.removeProvider(this.label);
             this.ctx.structureRepresentation.registry.remove('interactions')
         }
     },

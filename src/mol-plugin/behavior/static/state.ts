@@ -108,14 +108,14 @@ export function Highlight(ctx: PluginContext) {
         const cell = state.select(ref)[0];
         if (!cell) return;
         if (SO.Molecule.Structure.is(cell.obj)) {
-            ctx.interactivity.lociHighlights.highlightOnly({ loci: Structure.Loci(cell.obj.data) }, false);
+            ctx.managers.interactivity.lociHighlights.highlightOnly({ loci: Structure.Loci(cell.obj.data) }, false);
         } else if (cell && SO.isRepresentation3D(cell.obj)) {
             const { repr } = cell.obj.data
-            ctx.interactivity.lociHighlights.highlightOnly({ loci: repr.getLoci(), repr }, false);
+            ctx.managers.interactivity.lociHighlights.highlightOnly({ loci: repr.getLoci(), repr }, false);
         } else if (SO.Molecule.Structure.Selections.is(cell.obj)) {
-            ctx.interactivity.lociHighlights.clearHighlights();
+            ctx.managers.interactivity.lociHighlights.clearHighlights();
             for (const entry of cell.obj.data) {
-                ctx.interactivity.lociHighlights.highlight({ loci: entry.loci }, false);
+                ctx.managers.interactivity.lociHighlights.highlight({ loci: entry.loci }, false);
             }
         }
 
@@ -126,7 +126,7 @@ export function Highlight(ctx: PluginContext) {
 
 export function ClearHighlight(ctx: PluginContext) {
     PluginCommands.State.ClearHighlight.subscribe(ctx, ({ state, ref }) => {
-        ctx.interactivity.lociHighlights.clearHighlights();
+        ctx.managers.interactivity.lociHighlights.clearHighlights();
     });
 }
 

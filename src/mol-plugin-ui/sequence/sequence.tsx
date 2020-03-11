@@ -7,7 +7,7 @@
 
 import * as React from 'react'
 import { PluginUIComponent } from '../base';
-import { Interactivity } from '../../mol-plugin/util/interactivity';
+import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { ButtonsType, ModifiersKeys, getButtons, getModifiers, getButton } from '../../mol-util/input/input-observer';
 import { SequenceWrapper } from './wrapper';
@@ -32,12 +32,12 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     private lastMouseOverSeqIdx = -1;
     private highlightQueue = new Subject<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>();
 
-    private lociHighlightProvider = (loci: Interactivity.Loci, action: MarkerAction) => {
+    private lociHighlightProvider = (loci: InteractivityManager.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action)
         if (changed) this.updateMarker();
     }
 
-    private lociSelectionProvider = (loci: Interactivity.Loci, action: MarkerAction) => {
+    private lociSelectionProvider = (loci: InteractivityManager.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action)
         if (changed) this.updateMarker();
     }
@@ -53,8 +53,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     componentDidMount() {
-        this.plugin.interactivity.lociHighlights.addProvider(this.lociHighlightProvider)
-        this.plugin.interactivity.lociSelects.addProvider(this.lociSelectionProvider)
+        this.plugin.managers.interactivity.lociHighlights.addProvider(this.lociHighlightProvider)
+        this.plugin.managers.interactivity.lociSelects.addProvider(this.lociSelectionProvider)
 
         this.subscribe(debounceTime<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>(15)(this.highlightQueue), (e) => {
             const loci = this.getLoci(e.seqIdx < 0 ? void 0 : e.seqIdx)
@@ -65,8 +65,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     componentWillUnmount() {
-        this.plugin.interactivity.lociHighlights.removeProvider(this.lociHighlightProvider)
-        this.plugin.interactivity.lociSelects.removeProvider(this.lociSelectionProvider)
+        this.plugin.managers.interactivity.lociHighlights.removeProvider(this.lociHighlightProvider)
+        this.plugin.managers.interactivity.lociSelects.removeProvider(this.lociSelectionProvider)
     }
 
     getLoci(seqIdx: number | undefined) {
@@ -86,7 +86,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     hover(loci: StructureElement.Loci | undefined, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
-        const ev = { current: Interactivity.Loci.Empty, buttons, button, modifiers }
+        const ev = { current: InteractivityManager.Loci.Empty, buttons, button, modifiers }
         if (loci !== undefined && !StructureElement.Loci.isEmpty(loci)) {
             ev.current = { loci };
         }
@@ -94,7 +94,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     click(loci: StructureElement.Loci | undefined, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
-        const ev = { current: Interactivity.Loci.Empty, buttons, button, modifiers }
+        const ev = { current: InteractivityManager.Loci.Empty, buttons, button, modifiers }
         if (loci !== undefined && !StructureElement.Loci.isEmpty(loci)) {
             ev.current = { loci };
         }

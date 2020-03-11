@@ -44,7 +44,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
 
         register(): void {
             this.ctx.customModelProperties.register(this.provider, false);
-            this.ctx.lociLabels.addProvider(this.labelPDBeValidation);
+            this.ctx.managers.lociLabels.addProvider(this.labelPDBeValidation);
 
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('pdbe-structure-quality-report', StructureQualityReportColorThemeProvider)
         }
@@ -59,7 +59,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
 
         unregister() {
             this.ctx.customModelProperties.unregister(StructureQualityReportProvider.descriptor.name);
-            this.ctx.lociLabels.removeProvider(this.labelPDBeValidation);
+            this.ctx.managers.lociLabels.removeProvider(this.labelPDBeValidation);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('pdbe-structure-quality-report')
         }
     },

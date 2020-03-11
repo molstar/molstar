@@ -10,7 +10,7 @@ import { MolScriptBuilder } from '../../mol-script/language/builder';
 import { StructureElement, Structure, StructureSelection as Sel, StructureQuery, Queries, QueryContext } from '../../mol-model/structure';
 import { StructureQueryHelper } from './structure-query';
 import { PluginStateObject as SO } from '../objects';
-import { StructureSelectionQueries } from '../../mol-plugin/util/structure-selection-query';
+import { StructureSelectionQueries } from './structure-selection-query';
 import { StateTransformer, StateObject } from '../../mol-state';
 import { Script } from '../../mol-script/script';
 

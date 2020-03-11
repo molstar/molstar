@@ -10,8 +10,8 @@ import { AccessibleSurfaceAreaProvider, AccessibleSurfaceAreaSymbols } from '../
 import { ValidationReport, ValidationReportProvider } from '../../mol-model-props/rcsb/validation-report';
 import { QueryContext, Structure, StructureQuery, StructureSelection } from '../../mol-model/structure';
 import { BondType, NucleicBackboneAtoms, ProteinBackboneAtoms, SecondaryStructureType } from '../../mol-model/structure/model/types';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { PluginStateObject } from '../objects';
+import { StateTransforms } from '../transforms';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import Expression from '../../mol-script/language/expression';
 import { compile } from '../../mol-script/runtime/query/compiler';
@@ -19,7 +19,7 @@ import { StateBuilder } from '../../mol-state';
 import { RuntimeContext } from '../../mol-task';
 import { SetUtils } from '../../mol-util/set';
 import { stringToWords } from '../../mol-util/string';
-import { PluginContext } from '../context';
+import { PluginContext } from '../../mol-plugin/context';
 
 export enum StructureSelectionCategory {
     Type = 'Type',

@@ -42,7 +42,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
 
-            this.ctx.lociLabels.addProvider(this.label);
+            this.ctx.managers.lociLabels.addProvider(this.label);
 
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(Tag.DensityFit, DensityFitColorThemeProvider)
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(Tag.GeometryQuality, GeometryQualityColorThemeProvider)
@@ -65,7 +65,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
 
-            this.ctx.lociLabels.removeProvider(this.label);
+            this.ctx.managers.lociLabels.removeProvider(this.label);
 
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(Tag.DensityFit)
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(Tag.GeometryQuality)

@@ -8,7 +8,6 @@ import { PluginContext } from '../../mol-plugin/context';
 import { State, StateBuilder } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { FileInfo } from '../../mol-util/file-info';
-import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { DataFormatProvider, DataFormatBuilderOptions } from './data-format';
 
@@ -20,9 +19,10 @@ export const PlyProvider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: string) => {
         return info.ext === 'ply'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('PLY default builder', async taskCtx => {
-            let tree: StateBuilder.To<any> = data.apply(StateTransforms.Data.ParsePly)
+            let tree: StateBuilder.To<any> = state.build().to(data)
+                .apply(StateTransforms.Data.ParsePly)
                 .apply(StateTransforms.Model.ShapeFromPly)
             if (options.visuals) {
                 tree = tree.apply(StateTransforms.Representation.ShapeRepresentation3D)

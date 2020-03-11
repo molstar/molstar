@@ -10,38 +10,38 @@ import { ModifiersKeys, ButtonsType } from '../../mol-util/input/input-observer'
 import { Representation } from '../../mol-repr/representation';
 import { StructureElement } from '../../mol-model/structure';
 import { MarkerAction } from '../../mol-util/marker-action';
-import { PluginContext } from '../context';
+import { PluginContext } from '../../mol-plugin/context';
 import { Structure } from '../../mol-model/structure';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { PluginCommands } from '../commands';
-import { StructureSelectionManager } from '../../mol-plugin-state/manager/structure/selection';
+import { PluginCommands } from '../../mol-plugin/commands';
+import { StructureSelectionManager } from './structure/selection';
 
-export { Interactivity }
+export { InteractivityManager }
 
-class Interactivity {
-    readonly lociSelects: Interactivity.LociSelectManager;
-    readonly lociHighlights: Interactivity.LociHighlightManager;
+class InteractivityManager {
+    readonly lociSelects: InteractivityManager.LociSelectManager;
+    readonly lociHighlights: InteractivityManager.LociHighlightManager;
 
-    private _props = PD.getDefaultValues(Interactivity.Params)
+    private _props = PD.getDefaultValues(InteractivityManager.Params)
 
     get props() { return { ...this._props } }
-    setProps(props: Partial<Interactivity.Props>) {
+    setProps(props: Partial<InteractivityManager.Props>) {
         Object.assign(this._props, props)
         this.lociSelects.setProps(this._props)
         this.lociHighlights.setProps(this._props)
     }
 
-    constructor(readonly ctx: PluginContext, props: Partial<Interactivity.Props> = {}) {
+    constructor(readonly ctx: PluginContext, props: Partial<InteractivityManager.Props> = {}) {
         Object.assign(this._props, props)
 
-        this.lociSelects = new Interactivity.LociSelectManager(ctx, this._props);
-        this.lociHighlights = new Interactivity.LociHighlightManager(ctx, this._props);
+        this.lociSelects = new InteractivityManager.LociSelectManager(ctx, this._props);
+        this.lociHighlights = new InteractivityManager.LociHighlightManager(ctx, this._props);
 
         PluginCommands.Interactivity.SetProps.subscribe(ctx, e => this.setProps(e.props));
     }
 }
 
-namespace Interactivity {
+namespace InteractivityManager {
     export interface Loci<T extends ModelLoci = ModelLoci> { loci: T, repr?: Representation.Any }
 
     export namespace Loci {

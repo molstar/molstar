@@ -16,7 +16,7 @@ import { PluginCommands } from './commands';
 import { PluginAnimationManager } from '../mol-plugin-state/animation/manager';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { UUID } from '../mol-util';
-import { Interactivity } from './util/interactivity';
+import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
 export { PluginState }
 
 class PluginState {
@@ -58,7 +58,7 @@ class PluginState {
             } : void 0,
             cameraSnapshots: p.cameraSnapshots ? this.cameraSnapshots.getStateSnapshot() : void 0,
             canvas3d: p.canvas3d ? { props: this.plugin.canvas3d?.props } : void 0,
-            interactivity: p.interactivity ? { props: this.plugin.interactivity.props } : void 0,
+            interactivity: p.interactivity ? { props: this.plugin.managers.interactivity.props } : void 0,
             durationInMs: params && params.durationInMs
         };
     }
@@ -158,7 +158,7 @@ namespace PluginState {
             props?: Canvas3DProps
         },
         interactivity?: {
-            props?: Interactivity.Props
+            props?: InteractivityManager.Props
         },
         durationInMs?: number
     }

@@ -37,6 +37,6 @@ export class LociLabelManager {
     }
 
     constructor(public ctx: PluginContext) {
-        ctx.interactivity.lociHighlights.addProvider((loci, action) => ctx.behaviors.labels.highlight.next({ entries: this.getInfo(loci, action) }))
+        ctx.managers.interactivity.lociHighlights.addProvider((loci, action) => ctx.behaviors.labels.highlight.next({ entries: this.getInfo(loci, action) }))
     }
 }

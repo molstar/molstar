@@ -40,7 +40,7 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                 if (!this.ctx.canvas3d) return;
                 const p = this.params;
                 if (Binding.match(this.params.bindings.clickCenterFocus, button, modifiers)) {
-                    const loci = Loci.normalize(current.loci, this.ctx.interactivity.props.granularity)
+                    const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity)
                     if (Loci.isEmpty(loci)) {
                         PluginCommands.Camera.Reset(this.ctx, { })
                     } else {
