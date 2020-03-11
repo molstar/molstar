@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,6 +7,7 @@
 import { Sphere3D } from '../../mol-math/geometry'
 import { Vec3 } from '../../mol-math/linear-algebra'
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
+import { Epos14 } from '../../mol-math/geometry/epos-helper';
 
 export function calculateTextureInfo (n: number, itemSize: number) {
     const sqN = Math.sqrt(n)
@@ -79,20 +80,21 @@ export function printImageData(imageData: ImageData, scale = 1, pixelated = fals
 
 const v = Vec3.zero()
 const boundaryHelper = new BoundaryHelper()
+const eposHelper = Epos14()
 
 export function calculateInvariantBoundingSphere(position: Float32Array, positionCount: number, stepFactor: number): Sphere3D {
     const step = stepFactor * 3
-    boundaryHelper.reset(0)
+    eposHelper.reset()
     for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
         Vec3.fromArray(v, position, i)
-        boundaryHelper.boundaryStep(v, 0)
+        eposHelper.includeStep(v)
     }
-    boundaryHelper.finishBoundaryStep()
+    eposHelper.finishedIncludeStep()
     for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
         Vec3.fromArray(v, position, i)
-        boundaryHelper.extendStep(v, 0)
+        eposHelper.radiusStep(v)
     }
-    return boundaryHelper.getSphere()
+    return eposHelper.getSphere()
 }
 
 export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere3D, transform: Float32Array, transformCount: number): Sphere3D {
