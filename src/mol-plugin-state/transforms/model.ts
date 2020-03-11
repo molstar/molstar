@@ -696,8 +696,10 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
             return new SO.Molecule.Model(a.data, { label: a.label, description: a.description });
         });
     },
-    update({ a, oldParams, newParams }, ctx: PluginContext) {
+    update({ a, b, oldParams, newParams }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
+            b.label = a.label;
+            b.description = a.description;
             for (const name of oldParams.autoAttach) {
                 const property = ctx.customModelProperties.get(name);
                 if (!property) continue;
@@ -742,8 +744,10 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
             return new SO.Molecule.Structure(a.data, { label: a.label, description: a.description });
         });
     },
-    update({ a, oldParams, newParams }, ctx: PluginContext) {
+    update({ a, b, oldParams, newParams }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
+            b.label = a.label;
+            b.description = a.description;
             for (const name of oldParams.autoAttach) {
                 const property = ctx.customStructureProperties.get(name);
                 if (!property) continue;
