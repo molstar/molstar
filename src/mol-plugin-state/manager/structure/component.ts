@@ -80,7 +80,12 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
 
     private async updateInterationProps() {
         for (const s of this.currentStructures) {
+            const interactionParams = InteractionsProvider.getParams(s.cell.obj?.data!);
+            
             if (s.properties) {
+                const params = s.properties.cell.transform.params;
+                if (PD.areEqual(interactionParams, params, this.state.options.interactions)) continue;
+
                 const b = this.dataState.build();
                 b.to(s.properties.cell).update((old: StateTransformer.Params<CustomStructureProperties>) => {
                     arraySetAdd(old.autoAttach, InteractionsProvider.descriptor.name);
@@ -88,7 +93,10 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                 });
                 await this.plugin.runTask(this.dataState.updateTree(b));
             } else {
-                const params = PD.getDefaultValues(this.plugin.customStructureProperties.getParams(s.cell.obj?.data));
+                const pd = this.plugin.customStructureProperties.getParams(s.cell.obj?.data);
+                const params = PD.getDefaultValues(pd);
+                if (PD.areEqual(interactionParams, params.properties[InteractionsProvider.descriptor.name], this.state.options.interactions)) continue;
+
                 arraySetAdd(params.autoAttach, InteractionsProvider.descriptor.name);
                 params.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
                 await this.plugin.builders.structure.insertStructureProperties(s.cell, params);
