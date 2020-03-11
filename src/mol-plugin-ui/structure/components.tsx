@@ -106,13 +106,13 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
         if (!item) return;
         const mng = this.plugin.managers.structure;
 
-        // TODO: proper list
-        const structures = mng.hierarchy.state.currentModels[0].structures;
+        const structures = mng.hierarchy.state.currentStructures;
         if (item.value === null) mng.component.clear(structures);
-        else mng.component.applyPreset(this.plugin.managers.structure.hierarchy.state.currentModels[0].structures, item.value as any);
+        else mng.component.applyPreset(structures, item.value as any);
     }
 
     modifyComponentControls = <div className='msp-control-offset'><ModifyComponentControls onApply={this.hideAction} /></div>
+    optionsControls = <div className='msp-control-offset'><ComponentOptionsControls /></div>
 
     render() {
         return <>
@@ -123,7 +123,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
             </div>
             {this.state.action === 'preset' && this.presetControls}
             {this.state.action === 'modify' && this.modifyComponentControls}
-            {this.state.action === 'options' && 'TODO'}
+            {this.state.action === 'options' && this.optionsControls}
         </>;
     }
 }
@@ -182,6 +182,18 @@ class ModifyComponentControls extends PurePluginUIComponent<{ onApply: () => voi
             </div>
             {this.paramControls}
         </>;
+    }
+}
+
+class ComponentOptionsControls extends PurePluginUIComponent {
+    componentDidMount() {
+        this.subscribe(this.plugin.managers.structure.component.events.optionsUpdated, () => this.forceUpdate());
+    }
+
+    update = (options: StructureComponentManager.Options) => this.plugin.managers.structure.component.setOptions(options)
+
+    render() {
+        return <ParameterControls params={StructureComponentManager.OptionsParams} values={this.plugin.managers.structure.component.state.options} onChangeObject={this.update} />;
     }
 }
 

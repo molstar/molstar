@@ -7,7 +7,7 @@
 import { Structure, StructureElement } from '../../../mol-model/structure';
 import { structureAreIntersecting, structureSubtract, structureUnion } from '../../../mol-model/structure/query/utils/structure-set';
 import { PluginContext } from '../../../mol-plugin/context';
-import { StateBuilder } from '../../../mol-state';
+import { StateBuilder, StateTransformer } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { UUID } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
@@ -18,20 +18,94 @@ import { StructureComponentParams } from '../../helpers/structure-component';
 import { setStructureOverpaint } from '../../helpers/structure-overpaint';
 import { StructureSelectionQuery, StructureSelectionQueryOptions } from '../../helpers/structure-selection-query';
 import { HierarchyRef, StructureComponentRef, StructureRef, StructureRepresentationRef } from './hierarchy-state';
+import { PluginComponent } from '../../component';
+import { VisualQualityOptions } from '../../../mol-geo/geometry/base';
+import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
+import { StructureRepresentation3D } from '../../transforms/representation';
+import { arraySetAdd } from '../../../mol-util/array';
+import { CustomStructureProperties } from '../../transforms/model';
 
 export { StructureComponentManager };
 
-class StructureComponentManager {
-    applyPreset<P = any, S = {}>(structures: StructureRef[], provider: StructureRepresentationProvider<P, S>, params?: P): Promise<any>  {
-        return this.plugin.runTask(this.dataState.transaction(async () => {
+interface StructureComponentManagerState {
+    options: StructureComponentManager.Options
+}
+
+// TODO: add/update representation in all selected components
+
+class StructureComponentManager extends PluginComponent<StructureComponentManagerState> {
+    readonly events = {
+        optionsUpdated: this.ev<undefined>()
+    }
+
+    get currentStructures() {
+        return this.plugin.managers.structure.hierarchy.state.currentStructures;
+    }
+
+    async setOptions(options: StructureComponentManager.Options) {
+        this.updateState({ options });
+        this.events.optionsUpdated.next();
+
+        const update = this.dataState.build();
+
+        for (const s of this.currentStructures) {
+            for (const c of s.components) {
+                this.updateReprParams(update, c);
+            }
+            if (s.currentFocus?.focus) this.updateReprParams(update, s.currentFocus.focus);
+            if (s.currentFocus?.surroundings) this.updateReprParams(update, s.currentFocus.surroundings);
+        }
+
+        await this.plugin.runTask(this.dataState.updateTree(update));
+        await this.updateInterationProps();
+    }
+
+    private updateReprParams(update: StateBuilder.Root, component: StructureComponentRef) {
+        const { showHydrogens, visualQuality: quality } = this.state.options;
+        const ignoreHydrogens = !showHydrogens;
+        for (const r of component.representations) {
+            if (r.cell.transform.transformer !== StructureRepresentation3D) continue;
+
+            const params = r.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
+            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || params.type.params.quality !== quality) {
+                update.to(r.cell).update(old => {
+                    old.type.params.ignoreHydrogens = ignoreHydrogens;
+                    old.type.params.quality = quality;
+                });
+            }
+        }
+    }
+
+    private updateInterationProps() {
+        return this.plugin.dataTransaction(async () => {
+            for (const s of this.currentStructures) {
+                if (s.properties) {
+                    const b = this.dataState.build();
+                    b.to(s.properties.cell).update((old: StateTransformer.Params<CustomStructureProperties>) => {
+                        arraySetAdd(old.autoAttach, InteractionsProvider.descriptor.name);
+                        old.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
+                    });
+                    await this.plugin.runTask(this.dataState.updateTree(b));
+                } else {
+                    const params = PD.getDefaultValues(this.plugin.customStructureProperties.getParams(s.cell.obj?.data));
+                    arraySetAdd(params.autoAttach, InteractionsProvider.descriptor.name);
+                    params.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
+                    await this.plugin.builders.structure.insertStructureProperties(s.cell, params)
+                }
+            }
+        });
+    }
+
+    applyPreset<P = any, S = {}>(structures: ReadonlyArray<StructureRef>, provider: StructureRepresentationProvider<P, S>, params?: P): Promise<any>  {
+        return this.plugin.dataTransaction(async () => {
             await this.clearComponents(structures);
             for (const s of structures) {
                 await this.plugin.builders.structure.representation.structurePreset(s.cell, provider, params);
             }
-        }));
+        });
     }
 
-    clear(structures: StructureRef[]) {
+    clear(structures: ReadonlyArray<StructureRef>) {
         return this.clearComponents(structures);
     }
 
@@ -49,8 +123,8 @@ class StructureComponentManager {
     }
 
     modify(action: StructureComponentManager.ModifyAction, structures?: ReadonlyArray<StructureRef>) {        
-        return this.plugin.runTask(this.dataState.transaction(async () => {
-            if (!structures) structures = this.plugin.managers.structure.hierarchy.state.currentStructures;
+        return this.plugin.dataTransaction(async () => {
+            if (!structures) structures = this.currentStructures;
             if (structures.length === 0) return;
 
             switch (action.kind) {
@@ -59,7 +133,7 @@ class StructureComponentManager {
                 case 'subtract': await this.modifySubtract(action, structures); break;
                 case 'color': await this.modifyColor(action, structures); break;
             }
-        }))
+        });
     }
 
     private async modifyAdd(params: StructureComponentManager.ModifyActionAdd, structures: ReadonlyArray<StructureRef>) {
@@ -138,7 +212,7 @@ class StructureComponentManager {
         return this.plugin.state.dataState;
     }
 
-    private clearComponents(structures: StructureRef[]) {
+    private clearComponents(structures: ReadonlyArray<StructureRef>) {
         const deletes = this.dataState.build();
         for (const s of structures) {
             for (const c of s.components) {
@@ -153,11 +227,18 @@ class StructureComponentManager {
     }
 
     constructor(public plugin: PluginContext) {
-
+        super({ options: PD.getDefaultValues(StructureComponentManager.OptionsParams) })
     }
 }
 
 namespace StructureComponentManager {
+    export const OptionsParams = {
+        showHydrogens: PD.Boolean(true, { description: 'Toggle display of hydrogen atoms in representations' }),
+        visualQuality: PD.Select('auto', VisualQualityOptions, { description: 'Control the visual/rendering quality of representations' }),
+        interactions: PD.Group(InteractionsProvider.defaultParams, { label: 'Non-covalent Interactions' }),
+    }
+    export type Options = PD.Values<typeof OptionsParams>
+
     export type ActionType = 'add' | 'merge' | 'subtract' | 'color'
 
     const SelectionParam = PD.Select(StructureSelectionQueryOptions[1][0], StructureSelectionQueryOptions)

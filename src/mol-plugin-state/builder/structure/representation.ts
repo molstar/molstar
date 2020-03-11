@@ -21,9 +21,6 @@ import { RepresentationProvider } from '../../../mol-repr/representation';
 import { SizeTheme } from '../../../mol-theme/size';
 import { ColorTheme } from '../../../mol-theme/color';
 
-// TODO: support quality
-// TODO: support ignore hydrogens
-
 export type StructureRepresentationProviderRef = keyof PresetStructureReprentations | StructureRepresentationProvider | string
 
 export class StructureRepresentationBuilder {

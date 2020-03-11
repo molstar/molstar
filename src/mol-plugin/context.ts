@@ -200,6 +200,10 @@ export class PluginContext {
         return this.tasks.run(task);
     }
 
+    dataTransaction(f: () => Promise<void> | void) {
+        return this.runTask(this.state.dataState.transaction(f));
+    }
+
     requestTaskAbort(progress: Progress, reason?: string) {
         this.tasks.requestAbort(progress, reason);
     }
