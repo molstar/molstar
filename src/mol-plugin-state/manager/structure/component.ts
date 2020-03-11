@@ -152,10 +152,10 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         }
     }
 
-    private updateComponent(builder: StateBuilder.Root, component: StructureComponentRef, by: Structure, action: 'union' | 'subtract') {
+    private updateComponent(builder: StateBuilder.Root, component: StructureComponentRef, by: Structure, action: 'union' | 'subtract', checkIntersecting: boolean) {
         const structure = component.cell.obj?.data;
         if (!structure) return;
-        if (!structureAreIntersecting(structure, by)) return;
+        if (checkIntersecting && !structureAreIntersecting(structure, by)) return;
 
         const parent = component.structure.cell.obj?.data!;
         const modified = action === 'union' ? structureUnion(parent, [structure, by]) : structureSubtract(structure, by);
@@ -180,7 +180,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                 const by = await StructureSelectionQuery.getStructure(this.plugin, taskCtx, params.selection, s.cell.obj?.data!);
                 for (const c of s.components) {
                     if (params.componentKey !== 'intersecting' && params.componentKey !== c.key) continue;
-                    this.updateComponent(b, c, by, 'union');
+                    this.updateComponent(b, c, by, 'union', params.componentKey === 'intersecting' );
                 }
             }
             await this.dataState.updateTree(b).runInContext(taskCtx);
@@ -194,7 +194,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                 const by = await StructureSelectionQuery.getStructure(this.plugin, taskCtx, params.selection, s.cell.obj?.data!);
                 for (const c of s.components) {
                     if (params.componentKey !== 'intersecting' && params.componentKey !== c.key) continue;
-                    this.updateComponent(b, c, by, 'subtract');
+                    this.updateComponent(b, c, by, 'subtract', true);
                 }
             }
             await this.dataState.updateTree(b).runInContext(taskCtx);
