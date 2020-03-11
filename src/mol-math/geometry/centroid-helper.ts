@@ -37,9 +37,8 @@ class CentroidHelper {
         if (d > this.radiusSq) this.radiusSq = d;
     }
 
-    paddedRadiusStep(p: Vec3, padding: number) {
-        // TODO take existing radius into account
-        const _d = Vec3.distance(p, this.center) + padding;
+    radiusSphereStep(center: Vec3, radius: number) {
+        const _d = Vec3.distance(center, this.center) + radius;
         const d = _d * _d;
         if (d > this.radiusSq) this.radiusSq = d;
     }
