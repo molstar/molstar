@@ -36,8 +36,6 @@ import { ModifiersKeys } from '../mol-util/input/input-observer';
 import { isProductionMode, isDebugMode } from '../mol-util/debug';
 import { Model, Structure } from '../mol-model/structure';
 import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
-import { StructureRepresentationHelper } from './util/structure-representation-helper';
-import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
 import { PluginToastManager } from './util/toast';
 import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
@@ -144,8 +142,6 @@ export class PluginContext {
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
     readonly helpers = {
-        structureRepresentation: new StructureRepresentationHelper(this),
-        structureOverpaint: new StructureOverpaintHelper(this),
         substructureParent: new SubstructureParentHelper(this),
         viewportScreenshot: void 0 as ViewportScreenshotHelper | undefined
     } as const;
