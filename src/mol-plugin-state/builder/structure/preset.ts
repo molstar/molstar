@@ -45,12 +45,12 @@ const polymerAndLigand = StructureRepresentationProvider({
         const reprTags = [this.id, RepresentationProviderTags.Representation];
 
         const components = {
-            polymer: await staticComponent(plugin, structureCell, 'polymer'),
-            ligand: await staticComponent(plugin, structureCell, 'ligand'),
-            nonStandard: await staticComponent(plugin, structureCell, 'non-standard'),
-            branched: await staticComponent(plugin, structureCell, 'branched'),
-            water: await staticComponent(plugin, structureCell, 'water'),
-            coarse: await staticComponent(plugin, structureCell, 'coarse')
+            polymer: await presetStaticComponent(plugin, structureCell, 'polymer'),
+            ligand: await presetStaticComponent(plugin, structureCell, 'ligand'),
+            nonStandard: await presetStaticComponent(plugin, structureCell, 'non-standard'),
+            branched: await presetStaticComponent(plugin, structureCell, 'branched'),
+            water: await presetStaticComponent(plugin, structureCell, 'water'),
+            coarse: await presetStaticComponent(plugin, structureCell, 'coarse')
         };
 
         const builder = state.build();
@@ -89,8 +89,8 @@ const proteinAndNucleic = StructureRepresentationProvider({
         const reprTags = [this.id, RepresentationProviderTags.Representation];
 
         const components = {
-            protein: await selectionComponent(plugin, structureCell, 'protein'),
-            nucleic: await selectionComponent(plugin, structureCell, 'nucleic'),
+            protein: await presetSelectionComponent(plugin, structureCell, 'protein'),
+            nucleic: await presetSelectionComponent(plugin, structureCell, 'nucleic'),
         };
 
         const builder = state.build();
@@ -124,14 +124,14 @@ const coarseSurface = StructureRepresentationProvider({
                 smoothness: 0.5,
                 visuals: ['structure-gaussian-surface-mesh']
             })
-            components.trace = await selectionComponent(plugin, structureCell, 'trace')
+            components.trace = await presetSelectionComponent(plugin, structureCell, 'trace')
         } else if(size === Structure.Size.Huge) {
             Object.assign(gaussianProps, {
                 smoothness: 0.5,
             })
-            components.trace = await selectionComponent(plugin, structureCell, 'polymer')
+            components.trace = await presetSelectionComponent(plugin, structureCell, 'polymer')
         } else {
-            components.trace = await selectionComponent(plugin, structureCell, 'polymer')
+            components.trace = await presetSelectionComponent(plugin, structureCell, 'polymer')
         }
 
         const params = StructureRepresentation3DHelpers.createParams(plugin, structure, {
@@ -163,7 +163,7 @@ const polymerCartoon = StructureRepresentationProvider({
         const reprTags = [this.id, RepresentationProviderTags.Representation];
 
         const components = {
-            polymer: await selectionComponent(plugin, structureCell, 'polymer'),
+            polymer: await presetSelectionComponent(plugin, structureCell, 'polymer'),
         };
 
         const builder = state.build();
@@ -186,7 +186,7 @@ const atomicDetail = StructureRepresentationProvider({
         const reprTags = [this.id, RepresentationProviderTags.Representation];
 
         const components = {
-            all: await selectionComponent(plugin, structureCell, 'all'),
+            all: await presetSelectionComponent(plugin, structureCell, 'all'),
         };
 
         const builder = state.build();
@@ -201,20 +201,22 @@ const atomicDetail = StructureRepresentationProvider({
     }
 });
 
-function staticComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, type: StaticStructureComponentType) {
-    return plugin.builders.structure.tryCreateComponent(structure, {
-        type: { name: 'static', params: type },
-        nullIfEmpty: true,
-        label: ''
-    }, `static-${type}`, [RepresentationProviderTags.Component]);
+export function presetStaticComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, type: StaticStructureComponentType) {
+    return plugin.builders.structure.tryCreateStaticComponent({
+        structure,
+        type,
+        key: `static-${type}`,
+        tags: [RepresentationProviderTags.Component]
+    });
 }
 
-function selectionComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, query: keyof typeof Q) {
-    return plugin.builders.structure.tryCreateComponent(structure, {
-        type: { name: 'expression', params: Q[query].expression },
-        nullIfEmpty: true,
-        label: Q[query].label
-    }, `selection-${query}`, [RepresentationProviderTags.Component]);
+export function presetSelectionComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, query: keyof typeof Q) {
+    return plugin.builders.structure.tryCreateQueryComponent({ 
+        structure,
+        query: Q[query],
+        key: `selection-${query}`,
+        tags: [RepresentationProviderTags.Component]
+    });
 }
 
 export const PresetStructureReprentations = {

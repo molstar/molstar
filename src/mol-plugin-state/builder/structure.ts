@@ -9,7 +9,7 @@ import { StateObjectRef, StateObjectSelector, StateTransformer } from '../../mol
 import { PluginStateObject as SO } from '../objects';
 import { StateTransforms } from '../transforms';
 import { RootStructureDefinition } from '../helpers/root-structure';
-import { StructureComponentParams } from '../helpers/structure-component';
+import { StructureComponentParams, StaticStructureComponentType } from '../helpers/structure-component';
 import { BuildInTrajectoryFormat, TrajectoryFormatProvider } from '../formats/trajectory';
 import { StructureRepresentationBuilder } from './structure/representation';
 import { StructureSelectionQuery } from '../helpers/structure-selection-query';
@@ -151,6 +151,14 @@ export class StructureBuilder {
         }
 
         return selector;
+    }
+
+    tryCreateStaticComponent(params: { structure: StateObjectRef<SO.Molecule.Structure>, type: StaticStructureComponentType, key: string, label?: string, tags?: string[] }) { 
+        return this.tryCreateComponent(params.structure, {
+            type: { name: 'static', params: params.type },
+            nullIfEmpty: true,
+            label: ''
+        }, params.key, params.tags);
     }
 
     tryCreateQueryComponent(params: { structure: StateObjectRef<SO.Molecule.Structure>, query: StructureSelectionQuery, key: string, label?: string, tags?: string[] }): Promise<StateObjectRef<SO.Molecule.Structure> | undefined> {
