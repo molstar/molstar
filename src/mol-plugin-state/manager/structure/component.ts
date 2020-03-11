@@ -291,7 +291,7 @@ namespace StructureComponentManager {
                 return {
                     kind: PD.Value<ActionType>(action, { isHidden: true }),
                     action: PD.MappedStatic('color', {
-                        color: PD.Color(ColorNames.black),
+                        color: PD.Color(ColorNames.black, { label: 'Color' }),
                         reset: PD.EmptyGroup()
                     }),
                     // TODO: filter by representation type

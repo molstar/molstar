@@ -72,19 +72,6 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
     toggleOptions = this.toggleAction('options');
     hideAction = () => this.setState({ action: void 0 });
 
-    modifyControls = {
-        add: () => { },
-    }
-
-    modifySelect() {
-        return <div className='msp-control-row msp-select-row'>
-            <button><Icon name='plus' /> Add</button>
-            <button><Icon name='flow-branch' /> Merge</button>
-            <button><Icon name='minus' /> Sub</button>
-            <button><Icon name='brush' /> Color</button>
-        </div>;
-    }
-
     get presetControls() {
         return <ActionMenu items={this.presetActions} onSelect={this.applyPreset} />
     }
@@ -174,8 +161,8 @@ class ModifyComponentControls extends PurePluginUIComponent<{ onApply: () => voi
     render() {
         return <>
             <div className='msp-control-row msp-select-row'>
-                <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} />
-                <ToggleButton icon='flow-branch' label='Merge' toggle={this.toggleMerge} isSelected={this.state.action === 'merge'} />
+                <ToggleButton icon='plus' label='New' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} />
+                <ToggleButton icon='flow-branch' label='Union' toggle={this.toggleMerge} isSelected={this.state.action === 'merge'} />
                 <ToggleButton icon='minus' label='Sub' toggle={this.toggleSubtract} isSelected={this.state.action === 'subtract'} />
                 <ToggleButton icon='brush' label='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} />
             </div>
@@ -207,7 +194,7 @@ class ComponentListControls extends PurePluginUIComponent {
 
     render() {
         const componentGroups = this.plugin.managers.structure.hierarchy.componentGroups;
-        return <div style={{ marginTop: '8px' }}>
+        return <div>
             {componentGroups.map(g => <StructureComponentGroup key={g[0].cell.transform.ref} group={g} />)}
         </div>;
     }
@@ -284,7 +271,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         const cell = component.cell;
         const label = cell.obj?.label;
         return <>
-            <div className='msp-control-row'>
+            <div className='msp-control-row' style={{ marginTop: '6px' }}>
                 <button className='msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {label}
                 </button>
