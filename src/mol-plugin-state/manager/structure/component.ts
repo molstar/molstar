@@ -43,6 +43,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
     }
 
     async setOptions(options: StructureComponentManager.Options) {
+        const interactionChanged = options.interactions !== this.state.options.interactions;
         this.updateState({ options });
         this.events.optionsUpdated.next();
 
@@ -58,7 +59,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
 
         return this.plugin.dataTransaction(async () => {
             await this.plugin.runTask(this.dataState.updateTree(update));
-            await this.updateInterationProps();
+            if (interactionChanged) await this.updateInterationProps();
         });
     }
 
