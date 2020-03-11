@@ -17,7 +17,7 @@ const Description = 'Assigns a color to every amino acid according to the "Exper
 
 export const HydrophobicityColorThemeParams = {
     list: PD.ColorList<ColorListName>('red-yellow-green', ColorListOptionsScale),
-    scale: PD.Select('DGwif', [['DGwif', 'DG water-membrane'], ['DGwoct', 'DG water-octanol'], ['Oct-IF', 'DG difference']])
+    scale: PD.Select('DGwif', [['DGwif', 'DG water-membrane'], ['DGwoct', 'DG water-octanol'], ['Oct-IF', 'DG difference']] as const)
 }
 export type HydrophobicityColorThemeParams = typeof HydrophobicityColorThemeParams
 export function getHydrophobicityColorThemeParams(ctx: ThemeDataContext) {

@@ -8,7 +8,7 @@
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { AccessibleSurfaceAreaProvider, AccessibleSurfaceAreaSymbols } from '../../mol-model-props/computed/accessible-surface-area';
 import { ValidationReport, ValidationReportProvider } from '../../mol-model-props/rcsb/validation-report';
-import { QueryContext, Structure, StructureQuery, StructureSelection } from '../../mol-model/structure';
+import { QueryContext, Structure, StructureQuery, StructureSelection, StructureElement } from '../../mol-model/structure';
 import { BondType, NucleicBackboneAtoms, ProteinBackboneAtoms, SecondaryStructureType } from '../../mol-model/structure/model/types';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
@@ -502,6 +502,8 @@ export const StructureSelectionQueryList = [
     ...StandardNucleicBases.map(v => ResidueQuery(v, StructureSelectionCategory.NucleicBase)),
 ]
 
+export const StructureSelectionQueryOptions: [StructureSelectionQuery, string, string][] = StructureSelectionQueryList.map(q => [q, q.label, q.category])
+
 export function applyBuiltInSelection(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, query: keyof typeof StructureSelectionQueries, customTag?: string) {
     return to.apply(StateTransforms.Model.StructureSelectionFromExpression,
         { expression: StructureSelectionQueries[query].expression, label: StructureSelectionQueries[query].label },
@@ -509,6 +511,18 @@ export function applyBuiltInSelection(to: StateBuilder.To<PluginStateObject.Mole
 }
 
 namespace StructureSelectionQuery {
+    export async function getStructure(plugin: PluginContext, runtime: RuntimeContext, selectionQuery: StructureSelectionQuery, structure: Structure) {
+        const current = plugin.managers.structure.selection.getStructure(structure)
+        const currentSelection = current ? StructureSelection.Singletons(structure, current) : StructureSelection.Empty(structure);
+
+        if (selectionQuery.ensureCustomProperties) {
+            await selectionQuery.ensureCustomProperties({ fetch: plugin.fetch, runtime }, structure)
+        }
+
+        const result = selectionQuery.query(new QueryContext(structure, { currentSelection }))
+        return StructureSelection.unionStructure(result)
+    }
+
     export async function getLoci(plugin: PluginContext, runtime: RuntimeContext, selectionQuery: StructureSelectionQuery, structure: Structure) {
         const current = plugin.managers.structure.selection.getStructure(structure)
         const currentSelection = current ? StructureSelection.Singletons(structure, current) : StructureSelection.Empty(structure);
@@ -519,5 +533,10 @@ namespace StructureSelectionQuery {
 
         const result = selectionQuery.query(new QueryContext(structure, { currentSelection }))
         return StructureSelection.toLociWithSourceUnits(result)
+    }
+
+    export async function getBundle(plugin: PluginContext, runtime: RuntimeContext, selectionQuery: StructureSelectionQuery, structure: Structure) {
+        const loci = await getLoci(plugin, runtime, selectionQuery, structure);
+        return StructureElement.Bundle.fromLoci(loci);
     }
 }

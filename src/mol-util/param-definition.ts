@@ -70,13 +70,13 @@ export namespace ParamDefinition {
         return setInfo<Value<T>>({ type: 'value', defaultValue }, info);
     }
 
-    export interface Select<T extends string | number> extends Base<T> {
+    export interface Select<T> extends Base<T> {
         type: 'select'
         /** array of (value, label) tuples */
         options: readonly (readonly [T, string] | readonly [T, string, string])[]
         cycle?: boolean
     }
-    export function Select<T extends string | number>(defaultValue: T, options: readonly (readonly [T, string] | readonly [T, string, string])[], info?: Info & { cycle?: boolean }): Select<T> {
+    export function Select<T>(defaultValue: T, options: readonly (readonly [T, string] | readonly [T, string, string])[], info?: Info & { cycle?: boolean }): Select<T> {
         return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options, cycle: info?.cycle }, info)
     }
 

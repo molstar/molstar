@@ -15,6 +15,11 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { PresetStructureReprentations } from './preset';
 import { StructureRepresentationProvider, RepresentationProviderTags } from './provider';
 import { UniqueArray } from '../../../mol-data/generic';
+import { PluginStateObject } from '../../objects';
+import { StructureRepresentation3D, StructureRepresentation3DHelpers } from '../../transforms/representation';
+import { RepresentationProvider } from '../../../mol-repr/representation';
+import { SizeTheme } from '../../../mol-theme/size';
+import { ColorTheme } from '../../../mol-theme/color';
 
 // TODO: support quality
 // TODO: support ignore hydrogens
@@ -24,6 +29,7 @@ export type StructureRepresentationProviderRef = keyof PresetStructureReprentati
 export class StructureRepresentationBuilder {
     private providers: StructureRepresentationProvider[] = [];
     private providerMap: Map<string, StructureRepresentationProvider> = new Map();
+    private get dataState() { return this.plugin.state.dataState; }
 
     readonly defaultProvider = PresetStructureReprentations.auto;
 
@@ -97,7 +103,7 @@ export class StructureRepresentationBuilder {
         if (!id) return;
 
         const state = this.plugin.state.dataState;
-        const root = StateObjectRef.resolveRef(state, structureRoot) || StateTransform.RootRef;
+        const root = StateObjectRef.resolveRef(structureRoot) || StateTransform.RootRef;
         const reprs = StateSelection.findWithAllTags(state.tree, root, new Set([id, RepresentationProviderTags.Representation]));
 
         const builder = state.build();
@@ -139,8 +145,20 @@ export class StructureRepresentationBuilder {
         return this.plugin.runTask(task);
     }
 
-    // TODO
-    // createOrUpdate(component: any, ) { }
+    async addRepresentation<R extends RepresentationProvider<Structure, any, any>, C extends ColorTheme.Provider<any>, S extends SizeTheme.Provider<any>>
+        (structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props: StructureRepresentation3DHelpers.Props<R, C, S>) {
+
+        const data = StateObjectRef.resolveAndCheck(this.dataState, structure)?.obj?.data;
+        if (!data) return;
+
+        const params = StructureRepresentation3DHelpers.createParams(this.plugin, data, props);
+        const repr = this.dataState.build()
+            .to(structure)
+            .apply(StructureRepresentation3D, params, { tags: RepresentationProviderTags.Representation });
+
+        await this.plugin.runTask(this.dataState.updateTree(repr));
+        return  repr.selector;
+    }
 
     constructor(public plugin: PluginContext) {
         objectForEach(PresetStructureReprentations, r => this.registerPreset(r));

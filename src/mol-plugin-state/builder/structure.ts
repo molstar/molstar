@@ -12,6 +12,8 @@ import { RootStructureDefinition } from '../helpers/root-structure';
 import { StructureComponentParams } from '../helpers/structure-component';
 import { BuildInTrajectoryFormat, TrajectoryFormatProvider } from '../formats/trajectory';
 import { StructureRepresentationBuilder } from './structure/representation';
+import { StructureSelectionQuery } from '../helpers/structure-selection-query';
+import { Task } from '../../mol-task';
 
 export type TrajectoryFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
@@ -149,6 +151,51 @@ export class StructureBuilder {
         }
 
         return selector;
+    }
+
+    tryCreateQueryComponent(params: { structure: StateObjectRef<SO.Molecule.Structure>, query: StructureSelectionQuery, key: string, label?: string, tags?: string[] }): Promise<StateObjectRef<SO.Molecule.Structure> | undefined> {
+        return this.plugin.runTask(Task.create('Query Component', async taskCtx => {
+            let { structure, query, key, label, tags } = params;        
+            label = (label || '').trim();
+
+            const structureData = StateObjectRef.resolveAndCheck(this.dataState, structure)?.obj?.data;
+
+            if (!structureData) return;
+    
+            const transformParams: StructureComponentParams = query.referencesCurrent
+                ? {
+                    type: { name: 'bundle', params: await StructureSelectionQuery.getBundle(this.plugin, taskCtx, query, structureData) },
+                    nullIfEmpty: true,
+                    label: label || query.label
+                } : {
+                    type: { name: 'expression', params: query.expression },
+                    nullIfEmpty: true,
+                    label: label || query.label
+                };
+
+            if (query.ensureCustomProperties) {
+                await query.ensureCustomProperties({ fetch: this.plugin.fetch, runtime: taskCtx }, structureData);
+            }
+            
+            const state = this.dataState;
+            const root = state.build().to(structure);
+            const keyTag = `structure-component-${key}`;
+            const component = root.applyOrUpdateTagged(keyTag, StateTransforms.Model.StructureComponent, transformParams, { 
+                tags: tags ? [...tags, StructureBuilderTags.Component, keyTag] : [StructureBuilderTags.Component, keyTag]
+            });
+    
+            await this.dataState.updateTree(component).runInContext(taskCtx);
+    
+            const selector = component.selector;
+    
+            if (!selector.isOk || selector.cell?.obj?.data.elementCount === 0) {
+                const del = state.build().delete(selector.ref);
+                await this.plugin.runTask(this.dataState.updateTree(del));
+                return;
+            }
+    
+            return selector; 
+        }))
     }
 
     constructor(public plugin: PluginContext) {

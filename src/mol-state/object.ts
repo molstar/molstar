@@ -194,7 +194,7 @@ export namespace StateObjectSelector {
 export type StateObjectRef<S extends StateObject = StateObject> = StateObjectSelector<S> | StateObjectCell<S> | StateTransform.Ref
 
 export namespace StateObjectRef {
-    export function resolveRef<S extends StateObject>(state: State, ref?: StateObjectRef<S>): StateTransform.Ref | undefined {
+    export function resolveRef<S extends StateObject>(ref?: StateObjectRef<S>): StateTransform.Ref | undefined {
         if (!ref) return;
         if (typeof ref === 'string') return ref;
         if (StateObjectCell.is(ref)) return ref.transform.ref;

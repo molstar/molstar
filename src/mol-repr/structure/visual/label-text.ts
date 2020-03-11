@@ -25,7 +25,7 @@ export const LabelTextParams = {
     backgroundMargin: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
     backgroundColor: PD.Color(ColorNames.black),
     backgroundOpacity: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
-    level: PD.Select('residue', [['chain', 'Chain'], ['residue', 'Residue'], ['element', 'Element']]),
+    level: PD.Select('residue', [['chain', 'Chain'], ['residue', 'Residue'], ['element', 'Element']] as const),
     chainScale: PD.Numeric(10, { min: 0, max: 20, step: 0.1 }),
     residueScale: PD.Numeric(1, { min: 0, max: 20, step: 0.1 }),
     elementScale: PD.Numeric(0.5, { min: 0, max: 20, step: 0.1 }),

@@ -5,28 +5,32 @@
  */
 
 import { PluginContext } from '../../../mol-plugin/context';
-import { StructureHierarchy, buildStructureHierarchy, ModelRef, StructureComponentRef } from './hierarchy-state';
+import { StructureHierarchy, buildStructureHierarchy, ModelRef, StructureComponentRef, StructureRef, HierarchyRef } from './hierarchy-state';
 import { PluginComponent } from '../../component';
 
 interface StructureHierarchyManagerState {
     hierarchy: StructureHierarchy,
     currentModels: ReadonlyArray<ModelRef>,
+    currentStructures: ReadonlyArray<StructureRef>
 }
 
 export class StructureHierarchyManager extends PluginComponent<StructureHierarchyManagerState> {
     readonly behaviors = {
-        hierarchy: this.ev.behavior(this.state.hierarchy),
-        currentModels: this.ev.behavior(this.state.currentModels)
+        current: this.ev.behavior({ hierarchy: this.state.hierarchy, models: this.state.currentModels, structures: this.state.currentStructures })
     }
 
-    private syncCurrent(hierarchy: StructureHierarchy) {
-        const current = this.behaviors.currentModels.value;
+    private _componentGroups: ReturnType<typeof StructureHierarchyManager['getComponentGroups']> | undefined = void 0;
+
+    get componentGroups() {
+        if (this._componentGroups) return this._componentGroups;
+        this._componentGroups = StructureHierarchyManager.getComponentGroups(this.state.currentStructures);
+        return this._componentGroups;
+    }
+
+    private syncCurrentModels(hierarchy: StructureHierarchy): ModelRef[] {
+        const current = this.state.currentModels;
         if (current.length === 0) {
-            const models = hierarchy.trajectories[0]?.models;
-            if (models) {
-                return models;
-            }
-            return [];
+            return hierarchy.trajectories[0]?.models || [];
         }
 
         const newCurrent: ModelRef[] = [];
@@ -36,30 +40,59 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
             newCurrent.push(ref);
         }
 
-        if (newCurrent.length === 0 && hierarchy.trajectories[0]?.models) {
-            return hierarchy.trajectories[0]?.models;
+        if (newCurrent.length === 0) {
+            return hierarchy.trajectories[0]?.models || [];
+        }
+
+        return newCurrent;
+    }
+
+    private syncCurrentStructures(hierarchy: StructureHierarchy, currentModels: ModelRef[]): StructureRef[] {
+        const current = this.state.currentStructures;
+        if (current.length === 0) {
+            return Array.prototype.concat.apply([], currentModels.map(m => m.structures));
+        }
+
+        const newCurrent: StructureRef[] = [];
+        for (const c of current) {
+            const ref = hierarchy.refs.get(c.cell.transform.ref) as StructureRef;
+            if (!ref) continue;
+            newCurrent.push(ref);
+        }
+
+        if (newCurrent.length === 0 && currentModels.length > 0) {
+            return Array.prototype.concat.apply([], currentModels.map(m => m.structures));
         }
 
         return newCurrent;
     }
 
     private sync() {
-        const update = buildStructureHierarchy(this.plugin.state.dataState, this.behaviors.hierarchy.value);
+        const update = buildStructureHierarchy(this.plugin.state.dataState, this.state.hierarchy);
         if (update.added.length === 0 && update.updated.length === 0 && update.removed.length === 0) {
             return;
         }
+        this._componentGroups = void 0;
 
-        const currentModels = this.syncCurrent(update.hierarchy);
-        this.updateState({ hierarchy: update.hierarchy, currentModels });
+        const currentModels = this.syncCurrentModels(update.hierarchy);
+        const currentStructures = this.syncCurrentStructures(update.hierarchy, currentModels);
+        this.updateState({ hierarchy: update.hierarchy, currentModels: currentModels, currentStructures: currentStructures });
 
-        this.behaviors.hierarchy.next(this.state.hierarchy);
-        this.behaviors.currentModels.next(this.state.currentModels);
+        this.behaviors.current.next({ hierarchy: update.hierarchy, models: currentModels, structures: currentStructures });
+    }
+
+    remove(refs: HierarchyRef[]) {
+        if (refs.length === 0) return;
+        const deletes = this.plugin.state.dataState.build();
+        for (const r of refs) deletes.delete(r.cell.transform.ref);
+        return this.plugin.runTask(this.plugin.state.dataState.updateTree(deletes));
     }
 
     constructor(private plugin: PluginContext) {
         super({
             hierarchy: StructureHierarchy(),
-            currentModels: []
+            currentModels: [],
+            currentStructures: []
         });
 
         plugin.state.dataState.events.changed.subscribe(e => {
@@ -74,30 +107,28 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
 }
 
 export namespace StructureHierarchyManager {
-    export function getCommonComponentPivots(models: ReadonlyArray<ModelRef>) {
-        if (!models[0]?.structures?.length) return [];
-        if (models[0]?.structures?.length === 1) return models[0]?.structures[0]?.components || [];
+    export function getComponentGroups(structures: ReadonlyArray<StructureRef>): StructureComponentRef[][] {
+        if (!structures.length) return [];
+        if (structures.length === 1) return structures[0].components.map(c => [c]);
 
-        const pivots = new Map<string, StructureComponentRef>();
+        const groups: StructureComponentRef[][] = [];
+        const map = new Map<string, StructureComponentRef[]>();
 
-        for (const c of models[0]?.structures[0]?.components) {
-            const key = c.key;
-            if (!key) continue;
-            pivots.set(key, c);
-        }
+        for (const s of structures) {
+            for (const c of s.components) {
+                const key = c.key;
+                if (!key) continue;
 
-        for (const m of models) {
-            for (const s of m.structures) {
-                for (const c of s.components) {
-                    const key = c.key;
-                    if (!key) continue;
-                    if (!pivots.has(key)) pivots.delete(key);
+                let component = map.get(key);
+                if (!component) {
+                    component = [];
+                    map.set(key, component);
+                    groups.push(component);
                 }
+                component.push(c);
             }
         }
 
-        const ret: StructureComponentRef[] = [];
-        pivots.forEach(function (this: StructureComponentRef[], p) { this.push(p) }, ret);
-        return ret;
+        return groups;
     }
 }

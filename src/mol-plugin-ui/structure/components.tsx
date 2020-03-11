@@ -6,7 +6,6 @@
 
 import * as React from 'react';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
-import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
 import { StructureComponentRef, StructureRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { State, StateAction } from '../../mol-state';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -16,6 +15,9 @@ import { ActionMenu } from '../controls/action-menu';
 import { ApplyActionControl } from '../state/apply-action';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { Icon } from '../controls/icons';
+import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
+import { ParamDefinition } from '../../mol-util/param-definition';
+import { ParameterControls } from '../controls/parameters';
 
 interface StructureComponentControlState extends CollapsableState {
     isDisabled: boolean
@@ -29,7 +31,7 @@ const MeasurementFocusOptions = {
 
 export class StructureComponentControls extends CollapsableControls<{}, StructureComponentControlState> {
     protected defaultState(): StructureComponentControlState {
-        return { header: 'Components', isCollapsed: false, isDisabled: false };
+        return { header: 'Representation', isCollapsed: false, isDisabled: false };
     }
 
     renderControls() {
@@ -49,6 +51,17 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
     state: ComponentEditorControlsState = {
         isDisabled: false
     };
+
+    get current() {
+        return this.plugin.managers.structure.hierarchy.behaviors.current;
+    }
+
+    componentDidMount() {
+        this.subscribe(this.current, () => this.setState({ action: void 0 }));
+        this.subscribe(this.plugin.behaviors.state.isBusy, v => {
+            this.setState({ isDisabled: v, action: void 0 })
+        });
+    }
 
     private toggleAction(action: ComponentEditorControlsState['action']) {
         return () => this.setState({ action: this.state.action === action ? void 0 : action });
@@ -99,6 +112,8 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
         else mng.component.applyPreset(this.plugin.managers.structure.hierarchy.state.currentModels[0].structures, item.value as any);
     }
 
+    modifyComponentControls = <div className='msp-control-offset'><ModifyComponentControls onApply={this.hideAction} /></div>
+
     render() {
         return <>
             <div className='msp-control-row msp-select-row'>
@@ -107,61 +122,115 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
                 <ToggleButton icon='cog' label='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isDisabled} />
             </div>
             {this.state.action === 'preset' && this.presetControls}
+            {this.state.action === 'modify' && this.modifyComponentControls}
+            {this.state.action === 'options' && 'TODO'}
+        </>;
+    }
+}
+
+interface ModifyComponentControlsState {
+    action?: StructureComponentManager.ActionType,
+    actionParams?: ParamDefinition.Params,
+    actionParamValues?: StructureComponentManager.ModifyAction
+}
+
+class ModifyComponentControls extends PurePluginUIComponent<{ onApply: () => void }, ModifyComponentControlsState> {
+    state: ModifyComponentControlsState = { };
+
+    private toggleAction(action: StructureComponentManager.ActionType) {
+        return () => {
+            if (this.state.action === action) {
+                this.setState({ action: void 0, actionParams: void 0, actionParamValues: void 0 });
+            } else {
+                const actionParams = StructureComponentManager.getActionParams(this.plugin, action) as any;
+                const actionParamValues = ParamDefinition.getDefaultValues(actionParams) as StructureComponentManager.ModifyAction;
+                this.setState({ action, actionParams, actionParamValues });
+            }
+        }
+    }
+
+    toggleAdd = this.toggleAction('add');
+    toggleMerge = this.toggleAction('merge');
+    toggleSubtract = this.toggleAction('subtract');
+    toggleColor = this.toggleAction('color');
+
+    hideAction = () => this.setState({ action: void 0 });
+
+    apply = () => {
+        this.plugin.managers.structure.component.modify(this.state.actionParamValues!);
+        this.props.onApply();
+    }
+
+    paramsChanged = (actionParamValues: any) => this.setState({ actionParamValues })
+    get paramControls() {
+        if (!this.state.action) return null;
+        return <>
+            <ParameterControls params={this.state.actionParams!} values={this.state.actionParamValues!} onChangeObject={this.paramsChanged} />
+            <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-on`} onClick={this.apply} style={{ marginTop: '1px' }}>
+                <Icon name='ok' /> Apply
+            </button>
+        </>
+    }
+
+    render() {
+        return <>
+            <div className='msp-control-row msp-select-row'>
+                <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} />
+                <ToggleButton icon='flow-branch' label='Merge' toggle={this.toggleMerge} isSelected={this.state.action === 'merge'} />
+                <ToggleButton icon='minus' label='Sub' toggle={this.toggleSubtract} isSelected={this.state.action === 'subtract'} />
+                <ToggleButton icon='brush' label='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} />
+            </div>
+            {this.paramControls}
         </>;
     }
 }
 
 class ComponentListControls extends PurePluginUIComponent {
-    get currentModels() {
-        return this.plugin.managers.structure.hierarchy.behaviors.currentModels;
+    get current() {
+        return this.plugin.managers.structure.hierarchy.behaviors.current;
     }
 
     componentDidMount() {
-        this.subscribe(this.currentModels, () => this.forceUpdate());
+        this.subscribe(this.current, () => this.forceUpdate());
     }
 
     render() {
-        const components = StructureHierarchyManager.getCommonComponentPivots(this.currentModels.value)
-        return components.map(c => <StructureComponentEntry key={c.cell.transform.ref} component={c} />)
+        const componentGroups = this.plugin.managers.structure.hierarchy.componentGroups;
+        return componentGroups.map(g => <StructureComponentGroup key={g[0].cell.transform.ref} group={g} />)
     }
 }
 
 type StructureComponentEntryActions = 'add-repr' | 'remove' | 'none'
 
 const createRepr = StateAction.fromTransformer(StateTransforms.Representation.StructureRepresentation3D);
-class StructureComponentEntry extends PurePluginUIComponent<{ component: StructureComponentRef }, { action: StructureComponentEntryActions }> {
+class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureComponentRef[] }, { action: StructureComponentEntryActions }> {
     state = { action: 'none' as StructureComponentEntryActions }
 
-    get ref() {
-        return this.props.component.cell.transform.ref;
+    get pivot() {
+        return this.props.group[0];
     }
 
     componentDidMount() {
         this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
-            if (State.ObjectEvent.isCell(e, this.props.component.cell)) this.forceUpdate();
+            if (State.ObjectEvent.isCell(e, this.pivot.cell)) this.forceUpdate();
         });
     }
 
     toggleVisible = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.ToggleVisibility(this.plugin, { state: this.props.component.cell.parent, ref: this.ref });
+        // TODO: check visibility beforehand to set correct value if user made individual change
+        for (const c of this.props.group) {
+            PluginCommands.State.ToggleVisibility(this.plugin, { state: c.cell.parent, ref: c.cell.transform.ref });
+        }
         e.currentTarget.blur();
     }
 
-    remove(ref: string) {
-        return () => {
-            this.setState({ action: 'none' });
-            PluginCommands.State.RemoveObject(this.plugin, { state: this.props.component.cell.parent, ref, removeParentGhosts: true });
-        }
-    }
-
-    
     get removeActions(): ActionMenu.Items {
         const ret = [
-            ActionMenu.Item('Remove Selection', 'remove', this.remove(this.ref))
+            ActionMenu.Item('Remove Selection', 'remove', () => this.plugin.managers.structure.hierarchy.remove(this.props.group))
         ];
-        for (const repr of this.props.component.representations) {
-            ret.push(ActionMenu.Item(`Remove ${repr.cell.obj?.label}`, 'remove', this.remove(repr.cell.transform.ref)))
+        for (const repr of this.pivot.representations) {
+            ret.push(ActionMenu.Item(`Remove ${repr.cell.obj?.label}`, 'remove', () => this.plugin.managers.structure.component.removeRepresentations(this.props.group, repr)))
         }
         return ret;
     }
@@ -176,16 +245,20 @@ class StructureComponentEntry extends PurePluginUIComponent<{ component: Structu
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.Highlight(this.plugin, { state: this.props.component.cell.parent, ref: this.ref });
+        for (const c of this.props.group) {
+            PluginCommands.State.Highlight(this.plugin, { state: c.cell.parent, ref: c.cell.transform.ref });
+        }
     }
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.ClearHighlight(this.plugin, { state: this.props.component.cell.parent, ref: this.ref });
+        for (const c of this.props.group) {
+            PluginCommands.State.ClearHighlight(this.plugin, { state: c.cell.parent, ref: c.cell.transform.ref });
+        }
     }
 
     focus = () => {
-        const sphere = this.props.component.cell.obj?.data.boundary.sphere;
+        const sphere = this.pivot.cell.obj?.data.boundary.sphere;
         if (sphere) {
             const { extraRadius, minRadius, durationMs } = MeasurementFocusOptions;
             const radius = Math.max(sphere.radius + extraRadius, minRadius);
@@ -194,7 +267,7 @@ class StructureComponentEntry extends PurePluginUIComponent<{ component: Structu
     }
 
     render() {
-        const component = this.props.component;
+        const component = this.pivot;
         const cell = component.cell;
         const label = cell.obj?.label;
         return <>
@@ -212,7 +285,7 @@ class StructureComponentEntry extends PurePluginUIComponent<{ component: Structu
             <div className='msp-control-offset'>
                 {this.state.action === 'add-repr' && 
                 <ControlGroup header='Add Representation' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleAddRepr} topRightIcon='off'>
-                    <ApplyActionControl plugin={this.plugin} state={cell.parent} action={createRepr} nodeRef={this.ref} hideHeader noMargin onApply={this.toggleAddRepr} applyLabel='Add' />
+                    <ApplyActionControl plugin={this.plugin} state={cell.parent} action={createRepr} nodeRef={component.cell.transform.ref} hideHeader noMargin onApply={this.toggleAddRepr} applyLabel='Add' />
                 </ControlGroup>}
                 {component.representations.map(r => <StructureRepresentationEntry key={r.cell.transform.ref} representation={r} />)}
             </div>
