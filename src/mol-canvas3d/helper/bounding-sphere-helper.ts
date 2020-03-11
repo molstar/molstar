@@ -53,19 +53,17 @@ export class BoundingSphereHelper {
             const newObjectData = updateBoundingSphereData(this.scene, r.values.boundingSphere.ref.value, objectData, ColorNames.tomato)
             if (newObjectData) this.objectsData.set(ro, newObjectData)
 
-            if (ro.type === 'mesh' || ro.type === 'lines' || ro.type === 'points') {
-                const instanceData = this.instancesData.get(ro)
-                const newInstanceData = updateBoundingSphereData(this.scene, r.values.invariantBoundingSphere.ref.value, instanceData, ColorNames.skyblue, {
-                    aTransform: ro.values.aTransform,
-                    matrix: ro.values.matrix,
-                    transform: ro.values.transform,
-                    extraTransform: ro.values.extraTransform,
-                    uInstanceCount: ro.values.uInstanceCount,
-                    instanceCount: ro.values.instanceCount,
-                    aInstance: ro.values.aInstance,
-                })
-                if (newInstanceData) this.instancesData.set(ro, newInstanceData)
-            }
+            const instanceData = this.instancesData.get(ro)
+            const newInstanceData = updateBoundingSphereData(this.scene, r.values.invariantBoundingSphere.ref.value, instanceData, ColorNames.skyblue, {
+                aTransform: ro.values.aTransform,
+                matrix: ro.values.matrix,
+                transform: ro.values.transform,
+                extraTransform: ro.values.extraTransform,
+                uInstanceCount: ro.values.uInstanceCount,
+                instanceCount: ro.values.instanceCount,
+                aInstance: ro.values.aInstance,
+            })
+            if (newInstanceData) this.instancesData.set(ro, newInstanceData)
         })
 
         this.objectsData.forEach((objectData, ro) => {
@@ -133,7 +131,11 @@ function createBoundingSphereMesh(boundingSphere: Sphere3D, mesh?: Mesh) {
     const detail = 2
     const vertexCount = sphereVertexCount(detail)
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh)
-    if (boundingSphere.radius) addSphere(builderState, boundingSphere.center, boundingSphere.radius, detail)
+    if (boundingSphere.radius) {
+        for (const b of Sphere3D.getList(boundingSphere)) {
+            addSphere(builderState, b.center, b.radius, detail)
+        }
+    }
     return MeshBuilder.getMesh(builderState)
 }
 

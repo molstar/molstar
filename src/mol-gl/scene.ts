@@ -14,26 +14,32 @@ import { Sphere3D } from '../mol-math/geometry';
 import { CommitQueue } from './commit-queue';
 import { now } from '../mol-util/now';
 import { arraySetRemove } from '../mol-util/array';
-import { Epos98 } from '../mol-math/geometry/epos-helper';
+import { EposHelper } from '../mol-math/geometry/epos-helper';
 
-const eposHelper98 = Epos98()
+const eposHelper = new EposHelper('98')
 
 function calculateBoundingSphere(renderables: Renderable<RenderableValues & BaseValues>[], boundingSphere: Sphere3D): Sphere3D {
-    eposHelper98.reset();
+    eposHelper.reset();
 
     for (let i = 0, il = renderables.length; i < il; ++i) {
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
-        eposHelper98.includeSphereStep(boundingSphere.center, boundingSphere.radius);
+
+        for (const b of Sphere3D.getList(boundingSphere)) {
+            eposHelper.includeSphereStep(b.center, b.radius);
+        }
     }
-    eposHelper98.finishedIncludeStep();
+    eposHelper.finishedIncludeStep();
     for (let i = 0, il = renderables.length; i < il; ++i) {
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
-        eposHelper98.radiusSphereStep(boundingSphere.center, boundingSphere.radius);
+
+        for (const b of Sphere3D.getList(boundingSphere)) {
+            eposHelper.radiusSphereStep(b.center, b.radius);
+        }
     }
 
-    return eposHelper98.getSphere(boundingSphere);
+    return eposHelper.getSphere(boundingSphere);
 }
 
 function renderableSort(a: Renderable<RenderableValues & BaseValues>, b: Renderable<RenderableValues & BaseValues>) {

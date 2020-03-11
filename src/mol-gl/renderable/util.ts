@@ -6,7 +6,7 @@
 
 import { Sphere3D } from '../../mol-math/geometry'
 import { Vec3 } from '../../mol-math/linear-algebra'
-import { Epos14, Epos98 } from '../../mol-math/geometry/epos-helper';
+import { EposHelper, HierarchyHelper } from '../../mol-math/geometry/epos-helper';
 
 export function calculateTextureInfo (n: number, itemSize: number) {
     const sqN = Math.sqrt(n)
@@ -78,37 +78,79 @@ export function printImageData(imageData: ImageData, scale = 1, pixelated = fals
 //
 
 const v = Vec3.zero()
-const eposHelper14 = Epos14()
-const eposHelper98 = Epos98()
+const eposHelperCoarse = new EposHelper('14')
+const eposHelperFine = new EposHelper('98')
+const hierarchyHelperCoarse = new HierarchyHelper('14')
+const hierarchyHelperFine = new HierarchyHelper('98')
+
+function getHelper(count: number) {
+    return count > 500_000 ? {
+        eposHelper: eposHelperCoarse,
+        hierarchyHelper: hierarchyHelperCoarse
+    } : {
+        eposHelper: eposHelperFine,
+        hierarchyHelper: hierarchyHelperFine
+    }
+}
 
 export function calculateInvariantBoundingSphere(position: Float32Array, positionCount: number, stepFactor: number): Sphere3D {
     const step = stepFactor * 3
-    eposHelper14.reset()
+    const { eposHelper, hierarchyHelper } = getHelper(positionCount)
+
+    eposHelper.reset()
     for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
         Vec3.fromArray(v, position, i)
-        eposHelper14.includeStep(v)
+        eposHelper.includeStep(v)
     }
-    eposHelper14.finishedIncludeStep()
+    eposHelper.finishedIncludeStep()
     for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
         Vec3.fromArray(v, position, i)
-        eposHelper14.radiusStep(v)
+        eposHelper.radiusStep(v)
     }
-    return eposHelper14.getSphere()
+
+    const hierarchyInput = eposHelper.getHierarchyInput()
+    if (hierarchyInput) {
+        hierarchyHelper.reset(hierarchyInput.sphere, hierarchyInput.normal)
+        for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
+            Vec3.fromArray(v, position, i)
+            hierarchyHelper.includeStep(v)
+        }
+        hierarchyHelper.finishedIncludeStep()
+        for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
+            Vec3.fromArray(v, position, i)
+            hierarchyHelper.radiusStep(v)
+        }
+        return hierarchyHelper.getSphere()
+    } else {
+        return eposHelper.getSphere()
+    }
 }
 
 export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere3D, transform: Float32Array, transformCount: number): Sphere3D {
-    const { center, radius } = invariantBoundingSphere
-    eposHelper98.reset()
-    for (let i = 0, _i = transformCount; i < _i; ++i) {
-        Vec3.transformMat4Offset(v, center, transform, 0, 0, i * 16)
-        eposHelper98.includeSphereStep(v, radius)
+    const { eposHelper } = getHelper(transformCount)
+    eposHelper.reset()
+
+    const transformedSpheres: Sphere3D[] = []
+    for (const b of Sphere3D.getList(invariantBoundingSphere)) {
+        for (let i = 0, _i = transformCount; i < _i; ++i) {
+            const c = Vec3.transformMat4Offset(Vec3(), b.center, transform, 0, 0, i * 16)
+            transformedSpheres.push(Sphere3D.create(c as Vec3, b.radius))
+        }
     }
-    eposHelper98.finishedIncludeStep()
-    for (let i = 0, _i = transformCount; i < _i; ++i) {
-        Vec3.transformMat4Offset(v, center, transform, 0, 0, i * 16)
-        eposHelper98.radiusSphereStep(v, radius)
+
+    for (const b of transformedSpheres) {
+        eposHelper.includeSphereStep(b.center, b.radius)
     }
-    return eposHelper98.getSphere()
+    eposHelper.finishedIncludeStep()
+    for (const b of transformedSpheres) {
+        eposHelper.radiusSphereStep(b.center, b.radius)
+    }
+
+    const sphere = eposHelper.getSphere()
+    if (transformedSpheres.length > 1) {
+        (sphere as Sphere3D.Hierarchy).hierarchy = transformedSpheres
+    }
+    return sphere
 }
 
 export function calculateBoundingSphere(position: Float32Array, positionCount: number, transform: Float32Array, transformCount: number, padding = 0, stepFactor = 1): { boundingSphere: Sphere3D, invariantBoundingSphere: Sphere3D } {

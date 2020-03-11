@@ -71,8 +71,28 @@ export class EposHelper {
         this.centroidHelper.radiusSphereStep(center, radius);
     }
 
+    getHierarchyInput() {
+        const sphere = this.centroidHelper.getSphere();
+        const normal = Vec3()
+        const t = sphere.radius * this.hierarchyThresholdFactor
+
+        let maxDist = -Infinity
+        let belowThreshold = false
+
+        for (let i = 0; i < this.extrema.length; i += 2) {
+            const halfDist = Vec3.distance(this.extrema[i], this.extrema[i + 1]) / 2
+            if (halfDist > maxDist) {
+                maxDist = halfDist
+                Vec3.normalize(normal, Vec3.sub(normal, this.extrema[i], this.extrema[i + 1]))
+            }
+            if (halfDist < t) belowThreshold = true
+        }
+
+        return belowThreshold ? { sphere, normal } : false
+    }
+
     getSphere(sphere?: Sphere3D) {
-        return this.centroidHelper.getSphere(sphere);
+        return this.centroidHelper.getSphere(sphere)
     }
 
     reset() {
@@ -85,13 +105,77 @@ export class EposHelper {
         this.centroidHelper.reset()
     }
 
-    constructor(dir: number[][]) {
-        this.dir = dir.map(a => {
-            const v = Vec3.create(a[0], a[1], a[2])
-            return Vec3.normalize(v, v)
-        })
+    constructor(quality: EposQuality, private hierarchyThresholdFactor = 0.66) {
+        this.dir = getEposDir(quality)
         this.reset()
     }
+}
+
+const tmpV = Vec3()
+
+export class HierarchyHelper {
+    private sphere = Sphere3D()
+    private normal = Vec3()
+    private helperA = new EposHelper(this.quality)
+    private helperB = new EposHelper(this.quality)
+
+    private checkSide(p: Vec3) {
+        return Vec3.dot(this.normal, Vec3.sub(tmpV, this.sphere.center, p)) > 0
+    }
+
+    includeStep(p: Vec3) {
+        if (this.checkSide(p)) {
+            this.helperA.includeStep(p)
+        } else {
+            this.helperB.includeStep(p)
+        }
+    }
+
+    finishedIncludeStep() {
+        this.helperA.finishedIncludeStep();
+        this.helperB.finishedIncludeStep();
+    }
+
+    radiusStep(p: Vec3) {
+        if (this.checkSide(p)) {
+            this.helperA.radiusStep(p)
+        } else {
+            this.helperB.radiusStep(p)
+        }
+    }
+
+    getSphere(): Sphere3D.Hierarchy {
+        return {
+            center: this.sphere.center,
+            radius: this.sphere.radius,
+            hierarchy: [this.helperA.getSphere(), this.helperB.getSphere()]
+        }
+    }
+
+    reset(sphere: Sphere3D, normal: Vec3) {
+        Sphere3D.copy(this.sphere, sphere)
+        Vec3.copy(this.normal, normal)
+        this.helperA.reset()
+        this.helperB.reset()
+    }
+
+    constructor(private quality: EposQuality) { }
+}
+
+type EposQuality = '6' | '14' | '26' | '98'
+
+function getEposDir(quality: EposQuality) {
+    let dir: number[][]
+    switch (quality) {
+        case '6': dir = [ ...Type001 ]; break
+        case '14': dir = [ ...Type001, ...Type111 ]; break
+        case '26': dir = [ ...Type001, ...Type111, ...Type011 ]; break
+        case '98': dir = [ ...Type001, ...Type111, ...Type011, ...Type012, ...Type112, ...Type122 ]; break
+    }
+    return dir.map(a => {
+        const v = Vec3.create(a[0], a[1], a[2])
+        return Vec3.normalize(v, v)
+    })
 }
 
 const Type001 = [
@@ -120,23 +204,3 @@ const Type122 = [
     [2, 2, 1], [1, 2, 2], [2, 1, 2], [2, -2, 1], [2, 2, -1], [2, -2, -1],
     [1, -2, 2], [1, 2, -2], [1, -2, -2], [2, -1, 2], [2, 1, -2], [2, -1, -2]
 ]
-
-const DirEpos6 = [ ...Type001 ]
-export function Epos6() {
-    return new EposHelper(DirEpos6)
-}
-
-const DirEpos14 = [ ...Type001, ...Type111 ]
-export function Epos14() {
-    return new EposHelper(DirEpos14)
-}
-
-const DirEpos26 = [ ...Type001, ...Type111, ...Type011 ]
-export function Epos26() {
-    return new EposHelper(DirEpos26)
-}
-
-const DirEpos98 = [ ...Type001, ...Type111, ...Type011, ...Type012, ...Type112, ...Type122 ]
-export function Epos98() {
-    return new EposHelper(DirEpos98)
-}

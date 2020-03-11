@@ -13,26 +13,42 @@ import { Box3D } from './box3d';
 import { Axes3D } from './axes3d';
 import { BoundaryHelper } from '../boundary-helper';
 
-interface Sphere3D { center: Vec3, radius: number }
+type Sphere3D = Sphere3D.Data | Sphere3D.Hierarchy
 
 function Sphere3D() {
     return Sphere3D.zero();
 }
 
 namespace Sphere3D {
+    export interface Data { center: Vec3, radius: number }
+    export interface Hierarchy extends Data { hierarchy: Sphere3D[] }
+    export function isHierarchy(x: Sphere3D | Hierarchy): x is Hierarchy {
+        return 'hierarchy' in x
+    }
+    export function getList(sphere: Sphere3D) {
+        return Sphere3D.isHierarchy(sphere) ? sphere.hierarchy : [sphere]
+    }
+
     export function create(center: Vec3, radius: number): Sphere3D { return { center, radius }; }
     export function zero(): Sphere3D { return { center: Vec3.zero(), radius: 0 }; }
 
     export function clone(a: Sphere3D): Sphere3D {
-        const out = zero();
-        Vec3.copy(out.center, a.center);
-        out.radius = a.radius
+        const out = create(Vec3.clone(a.center), a.radius)
+        if (isHierarchy(a)) (out as Hierarchy).hierarchy = a.hierarchy
         return out;
     }
 
     export function copy(out: Sphere3D, a: Sphere3D) {
         Vec3.copy(out.center, a.center)
         out.radius = a.radius
+        if (isHierarchy(a)) {
+            if (isHierarchy(out)) {
+                out.hierarchy.length = 0
+                out.hierarchy.push(...a.hierarchy)
+            } else {
+                (out as Hierarchy).hierarchy = a.hierarchy
+            }
+        }
         return out;
     }
 
@@ -127,6 +143,15 @@ namespace Sphere3D {
     export function expand(out: Sphere3D, sphere: Sphere3D, delta: number): Sphere3D {
         Vec3.copy(out.center, sphere.center)
         out.radius = sphere.radius + delta
+        if (isHierarchy(sphere)) {
+            const hierarchy = sphere.hierarchy.map(s => expand(Sphere3D(), s, delta))
+            if (isHierarchy(out)) {
+                out.hierarchy.length = 0
+                out.hierarchy.push(...hierarchy)
+            } else {
+                (out as Hierarchy).hierarchy = hierarchy
+            }
+        }
         return out
     }
 
