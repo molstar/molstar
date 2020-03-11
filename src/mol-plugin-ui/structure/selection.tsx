@@ -122,9 +122,9 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     get controls() {
         return <div>
             <div className='msp-control-row msp-select-row'>
-                <ToggleButton icon='plus' label='Select' toggle={this.toggleAdd} isSelected={this.state.queryAction === 'add'} disabled={this.state.isDisabled} />
-                <ToggleButton icon='minus' label='Deselect' toggle={this.toggleRemove} isSelected={this.state.queryAction === 'remove'} disabled={this.state.isDisabled} />
-                <ToggleButton icon='flash' label='Only' toggle={this.toggleOnly} isSelected={this.state.queryAction === 'set'} disabled={this.state.isDisabled} />
+                <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.queryAction === 'add'} disabled={this.state.isDisabled} />
+                <ToggleButton icon='minus' label='Remove' toggle={this.toggleRemove} isSelected={this.state.queryAction === 'remove'} disabled={this.state.isDisabled} />
+                <ToggleButton icon='flash' label='Set' toggle={this.toggleOnly} isSelected={this.state.queryAction === 'set'} disabled={this.state.isDisabled} />
             </div>
             {this.state.queryAction && <ActionMenu items={this.queries} onSelect={this.selectQuery} />}
         </div>
@@ -165,20 +165,20 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             </li>)
         }
 
-        return <div>
+        return <>
+            {this.controls}
+            <ParameterControls params={StructureSelectionParams} values={this.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
             <div className='msp-control-row msp-row-text'>
                 <button className='msp-btn msp-btn-block' onClick={this.focus}>
                     <Icon name='focus-on-visual' style={{ position: 'absolute', left: '5px' }} />
                     {this.stats}
                 </button>
             </div>
-            <ParameterControls params={StructureSelectionParams} values={this.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
-            {this.controls}
             {history.length > 0 && <ExpandGroup header='Selection History'>
                 <ul style={{ listStyle: 'none', marginTop: '1px', marginBottom: '0' }} className='msp-state-list'>
                     {history}
                 </ul>
             </ExpandGroup>}
-        </div>
+        </>
     }
 }

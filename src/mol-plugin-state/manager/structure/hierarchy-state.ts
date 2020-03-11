@@ -90,11 +90,17 @@ function StructurePropertiesRef(cell: StateObjectCell<SO.Molecule.Structure>, st
 
 export interface StructureComponentRef extends RefBase<'structure-component', SO.Molecule.Structure> {
     structure: StructureRef,
+    key?: string,
     representations: StructureRepresentationRef[],
 }
 
+function componentKey(cell: StateObjectCell<SO.Molecule.Structure>) {
+    if (!cell.transform.tags) return;
+    return [...cell.transform.tags].sort().join();
+}
+
 function StructureComponentRef(cell: StateObjectCell<SO.Molecule.Structure>, structure: StructureRef): StructureComponentRef {
-    return { kind: 'structure-component', cell, version: cell.transform.version, structure, representations: [] };
+    return { kind: 'structure-component', cell, version: cell.transform.version, structure, key: componentKey(cell), representations: [] };
 }
 
 export interface StructureRepresentationRef extends RefBase<'structure-representation', SO.Molecule.Structure.Representation3D> {

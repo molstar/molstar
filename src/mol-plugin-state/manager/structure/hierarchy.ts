@@ -74,11 +74,6 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
 }
 
 export namespace StructureHierarchyManager {
-    function componentKey(c: StructureComponentRef) {
-        if (!c.cell.transform.tags) return;
-        return [...c.cell.transform.tags].sort().join();
-    }
-
     export function getCommonComponentPivots(models: ReadonlyArray<ModelRef>) {
         if (!models[0]?.structures?.length) return [];
         if (models[0]?.structures?.length === 1) return models[0]?.structures[0]?.components || [];
@@ -86,7 +81,7 @@ export namespace StructureHierarchyManager {
         const pivots = new Map<string, StructureComponentRef>();
 
         for (const c of models[0]?.structures[0]?.components) {
-            const key = componentKey(c);
+            const key = c.key;
             if (!key) continue;
             pivots.set(key, c);
         }
@@ -94,7 +89,7 @@ export namespace StructureHierarchyManager {
         for (const m of models) {
             for (const s of m.structures) {
                 for (const c of s.components) {
-                    const key = componentKey(c);
+                    const key = c.key;
                     if (!key) continue;
                     if (!pivots.has(key)) pivots.delete(key);
                 }

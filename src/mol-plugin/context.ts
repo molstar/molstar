@@ -41,7 +41,6 @@ import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
 import { PluginToastManager } from './util/toast';
 import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
-import { RepresentationBuilder } from '../mol-plugin-state/builder/representation';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { PluginConfigManager } from './config';
 import { DataBuilder } from '../mol-plugin-state/builder/data';
@@ -49,6 +48,7 @@ import { StructureBuilder } from '../mol-plugin-state/builder/structure';
 import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure/hierarchy';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
 import { TrajectoryFormatRegistry } from '../mol-plugin-state/formats/trajectory';
+import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
 
 export class PluginContext {
     private disposed = false;
@@ -124,13 +124,13 @@ export class PluginContext {
 
     readonly builders = {
         data: new DataBuilder(this),
-        structure: new StructureBuilder(this),
-        representation: void 0 as any as RepresentationBuilder
+        structure: void 0 as any as StructureBuilder
     };
 
     readonly managers = {
         structure: {
             hierarchy: new StructureHierarchyManager(this),
+            component: new StructureComponentManager(this),
             measurement: new StructureMeasurementManager(this),
             selection: new StructureSelectionManager(this)
         },
@@ -298,7 +298,7 @@ export class PluginContext {
         (this.managers.interactivity as InteractivityManager) = new InteractivityManager(this);
         (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
 
-        (this.builders.representation as RepresentationBuilder)= new RepresentationBuilder(this);
+        (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
 
         this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
         if (!isProductionMode) this.log.message(`Development mode enabled`);

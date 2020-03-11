@@ -43,14 +43,16 @@ interface StructureSelectionQuery {
     readonly description: string
     readonly category: string
     readonly isHidden: boolean
+    readonly referencesCurrent: boolean
     readonly query: StructureQuery
     readonly ensureCustomProperties?: (ctx: CustomProperty.Context, structure: Structure) => Promise<void>
 }
 
 interface StructureSelectionQueryProps {
-    description?: string,
+    description?: string
     category?: string
     isHidden?: boolean
+    referencesCurrent?: boolean
     ensureCustomProperties?: (ctx: CustomProperty.Context, structure: Structure) => Promise<void>
 }
 
@@ -62,6 +64,7 @@ function StructureSelectionQuery(label: string, expression: Expression, props: S
         description: props.description || '',
         category: props.category ?? StructureSelectionCategory.Misc,
         isHidden: !!props.isHidden,
+        referencesCurrent: !!props.referencesCurrent,
         get query() {
             if (!_query) _query = compile<StructureSelection>(expression)
             return _query
@@ -71,6 +74,7 @@ function StructureSelectionQuery(label: string, expression: Expression, props: S
 }
 
 const all = StructureSelectionQuery('All', MS.struct.generator.all(), { category: '' })
+const current = StructureSelectionQuery('Current Selection', MS.internal.generator.current(), { category: '', referencesCurrent: true })
 
 const polymer = StructureSelectionQuery('Polymer', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -343,7 +347,8 @@ const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B) of
     })
 ]), {
     description: 'Select residues within 5 \u212B of the current selection.',
-    category: StructureSelectionCategory.Manipulate
+    category: StructureSelectionCategory.Manipulate,
+    referencesCurrent: true
 })
 
 const complement = StructureSelectionQuery('Inverse / Complement of Selection', MS.struct.modifier.union([
@@ -353,7 +358,8 @@ const complement = StructureSelectionQuery('Inverse / Complement of Selection', 
     })
 ]), {
     description: 'Select everything not in the current selection.',
-    category: StructureSelectionCategory.Manipulate
+    category: StructureSelectionCategory.Manipulate,
+    referencesCurrent: true
 })
 
 const bonded = StructureSelectionQuery('Residues Bonded to Selection', MS.struct.modifier.union([
@@ -362,7 +368,8 @@ const bonded = StructureSelectionQuery('Residues Bonded to Selection', MS.struct
     })
 ]), {
     description: 'Select residues covalently bonded to current selection.',
-    category: StructureSelectionCategory.Manipulate
+    category: StructureSelectionCategory.Manipulate,
+    referencesCurrent: true
 })
 
 const hasClash = StructureSelectionQuery('Residues with Clashes', MS.struct.modifier.union([
@@ -459,6 +466,7 @@ function ResidueQuery([names, label]: [string[], string], category: string) {
 
 export const StructureSelectionQueries = {
     all,
+    current,
     polymer,
     trace,
     backbone,

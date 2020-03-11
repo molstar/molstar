@@ -10,11 +10,12 @@ import { StructureHierarchyManager } from '../../mol-plugin-state/manager/struct
 import { StructureComponentRef, StructureRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { State, StateAction } from '../../mol-state';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { ExpandGroup, IconButton, ControlGroup } from '../controls/common';
+import { ExpandGroup, IconButton, ControlGroup, ToggleButton } from '../controls/common';
 import { UpdateTransformControl } from '../state/update-transform';
 import { ActionMenu } from '../controls/action-menu';
 import { ApplyActionControl } from '../state/apply-action';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { Icon } from '../controls/icons';
 
 interface StructureComponentControlState extends CollapsableState {
     isDisabled: boolean
@@ -31,6 +32,86 @@ export class StructureComponentControls extends CollapsableControls<{}, Structur
         return { header: 'Components', isCollapsed: false, isDisabled: false };
     }
 
+    renderControls() {
+        return <>
+            <ComponentEditorControls />
+            <ComponentListControls />
+        </>;
+    }
+}
+
+interface ComponentEditorControlsState {
+    action?: 'preset' | 'modify' | 'options',
+    isDisabled: boolean
+}
+
+class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorControlsState> {
+    state: ComponentEditorControlsState = {
+        isDisabled: false
+    };
+
+    private toggleAction(action: ComponentEditorControlsState['action']) {
+        return () => this.setState({ action: this.state.action === action ? void 0 : action });
+    }
+
+    togglePreset = this.toggleAction('preset');
+    toggleModify = this.toggleAction('modify');
+    toggleOptions = this.toggleAction('options');
+    hideAction = () => this.setState({ action: void 0 });
+
+    modifyControls = {
+        add: () => { },
+    }
+
+    modifySelect() {
+        return <div className='msp-control-row msp-select-row'>
+            <button><Icon name='plus' /> Add</button>
+            <button><Icon name='flow-branch' /> Merge</button>
+            <button><Icon name='minus' /> Sub</button>
+            <button><Icon name='brush' /> Color</button>
+        </div>;
+    }
+
+    get presetControls() {
+        return <ActionMenu items={this.presetActions} onSelect={this.applyPreset} />
+    }
+
+    get presetActions() {
+        const actions = [
+            ActionMenu.Item('Clear', null),
+        ];
+        // TODO: filter by applicable
+        for (const p of this.plugin.builders.structure.representation.providerList) {
+            actions.push(ActionMenu.Item(p.display.name, p));
+        }
+        return actions;
+    }
+
+    applyPreset: ActionMenu.OnSelect = item => {
+        this.hideAction();
+
+        if (!item) return;
+        const mng = this.plugin.managers.structure;
+
+        // TODO: proper list
+        const structures = mng.hierarchy.state.currentModels[0].structures;
+        if (item.value === null) mng.component.clear(structures);
+        else mng.component.applyPreset(this.plugin.managers.structure.hierarchy.state.currentModels[0].structures, item.value as any);
+    }
+
+    render() {
+        return <>
+            <div className='msp-control-row msp-select-row'>
+                <ToggleButton icon='bookmarks' label='Preset' toggle={this.togglePreset} isSelected={this.state.action === 'preset'} disabled={this.state.isDisabled} />
+                <ToggleButton icon='flow-cascade' label='Modify' toggle={this.toggleModify} isSelected={this.state.action === 'modify'} disabled={this.state.isDisabled} />
+                <ToggleButton icon='cog' label='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isDisabled} />
+            </div>
+            {this.state.action === 'preset' && this.presetControls}
+        </>;
+    }
+}
+
+class ComponentListControls extends PurePluginUIComponent {
     get currentModels() {
         return this.plugin.managers.structure.hierarchy.behaviors.currentModels;
     }
@@ -39,11 +120,9 @@ export class StructureComponentControls extends CollapsableControls<{}, Structur
         this.subscribe(this.currentModels, () => this.forceUpdate());
     }
 
-    renderControls() {
+    render() {
         const components = StructureHierarchyManager.getCommonComponentPivots(this.currentModels.value)
-        return <>
-            {components.map(c => <StructureComponentEntry key={c.cell.transform.ref} component={c} />)}
-        </>;
+        return components.map(c => <StructureComponentEntry key={c.cell.transform.ref} component={c} />)
     }
 }
 

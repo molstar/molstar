@@ -37,7 +37,7 @@ export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | P
         return Task.create('mmCIF default builder', async taskCtx => {
             const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'mmcif' });
             if (options.visuals) {
-                await ctx.builders.representation.structurePreset(structure, 'auto');
+                await ctx.builders.structure.representation.structurePreset(structure, 'auto');
             }
         })
     }
@@ -55,7 +55,7 @@ export const PdbProvider: DataFormatProvider<any> = {
         return Task.create('PDB default builder', async () => {
             const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'pdb' });
             if (options.visuals) {
-                await ctx.builders.representation.structurePreset(structure, 'auto');
+                await ctx.builders.structure.representation.structurePreset(structure, 'auto');
             }
         })
     }
@@ -73,7 +73,7 @@ export const GroProvider: DataFormatProvider<any> = {
         return Task.create('GRO default builder', async () => {
             const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'gro' });
             if (options.visuals) {
-                await ctx.builders.representation.structurePreset(structure, 'auto');
+                await ctx.builders.structure.representation.structurePreset(structure, 'auto');
             }
         })
     }
@@ -91,7 +91,7 @@ export const Provider3dg: DataFormatProvider<any> = {
         return Task.create('3DG default builder', async () => {
             const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: '3dg' });
             if (options.visuals) {
-                await ctx.builders.representation.structurePreset(structure, 'auto');
+                await ctx.builders.structure.representation.structurePreset(structure, 'auto');
             }
         })
     }
@@ -249,7 +249,7 @@ const DownloadStructure = StateAction.build({
                 structureProperties: supportProps
             });
             if (createRepr) {
-                await plugin.builders.representation.structurePreset(structure, 'auto');
+                await plugin.builders.structure.representation.structurePreset(structure, 'auto');
             }
         } else {
             for (const download of downloadParams) {
@@ -261,7 +261,7 @@ const DownloadStructure = StateAction.build({
                     structureProperties: supportProps
                 });
                 if (createRepr) {
-                    await plugin.builders.representation.structurePreset(structure, 'auto');
+                    await plugin.builders.structure.representation.structurePreset(structure, 'auto');
                 }
             }
         }
@@ -303,28 +303,28 @@ export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary
 export const Create3DRepresentationPreset = StateAction.build({
     display: { name: '3D Representation Preset', description: 'Create one of preset 3D representations.' },
     from: PluginStateObject.Molecule.Structure,
-    isApplicable(a, _, plugin: PluginContext) { return plugin.builders.representation.hasPreset(a.data); },
+    isApplicable(a, _, plugin: PluginContext) { return plugin.builders.structure.representation.hasPreset(a.data); },
     params(a, plugin: PluginContext) {
         return {
-            type: plugin.builders.representation.getPresets(a.data)
+            type: plugin.builders.structure.representation.getPresets(a.data)
         };
     }
 })(({ ref, params }, plugin: PluginContext) => {
-    plugin.builders.representation.structurePreset(ref, params.type.name, params.type.params);
+    plugin.builders.structure.representation.structurePreset(ref, params.type.name, params.type.params);
 });
 
 export const Remove3DRepresentationPreset = StateAction.build({
     display: { name: 'Remove 3D Representation Preset', description: 'Remove 3D representations.' },
     from: PluginStateObject.Molecule.Structure,
-    isApplicable(_, t, plugin: PluginContext) { return plugin.builders.representation.hasPresetRepresentation(t.ref); },
+    isApplicable(_, t, plugin: PluginContext) { return plugin.builders.structure.representation.hasPresetRepresentation(t.ref); },
     params(a, plugin: PluginContext) {
         return {
-            type: plugin.builders.representation.getPresets(a.data).select
+            type: plugin.builders.structure.representation.getPresets(a.data).select
         };
     }
 })(({ ref, params }, plugin: PluginContext) => {
     // TODO: this will be completely handled by the managed and is just for testing purposes
-    plugin.builders.representation.removePreset(params.type, ref);
+    plugin.builders.structure.representation.removePreset(params.type, ref);
 });
 
 export const UpdateTrajectory = StateAction.build({
@@ -440,6 +440,6 @@ export const AddTrajectory = StateAction.build({
 
         await state.updateTree(model).runInContext(taskCtx);
         const structure = await ctx.builders.structure.createStructure(model.selector);
-        await ctx.builders.representation.structurePreset(structure, 'auto');
+        await ctx.builders.structure.representation.structurePreset(structure, 'auto');
     }).runInContext(taskCtx)
 }));

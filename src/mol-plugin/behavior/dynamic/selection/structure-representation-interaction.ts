@@ -47,7 +47,6 @@ export enum StructureRepresentationInteractionTags {
 const TagSet: Set<StructureRepresentationInteractionTags> = new Set([StructureRepresentationInteractionTags.Group, StructureRepresentationInteractionTags.ResidueSel, StructureRepresentationInteractionTags.ResidueRepr, StructureRepresentationInteractionTags.SurrSel, StructureRepresentationInteractionTags.SurrRepr, StructureRepresentationInteractionTags.SurrNciRepr])
 
 export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<StructureRepresentationInteractionProps> {
-
     private createResVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
             repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ })],

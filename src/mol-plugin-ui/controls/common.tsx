@@ -279,7 +279,6 @@ export function IconButton(props: {
 }
 
 export class ButtonSelect extends React.PureComponent<{ label: string, onChange: (value: string) => void, disabled?: boolean }> {
-
     onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         e.preventDefault()
         this.props.onChange(e.target.value)

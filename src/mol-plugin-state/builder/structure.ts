@@ -11,6 +11,7 @@ import { StateTransforms } from '../transforms';
 import { RootStructureDefinition } from '../helpers/root-structure';
 import { StructureComponentParams } from '../helpers/structure-component';
 import { BuildInTrajectoryFormat, TrajectoryFormatProvider } from '../formats/trajectory';
+import { StructureRepresentationBuilder } from './structure/representation';
 
 export type TrajectoryFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
@@ -43,6 +44,8 @@ export class StructureBuilder {
         await this.plugin.runTask(this.dataState.updateTree(trajectory, { revertOnError: true }));
         return trajectory.selector;
     }
+
+    readonly representation = new StructureRepresentationBuilder(this.plugin);
 
     async parseStructure(params: {
         data?: StateObjectRef<SO.Data.Binary | SO.Data.String>,
