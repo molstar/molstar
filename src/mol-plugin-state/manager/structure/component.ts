@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, StructureElement, StructureSelection } from '../../../mol-model/structure';
+import { Structure, StructureElement } from '../../../mol-model/structure';
 import { structureAreIntersecting, structureSubtract, structureUnion } from '../../../mol-model/structure/query/utils/structure-set';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateBuilder } from '../../../mol-state';
@@ -89,7 +89,7 @@ class StructureComponentManager {
         if (modified.elementCount === 0) {
             builder.delete(component.cell.transform.ref);
         } else {
-            const bundle = StructureElement.Bundle.fromLoci(StructureSelection.toLociWithSourceUnits(StructureSelection.Singletons(parent, modified)));
+            const bundle = StructureElement.Bundle.fromSubStructure(parent, modified);
             const params: StructureComponentParams = {
                 type: { name: 'bundle', params: bundle },
                 nullIfEmpty: true,

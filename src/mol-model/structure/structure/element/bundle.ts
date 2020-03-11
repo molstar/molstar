@@ -14,6 +14,7 @@ import { UnitIndex } from './element';
 import { Loci } from './loci';
 import Expression from '../../../../mol-script/language/expression';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
+import { StructureSelection } from '../../query';
 
 export interface BundleElement {
     /**
@@ -34,6 +35,10 @@ export interface Bundle {
 
 export namespace Bundle {
     export const Empty: Bundle = { hash: -1, elements: [] }
+
+    export function fromSubStructure(parent: Structure, structure: Structure) {
+        return fromLoci(StructureSelection.toLociWithSourceUnits(StructureSelection.Singletons(parent, structure)))
+    }
 
     export function fromLoci(loci: Loci): Bundle {
         const _elements: {
