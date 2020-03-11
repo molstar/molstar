@@ -6,10 +6,13 @@
 
 import { Vec3 } from '../linear-algebra/3d';
 import { CentroidHelper } from './centroid-helper';
+import { Sphere3D } from '../geometry';
 
 // implementing http://www.ep.liu.se/ecp/034/009/ecp083409.pdf
 
 export class EposHelper {
+    private dir: Vec3[]
+
     private minDist: number[] = []
     private maxDist: number[] = []
     private extrema: Vec3[] = []
@@ -45,8 +48,12 @@ export class EposHelper {
         this.centroidHelper.radiusStep(p);
     }
 
-    getSphere() {
-        return this.centroidHelper.getSphere();
+    paddedRadiusStep(p: Vec3, padding: number) {
+        this.centroidHelper.paddedRadiusStep(p, padding);
+    }
+
+    getSphere(sphere?: Sphere3D) {
+        return this.centroidHelper.getSphere(sphere);
     }
 
     reset() {
@@ -59,23 +66,58 @@ export class EposHelper {
         this.centroidHelper.reset()
     }
 
-    constructor(private dir: Vec3[]) {
+    constructor(dir: number[][]) {
+        this.dir = dir.map(a => {
+            const v = Vec3.create(a[0], a[1], a[2])
+            return Vec3.normalize(v, v)
+        })
         this.reset()
     }
 }
 
-const DirEpos6 = [
-    Vec3.create(1, 0, 0), Vec3.create(0, 1, 0), Vec3.create(0, 0, 1)
+const Type001 = [
+    [1, 0, 0], [0, 1, 0], [0, 0, 1]
 ]
+
+const Type111 = [
+    [1, 1, 1], [-1, 1, 1], [-1, -1, 1], [1, -1, 1]
+]
+
+const Type011 = [
+    [1, 1, 0], [1, -1, 0], [1, 0, 1], [1, 0, -1], [0, 1, 1], [0, 1, -1]
+]
+
+const Type012 = [
+    [0, 1, 2], [0, 2, 1], [1, 0, 2], [2, 0, 1], [1, 2, 0], [2, 1, 0],
+    [0, 1, -2], [0, 2, -1], [1, 0, -2], [2, 0, -1], [1, -2, 0], [2, -1, 0]
+]
+
+const Type112 = [
+    [1, 1, 2], [2, 1, 1], [1, 2, 1], [1, -1, 2], [1, 1, -2], [1, -1, -2],
+    [2, -1, 1], [2, 1, -1], [2, -1, -1], [1, -2, 1], [1, 2, -1], [1, -2, -1]
+]
+
+const Type122 = [
+    [2, 2, 1], [1, 2, 2], [2, 1, 2], [2, -2, 1], [2, 2, -1], [2, -2, -1],
+    [1, -2, 2], [1, 2, -2], [1, -2, -2], [2, -1, 2], [2, 1, -2], [2, -1, -2]
+]
+
+const DirEpos6 = [ ...Type001 ]
 export function Epos6() {
     return new EposHelper(DirEpos6)
 }
 
-const DirEpos14 = [
-    Vec3.create(1, 0, 0), Vec3.create(0, 1, 0), Vec3.create(0, 0, 1),
-    Vec3.create(1/3, 1/3, 1/3), Vec3.create(-1/3, 1/3, 1/3),
-    Vec3.create(-1/3, -1/3, 1/3), Vec3.create(1/3, -1/3, 1/3)
-]
+const DirEpos14 = [ ...Type001, ...Type111 ]
 export function Epos14() {
     return new EposHelper(DirEpos14)
+}
+
+const DirEpos26 = [ ...Type001, ...Type111, ...Type011 ]
+export function Epos26() {
+    return new EposHelper(DirEpos26)
+}
+
+const DirEpos98 = [ ...Type001, ...Type111, ...Type011, ...Type012, ...Type112, ...Type122 ]
+export function Epos98() {
+    return new EposHelper(DirEpos98)
 }

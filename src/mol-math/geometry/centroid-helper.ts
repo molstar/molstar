@@ -37,8 +37,18 @@ class CentroidHelper {
         if (d > this.radiusSq) this.radiusSq = d;
     }
 
-    getSphere(): Sphere3D {
-        return { center: Vec3.clone(this.center), radius: Math.sqrt(this.radiusSq) };
+    paddedRadiusStep(p: Vec3, padding: number) {
+        // TODO take existing radius into account
+        const _d = Vec3.distance(p, this.center) + padding;
+        const d = _d * _d;
+        if (d > this.radiusSq) this.radiusSq = d;
+    }
+
+    getSphere(sphere?: Sphere3D): Sphere3D {
+        if (!sphere) sphere = Sphere3D()
+        Vec3.copy(sphere.center, this.center)
+        sphere.radius = Math.sqrt(this.radiusSq)
+        return sphere
     }
 
     constructor() {

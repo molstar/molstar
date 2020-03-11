@@ -11,32 +11,29 @@ import { RenderableValues, BaseValues } from './renderable/schema';
 import { GraphicsRenderObject, createRenderable } from './render-object';
 import { Object3D } from './object3d';
 import { Sphere3D } from '../mol-math/geometry';
-import { Vec3 } from '../mol-math/linear-algebra';
-import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 import { CommitQueue } from './commit-queue';
 import { now } from '../mol-util/now';
 import { arraySetRemove } from '../mol-util/array';
+import { Epos98 } from '../mol-math/geometry/epos-helper';
 
-const boundaryHelper = new BoundaryHelper();
+const eposHelper98 = Epos98()
+
 function calculateBoundingSphere(renderables: Renderable<RenderableValues & BaseValues>[], boundingSphere: Sphere3D): Sphere3D {
-    boundaryHelper.reset(0.1);
+    eposHelper98.reset();
 
     for (let i = 0, il = renderables.length; i < il; ++i) {
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
-        boundaryHelper.boundaryStep(boundingSphere.center, boundingSphere.radius);
+        eposHelper98.includeStep(boundingSphere.center);
     }
-    boundaryHelper.finishBoundaryStep();
+    eposHelper98.finishedIncludeStep();
     for (let i = 0, il = renderables.length; i < il; ++i) {
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
-        boundaryHelper.extendStep(boundingSphere.center, boundingSphere.radius);
+        eposHelper98.paddedRadiusStep(boundingSphere.center, boundingSphere.radius);
     }
 
-    Vec3.copy(boundingSphere.center, boundaryHelper.center);
-    boundingSphere.radius = boundaryHelper.radius;
-
-    return boundingSphere;
+    return eposHelper98.getSphere(boundingSphere);
 }
 
 function renderableSort(a: Renderable<RenderableValues & BaseValues>, b: Renderable<RenderableValues & BaseValues>) {

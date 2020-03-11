@@ -6,8 +6,7 @@
 
 import { Sphere3D } from '../../mol-math/geometry'
 import { Vec3 } from '../../mol-math/linear-algebra'
-import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
-import { Epos14 } from '../../mol-math/geometry/epos-helper';
+import { Epos14, Epos98 } from '../../mol-math/geometry/epos-helper';
 
 export function calculateTextureInfo (n: number, itemSize: number) {
     const sqN = Math.sqrt(n)
@@ -79,37 +78,37 @@ export function printImageData(imageData: ImageData, scale = 1, pixelated = fals
 //
 
 const v = Vec3.zero()
-const boundaryHelper = new BoundaryHelper()
-const eposHelper = Epos14()
+const eposHelper14 = Epos14()
+const eposHelper98 = Epos98()
 
 export function calculateInvariantBoundingSphere(position: Float32Array, positionCount: number, stepFactor: number): Sphere3D {
     const step = stepFactor * 3
-    eposHelper.reset()
+    eposHelper14.reset()
     for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
         Vec3.fromArray(v, position, i)
-        eposHelper.includeStep(v)
+        eposHelper14.includeStep(v)
     }
-    eposHelper.finishedIncludeStep()
+    eposHelper14.finishedIncludeStep()
     for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
         Vec3.fromArray(v, position, i)
-        eposHelper.radiusStep(v)
+        eposHelper14.radiusStep(v)
     }
-    return eposHelper.getSphere()
+    return eposHelper14.getSphere()
 }
 
 export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere3D, transform: Float32Array, transformCount: number): Sphere3D {
     const { center, radius } = invariantBoundingSphere
-    boundaryHelper.reset(0)
+    eposHelper98.reset()
     for (let i = 0, _i = transformCount; i < _i; ++i) {
         Vec3.transformMat4Offset(v, center, transform, 0, 0, i * 16)
-        boundaryHelper.boundaryStep(v, radius)
+        eposHelper98.includeStep(v)
     }
-    boundaryHelper.finishBoundaryStep()
+    eposHelper98.finishedIncludeStep()
     for (let i = 0, _i = transformCount; i < _i; ++i) {
         Vec3.transformMat4Offset(v, center, transform, 0, 0, i * 16)
-        boundaryHelper.extendStep(v, radius)
+        eposHelper98.paddedRadiusStep(v, radius)
     }
-    return boundaryHelper.getSphere()
+    return eposHelper98.getSphere()
 }
 
 export function calculateBoundingSphere(position: Float32Array, positionCount: number, transform: Float32Array, transformCount: number, padding = 0, stepFactor = 1): { boundingSphere: Sphere3D, invariantBoundingSphere: Sphere3D } {
