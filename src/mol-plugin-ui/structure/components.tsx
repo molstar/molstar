@@ -57,9 +57,9 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
     }
 
     componentDidMount() {
-        this.subscribe(this.current, () => this.setState({ action: void 0 }));
+        this.subscribe(this.current, () => this.setState({ action: this.state.action !== 'options' ? void 0 : 'options' }));
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isDisabled: v, action: void 0 })
+            this.setState({ isDisabled: v, action: this.state.action !== 'options' ? void 0 : 'options' })
         });
     }
 
@@ -112,7 +112,6 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
     }
 
     modifyComponentControls = <div className='msp-control-offset'><ModifyComponentControls onApply={this.hideAction} /></div>
-    optionsControls = <div className='msp-control-offset'><ComponentOptionsControls /></div>
 
     render() {
         return <>
@@ -123,7 +122,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
             </div>
             {this.state.action === 'preset' && this.presetControls}
             {this.state.action === 'modify' && this.modifyComponentControls}
-            {this.state.action === 'options' && this.optionsControls}
+            {this.state.action === 'options' && <div className='msp-control-offset'><ComponentOptionsControls isDisabled={this.state.isDisabled} /></div>}
         </>;
     }
 }
@@ -185,7 +184,7 @@ class ModifyComponentControls extends PurePluginUIComponent<{ onApply: () => voi
     }
 }
 
-class ComponentOptionsControls extends PurePluginUIComponent {
+class ComponentOptionsControls extends PurePluginUIComponent<{ isDisabled: boolean }> {
     componentDidMount() {
         this.subscribe(this.plugin.managers.structure.component.events.optionsUpdated, () => this.forceUpdate());
     }
@@ -193,7 +192,7 @@ class ComponentOptionsControls extends PurePluginUIComponent {
     update = (options: StructureComponentManager.Options) => this.plugin.managers.structure.component.setOptions(options)
 
     render() {
-        return <ParameterControls params={StructureComponentManager.OptionsParams} values={this.plugin.managers.structure.component.state.options} onChangeObject={this.update} />;
+        return <ParameterControls params={StructureComponentManager.OptionsParams} values={this.plugin.managers.structure.component.state.options} onChangeObject={this.update} isDisabled={this.props.isDisabled} />;
     }
 }
 

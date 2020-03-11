@@ -222,7 +222,9 @@ function _doPreOrder(ctx: VisitorCtx, root: StateTransform) {
     for (const [t, f, l] of tagMap) {
         if (StateObject.hasTag(cell.obj!, t)) {
             const stop = f(state, cell);
-            if (stop === false) return;
+            if (stop === false) {
+                return;
+            }
             onLeave = l;
             break;
         }

@@ -425,8 +425,6 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
 
         (cache as object as any).entries = entries;
 
-        // console.log(selections);
-
         const props = { label: `${params.label || 'Multi-selection'}`, description: `${params.selections.length} source(s), ${totalSize} element(s) total` };
         return new SO.Molecule.Structure.Selections(selections, props);
     },
@@ -514,8 +512,6 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
         b.data = selections;
         b.label = `${newParams.label || 'Multi-selection'}`;
         b.description = `${selections.length} source(s), ${totalSize} element(s) total`;
-
-        // console.log('updated', selections);
 
         return StateTransformer.UpdateResult.Updated;
     }
@@ -697,7 +693,7 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
     apply({ a, params }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
             await attachModelProps(a.data, ctx, taskCtx, params);
-            return a;
+            return new SO.Molecule.Model(a.data, { label: a.label, description: a.description });
         });
     },
     update({ a, oldParams, newParams }, ctx: PluginContext) {
@@ -743,13 +739,13 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
     apply({ a, params }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
             await attachStructureProps(a.data, ctx, taskCtx, params);
-            return a;
+            return new SO.Molecule.Structure(a.data, { label: a.label, description: a.description });
         });
     },
     update({ a, oldParams, newParams }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
             for (const name of oldParams.autoAttach) {
-                const property = ctx.customModelProperties.get(name);
+                const property = ctx.customStructureProperties.get(name);
                 if (!property) continue;
                 a.data.customPropertyDescriptors.reference(property.descriptor, false);
             }

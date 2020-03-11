@@ -230,10 +230,10 @@ export class PluginContext {
             this.behaviors.state.isUpdating.next(u);
         });
 
-        merge(this.behaviors.state.isAnimating, this.behaviors.state.isAnimating).subscribe(() => {
+        merge(this.behaviors.state.isUpdating, this.behaviors.state.isAnimating).subscribe(() => {
             const isUpdating = this.behaviors.state.isUpdating.value;
             const isAnimating = this.behaviors.state.isAnimating.value;
-            const isBusy = this.behaviors.state.isAnimating;
+            const isBusy = this.behaviors.state.isBusy;
 
             if ((isUpdating || isAnimating) && !isBusy.value) isBusy.next(true);
             else if (isBusy.value) isBusy.next(false);

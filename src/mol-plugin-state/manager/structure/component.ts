@@ -56,8 +56,10 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             if (s.currentFocus?.surroundings) this.updateReprParams(update, s.currentFocus.surroundings);
         }
 
-        await this.plugin.runTask(this.dataState.updateTree(update));
-        await this.updateInterationProps();
+        return this.plugin.dataTransaction(async () => {
+            await this.plugin.runTask(this.dataState.updateTree(update));
+            await this.updateInterationProps();
+        });
     }
 
     private updateReprParams(update: StateBuilder.Root, component: StructureComponentRef) {
@@ -76,24 +78,22 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         }
     }
 
-    private updateInterationProps() {
-        return this.plugin.dataTransaction(async () => {
-            for (const s of this.currentStructures) {
-                if (s.properties) {
-                    const b = this.dataState.build();
-                    b.to(s.properties.cell).update((old: StateTransformer.Params<CustomStructureProperties>) => {
-                        arraySetAdd(old.autoAttach, InteractionsProvider.descriptor.name);
-                        old.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
-                    });
-                    await this.plugin.runTask(this.dataState.updateTree(b));
-                } else {
-                    const params = PD.getDefaultValues(this.plugin.customStructureProperties.getParams(s.cell.obj?.data));
-                    arraySetAdd(params.autoAttach, InteractionsProvider.descriptor.name);
-                    params.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
-                    await this.plugin.builders.structure.insertStructureProperties(s.cell, params)
-                }
+    private async updateInterationProps() {
+        for (const s of this.currentStructures) {
+            if (s.properties) {
+                const b = this.dataState.build();
+                b.to(s.properties.cell).update((old: StateTransformer.Params<CustomStructureProperties>) => {
+                    arraySetAdd(old.autoAttach, InteractionsProvider.descriptor.name);
+                    old.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
+                });
+                await this.plugin.runTask(this.dataState.updateTree(b));
+            } else {
+                const params = PD.getDefaultValues(this.plugin.customStructureProperties.getParams(s.cell.obj?.data));
+                arraySetAdd(params.autoAttach, InteractionsProvider.descriptor.name);
+                params.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
+                await this.plugin.builders.structure.insertStructureProperties(s.cell, params);
             }
-        });
+        }
     }
 
     applyPreset<P = any, S = {}>(structures: ReadonlyArray<StructureRef>, provider: StructureRepresentationProvider<P, S>, params?: P): Promise<any>  {

@@ -77,7 +77,9 @@ namespace CustomProperty {
 
         get(name: string) {
             const prop = this.providers.get(name);
-            if (!prop) throw new Error(`Custom property '${name}' is not registered.`)
+            if (!prop) {
+                throw new Error(`Custom property '${name}' is not registered.`)
+            }
             return this.providers.get(name)
         }
 
