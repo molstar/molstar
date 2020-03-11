@@ -208,7 +208,9 @@ class ComponentListControls extends PurePluginUIComponent {
 
     render() {
         const componentGroups = this.plugin.managers.structure.hierarchy.componentGroups;
-        return componentGroups.map(g => <StructureComponentGroup key={g[0].cell.transform.ref} group={g} />)
+        return <div style={{ marginTop: '8px' }}>
+            {componentGroups.map(g => <StructureComponentGroup key={g[0].cell.transform.ref} group={g} />)}
+        </div>;
     }
 }
 
