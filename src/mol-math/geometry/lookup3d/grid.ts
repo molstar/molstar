@@ -166,21 +166,27 @@ function _build(state: BuildState): Grid3D {
     }
 }
 
-const boundaryHelper = new BoundaryHelper();
+const boundaryHelperCoarse = new BoundaryHelper('14');
+const boundaryHelperFine = new BoundaryHelper('98');
+function getBoundaryHelper(count: number) {
+    return count > 500_000 ? boundaryHelperCoarse : boundaryHelperFine
+}
+
 function getBoundary(data: PositionData) {
     const { x, y, z, radius, indices } = data;
     const p = Vec3();
-    boundaryHelper.reset(0);
+    const boundaryHelper = getBoundaryHelper(OrderedSet.size(indices));
+    boundaryHelper.reset();
     for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
         const i = OrderedSet.getAt(indices, t);
         Vec3.set(p, x[i], y[i], z[i]);
-        boundaryHelper.boundaryStep(p, (radius && radius[i]) || 0);
+        boundaryHelper.includeSphereStep(p, (radius && radius[i]) || 0);
     }
-    boundaryHelper.finishBoundaryStep();
+    boundaryHelper.finishedIncludeStep();
     for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
         const i = OrderedSet.getAt(indices, t);
         Vec3.set(p, x[i], y[i], z[i]);
-        boundaryHelper.extendStep(p, (radius && radius[i]) || 0);
+        boundaryHelper.radiusSphereStep(p, (radius && radius[i]) || 0);
     }
 
     return { boundingBox: boundaryHelper.getBox(), boundingSphere: boundaryHelper.getSphere() };

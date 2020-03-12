@@ -6,7 +6,7 @@
 
 import { Sphere3D } from '../../mol-math/geometry'
 import { Vec3 } from '../../mol-math/linear-algebra'
-import { EposHelper, HierarchyHelper } from '../../mol-math/geometry/epos-helper';
+import { BoundaryHelper, HierarchyHelper } from '../../mol-math/geometry/boundary-helper';
 
 export function calculateTextureInfo (n: number, itemSize: number) {
     const sqN = Math.sqrt(n)
@@ -78,8 +78,8 @@ export function printImageData(imageData: ImageData, scale = 1, pixelated = fals
 //
 
 const v = Vec3.zero()
-const eposHelperCoarse = new EposHelper('14')
-const eposHelperFine = new EposHelper('98')
+const eposHelperCoarse = new BoundaryHelper('14')
+const eposHelperFine = new BoundaryHelper('98')
 const hierarchyHelperCoarse = new HierarchyHelper('14')
 const hierarchyHelperFine = new HierarchyHelper('98')
 

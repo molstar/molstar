@@ -8,6 +8,7 @@
 import { Vec3, Mat4 } from '../../linear-algebra'
 import { PositionData } from '../common'
 import { OrderedSet } from '../../../mol-data/int';
+import { Sphere3D } from './sphere3d';
 
 interface Box3D { min: Vec3, max: Vec3 }
 
@@ -27,6 +28,13 @@ namespace Box3D {
 
     export function clone(a: Box3D): Box3D {
         return copy(empty(), a);
+    }
+
+    export function fromSphere3D(out: Box3D, sphere: Sphere3D): Box3D {
+        const r = Vec3.create(sphere.radius, sphere.radius, sphere.radius)
+        Vec3.sub(out.min, sphere.center, r)
+        Vec3.add(out.max, sphere.center, r)
+        return out
     }
 
     export function computeBounding(data: PositionData): Box3D {

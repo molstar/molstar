@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,7 +7,6 @@
 
 import { UniqueArray } from '../../../../mol-data/generic';
 import { OrderedSet, SortedArray, Interval } from '../../../../mol-data/int';
-import { BoundaryHelper } from '../../../../mol-math/geometry/boundary-helper';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 import Structure from '../structure';
@@ -22,6 +21,7 @@ import { ChainIndex } from '../../model/indexing';
 import { PrincipalAxes } from '../../../../mol-math/linear-algebra/matrix/principal-axes';
 import { NumberArray } from '../../../../mol-util/type-helpers';
 import StructureProperties from '../properties';
+import { BoundaryHelper } from '../../../../mol-math/geometry/boundary-helper';
 
 /** Represents multiple structure element index locations */
 export interface Loci {
@@ -456,10 +456,10 @@ export namespace Loci {
 
     //
 
-    const boundaryHelper = new BoundaryHelper();
+    const boundaryHelper = new BoundaryHelper('98');
     const tempPosBoundary = Vec3.zero();
     export function getBoundary(loci: Loci): Boundary {
-        boundaryHelper.reset(0);
+        boundaryHelper.reset();
 
         for (const e of loci.elements) {
             const { indices } = e;
@@ -468,10 +468,10 @@ export namespace Loci {
             for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
                 const eI = elements[OrderedSet.getAt(indices, i)];
                 pos(eI, tempPosBoundary);
-                boundaryHelper.boundaryStep(tempPosBoundary, r(eI));
+                boundaryHelper.includeSphereStep(tempPosBoundary, r(eI));
             }
         }
-        boundaryHelper.finishBoundaryStep();
+        boundaryHelper.finishedIncludeStep();
         for (const e of loci.elements) {
             const { indices } = e;
             const pos = e.unit.conformation.position, r = e.unit.conformation.r;
@@ -479,7 +479,7 @@ export namespace Loci {
             for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
                 const eI = elements[OrderedSet.getAt(indices, i)];
                 pos(eI, tempPosBoundary);
-                boundaryHelper.extendStep(tempPosBoundary, r(eI));
+                boundaryHelper.radiusSphereStep(tempPosBoundary, r(eI));
             }
         }
 

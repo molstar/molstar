@@ -1,124 +1,213 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from '../../mol-math/linear-algebra/3d';
+import { Vec3 } from '../linear-algebra/3d';
+import { CentroidHelper } from './centroid-helper';
+import { Sphere3D } from '../geometry';
 import { Box3D } from './primitives/box3d';
-import { Sphere3D } from './primitives/sphere3d';
 
-/**
- * Usage:
- *
- * 1. .reset(tolerance); tolerance plays part in the "extend" step
- * 2. for each point/sphere call boundaryStep()
- * 3. .finishBoundaryStep
- * 4. for each point/sphere call extendStep
- * 5. use .center/.radius or call getSphere/getBox
- */
+// implementing http://www.ep.liu.se/ecp/034/009/ecp083409.pdf
+
 export class BoundaryHelper {
-    private count = 0;
-    private extremes = [Vec3.zero(), Vec3.zero(), Vec3.zero(), Vec3.zero(), Vec3.zero(), Vec3.zero()];
-    private u = Vec3.zero();
-    private v = Vec3.zero();
+    private dir: Vec3[]
 
-    tolerance = 0;
-    center: Vec3 = Vec3.zero();
-    radius = 0;
+    private minDist: number[] = []
+    private maxDist: number[] = []
+    private extrema: Vec3[] = []
+    centroidHelper = new CentroidHelper()
 
-    reset(tolerance: number) {
-        Vec3.set(this.center, 0, 0, 0);
-        for (let i = 0; i < 6; i++) {
-            const e = i % 2 === 0 ? Number.MAX_VALUE : -Number.MAX_VALUE;
-            Vec3.set(this.extremes[i], e, e, e);
+    private computeExtrema(i: number, p: Vec3) {
+        const d = Vec3.dot(this.dir[i], p)
+
+        if (d < this.minDist[i]) {
+            this.minDist[i] = d
+            Vec3.copy(this.extrema[i * 2], p)
         }
-        this.radius = 0;
-        this.count = 0;
-        this.tolerance = tolerance;
+        if (d > this.maxDist[i]) {
+            this.maxDist[i] = d
+            Vec3.copy(this.extrema[i * 2 + 1], p)
+        }
     }
 
-    boundaryStep(p: Vec3, r: number) {
-        updateExtremeMin(0, this.extremes[0], p, r);
-        updateExtremeMax(0, this.extremes[1], p, r);
+    private computeSphereExtrema(i: number, center: Vec3, radius: number) {
+        const d = Vec3.dot(this.dir[i], center)
 
-        updateExtremeMin(1, this.extremes[2], p, r);
-        updateExtremeMax(1, this.extremes[3], p, r);
-
-        updateExtremeMin(2, this.extremes[4], p, r);
-        updateExtremeMax(2, this.extremes[5], p, r);
-        this.count++;
+        if (d - radius < this.minDist[i]) {
+            this.minDist[i] = d - radius
+            Vec3.scaleAndSub(this.extrema[i * 2], center, this.dir[i], radius)
+        }
+        if (d + radius > this.maxDist[i]) {
+            this.maxDist[i] = d + radius
+            Vec3.scaleAndAdd(this.extrema[i * 2 + 1], center, this.dir[i], radius)
+        }
     }
 
-    finishBoundaryStep() {
-        if (this.count === 0) return;
+    includeStep(p: Vec3) {
+        for (let i = 0, il = this.dir.length; i < il; ++i) {
+            this.computeExtrema(i, p)
+        }
+    }
 
-        let maxSpan = 0, mI = 0, mJ = 0;
+    includeSphereStep(center: Vec3, radius: number) {
+        for (let i = 0, il = this.dir.length; i < il; ++i) {
+            this.computeSphereExtrema(i, center, radius)
+        }
+    }
 
-        for (let i = 0; i < 5; i++) {
-            for (let j = i + 1; j < 6; j++) {
-                const d = Vec3.squaredDistance(this.extremes[i], this.extremes[j]);
-                if (d > maxSpan) {
-                    maxSpan = d;
-                    mI = i;
-                    mJ = j;
-                }
+    finishedIncludeStep() {
+        for (let i = 0; i < this.extrema.length; i++) {
+            this.centroidHelper.includeStep(this.extrema[i]);
+        }
+        this.centroidHelper.finishedIncludeStep();
+    }
+
+    radiusStep(p: Vec3) {
+        this.centroidHelper.radiusStep(p);
+    }
+
+    radiusSphereStep(center: Vec3, radius: number) {
+        this.centroidHelper.radiusSphereStep(center, radius);
+    }
+
+    getHierarchyInput() {
+        const sphere = this.centroidHelper.getSphere();
+        const normal = Vec3()
+        const t = sphere.radius * this.hierarchyThresholdFactor
+
+        let maxDist = -Infinity
+        let belowThreshold = false
+
+        for (let i = 0; i < this.extrema.length; i += 2) {
+            const halfDist = Vec3.distance(this.extrema[i], this.extrema[i + 1]) / 2
+            if (halfDist > maxDist) {
+                maxDist = halfDist
+                Vec3.normalize(normal, Vec3.sub(normal, this.extrema[i], this.extrema[i + 1]))
             }
+            if (halfDist < t) belowThreshold = true
         }
 
-        Vec3.add(this.center, this.extremes[mI], this.extremes[mJ]);
-        Vec3.scale(this.center, this.center, 0.5);
-        this.radius = Vec3.distance(this.center, this.extremes[mI]);
+        return belowThreshold ? { sphere, normal } : false
     }
 
-    extendStep(p: Vec3, r: number) {
-        const d = Vec3.distance(p, this.center);
-        if ((1 + this.tolerance) * this.radius >= r + d) return;
-
-        Vec3.sub(this.u, p, this.center);
-        Vec3.normalize(this.u, this.u);
-
-        Vec3.scale(this.v, this.u, -this.radius);
-        Vec3.add(this.v, this.v, this.center);
-        Vec3.scale(this.u, this.u, r + d);
-        Vec3.add(this.u, this.u, this.center);
-
-        Vec3.add(this.center, this.u, this.v);
-        Vec3.scale(this.center, this.center, 0.5);
-        this.radius = 0.5 * (r + d + this.radius);
+    getSphere(sphere?: Sphere3D) {
+        return this.centroidHelper.getSphere(sphere)
     }
 
-    getBox(): Box3D {
-        Vec3.copy(this.u, this.extremes[0]);
-        Vec3.copy(this.v, this.extremes[0]);
+    getBox(box?: Box3D) {
+        // TODO can we get a tighter box from the extrema???
+        if (!box) box = Box3D()
+        return Box3D.fromSphere3D(box, this.centroidHelper.getSphere())
+    }
 
-        for (let i = 1; i < 6; i++) {
-            Vec3.min(this.u, this.u, this.extremes[i]);
-            Vec3.max(this.v, this.v, this.extremes[i]);
+    reset() {
+        for (let i = 0, il = this.dir.length; i < il; ++i) {
+            this.minDist[i] = Infinity
+            this.maxDist[i] = -Infinity
+            this.extrema[i * 2] = Vec3()
+            this.extrema[i * 2 + 1] = Vec3()
         }
-
-        return { min: Vec3.clone(this.u), max: Vec3.clone(this.v) };
+        this.centroidHelper.reset()
     }
 
-    getSphere(): Sphere3D {
-        return { center: Vec3.clone(this.center), radius: this.radius };
-    }
-
-    constructor() {
-        this.reset(0);
+    constructor(quality: EposQuality, private hierarchyThresholdFactor = 0.66) {
+        this.dir = getEposDir(quality)
+        this.reset()
     }
 }
 
-function updateExtremeMin(d: number, e: Vec3, center: Vec3, r: number) {
-    if (center[d] - r < e[d]) {
-        Vec3.copy(e, center);
-        e[d] -= r;
+const tmpV = Vec3()
+
+export class HierarchyHelper {
+    private sphere = Sphere3D()
+    private normal = Vec3()
+    private helperA = new BoundaryHelper(this.quality)
+    private helperB = new BoundaryHelper(this.quality)
+
+    private checkSide(p: Vec3) {
+        return Vec3.dot(this.normal, Vec3.sub(tmpV, this.sphere.center, p)) > 0
     }
+
+    includeStep(p: Vec3) {
+        if (this.checkSide(p)) {
+            this.helperA.includeStep(p)
+        } else {
+            this.helperB.includeStep(p)
+        }
+    }
+
+    finishedIncludeStep() {
+        this.helperA.finishedIncludeStep();
+        this.helperB.finishedIncludeStep();
+    }
+
+    radiusStep(p: Vec3) {
+        if (this.checkSide(p)) {
+            this.helperA.radiusStep(p)
+        } else {
+            this.helperB.radiusStep(p)
+        }
+    }
+
+    getSphere(): Sphere3D.Hierarchy {
+        return {
+            center: this.sphere.center,
+            radius: this.sphere.radius,
+            hierarchy: [this.helperA.getSphere(), this.helperB.getSphere()]
+        }
+    }
+
+    reset(sphere: Sphere3D, normal: Vec3) {
+        Sphere3D.copy(this.sphere, sphere)
+        Vec3.copy(this.normal, normal)
+        this.helperA.reset()
+        this.helperB.reset()
+    }
+
+    constructor(private quality: EposQuality) { }
 }
 
-function updateExtremeMax(d: number, e: Vec3, center: Vec3, r: number) {
-    if (center[d] + r > e[d]) {
-        Vec3.copy(e, center);
-        e[d] += r;
+type EposQuality = '6' | '14' | '26' | '98'
+
+function getEposDir(quality: EposQuality) {
+    let dir: number[][]
+    switch (quality) {
+        case '6': dir = [ ...Type001 ]; break
+        case '14': dir = [ ...Type001, ...Type111 ]; break
+        case '26': dir = [ ...Type001, ...Type111, ...Type011 ]; break
+        case '98': dir = [ ...Type001, ...Type111, ...Type011, ...Type012, ...Type112, ...Type122 ]; break
     }
+    return dir.map(a => {
+        const v = Vec3.create(a[0], a[1], a[2])
+        return Vec3.normalize(v, v)
+    })
 }
+
+const Type001 = [
+    [1, 0, 0], [0, 1, 0], [0, 0, 1]
+]
+
+const Type111 = [
+    [1, 1, 1], [-1, 1, 1], [-1, -1, 1], [1, -1, 1]
+]
+
+const Type011 = [
+    [1, 1, 0], [1, -1, 0], [1, 0, 1], [1, 0, -1], [0, 1, 1], [0, 1, -1]
+]
+
+const Type012 = [
+    [0, 1, 2], [0, 2, 1], [1, 0, 2], [2, 0, 1], [1, 2, 0], [2, 1, 0],
+    [0, 1, -2], [0, 2, -1], [1, 0, -2], [2, 0, -1], [1, -2, 0], [2, -1, 0]
+]
+
+const Type112 = [
+    [1, 1, 2], [2, 1, 1], [1, 2, 1], [1, -1, 2], [1, 1, -2], [1, -1, -2],
+    [2, -1, 1], [2, 1, -1], [2, -1, -1], [1, -2, 1], [1, 2, -1], [1, -2, -1]
+]
+
+const Type122 = [
+    [2, 2, 1], [1, 2, 2], [2, 1, 2], [2, -2, 1], [2, 2, -1], [2, -2, -1],
+    [1, -2, 2], [1, 2, -2], [1, -2, -2], [2, -1, 2], [2, 1, -2], [2, -1, -2]
+]

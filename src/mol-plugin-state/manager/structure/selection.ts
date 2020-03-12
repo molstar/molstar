@@ -13,13 +13,13 @@ import { Boundary } from '../../../mol-model/structure/structure/util/boundary';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { structureElementStatsLabel } from '../../../mol-theme/label';
 import { OrderedSet } from '../../../mol-data/int';
-import { BoundaryHelper } from '../../../mol-math/geometry/boundary-helper';
 import { arrayRemoveAtInPlace } from '../../../mol-util/array';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { StateObject, StateSelection } from '../../../mol-state';
 import { PluginStateObject } from '../../objects';
 import { StructureSelectionQuery } from '../../helpers/structure-selection-query';
 import { Task } from '../../../mol-task';
+import { BoundaryHelper } from '../../../mol-math/geometry/boundary-helper';
 
 interface StructureSelectionManagerState {
     entries: Map<string, SelectionEntry>,
@@ -27,12 +27,12 @@ interface StructureSelectionManagerState {
     stats?: SelectionStats
 }
 
-const boundaryHelper = new BoundaryHelper();
+const boundaryHelper = new BoundaryHelper('98');
 const HISTORY_CAPACITY = 8;
 
 export type StructureSelectionModifier = 'add' | 'remove' | 'set'
 
-export class StructureSelectionManager extends PluginComponent<StructureSelectionManagerState> {    
+export class StructureSelectionManager extends PluginComponent<StructureSelectionManagerState> {
     readonly events = {
         changed: this.ev<undefined>()
     }
@@ -83,7 +83,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
 
     private add(loci: Loci): boolean {
         if (!StructureElement.Loci.is(loci)) return false;
-        
+
         const entry = this.getEntry(loci.structure);
         if (!entry) return false;
 
@@ -288,7 +288,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
         const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
         const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
 
-        boundaryHelper.reset(0);
+        boundaryHelper.reset();
 
         const boundaries: Boundary[] = []
         this.entries.forEach(v => {
@@ -302,14 +302,12 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
             const { box, sphere } = boundaries[i];
             Vec3.min(min, min, box.min);
             Vec3.max(max, max, box.max);
-            boundaryHelper.boundaryStep(sphere.center, sphere.radius)
+            boundaryHelper.includeSphereStep(sphere.center, sphere.radius)
         }
-
-        boundaryHelper.finishBoundaryStep();
-
+        boundaryHelper.finishedIncludeStep();
         for (let i = 0, il = boundaries.length; i < il; ++i) {
             const { sphere } = boundaries[i];
-            boundaryHelper.extendStep(sphere.center, sphere.radius);
+            boundaryHelper.radiusSphereStep(sphere.center, sphere.radius);
         }
 
         return { box: { min, max }, sphere: boundaryHelper.getSphere() };

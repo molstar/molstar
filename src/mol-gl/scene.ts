@@ -14,9 +14,9 @@ import { Sphere3D } from '../mol-math/geometry';
 import { CommitQueue } from './commit-queue';
 import { now } from '../mol-util/now';
 import { arraySetRemove } from '../mol-util/array';
-import { EposHelper } from '../mol-math/geometry/epos-helper';
+import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 
-const eposHelper = new EposHelper('98')
+const eposHelper = new BoundaryHelper('98')
 
 function calculateBoundingSphere(renderables: Renderable<RenderableValues & BaseValues>[], boundingSphere: Sphere3D): Sphere3D {
     eposHelper.reset();

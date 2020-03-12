@@ -14,6 +14,7 @@ import { PrincipalAxes } from '../mol-math/linear-algebra/matrix/principal-axes'
 import { ParamDefinition } from '../mol-util/param-definition';
 import { shallowEqual } from '../mol-util';
 import { FiniteArray } from '../mol-util/type-helpers';
+import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -65,9 +66,14 @@ type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | Emp
 namespace Loci {
     export interface Bundle<L extends number> { loci: FiniteArray<Loci, L> }
 
+    const boundaryHelper = new BoundaryHelper('98');
     export function getBundleBoundingSphere(bundle: Bundle<any>): Sphere3D {
-        const spheres = bundle.loci.map(l => getBoundingSphere(l)).filter(s => !!s)
-        return Sphere3D.fromSphere3Ds(spheres as Sphere3D[])
+        const spheres = bundle.loci.map(l => getBoundingSphere(l)).filter(s => !!s) as Sphere3D[]
+        boundaryHelper.reset();
+        for (const s of spheres) boundaryHelper.includeSphereStep(s.center, s.radius);
+        boundaryHelper.finishedIncludeStep();
+        for (const s of spheres) boundaryHelper.radiusSphereStep(s.center, s.radius);
+        return boundaryHelper.getSphere();
     }
 
     export function areEqual(lociA: Loci, lociB: Loci) {

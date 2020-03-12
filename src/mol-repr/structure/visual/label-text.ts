@@ -64,7 +64,7 @@ function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme,
 //
 
 const tmpVec = Vec3();
-const boundaryHelper = new BoundaryHelper();
+const boundaryHelper = new BoundaryHelper('98');
 
 function createChainText(ctx: VisualContext, structure: Structure, theme: Theme, props: LabelTextProps, text?: Text): Text {
     const l = StructureElement.Location.create(structure);
@@ -117,20 +117,20 @@ function createResidueText(ctx: VisualContext, structure: Structure, theme: Them
             j++;
             while (j < jl && residueIndex[elements[j]] === rI) j++;
 
-            boundaryHelper.reset(0);
+            boundaryHelper.reset();
             for (let eI = start; eI < j; eI++) {
                 pos(elements[eI], tmpVec);
-                boundaryHelper.boundaryStep(tmpVec, 0);
+                boundaryHelper.includeStep(tmpVec);
             }
-            boundaryHelper.finishBoundaryStep();
+            boundaryHelper.finishedIncludeStep();
             for (let eI = start; eI < j; eI++) {
                 pos(elements[eI], tmpVec);
-                boundaryHelper.extendStep(tmpVec, 0);
+                boundaryHelper.radiusStep(tmpVec);
             }
 
             l.element = elements[start];
 
-            const { center, radius } = boundaryHelper
+            const { center, radius } = boundaryHelper.getSphere()
             const authSeqId = auth_seq_id(l)
             const compId = label_comp_id(l)
 
