@@ -49,24 +49,24 @@ const TagSet: Set<StructureRepresentationInteractionTags> = new Set([StructureRe
 export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<StructureRepresentationInteractionProps> {
     private createResVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            type: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ })],
-            size: [BuiltInSizeThemes.uniform, () => ({ })]
+            type: BuiltInStructureRepresentations['ball-and-stick'],
+            size: BuiltInSizeThemes.uniform
         });
     }
 
     private createSurVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            type: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ })],
-            color: [BuiltInColorThemes['element-symbol'], () => ({ })],
-            size: [BuiltInSizeThemes.uniform, () => ({ })]
+            type: BuiltInStructureRepresentations['ball-and-stick'],
+            color: BuiltInColorThemes['element-symbol'],
+            size: BuiltInSizeThemes.uniform
         });
     }
 
     private createSurNciVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            type: [InteractionsRepresentationProvider, () => ({ })],
-            color: [InteractionTypeColorThemeProvider, () => ({ })],
-            size: [BuiltInSizeThemes.uniform, () => ({ })]
+            type: InteractionsRepresentationProvider,
+            color: InteractionTypeColorThemeProvider,
+            size: BuiltInSizeThemes.uniform
         });
     }
 

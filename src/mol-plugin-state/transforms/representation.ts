@@ -17,7 +17,7 @@ import { StateTransformer, StateObject } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { BuiltInColorThemeName, BuiltInColorThemes, ColorTheme } from '../../mol-theme/color';
 import { BuiltInSizeThemeName, BuiltInSizeThemes, SizeTheme } from '../../mol-theme/size';
-import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
+import { Theme } from '../../mol-theme/theme';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { ColorNames } from '../../mol-util/color/names';
@@ -49,21 +49,6 @@ export { TransparencyStructureRepresentation3DFromBundle }
 export { VolumeRepresentation3D }
 
 namespace StructureRepresentation3DHelpers {
-    export function getDefaultParams(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structure: Structure, structureParams?: Partial<PD.Values<StructureParams>>): StateTransformer.Params<StructureRepresentation3D> {
-        const type = ctx.structureRepresentation.registry.get(name);
-
-        const themeDataCtx = { structure };
-        const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme.name).getParams(themeDataCtx);
-        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme.name).getParams(themeDataCtx)
-        const structureDefaultParams = PD.getDefaultValues(type.getParams(ctx.structureRepresentation.themeCtx, structure))
-        return ({
-            type: { name, params: structureParams ? { ...structureDefaultParams, ...structureParams } : structureDefaultParams },
-            colorTheme: { name: type.defaultColorTheme.name, params: { ...PD.getDefaultValues(colorParams), ...type.defaultColorTheme.props } },
-            sizeTheme: { name: type.defaultSizeTheme.name, params: { ...PD.getDefaultValues(sizeParams), ...type.defaultSizeTheme.props } }
-        })
-    }
-
-
     export type BuildInProps<R extends BuiltInStructureRepresentationsName, C extends BuiltInColorThemeName, S extends BuiltInSizeThemeName> = {
         type?: R,
         typeParams?: Partial<RepresentationProvider.ParamValues<BuiltInStructureRepresentations[R]>>,
@@ -74,9 +59,12 @@ namespace StructureRepresentation3DHelpers {
     }
 
     export type Props<R extends RepresentationProvider<Structure, any, any> = any, C extends ColorTheme.Provider<any> = any, S extends SizeTheme.Provider<any> = any> = {
-        type?: R | [R, (r: R, ctx: ThemeRegistryContext, s: Structure) => Partial<RepresentationProvider.ParamValues<R>>],
-        color?: C | [C, (c: C, ctx: ThemeRegistryContext) => Partial<ColorTheme.ParamValues<C>>],
-        size?: S | [S, (c: S, ctx: ThemeRegistryContext) => Partial<SizeTheme.ParamValues<S>>]
+        type?: R,
+        typeParams?: Partial<RepresentationProvider.ParamValues<R>>,
+        color?: C,
+        colorParams?: Partial<ColorTheme.ParamValues<C>>,
+        size?: S,
+        sizeParams?: Partial<SizeTheme.ParamValues<S>>
     }
 
     export function createBuiltInParams<R extends BuiltInStructureRepresentationsName, C extends BuiltInColorThemeName, S extends BuiltInSizeThemeName>(
@@ -90,9 +78,12 @@ namespace StructureRepresentation3DHelpers {
             || ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme.name);
 
         const ps: Props = {
-            type: props.typeParams ? [type, () => props.typeParams] : type,
-            color: props.colorParams ? [color, () => props.colorParams] : color,
-            size: props.sizeParams ? [size, () => props.sizeParams] : size
+            type: type,
+            typeParams: props.typeParams,
+            color,
+            colorParams: props.colorParams,
+            size,
+            sizeParams: props.sizeParams
         };
 
         return createParams(ctx, structure, ps);
@@ -104,29 +95,17 @@ namespace StructureRepresentation3DHelpers {
         const { themeCtx } = ctx.structureRepresentation
         const themeDataCtx = { structure }
 
-        const repr = props.type
-            ? props.type instanceof Array ? props.type[0] : props.type
-            : ctx.structureRepresentation.registry.default.provider;
+        const repr = props.type || ctx.structureRepresentation.registry.default.provider;
         const reprDefaultParams = PD.getDefaultValues(repr.getParams(themeCtx, structure));
-        const reprParams = props.type instanceof Array
-            ? { ...reprDefaultParams, ...props.type[1](repr as R, themeCtx, structure) }
-            : reprDefaultParams;
+        const reprParams = { ...reprDefaultParams, ...props.typeParams };
 
-        const color = props.color
-            ? props.color instanceof Array ? props.color[0] : props.color
-            : themeCtx.colorThemeRegistry.get(repr.defaultColorTheme.name);
+        const color = props.color || themeCtx.colorThemeRegistry.get(repr.defaultColorTheme.name);
         const colorDefaultParams = { ...PD.getDefaultValues(color.getParams(themeDataCtx)), ...repr.defaultColorTheme.props }
-        const colorParams = props.color instanceof Array
-            ? { ...colorDefaultParams, ...props.color[1](color as C, themeCtx) }
-            : colorDefaultParams;
+        const colorParams = { ...colorDefaultParams, ...props.colorParams };
 
-        const size = props.size
-            ? props.size instanceof Array ? props.size[0] : props.size
-            : themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme.name);
+        const size = props.size || themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme.name);
         const sizeDefaultParams = { ...PD.getDefaultValues(size.getParams(themeDataCtx)), ...repr.defaultSizeTheme.props }
-        const sizeParams = props.size instanceof Array
-            ? { ...sizeDefaultParams, ...props.size[1](size as S, themeCtx) }
-            : sizeDefaultParams;
+        const sizeParams = { ...sizeDefaultParams, ...props.sizeParams };
 
         return ({
             type: { name: ctx.structureRepresentation.registry.getName(repr), params: reprParams },

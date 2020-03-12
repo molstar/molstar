@@ -26,8 +26,6 @@ import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder'
 import { getMatFromResamplePoints } from './curve';
 import { compile } from '../../../../mol-script/runtime/query/compiler';
 import { UniformColorThemeProvider } from '../../../../mol-theme/color/uniform';
-import { ThemeRegistryContext } from '../../../../mol-theme/theme';
-import { ColorTheme } from '../../../../mol-theme/color';
 import { CifCategory, CifField } from '../../../../mol-io/reader/cif';
 import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { Column } from '../../../../mol-data/db';
@@ -399,8 +397,8 @@ export const LoadCellPackModel = StateAction.build({
         cellpackTree
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.createParams(ctx, Structure.Empty, {
-                    type: getReprParams(ctx, params.preset),
-                    color: getColorParams(hue)
+                    ...getReprParams(ctx, params.preset),
+                    ...getColorParams(hue)
                 })
             )
     }
@@ -415,7 +413,7 @@ export const LoadCellPackModel = StateAction.build({
             .apply(StateTransforms.Misc.CreateGroup, { label: 'HIV1_envelope_Membrane' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.createParams(ctx, Structure.Empty, {
-                    type: getReprParams(ctx, params.preset),
+                    ...getReprParams(ctx, params.preset),
                     color: UniformColorThemeProvider
                 })
             )
@@ -431,50 +429,41 @@ function getReprParams(ctx: PluginContext, params: { representation: Representat
     switch (representation) {
         case 'spacefill':
             return traceOnly
-                ? [
-                    ctx.structureRepresentation.registry.get('spacefill'),
-                    () => ({ sizeFactor: 2, ignoreHydrogens: true })
-                ] as [any, any]
-                : [
-                    ctx.structureRepresentation.registry.get('spacefill'),
-                    () => ({ ignoreHydrogens: true })
-                ] as [any, any]
+                ? {
+                    type: ctx.structureRepresentation.registry.get('spacefill'),
+                    typeParams: { sizeFactor: 2, ignoreHydrogens: true }
+                } : {
+                    type: ctx.structureRepresentation.registry.get('spacefill'),
+                    typeParams: { ignoreHydrogens: true }
+                }
         case 'gaussian-surface':
-            return [
-                ctx.structureRepresentation.registry.get('gaussian-surface'),
-                () => ({
+            return {
+                type: ctx.structureRepresentation.registry.get('gaussian-surface'),
+                typeParams: {
                     quality: 'custom', resolution: 10, radiusOffset: 2,
                     alpha: 1.0, flatShaded: false, doubleSided: false,
                     ignoreHydrogens: true
-                })
-            ] as [any, any]
+                }
+            }
         case 'point':
-            return [
-                ctx.structureRepresentation.registry.get('point'),
-                () => ({ ignoreHydrogens: true })
-            ] as [any, any]
+            return { type: ctx.structureRepresentation.registry.get('point') }
         case 'ellipsoid':
-            return [
-                ctx.structureRepresentation.registry.get('orientation'),
-                () => ({})
-            ] as [any, any]
+            return { type: ctx.structureRepresentation.registry.get('orientation') }
     }
 }
 
-function getColorParams(hue: [number, number]) {
-    return [
-        ModelIndexColorThemeProvider,
-        (c: ColorTheme.Provider<any>, ctx: ThemeRegistryContext) => {
-            return {
-                palette: {
-                    name: 'generate',
-                    params: {
-                        hue, chroma: [30, 80], luminance: [15, 85],
-                        clusteringStepCount: 50, minSampleCount: 800,
-                        maxCount: 75
-                    }
+function getColorParams(hue: [number, number]): any {
+    return {
+        color: ModelIndexColorThemeProvider,
+        colorParams: {
+            palette: {
+                name: 'generate',
+                params: {
+                    hue, chroma: [30, 80], luminance: [15, 85],
+                    clusteringStepCount: 50, minSampleCount: 800,
+                    maxCount: 75
                 }
             }
         }
-    ] as [any, any]
+    }
 }

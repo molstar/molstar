@@ -195,11 +195,12 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
 
         const { showHydrogens, visualQuality: quality } = this.state.options;
         const ignoreHydrogens = !showHydrogens;
-        const params = () => ({ ignoreHydrogens, quality });
+        const typeParams = { ignoreHydrogens, quality };
 
         for (const component of components) {
             await this.plugin.builders.structure.representation.addRepresentation(component.cell, {
-                type: [this.plugin.structureRepresentation.registry.get(type), params]
+                type: this.plugin.structureRepresentation.registry.get(type),
+                typeParams
             });
         }
     }

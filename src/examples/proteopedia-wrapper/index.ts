@@ -410,8 +410,8 @@ class MolStarProteopediaWrapper {
         const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
         return StructureRepresentation3DHelpers.createParams(this.plugin, asm.data, {
             type: BuiltInStructureRepresentations['ball-and-stick'],
-            color: [BuiltInColorThemes.uniform, () => ({ value: ColorNames.gray })],
-            size: [BuiltInSizeThemes.uniform, () => ({ value: 0.33 } )]
+            color: BuiltInColorThemes.uniform, colorParams: { value: ColorNames.gray },
+            size: BuiltInSizeThemes.uniform, sizeParams: { value: 0.33 }
         });
     }
 
