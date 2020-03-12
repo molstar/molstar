@@ -131,7 +131,6 @@ class FullSettings extends PluginUIComponent {
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
-        this.subscribe(this.plugin.events.interactivity.propsUpdated, () => this.forceUpdate());
     }
 
     icon(name: IconName, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {

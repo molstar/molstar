@@ -61,10 +61,6 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         PluginCommands.Layout.Update(this.plugin, { state: { [p.name]: p.value } });
     }
 
-    setInteractivityProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
-        PluginCommands.Interactivity.SetProps(this.plugin, { props: { [p.name]: p.value } });
-    }
-
     screenshot = () => {
         this.plugin.helpers.viewportScreenshot?.download();
     }
@@ -72,7 +68,6 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
-        this.subscribe(this.plugin.events.interactivity.propsUpdated, () => this.forceUpdate());
     }
 
     icon(name: IconName, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {

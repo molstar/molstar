@@ -5,21 +5,21 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginComponent } from '../../component';
-import { PluginContext } from '../../../mol-plugin/context';
-import { StructureElement, Structure } from '../../../mol-model/structure';
-import { Vec3 } from '../../../mol-math/linear-algebra';
-import { Boundary } from '../../../mol-model/structure/structure/util/boundary';
-import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
-import { structureElementStatsLabel } from '../../../mol-theme/label';
 import { OrderedSet } from '../../../mol-data/int';
-import { arrayRemoveAtInPlace } from '../../../mol-util/array';
-import { EmptyLoci, Loci } from '../../../mol-model/loci';
-import { StateObject, StateSelection } from '../../../mol-state';
-import { PluginStateObject } from '../../objects';
-import { StructureSelectionQuery } from '../../helpers/structure-selection-query';
-import { Task } from '../../../mol-task';
 import { BoundaryHelper } from '../../../mol-math/geometry/boundary-helper';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
+import { EmptyLoci, Loci } from '../../../mol-model/loci';
+import { Structure, StructureElement } from '../../../mol-model/structure';
+import { Boundary } from '../../../mol-model/structure/structure/util/boundary';
+import { PluginContext } from '../../../mol-plugin/context';
+import { StateObject } from '../../../mol-state';
+import { Task } from '../../../mol-task';
+import { structureElementStatsLabel } from '../../../mol-theme/label';
+import { arrayRemoveAtInPlace } from '../../../mol-util/array';
+import { PluginComponent } from '../../component';
+import { StructureSelectionQuery } from '../../helpers/structure-selection-query';
+import { PluginStateObject } from '../../objects';
 
 interface StructureSelectionManagerState {
     entries: Map<string, SelectionEntry>,
@@ -339,8 +339,9 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
     }
 
     private get applicableStructures() {
-        // TODO: use "current structures" once implemented
-        return this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure)).map(s => s.obj!.data)
+        return this.plugin.managers.structure.hierarchy.state.currentStructures
+            .filter(s => !!s.cell.obj)
+            .map(s => s.cell.obj!.data);
     }
 
     private triggerInteraction(modifier: StructureSelectionModifier, loci: Loci, applyGranularity = true) {
@@ -357,9 +358,12 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
         }
     }
 
+    fromLoci(modifier: StructureSelectionModifier, loci: Loci, applyGranularity = true) {
+        this.triggerInteraction(modifier, loci, applyGranularity);
+    }
+
     fromSelectionQuery(modifier: StructureSelectionModifier, selectionQuery: StructureSelectionQuery, applyGranularity = true) {
         this.plugin.runTask(Task.create('Structure Selection', async runtime => {
-            // const loci: Loci[] = [];
             for (const s of this.applicableStructures) {
                 const loci = await StructureSelectionQuery.getLoci(this.plugin, runtime, selectionQuery, s);
                 this.triggerInteraction(modifier, loci, applyGranularity);

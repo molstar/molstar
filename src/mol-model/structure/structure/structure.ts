@@ -27,6 +27,7 @@ import { GridLookup3D } from '../../../mol-math/geometry';
 import { UUID } from '../../../mol-util';
 import { CustomProperties } from '../common/custom-property';
 import { AtomicHierarchy } from '../model/properties/atomic';
+import { StructureSelection } from '../query/selection';
 
 class Structure {
     /** Maps unit.id to unit */
@@ -577,6 +578,10 @@ namespace Structure {
             elements.push({ unit, indices: Interval.ofBounds(0, unit.elements.length) })
         }
         return StructureElement.Loci(structure, elements);
+    }
+
+    export function toSubStructureElementLoci(parent: Structure, structure: Structure): StructureElement.Loci {
+        return StructureSelection.toLociWithSourceUnits(StructureSelection.Singletons(parent, structure));
     }
 
     export function isLoci(x: any): x is Loci {

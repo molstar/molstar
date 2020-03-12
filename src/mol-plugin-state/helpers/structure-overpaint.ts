@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Structure, StructureElement } from '../../mol-model/structure';
@@ -19,7 +20,7 @@ const OverpaintManagerTag = 'overpaint-controls'
 
 export async function setStructureOverpaint(plugin: PluginContext, components: StructureComponentRef[], color: Color | -1, lociGetter: (structure: Structure) => StructureElement.Loci | EmptyLoci, types?: string[], alpha = 1) {
     await eachRepr(plugin, components, (update, repr, overpaintCell) => {
-        if (types && !types.includes(repr.params!.values.type.name)) return
+        if (types && types.length > 0 && !types.includes(repr.params!.values.type.name)) return
 
         const structure = repr.obj!.data.source.data
         // always use the root structure to get the loci so the overpaint
@@ -43,6 +44,15 @@ export async function setStructureOverpaint(plugin: PluginContext, components: S
                 .apply(StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle, Overpaint.toBundle(filtered, alpha), { tags: OverpaintManagerTag });
         }
     })
+}
+
+export async function clearStructureOverpaint(plugin: PluginContext, components: StructureComponentRef[], types?: string[]) {
+    await eachRepr(plugin, components, (update, repr, overpaintCell) => {
+        if (types && types.length > 0 && !types.includes(repr.params!.values.type.name)) return;
+        if (overpaintCell) {
+            update.delete(overpaintCell.transform.ref);
+        }
+    });
 }
 
 async function eachRepr(plugin: PluginContext, components: StructureComponentRef[], callback: OverpaintEachReprCallback) {

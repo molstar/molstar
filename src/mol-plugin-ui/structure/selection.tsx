@@ -6,20 +6,23 @@
  */
 
 import * as React from 'react';
-import { CollapsableControls, CollapsableState } from '../base';
-import { StructureSelectionQuery, StructureSelectionQueryList } from '../../mol-plugin-state/helpers/structure-selection-query';
-import { PluginCommands } from '../../mol-plugin/commands';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
-import { ParameterControls } from '../controls/parameters';
-import { stripTags } from '../../mol-util/string';
 import { StructureElement } from '../../mol-model/structure';
-import { ActionMenu } from '../controls/action-menu';
-import { ToggleButton, ExpandGroup } from '../controls/common';
-import { Icon } from '../controls/icons';
+import { StructureSelectionQueries, StructureSelectionQuery, StructureSelectionQueryList } from '../../mol-plugin-state/helpers/structure-selection-query';
+import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
+import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
+import { StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { StructureSelectionModifier } from '../../mol-plugin-state/manager/structure/selection';
+import { memoize1 } from '../../mol-util/memoize';
+import { ParamDefinition } from '../../mol-util/param-definition';
+import { stripTags } from '../../mol-util/string';
+import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
+import { ActionMenu } from '../controls/action-menu';
+import { ExpandGroup, ToggleButton } from '../controls/common';
+import { Icon } from '../controls/icons';
+import { ParameterControls } from '../controls/parameters';
 
 export const DefaultQueries = ActionMenu.createItems(StructureSelectionQueryList, {
+    filter: q => q !== StructureSelectionQueries.current,
     label: q => q.label,
     category: q => q.category
 });
@@ -33,9 +36,10 @@ interface StructureSelectionControlsState extends CollapsableState {
     extraRadius: number,
     durationMs: number,
 
-    isDisabled: boolean,
+    isEmpty: boolean,
+    isBusy: boolean,
 
-    queryAction?: StructureSelectionModifier
+    action?: StructureSelectionModifier | 'color'
 }
 
 export class StructureSelectionControls<P, S extends StructureSelectionControlsState> extends CollapsableControls<P, S> {
@@ -44,13 +48,24 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             this.forceUpdate()
         });
 
-        this.subscribe(this.plugin.events.interactivity.propsUpdated, () => {
+        this.subscribe(this.plugin.managers.interactivity.events.propsUpdated, () => {
             this.forceUpdate()
         });
 
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.current, c => {
+            const isEmpty = c.structures.length === 0;
+            if (this.state.isEmpty !== isEmpty) {
+                this.setState({ isEmpty });
+            }
+        });
+
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isDisabled: v, queryAction: void 0 })
+            this.setState({ isBusy: v, action: void 0 })
         })
+    }
+
+    get isDisabled() {
+        return this.state.isBusy || this.state.isEmpty
     }
 
     get stats() {
@@ -82,10 +97,8 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         }
     }
 
-    setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
-        if (p.name === 'granularity') {
-            PluginCommands.Interactivity.SetProps(this.plugin, { props: { granularity: p.value } });
-        }
+    setProps = (props: any) => {
+        this.plugin.managers.interactivity.setProps(props);
     }
 
     get values () {
@@ -99,34 +112,37 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     }
 
     selectQuery: ActionMenu.OnSelect = item => {
-        if (!item || !this.state.queryAction) {
-            this.setState({ queryAction: void 0 });
+        if (!item || !this.state.action) {
+            this.setState({ action: void 0 });
             return;
         }
-        const q = this.state.queryAction!;
-        this.setState({ queryAction: void 0 }, () => {
+        const q = this.state.action! as StructureSelectionModifier;
+        this.setState({ action: void 0 }, () => {
             this.set(q, item.value as StructureSelectionQuery);
         })
     }
 
     queries = DefaultQueries
 
-    private showQueries(q: StructureSelectionModifier) {
-        return () => this.setState({ queryAction: this.state.queryAction === q ? void 0 : q });
+    private showAction(q: StructureSelectionControlsState['action']) {
+        return () => this.setState({ action: this.state.action === q ? void 0 : q });
     }
 
-    toggleAdd = this.showQueries('add')
-    toggleRemove = this.showQueries('remove')
-    toggleOnly = this.showQueries('set')
+    toggleAdd = this.showAction('add')
+    toggleRemove = this.showAction('remove')
+    toggleOnly = this.showAction('set')
+    toggleColor = this.showAction('color')
 
     get controls() {
         return <div>
             <div className='msp-control-row msp-select-row'>
-                <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.queryAction === 'add'} disabled={this.state.isDisabled} />
-                <ToggleButton icon='minus' label='Remove' toggle={this.toggleRemove} isSelected={this.state.queryAction === 'remove'} disabled={this.state.isDisabled} />
-                <ToggleButton icon='flash' label='Set' toggle={this.toggleOnly} isSelected={this.state.queryAction === 'set'} disabled={this.state.isDisabled} />
+                <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
+                <ToggleButton icon='minus' label='Rem' toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
+                <ToggleButton icon='flash' label='Set' toggle={this.toggleOnly} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
+                <ToggleButton icon='brush' label='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} />
             </div>
-            {this.state.queryAction && <ActionMenu items={this.queries} onSelect={this.selectQuery} />}
+            {(this.state.action && this.state.action !== 'color') && <ActionMenu items={this.queries} onSelect={this.selectQuery} />}
+            {this.state.action === 'color' && <div className='msp-control-offset'><ApplyColorControls /></div>}
         </div>
     }
 
@@ -139,9 +155,10 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             extraRadius: 4,
             durationMs: 250,
 
-            queryAction: void 0,
+            action: void 0,
 
-            isDisabled: false
+            isEmpty: true,
+            isBusy: false
         } as S
     }
 
@@ -166,8 +183,8 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         }
 
         return <>
+            <ParameterControls params={StructureSelectionParams} values={this.values} onChangeObject={this.setProps} />
             {this.controls}
-            <ParameterControls params={StructureSelectionParams} values={this.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
             <div className='msp-control-row msp-row-text' style={{ marginTop: '6px' }}>
                 <button className='msp-btn msp-btn-block' onClick={this.focus}>
                     <Icon name='focus-on-visual' style={{ position: 'absolute', left: '5px' }} />
@@ -180,5 +197,36 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
                 </ul>
             </ExpandGroup>}
         </>
+    }
+}
+
+interface ApplyColorControlsState {
+    values: StructureComponentManager.ColorParams
+}
+
+interface ApplyColorControlsProps {
+    onApply?: () => void
+}
+
+class ApplyColorControls extends PurePluginUIComponent<ApplyColorControlsProps, ApplyColorControlsState> {
+    _params = memoize1((pivot: StructureRef | undefined) => StructureComponentManager.getColorParams(this.plugin, pivot));
+    get params() { return this._params(this.plugin.managers.structure.component.pivotStructure); }
+
+    state = { values: ParamDefinition.getDefaultValues(this.params) };
+
+    apply = () => {
+        this.plugin.managers.structure.component.applyColor(this.state.values);
+        this.props.onApply?.();
+    }
+
+    paramsChanged = (values: any) => this.setState({ values })
+
+    render() {
+        return <>
+            <ParameterControls params={this.params} values={this.state.values} onChangeObject={this.paramsChanged} />
+            <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-on`} onClick={this.apply} style={{ marginTop: '1px' }}>
+                <Icon name='check' /> Apply Coloring
+            </button>
+        </>;
     }
 }

@@ -72,7 +72,7 @@ class PluginState {
             if (snapshot.canvas3d.props) await PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: snapshot.canvas3d.props });
         }
         if (snapshot.interactivity) {
-            if (snapshot.interactivity.props) await PluginCommands.Interactivity.SetProps(this.plugin, { props: snapshot.interactivity.props });
+            if (snapshot.interactivity.props) this.plugin.managers.interactivity.setProps(snapshot.interactivity.props);
         }
         if (snapshot.cameraSnapshots) this.cameraSnapshots.setStateSnapshot(snapshot.cameraSnapshots);
         if (snapshot.animation) {

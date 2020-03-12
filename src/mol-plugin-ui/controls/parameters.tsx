@@ -726,13 +726,14 @@ export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiS
 
     render() {
         const current = this.props.value;
+        const emptyLabel = this.props.param.emptyValue;
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         return <>
             <div className='msp-control-row'>
                 <span>{label}</span>
                 <div>
                     <button onClick={this.toggleExpanded}>
-                        {`${current.length} of ${this.props.param.options.length}`}
+                        {current.length === 0 && emptyLabel ? emptyLabel : `${current.length} of ${this.props.param.options.length}`}
                     </button>
                 </div>
             </div>

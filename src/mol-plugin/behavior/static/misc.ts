@@ -10,19 +10,11 @@ import { PluginCommands } from '../../commands';
 
 export function registerDefault(ctx: PluginContext) {
     Canvas3DSetSettings(ctx);
-    InteractivitySetProps(ctx);
 }
 
 export function Canvas3DSetSettings(ctx: PluginContext) {
     PluginCommands.Canvas3D.SetSettings.subscribe(ctx, e => {
         ctx.canvas3d?.setProps(e.settings);
         ctx.events.canvas3d.settingsUpdated.next();
-    })
-}
-
-export function InteractivitySetProps(ctx: PluginContext) {
-    PluginCommands.Interactivity.SetProps.subscribe(ctx, e => {
-        ctx.managers.interactivity.setProps(e.props);
-        ctx.events.interactivity.propsUpdated.next();
     })
 }

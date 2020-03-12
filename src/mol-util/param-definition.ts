@@ -92,11 +92,14 @@ export namespace ParamDefinition {
     export interface MultiSelect<E extends string, T = E[]> extends Base<T> {
         type: 'multi-select'
         /** array of (value, label) tuples */
-        options: readonly (readonly [E, string])[]
+        options: readonly (readonly [E, string])[],
+        emptyValue?: string
     }
-    export function MultiSelect<E extends string, T = E[]>(defaultValue: T, options: readonly (readonly [E, string])[], info?: Info): MultiSelect<E, T> {
+    export function MultiSelect<E extends string, T = E[]>(defaultValue: T, options: readonly (readonly [E, string])[], info?: Info & { emptyValue?: string }): MultiSelect<E, T> {
         // TODO: check if default value is a subset of options?
-        return setInfo<MultiSelect<E, T>>({ type: 'multi-select', defaultValue, options }, info)
+        const ret = setInfo<MultiSelect<E, T>>({ type: 'multi-select', defaultValue, options }, info);
+        if (info?.emptyValue) ret.emptyValue = info.emptyValue;
+        return ret;
     }
 
     export interface BooleanParam extends Base<boolean> {

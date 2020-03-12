@@ -76,9 +76,6 @@ export class PluginContext {
         canvas3d: {
             initialized: this.ev(),
             settingsUpdated: this.ev()
-        },
-        interactivity: {
-            propsUpdated: this.ev()
         }
     } as const
 

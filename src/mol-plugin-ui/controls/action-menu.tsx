@@ -41,12 +41,14 @@ export namespace ActionMenu {
         return { label, value: iconOrValue };
     }
 
-    export function createItems<T>(xs: ArrayLike<T>, options?: { label?: (t: T) => string, value?: (t: T) => any, category?: (t: T) => string | undefined }) {
+    export function createItems<T>(xs: ArrayLike<T>, options?: { filter?: (t: T) => boolean, label?: (t: T) => string, value?: (t: T) => any, category?: (t: T) => string | undefined }) {
         const { label, value, category } = options || { };
         let cats: Map<string, (ActionMenu.Item | string)[]> | undefined = void 0;
         const items: (ActionMenu.Item | (ActionMenu.Item | string)[] | string)[] = [];
         for (let i = 0; i < xs.length; i++) {
             const x = xs[i];
+
+            if (options?.filter && !options.filter(x)) continue;
 
             const catName = category?.(x);
             const l = label ? label(x) : '' + x;
