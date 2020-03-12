@@ -15,10 +15,8 @@ export interface StructureRepresentationProvider<P = any, S = {}> {
     id: string,
     display: { name: string, group: string, description?: string },
     isApplicable?(structure: Structure, plugin: PluginContext): boolean,
-    params?(structure: Structure | undefined, plugin: PluginContext): PD.Def<P>,
-    apply(ctx: RuntimeContext, state: State, structure: StateObjectCell<PluginStateObject.Molecule.Structure>, params: P, plugin: PluginContext): Promise<S> | S,
-    // TODO: Custom remove function for more complicated things
-    // remove?(state: State, ref: string, plugin: PluginContext): void
+    params?(structure: Structure | undefined, plugin: PluginContext): PD.For<P>,
+    apply(ctx: RuntimeContext, state: State, structure: StateObjectCell<PluginStateObject.Molecule.Structure>, params: P, plugin: PluginContext): Promise<S> | S
 }
 
 export namespace StructureRepresentationProvider {

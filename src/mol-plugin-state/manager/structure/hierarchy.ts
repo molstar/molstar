@@ -135,7 +135,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         this.updateState({ current: { trajectories, models, structures }});
         this.behaviors.current.next({ hierarchy, trajectories, models, structures });
     }
-    
+
     remove(refs: HierarchyRef[]) {
         if (refs.length === 0) return;
         const deletes = this.plugin.state.dataState.build();
@@ -153,7 +153,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
             for (let i = 0; i < tr.length; i++) {
                 const model = await this.plugin.builders.structure.createModel(trajectory.cell, { modelIndex: i });
                 const structure = await this.plugin.builders.structure.createStructure(model, { name: 'deposited', params: { } });
-                await this.plugin.builders.structure.representation.structurePreset(structure, 'auto');
+                await this.plugin.builders.structure.representation.structurePreset(structure, 'auto', { globalThemeName: 'model-index' });
             }
         })
     }

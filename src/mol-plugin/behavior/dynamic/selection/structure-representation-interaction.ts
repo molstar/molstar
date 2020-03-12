@@ -49,14 +49,14 @@ const TagSet: Set<StructureRepresentationInteractionTags> = new Set([StructureRe
 export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<StructureRepresentationInteractionProps> {
     private createResVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ })],
+            type: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ })],
             size: [BuiltInSizeThemes.uniform, () => ({ })]
         });
     }
 
     private createSurVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ })],
+            type: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ })],
             color: [BuiltInColorThemes['element-symbol'], () => ({ })],
             size: [BuiltInSizeThemes.uniform, () => ({ })]
         });
@@ -64,7 +64,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
     private createSurNciVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            repr: [InteractionsRepresentationProvider, () => ({ })],
+            type: [InteractionsRepresentationProvider, () => ({ })],
             color: [InteractionTypeColorThemeProvider, () => ({ })],
             size: [BuiltInSizeThemes.uniform, () => ({ })]
         });

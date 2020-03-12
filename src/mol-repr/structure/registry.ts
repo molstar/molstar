@@ -43,6 +43,7 @@ export const BuiltInStructureRepresentations = {
     'putty': PuttyRepresentationProvider,
     'spacefill': SpacefillRepresentationProvider,
 }
+export type BuiltInStructureRepresentations = typeof BuiltInStructureRepresentations
 export type BuiltInStructureRepresentationsName = keyof typeof BuiltInStructureRepresentations
 export const BuiltInStructureRepresentationsNames = Object.keys(BuiltInStructureRepresentations)
 export const BuiltInStructureRepresentationsOptions = BuiltInStructureRepresentationsNames.map(n => [n, n] as [BuiltInStructureRepresentationsName, string])

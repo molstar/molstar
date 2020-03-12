@@ -399,7 +399,7 @@ export const LoadCellPackModel = StateAction.build({
         cellpackTree
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.createParams(ctx, Structure.Empty, {
-                    repr: getReprParams(ctx, params.preset),
+                    type: getReprParams(ctx, params.preset),
                     color: getColorParams(hue)
                 })
             )
@@ -415,7 +415,7 @@ export const LoadCellPackModel = StateAction.build({
             .apply(StateTransforms.Misc.CreateGroup, { label: 'HIV1_envelope_Membrane' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.createParams(ctx, Structure.Empty, {
-                    repr: getReprParams(ctx, params.preset),
+                    type: getReprParams(ctx, params.preset),
                     color: UniformColorThemeProvider
                 })
             )

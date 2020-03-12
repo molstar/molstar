@@ -48,4 +48,5 @@ export const BuiltInSizeThemes = {
     'uncertainty': UncertaintySizeThemeProvider,
     'uniform': UniformSizeThemeProvider
 }
+export type BuiltInSizeThemes = typeof BuiltInSizeThemes
 export type BuiltInSizeThemeName = keyof typeof BuiltInSizeThemes

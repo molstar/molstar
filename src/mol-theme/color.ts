@@ -104,4 +104,5 @@ export const BuiltInColorThemes = {
     'unit-index': UnitIndexColorThemeProvider,
     'uniform': UniformColorThemeProvider,
 }
+export type BuiltInColorThemes = typeof BuiltInColorThemes
 export type BuiltInColorThemeName = keyof typeof BuiltInColorThemes

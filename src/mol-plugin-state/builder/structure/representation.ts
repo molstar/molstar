@@ -6,7 +6,7 @@
 
 import { arrayFind } from '../../../mol-data/util';
 import { Structure } from '../../../mol-model/structure';
-import { StateTransform, StateTree, StateSelection, StateObjectRef } from '../../../mol-state';
+import { StateTransform, StateTree, StateSelection, StateObjectRef, StateBuilder } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { isProductionMode } from '../../../mol-util/debug';
 import { objectForEach } from '../../../mol-util/object';
@@ -18,8 +18,9 @@ import { UniqueArray } from '../../../mol-data/generic';
 import { PluginStateObject } from '../../objects';
 import { StructureRepresentation3D, StructureRepresentation3DHelpers } from '../../transforms/representation';
 import { RepresentationProvider } from '../../../mol-repr/representation';
-import { SizeTheme } from '../../../mol-theme/size';
-import { ColorTheme } from '../../../mol-theme/color';
+import { SizeTheme, BuiltInSizeThemeName } from '../../../mol-theme/size';
+import { ColorTheme, BuiltInColorThemeName } from '../../../mol-theme/color';
+import { BuiltInStructureRepresentationsName } from '../../../mol-repr/structure/registry';
 
 export type StructureRepresentationProviderRef = keyof PresetStructureReprentations | StructureRepresentationProvider | string
 
@@ -134,7 +135,7 @@ export class StructureRepresentationBuilder {
         }
 
         const prms = params || (provider.params
-            ? PD.getDefaultValues(provider.params(cell.obj!.data, this.plugin))
+            ? PD.getDefaultValues(provider.params(cell.obj!.data, this.plugin) as PD.Params)
             : {})
 
 
@@ -143,7 +144,7 @@ export class StructureRepresentationBuilder {
     }
 
     async addRepresentation<R extends RepresentationProvider<Structure, any, any>, C extends ColorTheme.Provider<any>, S extends SizeTheme.Provider<any>>
-        (structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props: StructureRepresentation3DHelpers.Props<R, C, S>) {
+        (structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props?: StructureRepresentation3DHelpers.Props<R, C, S>) {
 
         const data = StateObjectRef.resolveAndCheck(this.dataState, structure)?.obj?.data;
         if (!data) return;
@@ -155,6 +156,20 @@ export class StructureRepresentationBuilder {
 
         await this.plugin.runTask(this.dataState.updateTree(repr));
         return  repr.selector;
+    }
+
+    buildInRepresentation<R extends BuiltInStructureRepresentationsName, C extends BuiltInColorThemeName, S extends BuiltInSizeThemeName>
+        (builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props?: StructureRepresentation3DHelpers.BuildInProps<R, C, S>) {
+
+        if (!structure) return;
+        const data = StateObjectRef.resolveAndCheck(this.dataState, structure)?.obj?.data;
+        if (!data) return;
+
+        const params = StructureRepresentation3DHelpers.createBuiltInParams(this.plugin, data, props);
+        return builder
+            .to(structure)
+            .apply(StructureRepresentation3D, params, { tags: RepresentationProviderTags.Representation })
+            .selector;
     }
 
     constructor(public plugin: PluginContext) {

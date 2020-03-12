@@ -199,7 +199,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
 
         for (const component of components) {
             await this.plugin.builders.structure.representation.addRepresentation(component.cell, {
-                repr: [this.plugin.structureRepresentation.registry.get(type), params]
+                type: [this.plugin.structureRepresentation.registry.get(type), params]
             });
         }
     }
@@ -219,7 +219,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                 });
                 if (params.representation === 'none' || !component) continue;
                 await this.plugin.builders.structure.representation.addRepresentation(component, {
-                    repr: this.plugin.structureRepresentation.registry.get(params.representation)
+                    type: this.plugin.structureRepresentation.registry.get(params.representation)
                 });
             }
         });

@@ -409,7 +409,7 @@ class MolStarProteopediaWrapper {
     private createSurVisualParams() {
         const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
         return StructureRepresentation3DHelpers.createParams(this.plugin, asm.data, {
-            repr: BuiltInStructureRepresentations['ball-and-stick'],
+            type: BuiltInStructureRepresentations['ball-and-stick'],
             color: [BuiltInColorThemes.uniform, () => ({ value: ColorNames.gray })],
             size: [BuiltInSizeThemes.uniform, () => ({ value: 0.33 } )]
         });
@@ -418,7 +418,7 @@ class MolStarProteopediaWrapper {
     private createCoreVisualParams() {
         const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
         return StructureRepresentation3DHelpers.createParams(this.plugin, asm.data, {
-            repr: BuiltInStructureRepresentations['ball-and-stick'],
+            type: BuiltInStructureRepresentations['ball-and-stick'],
             // color: [BuiltInColorThemes.uniform, () => ({ value: ColorNames.gray })],
             // size: [BuiltInSizeThemes.uniform, () => ({ value: 0.33 } )]
         });
