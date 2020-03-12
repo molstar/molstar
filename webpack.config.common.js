@@ -29,6 +29,14 @@ const sharedConfig = {
         //     failOnError: false,
         //     cwd: process.cwd(),
         // }),
+        new webpack.ProvidePlugin({
+            '__assign': ['tslib', '__assign'],
+            '__extends': ['tslib', '__extends'],
+            '__awaiter': ['tslib', '__awaiter'],
+            '__generator': ['tslib', '__generator'],
+            '__spread': ['tslib', '__spread'],
+            '__spreadArrays': ['tslib', '__spreadArrays'],
+        }),
         new ExtraWatchWebpackPlugin({
             files: [
                 './lib/**/*.scss',
@@ -96,22 +104,3 @@ module.exports = {
     createNodeEntryPoint,
     createNodeApp
 }
-
-// module.exports = [
-//     createApp('viewer'),
-//     // createApp('basic-wrapper'),
-//     // createEntry('examples/proteopedia-wrapper/index', 'examples/proteopedia-wrapper', 'index'),
-//     // createEntry('apps/demos/lighting/index', 'demos/lighting', 'index'),
-//     // createNodeApp('state-docs'),
-//     // createNodeEntryPoint('preprocess', 'servers/model', 'model-server'),
-//     // createApp('model-server-query'),
-
-//     // createBrowserTest('font-atlas'),
-//     // createBrowserTest('marching-cubes'),
-//     // createBrowserTest('render-lines'),
-//     // createBrowserTest('render-mesh'),
-//     // createBrowserTest('render-shape'),
-//     // createBrowserTest('render-spheres'),
-//     // createBrowserTest('render-structure'),
-//     // createBrowserTest('render-text'),
-// ]
