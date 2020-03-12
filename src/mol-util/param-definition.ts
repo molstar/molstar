@@ -115,9 +115,12 @@ export namespace ParamDefinition {
 
     export interface Color extends Base<ColorData> {
         type: 'color'
+        isExpanded?: boolean
     }
-    export function Color(defaultValue: ColorData, info?: Info): Color {
-        return setInfo<Color>({ type: 'color', defaultValue }, info)
+    export function Color(defaultValue: ColorData, info?: Info & { isExpanded?: boolean }): Color {
+        const ret = setInfo<Color>({ type: 'color', defaultValue }, info);
+        if (info && info.isExpanded) ret.isExpanded = info.isExpanded;
+        return ret;
     }
 
     export interface Vec3 extends Base<Vec3Data>, Range {

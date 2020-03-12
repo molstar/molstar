@@ -15,7 +15,7 @@ import { TextInput } from './common';
 import { DefaultColorSwatch } from '../../mol-util/color/swatches';
 
 export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Color>, { isExpanded: boolean }> {
-    state = { isExpanded: false }
+    state = { isExpanded: !!this.props.param.isExpanded }
 
     protected update(value: Color) {
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
@@ -24,13 +24,6 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
         this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
-    }
-
-    onChangeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const value = Color(parseInt(e.target.value));
-        if (value !== this.props.value) {
-            this.update(value);
-        }
     }
 
     onClickSwatch = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -52,17 +45,6 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
             {/* <button title='Default Color' key={def} className='msp-form-control msp-btn' data-color={def} onClick={this.onClickSwatch} style={{ background: Color.toStyle(def) }}></button> */}
             {DefaultColorSwatch.map(c => <button key={c[1]} className='msp-form-control msp-btn' data-color={c[1]} onClick={this.onClickSwatch} style={{ background: Color.toStyle(c[1]) }}></button>)}
         </div>;
-    }
-
-    stripStyle(): React.CSSProperties {
-        return {
-            background: Color.toStyle(this.props.value),
-            position: 'absolute',
-            bottom: '0',
-            height: '4px',
-            right: '0',
-            left: '0'
-        };
     }
 
     render() {
