@@ -39,7 +39,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
     }
 
     get currentStructures() {
-        return this.plugin.managers.structure.hierarchy.state.currentStructures;
+        return this.plugin.managers.structure.hierarchy.state.current.structures;
     }
 
     get pivotStructure(): StructureRef | undefined {
@@ -299,7 +299,7 @@ namespace StructureComponentManager {
     export function getAddParams(plugin: PluginContext) {
         return {
             selection: SelectionParam,
-            representation: getRepresentationTypesSelect(plugin, plugin.managers.structure.hierarchy.state.currentStructures[0], [['none', '< None >']]),
+            representation: getRepresentationTypesSelect(plugin, plugin.managers.structure.component.pivotStructure, [['none', '< None >']]),
             label: PD.Text('')
         };
     }

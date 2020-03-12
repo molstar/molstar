@@ -43,6 +43,14 @@ export interface Model extends Readonly<{
      */
     modelNum: number,
 
+    /**
+     * This is a hack to allow "model-index coloring"
+     */
+    trajectoryInfo: {
+        index: number,
+        size: number
+    },
+
     sourceData: ModelFormat,
 
     entities: Entities,
@@ -109,8 +117,12 @@ export namespace Model {
             const trajectory = trajectoryFromModelAndCoordinates(model, coordinates)
             const bondData = { pairs: topology.bonds, count: model.atomicHierarchy.atoms._rowCount }
             const indexPairBonds = IndexPairBonds.fromData(bondData)
+
+            let index = 0;
             for (const m of trajectory) {
                 IndexPairBonds.Provider.set(m, indexPairBonds)
+                m.trajectoryInfo.index = index++;
+                m.trajectoryInfo.size = trajectory.length;
             }
             return trajectory
         })

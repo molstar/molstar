@@ -24,9 +24,16 @@ import { getModelGroupName } from './util';
 
 export async function createModels(data: BasicData, format: ModelFormat, ctx: RuntimeContext) {
     const properties = getProperties(data)
-    return data.ihm_model_list._rowCount > 0
+    const models = data.ihm_model_list._rowCount > 0
         ? await readIntegrative(ctx, data, properties, format)
         : await readStandard(ctx, data, properties, format);
+
+    for (let i = 0; i < models.length; i++) {
+        models[i].trajectoryInfo.index = i;
+        models[i].trajectoryInfo.size = models.length;
+    }
+
+    return models;
 }
 
 /** Standard atomic model */
@@ -62,6 +69,7 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
         entry,
         sourceData: format,
         modelNum,
+        trajectoryInfo: { index: 0, size: 1 },
         entities,
         sequence,
         atomicHierarchy: atomic.hierarchy,
@@ -99,6 +107,7 @@ function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Mo
         entry,
         sourceData: format,
         modelNum: ihm.model_id,
+        trajectoryInfo: { index: 0, size: 1 },
         entities: ihm.entities,
         sequence,
         atomicHierarchy: atomic.hierarchy,

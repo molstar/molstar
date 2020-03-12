@@ -97,7 +97,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
         if (!item) return;
         const mng = this.plugin.managers.structure;
 
-        const structures = mng.hierarchy.state.currentStructures;
+        const structures = mng.hierarchy.state.current.structures;
         if (item.value === null) mng.component.clear(structures);
         else mng.component.applyPreset(structures, item.value as any);
     }
@@ -257,8 +257,13 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
+
+        PluginCommands.State.Highlight(this.plugin, { state: this.props.group[0].cell.parent, ref: this.props.group[0].cell.transform.ref });
+
+        let first = true;
         for (const c of this.props.group) {
-            PluginCommands.State.Highlight(this.plugin, { state: c.cell.parent, ref: c.cell.transform.ref });
+            if (first) { first = false; continue; }
+            PluginCommands.State.Highlight(this.plugin, { state: c.cell.parent, ref: c.cell.transform.ref, extend: true });
         }
     }
 

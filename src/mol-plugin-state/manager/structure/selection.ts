@@ -339,7 +339,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
     }
 
     private get applicableStructures() {
-        return this.plugin.managers.structure.hierarchy.state.currentStructures
+        return this.plugin.managers.structure.hierarchy.state.current.structures
             .filter(s => !!s.cell.obj)
             .map(s => s.cell.obj!.data);
     }

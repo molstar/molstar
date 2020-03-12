@@ -82,6 +82,23 @@
     }
 }
 
+.msp-flex-row {
+    display:flex;
+    flex-direction:row;
+    width: inherit;
+
+    > .msp-flex-item {
+        margin: 0;
+        flex: 1 1 auto;
+        margin-right: 1px;
+        overflow: hidden;
+    }
+
+    > .msp-flex-item:last-child {
+        margin-right: 0;
+    }
+}
+
 .msp-state-list {
     list-style: none;
     margin-top: $control-spacing;

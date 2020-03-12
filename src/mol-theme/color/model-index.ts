@@ -30,18 +30,23 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
 
     if (ctx.structure) {
         const { models } = ctx.structure.root
-        const palette = getPalette(models.length, props)
+
+        let size = 0;
+        for (const m of models) size = Math.max(size, m.trajectoryInfo.size);
+
+        const palette = getPalette(size, props)
         legend = palette.legend
-        const modelColor = new Map<string, Color>()
+        const modelColor = new Map<number, Color>()
         for (let i = 0, il = models.length; i <il; ++i) {
-            modelColor.set(models[i].id, palette.color(i))
+            const idx = models[i].trajectoryInfo.index;
+            modelColor.set(models[i].trajectoryInfo.index, palette.color(idx))
         }
 
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location)) {
-                return modelColor.get(location.unit.model.id)!
+                return modelColor.get(location.unit.model.trajectoryInfo.index)!
             } else if (Bond.isLocation(location)) {
-                return modelColor.get(location.aUnit.model.id)!
+                return modelColor.get(location.aUnit.model.trajectoryInfo.index)!
             }
             return DefaultColor
         }
@@ -65,5 +70,5 @@ export const ModelIndexColorThemeProvider: ColorTheme.Provider<ModelIndexColorTh
     factory: ModelIndexColorTheme,
     getParams: getModelIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(ModelIndexColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.length > 1
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.elementCount > 0 && ctx.structure.models[0].trajectoryInfo.size > 1
 }

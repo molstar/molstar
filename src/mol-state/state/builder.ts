@@ -93,8 +93,9 @@ namespace StateBuilder {
             return new To<StateObject, StateTransformer>(this.state, ref, this);
         }
         toRoot<A extends StateObject>() { return new To<A>(this.state, this.state.tree.root.ref, this); }
-        delete(ref: StateTransform.Ref) {
-            if (!this.state.tree.transforms.has(ref)) return this;
+        delete(obj: StateObjectRef) {
+            const ref = StateObjectRef.resolveRef(obj);
+            if (!ref || !this.state.tree.transforms.has(ref)) return this;
             this.editInfo.count++;
             this.state.tree.remove(ref);
             this.state.actions.push({ kind: 'delete', ref });
@@ -229,7 +230,7 @@ namespace StateBuilder {
         to<S extends StateObjectSelector>(selector: S): To<StateObjectSelector.Obj<S>, StateObjectSelector.Transformer<S>>
         to(ref: StateTransform.Ref | StateObjectCell | StateObjectSelector) { return  this.root.to(ref as any); }
         toRoot<A extends StateObject>() { return this.root.toRoot<A>(); }
-        delete(ref: StateTransform.Ref) { return this.root.delete(ref); }
+        delete(ref: StateObjectRef) { return this.root.delete(ref); }
 
         getTree(): StateTree { return buildTree(this.state); }
 

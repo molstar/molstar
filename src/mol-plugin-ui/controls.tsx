@@ -20,6 +20,7 @@ import { StructureSelectionControls } from './structure/selection';
 import { StructureMeasurementsControls } from './structure/measurements';
 import { Icon } from './controls/icons';
 import { StructureComponentControls } from './structure/components';
+import { StructureSourceControls } from './structure/source';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' }
@@ -266,6 +267,7 @@ export class StructureToolsWrapper extends PluginUIComponent {
         return <div>
             <div className='msp-section-header'><Icon name='code' /> Structure Tools</div>
 
+            <StructureSourceControls />
             <StructureSelectionControls />
             <StructureComponentControls />
             <StructureMeasurementsControls />

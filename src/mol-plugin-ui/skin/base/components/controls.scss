@@ -242,9 +242,9 @@
     background: $default-background;
     > button {
         padding-left: $control-spacing / 2 !important;
-        text-align: left !important;
-        height: 2 * $row-height / 3 !important;
-        line-height: 2 * $row-height / 3 !important;
+        text-align: left;
+        height: 22px !important; // 2 * $row-height / 3 !important;
+        line-height: 22px !important; // 2 * $row-height / 3 !important;
         font-size: 70% !important;
         background: $default-background !important;
         color: color-lower-contrast($font-color, 15%) !important;
