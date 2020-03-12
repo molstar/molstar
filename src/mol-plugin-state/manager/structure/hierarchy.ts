@@ -8,6 +8,7 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { StructureHierarchy, buildStructureHierarchy, ModelRef, StructureComponentRef, StructureRef, HierarchyRef, TrajectoryRef } from './hierarchy-state';
 import { PluginComponent } from '../../component';
 import { StateTransform } from '../../../mol-state';
+import { SetUtils } from '../../../mol-util/set';
 
 interface StructureHierarchyManagerState {
     hierarchy: StructureHierarchy,
@@ -109,31 +110,32 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
     }
 
     updateCurrent(refs: HierarchyRef[], action: 'add' | 'remove') {
-
-        console.log(refs, action);
-
         const hierarchy = this.state.hierarchy;
-        const map = new Map<StateTransform.Ref, HierarchyRef>();
-        const set = this.currentSeletionSet;
-        if (action === 'add') {
-            set.forEach(r => map.set(r, hierarchy.refs.get(r)!))
-            for (const r of refs) map.set(r.cell.transform.ref, r);
-        } else {
-            set.forEach(r => map.set(r, hierarchy.refs.get(r)!))
-            for (const r of refs) map.delete(r.cell.transform.ref);
+        const set = action === 'add'
+            ? SetUtils.union(this.currentSeletionSet, new Set(refs.map(r => r.cell.transform.ref)))
+            : SetUtils.difference(this.currentSeletionSet, new Set(refs.map(r => r.cell.transform.ref)));
+
+        const trajectories = [];
+        const models = [];
+        const structures = [];
+
+        for (const t of hierarchy.trajectories) {
+            if (set.has(t.cell.transform.ref)) trajectories.push(t);
+            for (const m of t.models) {
+                if (set.has(m.cell.transform.ref)) models.push(m);
+                for (const s of m.structures) {
+                    if (set.has(s.cell.transform.ref)) structures.push(s);
+                }
+            }
         }
+
+        this._currentComponentGroups = void 0;
+        this._currentSelectionSet = void 0;
      
-        const trajectories = this.syncCurrentTrajectories(hierarchy, map);
-        const models = this.syncCurrentModels(hierarchy, map, trajectories);
-        const structures = this.syncCurrentStructures(map, models);
-
         this.updateState({ current: { trajectories, models, structures }});
-
-        console.log(this.state.current);
-
         this.behaviors.current.next({ hierarchy, trajectories, models, structures });
     }
-
+    
     remove(refs: HierarchyRef[]) {
         if (refs.length === 0) return;
         const deletes = this.plugin.state.dataState.build();
