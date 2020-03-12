@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -55,22 +55,63 @@ export const RendererParams = {
     interiorColorFlag: PD.Boolean(true, { label: 'Use Interior Color' }),
     interiorColor: PD.Color(Color.fromNormalizedRgb(0.3, 0.3, 0.3)),
 
-    lightIntensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
-    ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
-
-    metalness: PD.Numeric(0.0, { min: 0.0, max: 1.0, step: 0.01 }),
-    roughness: PD.Numeric(1.0, { min: 0.0, max: 1.0, step: 0.01 }),
-    reflectivity: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
-
     highlightColor: PD.Color(Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
     selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
+
+    style: PD.MappedStatic('matte', {
+        custom: PD.Group({
+            lightIntensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
+            ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
+            metalness: PD.Numeric(0.0, { min: 0.0, max: 1.0, step: 0.01 }),
+            roughness: PD.Numeric(1.0, { min: 0.0, max: 1.0, step: 0.01 }),
+            reflectivity: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
+        }, { isExpanded: true }),
+        flat: PD.Group({}),
+        matte: PD.Group({}),
+        glossy: PD.Group({}),
+        metallic: PD.Group({}),
+        plastic: PD.Group({}),
+    }, { label: 'Render Style', description: 'Style in which the 3D scene is rendered' }),
 }
 export type RendererProps = PD.Values<typeof RendererParams>
+
+function getStyle(props: RendererProps['style']) {
+    switch (props.name) {
+        case 'custom':
+            return props.params
+        case 'flat':
+            return {
+                lightIntensity: 0, ambientIntensity: 1,
+                metalness: 0, roughness: 0.4, reflectivity: 0.5
+            }
+        case 'matte':
+            return {
+                lightIntensity: 0.6, ambientIntensity: 0.4,
+                metalness: 0, roughness: 1, reflectivity: 0.5
+            }
+        case 'glossy':
+            return {
+                lightIntensity: 0.6, ambientIntensity: 0.4,
+                metalness: 0, roughness: 0.4, reflectivity: 0.5
+            }
+        case 'metallic':
+            return {
+                lightIntensity: 0.6, ambientIntensity: 0.4,
+                metalness: 0.4, roughness: 0.6, reflectivity: 0.5
+            }
+        case 'plastic':
+            return {
+                lightIntensity: 0.6, ambientIntensity: 0.4,
+                metalness: 0, roughness: 0.2, reflectivity: 0.5
+            }
+    }
+}
 
 namespace Renderer {
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
         const { gl, state, stats } = ctx
         const p = deepClone({ ...PD.getDefaultValues(RendererParams), ...props })
+        const style = getStyle(p.style)
 
         const viewport = Viewport()
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor)
@@ -112,12 +153,12 @@ namespace Renderer {
             uTransparentBackground: ValueCell.create(0),
 
             // the following are general 'material' uniforms
-            uLightIntensity: ValueCell.create(p.lightIntensity),
-            uAmbientIntensity: ValueCell.create(p.ambientIntensity),
+            uLightIntensity: ValueCell.create(style.lightIntensity),
+            uAmbientIntensity: ValueCell.create(style.ambientIntensity),
 
-            uMetalness: ValueCell.create(p.metalness),
-            uRoughness: ValueCell.create(p.roughness),
-            uReflectivity: ValueCell.create(p.reflectivity),
+            uMetalness: ValueCell.create(style.metalness),
+            uRoughness: ValueCell.create(style.roughness),
+            uReflectivity: ValueCell.create(style.reflectivity),
 
             uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
 
@@ -276,28 +317,6 @@ namespace Renderer {
                     ValueCell.update(globalUniforms.uInteriorColor, Color.toVec3Normalized(globalUniforms.uInteriorColor.ref.value, p.interiorColor))
                 }
 
-                if (props.lightIntensity !== undefined && props.lightIntensity !== p.lightIntensity) {
-                    p.lightIntensity = props.lightIntensity
-                    ValueCell.update(globalUniforms.uLightIntensity, p.lightIntensity)
-                }
-                if (props.ambientIntensity !== undefined && props.ambientIntensity !== p.ambientIntensity) {
-                    p.ambientIntensity = props.ambientIntensity
-                    ValueCell.update(globalUniforms.uAmbientIntensity, p.ambientIntensity)
-                }
-
-                if (props.metalness !== undefined && props.metalness !== p.metalness) {
-                    p.metalness = props.metalness
-                    ValueCell.update(globalUniforms.uMetalness, p.metalness)
-                }
-                if (props.roughness !== undefined && props.roughness !== p.roughness) {
-                    p.roughness = props.roughness
-                    ValueCell.update(globalUniforms.uRoughness, p.roughness)
-                }
-                if (props.reflectivity !== undefined && props.reflectivity !== p.reflectivity) {
-                    p.reflectivity = props.reflectivity
-                    ValueCell.update(globalUniforms.uReflectivity, p.reflectivity)
-                }
-
                 if (props.highlightColor !== undefined && props.highlightColor !== p.highlightColor) {
                     p.highlightColor = props.highlightColor
                     ValueCell.update(globalUniforms.uHighlightColor, Color.toVec3Normalized(globalUniforms.uHighlightColor.ref.value, p.highlightColor))
@@ -305,6 +324,16 @@ namespace Renderer {
                 if (props.selectColor !== undefined && props.selectColor !== p.selectColor) {
                     p.selectColor = props.selectColor
                     ValueCell.update(globalUniforms.uSelectColor, Color.toVec3Normalized(globalUniforms.uSelectColor.ref.value, p.selectColor))
+                }
+
+                if (props.style !== undefined) {
+                    p.style = props.style
+                    Object.assign(style, getStyle(props.style))
+                    ValueCell.updateIfChanged(globalUniforms.uLightIntensity, style.lightIntensity)
+                    ValueCell.updateIfChanged(globalUniforms.uAmbientIntensity, style.ambientIntensity)
+                    ValueCell.updateIfChanged(globalUniforms.uMetalness, style.metalness)
+                    ValueCell.updateIfChanged(globalUniforms.uRoughness, style.roughness)
+                    ValueCell.updateIfChanged(globalUniforms.uReflectivity, style.reflectivity)
                 }
             },
             setViewport: (x: number, y: number, width: number, height: number) => {
