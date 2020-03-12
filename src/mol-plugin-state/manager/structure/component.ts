@@ -173,6 +173,23 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         return this.plugin.managers.structure.hierarchy.remove(toRemove);
     }
 
+    updateRepresentations(components: ReadonlyArray<StructureComponentRef>, pivot: StructureRepresentationRef, params: StateTransformer.Params<StructureRepresentation3D>) {        
+        if (components.length === 0) return Promise.resolve();
+
+        const index = components[0].representations.indexOf(pivot);
+        if (index < 0) return Promise.resolve();
+
+        const update = this.dataState.build();
+
+        for (const c of components) {
+            const repr = c.representations[index];
+            if (!repr) continue;
+            update.to(repr.cell).update(params);
+        }
+
+        return this.plugin.runTask(this.dataState.updateTree(update));
+    }
+
     async addRepresentation(components: ReadonlyArray<StructureComponentRef>, type: string) {
         if (components.length === 0) return;
 

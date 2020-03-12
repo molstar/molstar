@@ -305,12 +305,14 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 class StructureRepresentationEntry extends PurePluginUIComponent<{ group: StructureComponentRef[], representation: StructureRepresentationRef }> {
     remove = () => this.plugin.managers.structure.component.removeRepresentations(this.props.group, this.props.representation);
 
+    update = (params: any) => this.plugin.managers.structure.component.updateRepresentations(this.props.group, this.props.representation, params);
+
     render() {
         const repr = this.props.representation.cell;
         // TODO: style in CSS
         return <div style={{ position: 'relative' }}>
             <ExpandGroup header={`${repr.obj?.label || ''} Representation`} noOffset>
-                <UpdateTransformControl state={repr.parent} transform={repr.transform} customHeader='none' noMargin />
+                <UpdateTransformControl state={repr.parent} transform={repr.transform} customHeader='none' customUpdate={this.update} noMargin />
                 <IconButton onClick={this.remove} icon='remove' title='Remove' small style={{ 
                     position: 'absolute', top: 0, right: 0, lineHeight: '20px', height: '20px', textAlign: 'right', width: '44px', paddingRight: '6px'
                 }} />

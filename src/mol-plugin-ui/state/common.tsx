@@ -100,7 +100,7 @@ namespace TransformControlBase {
     }
 }
 
-abstract class TransformControlBase<P, S extends TransformControlBase.ComponentState> extends PurePluginUIComponent<P & { noMargin?: boolean, onApply?: () => void, applyLabel?: string }, S> {
+abstract class TransformControlBase<P, S extends TransformControlBase.ComponentState> extends PurePluginUIComponent<P & { noMargin?: boolean, applyLabel?: string }, S> {
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
     abstract getHeader(): StateTransformer.Definition['display'] | 'none';
@@ -141,7 +141,6 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     }
 
     apply = async () => {
-        this.props.onApply?.();
         this.clearAutoApply();
         this.setState({ busy: true });
         try {

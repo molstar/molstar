@@ -19,7 +19,8 @@ namespace UpdateTransformControl {
         state: State,
         toggleCollapsed?: Observable<any>,
         initiallyCollapsed?: boolean,
-        customHeader?: StateTransformer.Definition['display'] | 'none'
+        customHeader?: StateTransformer.Definition['display'] | 'none',
+        customUpdate?: (params: any) => Promise<any>,
     }
 
     export interface ComponentState extends TransformControlBase.ComponentState {
@@ -28,7 +29,10 @@ namespace UpdateTransformControl {
 }
 
 class UpdateTransformControl extends TransformControlBase<UpdateTransformControl.Props, UpdateTransformControl.ComponentState> {
-    applyAction() { return this.plugin.updateTransform(this.props.state, this.props.transform.ref, this.state.params); }
+    applyAction() { 
+        if (this.props.customUpdate) return this.props.customUpdate(this.state.params);
+        return this.plugin.updateTransform(this.props.state, this.props.transform.ref, this.state.params);
+    }
     getInfo() { return this._getInfo(this.props.transform); }
     getTransformerId() { return this.props.transform.transformer.id; }
     getHeader() { return this.props.customHeader || this.props.transform.transformer.definition.display; }
