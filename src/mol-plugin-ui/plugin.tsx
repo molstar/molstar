@@ -69,7 +69,7 @@ class Layout extends PluginUIComponent {
         const controls = (this.plugin.spec.layout && this.plugin.spec.layout.controls) || { };
 
         const classList: string[] = []
-        if (controls.top === 'none' || !layout.showControls) {
+        if (controls.top === 'none' || !layout.showControls || layout.regionState.top === 'hidden') {
             classList.push('msp-layout-hide-top')
         }
 
@@ -79,10 +79,11 @@ class Layout extends PluginUIComponent {
             classList.push('msp-layout-collapse-left')
         }
 
-        if (controls.right === 'none' || !layout.showControls) {
+        if (controls.right === 'none' || !layout.showControls || layout.regionState.right === 'hidden') {
             classList.push('msp-layout-hide-right')
         }
-        if (controls.bottom === 'none' || !layout.showControls) {
+
+        if (controls.bottom === 'none' || !layout.showControls || layout.regionState.bottom === 'hidden') {
             classList.push('msp-layout-hide-bottom')
         }
 

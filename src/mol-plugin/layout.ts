@@ -11,20 +11,23 @@ import { PluginContext } from './context';
 import { PluginCommands } from './commands';
 
 const regionStateOptions = [
-    ['full', 'Full'] as const,
-    ['collapsed', 'Collapsed'] as const,
-    ['hidden', 'Hidden'] as const,
-];
+    ['full', 'Full'],
+    ['collapsed', 'Collapsed'],
+    ['hidden', 'Hidden'],
+] as const;
+const simpleRegionStateOptions = [
+    ['full', 'Full'],
+    ['hidden', 'Hidden'],
+] as const;
 export type PluginLayoutControlsDisplay = 'outside' | 'portrait' | 'landscape' | 'reactive'
 export const PluginLayoutStateParams = {
     isExpanded: PD.Boolean(false),
     showControls: PD.Boolean(true),
     regionState: PD.Group({
         left: PD.Select('full', regionStateOptions),
-        // TODO: support other region states
-        // right: PD.Select('full', regionStateOptions),
-        // top: PD.Select('full', regionStateOptions),
-        // bottom: PD.Select('full', regionStateOptions),
+        top: PD.Select('full', simpleRegionStateOptions),
+        right: PD.Select('full', simpleRegionStateOptions),
+        bottom: PD.Select('full', simpleRegionStateOptions),
     }),
     controlsDisplay: PD.Value<PluginLayoutControlsDisplay>('outside', { isHidden: true })
 }
