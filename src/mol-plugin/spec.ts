@@ -22,10 +22,12 @@ interface PluginSpec {
     layout?: {
         initial?: Partial<PluginLayoutStateProps>,
         controls?: PluginSpec.LayoutControls
-        viewport?: React.ComponentClass
     },
     components?: {
-        remoteState?: 'none' | 'default'
+        remoteState?: 'none' | 'default',
+        structureTools?: React.ComponentClass,
+        viewport?: React.ComponentClass,
+        viewportControls?: React.ComponentClass
     },
     config?: Map<PluginConfigItem, unknown>
 }

@@ -45,6 +45,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
                 if (parents.has(m.sourceRef)) {
                     // do not show the controls if there are 2 models of the same trajectory present
                     this.setState({ show: false });
+                    return;
                 }
 
                 parents.add(m.sourceRef);
@@ -262,15 +263,15 @@ export class LociLabels extends PluginUIComponent<{}, { entries: ReadonlyArray<L
     }
 }
 
-export class StructureToolsWrapper extends PluginUIComponent {
+export class DefaultStructureTools extends PluginUIComponent {
     render() {
-        return <div>
-            <div className='msp-section-header'><Icon name='code' /> Structure Tools</div>
+        return <>
+            <div className='msp-section-header'><Icon name='tools' /> Structure Tools</div>
 
             <StructureSourceControls />
             <StructureSelectionControls />
             <StructureComponentControls />
             <StructureMeasurementsControls />
-        </div>;
+        </>;
     }
 }

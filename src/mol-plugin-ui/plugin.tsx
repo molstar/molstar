@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,7 +11,7 @@ import { LogEntry } from '../mol-util/log-entry';
 import * as React from 'react';
 import { PluginContext } from '../mol-plugin/context';
 import { PluginReactContext, PluginUIComponent } from './base';
-import { LociLabels, TrajectoryViewportControls, StateSnapshotViewportControls, AnimationViewportControls, StructureToolsWrapper } from './controls';
+import { LociLabels, TrajectoryViewportControls, StateSnapshotViewportControls, AnimationViewportControls, DefaultStructureTools } from './controls';
 import { StateObjectActionSelect } from './state/actions';
 import { BackgroundTaskProgress } from './task';
 import { Viewport, ViewportControls } from './viewport';
@@ -105,8 +105,8 @@ class Layout extends PluginUIComponent {
 
     render() {
         const layout = this.plugin.layout.state;
-        const controls = (this.plugin.spec.layout && this.plugin.spec.layout.controls) || { };
-        const viewport = (this.plugin.spec.layout && this.plugin.spec.layout.viewport) || ViewportWrapper;
+        const controls = this.plugin.spec.layout?.controls || { };
+        const viewport = this.plugin.spec.components?.viewport || DefaultViewport;
 
         return <div className='msp-plugin'>
             <div className={this.layoutClassName}>
@@ -124,17 +124,18 @@ class Layout extends PluginUIComponent {
 
 export class ControlsWrapper extends PluginUIComponent {
     render() {
+        const StructureTools = this.plugin.spec.components?.structureTools || DefaultStructureTools;
         return <div className='msp-scrollable-container'>
             <CurrentObject />
-            {/* <AnimationControlsWrapper /> */}
-            {/* <CameraSnapshots /> */}
-            <StructureToolsWrapper />
+            <StructureTools />
         </div>;
     }
 }
 
-export class ViewportWrapper extends PluginUIComponent {
+export class DefaultViewport extends PluginUIComponent {
     render() {
+        const VPControls = this.plugin.spec.components?.viewportControls || ViewportControls;
+
         return <>
             <Viewport />
             <div className='msp-viewport-top-left-controls'>
@@ -142,7 +143,7 @@ export class ViewportWrapper extends PluginUIComponent {
                 <TrajectoryViewportControls />
                 <StateSnapshotViewportControls />
             </div>
-            <ViewportControls />
+            <VPControls />
             <BackgroundTaskProgress />
             <div className='msp-highlight-toast-wrapper'>
                 <LociLabels />
