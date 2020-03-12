@@ -225,7 +225,7 @@ class ApplyColorControls extends PurePluginUIComponent<ApplyColorControlsProps, 
         return <>
             <ParameterControls params={this.params} values={this.state.values} onChangeObject={this.paramsChanged} />
             <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-on`} onClick={this.apply} style={{ marginTop: '1px' }}>
-                <Icon name='check' /> Apply Coloring
+                <Icon name='brush' /> Apply Coloring
             </button>
         </>;
     }
