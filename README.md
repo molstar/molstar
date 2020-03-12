@@ -62,6 +62,8 @@ This project builds on experience from previous solutions:
 ### Build automatically on file save:
     npm run watch
 
+If working on just the viewer, ``npm run watch-viewer`` will provide shorter compile times.
+
 ### Build with debug mode enabled:
     DEBUG=molstar npm run watch
 
