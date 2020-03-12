@@ -104,16 +104,14 @@ function setVisibilityVisitor(t: StateTransform, tree: StateTree, ctx: { state: 
 }
 
 export function Highlight(ctx: PluginContext) {
-    PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref, extend }) => {
+    PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref }) => {
         const cell = state.select(ref)[0];
         if (!cell) return;
         if (SO.Molecule.Structure.is(cell.obj)) {
-            if (extend) ctx.managers.interactivity.lociHighlights.highlightOnlyExtend({ loci: Structure.Loci(cell.obj.data) }, false);
-            else ctx.managers.interactivity.lociHighlights.highlightOnly({ loci: Structure.Loci(cell.obj.data) }, false);
+            ctx.managers.interactivity.lociHighlights.highlightOnly({ loci: Structure.Loci(cell.obj.data) }, false);
         } else if (cell && SO.isRepresentation3D(cell.obj)) {
             const { repr } = cell.obj.data
-            if (extend) ctx.managers.interactivity.lociHighlights.highlightOnlyExtend({ loci: repr.getLoci(), repr }, false);
-            else ctx.managers.interactivity.lociHighlights.highlightOnly({ loci: repr.getLoci(), repr }, false);
+            ctx.managers.interactivity.lociHighlights.highlightOnly({ loci: repr.getLoci(), repr }, false);
         } else if (SO.Molecule.Structure.Selections.is(cell.obj)) {
             ctx.managers.interactivity.lociHighlights.clearHighlights();
             for (const entry of cell.obj.data) {
