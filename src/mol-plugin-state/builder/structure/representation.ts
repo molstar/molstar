@@ -158,7 +158,7 @@ export class StructureRepresentationBuilder {
         return  repr.selector;
     }
 
-    buildInRepresentation<R extends BuiltInStructureRepresentationsName, C extends BuiltInColorThemeName, S extends BuiltInSizeThemeName>
+    builtInRepresentation<R extends BuiltInStructureRepresentationsName, C extends BuiltInColorThemeName, S extends BuiltInSizeThemeName>
         (builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props?: StructureRepresentation3DHelpers.BuildInProps<R, C, S>) {
 
         if (!structure) return;

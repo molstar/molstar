@@ -75,15 +75,15 @@ const polymerAndLigand = StructureRepresentationProvider({
 
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);
         const representations = {
-            polymer: builder.buildInRepresentation(update, components.polymer, { type: 'cartoon', typeParams, color }),
-            ligand: builder.buildInRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams, color }),
-            nonStandard: builder.buildInRepresentation(update, components.nonStandard, { type: 'ball-and-stick', typeParams, color: color || 'polymer-id' }),
+            polymer: builder.builtInRepresentation(update, components.polymer, { type: 'cartoon', typeParams, color }),
+            ligand: builder.builtInRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams, color }),
+            nonStandard: builder.builtInRepresentation(update, components.nonStandard, { type: 'ball-and-stick', typeParams, color: color || 'polymer-id' }),
             branched: components.branched && {
-                ballAndStick: builder.buildInRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.15 }, color }),
-                snfg3d: builder.buildInRepresentation(update, components.branched, { type: 'carbohydrate', typeParams, color }),
+                ballAndStick: builder.builtInRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.15 }, color }),
+                snfg3d: builder.builtInRepresentation(update, components.branched, { type: 'carbohydrate', typeParams, color }),
             },
-            water: builder.buildInRepresentation(update, components.water, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.51 }, color }),
-            coarse: builder.buildInRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'polymer-id' })
+            water: builder.builtInRepresentation(update, components.water, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.51 }, color }),
+            coarse: builder.builtInRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'polymer-id' })
         };
 
         await state.updateTree(update, { revertOnError: false }).runInContext(ctx);
@@ -103,8 +103,8 @@ const proteinAndNucleic = StructureRepresentationProvider({
 
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);
         const representations = {
-            protein: builder.buildInRepresentation(update, components.protein, { type: 'cartoon', typeParams, color }),
-            nucleic: builder.buildInRepresentation(update, components.nucleic, { type: 'gaussian-surface', typeParams, color })
+            protein: builder.builtInRepresentation(update, components.protein, { type: 'cartoon', typeParams, color }),
+            nucleic: builder.builtInRepresentation(update, components.nucleic, { type: 'gaussian-surface', typeParams, color })
         };
 
         await state.updateTree(update, { revertOnError: true }).runInContext(ctx);
@@ -142,7 +142,7 @@ const coarseSurface = StructureRepresentationProvider({
         
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);
         const representations = {
-            trace: builder.buildInRepresentation(update, components.trace, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color })
+            trace: builder.builtInRepresentation(update, components.trace, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color })
         };
 
         await state.updateTree(update, { revertOnError: true }).runInContext(ctx);
@@ -161,7 +161,7 @@ const polymerCartoon = StructureRepresentationProvider({
 
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);
         const representations = {
-            polymer: builder.buildInRepresentation(update, components.polymer, { type: 'cartoon', typeParams, color })
+            polymer: builder.builtInRepresentation(update, components.polymer, { type: 'cartoon', typeParams, color })
         };
 
         await state.updateTree(update, { revertOnError: true }).runInContext(ctx);
@@ -181,7 +181,7 @@ const atomicDetail = StructureRepresentationProvider({
 
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);
         const representations = {
-            all: builder.buildInRepresentation(update, components.all, { type: 'ball-and-stick', typeParams, color })
+            all: builder.builtInRepresentation(update, components.all, { type: 'ball-and-stick', typeParams, color })
         };
 
         await state.updateTree(update, { revertOnError: true }).runInContext(ctx);
