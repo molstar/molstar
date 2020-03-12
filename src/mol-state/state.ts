@@ -311,7 +311,7 @@ namespace State {
 
 const StateUpdateDefaultOptions: State.UpdateOptions = {
     doNotLogTiming: false,
-    doNotUpdateCurrent: false,
+    doNotUpdateCurrent: true,
     revertIfAborted: false,
     revertOnError: false
 };
