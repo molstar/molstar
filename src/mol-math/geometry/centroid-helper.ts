@@ -50,9 +50,11 @@ class CentroidHelper {
         return sphere
     }
 
-    constructor() {
-
+    getCount() {
+        return this.count;
     }
+
+    constructor() { }
 }
 
 namespace CentroidHelper {

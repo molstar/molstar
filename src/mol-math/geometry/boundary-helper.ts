@@ -11,6 +11,8 @@ import { Box3D } from './primitives/box3d';
 
 // implementing http://www.ep.liu.se/ecp/034/009/ecp083409.pdf
 
+const MinThresholdDist = 0.1
+
 export class BoundaryHelper {
     private dir: Vec3[]
 
@@ -73,6 +75,8 @@ export class BoundaryHelper {
     }
 
     getHierarchyInput() {
+        if (this.centroidHelper.getCount() < 2) return false
+
         const sphere = this.centroidHelper.getSphere();
         const normal = Vec3()
         const t = sphere.radius * this.hierarchyThresholdFactor
@@ -89,7 +93,7 @@ export class BoundaryHelper {
             if (halfDist < t) belowThreshold = true
         }
 
-        return belowThreshold ? { sphere, normal } : false
+        return (belowThreshold && maxDist > MinThresholdDist) ? { sphere, normal } : false
     }
 
     getSphere(sphere?: Sphere3D) {

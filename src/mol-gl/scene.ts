@@ -16,30 +16,30 @@ import { now } from '../mol-util/now';
 import { arraySetRemove } from '../mol-util/array';
 import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 
-const eposHelper = new BoundaryHelper('98')
+const boundaryHelper = new BoundaryHelper('98')
 
 function calculateBoundingSphere(renderables: Renderable<RenderableValues & BaseValues>[], boundingSphere: Sphere3D): Sphere3D {
-    eposHelper.reset();
+    boundaryHelper.reset();
 
     for (let i = 0, il = renderables.length; i < il; ++i) {
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
 
         for (const b of Sphere3D.getList(boundingSphere)) {
-            eposHelper.includeSphereStep(b.center, b.radius);
+            boundaryHelper.includeSphereStep(b.center, b.radius);
         }
     }
-    eposHelper.finishedIncludeStep();
+    boundaryHelper.finishedIncludeStep();
     for (let i = 0, il = renderables.length; i < il; ++i) {
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
 
         for (const b of Sphere3D.getList(boundingSphere)) {
-            eposHelper.radiusSphereStep(b.center, b.radius);
+            boundaryHelper.radiusSphereStep(b.center, b.radius);
         }
     }
 
-    return eposHelper.getSphere(boundingSphere);
+    return boundaryHelper.getSphere(boundingSphere);
 }
 
 function renderableSort(a: Renderable<RenderableValues & BaseValues>, b: Renderable<RenderableValues & BaseValues>) {
