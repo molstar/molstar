@@ -79,7 +79,7 @@ function genericError(isDownload: boolean) {
 }
 
 function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, action: string, data: T): Promise<T> {
-    return new Promise<T>((resolve, reject) => {        
+    return new Promise<T>((resolve, reject) => {
         // first check if data reading is already done
         if (isDone(data)) {
             const { error } = data as FileReader;

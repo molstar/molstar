@@ -5,6 +5,7 @@
  */
 
 import { calculateBoundingSphere } from '../renderable/util';
+import { Vec3 } from '../../mol-math/linear-algebra';
 
 describe('renderable', () => {
     it('calculateBoundingSphere', () => {
@@ -34,7 +35,7 @@ describe('renderable', () => {
             transform, transform.length / 16
         )
 
-        expect(boundingSphere.radius).toBe(1.5)
-        expect(boundingSphere.center).toEqual([1.5, 0.0, 0.0])
+        expect(boundingSphere.radius).toBeCloseTo(1.58, 2)
+        expect(Vec3.equals(boundingSphere.center, Vec3.create(1.418367, 0, 0))).toBe(true)
     })
 })

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -154,13 +154,11 @@ class State {
                 }
                 if (isNested) throw e;
             } finally {
-                if (isNested) {
-                    return;
+                if (!isNested) {
+                    this.inTransaction = false;
+                    this.events.changed.next({ state: this, inTransaction: false });
+                    this.events.isUpdating.next(false);
                 }
-                
-                this.inTransaction = false;
-                this.events.changed.next({ state: this, inTransaction: false });
-                this.events.isUpdating.next(false);
             }
         });
     }
@@ -714,7 +712,7 @@ function resolveParams(ctx: UpdateContext, transform: StateTransform, src: State
     const prms = transform.transformer.definition.params;
     const definition = prms ? prms(src, ctx.parent.globalContext) : {};
     const defaultValues = ParamDefinition.getDefaultValues(definition);
-    (transform.params as any) = transform.params 
+    (transform.params as any) = transform.params
         ? assignIfUndefined(transform.params, defaultValues)
         : defaultValues;
     return { definition, values: transform.params };
