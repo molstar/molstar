@@ -5,65 +5,73 @@
  */
 
 import { PluginContext } from '../../../mol-plugin/context';
-import { StructureHierarchy, buildStructureHierarchy, ModelRef, StructureComponentRef, StructureRef, HierarchyRef } from './hierarchy-state';
+import { StructureHierarchy, buildStructureHierarchy, ModelRef, StructureComponentRef, StructureRef, HierarchyRef, TrajectoryRef } from './hierarchy-state';
 import { PluginComponent } from '../../component';
 
 interface StructureHierarchyManagerState {
     hierarchy: StructureHierarchy,
+    currentTrajectories: ReadonlyArray<TrajectoryRef>,
     currentModels: ReadonlyArray<ModelRef>,
     currentStructures: ReadonlyArray<StructureRef>
 }
 
 export class StructureHierarchyManager extends PluginComponent<StructureHierarchyManagerState> {
     readonly behaviors = {
-        current: this.ev.behavior({ hierarchy: this.state.hierarchy, models: this.state.currentModels, structures: this.state.currentStructures })
+        current: this.ev.behavior({
+            hierarchy: this.state.hierarchy,
+            trajectories: this.state.currentTrajectories,
+            models: this.state.currentModels,
+            structures: this.state.currentStructures
+        })
     }
 
-    private _componentGroups: ReturnType<typeof StructureHierarchyManager['getComponentGroups']> | undefined = void 0;
+    private _currentComponentGroups: ReturnType<typeof StructureHierarchyManager['getComponentGroups']> | undefined = void 0;
 
-    get componentGroups() {
-        if (this._componentGroups) return this._componentGroups;
-        this._componentGroups = StructureHierarchyManager.getComponentGroups(this.state.currentStructures);
-        return this._componentGroups;
+    get currentComponentGroups() {
+        if (this._currentComponentGroups) return this._currentComponentGroups;
+        this._currentComponentGroups = StructureHierarchyManager.getComponentGroups(this.state.currentStructures);
+        return this._currentComponentGroups;
     }
 
-    private syncCurrentModels(hierarchy: StructureHierarchy): ModelRef[] {
-        const current = this.state.currentModels;
-        if (current.length === 0) {
-            return hierarchy.trajectories[0]?.models || [];
+    private syncCurrentTrajectories(hierarchy: StructureHierarchy): TrajectoryRef[] {
+        const current = this.state.currentTrajectories;
+        if (current.length === 0) return hierarchy.trajectories.length > 0 ? [hierarchy.trajectories[0]] : [];
+
+        const newCurrent: TrajectoryRef[] = [];
+        for (const c of current) {
+            const ref = hierarchy.refs.get(c.cell.transform.ref) as TrajectoryRef;
+            if (ref) newCurrent.push(ref);
         }
+
+        if (newCurrent.length === 0) return hierarchy.trajectories.length > 0 ? [hierarchy.trajectories[0]] : [];
+        return newCurrent;
+    }
+
+    private syncCurrentModels(hierarchy: StructureHierarchy, currentTrajectories: TrajectoryRef[]): ModelRef[] {
+        const current = this.state.currentModels;
+        if (current.length === 0) return currentTrajectories[0]?.models || [];
 
         const newCurrent: ModelRef[] = [];
         for (const c of current) {
             const ref = hierarchy.refs.get(c.cell.transform.ref) as ModelRef;
-            if (!ref) continue;
-            newCurrent.push(ref);
+            if (ref) newCurrent.push(ref);
         }
 
-        if (newCurrent.length === 0) {
-            return hierarchy.trajectories[0]?.models || [];
-        }
-
+        if (newCurrent.length === 0) return currentTrajectories[0]?.models || [];
         return newCurrent;
     }
 
     private syncCurrentStructures(hierarchy: StructureHierarchy, currentModels: ModelRef[]): StructureRef[] {
         const current = this.state.currentStructures;
-        if (current.length === 0) {
-            return Array.prototype.concat.apply([], currentModels.map(m => m.structures));
-        }
+        if (current.length === 0) return Array.prototype.concat.apply([], currentModels.map(m => m.structures));
 
         const newCurrent: StructureRef[] = [];
         for (const c of current) {
             const ref = hierarchy.refs.get(c.cell.transform.ref) as StructureRef;
-            if (!ref) continue;
-            newCurrent.push(ref);
+            if (ref) newCurrent.push(ref);
         }
 
-        if (newCurrent.length === 0 && currentModels.length > 0) {
-            return Array.prototype.concat.apply([], currentModels.map(m => m.structures));
-        }
-
+        if (newCurrent.length === 0 && currentModels.length > 0) return Array.prototype.concat.apply([], currentModels.map(m => m.structures));
         return newCurrent;
     }
 
@@ -72,13 +80,20 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         if (update.added.length === 0 && update.updated.length === 0 && update.removed.length === 0) {
             return;
         }
-        this._componentGroups = void 0;
+        this._currentComponentGroups = void 0;
 
-        const currentModels = this.syncCurrentModels(update.hierarchy);
+        const currentTrajectories = this.syncCurrentTrajectories(update.hierarchy);
+        const currentModels = this.syncCurrentModels(update.hierarchy, currentTrajectories);
         const currentStructures = this.syncCurrentStructures(update.hierarchy, currentModels);
-        this.updateState({ hierarchy: update.hierarchy, currentModels: currentModels, currentStructures: currentStructures });
+        console.log(currentTrajectories, currentModels, currentStructures);
+        this.updateState({ hierarchy: update.hierarchy, currentModels, currentStructures, currentTrajectories });
 
-        this.behaviors.current.next({ hierarchy: update.hierarchy, models: currentModels, structures: currentStructures });
+        this.behaviors.current.next({
+            hierarchy: update.hierarchy,
+            trajectories: currentTrajectories,
+            models: currentModels,
+            structures: currentStructures
+        });
     }
 
     remove(refs: HierarchyRef[]) {
@@ -91,6 +106,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
     constructor(private plugin: PluginContext) {
         super({
             hierarchy: StructureHierarchy(),
+            currentTrajectories: [],
             currentModels: [],
             currentStructures: []
         });
