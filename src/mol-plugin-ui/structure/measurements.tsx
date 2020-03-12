@@ -34,7 +34,7 @@ export class StructureMeasurementsControls extends CollapsableControls<{}, Struc
     defaultState() {
         return {
             isCollapsed: false,
-            header: 'Measurements & Labels',
+            header: 'Measurements',
         } as StructureMeasurementsControlsState
     }
 
@@ -120,21 +120,13 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
 
     get actions(): ActionMenu.Items {
         const history = this.selection.history;
-        const ret: ActionMenu.Item[] = [];
-
-        if (history.length >= 1) {
-            ret.push(ActionMenu.Item('Label', this.addLabel));
-            ret.push(ActionMenu.Item('Orientation', this.addOrientation));
-        }
-        if (history.length >= 2) {
-            ret.push(ActionMenu.Item('Distance', this.measureDistance));
-        }
-        if (history.length >= 3) {
-            ret.push(ActionMenu.Item('Angle', this.measureAngle));
-        }
-        if (history.length >= 3) {
-            ret.push(ActionMenu.Item('Dihedral Angle', this.measureDihedral));
-        }
+        const ret: ActionMenu.Item[] = [
+            { label: `Label ${history.length === 0 ? '- 1 entry required' : ''}`, value: this.addLabel, disabled: history.length === 0 },
+            { label: `Orientation ${history.length === 0 ? '- 1 entry required' : ''}`, value: this.addOrientation, disabled: history.length === 0 },
+            { label: `Distance ${history.length < 2 ? '- 2 entries required' : ''}`, value: this.measureDistance, disabled: history.length < 2 },
+            { label: `Angle ${history.length < 3 ? '- 3 entries required' : ''}`, value: this.measureAngle, disabled: history.length < 3 },
+            { label: `Dihedral ${history.length < 4 ? '- 4 entries required' : ''}`, value: this.measureDihedral, disabled: history.length < 4 },
+        ];
         return ret;
     }
     
@@ -156,7 +148,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
             {this.state.action === 'add' && <>
                 <ActionMenu items={this.actions} onSelect={this.selectAction} />
                 <div className='msp-control-offset msp-help-text'>
-                    <div className='msp-help-description'><Icon name='help-circle' />Options determined by Selection History</div>
+                    <div className='msp-help-description'><Icon name='help-circle' />Latest entries from Selection History</div>
                 </div>
             </>}
             {this.state.action === 'options' && <MeasurementsOptions />}

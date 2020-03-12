@@ -32,7 +32,7 @@ export namespace ActionMenu {
     export type OnSelect = (item: Item | undefined) => void
 
     export type Items =  string | Item | Items[]
-    export type Item = { label: string, icon?: IconName, value: unknown }
+    export type Item = { label: string, icon?: IconName, disabled?: boolean, value: unknown }
 
     export function Item(label: string, value: unknown): Item
     export function Item(label: string, icon: string, value: unknown): Item
@@ -146,7 +146,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
 const Action: React.FC<{ item: ActionMenu.Item, onSelect: ActionMenu.OnSelect, current: ActionMenu.Item | undefined }> = ({ item, onSelect, current }) => {
     const isCurrent = current === item;
     return <div className='msp-control-row'>
-        <button onClick={() => onSelect(item)}>
+        <button onClick={() => onSelect(item)} disabled={item.disabled}>
             {item.icon && <Icon name={item.icon} style={{ fontSize: '80%', marginRight: '6px' }} />}
             {isCurrent ? <b>{item.label}</b> : item.label}
         </button>
