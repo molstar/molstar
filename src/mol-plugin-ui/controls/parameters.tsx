@@ -852,7 +852,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
             if (Object.keys(param.params).length > 0) {
                 return <div className='msp-mapped-parameter-group'>
                     {Select}
-                    <IconButton icon='log' onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`${label} Properties`} />
+                    <IconButton icon='dot-3' onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`${label} Properties`} />
                     {this.state.isExpanded && <GroupControl inMapped param={param} value={value.params} name={value.name} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />}
                 </div>
             }

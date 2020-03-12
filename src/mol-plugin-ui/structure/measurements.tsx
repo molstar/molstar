@@ -16,6 +16,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { StructureMeasurementCell, StructureMeasurementOptions, StructureMeasurementParams } from '../../mol-plugin-state/manager/structure/measurement';
 import { ParameterControls } from '../controls/parameters';
 import { ActionMenu } from '../controls/action-menu';
+import { Icon } from '../controls/icons';
 
 // TODO details, options (e.g. change text for labels)
 // TODO better updates on state changes
@@ -27,26 +28,29 @@ const MeasurementFocusOptions = {
 }
 
 interface StructureMeasurementsControlsState extends CollapsableState {
-    isDisabled: boolean
 }
 
 export class StructureMeasurementsControls extends CollapsableControls<{}, StructureMeasurementsControlsState> {
+    defaultState() {
+        return {
+            isCollapsed: false,
+            header: 'Measurements & Labels',
+        } as StructureMeasurementsControlsState
+    }
+
+    renderControls() {
+        return <>
+            <MeasurementControls />
+            <MeasurementList />
+        </>
+    }
+}
+
+export class MeasurementList extends PurePluginUIComponent {
     componentDidMount() {
         this.subscribe(this.plugin.managers.structure.measurement.behaviors.state, () => {
             this.forceUpdate();
         });
-
-        this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isDisabled: v })
-        });
-    }
-
-    defaultState() {
-        return {
-            isCollapsed: false,
-            header: 'Measurements',
-            isDisabled: false
-        } as StructureMeasurementsControlsState
     }
 
     renderGroup(cells: ReadonlyArray<StructureMeasurementCell>, header: string) {
@@ -57,31 +61,29 @@ export class StructureMeasurementsControls extends CollapsableControls<{}, Struc
         return group.length ? <ExpandGroup header={header} initiallyExpanded={true}>{group}</ExpandGroup> : null;
     }
 
-    renderControls() {
+    render() {
         const measurements = this.plugin.managers.structure.measurement.state;
 
         return <>
-            <AddMeasurement />
             {this.renderGroup(measurements.labels, 'Labels')}
             {this.renderGroup(measurements.distances, 'Distances')}
             {this.renderGroup(measurements.angles, 'Angles')}
             {this.renderGroup(measurements.dihedrals, 'Dihedrals')}
             {this.renderGroup(measurements.orientations, 'Orientations')}
-            <MeasurementsOptions />
         </>
     }
 }
 
-export class AddMeasurement extends PurePluginUIComponent<{}, { isDisabled: boolean, showActions: boolean }> {
-    state = { isDisabled: false, showActions: false }
+export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boolean, action?: 'add' | 'options' }> {
+    state = { isBusy: false, action: void 0 as 'add' | 'options' | undefined }
 
     componentDidMount() {
         this.subscribe(this.selection.events.changed, () => {
-            this.forceUpdate()
+            this.forceUpdate();
         });
 
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isDisabled: v })
+            this.setState({ isBusy: v });
         });
     }
 
@@ -110,6 +112,7 @@ export class AddMeasurement extends PurePluginUIComponent<{}, { isDisabled: bool
     }
 
     addOrientation = () => {
+        // TODO: this should be possible to add for the whole selection
         const loci = this.plugin.managers.structure.selection.history;
         this.plugin.managers.structure.measurement.addOrientation(loci[0].loci);
     }
@@ -141,21 +144,27 @@ export class AddMeasurement extends PurePluginUIComponent<{}, { isDisabled: bool
         (item?.value as any)();
     }
 
-    toggleAdd = () => this.setState({ showActions: !this.state.showActions });
+    toggleAdd = () => this.setState({ action: this.state.action === 'add' ? void 0 : 'add' });
+    toggleOptions = () => this.setState({ action: this.state.action === 'options' ? void 0 : 'options'  });
 
     render() {
-        if (this.state.isDisabled || this.selection.history.length === 0) return null;
-
         return <>
             <div className='msp-control-row msp-select-row'>
-                <ToggleButton icon='plus' label='Add Measurement' toggle={this.toggleAdd} isSelected={this.state.showActions} disabled={this.state.isDisabled} />
+                <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.state.isBusy} />
+                <ToggleButton icon='cog' label='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} />
             </div>
-            {this.state.showActions && <ActionMenu items={this.actions} onSelect={this.selectAction} />}
+            {this.state.action === 'add' && <>
+                <ActionMenu items={this.actions} onSelect={this.selectAction} />
+                <div className='msp-control-offset msp-help-text'>
+                    <div className='msp-help-description'><Icon name='help-circle' />Options determined by Selection History</div>
+                </div>
+            </>}
+            {this.state.action === 'options' && <MeasurementsOptions />}
         </>
     }
 }
 
-export class MeasurementsOptions extends PurePluginUIComponent<{}, { isDisabled: boolean }> {
+class MeasurementsOptions extends PurePluginUIComponent<{}, { isDisabled: boolean }> {
     state = { isDisabled: false }
 
     componentDidMount() {
@@ -163,7 +172,7 @@ export class MeasurementsOptions extends PurePluginUIComponent<{}, { isDisabled:
             this.forceUpdate();
         });
 
-        this.subscribe(this.plugin.state.dataState.events.isUpdating, v => {
+        this.subscribe(this.plugin.behaviors.state.isBusy, v => {
             this.setState({ isDisabled: v })
         });
     }
@@ -175,9 +184,9 @@ export class MeasurementsOptions extends PurePluginUIComponent<{}, { isDisabled:
     render() {
         const measurements = this.plugin.managers.structure.measurement.state;
 
-        return <ExpandGroup header='Global Options'>
+        return <div className='msp-control-offset'>
             <ParameterControls params={StructureMeasurementParams} values={measurements.options} onChangeObject={this.changed} isDisabled={this.state.isDisabled} />
-        </ExpandGroup>;
+        </div>;
     }
 }
 
