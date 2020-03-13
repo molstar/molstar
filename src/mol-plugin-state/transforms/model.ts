@@ -245,10 +245,11 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
 })({
     isApplicable: a => a.data.length > 0,
     apply({ a, params }) {
-        if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
+        let modelIndex = params.modelIndex % a.data.length;
+        if (modelIndex < 0) modelIndex += a.data.length;
         const model = a.data[params.modelIndex];
-        const label = `Model ${model.modelNum}`
-        const description = a.data.length === 1 ? undefined : `Model ${params.modelIndex + 1} of ${a.data.length}`
+        const label = `Model ${model.modelNum}`;
+        const description = a.data.length === 1 ? undefined : `of ${a.data.length}`;
         return new SO.Molecule.Model(model, { label, description });
     }
 });

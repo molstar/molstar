@@ -5,7 +5,7 @@
  */
 
 import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectRef, StateObjectSelector, StateTransformer } from '../../mol-state';
+import { StateObjectRef, StateObjectSelector, StateTransformer, StateTransform } from '../../mol-state';
 import { PluginStateObject as SO } from '../objects';
 import { StateTransforms } from '../transforms';
 import { RootStructureDefinition } from '../helpers/root-structure';
@@ -95,10 +95,10 @@ export class StructureBuilder {
         }
     }
 
-    async createModel(trajectory: StateObjectRef<SO.Molecule.Trajectory>, params?: StateTransformer.Params<StateTransforms['Model']['ModelFromTrajectory']>) {
+    async createModel(trajectory: StateObjectRef<SO.Molecule.Trajectory>, params?: StateTransformer.Params<StateTransforms['Model']['ModelFromTrajectory']>, initialState?: Partial<StateTransform.State>) {
         const state = this.dataState;
         const model = state.build().to(trajectory)
-            .apply(StateTransforms.Model.ModelFromTrajectory, params || { modelIndex: 0 }, { tags: StructureBuilderTags.Model });
+            .apply(StateTransforms.Model.ModelFromTrajectory, params || { modelIndex: 0 }, { tags: StructureBuilderTags.Model, state: initialState });
 
         await this.plugin.runTask(this.dataState.updateTree(model, { revertOnError: true }));
         return model.selector;
@@ -112,10 +112,10 @@ export class StructureBuilder {
         return props.selector;
     }
 
-    async createStructure(model: StateObjectRef<SO.Molecule.Model>, params?: RootStructureDefinition.Params) {
+    async createStructure(model: StateObjectRef<SO.Molecule.Model>, params?: RootStructureDefinition.Params, initialState?: Partial<StateTransform.State>) {
         const state = this.dataState;
         const structure = state.build().to(model)
-            .apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } }, { tags: StructureBuilderTags.Structure });        
+            .apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } }, { tags: StructureBuilderTags.Structure, state: initialState });        
 
         await this.plugin.runTask(this.dataState.updateTree(structure, { revertOnError: true }));
         return structure.selector;

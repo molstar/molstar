@@ -10,7 +10,7 @@ import { StructureComponentRef, StructureRepresentationRef, StructureRef } from 
 import { PluginCommands } from '../../mol-plugin/commands';
 import { State } from '../../mol-state';
 import { ParamDefinition } from '../../mol-util/param-definition';
-import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
+import { CollapsableControls, CollapsableState, PurePluginUIComponent, PluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { ExpandGroup, IconButton, ToggleButton } from '../controls/common';
 import { Icon } from '../controls/icons';
@@ -183,9 +183,30 @@ class ComponentListControls extends PurePluginUIComponent {
 
     render() {
         const componentGroups = this.plugin.managers.structure.hierarchy.currentComponentGroups;
-        return <div>
+        if (componentGroups.length === 0) return null;
+
+        return <div style={{ marginTop: '6px' }}>
             {componentGroups.map(g => <StructureComponentGroup key={g[0].cell.transform.ref} group={g} />)}
+            <CurrentFocus />
         </div>;
+    }
+}
+
+class CurrentFocus extends PluginUIComponent {
+    findInteraction() {
+        const xs = this.plugin.managers.structure.hierarchy.current.structures;
+        for (const s of xs) {
+            if (s.currentFocus?.focus || s.currentFocus?.surroundings) return s.currentFocus;
+        }
+    }
+
+    render() {
+        const interaction = this.findInteraction();
+        if (!interaction) return null;
+        return <ExpandGroup header='Current Focus' marginTop={0} noOffset>
+            {interaction.focus && <StructureComponentGroup group={[interaction.focus]} />}
+            {interaction.surroundings && <StructureComponentGroup group={[interaction.surroundings]} />}
+        </ExpandGroup>;
     }
 }
 
@@ -283,8 +304,8 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         const component = this.pivot;
         const cell = component.cell;
         const label = cell.obj?.label;
-        return <>
-            <div className='msp-control-row' style={{ marginTop: '6px' }}>
+        return <div style={{ marginBottom: '6px' }}>
+            <div className='msp-control-row'>
                 <button className='msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {label}
                 </button>
@@ -299,7 +320,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
             <div className='msp-control-offset'>
                 {component.representations.map(r => <StructureRepresentationEntry group={this.props.group} key={r.cell.transform.ref} representation={r} />)}
             </div>
-        </>;
+        </div>;
     }
 }
 

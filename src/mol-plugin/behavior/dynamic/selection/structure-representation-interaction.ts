@@ -81,7 +81,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         // Selections
         if (!refs[StructureRepresentationInteractionTags.ResidueSel]) {
             refs[StructureRepresentationInteractionTags.ResidueSel] = builder.to(refs['structure-interaction-group']).apply(StateTransforms.Model.StructureSelectionFromBundle,
-                { bundle: { } as any, label: 'Residue' }, { tags: StructureRepresentationInteractionTags.ResidueSel }).ref;
+                { bundle: { } as any, label: 'Focus' }, { tags: StructureRepresentationInteractionTags.ResidueSel }).ref;
         }
 
         if (!refs[StructureRepresentationInteractionTags.SurrSel]) {

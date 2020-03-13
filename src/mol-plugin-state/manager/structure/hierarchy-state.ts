@@ -51,7 +51,8 @@ function TrajectoryRef(cell: StateObjectCell<SO.Molecule.Trajectory>): Trajector
 export interface ModelRef extends RefBase<'model', SO.Molecule.Model> {
     trajectory?: TrajectoryRef,
     properties?: ModelPropertiesRef,
-    structures: StructureRef[]
+    structures: StructureRef[],
+    genericRepresentations?: GenericRepresentationRef[],
 }
 
 function ModelRef(cell: StateObjectCell<SO.Molecule.Model>, trajectory?: TrajectoryRef): ModelRef {
@@ -74,6 +75,7 @@ export interface StructureRef extends RefBase<'structure', SO.Molecule.Structure
         focus?: StructureComponentRef,
         surroundings?: StructureComponentRef,
     },
+    genericRepresentations?: GenericRepresentationRef[],
     // volumeStreaming?: ....
 }
 
@@ -93,6 +95,7 @@ export interface StructureComponentRef extends RefBase<'structure-component', SO
     structure: StructureRef,
     key?: string,
     representations: StructureRepresentationRef[],
+    genericRepresentations?: GenericRepresentationRef[]
 }
 
 function componentKey(cell: StateObjectCell<SO.Molecule.Structure>) {
@@ -110,6 +113,14 @@ export interface StructureRepresentationRef extends RefBase<'structure-represent
 
 function StructureRepresentationRef(cell: StateObjectCell<SO.Molecule.Structure.Representation3D>, component: StructureComponentRef): StructureRepresentationRef {
     return { kind: 'structure-representation', cell, version: cell.transform.version, component };
+}
+
+export interface GenericRepresentationRef extends RefBase<'generic-representation', SO.Any> {
+    parent: HierarchyRef
+}
+
+function GenericRepresentationRef(cell: StateObjectCell<SO.Molecule.Structure.Representation3D>, parent: HierarchyRef): GenericRepresentationRef {
+    return { kind: 'generic-representation', cell, version: cell.transform.version, parent };
 }
 
 interface BuildState {
@@ -239,8 +250,14 @@ function _doPreOrder(ctx: VisitorCtx, root: StateTransform) {
         }
     }
 
-    if (!onLeave && state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj)) {
+    if (!onLeave && !cell.state.isGhost && state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj)) {
         createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
+    } else if (!cell.state.isGhost && SO.isRepresentation3D(cell.obj)) {
+        const genericTarget = state.currentComponent || state.currentModel || state.currentStructure;
+        if (genericTarget) {
+            if (!genericTarget.genericRepresentations) genericTarget.genericRepresentations = [];
+            genericTarget.genericRepresentations.push(GenericRepresentationRef(cell, genericTarget));
+        }
     }
 
     const children = ctx.tree.children.get(root.ref);
