@@ -47,7 +47,7 @@ class BasicWrapper {
             }
         });
 
-        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(StripedResidues.propertyProvider.descriptor.name, StripedResidues.colorThemeProvider!);
+        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(StripedResidues.colorThemeProvider!);
         this.plugin.managers.lociLabels.addProvider(StripedResidues.labelProvider!);
         this.plugin.customModelProperties.register(StripedResidues.propertyProvider, true);
     }

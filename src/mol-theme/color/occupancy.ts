@@ -58,7 +58,8 @@ export function OccupancyColorTheme(ctx: ThemeDataContext, props: PD.Values<Occu
     }
 }
 
-export const OccupancyColorThemeProvider: ColorTheme.Provider<OccupancyColorThemeParams> = {
+export const OccupancyColorThemeProvider: ColorTheme.Provider<OccupancyColorThemeParams, 'occupancy'> = {
+    name: 'occupancy',
     label: 'Occupancy',
     category: ColorTheme.Category.Atom,
     factory: OccupancyColorTheme,

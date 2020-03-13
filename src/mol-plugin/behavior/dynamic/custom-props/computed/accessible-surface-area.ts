@@ -40,7 +40,7 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
             DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
 
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('accessible-surface-area', AccessibleSurfaceAreaColorThemeProvider)
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(AccessibleSurfaceAreaColorThemeProvider)
             this.ctx.managers.lociLabels.addProvider(this.label);
         }
 
@@ -49,7 +49,7 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
             // DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
 
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('accessible-surface-area')
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(AccessibleSurfaceAreaColorThemeProvider)
             this.ctx.managers.lociLabels.removeProvider(this.label);
         }
     },

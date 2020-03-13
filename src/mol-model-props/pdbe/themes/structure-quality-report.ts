@@ -77,7 +77,8 @@ export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: P
     }
 }
 
-export const StructureQualityReportColorThemeProvider: ColorTheme.Provider<Params> =  {
+export const StructureQualityReportColorThemeProvider: ColorTheme.Provider<Params, 'pdbe-structure-quality-report'> =  {
+    name: 'pdbe-structure-quality-report',
     label: 'Structure Quality Report',
     category: ColorTheme.Category.Validation,
     factory: StructureQualityReportColorTheme,

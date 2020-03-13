@@ -60,7 +60,8 @@ export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: PD.Va
     }
 }
 
-export const CarbohydrateSymbolColorThemeProvider: ColorTheme.Provider<CarbohydrateSymbolColorThemeParams> = {
+export const CarbohydrateSymbolColorThemeProvider: ColorTheme.Provider<CarbohydrateSymbolColorThemeParams, 'carbohydrate-symbol'> = {
+    name: 'carbohydrate-symbol',
     label: 'Carbohydrate Symbol',
     category: ColorTheme.Category.Residue,
     factory: CarbohydrateSymbolColorTheme,

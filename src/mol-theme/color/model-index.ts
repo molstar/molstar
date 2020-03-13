@@ -64,7 +64,8 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
     }
 }
 
-export const ModelIndexColorThemeProvider: ColorTheme.Provider<ModelIndexColorThemeParams> = {
+export const ModelIndexColorThemeProvider: ColorTheme.Provider<ModelIndexColorThemeParams, 'model-index'> = {
+    name: 'model-index',
     label: 'Model Index',
     category: ColorTheme.Category.Chain,
     factory: ModelIndexColorTheme,

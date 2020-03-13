@@ -94,7 +94,8 @@ export function createProteopediaCustomTheme(colors: number[]) {
         }
     }
 
-    const ProteopediaCustomColorThemeProvider: ColorTheme.Provider<ProteopediaCustomColorThemeParams> = {
+    return {
+        name: 'proteopedia-custom',
         label: 'Proteopedia Custom',
         category: 'Custom',
         factory: ProteopediaCustomColorTheme,
@@ -102,6 +103,4 @@ export function createProteopediaCustomTheme(colors: number[]) {
         defaultValues: PD.getDefaultValues(ProteopediaCustomColorThemeParams),
         isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
     }
-
-    return ProteopediaCustomColorThemeProvider;
 }

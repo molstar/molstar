@@ -80,20 +80,18 @@ function createParamsProvider(ctx: PluginContext, structure: Structure, props: S
     const reprParams = Object.assign(reprDefaultParams, props.typeParams);
     
     const color = props.color || themeCtx.colorThemeRegistry.get(repr.defaultColorTheme.name);
-    const colorName = themeCtx.colorThemeRegistry.getName(color);
     const colorDefaultParams = PD.getDefaultValues(color.getParams(themeDataCtx));
-    if (colorName === repr.defaultColorTheme.name) Object.assign(colorDefaultParams, repr.defaultColorTheme.props);
+    if (color.name === repr.defaultColorTheme.name) Object.assign(colorDefaultParams, repr.defaultColorTheme.props);
     const colorParams = Object.assign(colorDefaultParams, props.colorParams);
 
     const size = props.size || themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme.name);
-    const sizeName = themeCtx.sizeThemeRegistry.getName(size);
     const sizeDefaultParams = PD.getDefaultValues(size.getParams(themeDataCtx));
-    if (sizeName === repr.defaultSizeTheme.name) Object.assign(sizeDefaultParams, repr.defaultSizeTheme.props);
+    if (size.name === repr.defaultSizeTheme.name) Object.assign(sizeDefaultParams, repr.defaultSizeTheme.props);
     const sizeParams = Object.assign(sizeDefaultParams, props.sizeParams);
 
     return ({
-        type: { name: ctx.structureRepresentation.registry.getName(repr), params: reprParams },
-        colorTheme: { name: colorName, params: colorParams },
-        sizeTheme: { name: sizeName, params: sizeParams }
+        type: { name: repr.name, params: reprParams },
+        colorTheme: { name: color.name, params: colorParams },
+        sizeTheme: { name: size.name, params: sizeParams }
     });
 }

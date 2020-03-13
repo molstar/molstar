@@ -71,7 +71,8 @@ export function UnitIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Unit
     }
 }
 
-export const UnitIndexColorThemeProvider: ColorTheme.Provider<UnitIndexColorThemeParams> = {
+export const UnitIndexColorThemeProvider: ColorTheme.Provider<UnitIndexColorThemeParams, 'unit-index'> = {
+    name: 'unit-index',
     label: 'Chain Instance',
     category: ColorTheme.Category.Chain,
     factory: UnitIndexColorTheme,

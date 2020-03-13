@@ -67,8 +67,8 @@ class MolStarProteopediaWrapper {
 
         const customColoring = createProteopediaCustomTheme((options && options.customColorList) || []);
 
-        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add('proteopedia-custom', customColoring);
-        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(EvolutionaryConservation.propertyProvider.descriptor.name, EvolutionaryConservation.colorThemeProvider!);
+        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(customColoring);
+        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(EvolutionaryConservation.colorThemeProvider!);
         this.plugin.managers.lociLabels.addProvider(EvolutionaryConservation.labelProvider!);
         this.plugin.customModelProperties.register(EvolutionaryConservation.propertyProvider, true);
     }

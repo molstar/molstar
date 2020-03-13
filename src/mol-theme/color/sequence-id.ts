@@ -99,7 +99,8 @@ export function SequenceIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Seq
     }
 }
 
-export const SequenceIdColorThemeProvider: ColorTheme.Provider<SequenceIdColorThemeParams> = {
+export const SequenceIdColorThemeProvider: ColorTheme.Provider<SequenceIdColorThemeParams, 'sequence-id'> = {
+    name: 'sequence-id',
     label: 'Sequence Id',
     category: ColorTheme.Category.Residue,
     factory: SequenceIdColorTheme,

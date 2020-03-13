@@ -83,7 +83,8 @@ export function OperatorNameColorTheme(ctx: ThemeDataContext, props: PD.Values<O
     }
 }
 
-export const OperatorNameColorThemeProvider: ColorTheme.Provider<OperatorNameColorThemeParams> = {
+export const OperatorNameColorThemeProvider: ColorTheme.Provider<OperatorNameColorThemeParams, 'operator-name'> = {
+    name: 'operator-name',
     label: 'Operator Name',
     category: ColorTheme.Category.Symmetry,
     factory: OperatorNameColorTheme,

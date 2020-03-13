@@ -48,12 +48,12 @@ const StructureRepresentationInteractionParams = (plugin: PluginContext) => {
         }),
         nciParams: PD.Group(reprParams, {
             label: 'Non-covalent Int.',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', color: 'element-symbol', size: 'uniform' })
-            // customDefault: createStructureRepresentationParams(plugin, void 0, {
-            //     type: InteractionsRepresentationProvider,
-            //     color: InteractionTypeColorThemeProvider,
-            //     size: BuiltInSizeThemes.uniform
-            // })
+            // customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', color: 'element-symbol', size: 'uniform' })
+            customDefault: createStructureRepresentationParams(plugin, void 0, {
+                type: InteractionsRepresentationProvider,
+                color: InteractionTypeColorThemeProvider,
+                size: BuiltInSizeThemes.uniform
+            })
         })
     };
 }

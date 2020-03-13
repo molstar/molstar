@@ -100,7 +100,8 @@ export function GeometryQualityColorTheme(ctx: ThemeDataContext, props: PD.Value
     }
 }
 
-export const GeometryQualityColorThemeProvider: ColorTheme.Provider<GeometricQualityColorThemeParams> = {
+export const GeometryQualityColorThemeProvider: ColorTheme.Provider<GeometricQualityColorThemeParams, ValidationReport.Tag.GeometryQuality> = {
+    name: ValidationReport.Tag.GeometryQuality,
     label: 'Geometry Quality',
     category: ColorTheme.Category.Validation,
     factory: GeometryQualityColorTheme,

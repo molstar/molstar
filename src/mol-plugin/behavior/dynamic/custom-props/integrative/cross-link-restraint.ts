@@ -12,8 +12,6 @@ import { CrossLinkRestraintRepresentationProvider } from '../../../../../mol-mod
 import { CrossLinkColorThemeProvider } from '../../../../../mol-model-props/integrative/cross-link-restraint/color';
 import { CrossLinkRestraint as _CrossLinkRestraint } from '../../../../../mol-model-props/integrative/cross-link-restraint/property';
 
-const Tag = _CrossLinkRestraint.Tag
-
 export const CrossLinkRestraint = PluginBehavior.create<{ }>({
     name: 'integrative-cross-link-restraint',
     category: 'custom-props',
@@ -24,14 +22,14 @@ export const CrossLinkRestraint = PluginBehavior.create<{ }>({
         register(): void {
             this.provider.formatRegistry.add('mmCIF', crossLinkRestraintFromMmcif)
 
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(Tag.CrossLinkRestraint, CrossLinkColorThemeProvider)
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(CrossLinkColorThemeProvider)
             this.ctx.structureRepresentation.registry.add(CrossLinkRestraintRepresentationProvider)
         }
 
         unregister() {
             this.provider.formatRegistry.remove('mmCIF')
 
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(Tag.CrossLinkRestraint)
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(CrossLinkColorThemeProvider)
             this.ctx.structureRepresentation.registry.remove(CrossLinkRestraintRepresentationProvider)
         }
     }

@@ -111,7 +111,8 @@ export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Va
     }
 }
 
-export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<SecondaryStructureColorThemeParams> = {
+export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<SecondaryStructureColorThemeParams, 'secondary-structure'> = {
+    name: 'secondary-structure',
     label: 'Secondary Structure',
     category: ColorTheme.Category.Residue,
     factory: SecondaryStructureColorTheme,

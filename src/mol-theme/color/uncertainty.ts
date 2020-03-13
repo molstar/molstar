@@ -62,7 +62,8 @@ export function UncertaintyColorTheme(ctx: ThemeDataContext, props: PD.Values<Un
     }
 }
 
-export const UncertaintyColorThemeProvider: ColorTheme.Provider<UncertaintyColorThemeParams> = {
+export const UncertaintyColorThemeProvider: ColorTheme.Provider<UncertaintyColorThemeParams, 'uncertainty'> = {
+    name: 'uncertainty',
     label: 'Uncertainty/Disorder',
     category: ColorTheme.Category.Atom,
     factory: UncertaintyColorTheme,

@@ -91,7 +91,8 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
     }
 }
 
-export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<AssemblySymmetryClusterColorThemeParams> = {
+export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<AssemblySymmetryClusterColorThemeParams, AssemblySymmetry.Tag.Cluster> = {
+    name: AssemblySymmetry.Tag.Cluster,
     label: 'Assembly Symmetry Cluster',
     category: ColorTheme.Category.Symmetry,
     factory: AssemblySymmetryClusterColorTheme,

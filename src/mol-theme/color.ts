@@ -70,8 +70,8 @@ namespace ColorTheme {
         return themeA.contextHash === themeB.contextHash && themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props)
     }
 
-    export interface Provider<P extends PD.Params = any> extends ThemeProvider<ColorTheme<P>, P> { }
-    export const EmptyProvider: Provider<{}> = { label: '', category: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true }
+    export interface Provider<P extends PD.Params = any, Id extends string = string> extends ThemeProvider<ColorTheme<P>, P, Id> { }
+    export const EmptyProvider: Provider<{}> = { name: '', label: '', category: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true }
 
     export type Registry = ThemeRegistry<ColorTheme<any>>
     export function createRegistry() {
@@ -80,6 +80,8 @@ namespace ColorTheme {
 
     export type ParamValues<C extends ColorTheme.Provider<any>> = C extends ColorTheme.Provider<infer P> ? PD.Values<P> : never
 }
+
+export function ColorThemeProvider<P extends PD.Params, Id extends string>(p: ColorTheme.Provider<P, Id>): ColorTheme.Provider<P, Id> { return p; }
 
 export const BuiltInColorThemes = {
     'carbohydrate-symbol': CarbohydrateSymbolColorThemeProvider,

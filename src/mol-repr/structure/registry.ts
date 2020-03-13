@@ -24,7 +24,7 @@ export class StructureRepresentationRegistry extends RepresentationRegistry<Stru
     constructor() {
         super()
         objectForEach(BuiltInStructureRepresentations, (p, k) => {
-            if (p.name !== k) throw new Error('Fix BuiltInStructureRepresentations to have matching names.');
+            if (p.name !== k) throw new Error(`Fix BuiltInStructureRepresentations to have matching names. ${p.name} ${k}`);
             this.add(p as any)
         })
     }
