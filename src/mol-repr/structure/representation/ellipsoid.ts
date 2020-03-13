@@ -41,7 +41,8 @@ export function EllipsoidRepresentation(ctx: RepresentationContext, getParams: R
     return Representation.createMulti('Ellipsoid', ctx, getParams, StructureRepresentationStateBuilder, EllipsoidVisuals as unknown as Representation.Def<Structure, EllipsoidParams>)
 }
 
-export const EllipsoidRepresentationProvider: StructureRepresentationProvider<EllipsoidParams> = {
+export const EllipsoidRepresentationProvider = StructureRepresentationProvider({
+    name: 'ellipsoid',
     label: 'Ellipsoid',
     description: 'Displays anisotropic displacement ellipsoids of atomic elements plus bonds as cylinders.',
     factory: EllipsoidRepresentation,
@@ -50,4 +51,4 @@ export const EllipsoidRepresentationProvider: StructureRepresentationProvider<El
     defaultColorTheme: { name: 'element-symbol' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0 && structure.models.some(m => m.customProperties.has(AtomSiteAnisotrop.Descriptor))
-}
+})

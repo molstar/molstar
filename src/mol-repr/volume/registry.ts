@@ -4,16 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { RepresentationProvider, RepresentationRegistry, Representation } from '../representation';
+import { RepresentationRegistry, Representation } from '../representation';
 import { VolumeData } from '../../mol-model/volume';
 import { IsosurfaceRepresentationProvider } from './isosurface';
+import { objectForEach } from '../../mol-util/object';
 
 export class VolumeRepresentationRegistry extends RepresentationRegistry<VolumeData, Representation.State> {
     constructor() {
         super()
         Object.keys(BuiltInVolumeRepresentations).forEach(name => {
-            const p = (BuiltInVolumeRepresentations as { [k: string]: RepresentationProvider<VolumeData, any, Representation.State> })[name]
-            this.add(name, p)
+            objectForEach(BuiltInVolumeRepresentations, (p, k) => {
+                if (p.name !== k) throw new Error('Fix BuiltInVolumeRepresentations to have matching names.');
+                this.add(p as any)
+            })
         })
     }
 }

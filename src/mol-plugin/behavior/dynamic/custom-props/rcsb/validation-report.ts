@@ -48,7 +48,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(Tag.GeometryQuality, GeometryQualityColorThemeProvider)
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(Tag.RandomCoilIndex, RandomCoilIndexColorThemeProvider)
 
-            this.ctx.structureRepresentation.registry.add(Tag.Clashes, ClashesRepresentationProvider)
+            this.ctx.structureRepresentation.registry.add(ClashesRepresentationProvider)
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
@@ -71,7 +71,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(Tag.GeometryQuality)
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(Tag.RandomCoilIndex)
 
-            this.ctx.structureRepresentation.registry.remove(Tag.Clashes)
+            this.ctx.structureRepresentation.registry.remove(ClashesRepresentationProvider)
         }
     },
     params: () => ({

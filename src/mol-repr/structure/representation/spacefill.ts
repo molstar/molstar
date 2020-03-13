@@ -31,7 +31,8 @@ export function SpacefillRepresentation(ctx: RepresentationContext, getParams: R
     return Representation.createMulti('Spacefill', ctx, getParams, StructureRepresentationStateBuilder, SpacefillVisuals as unknown as Representation.Def<Structure, SpacefillParams>)
 }
 
-export const SpacefillRepresentationProvider: StructureRepresentationProvider<SpacefillParams> = {
+export const SpacefillRepresentationProvider = StructureRepresentationProvider({
+    name: 'spacefill',
     label: 'Spacefill',
     description: 'Displays atomic/coarse elements as spheres.',
     factory: SpacefillRepresentation,
@@ -40,4 +41,4 @@ export const SpacefillRepresentationProvider: StructureRepresentationProvider<Sp
     defaultColorTheme: { name: 'element-symbol' },
     defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-}
+})

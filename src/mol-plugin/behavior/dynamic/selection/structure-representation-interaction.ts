@@ -20,6 +20,7 @@ import { Binding } from '../../../../mol-util/binding';
 import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-observer';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { PluginCommands } from '../../../commands';
+import { PluginContext } from '../../../context';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -28,10 +29,38 @@ const Trigger = Binding.Trigger
 const DefaultStructureRepresentationInteractionBindings = {
     clickInteractionAroundOnly: Binding([Trigger(B.Flag.Secondary, M.create()), Trigger(B.Flag.Primary, M.create({ control: true }))], 'Show the structure interaction around only the clicked element using ${triggers}.'),
 }
-const StructureRepresentationInteractionParams = {
-    bindings: PD.Value(DefaultStructureRepresentationInteractionBindings, { isHidden: true }),
+// const StructureRepresentationInteractionParams = {
+//     bindings: PD.Value(DefaultStructureRepresentationInteractionBindings, { isHidden: true }),
+// }
+
+const StructureRepresentationInteractionParams = (plugin: PluginContext) => {
+    
+    const reprParams = StateTransforms.Representation.StructureRepresentation3D.definition.params!(void 0, plugin) as PD.Params;
+    return {
+        bindings: PD.Value(DefaultStructureRepresentationInteractionBindings, { isHidden: true }),
+        focusParams: PD.Group(reprParams, {
+            label: 'Focus',
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'uniform' })
+        }),
+        surroundingsParams: PD.Group(reprParams, {
+            label: 'Surroundings',
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', color: 'element-symbol', size: 'uniform' })
+        }),
+        nciParams: PD.Group(reprParams, {
+            label: 'Non-covalent Int.',
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', color: 'element-symbol', size: 'uniform' })
+            // customDefault: createStructureRepresentationParams(plugin, void 0, {
+            //     type: InteractionsRepresentationProvider,
+            //     color: InteractionTypeColorThemeProvider,
+            //     size: BuiltInSizeThemes.uniform
+            // })
+        })
+    };
 }
-type StructureRepresentationInteractionProps = PD.Values<typeof StructureRepresentationInteractionParams>
+
+type StructureRepresentationInteractionProps = PD.ValuesFor<ReturnType<typeof StructureRepresentationInteractionParams>>
+
+//PD.Values<typeof StructureRepresentationInteractionParams>
 
 export enum StructureRepresentationInteractionTags {
     Group = 'structure-interaction-group',
@@ -45,65 +74,49 @@ export enum StructureRepresentationInteractionTags {
 const TagSet: Set<StructureRepresentationInteractionTags> = new Set([StructureRepresentationInteractionTags.Group, StructureRepresentationInteractionTags.ResidueSel, StructureRepresentationInteractionTags.ResidueRepr, StructureRepresentationInteractionTags.SurrSel, StructureRepresentationInteractionTags.SurrRepr, StructureRepresentationInteractionTags.SurrNciRepr])
 
 export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<StructureRepresentationInteractionProps> {
-    private createResVisualParams(s: Structure) {
-        return createStructureRepresentationParams(this.plugin, s, {
-            type: 'ball-and-stick',
-            size: 'uniform'
-        });
-    }
-
-    private createSurVisualParams(s: Structure) {
-        return createStructureRepresentationParams(this.plugin, s, {
-            type: 'ball-and-stick',
-            color: 'element-symbol',
-            size: 'uniform'
-        });
-    }
-
-    private createSurNciVisualParams(s: Structure) {
-        return createStructureRepresentationParams(this.plugin, s, {
-            type: InteractionsRepresentationProvider,
-            color: InteractionTypeColorThemeProvider,
-            size: BuiltInSizeThemes.uniform
-        });
-    }
-
     private ensureShape(cell: StateObjectCell<PluginStateObject.Molecule.Structure>) {
         const state = this.plugin.state.dataState, tree = state.tree;
         const builder = state.build();
         const refs = StateSelection.findUniqueTagsInSubtree(tree, cell.transform.ref, TagSet);
 
         if (!refs['structure-interaction-group']) {
-            refs['structure-interaction-group'] = builder.to(cell).group(StateTransforms.Misc.CreateGroup,
-                { label: 'Current Focus' }, { tags: StructureRepresentationInteractionTags.Group }).ref;
+            refs['structure-interaction-group'] = builder
+                .to(cell)
+                .group(StateTransforms.Misc.CreateGroup, { label: 'Current Focus' }, { tags: StructureRepresentationInteractionTags.Group }).ref;
         }
 
         // Selections
         if (!refs[StructureRepresentationInteractionTags.ResidueSel]) {
-            refs[StructureRepresentationInteractionTags.ResidueSel] = builder.to(refs['structure-interaction-group']).apply(StateTransforms.Model.StructureSelectionFromBundle,
-                { bundle: { } as any, label: 'Focus' }, { tags: StructureRepresentationInteractionTags.ResidueSel }).ref;
+            refs[StructureRepresentationInteractionTags.ResidueSel] = builder
+                .to(refs['structure-interaction-group'])
+                .apply(StateTransforms.Model.StructureSelectionFromBundle,
+                    { bundle: { } as any, label: 'Focus' }, { tags: StructureRepresentationInteractionTags.ResidueSel }).ref;
         }
 
         if (!refs[StructureRepresentationInteractionTags.SurrSel]) {
-            refs[StructureRepresentationInteractionTags.SurrSel] = builder.to(refs['structure-interaction-group']).apply(StateTransforms.Model.StructureSelectionFromExpression,
-                { expression: { } as any, label: 'Surroundings' }, { tags: StructureRepresentationInteractionTags.SurrSel }).ref;
+            refs[StructureRepresentationInteractionTags.SurrSel] = builder
+                .to(refs['structure-interaction-group'])
+                .apply(StateTransforms.Model.StructureSelectionFromExpression,
+                    { expression: { } as any, label: 'Surroundings' }, { tags: StructureRepresentationInteractionTags.SurrSel }).ref;
         }
 
         // Representations
-        // TODO: ability to customize how it looks in the behavior params
         if (!refs[StructureRepresentationInteractionTags.ResidueRepr]) {
-            refs[StructureRepresentationInteractionTags.ResidueRepr] = builder.to(refs['structure-interaction-residue-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
-                this.createResVisualParams(cell.obj!.data), { tags: StructureRepresentationInteractionTags.ResidueRepr }).ref;
+            refs[StructureRepresentationInteractionTags.ResidueRepr] = builder
+                .to(refs['structure-interaction-residue-sel']!)
+                .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.focusParams, { tags: StructureRepresentationInteractionTags.ResidueRepr }).ref;
         }
 
         if (!refs[StructureRepresentationInteractionTags.SurrRepr]) {
-            refs[StructureRepresentationInteractionTags.SurrRepr] = builder.to(refs['structure-interaction-surr-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
-                this.createSurVisualParams(cell.obj!.data), { tags: StructureRepresentationInteractionTags.SurrRepr }).ref;
+            refs[StructureRepresentationInteractionTags.SurrRepr] = builder
+                .to(refs['structure-interaction-surr-sel']!)
+                .apply(StateTransforms.Representation.StructureRepresentation3D,this.params.nciParams, { tags: StructureRepresentationInteractionTags.SurrRepr }).ref;
         }
 
         if (!refs[StructureRepresentationInteractionTags.SurrNciRepr]) {
-            refs[StructureRepresentationInteractionTags.SurrNciRepr] = builder.to(refs['structure-interaction-surr-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
-                this.createSurNciVisualParams(cell.obj!.data), { tags: StructureRepresentationInteractionTags.SurrNciRepr }).ref;
+            refs[StructureRepresentationInteractionTags.SurrNciRepr] = builder
+                .to(refs['structure-interaction-surr-sel']!)
+                .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.surroundingsParams, { tags: StructureRepresentationInteractionTags.SurrNciRepr }).ref;
         }
 
         return { state, builder, refs };
@@ -200,7 +213,24 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
     }
 
     async update(params: StructureRepresentationInteractionProps) {
-        return false;
+        this.params = params;
+
+        const state = this.plugin.state.dataState;
+        const builder = state.build();
+
+        const all = StateSelection.Generators.root.subtree();        
+        for (const repr of state.select(all.withTag(StructureRepresentationInteractionTags.ResidueRepr))) {
+            builder.to(repr).update(this.params.focusParams);
+        }
+        for (const repr of state.select(all.withTag(StructureRepresentationInteractionTags.SurrRepr))) {
+            builder.to(repr).update(this.params.surroundingsParams);
+        }
+        for (const repr of state.select(all.withTag(StructureRepresentationInteractionTags.SurrNciRepr))) {
+            builder.to(repr).update(this.params.nciParams);
+        }
+
+        await PluginCommands.State.Update(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
+        return true;
     }
 }
 
@@ -209,5 +239,5 @@ export const StructureRepresentationInteraction = PluginBehavior.create({
     display: { name: 'Structure Representation Interaction' },
     category: 'interaction',
     ctor: StructureRepresentationInteractionBehavior,
-    params: () => StructureRepresentationInteractionParams
+    params: (_, plugin) => StructureRepresentationInteractionParams(plugin)
 });

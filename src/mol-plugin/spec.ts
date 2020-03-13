@@ -9,7 +9,6 @@ import { StateTransformer, StateAction } from '../mol-state';
 import { StateTransformParameters } from '../mol-plugin-ui/state/common';
 import { PluginLayoutStateProps } from './layout';
 import { PluginStateAnimation } from '../mol-plugin-state/animation/model';
-import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { PluginConfigItem } from './config';
 
 export { PluginSpec }
@@ -49,10 +48,7 @@ namespace PluginSpec {
     }
 
     export function Behavior<T extends StateTransformer>(transformer: T, defaultParams: Partial<StateTransformer.Params<T>> = {}): Behavior {
-        const params = transformer.definition.params
-            ? PD.getDefaultValues(transformer.definition.params(undefined, undefined))
-            : {}
-        return { transformer, defaultParams: { ...params, ...defaultParams } };
+        return { transformer, defaultParams };
     }
 
     export interface LayoutControls {

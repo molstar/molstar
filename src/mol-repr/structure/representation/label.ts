@@ -32,7 +32,8 @@ export function LabelRepresentation(ctx: RepresentationContext, getParams: Repre
     return repr
 }
 
-export const LabelRepresentationProvider: StructureRepresentationProvider<LabelParams> = {
+export const LabelRepresentationProvider = StructureRepresentationProvider({
+    name: 'label',
     label: 'Label',
     description: 'Displays labels.',
     factory: LabelRepresentation,
@@ -41,4 +42,4 @@ export const LabelRepresentationProvider: StructureRepresentationProvider<LabelP
     defaultColorTheme: { name: 'uniform' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-}
+})

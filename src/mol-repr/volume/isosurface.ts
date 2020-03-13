@@ -164,7 +164,8 @@ export function IsosurfaceRepresentation(ctx: RepresentationContext, getParams: 
     return Representation.createMulti('Isosurface', ctx, getParams, Representation.StateBuilder, IsosurfaceVisuals as unknown as Representation.Def<VolumeData, IsosurfaceParams>)
 }
 
-export const IsosurfaceRepresentationProvider: VolumeRepresentationProvider<IsosurfaceParams> = {
+export const IsosurfaceRepresentationProvider = VolumeRepresentationProvider({
+    name: 'isosurface',
     label: 'Isosurface',
     description: 'Displays an isosurface of volumetric data.',
     factory: IsosurfaceRepresentation,
@@ -173,4 +174,4 @@ export const IsosurfaceRepresentationProvider: VolumeRepresentationProvider<Isos
     defaultColorTheme: { name: 'uniform' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (volume: VolumeData) => volume.data.data.length > 0
-}
+})

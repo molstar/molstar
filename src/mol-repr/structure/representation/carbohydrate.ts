@@ -36,7 +36,8 @@ export function CarbohydrateRepresentation(ctx: RepresentationContext, getParams
     return Representation.createMulti('Carbohydrate', ctx, getParams, StructureRepresentationStateBuilder, CarbohydrateVisuals as unknown as Representation.Def<Structure, CarbohydrateParams>)
 }
 
-export const CarbohydrateRepresentationProvider: StructureRepresentationProvider<CarbohydrateParams> = {
+export const CarbohydrateRepresentationProvider = StructureRepresentationProvider({
+    name: 'carbohydrate',
     label: 'Carbohydrate',
     description: 'Displays carbohydrate symbols (3D SNFG).',
     factory: CarbohydrateRepresentation,
@@ -45,4 +46,4 @@ export const CarbohydrateRepresentationProvider: StructureRepresentationProvider
     defaultColorTheme: { name: 'carbohydrate-symbol' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.carbohydrates.elements.length > 0
-}
+})

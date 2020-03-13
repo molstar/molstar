@@ -39,7 +39,8 @@ export type RepresentationFactory<D, P extends PD.Params, S extends Representati
 
 //
 
-export interface RepresentationProvider<D = any, P extends PD.Params = any, S extends Representation.State = any> {
+export interface RepresentationProvider<D = any, P extends PD.Params = any, S extends Representation.State = any, Id extends string = string> {
+    readonly name: Id,
     readonly label: string
     readonly description: string
     readonly factory: RepresentationFactory<D, P, S>
@@ -86,10 +87,14 @@ export class RepresentationRegistry<D, S extends Representation.State> {
 
     constructor() {};
 
-    add<P extends PD.Params>(name: string, provider: RepresentationProvider<D, P, S>) {
-        this._list.push({ name, provider })
-        this._map.set(name, provider)
-        this._name.set(provider, name)
+    add<P extends PD.Params>(provider: RepresentationProvider<D, P, S>) {
+        if (this._map.has(provider.name)) {
+            throw new Error(`${provider.name} already registered.`);
+        }
+
+        this._list.push({ name: provider.name, provider })
+        this._map.set(provider.name, provider)
+        this._name.set(provider, provider.name)
     }
 
     getName(provider: RepresentationProvider<D, any, any>): string {
@@ -97,7 +102,9 @@ export class RepresentationRegistry<D, S extends Representation.State> {
         return this._name.get(provider)!;
     }
 
-    remove(name: string) {
+    remove(provider: RepresentationProvider<D, any, any>) {
+        const name = provider.name;
+
         this._list.splice(this._list.findIndex(e => e.name === name), 1)
         const p = this._map.get(name);
         if (p) {

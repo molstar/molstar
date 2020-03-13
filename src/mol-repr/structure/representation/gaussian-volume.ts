@@ -28,7 +28,8 @@ export function GaussianVolumeRepresentation(ctx: RepresentationContext, getPara
     return Representation.createMulti('Gaussian Volume', ctx, getParams, StructureRepresentationStateBuilder, GaussianVolumeVisuals as unknown as Representation.Def<Structure, GaussianVolumeParams>)
 }
 
-export const GaussianVolumeRepresentationProvider: StructureRepresentationProvider<GaussianVolumeParams> = {
+export const GaussianVolumeRepresentationProvider = StructureRepresentationProvider({
+    name: 'gaussian-volume',
     label: 'Gaussian Volume',
     description: 'Displays a gaussian molecular density using direct volume rendering.',
     factory: GaussianVolumeRepresentation,
@@ -37,4 +38,4 @@ export const GaussianVolumeRepresentationProvider: StructureRepresentationProvid
     defaultColorTheme: { name: 'polymer-id' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-}
+})

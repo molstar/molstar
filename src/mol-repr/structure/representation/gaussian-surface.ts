@@ -35,7 +35,8 @@ export function GaussianSurfaceRepresentation(ctx: RepresentationContext, getPar
     return Representation.createMulti('Gaussian Surface', ctx, getParams, StructureRepresentationStateBuilder, GaussianSurfaceVisuals as unknown as Representation.Def<Structure, GaussianSurfaceParams>)
 }
 
-export const GaussianSurfaceRepresentationProvider: StructureRepresentationProvider<GaussianSurfaceParams> = {
+export const GaussianSurfaceRepresentationProvider = StructureRepresentationProvider({
+    name: 'gaussian-surface',
     label: 'Gaussian Surface',
     description: 'Displays a gaussian molecular surface.',
     factory: GaussianSurfaceRepresentation,
@@ -44,4 +45,4 @@ export const GaussianSurfaceRepresentationProvider: StructureRepresentationProvi
     defaultColorTheme: { name: 'polymer-id' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-}
+})

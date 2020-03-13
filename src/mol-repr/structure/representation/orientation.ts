@@ -30,7 +30,8 @@ export function OrientationRepresentation(ctx: RepresentationContext, getParams:
     return Representation.createMulti('Orientation', ctx, getParams, StructureRepresentationStateBuilder, OrientationVisuals as unknown as Representation.Def<Structure, OrientationParams>)
 }
 
-export const OrientationRepresentationProvider: StructureRepresentationProvider<OrientationParams> = {
+export const OrientationRepresentationProvider = StructureRepresentationProvider({
+    name: 'orientation',
     label: 'Orientation',
     description: 'Displays orientation ellipsoids for polymer chains.',
     factory: OrientationRepresentation,
@@ -39,4 +40,4 @@ export const OrientationRepresentationProvider: StructureRepresentationProvider<
     defaultColorTheme: { name: 'polymer-id' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-}
+})

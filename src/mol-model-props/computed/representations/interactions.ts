@@ -37,7 +37,8 @@ export function InteractionRepresentation(ctx: RepresentationContext, getParams:
     return Representation.createMulti('Interactions', ctx, getParams, StructureRepresentationStateBuilder, InteractionsVisuals as unknown as Representation.Def<Structure, InteractionsParams>)
 }
 
-export const InteractionsRepresentationProvider: StructureRepresentationProvider<InteractionsParams> = {
+export const InteractionsRepresentationProvider = StructureRepresentationProvider({
+    name: 'interactions',
     label: 'Non-covalent Interactions',
     description: 'Displays non-covalent interactions as dashed cylinders.',
     factory: InteractionRepresentation,
@@ -50,4 +51,4 @@ export const InteractionsRepresentationProvider: StructureRepresentationProvider
         attach: (ctx: CustomProperty.Context, structure: Structure) => InteractionsProvider.attach(ctx, structure, void 0, true),
         detach: (_, data) => InteractionsProvider.ref(data, false)
     }
-}
+})
