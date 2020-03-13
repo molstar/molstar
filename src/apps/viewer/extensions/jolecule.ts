@@ -18,7 +18,7 @@
 // import { UUID } from '../../../mol-util';
 // import { ColorNames } from '../../../mol-util/color/names';
 // import { Camera } from '../../../mol-canvas3d/camera';
-// import { StructureRepresentation3DHelpers } from '../../../mol-plugin/state/transforms/representation';
+// import { createStructureRepresentation3dParamss } from '../../../mol-plugin/state/transforms/representation';
 // import { createDefaultStructureComplex } from '../../../mol-plugin/util/structure-complex-helper';
 
 // export const CreateJoleculeState = StateAction.build({
@@ -108,13 +108,13 @@
 //         group
 //             .apply(StateTransforms.Model.StructureSelectionFromExpression, { expression: MS.struct.modifier.wholeResidues([ expression ]), label: 'Residue' })
 //             .apply(StateTransforms.Representation.StructureRepresentation3D,
-//                 StructureRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'ball-and-stick', {  }));
+//                 createStructureRepresentation3dParamss.getDefaultParamsStatic(plugin, 'ball-and-stick', {  }));
 //     }
 //     if (params.e.selected && params.e.selected.length > 0) {
 //         b.to(template.structure)
 //             .apply(StateTransforms.Model.StructureSelectionFromExpression, { expression: createExpression(params.e.selected), label: `Selected` })
 //             .apply(StateTransforms.Representation.StructureRepresentation3D,
-//                 StructureRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'ball-and-stick'));
+//                 createStructureRepresentation3dParamss.getDefaultParamsStatic(plugin, 'ball-and-stick'));
 //     }
 //     // TODO
 //     // for (const l of params.e.distances) {

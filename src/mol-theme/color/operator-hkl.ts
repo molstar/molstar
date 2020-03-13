@@ -117,7 +117,8 @@ export function OperatorHklColorTheme(ctx: ThemeDataContext, props: PD.Values<Op
     }
 }
 
-export const OperatorHklColorThemeProvider: ColorTheme.Provider<OperatorHklColorThemeParams> = {
+export const OperatorHklColorThemeProvider: ColorTheme.Provider<OperatorHklColorThemeParams, 'operator-hkl'> = {
+    name: 'operator-hkl',
     label: 'Operator HKL',
     category: ColorTheme.Category.Symmetry,
     factory: OperatorHklColorTheme,

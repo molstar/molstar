@@ -9,10 +9,10 @@ import './index.html'
 import { PluginContext } from '../../../mol-plugin/context';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
-import { StructureRepresentation3DHelpers } from '../../../mol-plugin-state/transforms/representation';
 import { PluginStateObject as PSO } from '../../../mol-plugin-state/objects';
 import { StateBuilder } from '../../../mol-state';
 import { Canvas3DProps } from '../../../mol-canvas3d/canvas3d';
+import { createStructureRepresentationParams } from '../../../mol-plugin-state/helpers/structure-representation-params';
 require('mol-plugin-ui/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -134,10 +134,10 @@ class LightingDemo {
     private visual(visualRoot: StateBuilder.To<PSO.Molecule.Structure>) {
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'spacefill', {}, 'illustrative'), { ref: 'seq-visual' });
+                createStructureRepresentationParams(this.plugin, void 0, { type: 'spacefill', color: 'illustrative' }), { ref: 'seq-visual' });
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'ball-and-stick'), { ref: 'het-visual' });
+                createStructureRepresentationParams(this.plugin, void 0, { type: 'ball-and-stick' }), { ref: 'het-visual' });
         return visualRoot;
     }
 

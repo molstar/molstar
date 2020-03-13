@@ -31,8 +31,6 @@ interface StructureComponentManagerState {
     options: StructureComponentManager.Options
 }
 
-// TODO: add/update representation in all selected components
-
 class StructureComponentManager extends PluginComponent<StructureComponentManagerState> {
     readonly events = {
         optionsUpdated: this.ev<undefined>()
@@ -113,7 +111,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         return this.plugin.dataTransaction(async () => {
             await this.clearComponents(structures);
             for (const s of structures) {
-                await this.plugin.builders.structure.representation.structurePreset(s.cell, provider, params);
+                await this.plugin.builders.structure.representation.applyPreset(s.cell, provider, params);
             }
         });
     }

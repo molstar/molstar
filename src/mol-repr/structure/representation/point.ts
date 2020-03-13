@@ -31,7 +31,8 @@ export function PointRepresentation(ctx: RepresentationContext, getParams: Repre
     return Representation.createMulti('Point', ctx, getParams, StructureRepresentationStateBuilder, PointVisuals as unknown as Representation.Def<Structure, PointParams>)
 }
 
-export const PointRepresentationProvider: StructureRepresentationProvider<PointParams> = {
+export const PointRepresentationProvider = StructureRepresentationProvider({
+    name: 'point',
     label: 'Point',
     description: 'Displays elements (atoms, coarse spheres) as spheres.',
     factory: PointRepresentation,
@@ -40,4 +41,4 @@ export const PointRepresentationProvider: StructureRepresentationProvider<PointP
     defaultColorTheme: { name: 'element-symbol' },
     defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-}
+})

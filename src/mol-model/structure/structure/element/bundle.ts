@@ -40,6 +40,10 @@ export namespace Bundle {
         return fromLoci(StructureSelection.toLociWithSourceUnits(StructureSelection.Singletons(parent, structure)))
     }
 
+    export function fromSelection(selection: StructureSelection) {
+        return fromLoci(StructureSelection.toLociWithSourceUnits(selection));
+    }
+
     export function fromLoci(loci: Loci): Bundle {
         const _elements: {
             unit: Unit

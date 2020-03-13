@@ -20,7 +20,7 @@ import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from '.
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { ClashesProvider, IntraUnitClashes, InterUnitClashes } from '../validation-report';
+import { ClashesProvider, IntraUnitClashes, InterUnitClashes, ValidationReport } from '../validation-report';
 import { CustomProperty } from '../../common/custom-property';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../../../mol-repr/structure/complex-visual';
 import { Color } from '../../../mol-util/color';
@@ -278,7 +278,8 @@ export function ClashesRepresentation(ctx: RepresentationContext, getParams: Rep
     return repr
 }
 
-export const ClashesRepresentationProvider: StructureRepresentationProvider<ClashesParams> = {
+export const ClashesRepresentationProvider = StructureRepresentationProvider({
+    name: ValidationReport.Tag.Clashes,
     label: 'Validation Clashes',
     description: 'Displays clashes between atoms as disks. Data from wwPDB Validation Report, obtained via RCSB PDB.',
     factory: ClashesRepresentation,
@@ -291,4 +292,4 @@ export const ClashesRepresentationProvider: StructureRepresentationProvider<Clas
         attach: (ctx: CustomProperty.Context, structure: Structure) => ClashesProvider.attach(ctx, structure, void 0, true),
         detach: (_, data) => ClashesProvider.ref(data, false)
     }
-}
+})

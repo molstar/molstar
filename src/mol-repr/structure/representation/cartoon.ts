@@ -55,7 +55,8 @@ export function CartoonRepresentation(ctx: RepresentationContext, getParams: Rep
     return Representation.createMulti('Cartoon', ctx, getParams, StructureRepresentationStateBuilder, CartoonVisuals as unknown as Representation.Def<Structure, CartoonParams>)
 }
 
-export const CartoonRepresentationProvider: StructureRepresentationProvider<CartoonParams> = {
+export const CartoonRepresentationProvider = StructureRepresentationProvider({
+    name: 'cartoon',
     label: 'Cartoon',
     description: 'Displays ribbons, planks, tubes smoothly following the trace atoms of polymers.',
     factory: CartoonRepresentation,
@@ -68,4 +69,4 @@ export const CartoonRepresentationProvider: StructureRepresentationProvider<Cart
         attach: (ctx: CustomProperty.Context, structure: Structure) => SecondaryStructureProvider.attach(ctx, structure, void 0, true),
         detach: (_, data) => SecondaryStructureProvider.ref(data, false)
     }
-}
+})

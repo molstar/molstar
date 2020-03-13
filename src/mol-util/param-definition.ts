@@ -199,8 +199,8 @@ export namespace ParamDefinition {
         isExpanded?: boolean,
         isFlat?: boolean
     }
-    export function Group<T>(params: For<T>, info?: Info & { isExpanded?: boolean, isFlat?: boolean }): Group<Normalize<T>> {
-        const ret = setInfo<Group<Normalize<T>>>({ type: 'group', defaultValue: getDefaultValues(params as any as Params) as any, params: params as any as Params }, info);
+    export function Group<T>(params: For<T>, info?: Info & { isExpanded?: boolean, isFlat?: boolean, customDefault?: any }): Group<Normalize<T>> {
+        const ret = setInfo<Group<Normalize<T>>>({ type: 'group', defaultValue: info?.customDefault || getDefaultValues(params as any as Params) as any, params: params as any as Params }, info);
         if (info && info.isExpanded) ret.isExpanded = info.isExpanded;
         if (info && info.isFlat) ret.isFlat = info.isFlat;
         return ret;

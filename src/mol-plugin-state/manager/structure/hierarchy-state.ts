@@ -20,11 +20,13 @@ export function buildStructureHierarchy(state: State, previous?: StructureHierar
 
 export interface StructureHierarchy {
     trajectories: TrajectoryRef[],
+    models: ModelRef[],
+    structures: StructureRef[],
     refs: Map<StateTransform.Ref, HierarchyRef>
 }
 
 export function StructureHierarchy(): StructureHierarchy {
-    return { trajectories: [], refs: new Map() }
+    return { trajectories: [], models: [], structures: [], refs: new Map() }
 }
 
 interface RefBase<K extends string = string, T extends StateObject = StateObject> {
@@ -47,12 +49,13 @@ function TrajectoryRef(cell: StateObjectCell<SO.Molecule.Trajectory>): Trajector
 }
 
 export interface ModelRef extends RefBase<'model', SO.Molecule.Model> {
-    trajectory: TrajectoryRef,
+    trajectory?: TrajectoryRef,
     properties?: ModelPropertiesRef,
-    structures: StructureRef[]
+    structures: StructureRef[],
+    genericRepresentations?: GenericRepresentationRef[],
 }
 
-function ModelRef(cell: StateObjectCell<SO.Molecule.Model>, trajectory: TrajectoryRef): ModelRef {
+function ModelRef(cell: StateObjectCell<SO.Molecule.Model>, trajectory?: TrajectoryRef): ModelRef {
     return { kind: 'model', cell, version: cell.transform.version, trajectory, structures: [] };
 }
 
@@ -65,18 +68,18 @@ function ModelPropertiesRef(cell: StateObjectCell<SO.Molecule.Model>, model: Mod
 }
 
 export interface StructureRef extends RefBase<'structure', SO.Molecule.Structure> {
-    model: ModelRef,
+    model?: ModelRef,
     properties?: StructurePropertiesRef,
     components: StructureComponentRef[],
-    // representations: StructureRepresentationRef[],
     currentFocus?: {
         focus?: StructureComponentRef,
         surroundings?: StructureComponentRef,
     },
+    genericRepresentations?: GenericRepresentationRef[],
     // volumeStreaming?: ....
 }
 
-function StructureRef(cell: StateObjectCell<SO.Molecule.Structure>, model: ModelRef): StructureRef {
+function StructureRef(cell: StateObjectCell<SO.Molecule.Structure>, model?: ModelRef): StructureRef {
     return { kind: 'structure', cell, version: cell.transform.version, model, components: [] };
 }
 
@@ -92,6 +95,7 @@ export interface StructureComponentRef extends RefBase<'structure-component', SO
     structure: StructureRef,
     key?: string,
     representations: StructureRepresentationRef[],
+    genericRepresentations?: GenericRepresentationRef[]
 }
 
 function componentKey(cell: StateObjectCell<SO.Molecule.Structure>) {
@@ -109,6 +113,14 @@ export interface StructureRepresentationRef extends RefBase<'structure-represent
 
 function StructureRepresentationRef(cell: StateObjectCell<SO.Molecule.Structure.Representation3D>, component: StructureComponentRef): StructureRepresentationRef {
     return { kind: 'structure-representation', cell, version: cell.transform.version, component };
+}
+
+export interface GenericRepresentationRef extends RefBase<'generic-representation', SO.Any> {
+    parent: HierarchyRef
+}
+
+function GenericRepresentationRef(cell: StateObjectCell<SO.Molecule.Structure.Representation3D>, parent: HierarchyRef): GenericRepresentationRef {
+    return { kind: 'generic-representation', cell, version: cell.transform.version, parent };
 }
 
 interface BuildState {
@@ -160,16 +172,24 @@ const tagMap: [string, (state: BuildState, cell: StateObjectCell) => boolean | v
         state.currentTrajectory = createOrUpdateRefList(state, cell, state.hierarchy.trajectories, TrajectoryRef, cell);
     }, state => state.currentTrajectory = void 0],
     [StructureBuilderTags.Model, (state, cell) => {
-        if (!state.currentTrajectory) return false;
-        state.currentModel = createOrUpdateRefList(state, cell, state.currentTrajectory.models, ModelRef, cell, state.currentTrajectory);
+        if (state.currentTrajectory) {
+            state.currentModel = createOrUpdateRefList(state, cell, state.currentTrajectory.models, ModelRef, cell, state.currentTrajectory);
+        } else {
+            state.currentModel = ModelRef(cell)
+        }
+        state.hierarchy.models.push(state.currentModel);
     }, state => state.currentModel = void 0],
     [StructureBuilderTags.ModelProperties, (state, cell) => {
         if (!state.currentModel) return false;
         state.currentModel.properties = createOrUpdateRef(state, cell, state.currentModel.properties, ModelPropertiesRef, cell, state.currentModel);
     }, state => { }],
     [StructureBuilderTags.Structure, (state, cell) => {
-        if (!state.currentModel) return false;
-        state.currentStructure = createOrUpdateRefList(state, cell, state.currentModel.structures, StructureRef, cell, state.currentModel);
+        if (state.currentModel) {
+            state.currentStructure = createOrUpdateRefList(state, cell, state.currentModel.structures, StructureRef, cell, state.currentModel);
+        } else {
+            state.currentStructure = StructureRef(cell);
+        }
+        state.hierarchy.structures.push(state.currentStructure);
     }, state => state.currentStructure = void 0],
     [StructureBuilderTags.StructureProperties, (state, cell) => {
         if (!state.currentStructure) return false;
@@ -230,8 +250,14 @@ function _doPreOrder(ctx: VisitorCtx, root: StateTransform) {
         }
     }
 
-    if (!onLeave && state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj)) {
+    if (!onLeave && !cell.state.isGhost && state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj)) {
         createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
+    } else if (!cell.state.isGhost && SO.isRepresentation3D(cell.obj)) {
+        const genericTarget = state.currentComponent || state.currentModel || state.currentStructure;
+        if (genericTarget) {
+            if (!genericTarget.genericRepresentations) genericTarget.genericRepresentations = [];
+            genericTarget.genericRepresentations.push(GenericRepresentationRef(cell, genericTarget));
+        }
     }
 
     const children = ctx.tree.children.get(root.ref);

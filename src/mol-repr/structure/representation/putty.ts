@@ -43,7 +43,8 @@ export function PuttyRepresentation(ctx: RepresentationContext, getParams: Repre
     return Representation.createMulti('Putty', ctx, getParams, StructureRepresentationStateBuilder, PuttyVisuals as unknown as Representation.Def<Structure, PuttyParams>)
 }
 
-export const PuttyRepresentationProvider: StructureRepresentationProvider<PuttyParams> = {
+export const PuttyRepresentationProvider = StructureRepresentationProvider({
+    name: 'putty',
     label: 'Putty',
     description: 'Displays a tube smoothly following the trace atoms of polymers.',
     factory: PuttyRepresentation,
@@ -52,4 +53,4 @@ export const PuttyRepresentationProvider: StructureRepresentationProvider<PuttyP
     defaultColorTheme: { name: 'polymer-id' },
     defaultSizeTheme: { name: 'uncertainty' },
     isApplicable: (structure: Structure) => structure.polymerResidueCount > 0
-}
+})

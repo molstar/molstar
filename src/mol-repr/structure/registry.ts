@@ -5,7 +5,7 @@
  */
 
 import { Structure } from '../../mol-model/structure';
-import { RepresentationProvider, RepresentationRegistry } from '../representation';
+import { RepresentationRegistry } from '../representation';
 import { CartoonRepresentationProvider } from './representation/cartoon';
 import { BallAndStickRepresentationProvider } from './representation/ball-and-stick';
 import { GaussianSurfaceRepresentationProvider } from './representation/gaussian-surface';
@@ -18,13 +18,14 @@ import { MolecularSurfaceRepresentationProvider } from './representation/molecul
 import { EllipsoidRepresentationProvider } from './representation/ellipsoid';
 import { OrientationRepresentationProvider } from './representation/orientation';
 import { LabelRepresentationProvider } from './representation/label';
+import { objectForEach } from '../../mol-util/object';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
     constructor() {
         super()
-        Object.keys(BuiltInStructureRepresentations).forEach(name => {
-            const p = (BuiltInStructureRepresentations as { [k: string]: RepresentationProvider<Structure, any, StructureRepresentationState> })[name]
-            this.add(name, p)
+        objectForEach(BuiltInStructureRepresentations, (p, k) => {
+            if (p.name !== k) throw new Error(`Fix BuiltInStructureRepresentations to have matching names. ${p.name} ${k}`);
+            this.add(p as any)
         })
     }
 }
@@ -43,6 +44,7 @@ export const BuiltInStructureRepresentations = {
     'putty': PuttyRepresentationProvider,
     'spacefill': SpacefillRepresentationProvider,
 }
+
 export type BuiltInStructureRepresentations = typeof BuiltInStructureRepresentations
 export type BuiltInStructureRepresentationsName = keyof typeof BuiltInStructureRepresentations
 export const BuiltInStructureRepresentationsNames = Object.keys(BuiltInStructureRepresentations)

@@ -5,22 +5,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Loci } from '../../mol-model/loci';
-import { StructureElement } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateAction, StateBuilder, StateSelection, StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
-import { UUID } from '../../mol-util';
 import { FileInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { TrajectoryFormat } from '../builder/structure';
+import { BuildInTrajectoryFormat } from '../formats/trajectory';
 import { RootStructureDefinition } from '../helpers/root-structure';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download, ParsePsf } from '../transforms/data';
 import { CoordinatesFromDcd, CustomModelProperties, CustomStructureProperties, TopologyFromPsf, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant } from './data-format';
-import { TrajectoryFormat } from '../builder/structure';
-import { BuildInTrajectoryFormat } from '../formats/trajectory';
 
 export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | PluginStateObject.Data.Binary> = {
     label: 'mmCIF',
@@ -37,7 +34,7 @@ export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | P
         return Task.create('mmCIF default builder', async taskCtx => {
             const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'mmcif' });
             if (options.visuals) {
-                await ctx.builders.structure.representation.structurePreset(structure, 'auto');
+                await ctx.builders.structure.representation.applyPreset(structure, 'auto');
             }
         })
     }
@@ -55,7 +52,7 @@ export const PdbProvider: DataFormatProvider<any> = {
         return Task.create('PDB default builder', async () => {
             const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'pdb' });
             if (options.visuals) {
-                await ctx.builders.structure.representation.structurePreset(structure, 'auto');
+                await ctx.builders.structure.representation.applyPreset(structure, 'auto');
             }
         })
     }
@@ -73,7 +70,7 @@ export const GroProvider: DataFormatProvider<any> = {
         return Task.create('GRO default builder', async () => {
             const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'gro' });
             if (options.visuals) {
-                await ctx.builders.structure.representation.structurePreset(structure, 'auto');
+                await ctx.builders.structure.representation.applyPreset(structure, 'auto');
             }
         })
     }
@@ -91,7 +88,7 @@ export const Provider3dg: DataFormatProvider<any> = {
         return Task.create('3DG default builder', async () => {
             const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: '3dg' });
             if (options.visuals) {
-                await ctx.builders.structure.representation.structurePreset(structure, 'auto');
+                await ctx.builders.structure.representation.applyPreset(structure, 'auto');
             }
         })
     }
@@ -249,7 +246,7 @@ const DownloadStructure = StateAction.build({
                 structureProperties: supportProps
             });
             if (createRepr) {
-                await plugin.builders.structure.representation.structurePreset(structure, 'auto');
+                await plugin.builders.structure.representation.applyPreset(structure, 'auto');
             }
         } else {
             for (const download of downloadParams) {
@@ -261,7 +258,7 @@ const DownloadStructure = StateAction.build({
                     structureProperties: supportProps
                 });
                 if (createRepr) {
-                    await plugin.builders.structure.representation.structurePreset(structure, 'auto');
+                    await plugin.builders.structure.representation.applyPreset(structure, 'auto');
                 }
             }
         }
@@ -306,25 +303,11 @@ export const Create3DRepresentationPreset = StateAction.build({
     isApplicable(a, _, plugin: PluginContext) { return plugin.builders.structure.representation.hasPreset(a.data); },
     params(a, plugin: PluginContext) {
         return {
-            type: plugin.builders.structure.representation.getPresets(a.data)
+            type: plugin.builders.structure.representation.getPresetsWithOptions(a.data)
         };
     }
 })(({ ref, params }, plugin: PluginContext) => {
-    plugin.builders.structure.representation.structurePreset(ref, params.type.name, params.type.params);
-});
-
-export const Remove3DRepresentationPreset = StateAction.build({
-    display: { name: 'Remove 3D Representation Preset', description: 'Remove 3D representations.' },
-    from: PluginStateObject.Molecule.Structure,
-    isApplicable(_, t, plugin: PluginContext) { return plugin.builders.structure.representation.hasPresetRepresentation(t.ref); },
-    params(a, plugin: PluginContext) {
-        return {
-            type: plugin.builders.structure.representation.getPresets(a.data).select
-        };
-    }
-})(({ ref, params }, plugin: PluginContext) => {
-    // TODO: this will be completely handled by the managed and is just for testing purposes
-    plugin.builders.structure.representation.removePreset(params.type, ref);
+    return plugin.builders.structure.representation.applyPreset(ref, params.type.name, params.type.params);
 });
 
 export const UpdateTrajectory = StateAction.build({
@@ -389,28 +372,6 @@ export const TransformStructureConformation = StateAction.build({
     return state.updateTree(root);
 });
 
-export const StructureFromSelection = StateAction.build({
-    display: { name: 'Structure from Current Selection', description: 'Create a new Structure from the current selection.' },
-    from: PluginStateObject.Molecule.Structure,
-    params: {
-        label: PD.Text()
-    }
-    // isApplicable(a, t, ctx: PluginContext) {
-    //     return t.transformer !== CustomModelProperties;
-    // }
-})(async ({ a, ref, params, state }, plugin: PluginContext) => {
-    const sel = plugin.managers.structure.selection.getLoci(a.data);
-    if (Loci.isEmpty(sel)) return;
-
-    const bundle = StructureElement.Bundle.fromLoci(sel);
-
-    await plugin.builders.structure.tryCreateComponent(ref, {
-        type: { name: 'bundle', params: bundle },
-        nullIfEmpty: true,
-        label: params.label
-    }, UUID.create22());
-});
-
 export const AddTrajectory = StateAction.build({
     display: { name: 'Add Trajectory', description: 'Add trajectory from existing model/topology and coordinates.' },
     from: PluginStateObject.Root,
@@ -440,6 +401,6 @@ export const AddTrajectory = StateAction.build({
 
         await state.updateTree(model).runInContext(taskCtx);
         const structure = await ctx.builders.structure.createStructure(model.selector);
-        await ctx.builders.structure.representation.structurePreset(structure, 'auto');
+        await ctx.builders.structure.representation.applyPreset(structure, 'auto');
     }).runInContext(taskCtx)
 }));

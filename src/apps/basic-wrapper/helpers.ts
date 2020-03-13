@@ -8,11 +8,11 @@ import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { StructureRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { StateBuilder } from '../../mol-state';
 import Expression from '../../mol-script/language/expression';
 import { BuiltInColorThemeName } from '../../mol-theme/color';
+import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
 type SupportedFormats = 'cif' | 'pdb'
 
 export namespace StateHelper {
@@ -79,21 +79,18 @@ export namespace StateHelper {
     export function visual(ctx: PluginContext, visualRoot: StateBuilder.To<PSO.Molecule.Structure>) {
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'cartoon'), { tags: 'seq-visual' });
+                createStructureRepresentationParams(ctx, void 0, { type: 'cartoon' }), { tags: 'seq-visual' });
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick'), { tags: 'het-visual' });
-        // visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
-        //     .apply(StateTransforms.Representation.StructureRepresentation3D,
-        //         StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick', { alpha: 0.51 }), { tags: 'water-visual' });
+                createStructureRepresentationParams(ctx, void 0, { type: 'ball-and-stick' }), { tags: 'het-visual' });
         return visualRoot;
     }
 
-    export function ballsAndSticks(ctx: PluginContext, visualRoot: StateBuilder.To<PSO.Molecule.Structure>, expression: Expression, coloring?: BuiltInColorThemeName) {
+    export function ballsAndSticks(ctx: PluginContext, visualRoot: StateBuilder.To<PSO.Molecule.Structure>, expression: Expression, color?: BuiltInColorThemeName) {
         visualRoot
             .apply(StateTransforms.Model.StructureSelectionFromExpression, { expression })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick', void 0, coloring), { tags: 'het-visual' });
+                createStructureRepresentationParams(ctx, void 0, { type: 'ball-and-stick', color }), { tags: 'het-visual' });
         return visualRoot;
     }
 

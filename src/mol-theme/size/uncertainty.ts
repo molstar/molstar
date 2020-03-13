@@ -52,7 +52,8 @@ export function UncertaintySizeTheme(ctx: ThemeDataContext, props: PD.Values<Unc
     }
 }
 
-export const UncertaintySizeThemeProvider: SizeTheme.Provider<UncertaintySizeThemeParams> = {
+export const UncertaintySizeThemeProvider: SizeTheme.Provider<UncertaintySizeThemeParams, 'uncertainty'> = {
+    name: 'uncertainty',
     label: 'Uncertainty/Disorder',
     category: '',
     factory: UncertaintySizeTheme,

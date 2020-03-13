@@ -60,7 +60,8 @@ export function DensityFitColorTheme(ctx: ThemeDataContext, props: {}): ColorThe
     }
 }
 
-export const DensityFitColorThemeProvider: ColorTheme.Provider<{}> = {
+export const DensityFitColorThemeProvider: ColorTheme.Provider<{}, ValidationReport.Tag.DensityFit> = {
+    name: ValidationReport.Tag.DensityFit,
     label: 'Density Fit',
     category: ColorTheme.Category.Validation,
     factory: DensityFitColorTheme,

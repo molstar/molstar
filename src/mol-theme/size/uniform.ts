@@ -30,7 +30,8 @@ export function UniformSizeTheme(ctx: ThemeDataContext, props: PD.Values<Uniform
     }
 }
 
-export const UniformSizeThemeProvider: SizeTheme.Provider<UniformSizeThemeParams> = {
+export const UniformSizeThemeProvider: SizeTheme.Provider<UniformSizeThemeParams, 'uniform'> = {
+    name: 'uniform',
     label: 'Uniform',
     category: '',
     factory: UniformSizeTheme,

@@ -27,7 +27,6 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateActions.Volume.DownloadDensity),
         PluginSpec.Action(StateActions.DataFormat.OpenFiles),
         PluginSpec.Action(StateActions.Structure.Create3DRepresentationPreset),
-        PluginSpec.Action(StateActions.Structure.Remove3DRepresentationPreset),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
         PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
 
@@ -62,8 +61,6 @@ export const DefaultPluginSpec: PluginSpec = {
 
         PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),
         PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
-
-        PluginSpec.Action(StateActions.Structure.StructureFromSelection),
     ],
     behaviors: [
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),

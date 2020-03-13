@@ -67,7 +67,8 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
     }
 }
 
-export const ElementSymbolColorThemeProvider: ColorTheme.Provider<ElementSymbolColorThemeParams> = {
+export const ElementSymbolColorThemeProvider: ColorTheme.Provider<ElementSymbolColorThemeParams, 'element-symbol'> = {
+    name: 'element-symbol',
     label: 'Element Symbol',
     category: ColorTheme.Category.Atom,
     factory: ElementSymbolColorTheme,

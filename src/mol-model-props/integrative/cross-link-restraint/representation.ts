@@ -134,7 +134,8 @@ export function CrossLinkRestraintRepresentation(ctx: RepresentationContext, get
     return Representation.createMulti('CrossLinkRestraint', ctx, getParams, StructureRepresentationStateBuilder, CrossLinkRestraintVisuals as unknown as Representation.Def<Structure, CrossLinkRestraintParams>)
 }
 
-export const CrossLinkRestraintRepresentationProvider: StructureRepresentationProvider<CrossLinkRestraintParams> = {
+export const CrossLinkRestraintRepresentationProvider = StructureRepresentationProvider({
+    name: CrossLinkRestraint.Tag.CrossLinkRestraint,
     label: 'Cross Link Restraint',
     description: 'Displays cross-link restraints.',
     factory: CrossLinkRestraintRepresentation,
@@ -147,4 +148,4 @@ export const CrossLinkRestraintRepresentationProvider: StructureRepresentationPr
         attach: (ctx: CustomProperty.Context, structure: Structure) => CrossLinkRestraintProvider.attach(ctx, structure, void 0, true),
         detach: (_, data) => CrossLinkRestraintProvider.ref(data, false)
     }
-}
+})

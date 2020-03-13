@@ -61,7 +61,8 @@ export function CrossLinkColorTheme(ctx: ThemeDataContext, props: PD.Values<Cros
     }
 }
 
-export const CrossLinkColorThemeProvider: ColorTheme.Provider<CrossLinkColorThemeParams> = {
+export const CrossLinkColorThemeProvider: ColorTheme.Provider<CrossLinkColorThemeParams, 'cross-link'> = {
+    name: 'cross-link',
     label: 'Cross Link',
     category: ColorTheme.Category.Misc,
     factory: CrossLinkColorTheme,

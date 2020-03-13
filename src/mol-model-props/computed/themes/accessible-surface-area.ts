@@ -64,7 +64,8 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
     }
 }
 
-export const AccessibleSurfaceAreaColorThemeProvider: ColorTheme.Provider<AccessibleSurfaceAreaColorThemeParams> = {
+export const AccessibleSurfaceAreaColorThemeProvider: ColorTheme.Provider<AccessibleSurfaceAreaColorThemeParams, 'accessible-surface-area'> = {
+    name: 'accessible-surface-area',
     label: 'Accessible Surface Area',
     category: ColorTheme.Category.Residue,
     factory: AccessibleSurfaceAreaColorTheme,

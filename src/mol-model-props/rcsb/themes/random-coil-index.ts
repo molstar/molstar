@@ -51,7 +51,8 @@ export function RandomCoilIndexColorTheme(ctx: ThemeDataContext, props: {}): Col
     }
 }
 
-export const RandomCoilIndexColorThemeProvider: ColorTheme.Provider<{}> = {
+export const RandomCoilIndexColorThemeProvider: ColorTheme.Provider<{}, ValidationReport.Tag.RandomCoilIndex> = {
+    name: ValidationReport.Tag.RandomCoilIndex,
     label: 'Random Coil Index',
     category: ColorTheme.Category.Validation,
     factory: RandomCoilIndexColorTheme,

@@ -98,6 +98,7 @@ namespace CustomElementProperty {
         }
 
         return {
+            name: modelProperty.descriptor.name,
             label: modelProperty.label,
             category: 'Custom',
             factory: Coloring,

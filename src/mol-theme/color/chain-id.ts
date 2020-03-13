@@ -117,7 +117,8 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
     }
 }
 
-export const ChainIdColorThemeProvider: ColorTheme.Provider<ChainIdColorThemeParams> = {
+export const ChainIdColorThemeProvider: ColorTheme.Provider<ChainIdColorThemeParams, 'chain-id'> = {
+    name: 'chain-id',
     label: 'Chain Id',
     category: ColorTheme.Category.Chain,
     factory: ChainIdColorTheme,

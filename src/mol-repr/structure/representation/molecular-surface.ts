@@ -33,7 +33,8 @@ export function MolecularSurfaceRepresentation(ctx: RepresentationContext, getPa
     return Representation.createMulti('Molecular Surface', ctx, getParams, StructureRepresentationStateBuilder, MolecularSurfaceVisuals as unknown as Representation.Def<Structure, MolecularSurfaceParams>)
 }
 
-export const MolecularSurfaceRepresentationProvider: StructureRepresentationProvider<MolecularSurfaceParams> = {
+export const MolecularSurfaceRepresentationProvider = StructureRepresentationProvider({
+    name: 'molecular-surface',
     label: 'Molecular Surface',
     description: 'Displays a molecular surface.',
     factory: MolecularSurfaceRepresentation,
@@ -42,4 +43,4 @@ export const MolecularSurfaceRepresentationProvider: StructureRepresentationProv
     defaultColorTheme: { name: 'polymer-id' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-}
+})

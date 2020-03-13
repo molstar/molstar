@@ -86,7 +86,8 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<P
     }
 }
 
-export const PolymerIndexColorThemeProvider: ColorTheme.Provider<PolymerIndexColorThemeParams> = {
+export const PolymerIndexColorThemeProvider: ColorTheme.Provider<PolymerIndexColorThemeParams, 'polymer-index'> = {
+    name: 'polymer-index',
     label: 'Polymer Chain Instance',
     category: ColorTheme.Category.Chain,
     factory: PolymerIndexColorTheme,

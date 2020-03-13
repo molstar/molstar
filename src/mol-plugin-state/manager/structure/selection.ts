@@ -10,7 +10,7 @@ import { BoundaryHelper } from '../../../mol-math/geometry/boundary-helper';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
-import { Structure, StructureElement } from '../../../mol-model/structure';
+import { Structure, StructureElement, StructureSelection } from '../../../mol-model/structure';
 import { Boundary } from '../../../mol-model/structure/structure/util/boundary';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateObject } from '../../../mol-state';
@@ -380,11 +380,11 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
         this.triggerInteraction(modifier, loci, applyGranularity);
     }
 
-    fromSelectionQuery(modifier: StructureSelectionModifier, selectionQuery: StructureSelectionQuery, applyGranularity = true) {
+    fromSelectionQuery(modifier: StructureSelectionModifier, query: StructureSelectionQuery, applyGranularity = true) {
         this.plugin.runTask(Task.create('Structure Selection', async runtime => {
             for (const s of this.applicableStructures) {
-                const loci = await StructureSelectionQuery.getLoci(this.plugin, runtime, selectionQuery, s);
-                this.triggerInteraction(modifier, loci, applyGranularity);
+                const loci = await query.getSelection(this.plugin, runtime, s);
+                this.triggerInteraction(modifier, StructureSelection.toLociWithSourceUnits(loci), applyGranularity);
             }
         }))
     }

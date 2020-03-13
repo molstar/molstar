@@ -128,7 +128,8 @@ export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<Re
     }
 }
 
-export const ResidueNameColorThemeProvider: ColorTheme.Provider<ResidueNameColorThemeParams> = {
+export const ResidueNameColorThemeProvider: ColorTheme.Provider<ResidueNameColorThemeParams, 'residue-name'> = {
+    name: 'residue-name',
     label: 'Residue Name',
     category: ColorTheme.Category.Residue,
     factory: ResidueNameColorTheme,

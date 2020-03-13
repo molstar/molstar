@@ -200,7 +200,8 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
 export interface VolumeRepresentation<P extends VolumeParams> extends Representation<VolumeData, P> { }
 
-export type VolumeRepresentationProvider<P extends VolumeParams> = RepresentationProvider<VolumeData, P, Representation.State>
+export type VolumeRepresentationProvider<P extends VolumeParams, Id extends string = string> = RepresentationProvider<VolumeData, P, Representation.State, Id>
+export function VolumeRepresentationProvider<P extends VolumeParams, Id extends string>(p: VolumeRepresentationProvider<P, Id>): VolumeRepresentationProvider<P, Id> { return p; }
 
 //
 

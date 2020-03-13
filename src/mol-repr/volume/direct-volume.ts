@@ -179,7 +179,8 @@ export function DirectVolumeRepresentation(ctx: RepresentationContext, getParams
     return VolumeRepresentation('Direct Volume', ctx, getParams, DirectVolumeVisual)
 }
 
-export const DirectVolumeRepresentationProvider: VolumeRepresentationProvider<DirectVolumeParams> = {
+export const DirectVolumeRepresentationProvider = VolumeRepresentationProvider({
+    name: 'direct-volume',
     label: 'Direct Volume',
     description: 'Direct volume rendering of volumetric data.',
     factory: DirectVolumeRepresentation,
@@ -188,4 +189,4 @@ export const DirectVolumeRepresentationProvider: VolumeRepresentationProvider<Di
     defaultColorTheme: { name: 'uniform' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (volume: VolumeData) => volume.data.data.length > 0
-}
+})

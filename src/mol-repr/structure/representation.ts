@@ -38,8 +38,8 @@ export const StructureRepresentationStateBuilder: Representation.StateBuilder<St
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P, StructureRepresentationState> { }
 
-export type StructureRepresentationProvider<P extends PD.Params> = RepresentationProvider<Structure, P, StructureRepresentationState>
-
+export type StructureRepresentationProvider<P extends PD.Params, Id extends string = string> = RepresentationProvider<Structure, P, StructureRepresentationState, Id>
+export function StructureRepresentationProvider<P extends PD.Params, Id extends string>(p: StructureRepresentationProvider<P, Id>): StructureRepresentationProvider<P, Id> { return p; }
 //
 
 export const StructureParams = { ...BaseGeometry.Params }

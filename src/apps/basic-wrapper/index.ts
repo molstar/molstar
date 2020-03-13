@@ -9,7 +9,6 @@ import './index.html'
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { StructureRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
 import { Color } from '../../mol-util/color';
 import { PluginStateObject as PSO, PluginStateObject } from '../../mol-plugin-state/objects';
 import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in';
@@ -21,6 +20,7 @@ import { CustomToastMessage } from './controls';
 import { EmptyLoci } from '../../mol-model/loci';
 import { StructureSelection } from '../../mol-model/structure';
 import { Script } from '../../mol-script/script';
+import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
 require('mol-plugin-ui/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -47,7 +47,7 @@ class BasicWrapper {
             }
         });
 
-        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(StripedResidues.propertyProvider.descriptor.name, StripedResidues.colorThemeProvider!);
+        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(StripedResidues.colorThemeProvider!);
         this.plugin.managers.lociLabels.addProvider(StripedResidues.labelProvider!);
         this.plugin.customModelProperties.register(StripedResidues.propertyProvider, true);
     }
@@ -76,16 +76,16 @@ class BasicWrapper {
     private visual(visualRoot: StateBuilder.To<PSO.Molecule.Structure>) {
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' }, { ref: 'seq' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'cartoon'), { ref: 'seq-visual' });
+                createStructureRepresentationParams(this.plugin, void 0, { type: 'cartoon' }), { ref: 'seq-visual' });
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'ball-and-stick'), { ref: 'het-visual' });
+                createStructureRepresentationParams(this.plugin, void 0, { type: 'ball-and-stick' }), { ref: 'het-visual' });
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'ball-and-stick', { alpha: 0.51 }), { ref: 'water-visual' });
+                createStructureRepresentationParams(this.plugin, void 0, { type: 'ball-and-stick', typeParams: { alpha: 0.51 } }), { ref: 'water-visual' });
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'spacefill'), { ref: 'ihm-visual' });
+                createStructureRepresentationParams(this.plugin, void 0, { type: 'spacefill' }), { ref: 'ihm-visual' });
         return visualRoot;
     }
 

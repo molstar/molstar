@@ -29,14 +29,6 @@ const sharedConfig = {
         //     failOnError: false,
         //     cwd: process.cwd(),
         // }),
-        new webpack.ProvidePlugin({
-            '__assign': ['tslib', '__assign'],
-            '__extends': ['tslib', '__extends'],
-            '__awaiter': ['tslib', '__awaiter'],
-            '__generator': ['tslib', '__generator'],
-            '__spread': ['tslib', '__spread'],
-            '__spreadArrays': ['tslib', '__spreadArrays'],
-        }),
         new ExtraWatchWebpackPlugin({
             files: [
                 './lib/**/*.scss',
@@ -54,6 +46,9 @@ const sharedConfig = {
             'node_modules',
             path.resolve(__dirname, 'lib/')
         ],
+    },
+    watchOptions: {
+        aggregateTimeout: 750
     },
     devtool: ''
 }

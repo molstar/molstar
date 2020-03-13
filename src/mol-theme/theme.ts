@@ -11,6 +11,7 @@ import { VolumeData } from '../mol-model/volume';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { Shape } from '../mol-model/shape';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
+import { objectForEach } from '../mol-util/object';
 
 export interface ThemeRegistryContext {
     colorThemeRegistry: ColorTheme.Registry
@@ -64,7 +65,8 @@ namespace Theme {
 
 //
 
-export interface ThemeProvider<T extends ColorTheme<P> | SizeTheme<P>, P extends PD.Params> {
+export interface ThemeProvider<T extends ColorTheme<P> | SizeTheme<P>, P extends PD.Params, Id extends string = string> {
+    readonly name: Id
     readonly label: string
     readonly category: string
     readonly factory: (ctx: ThemeDataContext, props: PD.Values<P>) => T
@@ -91,7 +93,10 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
     get types(): [string, string, string][] { return getTypes(this._list) }
 
     constructor(builtInThemes: { [k: string]: ThemeProvider<T, any> }, private emptyProvider: ThemeProvider<T, any>) {
-        Object.keys(builtInThemes).forEach(name => this.add(name, builtInThemes[name]))
+        objectForEach(builtInThemes, (p, k) => {
+            if (p.name !== k) throw new Error(`Fix build in themes to have matching names. ${p.name} ${k}`);
+            this.add(p as any)
+        })
     }
 
     private sort() {
@@ -103,14 +108,19 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
         });
     }
 
-    add<P extends PD.Params>(name: string, provider: ThemeProvider<T, P>) {
+    add<P extends PD.Params>(provider: ThemeProvider<T, P>) {
+        if (this._map.has(provider.name)) {
+            throw new Error(`${provider.name} already registered.`);
+        }
+
+        const name = provider.name;
         this._list.push({ name, provider })
         this._map.set(name, provider)
         this._name.set(provider, name)
         this.sort();
     }
 
-    remove(name: string) {
+    remove(provider: ThemeProvider<T, any>) {
         this._list.splice(this._list.findIndex(e => e.name === name), 1)
         const p = this._map.get(name);
         if (p) {

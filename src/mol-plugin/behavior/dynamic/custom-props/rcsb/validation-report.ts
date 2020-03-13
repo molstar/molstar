@@ -16,8 +16,6 @@ import { DensityFitColorThemeProvider } from '../../../../../mol-model-props/rcs
 import { cantorPairing } from '../../../../../mol-data/util';
 import { DefaultQueryRuntimeTable } from '../../../../../mol-script/runtime/query/compiler';
 
-const Tag = ValidationReport.Tag
-
 export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'rcsb-validation-report-prop',
     category: 'custom-props',
@@ -44,11 +42,11 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.managers.lociLabels.addProvider(this.label);
 
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(Tag.DensityFit, DensityFitColorThemeProvider)
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(Tag.GeometryQuality, GeometryQualityColorThemeProvider)
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(Tag.RandomCoilIndex, RandomCoilIndexColorThemeProvider)
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(DensityFitColorThemeProvider)
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(GeometryQualityColorThemeProvider)
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(RandomCoilIndexColorThemeProvider)
 
-            this.ctx.structureRepresentation.registry.add(Tag.Clashes, ClashesRepresentationProvider)
+            this.ctx.structureRepresentation.registry.add(ClashesRepresentationProvider)
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
@@ -67,11 +65,11 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.managers.lociLabels.removeProvider(this.label);
 
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(Tag.DensityFit)
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(Tag.GeometryQuality)
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(Tag.RandomCoilIndex)
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(DensityFitColorThemeProvider)
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(GeometryQualityColorThemeProvider)
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(RandomCoilIndexColorThemeProvider)
 
-            this.ctx.structureRepresentation.registry.remove(Tag.Clashes)
+            this.ctx.structureRepresentation.registry.remove(ClashesRepresentationProvider)
         }
     },
     params: () => ({
