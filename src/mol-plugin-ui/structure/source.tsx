@@ -62,8 +62,9 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         
         if (structures.length === 1) {
             const s = structures[0];
-            if (s.model.trajectory.models.length === 1) return s.cell.obj?.data.label;
-            return `${s.model.cell.obj?.label} | ${s.cell.obj?.data.label}`;
+            if (s.model?.trajectory?.models && s.model.trajectory.models.length === 1) return s.cell.obj?.data.label;
+            if (s.model) return `${s.model.cell.obj?.label} | ${s.cell.obj?.data.label}`;
+            return s.cell.obj?.data.label;
         }
 
         if (structures.length > 1) {

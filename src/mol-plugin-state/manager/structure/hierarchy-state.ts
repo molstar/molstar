@@ -20,11 +20,13 @@ export function buildStructureHierarchy(state: State, previous?: StructureHierar
 
 export interface StructureHierarchy {
     trajectories: TrajectoryRef[],
+    models: ModelRef[],
+    structures: StructureRef[],
     refs: Map<StateTransform.Ref, HierarchyRef>
 }
 
 export function StructureHierarchy(): StructureHierarchy {
-    return { trajectories: [], refs: new Map() }
+    return { trajectories: [], models: [], structures: [], refs: new Map() }
 }
 
 interface RefBase<K extends string = string, T extends StateObject = StateObject> {
@@ -47,12 +49,12 @@ function TrajectoryRef(cell: StateObjectCell<SO.Molecule.Trajectory>): Trajector
 }
 
 export interface ModelRef extends RefBase<'model', SO.Molecule.Model> {
-    trajectory: TrajectoryRef,
+    trajectory?: TrajectoryRef,
     properties?: ModelPropertiesRef,
     structures: StructureRef[]
 }
 
-function ModelRef(cell: StateObjectCell<SO.Molecule.Model>, trajectory: TrajectoryRef): ModelRef {
+function ModelRef(cell: StateObjectCell<SO.Molecule.Model>, trajectory?: TrajectoryRef): ModelRef {
     return { kind: 'model', cell, version: cell.transform.version, trajectory, structures: [] };
 }
 
@@ -65,10 +67,9 @@ function ModelPropertiesRef(cell: StateObjectCell<SO.Molecule.Model>, model: Mod
 }
 
 export interface StructureRef extends RefBase<'structure', SO.Molecule.Structure> {
-    model: ModelRef,
+    model?: ModelRef,
     properties?: StructurePropertiesRef,
     components: StructureComponentRef[],
-    // representations: StructureRepresentationRef[],
     currentFocus?: {
         focus?: StructureComponentRef,
         surroundings?: StructureComponentRef,
@@ -76,7 +77,7 @@ export interface StructureRef extends RefBase<'structure', SO.Molecule.Structure
     // volumeStreaming?: ....
 }
 
-function StructureRef(cell: StateObjectCell<SO.Molecule.Structure>, model: ModelRef): StructureRef {
+function StructureRef(cell: StateObjectCell<SO.Molecule.Structure>, model?: ModelRef): StructureRef {
     return { kind: 'structure', cell, version: cell.transform.version, model, components: [] };
 }
 
@@ -160,16 +161,24 @@ const tagMap: [string, (state: BuildState, cell: StateObjectCell) => boolean | v
         state.currentTrajectory = createOrUpdateRefList(state, cell, state.hierarchy.trajectories, TrajectoryRef, cell);
     }, state => state.currentTrajectory = void 0],
     [StructureBuilderTags.Model, (state, cell) => {
-        if (!state.currentTrajectory) return false;
-        state.currentModel = createOrUpdateRefList(state, cell, state.currentTrajectory.models, ModelRef, cell, state.currentTrajectory);
+        if (state.currentTrajectory) {
+            state.currentModel = createOrUpdateRefList(state, cell, state.currentTrajectory.models, ModelRef, cell, state.currentTrajectory);
+        } else {
+            state.currentModel = ModelRef(cell)
+        }
+        state.hierarchy.models.push(state.currentModel);
     }, state => state.currentModel = void 0],
     [StructureBuilderTags.ModelProperties, (state, cell) => {
         if (!state.currentModel) return false;
         state.currentModel.properties = createOrUpdateRef(state, cell, state.currentModel.properties, ModelPropertiesRef, cell, state.currentModel);
     }, state => { }],
     [StructureBuilderTags.Structure, (state, cell) => {
-        if (!state.currentModel) return false;
-        state.currentStructure = createOrUpdateRefList(state, cell, state.currentModel.structures, StructureRef, cell, state.currentModel);
+        if (state.currentModel) {
+            state.currentStructure = createOrUpdateRefList(state, cell, state.currentModel.structures, StructureRef, cell, state.currentModel);
+        } else {
+            state.currentStructure = StructureRef(cell);
+        }
+        state.hierarchy.structures.push(state.currentStructure);
     }, state => state.currentStructure = void 0],
     [StructureBuilderTags.StructureProperties, (state, cell) => {
         if (!state.currentStructure) return false;

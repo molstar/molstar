@@ -7,7 +7,6 @@
 import { PluginContext } from '../../../mol-plugin/context';
 import { StructureHierarchy, buildStructureHierarchy, ModelRef, StructureComponentRef, StructureRef, HierarchyRef, TrajectoryRef } from './hierarchy-state';
 import { PluginComponent } from '../../component';
-import { StateTransform } from '../../../mol-state';
 import { SetUtils } from '../../../mol-util/set';
 
 interface StructureHierarchyManagerState {
@@ -51,45 +50,16 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         return this._currentSelectionSet;
     }
 
-    private syncCurrentTrajectories(hierarchy: StructureHierarchy, map: Map<StateTransform.Ref, HierarchyRef>): TrajectoryRef[] {
-        const current = this.state.current.trajectories;
-        if (current.length === 0) return hierarchy.trajectories.length > 0 ? [hierarchy.trajectories[0]] : [];
+    private syncCurrent<T extends HierarchyRef>(hierarchy: StructureHierarchy, current: ReadonlyArray<T>, all: ReadonlyArray<T>): T[] {
+        if (current.length === 0) return all.length > 0 ? [all[0]] : [];
 
-        const newCurrent: TrajectoryRef[] = [];
+        const newCurrent: T[] = [];
         for (const c of current) {
-            const ref = map.get(c.cell.transform.ref) as TrajectoryRef;
+            const ref = hierarchy.refs.get(c.cell.transform.ref) as T;
             if (ref) newCurrent.push(ref);
         }
 
-        if (newCurrent.length === 0) return hierarchy.trajectories.length > 0 ? [hierarchy.trajectories[0]] : [];
-        return newCurrent;
-    }
-
-    private syncCurrentModels(hierarchy: StructureHierarchy, map: Map<StateTransform.Ref, HierarchyRef>, currentTrajectories: TrajectoryRef[]): ModelRef[] {
-        const current = this.state.current.models;
-        if (current.length === 0) return currentTrajectories[0]?.models || [];
-
-        const newCurrent: ModelRef[] = [];
-        for (const c of current) {
-            const ref = map.get(c.cell.transform.ref) as ModelRef;
-            if (ref) newCurrent.push(ref);
-        }
-
-        if (newCurrent.length === 0) return currentTrajectories[0]?.models || [];
-        return newCurrent;
-    }
-
-    private syncCurrentStructures(map: Map<StateTransform.Ref, HierarchyRef>, currentModels: ModelRef[]): StructureRef[] {
-        const current = this.state.current.structures;
-        if (current.length === 0) return Array.prototype.concat.apply([], currentModels.map(m => m.structures));
-
-        const newCurrent: StructureRef[] = [];
-        for (const c of current) {
-            const ref = map.get(c.cell.transform.ref) as StructureRef;
-            if (ref) newCurrent.push(ref);
-        }
-
-        if (newCurrent.length === 0 && currentModels.length > 0) return Array.prototype.concat.apply([], currentModels.map(m => m.structures));
+        if (newCurrent.length === 0) return all.length > 0 ? [all[0]] : [];
         return newCurrent;
     }
 
@@ -98,15 +68,17 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         if (update.added.length === 0 && update.updated.length === 0 && update.removed.length === 0) {
             return;
         }
+
         this._currentComponentGroups = void 0;
         this._currentSelectionSet = void 0;
 
-        const trajectories = this.syncCurrentTrajectories(update.hierarchy, update.hierarchy.refs);
-        const models = this.syncCurrentModels(update.hierarchy, update.hierarchy.refs, trajectories);
-        const structures = this.syncCurrentStructures(update.hierarchy.refs, models);
+        const { hierarchy } = update;
+        const trajectories = this.syncCurrent(hierarchy, this.state.current.trajectories, hierarchy.trajectories);
+        const models = this.syncCurrent(hierarchy, this.state.current.models, hierarchy.models);
+        const structures = this.syncCurrent(hierarchy, this.state.current.structures, hierarchy.structures);
 
-        this.updateState({ hierarchy: update.hierarchy, current: { trajectories, models, structures }});
-        this.behaviors.current.next({ hierarchy: update.hierarchy, trajectories, models, structures });
+        this.updateState({ hierarchy, current: { trajectories, models, structures }});
+        this.behaviors.current.next({ hierarchy, trajectories, models, structures });
     }
 
     updateCurrent(refs: HierarchyRef[], action: 'add' | 'remove') {
