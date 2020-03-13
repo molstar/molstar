@@ -14,6 +14,7 @@ import { BuildInTrajectoryFormat, TrajectoryFormatProvider } from '../formats/tr
 import { StructureRepresentationBuilder } from './structure/representation';
 import { StructureSelectionQuery } from '../helpers/structure-selection-query';
 import { Task } from '../../mol-task';
+import { StructureElement } from '../../mol-model/structure';
 
 export type TrajectoryFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
@@ -172,7 +173,9 @@ export class StructureBuilder {
     
             const transformParams: StructureComponentParams = query.referencesCurrent
                 ? {
-                    type: { name: 'bundle', params: await StructureSelectionQuery.getBundle(this.plugin, taskCtx, query, structureData) },
+                    type: {
+                        name: 'bundle',
+                        params: StructureElement.Bundle.fromSelection(await query.getSelection(this.plugin, taskCtx, structureData)) },
                     nullIfEmpty: true,
                     label: label || query.label
                 } : {

@@ -129,7 +129,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
             for (let i = 0; i < tr.length; i++) {
                 const model = await this.plugin.builders.structure.createModel(trajectory.cell, { modelIndex: i }, { isCollapsed: true });
                 const structure = await this.plugin.builders.structure.createStructure(model, { name: 'deposited', params: { } });
-                await this.plugin.builders.structure.representation.structurePreset(structure, 'auto', { globalThemeName: 'model-index' });
+                await this.plugin.builders.structure.representation.applyPreset(structure, 'auto', { globalThemeName: 'model-index' });
             }
         })
     }

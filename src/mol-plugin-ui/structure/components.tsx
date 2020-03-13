@@ -84,8 +84,9 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
         const actions = [
             ActionMenu.Item('Clear', null),
         ];
-        // TODO: filter by applicable??
-        for (const p of this.plugin.builders.structure.representation.providerList) {
+        const pivot = this.plugin.managers.structure.component.pivotStructure;
+        const providers = this.plugin.builders.structure.representation.getPresets(pivot?.cell.obj?.data)
+        for (const p of providers) {
             actions.push(ActionMenu.Item(p.display.name, p));
         }
         return actions;
