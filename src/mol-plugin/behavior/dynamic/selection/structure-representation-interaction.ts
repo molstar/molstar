@@ -5,23 +5,21 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure, StructureElement, Bond } from '../../../../mol-model/structure';
-import { PluginBehavior } from '../../../../mol-plugin/behavior';
-import { PluginCommands } from '../../../commands';
-import { PluginStateObject } from '../../../../mol-plugin-state/objects';
-import { StateTransforms } from '../../../../mol-plugin-state/transforms';
-import { StructureRepresentation3DHelpers } from '../../../../mol-plugin-state/transforms/representation';
-import { BuiltInStructureRepresentations } from '../../../../mol-repr/structure/registry';
-import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
-import { StateObjectCell, StateSelection, StateTransform } from '../../../../mol-state';
-import { BuiltInColorThemes } from '../../../../mol-theme/color';
-import { BuiltInSizeThemes } from '../../../../mol-theme/size';
-import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-observer';
-import { Binding } from '../../../../mol-util/binding';
-import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { isEmptyLoci, Loci, EmptyLoci } from '../../../../mol-model/loci';
 import { InteractionsRepresentationProvider } from '../../../../mol-model-props/computed/representations/interactions';
 import { InteractionTypeColorThemeProvider } from '../../../../mol-model-props/computed/themes/interaction-type';
+import { EmptyLoci, isEmptyLoci, Loci } from '../../../../mol-model/loci';
+import { Bond, Structure, StructureElement } from '../../../../mol-model/structure';
+import { createStructureRepresentationParams } from '../../../../mol-plugin-state/helpers/structure-representation-params';
+import { PluginStateObject } from '../../../../mol-plugin-state/objects';
+import { StateTransforms } from '../../../../mol-plugin-state/transforms';
+import { PluginBehavior } from '../../../../mol-plugin/behavior';
+import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
+import { StateObjectCell, StateSelection, StateTransform } from '../../../../mol-state';
+import { BuiltInSizeThemes } from '../../../../mol-theme/size';
+import { Binding } from '../../../../mol-util/binding';
+import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-observer';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { PluginCommands } from '../../../commands';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -48,22 +46,22 @@ const TagSet: Set<StructureRepresentationInteractionTags> = new Set([StructureRe
 
 export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<StructureRepresentationInteractionProps> {
     private createResVisualParams(s: Structure) {
-        return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            type: BuiltInStructureRepresentations['ball-and-stick'],
-            size: BuiltInSizeThemes.uniform
+        return createStructureRepresentationParams(this.plugin, s, {
+            type: 'ball-and-stick',
+            size: 'uniform'
         });
     }
 
     private createSurVisualParams(s: Structure) {
-        return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            type: BuiltInStructureRepresentations['ball-and-stick'],
-            color: BuiltInColorThemes['element-symbol'],
-            size: BuiltInSizeThemes.uniform
+        return createStructureRepresentationParams(this.plugin, s, {
+            type: 'ball-and-stick',
+            color: 'element-symbol',
+            size: 'uniform'
         });
     }
 
     private createSurNciVisualParams(s: Structure) {
-        return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
+        return createStructureRepresentationParams(this.plugin, s, {
             type: InteractionsRepresentationProvider,
             color: InteractionTypeColorThemeProvider,
             size: BuiltInSizeThemes.uniform

@@ -70,7 +70,7 @@ namespace ColorTheme {
         return themeA.contextHash === themeB.contextHash && themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props)
     }
 
-    export interface Provider<P extends PD.Params> extends ThemeProvider<ColorTheme<P>, P> { }
+    export interface Provider<P extends PD.Params = any> extends ThemeProvider<ColorTheme<P>, P> { }
     export const EmptyProvider: Provider<{}> = { label: '', category: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true }
 
     export type Registry = ThemeRegistry<ColorTheme<any>>

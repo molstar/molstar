@@ -16,7 +16,6 @@ import { trajectoryFromPDB } from '../../../../mol-model-formats/structure/pdb';
 import { Mat4, Vec3, Quat } from '../../../../mol-math/linear-algebra';
 import { SymmetryOperator } from '../../../../mol-math/geometry';
 import { Task } from '../../../../mol-task';
-import { StructureRepresentation3DHelpers } from '../../../../mol-plugin-state/transforms/representation';
 import { StateTransforms } from '../../../../mol-plugin-state/transforms';
 import { distinctColors } from '../../../../mol-util/color/distinct';
 import { ModelIndexColorThemeProvider } from '../../../../mol-theme/color/model-index';
@@ -30,6 +29,7 @@ import { CifCategory, CifField } from '../../../../mol-io/reader/cif';
 import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { Column } from '../../../../mol-data/db';
 import { createModels } from '../../../../mol-model-formats/structure/basic/parser';
+import { createStructureRepresentationParams } from '../../../../mol-plugin-state/helpers/structure-representation-params';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`
@@ -396,7 +396,7 @@ export const LoadCellPackModel = StateAction.build({
         }
         cellpackTree
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.createParams(ctx, Structure.Empty, {
+                createStructureRepresentationParams(ctx, Structure.Empty, {
                     ...getReprParams(ctx, params.preset),
                     ...getColorParams(hue)
                 })
@@ -412,7 +412,7 @@ export const LoadCellPackModel = StateAction.build({
             .apply(StateTransforms.Model.StructureFromModel, undefined, { state: { isGhost: true } })
             .apply(StateTransforms.Misc.CreateGroup, { label: 'HIV1_envelope_Membrane' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.createParams(ctx, Structure.Empty, {
+                createStructureRepresentationParams(ctx, Structure.Empty, {
                     ...getReprParams(ctx, params.preset),
                     color: UniformColorThemeProvider
                 })

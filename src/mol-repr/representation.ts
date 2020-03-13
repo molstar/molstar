@@ -39,7 +39,7 @@ export type RepresentationFactory<D, P extends PD.Params, S extends Representati
 
 //
 
-export interface RepresentationProvider<D, P extends PD.Params, S extends Representation.State> {
+export interface RepresentationProvider<D = any, P extends PD.Params = any, S extends Representation.State = any> {
     readonly label: string
     readonly description: string
     readonly factory: RepresentationFactory<D, P, S>
@@ -92,7 +92,7 @@ export class RepresentationRegistry<D, S extends Representation.State> {
         this._name.set(provider, name)
     }
 
-    getName(provider: RepresentationProvider<D, any, S>): string {
+    getName(provider: RepresentationProvider<D, any, any>): string {
         if (!this._name.has(provider)) throw new Error(`'${provider.label}' is not a registered represenatation provider.`);
         return this._name.get(provider)!;
     }

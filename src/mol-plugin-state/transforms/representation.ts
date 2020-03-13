@@ -8,15 +8,12 @@
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { VolumeData, VolumeIsoValue } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
-import { RepresentationProvider } from '../../mol-repr/representation';
-import { BuiltInStructureRepresentationsName, BuiltInStructureRepresentations } from '../../mol-repr/structure/registry';
-import { StructureParams } from '../../mol-repr/structure/representation';
 import { BuiltInVolumeRepresentationsName } from '../../mol-repr/volume/registry';
 import { VolumeParams } from '../../mol-repr/volume/representation';
 import { StateTransformer, StateObject } from '../../mol-state';
 import { Task } from '../../mol-task';
-import { BuiltInColorThemeName, BuiltInColorThemes, ColorTheme } from '../../mol-theme/color';
-import { BuiltInSizeThemeName, BuiltInSizeThemes, SizeTheme } from '../../mol-theme/size';
+import { BuiltInColorThemeName, ColorTheme } from '../../mol-theme/color';
+import { BuiltInSizeThemeName, SizeTheme } from '../../mol-theme/size';
 import { Theme } from '../../mol-theme/theme';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
@@ -39,7 +36,6 @@ import { DihedralParams, DihedralRepresentation } from '../../mol-repr/shape/loc
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 
 export { StructureRepresentation3D }
-export { StructureRepresentation3DHelpers }
 export { ExplodeStructureRepresentation3D }
 export { UnwindStructureAssemblyRepresentation3D }
 export { OverpaintStructureRepresentation3DFromScript }
@@ -47,100 +43,6 @@ export { OverpaintStructureRepresentation3DFromBundle }
 export { TransparencyStructureRepresentation3DFromScript }
 export { TransparencyStructureRepresentation3DFromBundle }
 export { VolumeRepresentation3D }
-
-namespace StructureRepresentation3DHelpers {
-    export type BuildInProps<R extends BuiltInStructureRepresentationsName, C extends BuiltInColorThemeName, S extends BuiltInSizeThemeName> = {
-        type?: R,
-        typeParams?: Partial<RepresentationProvider.ParamValues<BuiltInStructureRepresentations[R]>>,
-        color?: C,
-        colorParams?: Partial<ColorTheme.ParamValues<BuiltInColorThemes[C]>>,
-        size?: S,
-        sizeParams?: Partial<SizeTheme.ParamValues<BuiltInSizeThemes[S]>>
-    }
-
-    export type Props<R extends RepresentationProvider<Structure, any, any> = any, C extends ColorTheme.Provider<any> = any, S extends SizeTheme.Provider<any> = any> = {
-        type?: R,
-        typeParams?: Partial<RepresentationProvider.ParamValues<R>>,
-        color?: C,
-        colorParams?: Partial<ColorTheme.ParamValues<C>>,
-        size?: S,
-        sizeParams?: Partial<SizeTheme.ParamValues<S>>
-    }
-
-    export function createBuiltInParams<R extends BuiltInStructureRepresentationsName, C extends BuiltInColorThemeName, S extends BuiltInSizeThemeName>(
-        ctx: PluginContext, structure: Structure, props: BuildInProps<R, C, S> = {}
-    ) {
-        const type = (props.type && ctx.structureRepresentation.registry.get(props.type))
-            || ctx.structureRepresentation.registry.default.provider;
-        const color = (props.color && ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(props.color)) 
-            || ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme.name);
-        const size = (props.size && ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(props.size))
-            || ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme.name);
-
-        const ps: Props = {
-            type: type,
-            typeParams: props.typeParams,
-            color,
-            colorParams: props.colorParams,
-            size,
-            sizeParams: props.sizeParams
-        };
-
-        return createParams(ctx, structure, ps);
-    }
-
-    export function createParams<R extends RepresentationProvider<Structure, any, any>, C extends ColorTheme.Provider<any>, S extends SizeTheme.Provider<any>>(
-        ctx: PluginContext, structure: Structure, props: Props<R, C, S> = {}): StateTransformer.Params<StructureRepresentation3D> {
-
-        const { themeCtx } = ctx.structureRepresentation
-        const themeDataCtx = { structure }
-
-        const repr = props.type || ctx.structureRepresentation.registry.default.provider;
-        const reprDefaultParams = PD.getDefaultValues(repr.getParams(themeCtx, structure));
-        const reprParams = { ...reprDefaultParams, ...props.typeParams };
-
-        const color = props.color || themeCtx.colorThemeRegistry.get(repr.defaultColorTheme.name);
-        const colorDefaultParams = { ...PD.getDefaultValues(color.getParams(themeDataCtx)), ...repr.defaultColorTheme.props }
-        const colorParams = { ...colorDefaultParams, ...props.colorParams };
-
-        const size = props.size || themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme.name);
-        const sizeDefaultParams = { ...PD.getDefaultValues(size.getParams(themeDataCtx)), ...repr.defaultSizeTheme.props }
-        const sizeParams = { ...sizeDefaultParams, ...props.sizeParams };
-
-        return ({
-            type: { name: ctx.structureRepresentation.registry.getName(repr), params: reprParams },
-            colorTheme: { name: themeCtx.colorThemeRegistry.getName(color), params: colorParams },
-            sizeTheme: { name: themeCtx.sizeThemeRegistry.getName(size), params: sizeParams }
-        })
-    }
-
-    export function getDefaultParamsWithTheme(ctx: PluginContext, reprName: BuiltInStructureRepresentationsName, colorName: BuiltInColorThemeName | undefined, structure: Structure, structureParams?: Partial<PD.Values<StructureParams>>): StateTransformer.Params<StructureRepresentation3D> {
-        const type = ctx.structureRepresentation.registry.get(reprName);
-
-        const themeDataCtx = { structure };
-        const color = colorName || type.defaultColorTheme.name;
-        const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(color).getParams(themeDataCtx);
-        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme.name).getParams(themeDataCtx)
-        const structureDefaultParams = PD.getDefaultValues(type.getParams(ctx.structureRepresentation.themeCtx, structure))
-        return ({
-            type: { name: reprName, params: structureParams ? { ...structureDefaultParams, ...structureParams } : structureDefaultParams },
-            colorTheme: { name: color, params: PD.getDefaultValues(colorParams) },
-            sizeTheme: { name: type.defaultSizeTheme.name, params: PD.getDefaultValues(sizeParams) }
-        })
-    }
-
-    export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structureParams?: Partial<PD.Values<StructureParams>>, colorName?: BuiltInColorThemeName): StateTransformer.Params<StructureRepresentation3D> {
-        const type = ctx.structureRepresentation.registry.get(name);
-        const color = colorName || type.defaultColorTheme.name;
-        const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(color).defaultValues;
-        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme.name).defaultValues
-        return ({
-            type: { name, params: structureParams ? { ...type.defaultValues, ...structureParams } : type.defaultValues },
-            colorTheme: { name: color, params: colorParams },
-            sizeTheme: { name: type.defaultSizeTheme.name, params: sizeParams }
-        })
-    }
-}
 
 type StructureRepresentation3D = typeof StructureRepresentation3D
 const StructureRepresentation3D = PluginStateTransform.BuiltIn({

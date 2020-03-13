@@ -10,7 +10,6 @@ import './index.html'
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { StructureRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
 import { Color } from '../../mol-util/color';
 import { PluginStateObject as PSO, PluginStateObject } from '../../mol-plugin-state/objects';
 import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in';
@@ -23,12 +22,10 @@ import { PluginState } from '../../mol-plugin/state';
 import { Scheduler } from '../../mol-task';
 import { createProteopediaCustomTheme } from './coloring';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
-import { BuiltInStructureRepresentations } from '../../mol-repr/structure/registry';
-import { BuiltInColorThemes } from '../../mol-theme/color';
-import { BuiltInSizeThemes } from '../../mol-theme/size';
 import { ColorNames } from '../../mol-util/color/names';
 import { InitVolumeStreaming, CreateVolumeStreamingInfo } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
 import { DefaultCanvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
+import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
 // import { Vec3 } from 'mol-math/linear-algebra';
 // import { ParamDefinition } from 'mol-util/param-definition';
 // import { Text } from 'mol-geo/geometry/text/text';
@@ -127,9 +124,10 @@ class MolStarProteopediaWrapper {
                 root.delete(StateElements.SequenceVisual);
             } else {
                 root.applyOrUpdate(StateElements.SequenceVisual, StateTransforms.Representation.StructureRepresentation3D,
-                    StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
-                        (style.sequence && style.sequence.kind) || 'cartoon',
-                        (style.sequence && style.sequence.coloring) || 'unit-index', structure));
+                    createStructureRepresentationParams(this.plugin, structure, {
+                        type: (style.sequence && style.sequence.kind) || 'cartoon',
+                        color: (style.sequence && style.sequence.coloring) || 'unit-index'
+                    }));
             }
         }
 
@@ -142,9 +140,10 @@ class MolStarProteopediaWrapper {
                     root.delete(StateElements.HetVisual);
                 } else {
                     root.applyOrUpdate(StateElements.HetVisual, StateTransforms.Representation.StructureRepresentation3D,
-                        StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
-                            (style.hetGroups && style.hetGroups.kind) || 'ball-and-stick',
-                            (style.hetGroups && style.hetGroups.coloring), structure));
+                        createStructureRepresentationParams(this.plugin, structure, {
+                            type: (style.hetGroups && style.hetGroups.kind) || 'ball-and-stick',
+                            color: style.hetGroups && style.hetGroups.coloring
+                        }));
                 }
             }
         }
@@ -158,7 +157,7 @@ class MolStarProteopediaWrapper {
                     root.delete(StateElements.Het3DSNFG);
                 } else {
                     root.applyOrUpdate(StateElements.Het3DSNFG, StateTransforms.Representation.StructureRepresentation3D,
-                        StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin, 'carbohydrate', void 0, structure));
+                        createStructureRepresentationParams(this.plugin, structure, { type: 'carbohydrate' }));
                 }
             }
         }
@@ -169,9 +168,11 @@ class MolStarProteopediaWrapper {
                 root.delete(StateElements.WaterVisual);
             } else {
                 root.applyOrUpdate(StateElements.WaterVisual, StateTransforms.Representation.StructureRepresentation3D,
-                    StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
-                        (style.water && style.water.kind) || 'ball-and-stick',
-                        (style.water && style.water.coloring), structure, { alpha: 0.51 }));
+                    createStructureRepresentationParams(this.plugin, structure, {
+                        type: (style.water && style.water.kind) || 'ball-and-stick',
+                        typeParams: { alpha: 0.51 },
+                        color: style.water && style.water.coloring
+                    }));
             }
         }
 
@@ -408,19 +409,17 @@ class MolStarProteopediaWrapper {
 
     private createSurVisualParams() {
         const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
-        return StructureRepresentation3DHelpers.createParams(this.plugin, asm.data, {
-            type: BuiltInStructureRepresentations['ball-and-stick'],
-            color: BuiltInColorThemes.uniform, colorParams: { value: ColorNames.gray },
-            size: BuiltInSizeThemes.uniform, sizeParams: { value: 0.33 }
+        return createStructureRepresentationParams(this.plugin, asm.data, {
+            type: 'ball-and-stick',
+            color: 'uniform', colorParams: { value: ColorNames.gray },
+            size: 'uniform', sizeParams: { value: 0.33 }
         });
     }
 
     private createCoreVisualParams() {
         const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
-        return StructureRepresentation3DHelpers.createParams(this.plugin, asm.data, {
-            type: BuiltInStructureRepresentations['ball-and-stick'],
-            // color: [BuiltInColorThemes.uniform, () => ({ value: ColorNames.gray })],
-            // size: [BuiltInSizeThemes.uniform, () => ({ value: 0.33 } )]
+        return createStructureRepresentationParams(this.plugin, asm.data, {
+            type: 'ball-and-stick'
         });
     }
 

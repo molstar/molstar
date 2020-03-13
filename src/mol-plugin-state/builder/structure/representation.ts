@@ -4,23 +4,20 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { UniqueArray } from '../../../mol-data/generic';
 import { arrayFind } from '../../../mol-data/util';
 import { Structure } from '../../../mol-model/structure';
-import { StateTransform, StateTree, StateSelection, StateObjectRef, StateBuilder } from '../../../mol-state';
+import { PluginContext } from '../../../mol-plugin/context';
+import { StateBuilder, StateObjectRef, StateObjectSelector, StateSelection, StateTransform, StateTree } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { isProductionMode } from '../../../mol-util/debug';
 import { objectForEach } from '../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { PluginContext } from '../../../mol-plugin/context';
-import { PresetStructureReprentations } from './preset';
-import { StructureRepresentationProvider, RepresentationProviderTags } from './provider';
-import { UniqueArray } from '../../../mol-data/generic';
+import { createStructureRepresentationParams, StructureRepresentationBuiltInProps, StructureRepresentationProps } from '../../helpers/structure-representation-params';
 import { PluginStateObject } from '../../objects';
-import { StructureRepresentation3D, StructureRepresentation3DHelpers } from '../../transforms/representation';
-import { RepresentationProvider } from '../../../mol-repr/representation';
-import { SizeTheme, BuiltInSizeThemeName } from '../../../mol-theme/size';
-import { ColorTheme, BuiltInColorThemeName } from '../../../mol-theme/color';
-import { BuiltInStructureRepresentationsName } from '../../../mol-repr/structure/registry';
+import { StructureRepresentation3D } from '../../transforms/representation';
+import { PresetStructureReprentations } from './preset';
+import { RepresentationProviderTags, StructureRepresentationProvider } from './provider';
 
 export type StructureRepresentationProviderRef = keyof PresetStructureReprentations | StructureRepresentationProvider | string
 
@@ -143,13 +140,13 @@ export class StructureRepresentationBuilder {
         return this.plugin.runTask(task);
     }
 
-    async addRepresentation<R extends RepresentationProvider<Structure, any, any>, C extends ColorTheme.Provider<any>, S extends SizeTheme.Provider<any>>
-        (structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props?: StructureRepresentation3DHelpers.Props<R, C, S>) {
-
+    async addRepresentation<P extends StructureRepresentationBuiltInProps>(structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props?: P): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
+    async addRepresentation<P extends StructureRepresentationProps>(structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props?: P): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
+    async addRepresentation(structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props?: any) {
         const data = StateObjectRef.resolveAndCheck(this.dataState, structure)?.obj?.data;
         if (!data) return;
 
-        const params = StructureRepresentation3DHelpers.createParams(this.plugin, data, props);
+        const params = createStructureRepresentationParams(this.plugin, data, props);
         const repr = this.dataState.build()
             .to(structure)
             .apply(StructureRepresentation3D, params, { tags: RepresentationProviderTags.Representation });
@@ -158,14 +155,14 @@ export class StructureRepresentationBuilder {
         return  repr.selector;
     }
 
-    builtInRepresentation<R extends BuiltInStructureRepresentationsName, C extends BuiltInColorThemeName, S extends BuiltInSizeThemeName>
-        (builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props?: StructureRepresentation3DHelpers.BuildInProps<R, C, S>) {
-
+    async buildRepresentation<P extends StructureRepresentationBuiltInProps>(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props?: P): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
+    async buildRepresentation<P extends StructureRepresentationProps>(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props?: P): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
+    async buildRepresentation(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props?: any) {
         if (!structure) return;
         const data = StateObjectRef.resolveAndCheck(this.dataState, structure)?.obj?.data;
         if (!data) return;
 
-        const params = StructureRepresentation3DHelpers.createBuiltInParams(this.plugin, data, props);
+        const params = createStructureRepresentationParams(this.plugin, data, props);
         return builder
             .to(structure)
             .apply(StructureRepresentation3D, params, { tags: RepresentationProviderTags.Representation })
