@@ -129,7 +129,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
         ];
         return ret;
     }
-    
+
     selectAction: ActionMenu.OnSelect = item => {
         this.toggleAdd();
         if (!item) return;
@@ -256,7 +256,6 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
             <IconButton small={true} customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ width: '52px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
         </div>
     }
-
 }
 
 function toLociBundle(data: FiniteArray<{ loci: Loci }, any>): { loci: FiniteArray<Loci, any> } {

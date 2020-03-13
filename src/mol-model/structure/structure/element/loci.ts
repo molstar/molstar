@@ -188,6 +188,22 @@ export namespace Loci {
         return Loci(xs.structure, elements);
     }
 
+    /** Intersect `xs` and `ys` */
+    export function intersect(xs: Loci, ys: Loci): Loci {
+        const map = new Map<number, OrderedSet<UnitIndex>>();
+        for (const e of xs.elements) map.set(e.unit.id, e.indices);
+
+        const elements: Loci['elements'][0][] = [];
+        for (const e of ys.elements) {
+            if (!map.has(e.unit.id)) continue;
+            const indices = OrderedSet.intersect(map.get(e.unit.id)!, e.indices);
+            if (OrderedSet.size(indices) === 0) continue;
+            elements[elements.length] = { unit: e.unit, indices };
+        }
+
+        return Loci(xs.structure, elements);
+    }
+
     export function areIntersecting(xs: Loci, ys: Loci): boolean {
         if (xs.elements.length > ys.elements.length) return areIntersecting(ys, xs);
         if (Loci.isEmpty(xs)) return Loci.isEmpty(ys);

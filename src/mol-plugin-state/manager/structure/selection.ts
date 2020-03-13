@@ -30,7 +30,7 @@ interface StructureSelectionManagerState {
 const boundaryHelper = new BoundaryHelper('98');
 const HISTORY_CAPACITY = 8;
 
-export type StructureSelectionModifier = 'add' | 'remove' | 'set'
+export type StructureSelectionModifier = 'add' | 'remove' | 'intersect' | 'set'
 
 export class StructureSelectionManager extends PluginComponent<StructureSelectionManagerState> {
     readonly events = {
@@ -107,6 +107,19 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
         return !StructureElement.Loci.areEqual(sel, entry.selection);
     }
 
+    private intersect(loci: Loci): boolean {
+        if (!StructureElement.Loci.is(loci)) return false;
+
+        const entry = this.getEntry(loci.structure);
+        if (!entry) return false;
+
+        const sel = entry.selection;
+        entry.selection = StructureElement.Loci.intersect(entry.selection, loci);
+        this.addHistory(loci);
+        this.referenceLoci = loci
+        return !StructureElement.Loci.areEqual(sel, entry.selection);
+    }
+
     private set(loci: Loci) {
         if (!StructureElement.Loci.is(loci)) return false;
 
@@ -115,6 +128,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
 
         const sel = entry.selection;
         entry.selection = loci;
+        this.addHistory(loci);
         this.referenceLoci = undefined;
         return !StructureElement.Loci.areEqual(sel, entry.selection);
     }
@@ -329,6 +343,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
         switch (modifier) {
             case 'add': changed = this.add(loci); break;
             case 'remove': changed = this.remove(loci); break;
+            case 'intersect': changed = this.intersect(loci); break;
             case 'set': changed = this.set(loci); break;
         }
 
@@ -351,6 +366,9 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
                 break
             case 'remove':
                 this.plugin.managers.interactivity.lociSelects.deselect({ loci }, applyGranularity)
+                break
+            case 'intersect':
+                this.plugin.managers.interactivity.lociSelects.selectJoin({ loci }, applyGranularity)
                 break
             case 'set':
                 this.plugin.managers.interactivity.lociSelects.selectOnly({ loci }, applyGranularity)

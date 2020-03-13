@@ -308,7 +308,7 @@ export type ToggleButtonProps = {
     style?: React.CSSProperties,
     className?: string,
     disabled?: boolean,
-    label: string | JSX.Element,
+    label?: string | JSX.Element,
     title?: string,
     icon?: IconName,
     isSelected?: boolean,
@@ -327,7 +327,7 @@ export class ToggleButton extends React.PureComponent<ToggleButtonProps> {
         return <button onClick={this.onClick} title={this.props.title}
             disabled={props.disabled} style={props.style} className={props.className}>
             <Icon name={this.props.icon} />
-            {this.props.isSelected ? <b>{label}</b> : label}
+            {label && this.props.isSelected ? <b>{label}</b> : label}
         </button>;
     }
 }

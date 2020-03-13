@@ -130,16 +130,19 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     toggleAdd = this.showAction('add')
     toggleRemove = this.showAction('remove')
-    toggleOnly = this.showAction('set')
+    toggleIntersect = this.showAction('intersect')
+    toggleSet = this.showAction('set')
     toggleColor = this.showAction('color')
 
+    // TODO better icons
     get controls() {
         return <div>
             <div className='msp-control-row msp-select-row'>
-                <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
-                <ToggleButton icon='minus' label='Rem' toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
-                <ToggleButton icon='flash' label='Set' toggle={this.toggleOnly} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
-                <ToggleButton icon='brush' label='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} />
+                <ToggleButton icon='plus' title='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
+                <ToggleButton icon='minus' title='Remove' toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
+                <ToggleButton icon='star' title='Intersect' toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
+                <ToggleButton icon='flash' title='Set' toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
+                <ToggleButton icon='brush' title='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} />
             </div>
             {(this.state.action && this.state.action !== 'color') && <ActionMenu items={this.queries} onSelect={this.selectQuery} />}
             {this.state.action === 'color' && <div className='msp-control-offset'><ApplyColorControls /></div>}
@@ -172,7 +175,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         for (let i = 0, _i = Math.min(4, mng.history.length); i < _i; i++) {
             const e = mng.history[i];
             history.push(<li key={e!.label}>
-                <button className='msp-btn msp-btn-block msp-form-control' style={{ borderRight: '6px solid transparent', overflow: 'hidden' }}
+                <button className='msp-btn msp-btn-block msp-form-control' style={{ overflow: 'hidden' }}
                     title='Click to focus.' onClick={this.focusLoci(e.loci)}>
                     <span dangerouslySetInnerHTML={{ __html: e.label.split('|').reverse().join(' | ') }} />
                 </button>

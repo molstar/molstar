@@ -196,6 +196,14 @@ namespace InteractivityManager {
             this.mark(normalized, MarkerAction.Select);
         }
 
+        selectJoin(current: Loci<ModelLoci>, applyGranularity = true) {
+            const normalized = this.normalizedLoci(current, applyGranularity)
+            if (StructureElement.Loci.is(normalized.loci)) {
+                this.sel.modify('intersect', normalized.loci);
+            }
+            this.mark(normalized, MarkerAction.Select);
+        }
+
         selectOnly(current: Loci<ModelLoci>, applyGranularity = true) {
             this.deselectAll()
             const normalized = this.normalizedLoci(current, applyGranularity)
@@ -225,8 +233,9 @@ namespace InteractivityManager {
         protected mark(current: Loci<ModelLoci>, action: MarkerAction.Select | MarkerAction.Deselect) {
             const { loci } = current
             if (StructureElement.Loci.is(loci)) {
-                // do a full deselect/select for the current structure so visuals
-                // that are marked with granularity unequal to 'element' are handled properly
+                // do a full deselect/select for the current structure so visuals that are
+                // marked with granularity unequal to 'element' and join/intersect operations
+                // are handled properly
                 super.mark({ loci: Structure.Loci(loci.structure) }, MarkerAction.Deselect)
                 super.mark({ loci: this.sel.getLoci(loci.structure) }, MarkerAction.Select)
             } else {
