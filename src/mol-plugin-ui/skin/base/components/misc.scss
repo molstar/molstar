@@ -78,13 +78,13 @@
     margin: 0;
     text-align: center;
     padding-right: $control-spacing;
-    padding-left: $control-spacing;        
-    
+    padding-left: $control-spacing;
+
     &:hover {
         border-color: color-increase-contrast($msp-form-control-background, 5%) !important;
         border: none;
         outline-offset: -1px  !important;
-        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;  
+        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
     }
 }
 
@@ -97,7 +97,7 @@
     .msp-btn {
         &:hover {
             outline-offset: -1px  !important;
-            outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;  
+            outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
         }
     }
 }
@@ -129,11 +129,11 @@
     margin-bottom: 5px;
     padding: 0 10px;
     font-weight: 500;
-    background: $default-background; 
+    background: $default-background;
     color: $font-color;
 }
 
-.msp-left-panel-controls-buttons {    
+.msp-left-panel-controls-buttons {
     position: absolute;
     width: $row-height;
     top: 0;
@@ -183,4 +183,14 @@
         width: 32px;
         top: 0;
     }
+}
+
+.msp-shape-filled {
+    fill: $font-color;
+    stroke: $font-color;
+}
+
+.msp-shape-empty {
+    fill: none;
+    stroke: $font-color;
 }

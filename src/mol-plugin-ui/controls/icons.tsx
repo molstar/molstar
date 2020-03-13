@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 
-export type IconName = 
+export type IconName =
     | '' | 'expand-layout' | 'plus' | 'minus' | 'reset-scene' | 'ok' | 'back' | 'block' | 'off' | 'expand' | 'collapse' | 'visual-visibility'
     | 'abort' | 'focus-on-visual' | 'settings' | 'tools' | 'log' | 'remove' | 'help' | 'help-circle' | 'info' | 'left-open-big' | 'right-open-big'
     | 'left-open' | 'right-open' | 'screenshot' | 'model-prev' | 'model-next' | 'model-first' | 'down-thin' | 'up-thin' | 'left-thin' | 'right-thin'

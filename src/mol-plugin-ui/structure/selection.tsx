@@ -134,14 +134,13 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     toggleSet = this.showAction('set')
     toggleColor = this.showAction('color')
 
-    // TODO better icons
     get controls() {
         return <div>
             <div className='msp-control-row msp-select-row'>
-                <ToggleButton icon='plus' title='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
-                <ToggleButton icon='minus' title='Remove' toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
-                <ToggleButton icon='star' title='Intersect' toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
-                <ToggleButton icon='flash' title='Set' toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
+                <ToggleButton shape='union' title='Add/Union' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
+                <ToggleButton shape='subtract' title='Remove/Subtract' toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
+                <ToggleButton shape='intersect' title='Intersect' toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
+                <ToggleButton shape='set' title='Set' toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
                 <ToggleButton icon='brush' title='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} />
             </div>
             {(this.state.action && this.state.action !== 'color') && <ActionMenu items={this.queries} onSelect={this.selectQuery} />}
