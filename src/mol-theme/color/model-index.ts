@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,7 +17,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every model a unique color based on the position (index) of the model in the list of models in the structure.'
 
 export const ModelIndexColorThemeParams = {
-    ...getPaletteParams({ type: 'scale', scaleList: 'red-yellow-blue' }),
+    ...getPaletteParams({ type: 'scale', scaleList: 'purples' }),
 }
 export type ModelIndexColorThemeParams = typeof ModelIndexColorThemeParams
 export function getModelIndexColorThemeParams(ctx: ThemeDataContext) {
