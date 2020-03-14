@@ -208,12 +208,10 @@ const Action: React.FC<{
     multiselect: boolean | undefined, 
     current: ActionMenu.Item | undefined }> = ({ item, onSelect, current, multiselect }) => {
     const isCurrent = current === item;
-    return <div className='msp-control-row'>
-        <button onClick={() => onSelect(multiselect ? [item] : item as any)} disabled={item.disabled}>
-            {item.icon && <Icon name={item.icon} style={{ fontSize: '80%', marginRight: '6px' }} />}
-            {isCurrent || item.selected ? <b>{item.label}</b> : item.label}
-        </button>
-    </div>;
+    return  <button className='msp-btn msp-btn-block msp-form-control msp-action-menu-button' onClick={() => onSelect(multiselect ? [item] : item as any)} disabled={item.disabled}>
+        {item.icon && <Icon name={item.icon} />}
+        {isCurrent || item.selected ? <b>{item.label}</b> : item.label}
+    </button>;
 }
 
 function isItem(x: any): x is ActionMenu.Item {

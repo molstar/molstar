@@ -7,7 +7,7 @@
 import { VisualQualityOptions } from '../../../mol-geo/geometry/base';
 import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
 import { Structure, StructureElement } from '../../../mol-model/structure';
-import { structureAreIntersecting, structureSubtract, structureUnion } from '../../../mol-model/structure/query/utils/structure-set';
+import { structureAreIntersecting, structureSubtract, structureUnion, structureIntersect } from '../../../mol-model/structure/query/utils/structure-set';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateBuilder, StateTransformer } from '../../../mol-state';
@@ -130,16 +130,18 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
     }
 
     canBeModified(ref: HierarchyRef) {
-        return this.plugin.builders.structure.isComponent(ref.cell);
+        return this.plugin.builders.structure.isComponentTransform(ref.cell);
     }
 
-    modifyByCurrentSelection(components: ReadonlyArray<StructureComponentRef>, action: 'union' | 'subtract') {
-        return this.plugin.runTask(Task.create('Subtract', async taskCtx => {
+    modifyByCurrentSelection(components: ReadonlyArray<StructureComponentRef>, action: StructureComponentManager.ModifyAction) {
+        return this.plugin.runTask(Task.create('Modify Component', async taskCtx => {
             const b = this.dataState.build();        
             for (const c of components) {
+                if (!this.canBeModified(c)) continue;
+
                 const selection = this.plugin.managers.structure.selection.getStructure(c.structure.cell.obj!.data);
                 if (!selection || selection.elementCount === 0) continue;                
-                this.updateComponent(b, c, selection, action);
+                this.modifyComponent(b, c, selection, action);
             }
             await this.dataState.updateTree(b).runInContext(taskCtx);
         }));
@@ -245,13 +247,17 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         });
     }
 
-    private updateComponent(builder: StateBuilder.Root, component: StructureComponentRef, by: Structure, action: 'union' | 'subtract') {
+    private modifyComponent(builder: StateBuilder.Root, component: StructureComponentRef, by: Structure, action: StructureComponentManager.ModifyAction) {
         const structure = component.cell.obj?.data;
         if (!structure) return;
-        if (action === 'subtract' && !structureAreIntersecting(structure, by)) return;
+        if ((action === 'subtract' || action === 'intersect') && !structureAreIntersecting(structure, by)) return;
 
         const parent = component.structure.cell.obj?.data!;
-        const modified = action === 'union' ? structureUnion(parent, [structure, by]) : structureSubtract(structure, by);
+        const modified = action === 'union' 
+            ? structureUnion(parent, [structure, by]) 
+            : action === 'intersect'
+            ? structureIntersect(structure, by)
+            : structureSubtract(structure, by);
 
         if (modified.elementCount === 0) {
             builder.delete(component.cell.transform.ref);
@@ -335,4 +341,6 @@ namespace StructureComponentManager {
         ] as [string, string][];
         return PD.Select(types[0][0], types, { label });
     }
+
+    export type ModifyAction = 'union' | 'subtract' | 'intersect'
 }

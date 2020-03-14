@@ -130,7 +130,7 @@ export class StructureBuilder {
         return props.selector;
     }
 
-    isComponent(cell: StateObjectCell) {
+    isComponentTransform(cell: StateObjectCell) {
         return cell.transform.transformer === StateTransforms.Model.StructureComponent;
     }
 

@@ -234,19 +234,25 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     get actions(): ActionMenu.Items {
         const mng = this.plugin.managers.structure.component;
-        const ret = [
+        const ret: ActionMenu.Items = [
             [
                 'Add Representation',
                 ...StructureComponentManager.getRepresentationTypes(this.plugin, this.props.group[0])
                     .map(t => ActionMenu.Item(t[1], () => mng.addRepresentation(this.props.group, t[0])))
-            ],
-            ActionMenu.Item('Select This', 'flash', () => mng.selectThis(this.props.group))
+            ]
         ];
 
-        if (this.plugin.managers.structure.component.canBeModified(this.props.group[0])) {
-            ret.push(ActionMenu.Item('Include Current Selection', 'plus', () => mng.modifyByCurrentSelection(this.props.group, 'union')));
-            ret.push(ActionMenu.Item('Subtract Current Selection', 'minus', () => mng.modifyByCurrentSelection(this.props.group, 'subtract')));
+        if (mng.canBeModified(this.props.group[0])) {
+            ret.push([
+                'Modify by Selection',
+                ActionMenu.Item('Include', 'plus', () => mng.modifyByCurrentSelection(this.props.group, 'union')),
+                ActionMenu.Item('Subtract', 'minus', () => mng.modifyByCurrentSelection(this.props.group, 'subtract')),
+                ActionMenu.Item('Intersect', 'shuffle', () => mng.modifyByCurrentSelection(this.props.group, 'intersect'))
+            ]);
         }
+
+        ret.push(ActionMenu.Item('Select This', 'flash', () => mng.selectThis(this.props.group)));
+
         return ret;
     }
 
