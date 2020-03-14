@@ -313,7 +313,7 @@ namespace StructureComponentManager {
     export function getAddParams(plugin: PluginContext) {
         return {
             selection: SelectionParam,
-            representation: getRepresentationTypesSelect(plugin, plugin.managers.structure.component.pivotStructure, [['none', '< None >']]),
+            representation: getRepresentationTypesSelect(plugin, plugin.managers.structure.component.pivotStructure, [['none', '< Create Later >']]),
             label: PD.Text('')
         };
     }

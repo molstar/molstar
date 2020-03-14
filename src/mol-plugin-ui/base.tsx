@@ -19,14 +19,14 @@ export abstract class PluginUIComponent<P = {}, S = {}, SS = {}> extends React.C
     private subs: Subscription[] | undefined = void 0;
 
     protected subscribe<T>(obs: Observable<T>, action: (v: T) => void) {
-        if (typeof this.subs === 'undefined') this.subs = []
+        if (typeof this.subs === 'undefined') this.subs = [];
         this.subs.push(obs.subscribe(action));
     }
 
     componentWillUnmount() {
         if (!this.subs) return;
         for (const s of this.subs) s.unsubscribe();
-        this.subs = [];
+        this.subs = void 0;
     }
 
     protected init?(): void;
@@ -45,13 +45,14 @@ export abstract class PurePluginUIComponent<P = {}, S = {}, SS = {}> extends Rea
     private subs: Subscription[] | undefined = void 0;
 
     protected subscribe<T>(obs: Observable<T>, action: (v: T) => void) {
-        if (typeof this.subs === 'undefined') this.subs = []
+        if (typeof this.subs === 'undefined') this.subs = [];
         this.subs.push(obs.subscribe(action));
     }
 
     componentWillUnmount() {
         if (!this.subs) return;
         for (const s of this.subs) s.unsubscribe();
+        this.subs = void 0;
     }
 
     protected init?(): void;
