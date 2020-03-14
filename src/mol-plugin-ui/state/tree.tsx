@@ -100,14 +100,14 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
         const cellState = cell.state;
         const children = cell.parent.tree.children.get(this.ref);
         const showLabel = (cell.transform.ref !== StateTransform.RootRef) && (cell.status !== 'ok' || (!cell.state.isGhost && !this.hasDecorator(children)));
-        
+
         if (!showLabel) {
             if (children.size === 0) return null;
             return <div style={{ display: cellState.isCollapsed ? 'none' : 'block' }}>
                 {children.map(c => <StateTreeNode cell={cell.parent.cells.get(c!)!} key={c} depth={this.props.depth} />)}
             </div>;
         }
-        
+
         const newDepth = this.props.depth + 1;
         return <>
             <StateTreeNodeLabel cell={cell} depth={this.props.depth} />
@@ -205,7 +205,7 @@ class StateTreeNodeLabel extends PluginUIComponent<
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.ClearHighlight(this.plugin, { state: this.props.cell.parent, ref: this.ref });
+        PluginCommands.State.ClearHighlights(this.plugin);
         e.currentTarget.blur();
     }
 

@@ -256,9 +256,9 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         if (reprs.length === 0) {
             return ret;
         }
-        
+
         ret.push(ActionMenu.Item(`Remove Representation${reprs.length > 1 ? 's' : ''}`, 'remove', () => this.plugin.managers.structure.component.removeRepresentations(this.props.group)));
-        
+
         return ret;
     }
 
@@ -267,29 +267,24 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         this.setState({ action: void 0 });
         (item?.value as any)();
     }
-    
+
     selectRemoveAction: ActionMenu.OnSelect = item => {
         if (!item) return;
         this.setState({ action: void 0 });
         (item?.value as any)();
     }
-    
+
     toggleAction = () => this.setState({ action: this.state.action === 'action' ? void 0 : 'action' });
     toggleRemove = () => this.setState({ action: this.state.action === 'remove' ? void 0 : 'remove' });
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-
-        for (const c of this.props.group) {
-            PluginCommands.State.Highlight(this.plugin, { state: c.cell.parent, ref: c.cell.transform.ref });
-        }
+        PluginCommands.State.HighlightMany(this.plugin, this.props.group.map(c => ({ state: c.cell.parent, ref: c.cell.transform.ref })))
     }
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        for (const c of this.props.group) {
-            PluginCommands.State.ClearHighlight(this.plugin, { state: c.cell.parent, ref: c.cell.transform.ref });
-        }
+        PluginCommands.State.ClearHighlights(this.plugin);
     }
 
     focus = () => {
@@ -336,7 +331,7 @@ class StructureRepresentationEntry extends PurePluginUIComponent<{ group: Struct
         return <div style={{ position: 'relative' }}>
             <ExpandGroup header={`${repr.obj?.label || ''} Representation`} noOffset>
                 <UpdateTransformControl state={repr.parent} transform={repr.transform} customHeader='none' customUpdate={this.update} noMargin />
-                <IconButton onClick={this.remove} icon='remove' title='Remove' small style={{ 
+                <IconButton onClick={this.remove} icon='remove' title='Remove' small style={{
                     position: 'absolute', top: 0, right: 0, lineHeight: '20px', height: '20px', textAlign: 'right', width: '44px', paddingRight: '6px'
                 }} />
             </ExpandGroup>

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Camera } from '../mol-canvas3d/camera';
@@ -25,7 +26,8 @@ export const PluginCommands = {
         ToggleExpanded: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
         ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
         Highlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
-        ClearHighlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
+        HighlightMany: PluginCommand<{ state: State, ref: StateTransform.Ref }[]>(),
+        ClearHighlights: PluginCommand<{}>(),
 
         Snapshots: {
             Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.GetSnapshotParams }>(),
