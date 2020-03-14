@@ -11,7 +11,6 @@ import { StructureRepresentation, StructureRepresentationProvider, StructureRepr
 import { RepresentationParamsGetter, RepresentationContext, Representation } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
-import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
 const SpacefillVisuals = {
     'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Sphere mesh', ctx, getParams, getElementSphereVisual(ctx.webgl)),
@@ -19,7 +18,6 @@ const SpacefillVisuals = {
 
 export const SpacefillParams = {
     ...ElementSphereParams,
-    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'spheres'], UnitKindOptions),
 }
 export type SpacefillParams = typeof SpacefillParams
 export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structure) {

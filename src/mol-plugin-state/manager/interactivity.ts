@@ -65,7 +65,7 @@ namespace InteractivityManager {
     }
 
     export const Params = {
-        granularity: PD.Select('residue', ModelLoci.GranularityOptions, { description: 'Controls if selections are expanded to whole residues, chains, structures, or left as atoms and coarse elements' }),
+        granularity: PD.Select('residue', ModelLoci.GranularityOptions, { label: 'Picking', description: 'Controls if selections are expanded upon picking to whole residues, chains, structures, instances, or left as atoms and coarse elements' }),
     }
     export type Params = typeof Params
     export type Props = PD.Values<Params>

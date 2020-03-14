@@ -12,11 +12,12 @@ import { GaussianDensityTexture, GaussianDensityTexture2d } from '../../../../mo
 import { Texture } from '../../../../mol-gl/webgl/texture';
 import { WebGLContext } from '../../../../mol-gl/webgl/context';
 import { getUnitConformationAndRadius, getStructureConformationAndRadius, CommonSurfaceParams } from './common';
+import { BaseGeometry } from '../../../../mol-geo/geometry/base';
 
 const SharedGaussianDensityParams = {
-    resolution: PD.Numeric(1, { min: 0.1, max: 20, step: 0.1 }),
-    radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
-    smoothness: PD.Numeric(1.5, { min: 0.5, max: 2.5, step: 0.1 }),
+    resolution: PD.Numeric(1, { min: 0.1, max: 20, step: 0.1 }, { description: 'Grid resolution/cell spacing.', ...BaseGeometry.CustomQualityParamInfo }),
+    radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, { description: 'Extra/offset radius added to the atoms/coarse elements for gaussian calculation. Useful to create coarse, low resolution surfaces.' }),
+    smoothness: PD.Numeric(1.5, { min: 0.5, max: 2.5, step: 0.1 }, { description: 'Smoothness of the gausian surface, lower is smoother.' }),
     ...CommonSurfaceParams
 }
 

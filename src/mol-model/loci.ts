@@ -15,6 +15,7 @@ import { ParamDefinition } from '../mol-util/param-definition';
 import { shallowEqual } from '../mol-util';
 import { FiniteArray } from '../mol-util/type-helpers';
 import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
+import { stringToWords } from '../mol-util/string';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -219,16 +220,19 @@ namespace Loci {
         'structure': (loci: Loci) => {
             return StructureElement.Loci.is(loci)
                 ? Structure.toStructureElementLoci(loci.structure)
-                : loci
-        },
-        'shape': (loci: Loci) => {
-            return ShapeGroup.isLoci(loci)
-                ? Shape.Loci(loci.shape)
-                : loci
+                : ShapeGroup.isLoci(loci)
+                    ? Shape.Loci(loci.shape)
+                    : loci
         },
     }
     export type Granularity = keyof typeof Granularity
-    export const GranularityOptions = ParamDefinition.objectToOptions(Granularity);
+    export const GranularityOptions = ParamDefinition.objectToOptions(Granularity, k => {
+        switch (k) {
+            case 'element': return'Atom/Coarse Element'
+            case 'structure': return'Structure/Shape'
+            default: return stringToWords(k)
+        }
+    });
 
     export function applyGranularity(loci: Loci, granularity: Granularity) {
         return Granularity[granularity](loci)

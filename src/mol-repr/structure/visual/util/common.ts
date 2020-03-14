@@ -85,8 +85,7 @@ export const UnitKindInfo = {
     'gaussians': {},
 }
 export type UnitKind = keyof typeof UnitKindInfo
-export const UnitKindNames = Object.keys(UnitKindInfo)
-export const UnitKindOptions = UnitKindNames.map(n => [n, n] as [UnitKind, string])
+export const UnitKindOptions = PD.objectToOptions(UnitKindInfo)
 
 export function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
     for (let i = 0, il = unitKinds.length; i < il; ++i) {
@@ -108,7 +107,7 @@ export function getConformation(unit: Unit) {
 }
 
 export const CommonSurfaceParams = {
-    ignoreHydrogens: PD.Boolean(false),
+    ignoreHydrogens: PD.Boolean(false, { description: 'Whether or not to include hydrogen atoms in the surface calculation.' }),
     includeParent: PD.Boolean(false, { description: 'Include elements of the parent structure in surface calculation to get a surface patch of the current structure.' }),
 }
 export const DefaultCommonSurfaceProps = PD.getDefaultValues(CommonSurfaceParams)

@@ -11,7 +11,6 @@ import { StructureRepresentation, StructureRepresentationProvider, StructureRepr
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
-import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
 const PointVisuals = {
     'element-point': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementPointParams>) => UnitsRepresentation('Points', ctx, getParams, ElementPointVisual),
@@ -19,7 +18,6 @@ const PointVisuals = {
 
 export const PointParams = {
     ...ElementPointParams,
-    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'spheres'], UnitKindOptions),
 }
 export type PointParams = typeof PointParams
 export function getPointParams(ctx: ThemeRegistryContext, structure: Structure) {

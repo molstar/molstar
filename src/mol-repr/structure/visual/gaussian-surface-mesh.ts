@@ -26,7 +26,6 @@ export const GaussianSurfaceMeshParams = {
     ...UnitsMeshParams,
     ...UnitsTextureMeshParams,
     ...GaussianDensityParams,
-    ignoreHydrogens: PD.Boolean(false),
 }
 export type GaussianSurfaceMeshParams = typeof GaussianSurfaceMeshParams
 

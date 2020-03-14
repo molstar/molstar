@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StructureParams, StructureMeshParams, StructureDirectVolumeParams, StructureTextParams } from './representation';
+import { StructureMeshParams, StructureDirectVolumeParams, StructureTextParams, StructureParams } from './representation';
 import { Visual, VisualContext } from '../visual';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
@@ -13,7 +13,6 @@ import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
 import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
 import { createRenderObject, RenderObjectValues, GraphicsRenderObject } from '../../mol-gl/render-object';
-import { UnitKind, UnitKindOptions } from './visual/util/common';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
@@ -42,13 +41,7 @@ function createComplexRenderObject<G extends Geometry>(structure: Structure, geo
     return createRenderObject(geometry.kind, values, state, materialId)
 }
 
-const ComplexParams = {
-    ...StructureParams,
-    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'spheres'], UnitKindOptions),
-}
-type ComplexParams = typeof ComplexParams
-
-interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
+interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
     defaultProps: PD.Values<P>
     createGeometry(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
     createLocationIterator(structure: Structure): LocationIterator
@@ -57,11 +50,11 @@ interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure): void
 }
 
-interface ComplexVisualGeometryBuilder<P extends ComplexParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
+interface ComplexVisualGeometryBuilder<P extends StructureParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
     geometryUtils: GeometryUtils<G>
 }
 
-export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geometry.Params<G>>(builder: ComplexVisualGeometryBuilder<P, G>, materialId: number): ComplexVisual<P> {
+export function ComplexVisual<G extends Geometry, P extends StructureParams & Geometry.Params<G>>(builder: ComplexVisualGeometryBuilder<P, G>, materialId: number): ComplexVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder
     const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
@@ -233,16 +226,13 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
 
 // mesh
 
-export const ComplexMeshParams = {
-    ...StructureMeshParams,
-    unitKinds: PD.MultiSelect<UnitKind>([ 'atomic', 'spheres' ], UnitKindOptions),
-}
+export const ComplexMeshParams = { ...StructureMeshParams, ...StructureParams }
 export type ComplexMeshParams = typeof ComplexMeshParams
 
 export interface ComplexMeshVisualBuilder<P extends ComplexMeshParams> extends ComplexVisualBuilder<P, Mesh> { }
 
 export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexMeshVisualBuilder<P>, materialId: number): ComplexVisual<P> {
-    return ComplexVisual<Mesh, StructureMeshParams & ComplexParams>({
+    return ComplexVisual<Mesh, P>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure)
@@ -254,16 +244,13 @@ export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexM
 
 // text
 
-export const ComplexTextParams = {
-    ...StructureTextParams,
-    unitKinds: PD.MultiSelect<UnitKind>([ 'atomic', 'spheres' ], UnitKindOptions),
-}
+export const ComplexTextParams = { ...StructureTextParams, ...StructureParams }
 export type ComplexTextParams = typeof ComplexTextParams
 
 export interface ComplexTextVisualBuilder<P extends ComplexTextParams> extends ComplexVisualBuilder<P, Text> { }
 
 export function ComplexTextVisual<P extends ComplexTextParams>(builder: ComplexTextVisualBuilder<P>, materialId: number): ComplexVisual<P> {
-    return ComplexVisual<Text, StructureTextParams & ComplexParams>({
+    return ComplexVisual<Text, P>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure)
@@ -281,16 +268,13 @@ export function ComplexTextVisual<P extends ComplexTextParams>(builder: ComplexT
 
 // direct-volume
 
-export const ComplexDirectVolumeParams = {
-    ...StructureDirectVolumeParams,
-    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'spheres', 'gaussians'], UnitKindOptions),
-}
+export const ComplexDirectVolumeParams = { ...StructureDirectVolumeParams, ...StructureParams }
 export type ComplexDirectVolumeParams = typeof ComplexDirectVolumeParams
 
 export interface ComplexDirectVolumeVisualBuilder<P extends ComplexDirectVolumeParams> extends ComplexVisualBuilder<P, DirectVolume> { }
 
 export function ComplexDirectVolumeVisual<P extends ComplexDirectVolumeParams>(builder: ComplexDirectVolumeVisualBuilder<P>, materialId: number): ComplexVisual<P> {
-    return ComplexVisual<DirectVolume, StructureDirectVolumeParams & ComplexParams>({
+    return ComplexVisual<DirectVolume, P>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure)

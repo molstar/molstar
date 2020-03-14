@@ -8,9 +8,8 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { RepresentationParamsGetter, RepresentationContext, Representation } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
-import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
+import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation, getUnitKindsParam } from '../../../mol-repr/structure/representation';
 import { EllipsoidMeshParams, EllipsoidMeshVisual } from '../visual/ellipsoid-mesh';
-import { UnitKind, UnitKindOptions } from '../../../mol-repr/structure/visual/util/common';
 import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/property/anisotropic';
 import { IntraUnitBondParams, IntraUnitBondVisual } from '../visual/bond-intra-unit-cylinder';
 import { InterUnitBondParams, InterUnitBondVisual } from '../visual/bond-inter-unit-cylinder';
@@ -25,7 +24,7 @@ export const EllipsoidParams = {
     ...EllipsoidMeshParams,
     ...IntraUnitBondParams,
     ...InterUnitBondParams,
-    unitKinds: PD.MultiSelect<UnitKind>(['atomic'], UnitKindOptions),
+    unitKinds: getUnitKindsParam(['atomic']),
     sizeFactor: PD.Numeric(1, { min: 0.01, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(0.1, { min: 0.01, max: 3, step: 0.01 }),
     bondCap: PD.Boolean(true),

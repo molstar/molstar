@@ -20,7 +20,6 @@ import { createLinkCylinderMesh, LinkCylinderParams } from '../../../mol-repr/st
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../../../mol-repr/structure/complex-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { ComplexRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider } from '../../../mol-repr/structure/representation';
-import { UnitKind, UnitKindOptions } from '../../../mol-repr/structure/visual/util/common';
 import { CustomProperty } from '../../common/custom-property';
 import { CrossLinkRestraintProvider, CrossLinkRestraint } from './property';
 
@@ -122,7 +121,6 @@ const CrossLinkRestraintVisuals = {
 
 export const CrossLinkRestraintParams = {
     ...CrossLinkRestraintCylinderParams,
-    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'spheres'], UnitKindOptions),
 }
 export type CrossLinkRestraintParams = typeof CrossLinkRestraintParams
 export function getCrossLinkRestraintParams(ctx: ThemeRegistryContext, structure: Structure) {

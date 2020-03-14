@@ -14,6 +14,7 @@ import { OrderedSet } from '../../mol-data/int';
 import { PositionData } from './common';
 import { Mat4 } from '../../mol-math/linear-algebra/3d';
 import { Box3D, GridLookup3D, fillGridDim } from '../../mol-math/geometry';
+import { BaseGeometry } from '../../mol-geo/geometry/base';
 
 function normalToLine (out: Vec3, p: Vec3) {
     out[0] = out[1] = out[2] = 1.0
@@ -45,9 +46,9 @@ function getAngleTables (probePositions: number): AnglesTables {
 //
 
 export const MolecularSurfaceCalculationParams = {
-    resolution: PD.Numeric(0.5, { min: 0.01, max: 20, step: 0.01 }),
-    probeRadius: PD.Numeric(1.4, { min: 0, max: 10, step: 0.1 }),
-    probePositions: PD.Numeric(30, { min: 12, max: 90, step: 1 }),
+    probeRadius: PD.Numeric(1.4, { min: 0, max: 10, step: 0.1 }, { description: 'Radius of the probe tracing the molecular surface.' }),
+    resolution: PD.Numeric(0.5, { min: 0.01, max: 20, step: 0.01 }, { description: 'Grid resolution/cell spacing.', ...BaseGeometry.CustomQualityParamInfo }),
+    probePositions: PD.Numeric(30, { min: 12, max: 90, step: 1 }, { description: 'Number of positions tested for probe target intersection.', ...BaseGeometry.CustomQualityParamInfo }),
 }
 export const DefaultMolecularSurfaceCalculationProps = PD.getDefaultValues(MolecularSurfaceCalculationParams)
 export type MolecularSurfaceCalculationProps = typeof DefaultMolecularSurfaceCalculationProps

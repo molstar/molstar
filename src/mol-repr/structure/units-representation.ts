@@ -6,8 +6,7 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StructureParams, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState } from './representation';
-import { UnitKind, UnitKindOptions } from './visual/util/common';
+import { StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState, StructureParams } from './representation';
 import { Visual } from '../visual';
 import { StructureGroup } from './units-visual';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
@@ -24,15 +23,9 @@ import { Transparency } from '../../mol-theme/transparency';
 import { Mat4, EPSILON } from '../../mol-math/linear-algebra';
 import { Interval } from '../../mol-data/int';
 
-export const UnitsParams = {
-    ...StructureParams,
-    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'spheres'], UnitKindOptions),
-}
-export type UnitsParams = typeof UnitsParams
+export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
 
-export interface UnitsVisual<P extends UnitsParams> extends Visual<StructureGroup, P> { }
-
-export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number) => UnitsVisual<P>): StructureRepresentation<P> {
+export function UnitsRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number) => UnitsVisual<P>): StructureRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
     const materialId = getNextMaterialId()
@@ -90,7 +83,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                         visuals.set(group.hashCode, { visual, group })
                         oldVisuals.delete(group.hashCode)
 
-                        // Remove highlight 
+                        // Remove highlight
                         // TODO: remove selection too??
                         if (visual.renderObject) {
                             const arr = visual.renderObject.values.tMarker.ref.value.array;

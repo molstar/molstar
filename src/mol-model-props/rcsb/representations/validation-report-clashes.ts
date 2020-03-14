@@ -13,8 +13,7 @@ import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci, DataLoci } from '../../../mol-model/loci';
 import { Interval } from '../../../mol-data/int';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../../../mol-repr/representation';
-import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
-import { UnitKind, UnitKindOptions } from '../../../mol-repr/structure/visual/util/common';
+import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation, getUnitKindsParam } from '../../../mol-repr/structure/representation';
 import { VisualContext } from '../../../mol-repr/visual';
 import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from '../../../mol-repr/structure/visual/util/link';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../../../mol-repr/structure/units-visual';
@@ -263,7 +262,7 @@ const ClashesVisuals = {
 export const ClashesParams = {
     ...IntraUnitClashParams,
     ...InterUnitClashParams,
-    unitKinds: PD.MultiSelect<UnitKind>(['atomic'], UnitKindOptions),
+    unitKinds: getUnitKindsParam(['atomic']),
     visuals: PD.MultiSelect(['intra-clash', 'inter-clash'], PD.objectToOptions(ClashesVisuals))
 }
 export type ClashesParams = typeof ClashesParams

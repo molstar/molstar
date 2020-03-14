@@ -6,7 +6,7 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StructureParams, ComplexVisual, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState } from './representation';
+import { ComplexVisual, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState, StructureParams } from './representation';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { Structure, StructureElement, Bond } from '../../mol-model/structure';
 import { Subject } from 'rxjs';

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,7 +13,6 @@ import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
 import { createUnitsTransform, includesUnitKind } from './visual/util/common';
 import { createRenderObject, RenderObjectValues, GraphicsRenderObject } from '../../mol-gl/render-object';
-import { UnitsParams } from './units-representation';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
@@ -27,7 +26,7 @@ import { createColors } from '../../mol-geo/geometry/color-data';
 import { Mat4 } from '../../mol-math/linear-algebra';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
-import { StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureTextureMeshParams, StructureTextParams } from './representation';
+import { StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureTextureMeshParams, StructureTextParams, StructureParams } from './representation';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { SizeTheme } from '../../mol-theme/size';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
@@ -50,7 +49,7 @@ function createUnitsRenderObject<G extends Geometry>(group: Unit.SymmetryGroup, 
     return createRenderObject(geometry.kind, values, state, materialId)
 }
 
-interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
+interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
     defaultProps: PD.Values<P>
     createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
     createLocationIterator(structureGroup: StructureGroup): LocationIterator
@@ -59,11 +58,11 @@ interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup): void
 }
 
-interface UnitsVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> extends UnitsVisualBuilder<P, G> {
+interface UnitsVisualGeometryBuilder<P extends StructureParams, G extends Geometry> extends UnitsVisualBuilder<P, G> {
     geometryUtils: GeometryUtils<G>
 }
 
-export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry.Params<G>>(builder: UnitsVisualGeometryBuilder<P, G>, materialId: number): UnitsVisual<P> {
+export function UnitsVisual<G extends Geometry, P extends StructureParams & Geometry.Params<G>>(builder: UnitsVisualGeometryBuilder<P, G>, materialId: number): UnitsVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder
     const { createEmpty: createEmptyGeometry, updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
@@ -278,12 +277,12 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
 
 // mesh
 
-export const UnitsMeshParams = { ...StructureMeshParams, ...UnitsParams }
+export const UnitsMeshParams = { ...StructureMeshParams, ...StructureParams }
 export type UnitsMeshParams = typeof UnitsMeshParams
 export interface UnitsMeshVisualBuilder<P extends UnitsMeshParams> extends UnitsVisualBuilder<P, Mesh> { }
 
 export function UnitsMeshVisual<P extends UnitsMeshParams>(builder: UnitsMeshVisualBuilder<P>, materialId: number): UnitsVisual<P> {
-    return UnitsVisual<Mesh, StructureMeshParams & UnitsParams>({
+    return UnitsVisual<Mesh, P>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
@@ -295,12 +294,12 @@ export function UnitsMeshVisual<P extends UnitsMeshParams>(builder: UnitsMeshVis
 
 // spheres
 
-export const UnitsSpheresParams = { ...StructureSpheresParams, ...UnitsParams }
+export const UnitsSpheresParams = { ...StructureSpheresParams, ...StructureParams }
 export type UnitsSpheresParams = typeof UnitsSpheresParams
 export interface UnitsSpheresVisualBuilder<P extends UnitsSpheresParams> extends UnitsVisualBuilder<P, Spheres> { }
 
 export function UnitsSpheresVisual<P extends UnitsSpheresParams>(builder: UnitsSpheresVisualBuilder<P>, materialId: number): UnitsVisual<P> {
-    return UnitsVisual<Spheres, StructureSpheresParams & UnitsParams>({
+    return UnitsVisual<Spheres, P>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
@@ -312,12 +311,12 @@ export function UnitsSpheresVisual<P extends UnitsSpheresParams>(builder: UnitsS
 
 // points
 
-export const UnitsPointsParams = { ...StructurePointsParams, ...UnitsParams }
+export const UnitsPointsParams = { ...StructurePointsParams, ...StructureParams }
 export type UnitsPointsParams = typeof UnitsPointsParams
 export interface UnitsPointVisualBuilder<P extends UnitsPointsParams> extends UnitsVisualBuilder<P, Points> { }
 
 export function UnitsPointsVisual<P extends UnitsPointsParams>(builder: UnitsPointVisualBuilder<P>, materialId: number): UnitsVisual<P> {
-    return UnitsVisual<Points, StructurePointsParams & UnitsParams>({
+    return UnitsVisual<Points, P>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
@@ -329,12 +328,12 @@ export function UnitsPointsVisual<P extends UnitsPointsParams>(builder: UnitsPoi
 
 // lines
 
-export const UnitsLinesParams = { ...StructureLinesParams, ...UnitsParams }
+export const UnitsLinesParams = { ...StructureLinesParams, ...StructureParams }
 export type UnitsLinesParams = typeof UnitsLinesParams
 export interface UnitsLinesVisualBuilder<P extends UnitsLinesParams> extends UnitsVisualBuilder<P, Lines> { }
 
 export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLinesVisualBuilder<P>, materialId: number): UnitsVisual<P> {
-    return UnitsVisual<Lines, StructureLinesParams & UnitsParams>({
+    return UnitsVisual<Lines, P>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
@@ -346,12 +345,12 @@ export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLines
 
 // text
 
-export const UnitsTextParams = { ...StructureTextParams, ...UnitsParams }
+export const UnitsTextParams = { ...StructureTextParams, ...StructureParams }
 export type UnitsTextParams = typeof UnitsTextParams
 export interface UnitsTextVisualBuilder<P extends UnitsTextParams> extends UnitsVisualBuilder<P, Text> { }
 
 export function UnitsTextVisual<P extends UnitsTextParams>(builder: UnitsTextVisualBuilder<P>, materialId: number): UnitsVisual<P> {
-    return UnitsVisual<Text, StructureTextParams & UnitsParams>({
+    return UnitsVisual<Text, P>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
@@ -369,12 +368,12 @@ export function UnitsTextVisual<P extends UnitsTextParams>(builder: UnitsTextVis
 
 // direct-volume
 
-export const UnitsDirectVolumeParams = { ...StructureDirectVolumeParams, ...UnitsParams }
+export const UnitsDirectVolumeParams = { ...StructureDirectVolumeParams, ...StructureParams }
 export type UnitsDirectVolumeParams = typeof UnitsDirectVolumeParams
 export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeParams> extends UnitsVisualBuilder<P, DirectVolume> { }
 
 export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(builder: UnitsDirectVolumeVisualBuilder<P>, materialId: number): UnitsVisual<P> {
-    return UnitsVisual<DirectVolume, StructureDirectVolumeParams & UnitsParams>({
+    return UnitsVisual<DirectVolume, P>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
@@ -386,12 +385,12 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(build
 
 // texture-mesh
 
-export const UnitsTextureMeshParams = { ...StructureTextureMeshParams, ...UnitsParams }
+export const UnitsTextureMeshParams = { ...StructureTextureMeshParams, ...StructureParams }
 export type UnitsTextureMeshParams = typeof UnitsTextureMeshParams
 export interface UnitsTextureMeshVisualBuilder<P extends UnitsTextureMeshParams> extends UnitsVisualBuilder<P, TextureMesh> { }
 
 export function UnitsTextureMeshVisual<P extends UnitsTextureMeshParams>(builder: UnitsTextureMeshVisualBuilder<P>, materialId: number): UnitsVisual<P> {
-    return UnitsVisual<TextureMesh, StructureTextureMeshParams & UnitsParams>({
+    return UnitsVisual<TextureMesh, P>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
