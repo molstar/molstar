@@ -88,8 +88,8 @@ function Set() {
             {circleRight}
         </defs>
         <g>
-            <use href="#circle-left" className="msp-shape-filled"/>
-            <use href="#circle-right" className="msp-shape-empty"/>
+            <use href="#circle-left" className="msp-shape-empty"/>
+            <use href="#circle-right" className="msp-shape-filled"/>
         </g>
     </svg>;
 }
