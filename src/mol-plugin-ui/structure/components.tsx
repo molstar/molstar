@@ -22,12 +22,6 @@ interface StructureComponentControlState extends CollapsableState {
     isDisabled: boolean
 }
 
-const MeasurementFocusOptions = {
-    minRadius: 6,
-    extraRadius: 6,
-    durationMs: 250,
-}
-
 export class StructureComponentControls extends CollapsableControls<{}, StructureComponentControlState> {
     protected defaultState(): StructureComponentControlState {
         return { header: 'Representation', isCollapsed: false, isDisabled: false };
@@ -118,7 +112,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
             <div className='msp-control-row msp-select-row'>
                 <ToggleButton icon='bookmarks' label='Preset' toggle={this.togglePreset} isSelected={this.state.action === 'preset'} disabled={this.isDisabled} />
                 <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
-                <ToggleButton icon='cog' label='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
+                <ToggleButton icon='cog' label='' title='Options' style={{ flex: '0 0 40px' }} toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
                 <IconButton customClass='msp-flex-item' style={{ flex: '0 0 40px' }} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} icon='ccw' title='Some mistakes of the past can be undone.' />
             </div>
             {this.state.action === 'preset' && this.presetControls}
@@ -309,11 +303,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     focus = () => {
         const sphere = this.pivot.cell.obj?.data.boundary.sphere;
-        if (sphere) {
-            const { extraRadius, minRadius, durationMs } = MeasurementFocusOptions;
-            const radius = Math.max(sphere.radius + extraRadius, minRadius);
-            PluginCommands.Camera.Focus(this.plugin, { center: sphere.center, radius, durationMs });
-        }
+        if (sphere) this.plugin.managers.interactivity.focusSphere(sphere);
     }
 
     render() {

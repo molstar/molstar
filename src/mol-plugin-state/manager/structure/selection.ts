@@ -20,10 +20,11 @@ import { arrayRemoveAtInPlace } from '../../../mol-util/array';
 import { PluginComponent } from '../../component';
 import { StructureSelectionQuery } from '../../helpers/structure-selection-query';
 import { PluginStateObject } from '../../objects';
+import { UUID } from '../../../mol-util';
 
 interface StructureSelectionManagerState {
     entries: Map<string, SelectionEntry>,
-    history: HistoryEntry[],
+    additionsHistory: StructureSelectionHistoryEntry[],
     stats?: SelectionStats
 }
 
@@ -34,13 +35,14 @@ export type StructureSelectionModifier = 'add' | 'remove' | 'intersect' | 'set'
 
 export class StructureSelectionManager extends PluginComponent<StructureSelectionManagerState> {
     readonly events = {
-        changed: this.ev<undefined>()
+        changed: this.ev<undefined>(),
+        additionsHistoryUpdated: this.ev<undefined>()
     }
 
     private referenceLoci: Loci | undefined
 
     get entries() { return this.state.entries; }
-    get history() { return this.state.history; }
+    get additionsHistory() { return this.state.additionsHistory; }
     get stats() {
         if (this.state.stats) return this.state.stats;
         this.state.stats = this.calcStats();
@@ -89,7 +91,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
 
         const sel = entry.selection;
         entry.selection = StructureElement.Loci.union(entry.selection, loci);
-        this.addHistory(loci);
+        this.tryAddHistory(loci);
         this.referenceLoci = loci
         return !StructureElement.Loci.areEqual(sel, entry.selection);
     }
@@ -102,7 +104,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
 
         const sel = entry.selection;
         entry.selection = StructureElement.Loci.subtract(entry.selection, loci);
-        this.removeHistory(loci);
+        // this.addHistory(loci);
         this.referenceLoci = loci
         return !StructureElement.Loci.areEqual(sel, entry.selection);
     }
@@ -115,7 +117,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
 
         const sel = entry.selection;
         entry.selection = StructureElement.Loci.intersect(entry.selection, loci);
-        this.addHistory(loci);
+        // this.addHistory(loci);
         this.referenceLoci = loci
         return !StructureElement.Loci.areEqual(sel, entry.selection);
     }
@@ -128,16 +130,41 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
 
         const sel = entry.selection;
         entry.selection = loci;
-        this.addHistory(loci);
+        this.tryAddHistory(loci);
         this.referenceLoci = undefined;
         return !StructureElement.Loci.areEqual(sel, entry.selection);
     }
 
-    private addHistory(loci: StructureElement.Loci) {
+    modifyHistory(entry: StructureSelectionHistoryEntry, action: 'remove' | 'up' | 'down', modulus?: number) {
+        const idx = this.additionsHistory.indexOf(entry);
+        if (idx < 0) return;
+
+        let swapWith: number | undefined = void 0;
+
+        switch (action) {
+            case 'remove': arrayRemoveAtInPlace(this.additionsHistory, idx); break;
+            case 'up': swapWith = idx - 1; break;
+            case 'down': swapWith = idx + 1; break;
+        }
+
+        if (swapWith !== void 0) {
+            const mod = modulus ? Math.min(this.additionsHistory.length, modulus) : this.additionsHistory.length;
+            swapWith = swapWith % mod;
+            if (swapWith < 0) swapWith += mod;
+
+            const t = this.additionsHistory[idx];
+            this.additionsHistory[idx] = this.additionsHistory[swapWith];
+            this.additionsHistory[swapWith] = t;
+        }
+
+        this.events.additionsHistoryUpdated.next();
+    }
+
+    private tryAddHistory(loci: StructureElement.Loci) {
         if (Loci.isEmpty(loci)) return;
 
-        let idx = 0, entry: HistoryEntry | undefined = void 0;
-        for (const l of this.history) {
+        let idx = 0, entry: StructureSelectionHistoryEntry | undefined = void 0;
+        for (const l of this.additionsHistory) {
             if (Loci.areEqual(l.loci, loci)) {
                 entry = l;
                 break;
@@ -146,40 +173,43 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
         }
 
         if (entry) {
-            arrayRemoveAtInPlace(this.history, idx);
-            this.history.unshift(entry);
+            arrayRemoveAtInPlace(this.additionsHistory, idx);
+            this.additionsHistory.unshift(entry);
+            this.events.additionsHistoryUpdated.next();
             return;
         }
 
         const stats = StructureElement.Stats.ofLoci(loci);
-        const label = structureElementStatsLabel(stats)
+        const label = structureElementStatsLabel(stats, { reverse: true });
 
-        this.history.unshift({ loci, label });
-        if (this.history.length > HISTORY_CAPACITY) this.history.pop();
+        this.additionsHistory.unshift({ id: UUID.create22(), loci, label });
+        if (this.additionsHistory.length > HISTORY_CAPACITY) this.additionsHistory.pop();
+
+        this.events.additionsHistoryUpdated.next();
     }
 
-    private removeHistory(loci: Loci) {
-        if (Loci.isEmpty(loci)) return;
+    // private removeHistory(loci: Loci) {
+    //     if (Loci.isEmpty(loci)) return;
 
-        let idx = 0, found = false;
-        for (const l of this.history) {
-            if (Loci.areEqual(l.loci, loci)) {
-                found = true;
-                break;
-            }
-            idx++;
-        }
+    //     let idx = 0, found = false;
+    //     for (const l of this.history) {
+    //         if (Loci.areEqual(l.loci, loci)) {
+    //             found = true;
+    //             break;
+    //         }
+    //         idx++;
+    //     }
 
-        if (found) {
-            arrayRemoveAtInPlace(this.history, idx);
-        }
-    }
+    //     if (found) {
+    //         arrayRemoveAtInPlace(this.history, idx);
+    //     }
+    // }
 
     private onRemove(ref: string) {
         if (this.entries.has(ref)) {
             this.entries.delete(ref);
             // TODO: property update the latest loci
-            this.state.history = [];
+            this.state.additionsHistory = [];
             this.referenceLoci = undefined
         }
     }
@@ -191,7 +221,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
             if (!PluginStateObject.Molecule.Structure.is(oldObj) || oldObj === obj || oldObj.data === obj.data) return;
 
             // TODO: property update the latest loci & reference loci
-            this.state.history = [];
+            this.state.additionsHistory = [];
             this.referenceLoci = undefined
 
             // remap the old selection to be related to the new object if possible.
@@ -390,7 +420,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
     }
 
     constructor(private plugin: PluginContext) {
-        super({ entries: new Map(), history: [], stats: SelectionStats() });
+        super({ entries: new Map(), additionsHistory: [], stats: SelectionStats() });
 
         plugin.state.dataState.events.object.removed.subscribe(e => this.onRemove(e.ref));
         plugin.state.dataState.events.object.updated.subscribe(e => this.onUpdate(e.ref, e.oldObj, e.obj));
@@ -430,7 +460,8 @@ class SelectionEntry {
     }
 }
 
-interface HistoryEntry {
+export interface StructureSelectionHistoryEntry {
+    id: UUID,
     loci: StructureElement.Loci,
     label: string
 }

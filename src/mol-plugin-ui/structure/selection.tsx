@@ -6,7 +6,6 @@
  */
 
 import * as React from 'react';
-import { StructureElement } from '../../mol-model/structure';
 import { StructureSelectionQueries, StructureSelectionQuery, StructureSelectionQueryList } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
@@ -17,7 +16,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { stripTags } from '../../mol-util/string';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { ExpandGroup, ToggleButton, ControlGroup } from '../controls/common';
+import { ControlGroup, ToggleButton } from '../controls/common';
 import { Icon } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 
@@ -80,7 +79,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         if (stats.structureCount === 0 || stats.elementCount === 0) {
             return 'Nothing Selected'
         } else {
-            return `Selected ${stripTags(stats.label)}`
+            return `${stripTags(stats.label)} Selected`
         }
     }
 
@@ -92,16 +91,6 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         const { sphere } = this.plugin.managers.structure.selection.getBoundary()
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
         this.plugin.canvas3d?.camera.focus(origin, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs, dirA, dirC);
-    }
-
-    focusLoci(loci: StructureElement.Loci) {
-        return () => {
-            const { extraRadius, minRadius, durationMs } = this.state
-            if (this.plugin.managers.structure.selection.stats.elementCount === 0) return
-            const { sphere } = StructureElement.Loci.getBoundary(loci)
-            const radius = Math.max(sphere.radius + extraRadius, minRadius);
-            this.plugin.canvas3d?.camera.focus(sphere.center, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs);
-        }
     }
 
     setProps = (props: any) => {
@@ -151,10 +140,9 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
                 <ToggleButton icon='brush' title='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} />
             </div>
             {(this.state.action && this.state.action !== 'color') && <ActionMenu header={ActionHeader.get(this.state.action as StructureSelectionModifier)} items={this.queries} onSelect={this.selectQuery} />}
-            {this.state.action === 'color' && 
-                <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.toggleColor} topRightIcon='off'>
-                    <ApplyColorControls />
-                </ControlGroup>}
+            {this.state.action === 'color' && <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.toggleColor} topRightIcon='off'>
+                <ApplyColorControls />
+            </ControlGroup>}
         </>
     }
 
@@ -175,25 +163,6 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     }
 
     renderControls() {
-        const history: JSX.Element[] = [];
-
-        const mng = this.plugin.managers.structure.selection;
-
-        // TODO: fix the styles, move them to CSS
-
-        for (let i = 0, _i = Math.min(4, mng.history.length); i < _i; i++) {
-            const e = mng.history[i];
-            history.push(<li key={e!.label}>
-                <button className='msp-btn msp-btn-block msp-form-control' style={{ overflow: 'hidden' }}
-                    title='Click to focus.' onClick={this.focusLoci(e.loci)}>
-                    <span dangerouslySetInnerHTML={{ __html: e.label.split('|').reverse().join(' | ') }} />
-                </button>
-                {/* <div>
-                    <IconButton icon='remove' title='Remove' onClick={() => {}} />
-                </div> */}
-            </li>)
-        }
-
         return <>
             <ParameterControls params={StructureSelectionParams} values={this.values} onChangeObject={this.setProps} />
             {this.controls}
@@ -203,11 +172,6 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
                     {this.stats}
                 </button>
             </div>
-            {history.length > 0 && <ExpandGroup header='Selection History'>
-                <ul style={{ listStyle: 'none', marginTop: '1px', marginBottom: '0' }} className='msp-state-list'>
-                    {history}
-                </ul>
-            </ExpandGroup>}
         </>
     }
 }

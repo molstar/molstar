@@ -5,27 +5,22 @@
  */
 
 import * as React from 'react';
-import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
-import { lociLabel, dihedralLabel, angleLabel, distanceLabel } from '../../mol-theme/label';
 import { Loci } from '../../mol-model/loci';
-import { FiniteArray } from '../../mol-util/type-helpers';
-import { State } from '../../mol-state';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { IconButton, ExpandGroup, ToggleButton } from '../controls/common';
-import { PluginCommands } from '../../mol-plugin/commands';
+import { StructureElement } from '../../mol-model/structure';
 import { StructureMeasurementCell, StructureMeasurementOptions, StructureMeasurementParams } from '../../mol-plugin-state/manager/structure/measurement';
-import { ParameterControls } from '../controls/parameters';
+import { StructureSelectionHistoryEntry } from '../../mol-plugin-state/manager/structure/selection';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { PluginCommands } from '../../mol-plugin/commands';
+import { State } from '../../mol-state';
+import { angleLabel, dihedralLabel, distanceLabel, lociLabel } from '../../mol-theme/label';
+import { FiniteArray } from '../../mol-util/type-helpers';
+import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
+import { ExpandGroup, IconButton, ToggleButton } from '../controls/common';
 import { Icon } from '../controls/icons';
+import { ParameterControls } from '../controls/parameters';
 
 // TODO details, options (e.g. change text for labels)
-// TODO better updates on state changes
-
-const MeasurementFocusOptions = {
-    minRadius: 8,
-    extraRadius: 4,
-    durationMs: 250,
-}
 
 interface StructureMeasurementsControlsState extends CollapsableState {
 }
@@ -78,7 +73,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
     state = { isBusy: false, action: void 0 as 'add' | 'options' | undefined }
 
     componentDidMount() {
-        this.subscribe(this.selection.events.changed, () => {
+        this.subscribe(this.selection.events.additionsHistoryUpdated, () => {
             this.forceUpdate();
         });
 
@@ -92,40 +87,39 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
     }
 
     measureDistance = () => {
-        const loci = this.plugin.managers.structure.selection.history;
+        const loci = this.plugin.managers.structure.selection.additionsHistory;
         this.plugin.managers.structure.measurement.addDistance(loci[0].loci, loci[1].loci);
     }
 
     measureAngle = () => {
-        const loci = this.plugin.managers.structure.selection.history;
+        const loci = this.plugin.managers.structure.selection.additionsHistory;
         this.plugin.managers.structure.measurement.addAngle(loci[0].loci, loci[1].loci, loci[2].loci);
     }
 
     measureDihedral = () => {
-        const loci = this.plugin.managers.structure.selection.history;
+        const loci = this.plugin.managers.structure.selection.additionsHistory;
         this.plugin.managers.structure.measurement.addDihedral(loci[0].loci, loci[1].loci, loci[2].loci, loci[3].loci);
     }
 
     addLabel = () => {
-        const loci = this.plugin.managers.structure.selection.history;
+        const loci = this.plugin.managers.structure.selection.additionsHistory;
         this.plugin.managers.structure.measurement.addLabel(loci[0].loci);
     }
 
     addOrientation = () => {
         // TODO: this should be possible to add for the whole selection
-        const loci = this.plugin.managers.structure.selection.history;
+        const loci = this.plugin.managers.structure.selection.additionsHistory;
         this.plugin.managers.structure.measurement.addOrientation(loci[0].loci);
     }
 
-
     get actions(): ActionMenu.Items {
-        const history = this.selection.history;
+        const history = this.selection.additionsHistory;
         const ret: ActionMenu.Item[] = [
-            { label: `Label ${history.length === 0 ? '- 1 entry required' : ''}`, value: this.addLabel, disabled: history.length === 0 },
-            { label: `Orientation ${history.length === 0 ? '- 1 entry required' : ''}`, value: this.addOrientation, disabled: history.length === 0 },
-            { label: `Distance ${history.length < 2 ? '- 2 entries required' : ''}`, value: this.measureDistance, disabled: history.length < 2 },
-            { label: `Angle ${history.length < 3 ? '- 3 entries required' : ''}`, value: this.measureAngle, disabled: history.length < 3 },
-            { label: `Dihedral ${history.length < 4 ? '- 4 entries required' : ''}`, value: this.measureDihedral, disabled: history.length < 4 },
+            { label: `Label ${history.length === 0 ? ' (1 selection required)' : ' (1st selection)'}`, value: this.addLabel, disabled: history.length === 0 },
+            { label: `Orientation ${history.length === 0 ? ' (1 selection required)' : ' (1st selection)'}`, value: this.addOrientation, disabled: history.length === 0 },
+            { label: `Distance ${history.length < 2 ? ' (2 selections required)' : ' (top 2 selections)'}`, value: this.measureDistance, disabled: history.length < 2 },
+            { label: `Angle ${history.length < 3 ? ' (3 selections required)' : ' (top 3 selections)'}`, value: this.measureAngle, disabled: history.length < 3 },
+            { label: `Dihedral ${history.length < 4 ? ' (4 selections required)' : ' (top 4 selections)'}`, value: this.measureDihedral, disabled: history.length < 4 },
         ];
         return ret;
     }
@@ -139,18 +133,56 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
     toggleAdd = () => this.setState({ action: this.state.action === 'add' ? void 0 : 'add' });
     toggleOptions = () => this.setState({ action: this.state.action === 'options' ? void 0 : 'options'  });
 
+    highlight(loci: StructureElement.Loci) {
+        this.plugin.managers.interactivity.lociHighlights.highlightOnly({ loci }, false);
+    }
+
+    moveHistory(e: StructureSelectionHistoryEntry, direction: 'up' | 'down') {
+        this.plugin.managers.structure.selection.modifyHistory(e, direction, 4);
+    }
+
+    focusLoci(loci: StructureElement.Loci) {
+        this.plugin.managers.interactivity.focusLoci(loci);
+    }
+
+    historyEntry(e: StructureSelectionHistoryEntry, idx: number) {
+        const history = this.plugin.managers.structure.selection.additionsHistory;
+        return <div className='msp-btn-row-group' key={e.id}>
+            <button className='msp-btn msp-btn-block msp-form-control' title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={this.plugin.managers.interactivity.lociHighlights.clearHighlights}>
+                {idx}. <span dangerouslySetInnerHTML={{ __html: e.label }} />
+            </button>
+            {history.length > 1 && <IconButton small={true} customClass='msp-form-control' onClick={() => this.moveHistory(e, 'up')} icon='up-thin' style={{ flex: '0 0 20px', maxWidth: '20px', padding: 0 }} title={'Move up'} />}
+            {history.length > 1 && <IconButton small={true} customClass='msp-form-control' onClick={() => this.moveHistory(e, 'down')} icon='down-thin' style={{ flex: '0 0 20px', maxWidth: '20px', padding: 0 }} title={'Move down'} />}
+            <IconButton small={true} customClass='msp-form-control' onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')} icon='remove' style={{ flex: '0 0 32px' }} title={'Remove'} />
+        </div>;
+    }
+
+    add() {
+        const history = this.plugin.managers.structure.selection.additionsHistory;
+
+        const entries: JSX.Element[] = [];
+        for (let i = 0, _i = Math.min(history.length, 4); i < _i; i++) {
+            entries.push(this.historyEntry(history[i], i + 1));
+        }
+
+        return <>
+            <ActionMenu items={this.actions} onSelect={this.selectAction} />
+            {entries.length > 0 && <div className='msp-control-offset'>
+                {entries}
+            </div>}
+            {entries.length === 0 && <div className='msp-control-offset msp-help-text'>
+                <div className='msp-help-description'><Icon name='help-circle' />Add one or more selections</div>
+            </div>}
+        </>
+    }
+
     render() {
         return <>
             <div className='msp-control-row msp-select-row'>
                 <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.state.isBusy} />
-                <ToggleButton icon='cog' label='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} />
+                <ToggleButton icon='cog' label='' title='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px' }} />
             </div>
-            {this.state.action === 'add' && <>
-                <ActionMenu items={this.actions} onSelect={this.selectAction} />
-                <div className='msp-control-offset msp-help-text'>
-                    <div className='msp-help-description'><Icon name='help-circle' />Latest entries from Selection History</div>
-                </div>
-            </>}
+            {this.state.action === 'add' && this.add()}
             {this.state.action === 'options' && <MeasurementsOptions />}
         </>
     }
@@ -226,9 +258,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
 
         const sphere = Loci.getBundleBoundingSphere(toLociBundle(selections.data))
         if (sphere) {
-            const { extraRadius, minRadius, durationMs } = MeasurementFocusOptions;
-            const radius = Math.max(sphere.radius + extraRadius, minRadius);
-            PluginCommands.Camera.Focus(this.plugin, { center: sphere.center, radius, durationMs });
+            this.plugin.managers.interactivity.focusSphere(sphere);
         }
     }
 
@@ -249,11 +279,11 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         if (!obj) return null;
 
         return <div className='msp-btn-row-group' key={obj.id} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
-            <button className='msp-btn msp-btn-block msp-form-control' title='Click to focus. Hover to highlight.' onClick={this.focus}>
+            <button className='msp-btn msp-btn-block msp-form-control' title='Click to focus. Hover to highlight.' onClick={this.focus} style={{ width: 'auto' }}>
                 <span dangerouslySetInnerHTML={{ __html: this.label }} />
             </button>
-            <IconButton small={true} customClass='msp-form-control' onClick={this.delete} icon='remove' style={{ width: '52px' }} title='Delete' />
-            <IconButton small={true} customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ width: '52px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
+            <IconButton small={true} customClass='msp-form-control' onClick={this.delete} icon='remove' style={{ flex: '0 0 32px' }} title='Delete' />
+            <IconButton small={true} customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ flex: '0 0 32px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
         </div>
     }
 }

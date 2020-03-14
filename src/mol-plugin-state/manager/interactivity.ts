@@ -16,12 +16,22 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StructureSelectionManager } from './structure/selection';
 import { PluginComponent } from '../component';
 import { shallowEqual } from '../../mol-util/object';
+import { Sphere3D } from '../../mol-math/geometry';
 
 export { InteractivityManager }
 
 interface InteractivityManagerState {
     props: PD.ValuesFor<InteractivityManager.Params>
 }
+
+// TODO: make this customizable somewhere?
+const DefaultInteractivityFocusOptions = {
+    minRadius: 6,
+    extraRadius: 6,
+    durationMs: 250,
+}
+
+export type InteractivityFocusLociOptions = typeof DefaultInteractivityFocusOptions
 
 class InteractivityManager extends PluginComponent<InteractivityManagerState> {
     readonly lociSelects: InteractivityManager.LociSelectManager;
@@ -46,11 +56,26 @@ class InteractivityManager extends PluginComponent<InteractivityManagerState> {
         this.events.propsUpdated.next();
     }
 
-    constructor(readonly ctx: PluginContext, props: Partial<InteractivityManager.Props> = {}) {
+    focusLoci(loci: StructureElement.Loci, options?: InteractivityFocusLociOptions) {
+        const { extraRadius, minRadius, durationMs } = { ...DefaultInteractivityFocusOptions, ...options };
+        const { sphere } = StructureElement.Loci.getBoundary(loci);
+        const radius = Math.max(sphere.radius + extraRadius, minRadius);
+        this.plugin.canvas3d?.camera.focus(sphere.center, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs);
+    }
+
+    focusSphere(sphere: Sphere3D, options?: InteractivityFocusLociOptions) {
+        if (sphere) {
+            const { extraRadius, minRadius, durationMs } = { ...DefaultInteractivityFocusOptions, ...options };
+            const radius = Math.max(sphere.radius + extraRadius, minRadius);
+            this.plugin.canvas3d?.camera.focus(sphere.center, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs);
+        }
+    }
+
+    constructor(readonly plugin: PluginContext, props: Partial<InteractivityManager.Props> = {}) {
         super({ props: { ...PD.getDefaultValues(InteractivityManager.Params), ...props } });
 
-        this.lociSelects = new InteractivityManager.LociSelectManager(ctx, this._props);
-        this.lociHighlights = new InteractivityManager.LociHighlightManager(ctx, this._props);
+        this.lociSelects = new InteractivityManager.LociSelectManager(plugin, this._props);
+        this.lociHighlights = new InteractivityManager.LociHighlightManager(plugin, this._props);
     }
 }
 
@@ -127,7 +152,7 @@ namespace InteractivityManager {
             this.prev.push(loci)
         }
 
-        clearHighlights() {
+        clearHighlights = () => {
             for (const p of this.prev) {
                 this.mark(p, MarkerAction.RemoveHighlight);
             }
