@@ -26,7 +26,6 @@ export function registerDefault(ctx: PluginContext) {
     ToggleExpanded(ctx);
     ToggleVisibility(ctx);
     Highlight(ctx);
-    HighlightMany(ctx);
     ClearHighlights(ctx);
     Snapshots(ctx);
 }
@@ -105,32 +104,28 @@ function setVisibilityVisitor(t: StateTransform, tree: StateTree, ctx: { state: 
 }
 
 export function Highlight(ctx: PluginContext) {
-    PluginCommands.State.Highlight.subscribe(ctx, stateRef => highlight(ctx, [stateRef]));
-}
+    PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref }) => {
+        ctx.managers.interactivity.lociHighlights.clearHighlights();
 
-export function HighlightMany(ctx: PluginContext) {
-    PluginCommands.State.HighlightMany.subscribe(ctx, stateRefPairs => highlight(ctx, stateRefPairs));
-}
-
-function highlight(ctx: PluginContext, stateRefPairs: { state: State, ref: StateTransform.Ref }[]) {
-    ctx.managers.interactivity.lociHighlights.clearHighlights();
-    for (const { state, ref } of stateRefPairs) {
-        const cell = state.select(ref)[0];
-        if (!cell) continue;
-        if (SO.Molecule.Structure.is(cell.obj)) {
-            ctx.managers.interactivity.lociHighlights.highlight({ loci: Structure.Loci(cell.obj.data) }, false);
-        } else if (cell && SO.isRepresentation3D(cell.obj)) {
-            const { repr } = cell.obj.data
-            ctx.managers.interactivity.lociHighlights.highlight({ loci: repr.getLoci(), repr }, false);
-        } else if (SO.Molecule.Structure.Selections.is(cell.obj)) {
-            for (const entry of cell.obj.data) {
-                ctx.managers.interactivity.lociHighlights.highlight({ loci: entry.loci }, false);
+        const refs = typeof ref === 'string' ? [ref] : ref;
+        for (const r of refs) {
+            const cell = state.cells.get(r);
+            if (!cell) continue;
+            if (SO.Molecule.Structure.is(cell.obj)) {
+                ctx.managers.interactivity.lociHighlights.highlight({ loci: Structure.Loci(cell.obj.data) }, false);
+            } else if (cell && SO.isRepresentation3D(cell.obj)) {
+                const { repr } = cell.obj.data
+                ctx.managers.interactivity.lociHighlights.highlight({ loci: repr.getLoci(), repr }, false);
+            } else if (SO.Molecule.Structure.Selections.is(cell.obj)) {
+                for (const entry of cell.obj.data) {
+                    ctx.managers.interactivity.lociHighlights.highlight({ loci: entry.loci }, false);
+                }
             }
         }
-    }
 
-    // TODO: highlight volumes?
-    // TODO: select structures of subtree?
+        // TODO: highlight volumes?
+        // TODO: select structures of subtree?
+    });
 }
 
 export function ClearHighlights(ctx: PluginContext) {

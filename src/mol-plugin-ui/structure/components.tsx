@@ -299,7 +299,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.HighlightMany(this.plugin, this.props.group.map(c => ({ state: c.cell.parent, ref: c.cell.transform.ref })))
+        PluginCommands.State.Highlight(this.plugin, { state: this.props.group[0].cell.parent, ref: this.props.group.map(c => c.cell.transform.ref) });
     }
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {

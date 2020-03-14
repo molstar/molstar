@@ -8,6 +8,7 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { StructureHierarchy, buildStructureHierarchy, ModelRef, StructureComponentRef, StructureRef, HierarchyRef, TrajectoryRef } from './hierarchy-state';
 import { PluginComponent } from '../../component';
 import { SetUtils } from '../../../mol-util/set';
+import { StateTransform } from '../../../mol-state';
 
 interface StructureHierarchyManagerState {
     hierarchy: StructureHierarchy,
@@ -54,7 +55,19 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         return this.state.current;
     }
 
+    private nextSelection: Set<StateTransform.Ref> = new Set();
     private syncCurrent<T extends HierarchyRef>(hierarchy: StructureHierarchy, current: ReadonlyArray<T>, all: ReadonlyArray<T>): T[] {
+        if (this.nextSelection.size > 0) {
+            const newCurrent: T[] = [];
+            for (const r of all) {
+                if (this.nextSelection.has(r.cell.transform.ref)) {
+                    newCurrent.push(r);
+                }
+            }
+            if (newCurrent.length === 0) return all.length > 0 ? [all[0]] : [];
+            return newCurrent;
+        }
+
         if (current.length === 0) return all.length > 0 ? [all[0]] : [];
 
         const newCurrent: T[] = [];
@@ -80,6 +93,8 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         const trajectories = this.syncCurrent(hierarchy, this.state.current.trajectories, hierarchy.trajectories);
         const models = this.syncCurrent(hierarchy, this.state.current.models, hierarchy.models);
         const structures = this.syncCurrent(hierarchy, this.state.current.structures, hierarchy.structures);
+
+        this.nextSelection.clear();
 
         this.updateState({ hierarchy, current: { trajectories, models, structures }});
         this.behaviors.current.next({ hierarchy, trajectories, models, structures });
@@ -121,6 +136,9 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
 
     createAllModels(trajectory: TrajectoryRef) {
         return this.plugin.dataTransaction(async () => {
+            this.nextSelection.clear();
+
+            this.nextSelection.add(trajectory.cell.transform.ref);
             if (trajectory.models.length > 0) {
                 await this.clearTrajectory(trajectory);
             }
@@ -129,9 +147,11 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
             for (let i = 0; i < tr.length; i++) {
                 const model = await this.plugin.builders.structure.createModel(trajectory.cell, { modelIndex: i }, { isCollapsed: true });
                 const structure = await this.plugin.builders.structure.createStructure(model, { name: 'deposited', params: { } });
+                this.nextSelection.add(model.ref);
+                this.nextSelection.add(structure.ref);
                 await this.plugin.builders.structure.representation.applyPreset(structure, 'auto', { globalThemeName: 'model-index' });
             }
-        })
+        });
     }
 
     private clearTrajectory(trajectory: TrajectoryRef) {

@@ -25,8 +25,7 @@ export const PluginCommands = {
 
         ToggleExpanded: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
         ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
-        Highlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
-        HighlightMany: PluginCommand<{ state: State, ref: StateTransform.Ref }[]>(),
+        Highlight: PluginCommand<{ state: State, ref: StateTransform.Ref | StateTransform.Ref[] }>(),
         ClearHighlights: PluginCommand<{}>(),
 
         Snapshots: {
