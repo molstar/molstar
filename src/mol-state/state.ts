@@ -89,11 +89,20 @@ class State {
         return this.history.length > 0;
     }
 
+    private undoingHistory = false;
+
     undo() {
-        const tree = this.history.shift();
-        if (!tree) return;
-        this.events.historyUpdated.next({ state: this });
-        return this.updateTree(tree, { canUndo: false });
+        return Task.create('Undo', async ctx => {
+            const tree = this.history.shift();
+            if (!tree) return;
+            this.events.historyUpdated.next({ state: this });
+            this.undoingHistory = true;
+            try {
+                await this.updateTree(tree, { canUndo: false }).runInContext(ctx);
+            } finally {
+                this.undoingHistory = false;
+            }
+        });
     }
 
     getSnapshot(): State.Snapshot {
@@ -234,7 +243,7 @@ class State {
                 
                 this.events.isUpdating.next(false);
                 if (!options?.canUndo) {
-                    this.clearHistory();
+                    if (!this.undoingHistory) this.clearHistory();
                 } else if (!reverted) {
                     this.addHistory(snapshot!);
                 }
