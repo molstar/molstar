@@ -47,6 +47,7 @@ import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
 import { TrajectoryFormatRegistry } from '../mol-plugin-state/formats/trajectory';
 import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
+import { CameraManager } from '../mol-plugin-state/manager/camera';
 
 export class PluginContext {
     private disposed = false;
@@ -130,6 +131,7 @@ export class PluginContext {
             selection: new StructureSelectionManager(this)
         },
         interactivity: void 0 as any as InteractivityManager,
+        camera: new CameraManager(this),
         lociLabels: void 0 as any as LociLabelManager,
         toast: new PluginToastManager(this)
     } as const

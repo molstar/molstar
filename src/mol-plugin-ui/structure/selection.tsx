@@ -31,10 +31,6 @@ const StructureSelectionParams = {
 }
 
 interface StructureSelectionControlsState extends CollapsableState {
-    minRadius: number,
-    extraRadius: number,
-    durationMs: number,
-
     isEmpty: boolean,
     isBusy: boolean,
 
@@ -84,13 +80,10 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     }
 
     focus = () => {
-        const { extraRadius, minRadius, durationMs } = this.state
-        if (this.plugin.managers.structure.selection.stats.elementCount === 0) return
+        if (this.plugin.managers.structure.selection.stats.elementCount === 0) return;
         const principalAxes = this.plugin.managers.structure.selection.getPrincipalAxes();
-        const { origin, dirA, dirC } = principalAxes.boxAxes
         const { sphere } = this.plugin.managers.structure.selection.getBoundary()
-        const radius = Math.max(sphere.radius + extraRadius, minRadius);
-        this.plugin.canvas3d?.camera.focus(origin, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs, dirA, dirC);
+        this.plugin.managers.camera.focusSphere(sphere, { principalAxes });
     }
 
     setProps = (props: any) => {
@@ -151,10 +144,6 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             isCollapsed: false,
             header: 'Selection',
 
-            minRadius: 8,
-            extraRadius: 4,
-            durationMs: 250,
-
             action: void 0,
 
             isEmpty: true,
@@ -167,7 +156,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             <ParameterControls params={StructureSelectionParams} values={this.values} onChangeObject={this.setProps} />
             {this.controls}
             <div className='msp-control-row msp-row-text' style={{ marginTop: '6px' }}>
-                <button className='msp-btn msp-btn-block' onClick={this.focus}>
+                <button className='msp-btn msp-btn-block' onClick={this.focus} title='Click to Focus Selection'>
                     <Icon name='focus-on-visual' style={{ position: 'absolute', left: '5px' }} />
                     {this.stats}
                 </button>

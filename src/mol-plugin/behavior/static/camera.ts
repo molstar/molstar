@@ -17,19 +17,19 @@ export function registerDefault(ctx: PluginContext) {
 
 export function Reset(ctx: PluginContext) {
     PluginCommands.Camera.Reset.subscribe(ctx, options => {
-        ctx.canvas3d?.requestCameraReset(options);
+        ctx.managers.camera.reset(options?.snapshot, options?.durationMs);
     })
 }
 
 export function SetSnapshot(ctx: PluginContext) {
     PluginCommands.Camera.SetSnapshot.subscribe(ctx, ({ snapshot, durationMs }) => {
-        ctx.canvas3d?.camera.transition.apply(snapshot, durationMs);
+        ctx.managers.camera.setSnapshot(snapshot, durationMs);
     })
 }
 
 export function Focus(ctx: PluginContext) {
     PluginCommands.Camera.Focus.subscribe(ctx, ({ center, radius, durationMs }) => {
-        ctx.canvas3d?.camera.focus(center, radius, ctx.canvas3d?.boundingSphere.radius, durationMs);
+        ctx.managers.camera.focusSphere({ center, radius }, { durationMs });
     })
 }
 

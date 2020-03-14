@@ -303,7 +303,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     focus = () => {
         const sphere = this.pivot.cell.obj?.data.boundary.sphere;
-        if (sphere) this.plugin.managers.interactivity.focusSphere(sphere);
+        if (sphere) this.plugin.managers.camera.focusSphere(sphere);
     }
 
     render() {

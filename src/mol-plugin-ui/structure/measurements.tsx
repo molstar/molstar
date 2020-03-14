@@ -14,7 +14,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { State } from '../../mol-state';
 import { angleLabel, dihedralLabel, distanceLabel, lociLabel } from '../../mol-theme/label';
 import { FiniteArray } from '../../mol-util/type-helpers';
-import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
+import { CollapsableControls, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { ExpandGroup, IconButton, ToggleButton } from '../controls/common';
 import { Icon } from '../controls/icons';
@@ -22,15 +22,12 @@ import { ParameterControls } from '../controls/parameters';
 
 // TODO details, options (e.g. change text for labels)
 
-interface StructureMeasurementsControlsState extends CollapsableState {
-}
-
-export class StructureMeasurementsControls extends CollapsableControls<{}, StructureMeasurementsControlsState> {
+export class StructureMeasurementsControls extends CollapsableControls {
     defaultState() {
         return {
             isCollapsed: false,
             header: 'Measurements',
-        } as StructureMeasurementsControlsState
+        };
     }
 
     renderControls() {
@@ -142,7 +139,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
     }
 
     focusLoci(loci: StructureElement.Loci) {
-        this.plugin.managers.interactivity.focusLoci(loci);
+        this.plugin.managers.camera.focusLoci(loci);
     }
 
     historyEntry(e: StructureSelectionHistoryEntry, idx: number) {
@@ -258,7 +255,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
 
         const sphere = Loci.getBundleBoundingSphere(toLociBundle(selections.data))
         if (sphere) {
-            this.plugin.managers.interactivity.focusSphere(sphere);
+            this.plugin.managers.camera.focusSphere(sphere);
         }
     }
 

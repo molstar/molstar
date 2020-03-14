@@ -5,20 +5,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Loci as ModelLoci, EmptyLoci, EveryLoci, isEmptyLoci } from '../../mol-model/loci';
-import { ModifiersKeys, ButtonsType } from '../../mol-util/input/input-observer';
-import { Representation } from '../../mol-repr/representation';
-import { StructureElement } from '../../mol-model/structure';
-import { MarkerAction } from '../../mol-util/marker-action';
+import { EmptyLoci, EveryLoci, isEmptyLoci, Loci as ModelLoci } from '../../mol-model/loci';
+import { Structure, StructureElement } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
-import { Structure } from '../../mol-model/structure';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StructureSelectionManager } from './structure/selection';
-import { PluginComponent } from '../component';
+import { Representation } from '../../mol-repr/representation';
+import { ButtonsType, ModifiersKeys } from '../../mol-util/input/input-observer';
+import { MarkerAction } from '../../mol-util/marker-action';
 import { shallowEqual } from '../../mol-util/object';
-import { Sphere3D } from '../../mol-math/geometry';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { PluginComponent } from '../component';
+import { StructureSelectionManager } from './structure/selection';
 
-export { InteractivityManager }
+export { InteractivityManager };
 
 interface InteractivityManagerState {
     props: PD.ValuesFor<InteractivityManager.Params>
@@ -56,21 +54,6 @@ class InteractivityManager extends PluginComponent<InteractivityManagerState> {
         this.events.propsUpdated.next();
     }
 
-    focusLoci(loci: StructureElement.Loci, options?: InteractivityFocusLociOptions) {
-        const { extraRadius, minRadius, durationMs } = { ...DefaultInteractivityFocusOptions, ...options };
-        const { sphere } = StructureElement.Loci.getBoundary(loci);
-        const radius = Math.max(sphere.radius + extraRadius, minRadius);
-        this.plugin.canvas3d?.camera.focus(sphere.center, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs);
-    }
-
-    focusSphere(sphere: Sphere3D, options?: InteractivityFocusLociOptions) {
-        if (sphere) {
-            const { extraRadius, minRadius, durationMs } = { ...DefaultInteractivityFocusOptions, ...options };
-            const radius = Math.max(sphere.radius + extraRadius, minRadius);
-            this.plugin.canvas3d?.camera.focus(sphere.center, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs);
-        }
-    }
-
     constructor(readonly plugin: PluginContext, props: Partial<InteractivityManager.Props> = {}) {
         super({ props: { ...PD.getDefaultValues(InteractivityManager.Params), ...props } });
 
@@ -90,7 +73,7 @@ namespace InteractivityManager {
     }
 
     export const Params = {
-        granularity: PD.Select('residue', ModelLoci.GranularityOptions, { label: 'Picking', description: 'Controls if selections are expanded upon picking to whole residues, chains, structures, instances, or left as atoms and coarse elements' }),
+        granularity: PD.Select('residue', ModelLoci.GranularityOptions, { label: 'Picking Level', description: 'Controls if selections are expanded upon picking to whole residues, chains, structures, instances, or left as atoms and coarse elements' }),
     }
     export type Params = typeof Params
     export type Props = PD.Values<Params>
