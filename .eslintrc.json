@@ -16,10 +16,7 @@
         "@typescript-eslint/class-name-casing": "off",
         "@typescript-eslint/indent": [
             "warn",
-            4,
-            {
-                "ignoredNodes": ["TSTypeParameterInstantiation"]
-            }
+            4
         ],
         "@typescript-eslint/member-delimiter-style": [
             "off",
