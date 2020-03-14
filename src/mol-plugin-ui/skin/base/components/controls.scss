@@ -50,6 +50,10 @@
         @extend .msp-btn-block;
     }
 
+    .msp-control-current {
+        background: $default-background;
+    }
+
     > div:nth-child(2) {
         position: absolute;
         left: $control-label-width + $control-spacing;
@@ -249,6 +253,10 @@
         background: $default-background !important;
         color: color-lower-contrast($font-color, 15%) !important;
     }
+    .msp-icon {
+        height: 22px !important;
+        line-height: 22px !important;
+    }
     > span {
         padding-left: $control-spacing / 2;
         line-height: 2 * $row-height / 3;
@@ -256,6 +264,10 @@
         background: $default-background;
         color: color-lower-contrast($font-color, 15%);
     }
+}
+
+.msp-control-current {
+    background: $default-background;
 }
 
 .msp-control-group-footer {

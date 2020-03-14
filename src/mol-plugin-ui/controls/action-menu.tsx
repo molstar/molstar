@@ -7,6 +7,7 @@
 import * as React from 'react'
 import { Icon, IconName } from './icons';
 import { ParamDefinition } from '../../mol-util/param-definition';
+import { ControlGroup } from './common';
 
 export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
     hide = () => this.props.onSelect(void 0)
@@ -14,13 +15,14 @@ export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
     render() {
         const cmd = this.props;
 
-        return <div className='msp-action-menu-options' style={{ marginTop: '1px' }}>
-            {cmd.header && <div className='msp-control-group-header' style={{ position: 'relative' }}>
+        return <div className='msp-action-menu-options' style={{ marginTop: cmd.header ? void 0 : '1px' }}>
+            {/* {cmd.header && <div className='msp-control-group-header' style={{ position: 'relative' }}>
                 <button className='msp-btn msp-btn-block' onClick={this.hide}>
                     <Icon name='off' style={{ position: 'absolute', right: '2px', top: 0 }} />
                     <b>{cmd.header}</b>
                 </button>
-            </div>}
+            </div>} */}
+            {cmd.header && <ControlGroup header={cmd.header} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hide} topRightIcon='off'></ControlGroup>}
             <Section items={cmd.items} onSelect={cmd.onSelect} current={cmd.current} multiselect={this.props.multiselect} />
         </div>
     }

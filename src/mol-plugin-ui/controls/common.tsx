@@ -35,13 +35,12 @@ export class ControlGroup extends React.Component<{
                 <button className='msp-btn msp-btn-block' onClick={this.headerClicked}>
                     {!this.props.hideExpander && <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />}
                     {this.props.topRightIcon && <Icon name={this.props.topRightIcon} style={{ position: 'absolute', right: '2px', top: 0 }} />}
-                    {this.props.header}
+                    <b>{this.props.header}</b>
                 </button>
             </div>
             {this.state.isExpanded && <div className={this.props.hideOffset ? '' : 'msp-control-offset'} style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                 {this.props.children}
-            </div>
-            }
+            </div>}
         </div>
     }
 }
@@ -326,8 +325,9 @@ export class ToggleButton extends React.PureComponent<ToggleButtonProps> {
     render() {
         const props = this.props;
         const label = props.label;
+        const className = props.isSelected ? `${props.className || ''} msp-control-current` : props.className;
         return <button onClick={this.onClick} title={this.props.title}
-            disabled={props.disabled} style={props.style} className={props.className}>
+            disabled={props.disabled} style={props.style} className={className}>
             <Icon name={this.props.icon} />
             <Shape name={this.props.shape} />
             {label && this.props.isSelected ? <b>{label}</b> : label}

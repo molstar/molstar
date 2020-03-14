@@ -17,7 +17,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { stripTags } from '../../mol-util/string';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { ExpandGroup, ToggleButton } from '../controls/common';
+import { ExpandGroup, ToggleButton, ControlGroup } from '../controls/common';
 import { Icon } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 
@@ -41,6 +41,13 @@ interface StructureSelectionControlsState extends CollapsableState {
 
     action?: StructureSelectionModifier | 'color'
 }
+
+const ActionHeader = new Map<StructureSelectionModifier, string>([
+    ['add', 'Add/Union'],
+    ['remove', 'Remove/Subtract'],
+    ['intersect', 'Intersect'],
+    ['set', 'Set']
+] as const);
 
 export class StructureSelectionControls<P, S extends StructureSelectionControlsState> extends CollapsableControls<P, S> {
     componentDidMount() {
@@ -135,17 +142,20 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     toggleColor = this.showAction('color')
 
     get controls() {
-        return <div>
+        return <>
             <div className='msp-control-row msp-select-row'>
-                <ToggleButton shape='union' title='Add/Union' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
-                <ToggleButton shape='subtract' title='Remove/Subtract' toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
-                <ToggleButton shape='intersect' title='Intersect' toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
-                <ToggleButton shape='set' title='Set' toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
+                <ToggleButton shape='union' title={ActionHeader.get('add')} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
+                <ToggleButton shape='subtract' title={ActionHeader.get('remove')} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
+                <ToggleButton shape='intersect' title={ActionHeader.get('intersect')} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
+                <ToggleButton shape='set' title={ActionHeader.get('set')} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
                 <ToggleButton icon='brush' title='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} />
             </div>
-            {(this.state.action && this.state.action !== 'color') && <ActionMenu items={this.queries} onSelect={this.selectQuery} />}
-            {this.state.action === 'color' && <div className='msp-control-offset'><ApplyColorControls /></div>}
-        </div>
+            {(this.state.action && this.state.action !== 'color') && <ActionMenu header={ActionHeader.get(this.state.action as StructureSelectionModifier)} items={this.queries} onSelect={this.selectQuery} />}
+            {this.state.action === 'color' && 
+                <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.toggleColor} topRightIcon='off'>
+                    <ApplyColorControls />
+                </ControlGroup>}
+        </>
     }
 
     defaultState() {
