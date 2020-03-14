@@ -5,7 +5,7 @@
  */
 
 import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectRef, StateObjectSelector, StateTransformer, StateTransform } from '../../mol-state';
+import { StateObjectRef, StateObjectSelector, StateTransformer, StateTransform, StateObjectCell } from '../../mol-state';
 import { PluginStateObject as SO } from '../objects';
 import { StateTransforms } from '../transforms';
 import { RootStructureDefinition } from '../helpers/root-structure';
@@ -128,6 +128,10 @@ export class StructureBuilder {
             .insert(StateTransforms.Model.CustomStructureProperties, params, { tags: StructureBuilderTags.StructureProperties, isDecorator: true });
         await this.plugin.runTask(this.dataState.updateTree(props, { revertOnError: true }));
         return props.selector;
+    }
+
+    isComponent(cell: StateObjectCell) {
+        return cell.transform.transformer === StateTransforms.Model.StructureComponent;
     }
 
     /** returns undefined if the component is empty/null */

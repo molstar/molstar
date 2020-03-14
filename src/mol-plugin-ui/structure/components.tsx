@@ -240,10 +240,13 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
                 ...StructureComponentManager.getRepresentationTypes(this.plugin, this.props.group[0])
                     .map(t => ActionMenu.Item(t[1], () => mng.addRepresentation(this.props.group, t[0])))
             ],
-            ActionMenu.Item('Select This', 'flash', () => mng.selectThis(this.props.group)),
-            ActionMenu.Item('Include Current Selection', 'plus', () => mng.modifyByCurrentSelection(this.props.group, 'union')),
-            ActionMenu.Item('Subtract Current Selection', 'minus', () => mng.modifyByCurrentSelection(this.props.group, 'subtract'))
+            ActionMenu.Item('Select This', 'flash', () => mng.selectThis(this.props.group))
         ];
+
+        if (this.plugin.managers.structure.component.canBeModified(this.props.group[0])) {
+            ret.push(ActionMenu.Item('Include Current Selection', 'plus', () => mng.modifyByCurrentSelection(this.props.group, 'union')));
+            ret.push(ActionMenu.Item('Subtract Current Selection', 'minus', () => mng.modifyByCurrentSelection(this.props.group, 'subtract')));
+        }
         return ret;
     }
 

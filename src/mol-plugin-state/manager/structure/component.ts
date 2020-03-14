@@ -19,8 +19,8 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StructureRepresentationProvider } from '../../builder/structure/provider';
 import { PluginComponent } from '../../component';
 import { StructureComponentParams } from '../../helpers/structure-component';
-import { setStructureOverpaint, clearStructureOverpaint } from '../../helpers/structure-overpaint';
-import { StructureSelectionQuery, StructureSelectionQueryOptions, StructureSelectionQueries } from '../../helpers/structure-selection-query';
+import { clearStructureOverpaint, setStructureOverpaint } from '../../helpers/structure-overpaint';
+import { StructureSelectionQueries, StructureSelectionQuery, StructureSelectionQueryOptions } from '../../helpers/structure-selection-query';
 import { CustomStructureProperties } from '../../transforms/model';
 import { StructureRepresentation3D } from '../../transforms/representation';
 import { HierarchyRef, StructureComponentRef, StructureRef, StructureRepresentationRef } from './hierarchy-state';
@@ -127,6 +127,10 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             const loci =  Structure.toSubStructureElementLoci(c.structure.cell.obj!.data, c.cell.obj?.data!)
             mng.fromLoci('set', loci);
         }
+    }
+
+    canBeModified(ref: HierarchyRef) {
+        return this.plugin.builders.structure.isComponent(ref.cell);
     }
 
     modifyByCurrentSelection(components: ReadonlyArray<StructureComponentRef>, action: 'union' | 'subtract') {
