@@ -182,12 +182,15 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
 
         const index = components[0].representations.indexOf(pivot);
         if (index < 0) return Promise.resolve();
-
+        
         const update = this.dataState.build();
-
+        
         for (const c of components) {
+            // TODO: is it ok to use just the index here? Could possible lead to ugly edge cases, but perhaps not worth the trouble to "fix".
             const repr = c.representations[index];
             if (!repr) continue;
+            if (repr.cell.transform.transformer !== pivot.cell.transform.transformer) continue;
+
             update.to(repr.cell).update(params);
         }
 
