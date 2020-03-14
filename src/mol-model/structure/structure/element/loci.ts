@@ -50,6 +50,7 @@ export namespace Loci {
     }
 
     export function areEqual(a: Loci, b: Loci) {
+        if (a.structure !== b.structure) return false
         if (a.elements.length !== b.elements.length) return false
         for (let i = 0, il = a.elements.length; i < il; ++i) {
             const elementA = a.elements[i]
