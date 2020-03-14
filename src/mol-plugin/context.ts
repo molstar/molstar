@@ -193,8 +193,8 @@ export class PluginContext {
         return this.tasks.run(task);
     }
 
-    dataTransaction(f: () => Promise<void> | void) {
-        return this.runTask(this.state.dataState.transaction(f));
+    dataTransaction(f: () => Promise<void> | void, options?: { canUndo?: boolean }) {
+        return this.runTask(this.state.dataState.transaction(f, options));
     }
 
     requestTaskAbort(progress: Progress, reason?: string) {

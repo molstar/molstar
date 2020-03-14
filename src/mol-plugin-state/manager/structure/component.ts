@@ -113,7 +113,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             for (const s of structures) {
                 await this.plugin.builders.structure.representation.applyPreset(s.cell, provider, params);
             }
-        });
+        }, { canUndo: true });
     }
 
     clear(structures: ReadonlyArray<StructureRef>) {
@@ -143,7 +143,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                 if (!selection || selection.elementCount === 0) continue;                
                 this.modifyComponent(b, c, selection, action);
             }
-            await this.dataState.updateTree(b).runInContext(taskCtx);
+            await this.dataState.updateTree(b, { canUndo: true }).runInContext(taskCtx);
         }));
     }
 
@@ -174,7 +174,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             }
         }
 
-        return this.plugin.managers.structure.hierarchy.remove(toRemove);
+        return this.plugin.managers.structure.hierarchy.remove(toRemove, true);
     }
 
     updateRepresentations(components: ReadonlyArray<StructureComponentRef>, pivot: StructureRepresentationRef, params: StateTransformer.Params<StructureRepresentation3D>) {        
@@ -191,22 +191,24 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             update.to(repr.cell).update(params);
         }
 
-        return this.plugin.runTask(this.dataState.updateTree(update));
+        return this.plugin.runTask(this.dataState.updateTree(update, { canUndo: true }));
     }
 
-    async addRepresentation(components: ReadonlyArray<StructureComponentRef>, type: string) {
+    addRepresentation(components: ReadonlyArray<StructureComponentRef>, type: string) {
         if (components.length === 0) return;
 
         const { showHydrogens, visualQuality: quality } = this.state.options;
         const ignoreHydrogens = !showHydrogens;
         const typeParams = { ignoreHydrogens, quality };
 
-        for (const component of components) {
-            await this.plugin.builders.structure.representation.addRepresentation(component.cell, {
-                type: this.plugin.structureRepresentation.registry.get(type),
-                typeParams
-            });
-        }
+        return this.plugin.dataTransaction(async () => {
+            for (const component of components) {
+                await this.plugin.builders.structure.representation.addRepresentation(component.cell, {
+                    type: this.plugin.structureRepresentation.registry.get(type),
+                    typeParams
+                });
+            }
+        }, { canUndo: true });
     }
 
     async add(params: StructureComponentManager.AddParams, structures?: ReadonlyArray<StructureRef>) {
@@ -227,7 +229,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                     type: this.plugin.structureRepresentation.registry.get(params.representation)
                 });
             }
-        });
+        }, { canUndo: true });
     }
 
     async applyColor(params: StructureComponentManager.ColorParams, structures?: ReadonlyArray<StructureRef>) {
@@ -244,7 +246,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                     await setStructureOverpaint(this.plugin, s.components, p.color, getLoci, params.representations, p.opacity);
                 }
             }
-        });
+        }, { canUndo: true });
     }
 
     private modifyComponent(builder: StateBuilder.Root, component: StructureComponentRef, by: Structure, action: StructureComponentManager.ModifyAction) {

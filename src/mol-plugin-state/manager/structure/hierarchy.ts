@@ -112,11 +112,11 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         this.behaviors.current.next({ hierarchy, trajectories, models, structures });
     }
 
-    remove(refs: HierarchyRef[]) {
+    remove(refs: HierarchyRef[], canUndo?: boolean) {
         if (refs.length === 0) return;
         const deletes = this.plugin.state.dataState.build();
         for (const r of refs) deletes.delete(r.cell.transform.ref);
-        return this.plugin.runTask(this.plugin.state.dataState.updateTree(deletes));
+        return this.plugin.runTask(this.plugin.state.dataState.updateTree(deletes, { canUndo }));
     }
 
     createAllModels(trajectory: TrajectoryRef) {

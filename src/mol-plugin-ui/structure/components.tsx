@@ -44,13 +44,15 @@ export class StructureComponentControls extends CollapsableControls<{}, Structur
 interface ComponentEditorControlsState {
     action?: 'preset' | 'add' | 'options',
     isEmpty: boolean,
-    isBusy: boolean
+    isBusy: boolean,
+    canUndo: boolean
 }
 
 class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorControlsState> {
     state: ComponentEditorControlsState = {
         isEmpty: true,
-        isBusy: false
+        isBusy: false,
+        canUndo: false
     };
 
     get isDisabled() {
@@ -64,6 +66,9 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
         }));
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
             this.setState({ isBusy: v, action: this.state.action !== 'options' ? void 0 : 'options' })
+        });
+        this.subscribe(this.plugin.state.dataState.events.historyUpdated, ({ state }) => {
+            this.setState({ canUndo: state.canUndo });
         });
     }
 
@@ -103,12 +108,18 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
         else mng.component.applyPreset(structures, item.value as any);
     }
 
+    undo = () => {
+        const task = this.plugin.state.dataState.undo();
+        if (task) this.plugin.runTask(task);
+    }
+
     render() {
         return <>
             <div className='msp-control-row msp-select-row'>
                 <ToggleButton icon='bookmarks' label='Preset' toggle={this.togglePreset} isSelected={this.state.action === 'preset'} disabled={this.isDisabled} />
                 <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
                 <ToggleButton icon='cog' label='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
+                <IconButton customClass='msp-flex-item' style={{ flex: '0 0 40px' }} onClick={this.undo} disabled={!this.state.canUndo} icon='ccw' title='Some mistakes of the past can be undone.' />
             </div>
             {this.state.action === 'preset' && this.presetControls}
             {this.state.action === 'add' && <div className='msp-control-offset'>
@@ -258,7 +269,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     get removeActions(): ActionMenu.Items {
         const ret = [
-            ActionMenu.Item('Remove', 'remove', () => this.plugin.managers.structure.hierarchy.remove(this.props.group))
+            ActionMenu.Item('Remove', 'remove', () => this.plugin.managers.structure.hierarchy.remove(this.props.group, true))
         ];
 
         const reprs = this.pivot.representations;

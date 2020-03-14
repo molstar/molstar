@@ -48,7 +48,8 @@ class State {
         },
         log: this.ev<LogEntry>(),
         changed: this.ev<{ state: State, inTransaction: boolean }>(),
-        isUpdating: this.ev<boolean>()
+        isUpdating: this.ev<boolean>(),
+        historyUpdated: this.ev<{ state: State }>()
     };
 
     readonly behaviors = {
@@ -65,6 +66,35 @@ class State {
 
     readonly cells: State.Cells = new Map();
     private spine = new StateTreeSpine.Impl(this.cells);
+
+    private historyCapacity = 5;
+    private history: StateTree[] = [];
+
+    private addHistory(tree: StateTree) {
+        if (this.historyCapacity === 0) return;
+
+        this.history.unshift(tree);
+        if (this.history.length > this.historyCapacity) this.history.pop();
+
+        this.events.historyUpdated.next({ state: this });
+    }
+    
+    private clearHistory() {
+        if (this.history.length === 0) return;
+        this.history = [];
+        this.events.historyUpdated.next({ state: this });
+    }
+
+    get canUndo() {
+        return this.history.length > 0;
+    }
+
+    undo() {
+        const tree = this.history.shift();
+        if (!tree) return;
+        this.events.historyUpdated.next({ state: this });
+        return this.updateTree(tree, { canUndo: false });
+    }
 
     getSnapshot(): State.Snapshot {
         return { tree: StateTree.toJSON(this._tree) };
@@ -130,9 +160,11 @@ class State {
     private inTransaction = false;
 
     /** Apply series of updates to the state. If any of them fail, revert to the original state. */
-    transaction(edits: () => Promise<void> | void) {
+    transaction(edits: () => Promise<void> | void, options?: { canUndo?: boolean }) {
         return Task.create('State Transaction', async ctx => {
             const isNested = this.inTransaction;
+
+            // if (!isNested) this.changedInTransaction = false;
 
             const snapshot = this._tree.asImmutable();
             let restored = false;
@@ -149,6 +181,7 @@ class State {
                 }
             } catch (e) {
                 if (!restored) {
+                    restored = true;
                     await this.updateTree(snapshot).runInContext(ctx);
                     this.events.log.error(e);
                 }
@@ -158,6 +191,11 @@ class State {
                     this.inTransaction = false;
                     this.events.changed.next({ state: this, inTransaction: false });
                     this.events.isUpdating.next(false);
+
+                    if (!restored) {
+                        if (options?.canUndo) this.addHistory(snapshot);
+                        else this.clearHistory();
+                    }
                 }
             }
         });
@@ -178,28 +216,45 @@ class State {
             const removed = await this.updateQueue.enqueue(params);
             if (!removed) return;
 
+            const snapshot = options?.canUndo ? this._tree.asImmutable() : void 0;
+            let reverted = false;
+
             if (!this.inTransaction) this.events.isUpdating.next(true);
             try {
+                this.reverted = false;
                 const ret = options && (options.revertIfAborted || options.revertOnError)
                     ? await this._revertibleTreeUpdate(taskCtx, params, options)
                     : await this._updateTree(taskCtx, params);
+                reverted = this.reverted;
+
                 return ret.cell;
             } finally {
                 this.updateQueue.handled(params);
-                if (!this.inTransaction) this.events.isUpdating.next(false);
+                if (this.inTransaction) return;
+                
+                this.events.isUpdating.next(false);
+                if (!options?.canUndo) {
+                    this.clearHistory();
+                } else if (!reverted) {
+                    this.addHistory(snapshot!);
+                }
             }
         }, () => {
             this.updateQueue.remove(params);
         });
     }
 
+    private reverted = false;
     private updateQueue = new AsyncQueue<UpdateParams>();
 
     private async _revertibleTreeUpdate(taskCtx: RuntimeContext, params: UpdateParams, options: Partial<State.UpdateOptions>) {
         const old = this.tree;
         const ret = await this._updateTree(taskCtx, params);
         let revert = ((ret.ctx.hadError || ret.ctx.wasAborted) && options.revertOnError) || (ret.ctx.wasAborted && options.revertIfAborted);
-        if (revert) return await this._updateTree(taskCtx, { tree: old, options: params.options });
+        if (revert) {
+            this.reverted = true;
+            return await this._updateTree(taskCtx, { tree: old, options: params.options });
+        }
         return ret;
     }
 
@@ -251,10 +306,12 @@ class State {
         return ctx;
     }
 
-    constructor(rootObject: StateObject, params?: { globalContext?: unknown, rootState?: StateTransform.State }) {
+    constructor(rootObject: StateObject, params?: { globalContext?: unknown, rootState?: StateTransform.State, historyCapacity?: number }) {
         this._tree = StateTree.createEmpty(StateTransform.createRoot(params && params.rootState)).asTransient();
         const tree = this._tree;
         const root = tree.root;
+
+        if (params?.historyCapacity !== void 0) this.historyCapacity = params.historyCapacity;
 
         (this.cells as Map<StateTransform.Ref, StateObjectCell>).set(root.ref, {
             parent: this,
@@ -301,7 +358,8 @@ namespace State {
         doNotLogTiming: boolean,
         doNotUpdateCurrent: boolean,
         revertIfAborted: boolean,
-        revertOnError: boolean
+        revertOnError: boolean,
+        canUndo: boolean
     }
 
     export function create(rootObject: StateObject, params?: { globalContext?: unknown, rootState?: StateTransform.State }) {
@@ -313,7 +371,8 @@ const StateUpdateDefaultOptions: State.UpdateOptions = {
     doNotLogTiming: false,
     doNotUpdateCurrent: true,
     revertIfAborted: false,
-    revertOnError: false
+    revertOnError: false,
+    canUndo: false
 };
 
 type Ref = StateTransform.Ref
