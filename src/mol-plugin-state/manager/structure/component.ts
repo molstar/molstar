@@ -289,7 +289,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                 if (s.currentFocus.surroundings) deletes.delete(s.currentFocus.surroundings.cell.transform.ref);
             }
         }
-        return this.plugin.runTask(this.dataState.updateTree(deletes));
+        return this.plugin.runTask(this.dataState.updateTree(deletes, { canUndo: true }));
     }
 
     constructor(public plugin: PluginContext) {
