@@ -12,6 +12,8 @@ import { IconButton } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { memoize1 } from '../../mol-util/memoize';
+import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
@@ -183,7 +185,9 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
     toggleHierarchy = () => this.setState({ show: this.state.show !== 'hierarchy' ? 'hierarchy' : void 0 });
     toggleActions = () => this.setState({ show: this.state.show !== 'actions' ? 'actions' : void 0 });
 
-    get actions() {
+    actions = memoize1((sel: StructureHierarchyManager['selection']) => this._actions);
+
+    get _actions() {
         const ret: ActionMenu.Items = [];
 
         const { selection } = this.plugin.managers.structure.hierarchy;
@@ -243,15 +247,16 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
 
     renderControls() {
         const disabled = this.state.isBusy || this.isEmpty;
+        const actions = this.actions(this.plugin.managers.structure.hierarchy.selection);
         return <>
             <div className='msp-btn-row-group' style={{ marginTop: '1px' }}>
                 <button className='msp-btn msp-form-control msp-flex-item' onClick={this.toggleHierarchy} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} disabled={disabled}>
                     {this.label}
                 </button>
-                <IconButton customClass='msp-form-control' style={{ flex: '0 0 32px' }} onClick={this.toggleActions} icon='dot-3' title='Actions' toggleState={this.state.show === 'actions'} disabled={disabled} />
+                {actions.length > 0 && <IconButton customClass='msp-form-control' style={{ flex: '0 0 32px' }} onClick={this.toggleActions} icon='dot-3' title='Actions' toggleState={this.state.show === 'actions'} disabled={disabled} />}
             </div>
             {this.state.show === 'hierarchy' && <ActionMenu items={this.hierarchyItems} onSelect={this.selectHierarchy} multiselect />}
-            {this.state.show === 'actions' && <ActionMenu items={this.actions} onSelect={this.selectAction} />}
+            {this.state.show === 'actions' && <ActionMenu items={actions} onSelect={this.selectAction} />}
             {this.modelIndex}
             {this.structureType}
         </>;
