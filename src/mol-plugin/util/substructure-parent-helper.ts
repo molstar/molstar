@@ -19,7 +19,7 @@ class SubstructureParentHelper {
     get(s: Structure): StateObjectCell<PluginStateObject.Molecule.Structure> | undefined {
         const r = this.root.get(s);
         if (!r) return;
-        return this.plugin.state.dataState.cells.get(r.ref);
+        return this.plugin.state.data.cells.get(r.ref);
     }
 
     private addMapping(state: State, ref: string, obj: StateObject) {
@@ -63,15 +63,15 @@ class SubstructureParentHelper {
     }
 
     constructor(private plugin: PluginContext) {
-        plugin.state.dataState.events.object.created.subscribe(e => {
+        plugin.state.data.events.object.created.subscribe(e => {
             this.addMapping(e.state, e.ref, e.obj);
         });
 
-        plugin.state.dataState.events.object.removed.subscribe(e => {
+        plugin.state.data.events.object.removed.subscribe(e => {
             this.removeMapping(e.ref);
         });
 
-        plugin.state.dataState.events.object.updated.subscribe(e => {
+        plugin.state.data.events.object.updated.subscribe(e => {
             this.updateMapping(e.state, e.ref, e.oldObj, e.obj);
         });
     }

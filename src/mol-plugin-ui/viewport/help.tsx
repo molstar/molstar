@@ -95,7 +95,7 @@ export class HelpContent extends PluginUIComponent {
     }
 
     private getTriggerFor(transformer: StateTransformer, name: string) {
-        const state = this.plugin.state.behaviorState
+        const state = this.plugin.state.behaviors
         const selections = state.select(StateSelection.Generators.ofTransformer(transformer))
         const params = selections.length === 1 ? selections[0].params : undefined
         const bindings = params ? params.values.bindings : {}

@@ -46,7 +46,7 @@ const auto = StructureRepresentationProvider({
 });
 
 function reprBuilder(plugin: PluginContext, params: CommonStructureRepresentationParams) {
-    const update = plugin.state.dataState.build();
+    const update = plugin.state.data.build();
     const builder = plugin.builders.structure.representation;
     const typeParams = {
         quality: plugin.managers.structure.component.state.options.visualQuality,

@@ -25,9 +25,7 @@ export const PluginCommands = {
 
         ToggleExpanded: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
         ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
-        Highlight: PluginCommand<{ state: State, ref: StateTransform.Ref | StateTransform.Ref[] }>(),
-        ClearHighlights: PluginCommand<{}>(),
-
+        
         Snapshots: {
             Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.GetSnapshotParams }>(),
             Replace: PluginCommand<{ id: string, params?: PluginState.GetSnapshotParams }>(),
@@ -44,10 +42,14 @@ export const PluginCommands = {
         }
     },
     Interactivity: {
+        Object: {
+            Highlight: PluginCommand<{ state: State, ref: StateTransform.Ref | StateTransform.Ref[] }>(),
+        },
         Structure: {
             Highlight: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>(),
             Select: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>()
-        }
+        },
+        ClearHighlights: PluginCommand<{}>(),
     },
     Layout: {
         Update: PluginCommand<{ state: Partial<PluginLayoutStateProps> }>()

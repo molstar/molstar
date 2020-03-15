@@ -420,7 +420,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
     }
 
     fromSelections(ref: StateObjectRef<PluginStateObject.Molecule.Structure.Selections>) {
-        const cell = StateObjectRef.resolveAndCheck(this.plugin.state.dataState, ref);
+        const cell = StateObjectRef.resolveAndCheck(this.plugin.state.data, ref);
         if (!cell || !cell.obj) return;
 
         if (!PluginStateObject.Molecule.Structure.Selections.is(cell.obj)) {
@@ -437,8 +437,8 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
     constructor(private plugin: PluginContext) {
         super({ entries: new Map(), additionsHistory: [], stats: SelectionStats() });
 
-        plugin.state.dataState.events.object.removed.subscribe(e => this.onRemove(e.ref));
-        plugin.state.dataState.events.object.updated.subscribe(e => this.onUpdate(e.ref, e.oldObj, e.obj));
+        plugin.state.data.events.object.removed.subscribe(e => this.onRemove(e.ref));
+        plugin.state.data.events.object.updated.subscribe(e => this.onUpdate(e.ref, e.oldObj, e.obj));
     }
 }
 

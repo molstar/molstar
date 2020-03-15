@@ -97,7 +97,7 @@ export const SelectLoci = PluginBehavior.create({
             this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action)
         }
         private applySelectMark(ref: string, clear?: boolean) {
-            const cell = this.ctx.state.dataState.cells.get(ref)
+            const cell = this.ctx.state.data.cells.get(ref)
             if (cell && SO.isRepresentation3D(cell.obj)) {
                 this.spine.current = cell
                 const so = this.spine.getRootOfType(SO.Molecule.Structure)
@@ -148,9 +148,9 @@ export const SelectLoci = PluginBehavior.create({
 
             // re-apply select-mark to all representation of an updated structure
             this.subscribeObservable(this.ctx.events.state.object.updated, ({ ref }) => {
-                const cell = this.ctx.state.dataState.cells.get(ref)
+                const cell = this.ctx.state.data.cells.get(ref)
                 if (cell && SO.Molecule.Structure.is(cell.obj)) {
-                    const reprs = this.ctx.state.dataState.select(StateSelection.Generators.ofType(SO.Molecule.Structure.Representation3D, ref))
+                    const reprs = this.ctx.state.data.select(StateSelection.Generators.ofType(SO.Molecule.Structure.Representation3D, ref))
                     for (const repr of reprs) this.applySelectMark(repr.transform.ref, true)
                 }
             });
@@ -160,7 +160,7 @@ export const SelectLoci = PluginBehavior.create({
         }
         constructor(ctx: PluginContext, params: SelectLociProps) {
             super(ctx, params)
-            this.spine = new StateTreeSpine.Impl(ctx.state.dataState.cells)
+            this.spine = new StateTreeSpine.Impl(ctx.state.data.cells)
         }
     },
     params: () => SelectLociParams,

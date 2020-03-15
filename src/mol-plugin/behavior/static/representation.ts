@@ -16,7 +16,7 @@ export function registerDefault(ctx: PluginContext) {
 }
 
 export function SyncRepresentationToCanvas(ctx: PluginContext) {
-    const events = ctx.state.dataState.events;
+    const events = ctx.state.data.events;
     events.object.created.subscribe(e => {
         if (!SO.isRepresentation3D(e.obj)) return;
         updateVisibility(e.state.cells.get(e.ref)!, e.obj.data.repr);
@@ -51,7 +51,7 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
 
 export function SyncStructureRepresentation3DState(ctx: PluginContext) {
     // TODO: figure out how to do transform composition here?
-    const events = ctx.state.dataState.events;
+    const events = ctx.state.data.events;
     events.object.created.subscribe(e => {
         if (!SO.Molecule.Structure.Representation3DState.is(e.obj)) return;
         const data = e.obj.data as SO.Molecule.Structure.Representation3DStateData;
@@ -77,7 +77,7 @@ export function SyncStructureRepresentation3DState(ctx: PluginContext) {
 
 
 export function UpdateRepresentationVisibility(ctx: PluginContext) {
-    ctx.state.dataState.events.cell.stateUpdated.subscribe(e => {
+    ctx.state.data.events.cell.stateUpdated.subscribe(e => {
         const cell = e.state.cells.get(e.ref)!;
         if (!SO.isRepresentation3D(cell.obj)) return;
         updateVisibility(cell, cell.obj.data.repr);

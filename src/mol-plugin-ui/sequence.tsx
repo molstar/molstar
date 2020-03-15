@@ -194,7 +194,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     state = { structure: Structure.Empty, structureRef: '', modelEntityId: '', chainGroupId: -1, operatorKey: '' }
 
     componentDidMount() {
-        if (this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState())
+        if (this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState())
 
         this.subscribe(this.plugin.events.state.object.updated, ({ ref, obj }) => {
             if (ref === this.state.structureRef && obj && obj.type === PSO.Molecule.Structure.type && obj.data !== this.state.structure) {
@@ -216,7 +216,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     }
 
     private getStructure(ref: string) {
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
         const cell = state.select(ref)[0];
         if (!ref || !cell || !cell.obj) return Structure.Empty;
         return (cell.obj as PSO.Molecule.Structure).data;
@@ -227,7 +227,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     }
 
     private getInitialState(): SequenceViewState {
-        const structureRef = getStructureOptions(this.plugin.state.dataState)[0][0]
+        const structureRef = getStructureOptions(this.plugin.state.data)[0][0]
         const structure = this.getStructure(structureRef)
         let modelEntityId = getModelEntityOptions(structure)[0][0]
         let chainGroupId = getChainOptions(structure, modelEntityId)[0][0]
@@ -242,7 +242,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
 
     private get params() {
         const { structure, modelEntityId, chainGroupId } = this.state
-        const structureOptions = getStructureOptions(this.plugin.state.dataState)
+        const structureOptions = getStructureOptions(this.plugin.state.data)
         const entityOptions = getModelEntityOptions(structure)
         const chainOptions = getChainOptions(structure, modelEntityId)
         const operatorOptions = getOperatorOptions(structure, modelEntityId, chainGroupId)

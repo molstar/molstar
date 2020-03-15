@@ -54,7 +54,7 @@ export function SetCurrentObject(ctx: PluginContext) {
 }
 
 export function Update(ctx: PluginContext) {
-    PluginCommands.State.Update.subscribe(ctx, ({ state, tree, options }) => ctx.runTask(state.updateTree(tree, options)));
+    PluginCommands.State.Update.subscribe(ctx, ({ state, tree, options }) => ctx.updateState(tree, options));
 }
 
 export function ApplyAction(ctx: PluginContext) {
@@ -64,7 +64,7 @@ export function ApplyAction(ctx: PluginContext) {
 export function RemoveObject(ctx: PluginContext) {
     function remove(state: State, ref: string) {
         const tree = state.build().delete(ref).getTree();
-        return ctx.runTask(state.updateTree(tree));
+        return ctx.updateState(tree);
     }
 
     PluginCommands.State.RemoveObject.subscribe(ctx, ({ state, ref, removeParentGhosts }) => {
@@ -104,7 +104,7 @@ function setVisibilityVisitor(t: StateTransform, tree: StateTree, ctx: { state: 
 }
 
 export function Highlight(ctx: PluginContext) {
-    PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref }) => {
+    PluginCommands.Interactivity.Object.Highlight.subscribe(ctx, ({ state, ref }) => {
         ctx.managers.interactivity.lociHighlights.clearHighlights();
 
         const refs = typeof ref === 'string' ? [ref] : ref;
@@ -129,7 +129,7 @@ export function Highlight(ctx: PluginContext) {
 }
 
 export function ClearHighlights(ctx: PluginContext) {
-    PluginCommands.State.ClearHighlights.subscribe(ctx, () => {
+    PluginCommands.Interactivity.ClearHighlights.subscribe(ctx, () => {
         ctx.managers.interactivity.lociHighlights.clearHighlights();
     });
 }

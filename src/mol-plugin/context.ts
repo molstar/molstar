@@ -5,50 +5,50 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { setAutoFreeze } from 'immer';
 import { List } from 'immutable';
+import { merge } from 'rxjs';
 import { Canvas3D } from '../mol-canvas3d/canvas3d';
+import { CustomProperty } from '../mol-model-props/common/custom-property';
+import { Model, Structure } from '../mol-model/structure';
+import { DataFormatRegistry } from '../mol-plugin-state/actions/data-format';
+import { DataBuilder } from '../mol-plugin-state/builder/data';
+import { StructureBuilder } from '../mol-plugin-state/builder/structure';
+import { TrajectoryFormatRegistry } from '../mol-plugin-state/formats/trajectory';
+import { CameraManager } from '../mol-plugin-state/manager/camera';
+import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
+import { LociLabelEntry, LociLabelManager } from '../mol-plugin-state/manager/loci-label';
+import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
+import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure/hierarchy';
+import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
+import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
+import { StateTransformParameters } from '../mol-plugin-ui/state/common';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
-import { State, StateTransform, StateTransformer } from '../mol-state';
-import { Task, Progress } from '../mol-task';
+import { State, StateBuilder, StateTree } from '../mol-state';
+import { Progress, Task } from '../mol-task';
 import { ColorTheme } from '../mol-theme/color';
 import { SizeTheme } from '../mol-theme/size';
 import { ThemeRegistryContext } from '../mol-theme/theme';
 import { Color } from '../mol-util/color';
 import { ajaxGet } from '../mol-util/data-source';
+import { isDebugMode, isProductionMode } from '../mol-util/debug';
+import { ModifiersKeys } from '../mol-util/input/input-observer';
 import { LogEntry } from '../mol-util/log-entry';
 import { RxEventHelper } from '../mol-util/rx-event-helper';
-import { merge } from 'rxjs';
 import { BuiltInPluginBehaviors } from './behavior';
 import { PluginBehavior } from './behavior/behavior';
-import { PluginCommands } from './commands';
 import { PluginCommandManager } from './command';
-import { PluginLayout, LeftPanelTabName } from './layout';
+import { PluginCommands } from './commands';
+import { PluginConfigManager } from './config';
+import { LeftPanelTabName, PluginLayout } from './layout';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
-import { DataFormatRegistry } from '../mol-plugin-state/actions/data-format';
-import { StateTransformParameters } from '../mol-plugin-ui/state/common';
-import { LociLabelEntry, LociLabelManager } from '../mol-plugin-state/manager/loci-label';
-import { TaskManager } from './util/task-manager';
-import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { SubstructureParentHelper } from './util/substructure-parent-helper';
-import { ModifiersKeys } from '../mol-util/input/input-observer';
-import { isProductionMode, isDebugMode } from '../mol-util/debug';
-import { Model, Structure } from '../mol-model/structure';
-import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
+import { TaskManager } from './util/task-manager';
 import { PluginToastManager } from './util/toast';
-import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
-import { CustomProperty } from '../mol-model-props/common/custom-property';
-import { PluginConfigManager } from './config';
-import { DataBuilder } from '../mol-plugin-state/builder/data';
-import { StructureBuilder } from '../mol-plugin-state/builder/structure';
-import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure/hierarchy';
-import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
-import { TrajectoryFormatRegistry } from '../mol-plugin-state/formats/trajectory';
-import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
-import { CameraManager } from '../mol-plugin-state/manager/camera';
-import { setAutoFreeze } from 'immer';
+import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 
 export class PluginContext {
     private disposed = false;
@@ -61,14 +61,14 @@ export class PluginContext {
     readonly events = {
         state: {
             cell: {
-                stateUpdated: merge(this.state.dataState.events.cell.stateUpdated, this.state.behaviorState.events.cell.stateUpdated),
-                created: merge(this.state.dataState.events.cell.created, this.state.behaviorState.events.cell.created),
-                removed: merge(this.state.dataState.events.cell.removed, this.state.behaviorState.events.cell.removed),
+                stateUpdated: merge(this.state.data.events.cell.stateUpdated, this.state.behaviors.events.cell.stateUpdated),
+                created: merge(this.state.data.events.cell.created, this.state.behaviors.events.cell.created),
+                removed: merge(this.state.data.events.cell.removed, this.state.behaviors.events.cell.removed),
             },
             object: {
-                created: merge(this.state.dataState.events.object.created, this.state.behaviorState.events.object.created),
-                removed: merge(this.state.dataState.events.object.removed, this.state.behaviorState.events.object.removed),
-                updated: merge(this.state.dataState.events.object.updated, this.state.behaviorState.events.object.updated)
+                created: merge(this.state.data.events.object.created, this.state.behaviors.events.object.created),
+                removed: merge(this.state.data.events.object.removed, this.state.behaviors.events.object.removed),
+                updated: merge(this.state.data.events.object.updated, this.state.behaviors.events.object.updated)
             },
             cameraSnapshots: this.state.cameraSnapshots.events,
             snapshots: this.state.snapshots.events,
@@ -199,7 +199,11 @@ export class PluginContext {
     }
 
     dataTransaction(f: () => Promise<void> | void, options?: { canUndo?: string | boolean }) {
-        return this.runTask(this.state.dataState.transaction(f, options));
+        return this.runTask(this.state.data.transaction(f, options));
+    }
+
+    updateState(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>) {
+        return this.runTask(this.state.data.updateTree(tree, options));
     }
 
     requestTaskAbort(progress: Progress, reason?: string) {
@@ -217,18 +221,8 @@ export class PluginContext {
         this.disposed = true;
     }
 
-    applyTransform(state: State, a: StateTransform.Ref, transformer: StateTransformer, params: any) {
-        const tree = state.build().to(a).apply(transformer, params);
-        return PluginCommands.State.Update(this, { state, tree });
-    }
-
-    updateTransform(state: State, a: StateTransform.Ref, params: any) {
-        const tree = state.build().to(a).update(params);
-        return PluginCommands.State.Update(this, { state, tree });
-    }
-
     private initBehaviorEvents() {
-        merge(this.state.dataState.events.isUpdating, this.state.behaviorState.events.isUpdating).subscribe(u => {
+        merge(this.state.data.events.isUpdating, this.state.behaviors.events.isUpdating).subscribe(u => {
             this.behaviors.state.isUpdating.next(u);
         });
 
@@ -248,11 +242,11 @@ export class PluginContext {
         BuiltInPluginBehaviors.Camera.registerDefault(this);
         BuiltInPluginBehaviors.Misc.registerDefault(this);
 
-        merge(this.state.dataState.events.log, this.state.behaviorState.events.log).subscribe(e => this.events.log.next(e));
+        merge(this.state.data.events.log, this.state.behaviors.events.log).subscribe(e => this.events.log.next(e));
     }
 
     private async initBehaviors() {
-        const tree = this.state.behaviorState.build();
+        const tree = this.state.behaviors.build();
 
         for (const cat of Object.keys(PluginBehavior.Categories)) {
             tree.toRoot().apply(PluginBehavior.CreateCategory, { label: (PluginBehavior.Categories as any)[cat] }, { ref: cat, state: { isLocked: true } });
@@ -262,12 +256,12 @@ export class PluginContext {
             tree.to(PluginBehavior.getCategoryId(b.transformer)).apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
         }
 
-        await this.runTask(this.state.behaviorState.updateTree(tree, { doNotUpdateCurrent: true, doNotLogTiming: true }));
+        await this.runTask(this.state.behaviors.updateTree(tree, { doNotUpdateCurrent: true, doNotLogTiming: true }));
     }
 
     private initDataActions() {
         for (const a of this.spec.actions) {
-            this.state.dataState.actions.add(a.action);
+            this.state.data.actions.add(a.action);
         }
     }
 

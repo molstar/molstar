@@ -29,7 +29,7 @@ export enum StructureBuilderTags {
 
 export class StructureBuilder {
     private get dataState() {
-        return this.plugin.state.dataState;
+        return this.plugin.state.data;
     }
 
     private async parseTrajectoryData(data: StateObjectRef<SO.Data.Binary | SO.Data.String>, format: BuiltInTrajectoryFormat | TrajectoryFormatProvider) {
@@ -44,7 +44,7 @@ export class StructureBuilder {
         const trajectory = state.build().to(data)
             .apply(StateTransforms.Data.ParseBlob, params, { state: { isGhost: true } })
             .apply(StateTransforms.Model.TrajectoryFromBlob, void 0, { tags: StructureBuilderTags.Trajectory });        
-        await this.plugin.runTask(this.dataState.updateTree(trajectory, { revertOnError: true }));
+        await this.plugin.updateState(trajectory, { revertOnError: true });
         return trajectory.selector;
     }
 
@@ -101,7 +101,7 @@ export class StructureBuilder {
         const model = state.build().to(trajectory)
             .apply(StateTransforms.Model.ModelFromTrajectory, params || { modelIndex: 0 }, { tags: StructureBuilderTags.Model, state: initialState });
 
-        await this.plugin.runTask(this.dataState.updateTree(model, { revertOnError: true }));
+        await this.plugin.updateState(model, { revertOnError: true });
         return model.selector;
     }
 
@@ -109,7 +109,7 @@ export class StructureBuilder {
         const state = this.dataState;
         const props = state.build().to(model)
             .insert(StateTransforms.Model.CustomModelProperties, params, { tags: StructureBuilderTags.ModelProperties, isDecorator: true });
-        await this.plugin.runTask(this.dataState.updateTree(props, { revertOnError: true }));
+        await this.plugin.updateState(props, { revertOnError: true });
         return props.selector;
     }
 
@@ -118,7 +118,7 @@ export class StructureBuilder {
         const structure = state.build().to(model)
             .apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } }, { tags: StructureBuilderTags.Structure, state: initialState });        
 
-        await this.plugin.runTask(this.dataState.updateTree(structure, { revertOnError: true }));
+        await this.plugin.updateState(structure, { revertOnError: true });
         return structure.selector;
     }
 
@@ -126,7 +126,7 @@ export class StructureBuilder {
         const state = this.dataState;
         const props = state.build().to(structure)
             .insert(StateTransforms.Model.CustomStructureProperties, params, { tags: StructureBuilderTags.StructureProperties, isDecorator: true });
-        await this.plugin.runTask(this.dataState.updateTree(props, { revertOnError: true }));
+        await this.plugin.updateState(props, { revertOnError: true });
         return props.selector;
     }
 
@@ -145,13 +145,13 @@ export class StructureBuilder {
             tags: tags ? [...tags, StructureBuilderTags.Component, keyTag] : [StructureBuilderTags.Component, keyTag]
         });
 
-        await this.plugin.runTask(this.dataState.updateTree(component));
+        await this.plugin.updateState(component);
 
         const selector = component.selector;
 
         if (!selector.isOk || selector.cell?.obj?.data.elementCount === 0) {
             const del = state.build().delete(selector.ref);
-            await this.plugin.runTask(this.dataState.updateTree(del));
+            await this.plugin.updateState(del);
             return;
         }
 
@@ -205,7 +205,7 @@ export class StructureBuilder {
     
             if (!selector.isOk || selector.cell?.obj?.data.elementCount === 0) {
                 const del = state.build().delete(selector.ref);
-                await this.plugin.runTask(this.dataState.updateTree(del));
+                await this.plugin.updateState(del);
                 return;
             }
     

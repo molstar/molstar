@@ -30,7 +30,7 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
             }
         });
 
-        this.subscribe(this.plugin.state.dataState.events.changed, ({ state }) => {
+        this.subscribe(this.plugin.state.data.events.changed, ({ state }) => {
             if (this.state.tab !== 'data') return;
             if (state.cells.size === 1) this.set('root');
         });
@@ -58,12 +58,12 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
         'none': <></>,
         'root': <>
             <SectionHeader icon='home' title='Home' />
-            <StateObjectActions state={this.plugin.state.dataState} nodeRef={StateTransform.RootRef} hideHeader={true} initiallyCollapsed={true} alwaysExpandFirst={true} />
+            <StateObjectActions state={this.plugin.state.data} nodeRef={StateTransform.RootRef} hideHeader={true} initiallyCollapsed={true} alwaysExpandFirst={true} />
             {this.plugin.spec.components?.remoteState !== 'none' && <RemoteStateSnapshots listOnly /> }
         </>,
         'data': <>
             <SectionHeader icon='flow-tree' title={<><RemoveAllButton /> State Tree</>} />
-            <StateTree state={this.plugin.state.dataState} />
+            <StateTree state={this.plugin.state.data} />
         </>,
         'states': <StateSnapshots />,
         'settings': <>
@@ -111,7 +111,7 @@ class DataIcon extends PluginUIComponent<{ set: (tab: LeftPanelTabName) => void 
             else this.forceUpdate();
         });
 
-        this.subscribe(this.plugin.state.dataState.events.changed, state => {
+        this.subscribe(this.plugin.state.data.events.changed, state => {
             if (this.tab !== 'data') this.setState({ changed: true });
         });
     }
@@ -144,7 +144,7 @@ class FullSettings extends PluginUIComponent {
                 <ParameterControls params={Canvas3DParams} values={this.plugin.canvas3d.props} onChange={this.setSettings} />
             </>}
             <SectionHeader title='Behavior' />
-            <StateTree state={this.plugin.state.behaviorState} />
+            <StateTree state={this.plugin.state.behaviors} />
         </>
     }
 }
@@ -162,11 +162,11 @@ export class RemoveAllButton extends PluginUIComponent<{ }> {
 
     remove = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.RemoveObject(this.plugin, { state: this.plugin.state.dataState, ref: StateTransform.RootRef });
+        PluginCommands.State.RemoveObject(this.plugin, { state: this.plugin.state.data, ref: StateTransform.RootRef });
     }
 
     render() {
-        const count = this.plugin.state.dataState.tree.children.get(StateTransform.RootRef).size;
+        const count = this.plugin.state.data.tree.children.get(StateTransform.RootRef).size;
         if (count < 2) return null;
         return <IconButton icon='remove' onClick={this.remove} title={'Remove All'} style={{ display: 'inline-block' }} />;
     }

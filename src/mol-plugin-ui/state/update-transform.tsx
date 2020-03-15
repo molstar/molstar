@@ -31,7 +31,7 @@ namespace UpdateTransformControl {
 class UpdateTransformControl extends TransformControlBase<UpdateTransformControl.Props, UpdateTransformControl.ComponentState> {
     applyAction() { 
         if (this.props.customUpdate) return this.props.customUpdate(this.state.params);
-        return this.plugin.updateTransform(this.props.state, this.props.transform.ref, this.state.params);
+        return this.plugin.state.updateTransform(this.props.state, this.props.transform.ref, this.state.params);
     }
     getInfo() { return this._getInfo(this.props.transform); }
     getTransformerId() { return this.props.transform.transformer.id; }
@@ -103,13 +103,13 @@ class UpdateTransformControl extends TransformControlBase<UpdateTransformControl
 class TransformUpdaterControl extends PluginUIComponent<{ nodeRef: string, initiallyCollapsed?: boolean, header?: StateTransformer.Definition['display'] }> {
     componentDidMount() {
         this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
-            if (this.props.nodeRef !== ref || this.plugin.state.dataState !== state) return;
+            if (this.props.nodeRef !== ref || this.plugin.state.data !== state) return;
             this.forceUpdate();
         });
     }
 
     render() {
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
         const ref = this.props.nodeRef;
         const cell = state.cells.get(ref)!;
 

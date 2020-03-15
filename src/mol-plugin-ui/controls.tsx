@@ -26,7 +26,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
     state = { show: false, label: '' }
 
     private update = () => {
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
 
         const models = state.selectQ(q => q.ofTransformer(StateTransforms.Model.ModelFromTrajectory));
 
@@ -62,22 +62,22 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.state.dataState.events.changed, this.update);
+        this.subscribe(this.plugin.state.data.events.changed, this.update);
         this.subscribe(this.plugin.behaviors.state.isAnimating, this.update);
     }
 
     reset = () => PluginCommands.State.ApplyAction(this.plugin, {
-        state: this.plugin.state.dataState,
+        state: this.plugin.state.data,
         action: UpdateTrajectory.create({ action: 'reset' })
     });
 
     prev = () => PluginCommands.State.ApplyAction(this.plugin, {
-        state: this.plugin.state.dataState,
+        state: this.plugin.state.data,
         action: UpdateTrajectory.create({ action: 'advance', by: -1 })
     });
 
     next = () => PluginCommands.State.ApplyAction(this.plugin, {
-        state: this.plugin.state.dataState,
+        state: this.plugin.state.data,
         action: UpdateTrajectory.create({ action: 'advance', by: 1 })
     });
 
@@ -210,8 +210,8 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
             else this.setState({ isPlaying: false });
         });
         this.subscribe(this.plugin.behaviors.state.isUpdating, isUpdating => {
-            if (isUpdating) this.setState({ isUpdating: true, isExpanded: false, isEmpty: this.plugin.state.dataState.tree.transforms.size < 2 });
-            else this.setState({ isUpdating: false, isEmpty: this.plugin.state.dataState.tree.transforms.size < 2 });
+            if (isUpdating) this.setState({ isUpdating: true, isExpanded: false, isEmpty: this.plugin.state.data.tree.transforms.size < 2 });
+            else this.setState({ isUpdating: false, isEmpty: this.plugin.state.data.tree.transforms.size < 2 });
         });
         this.subscribe(this.plugin.behaviors.state.isAnimating, isAnimating => {
             if (isAnimating) this.setState({ isAnimating: true, isExpanded: false });

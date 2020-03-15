@@ -29,7 +29,7 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
             const structures: Structure[] = []
             const root = this.ctx.helpers.substructureParent.get(structure)
             if (root) {
-                const state = this.ctx.state.dataState
+                const state = this.ctx.state.data
                 const selections = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure, root.transform.ref));
                 for (const s of selections) {
                     if (s.obj) arraySetAdd(structures, s.obj.data)

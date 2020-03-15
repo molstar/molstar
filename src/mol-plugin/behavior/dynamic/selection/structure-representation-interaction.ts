@@ -75,7 +75,7 @@ const TagSet: Set<StructureRepresentationInteractionTags> = new Set([StructureRe
 
 export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<StructureRepresentationInteractionProps> {
     private ensureShape(cell: StateObjectCell<PluginStateObject.Molecule.Structure>) {
-        const state = this.plugin.state.dataState, tree = state.tree;
+        const state = this.plugin.state.data, tree = state.tree;
         const builder = state.build();
         const refs = StateSelection.findUniqueTagsInSubtree(tree, cell.transform.ref, TagSet);
 
@@ -123,7 +123,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
     }
 
     private clear(root: StateTransform.Ref) {
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
         const groups = state.select(StateSelection.Generators.byRef(root).subtree().withTag(StructureRepresentationInteractionTags.Group));
         if (groups.length === 0) return;
 
@@ -215,7 +215,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
     async update(params: StructureRepresentationInteractionProps) {
         this.params = params;
 
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
         const builder = state.build();
 
         const all = StateSelection.Generators.root.subtree();        

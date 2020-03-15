@@ -27,7 +27,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         private provider = AssemblySymmetryProvider
 
         register(): void {
-            this.ctx.state.dataState.actions.add(InitAssemblySymmetry3D)
+            this.ctx.state.data.actions.add(InitAssemblySymmetry3D)
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
             this.ctx.representation.structure.themes.colorThemeRegistry.add(AssemblySymmetryClusterColorThemeProvider)
         }
@@ -40,7 +40,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         }
 
         unregister() {
-            this.ctx.state.dataState.actions.remove(InitAssemblySymmetry3D)
+            this.ctx.state.data.actions.remove(InitAssemblySymmetry3D)
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(AssemblySymmetryClusterColorThemeProvider)
         }

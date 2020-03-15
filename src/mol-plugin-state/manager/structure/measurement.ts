@@ -47,9 +47,9 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
     }
 
     private getGroup() {
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
         const groupRef = StateSelection.findTagInSubtree(state.tree, StateTransform.RootRef, MeasurementGroupTag);
-        const builder = this.plugin.state.dataState.build();
+        const builder = this.plugin.state.data.build();
 
         if (groupRef) return builder.to(groupRef);
         return builder.toRoot().group(StateTransforms.Misc.CreateGroup, { label: `Measurements` }, { tags: MeasurementGroupTag });
@@ -58,7 +58,7 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
     async setOptions(options: StructureMeasurementOptions) {
         if (this.updateState({ options })) this.stateUpdated();
 
-        const update = this.plugin.state.dataState.build();
+        const update = this.plugin.state.data.build();
         for (const cell of this.state.distances) {
             update.to(cell).update((old: any) => { 
                 old.unitLabel = options.distanceUnitLabel;
@@ -77,7 +77,7 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
         
         if (update.editInfo.count === 0) return;
 
-        await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.dataState, tree: update, options: { doNotLogTiming: true } });
+        await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.data, tree: update, options: { doNotLogTiming: true } });
     }
 
     async addDistance(a: StructureElement.Loci, b: StructureElement.Loci) {
@@ -104,7 +104,7 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
                 textColor: this.state.options.textColor
             })
 
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
@@ -134,7 +134,7 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
                 textColor: this.state.options.textColor
             })
 
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
@@ -167,7 +167,7 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
                 textColor: this.state.options.textColor
             })
 
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
@@ -191,7 +191,7 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
                 textColor: this.state.options.textColor
             })
 
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
@@ -213,13 +213,13 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
             }, { dependsOn })
             .apply(StateTransforms.Representation.StructureSelectionsOrientation3D)
 
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
     private _empty: any[] = [];
     private getTransforms<T extends StateTransformer<A, B, any>, A extends PluginStateObject.Molecule.Structure.Selections, B extends StateObject>(transformer: T) {
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
         const groupRef = StateSelection.findTagInSubtree(state.tree, StateTransform.RootRef, MeasurementGroupTag);
         const ret = groupRef ? state.select(StateSelection.Generators.ofTransformer(transformer, groupRef)) : this._empty;
         if (ret.length === 0) return this._empty;
@@ -240,7 +240,7 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
     constructor(private plugin: PluginContext) {
         super({ labels: [], distances: [], angles: [], dihedrals: [], orientations: [], options: DefaultStructureMeasurementOptions });
 
-        plugin.state.dataState.events.changed.subscribe(e => {
+        plugin.state.data.events.changed.subscribe(e => {
             if (e.inTransaction || plugin.behaviors.state.isAnimating.value) return;
             this.sync();
         });

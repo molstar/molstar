@@ -31,21 +31,21 @@ export const MmcifProvider: TrajectoryFormatProvider = {
         return false
     },
     parse: async (plugin, data, params) => {
-        const state = plugin.state.dataState;
+        const state = plugin.state.data;
         const trajectory = state.build().to(data)
             .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
             .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { tags: params?.trajectoryTags })
-        await plugin.runTask(state.updateTree(trajectory, { revertOnError: true }));
+        await plugin.updateState(trajectory, { revertOnError: true });
         return { trajectory: trajectory.selector };
     }
 }
 
 function directTrajectory(transformer: StateTransformer<PluginStateObject.Data.String | PluginStateObject.Data.Binary, PluginStateObject.Molecule.Trajectory>): TrajectoryFormatProvider['parse'] {
     return async (plugin, data, params) => {
-        const state = plugin.state.dataState;
+        const state = plugin.state.data;
         const trajectory = state.build().to(data)
             .apply(transformer, void 0, { tags: params?.trajectoryTags })
-        await plugin.runTask(state.updateTree(trajectory, { revertOnError: true }));
+        await plugin.updateState(trajectory, { revertOnError: true });
         return { trajectory: trajectory.selector };
     }
 }

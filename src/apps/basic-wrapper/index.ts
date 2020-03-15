@@ -93,7 +93,7 @@ class BasicWrapper {
     async load({ url, format = 'cif', assemblyId = '' }: LoadParams) {
         let loadType: 'full' | 'update' = 'full';
 
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
 
         if (this.loadedParams.url !== url || this.loadedParams.format !== format) {
             loadType = 'full';
@@ -118,7 +118,7 @@ class BasicWrapper {
             tree.to('asm').update(StateTransforms.Model.StructureFromModel, p => ({ ...p, ...props }));
         }
 
-        await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.dataState, tree });
+        await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.data, tree });
         this.loadedParams = { url, format, assemblyId };
         PluginCommands.Camera.Reset(this.plugin, { });
     }
@@ -150,7 +150,7 @@ class BasicWrapper {
 
     coloring = {
         applyStripes: async () => {
-            const state = this.plugin.state.dataState;
+            const state = this.plugin.state.data;
 
             const visuals = state.selectQ(q => q.ofTransformer(StateTransforms.Representation.StructureRepresentation3D));
             const tree = state.build();
@@ -167,7 +167,7 @@ class BasicWrapper {
     interactivity = {
         highlightOn: () => {
             const seq_id = 7;
-            const data = (this.plugin.state.dataState.select('asm')[0].obj as PluginStateObject.Molecule.Structure).data;
+            const data = (this.plugin.state.data.select('asm')[0].obj as PluginStateObject.Molecule.Structure).data;
             const sel = Script.getStructureSelection(Q => Q.struct.generator.atomGroups({
                 'residue-test': Q.core.rel.eq([Q.struct.atomProperty.macromolecular.label_seq_id(), seq_id]),
                 'group-by': Q.struct.atomProperty.macromolecular.residueKey()
@@ -182,17 +182,17 @@ class BasicWrapper {
 
     tests = {
         staticSuperposition: async () => {
-            const state = this.plugin.state.dataState;
+            const state = this.plugin.state.data;
             const tree = buildStaticSuperposition(this.plugin, StaticSuperpositionTestData);
             await PluginCommands.State.RemoveObject(this.plugin, { state, ref: StateTransform.RootRef });
             await PluginCommands.State.Update(this.plugin, { state, tree });
         },
         dynamicSuperposition: async () => {
-            await PluginCommands.State.RemoveObject(this.plugin, { state: this.plugin.state.dataState, ref: StateTransform.RootRef });
+            await PluginCommands.State.RemoveObject(this.plugin, { state: this.plugin.state.data, ref: StateTransform.RootRef });
             await dynamicSuperpositionTest(this.plugin, ['1tqn', '2hhb', '4hhb'], 'HEM');
         },
         toggleValidationTooltip: async () => {
-            const state = this.plugin.state.behaviorState;
+            const state = this.plugin.state.behaviors;
             const tree = state.build().to(PDBeStructureQualityReport.id).update(PDBeStructureQualityReport, p => ({ ...p, showTooltip: !p.showTooltip }));
             await PluginCommands.State.Update(this.plugin, { state, tree });
         },

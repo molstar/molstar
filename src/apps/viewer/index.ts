@@ -80,7 +80,7 @@ async function tryLoadFromUrl(ctx: PluginContext) {
 
         const params = DownloadStructure.createDefaultParams(void 0 as any, ctx);
 
-        return ctx.runTask(ctx.state.dataState.applyAction(DownloadStructure, {
+        return ctx.runTask(ctx.state.data.applyAction(DownloadStructure, {
             source: {
                 name: 'url',
                 params: {

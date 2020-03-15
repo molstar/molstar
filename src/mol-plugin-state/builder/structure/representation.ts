@@ -23,7 +23,7 @@ export type StructureRepresentationProviderRef = keyof PresetStructureReprentati
 export class StructureRepresentationBuilder {
     private _providers: StructureRepresentationProvider[] = [];
     private providerMap: Map<string, StructureRepresentationProvider> = new Map();
-    private get dataState() { return this.plugin.state.dataState; }
+    private get dataState() { return this.plugin.state.data; }
 
     readonly defaultProvider = PresetStructureReprentations.auto;
 
@@ -80,7 +80,7 @@ export class StructureRepresentationBuilder {
         const provider = this.resolveProvider(providerRef);
         if (!provider) return;
 
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
         const cell = StateObjectRef.resolveAndCheck(state, parent);
         if (!cell) {
             if (!isProductionMode) console.warn(`Applying structure repr. provider to bad cell.`);
@@ -107,7 +107,7 @@ export class StructureRepresentationBuilder {
             .to(structure)
             .apply(StructureRepresentation3D, params, { tags: RepresentationProviderTags.Representation });
 
-        await this.plugin.runTask(this.dataState.updateTree(repr));
+        await this.plugin.updateState(repr);
         return  repr.selector;
     }
 

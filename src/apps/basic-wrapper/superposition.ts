@@ -32,7 +32,7 @@ export type SuperpositionTestInput = {
 // }
 
 export function buildStaticSuperposition(ctx: PluginContext, src: SuperpositionTestInput) {
-    const b = ctx.state.dataState.build().toRoot();
+    const b = ctx.state.data.build().toRoot();
     for (const s of src) {
         StateHelper.visual(ctx,
             StateHelper.transform(
@@ -63,7 +63,7 @@ export const StaticSuperpositionTestData: SuperpositionTestInput = [
 ];
 
 export async function dynamicSuperpositionTest(ctx: PluginContext, src: string[], comp_id: string) {
-    const state = ctx.state.dataState;
+    const state = ctx.state.data;
 
     const structures = state.build().toRoot();
     for (const s of src) {

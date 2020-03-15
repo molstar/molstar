@@ -145,7 +145,7 @@ class LightingDemo {
     async load({ url, format = 'cif', assemblyId = '' }: LoadParams) {
         let loadType: 'full' | 'update' = 'full';
 
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
 
         if (this.loadedParams.url !== url || this.loadedParams.format !== format) {
             loadType = 'full';
@@ -169,7 +169,7 @@ class LightingDemo {
             tree.to('asm').update(StateTransforms.Model.StructureFromModel, p => ({ ...p, ...props }));
         }
 
-        await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.dataState, tree });
+        await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.data, tree });
         this.loadedParams = { url, format, assemblyId };
         PluginCommands.Camera.Reset(this.plugin, { });
     }

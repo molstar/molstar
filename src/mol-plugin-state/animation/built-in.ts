@@ -30,7 +30,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
             return { kind: 'skip' };
         }
 
-        const state = ctx.plugin.state.dataState;
+        const state = ctx.plugin.state.data;
         const models = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Model.ModelFromTrajectory));
 
         if (models.length === 0) {
@@ -92,7 +92,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
     display: { name: 'Unwind Assembly' },
     params: (plugin: PluginContext) => {
         const targets: [string, string][] = [['all', 'All']];
-        const structures = plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure));
+        const structures = plugin.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure));
 
         for (const s of structures) {
             targets.push([s.transform.ref, s.obj!.data.models[0].label]);
@@ -106,7 +106,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
     },
     initialState: () => ({ t: 0 }),
     async setup(params, plugin) {
-        const state = plugin.state.dataState;
+        const state = plugin.state.data;
         const root = !params.target || params.target === 'all' ? StateTransform.RootRef : params.target;
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D, root));
 
@@ -123,20 +123,20 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
 
         if (!changed) return;
 
-        return plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
+        return plugin.updateState(update, { doNotUpdateCurrent: true });
     },
     async teardown(_, plugin) {
-        const state = plugin.state.dataState;
+        const state = plugin.state.data;
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3DState)
             .withTag('animate-assembly-unwind'));
         if (reprs.length === 0) return;
 
         const update = state.build();
         for (const r of reprs) update.delete(r.transform.ref);
-        return plugin.runTask(state.updateTree(update));
+        return plugin.updateState(update);
     },
     async apply(animState, t, ctx) {
-        const state = ctx.plugin.state.dataState;
+        const state = ctx.plugin.state.data;
         const root = !ctx.params.target || ctx.params.target === 'all' ? StateTransform.RootRef : ctx.params.target;
         const anims = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D, root));
 
@@ -174,7 +174,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
     }),
     initialState: () => ({ t: 0 }),
     async setup(_, plugin) {
-        const state = plugin.state.dataState;
+        const state = plugin.state.data;
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D));
 
         const update = state.build();
@@ -190,20 +190,20 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
 
         if (!changed) return;
 
-        return plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
+        return plugin.updateState(update, { doNotUpdateCurrent: true });
     },
     async teardown(_, plugin) {
-        const state = plugin.state.dataState;
+        const state = plugin.state.data;
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3DState)
             .withTag('animate-units-explode'));
         if (reprs.length === 0) return;
 
         const update = state.build();
         for (const r of reprs) update.delete(r.transform.ref);
-        return plugin.runTask(state.updateTree(update));
+        return plugin.updateState(update);
     },
     async apply(animState, t, ctx) {
-        const state = ctx.plugin.state.dataState;
+        const state = ctx.plugin.state.data;
         const anims = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.ExplodeStructureRepresentation3D));
 
         if (anims.length === 0) {
@@ -251,7 +251,7 @@ export const AnimateStateInterpolation = PluginStateAnimation.create({
 
         const src = _src.data.tree.transforms, tar = _tar.data.tree.transforms;
 
-        const state = ctx.plugin.state.dataState;
+        const state = ctx.plugin.state.data;
         const update = state.build();
 
         for (const s of src) {

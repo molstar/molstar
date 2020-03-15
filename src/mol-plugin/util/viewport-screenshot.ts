@@ -99,7 +99,7 @@ class ViewportScreenshotHelper {
     }
 
     getFilename() {
-        const models = this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model)).map(s => s.obj!.data)
+        const models = this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model)).map(s => s.obj!.data)
         const uniqueIds = new Set<string>()
         models.forEach(m => uniqueIds.add(m.entryId.toUpperCase()))
         const idString = Array.from(uniqueIds.values()).join('-')

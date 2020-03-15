@@ -108,7 +108,7 @@ const SimpleSettingsMapping = ParamMapping({
         await PluginCommands.Layout.Update(ctx, { state });
 
         if (hideLeft) {
-            PluginCommands.State.SetCurrentObject(ctx, { state: ctx.state.dataState, ref: StateTransform.RootRef });
+            PluginCommands.State.SetCurrentObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
         }
     }
 })

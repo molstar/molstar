@@ -30,7 +30,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
     }
 
     private get dataState() {
-        return this.plugin.state.dataState;
+        return this.plugin.state.data;
     }
 
     private _currentComponentGroups: ReturnType<typeof StructureHierarchyManager['getComponentGroups']> | undefined = void 0;
@@ -81,7 +81,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
     }
 
     private sync() {
-        const update = buildStructureHierarchy(this.plugin.state.dataState, this.state.hierarchy);
+        const update = buildStructureHierarchy(this.plugin.state.data, this.state.hierarchy);
         if (update.added.length === 0 && update.updated.length === 0 && update.removed.length === 0) {
             return;
         }
@@ -129,9 +129,9 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
 
     remove(refs: HierarchyRef[], canUndo?: boolean) {
         if (refs.length === 0) return;
-        const deletes = this.plugin.state.dataState.build();
+        const deletes = this.plugin.state.data.build();
         for (const r of refs) deletes.delete(r.cell.transform.ref);
-        return this.plugin.runTask(this.plugin.state.dataState.updateTree(deletes, { canUndo: canUndo ? 'Remove' : false }));
+        return this.plugin.updateState(deletes, { canUndo: canUndo ? 'Remove' : false });
     }
 
     createAllModels(trajectory: TrajectoryRef) {
@@ -159,7 +159,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         for (const m of trajectory.models) {
             builder.delete(m.cell);
         }
-        return this.plugin.runTask(this.dataState.updateTree(builder));
+        return this.plugin.updateState(builder);
     }
 
     constructor(private plugin: PluginContext) {
@@ -168,7 +168,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
             current: { trajectories: [], models: [], structures: [] }
         });
 
-        plugin.state.dataState.events.changed.subscribe(e => {
+        plugin.state.data.events.changed.subscribe(e => {
             if (e.inTransaction || plugin.behaviors.state.isAnimating.value) return;
             this.sync();
         });

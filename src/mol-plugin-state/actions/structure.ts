@@ -376,7 +376,7 @@ export const AddTrajectory = StateAction.build({
     display: { name: 'Add Trajectory', description: 'Add trajectory from existing model/topology and coordinates.' },
     from: PluginStateObject.Root,
     params(a, ctx: PluginContext) {
-        const state = ctx.state.dataState
+        const state = ctx.state.data
         const models = [
             ...state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)),
             ...state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Topology)),

@@ -11,31 +11,31 @@ import { getFileInfo } from '../../mol-util/file-info';
 
 export class DataBuilder {
     private get dataState() {
-        return this.plugin.state.dataState;
+        return this.plugin.state.data;
     }
 
     async rawData(params: StateTransformer.Params<RawData>, options?: Partial<StateTransform.Options>) {
         const data = this.dataState.build().toRoot().apply(RawData, params, options);
-        await this.plugin.runTask(this.dataState.updateTree(data, { revertOnError: true }));
+        await this.plugin.updateState(data, { revertOnError: true });
         return data.selector;
     }
 
     async download(params: StateTransformer.Params<Download>, options?: Partial<StateTransform.Options>) {
         const data = this.dataState.build().toRoot().apply(Download, params, options);
-        await this.plugin.runTask(this.dataState.updateTree(data, { revertOnError: true }));
+        await this.plugin.updateState(data, { revertOnError: true });
         return data.selector;
     }
 
     async downloadBlob(params: StateTransformer.Params<DownloadBlob>, options?: Partial<StateTransform.Options>) {        
         const data = this.dataState.build().toRoot().apply(DownloadBlob, params, options);
-        await this.plugin.runTask(this.dataState.updateTree(data, { revertOnError: true }));
+        await this.plugin.updateState(data, { revertOnError: true });
         return data.selector;
     }
 
     async readFile(params: StateTransformer.Params<ReadFile>, options?: Partial<StateTransform.Options>) {
         const data = this.dataState.build().toRoot().apply(ReadFile, params, options);
         const fileInfo = getFileInfo(params.file);
-        await this.plugin.runTask(this.dataState.updateTree(data, { revertOnError: true }));
+        await this.plugin.updateState(data, { revertOnError: true });
         return { data: data.selector, fileInfo };
     }
 

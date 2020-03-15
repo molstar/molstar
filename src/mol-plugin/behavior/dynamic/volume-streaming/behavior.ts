@@ -202,7 +202,7 @@ export namespace VolumeStreaming {
         private updateDynamicBox(box: Box3D) {
             if (this.params.entry.params.view.name !== 'selection-box') return;
 
-            const state = this.plugin.state.dataState;
+            const state = this.plugin.state.data;
             const newParams: Params = {
                 ...this.params,
                 entry: {
@@ -226,7 +226,7 @@ export namespace VolumeStreaming {
         }
 
         private getStructureRoot() {
-            return this.plugin.state.dataState.select(StateSelection.Generators.byRef(this.ref).rootOfType([PluginStateObject.Molecule.Structure]))[0];
+            return this.plugin.state.data.select(StateSelection.Generators.byRef(this.ref).rootOfType([PluginStateObject.Molecule.Structure]))[0];
         }
 
         register(ref: string): void {

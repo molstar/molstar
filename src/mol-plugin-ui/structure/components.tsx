@@ -62,7 +62,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
             this.setState({ isBusy: v, action: this.state.action !== 'options' ? void 0 : 'options' })
         });
-        this.subscribe(this.plugin.state.dataState.events.historyUpdated, ({ state }) => {
+        this.subscribe(this.plugin.state.data.events.historyUpdated, ({ state }) => {
             this.setState({ canUndo: state.canUndo });
         });
     }
@@ -104,13 +104,13 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
     }
 
     undo = () => {
-        const task = this.plugin.state.dataState.undo();
+        const task = this.plugin.state.data.undo();
         if (task) this.plugin.runTask(task);
     }
 
     render() {
         const undoTitle = this.state.canUndo
-            ? `Undo ${this.plugin.state.dataState.latestUndoLabel}`
+            ? `Undo ${this.plugin.state.data.latestUndoLabel}`
             : 'Some mistakes of the past can be undone.';
         return <>
             <div className='msp-control-row msp-select-row'>
@@ -316,12 +316,12 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.Highlight(this.plugin, { state: this.props.group[0].cell.parent, ref: this.props.group.map(c => c.cell.transform.ref) });
+        PluginCommands.Interactivity.Object.Highlight(this.plugin, { state: this.props.group[0].cell.parent, ref: this.props.group.map(c => c.cell.transform.ref) });
     }
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.ClearHighlights(this.plugin);
+        PluginCommands.Interactivity.ClearHighlights(this.plugin);
     }
 
     focus = () => {

@@ -56,7 +56,7 @@ export async function clearStructureOverpaint(plugin: PluginContext, components:
 }
 
 async function eachRepr(plugin: PluginContext, components: StructureComponentRef[], callback: OverpaintEachReprCallback) {
-    const state = plugin.state.dataState;    
+    const state = plugin.state.data;    
     const update = state.build();
     for (const c of components) {
         for (const r of c.representations) {
@@ -65,7 +65,7 @@ async function eachRepr(plugin: PluginContext, components: StructureComponentRef
         }
     }
 
-    await plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
+    await plugin.updateState(update, { doNotUpdateCurrent: true });
 }
 
 /** filter overpaint layers for given structure */

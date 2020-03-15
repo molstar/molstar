@@ -74,7 +74,7 @@ class MolStarProteopediaWrapper {
     }
 
     get state() {
-        return this.plugin.state.dataState;
+        return this.plugin.state.data;
     }
 
     private download(b: StateBuilder.To<PSO.Root>, url: string) {
@@ -196,14 +196,14 @@ class MolStarProteopediaWrapper {
     }
 
     private applyState(tree: StateBuilder) {
-        return PluginCommands.State.Update(this.plugin, { state: this.plugin.state.dataState, tree });
+        return PluginCommands.State.Update(this.plugin, { state: this.plugin.state.data, tree });
     }
 
     private loadedParams: LoadParams = { url: '', format: 'cif', assemblyId: '' };
     async load({ url, format = 'cif', assemblyId = 'deposited', representationStyle }: LoadParams) {
         let loadType: 'full' | 'update' = 'full';
 
-        const state = this.plugin.state.dataState;
+        const state = this.plugin.state.data;
 
         if (this.loadedParams.url !== url || this.loadedParams.format !== format) {
             loadType = 'full';
@@ -242,7 +242,7 @@ class MolStarProteopediaWrapper {
     async updateStyle(style?: RepresentationStyle, partial?: boolean) {
         const tree = this.visual(style, partial);
         if (!tree) return;
-        await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.dataState, tree });
+        await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.data, tree });
     }
 
     setBackground(color: number) {

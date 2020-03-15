@@ -199,22 +199,15 @@ class StateTreeNodeLabel extends PluginUIComponent<
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.Highlight(this.plugin, { state: this.props.cell.parent, ref: this.ref });
+        PluginCommands.Interactivity.Object.Highlight(this.plugin, { state: this.props.cell.parent, ref: this.ref });
         e.currentTarget.blur();
     }
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.ClearHighlights(this.plugin);
+        PluginCommands.Interactivity.ClearHighlights(this.plugin);
         e.currentTarget.blur();
     }
-
-    // private toggleUpdaterObs = new Subject();
-    // toggleUpdater = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    //     e.preventDefault();
-    //     e.currentTarget.blur();
-    //     this.toggleUpdaterObs.next();
-    // }
 
     render() {
         const cell = this.props.cell;
