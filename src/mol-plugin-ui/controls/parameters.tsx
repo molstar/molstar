@@ -447,7 +447,7 @@ export class SelectControl extends React.PureComponent<ParamProps<PD.Select<stri
         this.props.onChange({ param: this.props.param, name: this.props.name, value: options[next][0] });
     };
 
-    items = memoizeLatest((param: PD.Select<any>) => ActionMenu.createItemsFromSelectParam(param));
+    items = memoizeLatest((param: PD.Select<any>) => ActionMenu.createItemsFromSelectOptions(param.options));
 
     renderControl() {
         const items = this.items(this.props.param);

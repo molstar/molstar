@@ -9,17 +9,17 @@ import { VisualQuality, VisualQualityOptions } from '../../../mol-geo/geometry/b
 import { Structure } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateObjectRef } from '../../../mol-state';
-import { BuiltInColorThemeName } from '../../../mol-theme/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StaticStructureComponentType } from '../../helpers/structure-component';
 import { StructureSelectionQueries as Q } from '../../helpers/structure-selection-query';
 import { PluginStateObject } from '../../objects';
 import { RepresentationProviderTags, StructureRepresentationProvider } from './provider';
+import { ColorTheme } from '../../../mol-theme/color';
 
 export const CommonStructureRepresentationParams = {
     ignoreHydrogens: PD.Optional(PD.Boolean(false)),
     quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
-    globalThemeName: PD.Optional(PD.Text<BuiltInColorThemeName>(''))
+    globalThemeName: PD.Optional(PD.Text<ColorTheme.BuiltIn>(''))
 }
 export type CommonStructureRepresentationParams = PD.ValuesFor<typeof CommonStructureRepresentationParams>
 
@@ -54,7 +54,7 @@ function reprBuilder(plugin: PluginContext, params: CommonStructureRepresentatio
     };
     if (params.quality && params.quality !== 'auto') typeParams.quality = params.quality;
     if (params.ignoreHydrogens !== void 0) typeParams.ignoreHydrogens = !!params.ignoreHydrogens;
-    const color: BuiltInColorThemeName | undefined = params.globalThemeName ? params.globalThemeName : void 0;
+    const color: ColorTheme.BuiltIn | undefined = params.globalThemeName ? params.globalThemeName : void 0;
 
     return { update, builder, color, typeParams };
 }

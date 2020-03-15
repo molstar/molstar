@@ -5,10 +5,11 @@
  */
 
 import { PluginStateObject as SO } from '../../objects';
-import { StateObject, StateTransform, State, StateObjectCell, StateTree } from '../../../mol-state';
+import { StateObject, StateTransform, State, StateObjectCell, StateTree, StateTransformer } from '../../../mol-state';
 import { StructureBuilderTags } from '../../builder/structure';
 import { RepresentationProviderTags } from '../../builder/structure/provider';
 import { StructureRepresentationInteractionTags } from '../../../mol-plugin/behavior/dynamic/selection/structure-representation-interaction';
+import { StateTransforms } from '../../transforms';
 
 export function buildStructureHierarchy(state: State, previous?: StructureHierarchy) {
     const build = BuildState(state, previous || StructureHierarchy());
@@ -29,9 +30,9 @@ export function StructureHierarchy(): StructureHierarchy {
     return { trajectories: [], models: [], structures: [], refs: new Map() }
 }
 
-interface RefBase<K extends string = string, T extends StateObject = StateObject> {
+interface RefBase<K extends string = string, O extends StateObject = StateObject, T extends StateTransformer = StateTransformer> {
     kind: K,
-    cell: StateObjectCell<T>,
+    cell: StateObjectCell<O, StateTransform<T>>,
     version: StateTransform['version']
 }
 
@@ -59,7 +60,7 @@ function ModelRef(cell: StateObjectCell<SO.Molecule.Model>, trajectory?: Traject
     return { kind: 'model', cell, version: cell.transform.version, trajectory, structures: [] };
 }
 
-export interface ModelPropertiesRef extends RefBase<'model-properties', SO.Molecule.Model> {
+export interface ModelPropertiesRef extends RefBase<'model-properties', SO.Molecule.Model, StateTransforms['Model']['CustomModelProperties']> {
     model: ModelRef
 }
 
@@ -83,7 +84,7 @@ function StructureRef(cell: StateObjectCell<SO.Molecule.Structure>, model?: Mode
     return { kind: 'structure', cell, version: cell.transform.version, model, components: [] };
 }
 
-export interface StructurePropertiesRef extends RefBase<'structure-properties', SO.Molecule.Structure> {
+export interface StructurePropertiesRef extends RefBase<'structure-properties', SO.Molecule.Structure, StateTransforms['Model']['CustomStructureProperties']> {
     structure: StructureRef
 }
 
@@ -91,7 +92,7 @@ function StructurePropertiesRef(cell: StateObjectCell<SO.Molecule.Structure>, st
     return { kind: 'structure-properties', cell, version: cell.transform.version, structure };
 }
 
-export interface StructureComponentRef extends RefBase<'structure-component', SO.Molecule.Structure> {
+export interface StructureComponentRef extends RefBase<'structure-component', SO.Molecule.Structure, StateTransforms['Model']['StructureComponent']> {
     structure: StructureRef,
     key?: string,
     representations: StructureRepresentationRef[],
@@ -107,7 +108,7 @@ function StructureComponentRef(cell: StateObjectCell<SO.Molecule.Structure>, str
     return { kind: 'structure-component', cell, version: cell.transform.version, structure, key: componentKey(cell), representations: [] };
 }
 
-export interface StructureRepresentationRef extends RefBase<'structure-representation', SO.Molecule.Structure.Representation3D> {
+export interface StructureRepresentationRef extends RefBase<'structure-representation', SO.Molecule.Structure.Representation3D, StateTransforms['Representation']['StructureRepresentation3D']> {
     component: StructureComponentRef
 }
 

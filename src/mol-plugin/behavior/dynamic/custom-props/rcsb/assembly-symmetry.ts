@@ -29,7 +29,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         register(): void {
             this.ctx.state.dataState.actions.add(InitAssemblySymmetry3D)
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(AssemblySymmetryClusterColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(AssemblySymmetryClusterColorThemeProvider)
         }
 
         update(p: { autoAttach: boolean }) {
@@ -42,7 +42,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         unregister() {
             this.ctx.state.dataState.actions.remove(InitAssemblySymmetry3D)
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(AssemblySymmetryClusterColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(AssemblySymmetryClusterColorThemeProvider)
         }
     },
     params: () => ({
@@ -97,7 +97,7 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
             if (!assemblySymmetry || assemblySymmetry.length === 0) {
                 return StateObject.Null;
             }
-            const repr = AssemblySymmetryRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, () => AssemblySymmetryParams)
+            const repr = AssemblySymmetryRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => AssemblySymmetryParams)
             await repr.createOrUpdate(params, a.data).runInContext(ctx);
             const { type, kind, symbol } = assemblySymmetry![params.symmetryIndex]
             return new PluginStateObject.Shape.Representation3D({ repr, source: a }, { label: kind, description: `${type} (${symbol})` });

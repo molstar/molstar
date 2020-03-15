@@ -5,8 +5,8 @@
  */
 
 import { ResidueIndex, Model } from '../../mol-model/structure';
-import { BuiltInStructureRepresentationsName } from '../../mol-repr/structure/registry';
-import { BuiltInColorThemeName } from '../../mol-theme/color';
+import { StructureRepresentationRegistry } from '../../mol-repr/structure/registry';
+import { ColorTheme } from '../../mol-theme/color';
 import { PolymerType } from '../../mol-model/structure/model/types';
 import { PluginContext } from '../../mol-plugin/context';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
@@ -98,7 +98,7 @@ export interface RepresentationStyle {
 }
 
 export namespace RepresentationStyle {
-    export type Entry = { hide?: boolean, kind?: BuiltInStructureRepresentationsName, coloring?: BuiltInColorThemeName }
+    export type Entry = { hide?: boolean, kind?: StructureRepresentationRegistry.BuiltIn, coloring?: ColorTheme.BuiltIn }
 }
 
 export enum StateElements {

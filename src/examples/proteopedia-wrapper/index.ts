@@ -67,8 +67,8 @@ class MolStarProteopediaWrapper {
 
         const customColoring = createProteopediaCustomTheme((options && options.customColorList) || []);
 
-        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(customColoring);
-        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(EvolutionaryConservation.colorThemeProvider!);
+        this.plugin.representation.structure.themes.colorThemeRegistry.add(customColoring);
+        this.plugin.representation.structure.themes.colorThemeRegistry.add(EvolutionaryConservation.colorThemeProvider!);
         this.plugin.managers.lociLabels.addProvider(EvolutionaryConservation.labelProvider!);
         this.plugin.customModelProperties.register(EvolutionaryConservation.propertyProvider, true);
     }
@@ -315,7 +315,7 @@ class MolStarProteopediaWrapper {
             // }
 
             const tree = state.build();
-            const colorTheme = { name: EvolutionaryConservation.propertyProvider.descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(EvolutionaryConservation.propertyProvider.descriptor.name).defaultValues };
+            const colorTheme = { name: EvolutionaryConservation.propertyProvider.descriptor.name, params: this.plugin.representation.structure.themes.colorThemeRegistry.get(EvolutionaryConservation.propertyProvider.descriptor.name).defaultValues };
 
             if (!params || !!params.sequence) {
                 tree.to(StateElements.SequenceVisual).update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));

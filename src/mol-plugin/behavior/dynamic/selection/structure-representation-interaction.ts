@@ -15,7 +15,7 @@ import { StateTransforms } from '../../../../mol-plugin-state/transforms';
 import { PluginBehavior } from '../../../../mol-plugin/behavior';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 import { StateObjectCell, StateSelection, StateTransform } from '../../../../mol-state';
-import { BuiltInSizeThemes } from '../../../../mol-theme/size';
+import { SizeTheme } from '../../../../mol-theme/size';
 import { Binding } from '../../../../mol-util/binding';
 import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-observer';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
@@ -52,7 +52,7 @@ const StructureRepresentationInteractionParams = (plugin: PluginContext) => {
             customDefault: createStructureRepresentationParams(plugin, void 0, {
                 type: InteractionsRepresentationProvider,
                 color: InteractionTypeColorThemeProvider,
-                size: BuiltInSizeThemes.uniform
+                size: SizeTheme.BuiltIn.uniform
             })
         })
     };

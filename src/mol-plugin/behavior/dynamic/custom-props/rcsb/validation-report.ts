@@ -42,11 +42,11 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.managers.lociLabels.addProvider(this.label);
 
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(DensityFitColorThemeProvider)
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(GeometryQualityColorThemeProvider)
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(RandomCoilIndexColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(DensityFitColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(GeometryQualityColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(RandomCoilIndexColorThemeProvider)
 
-            this.ctx.structureRepresentation.registry.add(ClashesRepresentationProvider)
+            this.ctx.representation.structure.registry.add(ClashesRepresentationProvider)
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
@@ -65,11 +65,11 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.managers.lociLabels.removeProvider(this.label);
 
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(DensityFitColorThemeProvider)
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(GeometryQualityColorThemeProvider)
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(RandomCoilIndexColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(DensityFitColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(GeometryQualityColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(RandomCoilIndexColorThemeProvider)
 
-            this.ctx.structureRepresentation.registry.remove(ClashesRepresentationProvider)
+            this.ctx.representation.structure.registry.remove(ClashesRepresentationProvider)
         }
     },
     params: () => ({

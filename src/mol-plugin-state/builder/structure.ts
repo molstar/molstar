@@ -10,7 +10,7 @@ import { PluginStateObject as SO } from '../objects';
 import { StateTransforms } from '../transforms';
 import { RootStructureDefinition } from '../helpers/root-structure';
 import { StructureComponentParams, StaticStructureComponentType } from '../helpers/structure-component';
-import { BuildInTrajectoryFormat, TrajectoryFormatProvider } from '../formats/trajectory';
+import { BuiltInTrajectoryFormat, TrajectoryFormatProvider } from '../formats/trajectory';
 import { StructureRepresentationBuilder } from './structure/representation';
 import { StructureSelectionQuery } from '../helpers/structure-selection-query';
 import { Task } from '../../mol-task';
@@ -32,7 +32,7 @@ export class StructureBuilder {
         return this.plugin.state.dataState;
     }
 
-    private async parseTrajectoryData(data: StateObjectRef<SO.Data.Binary | SO.Data.String>, format: BuildInTrajectoryFormat | TrajectoryFormatProvider) {
+    private async parseTrajectoryData(data: StateObjectRef<SO.Data.Binary | SO.Data.String>, format: BuiltInTrajectoryFormat | TrajectoryFormatProvider) {
         const provider = typeof format === 'string' ? this.plugin.dataFormat.trajectory.get(format) : format;
         if (!provider) throw new Error(`'${format}' is not a supported data format.`);
         const { trajectory } = await provider.parse(this.plugin, data, { trajectoryTags: StructureBuilderTags.Trajectory });
@@ -52,7 +52,7 @@ export class StructureBuilder {
 
     async parseStructure(params: {
         data?: StateObjectRef<SO.Data.Binary | SO.Data.String>,
-        dataFormat?: BuildInTrajectoryFormat | TrajectoryFormatProvider,
+        dataFormat?: BuiltInTrajectoryFormat | TrajectoryFormatProvider,
         blob?: StateObjectRef<SO.Data.Blob>
         blobParams?: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>,
         model?: StateTransformer.Params<StateTransforms['Model']['ModelFromTrajectory']>,
@@ -83,7 +83,7 @@ export class StructureBuilder {
         };
     }
 
-    async parseTrajectory(data: StateObjectRef<SO.Data.Binary | SO.Data.String>, format: BuildInTrajectoryFormat | TrajectoryFormatProvider): Promise<StateObjectSelector<SO.Molecule.Trajectory>>
+    async parseTrajectory(data: StateObjectRef<SO.Data.Binary | SO.Data.String>, format: BuiltInTrajectoryFormat | TrajectoryFormatProvider): Promise<StateObjectSelector<SO.Molecule.Trajectory>>
     async parseTrajectory(blob: StateObjectRef<SO.Data.Blob>, params: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>): Promise<StateObjectSelector<SO.Molecule.Trajectory>>
     async parseTrajectory(data: StateObjectRef, params: any) {
         const cell = StateObjectRef.resolveAndCheck(this.dataState, data as StateObjectRef);

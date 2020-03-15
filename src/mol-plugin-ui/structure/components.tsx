@@ -17,6 +17,7 @@ import { Icon } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 import { PluginContext } from '../../mol-plugin/context';
+import { getStructureThemeTypes } from '../../mol-plugin-state/helpers/structure-representation-params';
 
 interface StructureComponentControlState extends CollapsableState {
     isDisabled: boolean
@@ -237,19 +238,37 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         this.plugin.managers.structure.component.toggleVisibility(this.props.group);
     }
 
+    get colorByActions() {
+        const mng = this.plugin.managers.structure.component;
+        const repr = this.pivot.representations[0];
+        const name = repr.cell.transform.params?.colorTheme.name;
+        const themes = getStructureThemeTypes(this.plugin, this.pivot.cell.obj?.data);
+        return ActionMenu.createItemsFromSelectOptions(themes, { 
+            value: o => () => mng.updateRepresentationsTheme(this.props.group, { color: o[0] }),
+            selected: o => o[0] === name 
+        }) as ActionMenu.Item[];
+    }
+
     get actions(): ActionMenu.Items {
         const mng = this.plugin.managers.structure.component;
         const ret: ActionMenu.Items = [
             [
-                'Add Representation',
+                ActionMenu.Header('Add Representation'),
                 ...StructureComponentManager.getRepresentationTypes(this.plugin, this.props.group[0])
                     .map(t => ActionMenu.Item(t[1], () => mng.addRepresentation(this.props.group, t[0])))
             ]
         ];
 
+        if (this.pivot.representations.length > 0) {
+            ret.push([
+                ActionMenu.Header('Set Coloring', { isIndependent: true }),
+                ...this.colorByActions
+            ]);
+        }
+
         if (mng.canBeModified(this.props.group[0])) {
             ret.push([
-                'Modify by Selection',
+                ActionMenu.Header('Modify by Selection'),
                 ActionMenu.Item('Include', 'plus', () => mng.modifyByCurrentSelection(this.props.group, 'union')),
                 ActionMenu.Item('Subtract', 'minus', () => mng.modifyByCurrentSelection(this.props.group, 'subtract')),
                 ActionMenu.Item('Intersect', 'shuffle', () => mng.modifyByCurrentSelection(this.props.group, 'intersect'))
@@ -322,10 +341,12 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
                 </div>
             </div>
             {this.state.action === 'remove' && <ActionMenu items={this.removeActions} onSelect={this.selectRemoveAction} />}
-            {this.state.action === 'action' && <ActionMenu items={this.actions} onSelect={this.selectAction} />}
-            <div className='msp-control-offset'>
-                {component.representations.map(r => <StructureRepresentationEntry group={this.props.group} key={r.cell.transform.ref} representation={r} />)}
-            </div>
+            {this.state.action === 'action' && <>
+                <ActionMenu items={this.actions} onSelect={this.selectAction} />
+                <div className='msp-control-offset'>
+                    {component.representations.map(r => <StructureRepresentationEntry group={this.props.group} key={r.cell.transform.ref} representation={r} />)}
+                </div>
+            </>}
         </div>;
     }
 }
@@ -337,12 +358,11 @@ class StructureRepresentationEntry extends PurePluginUIComponent<{ group: Struct
 
     render() {
         const repr = this.props.representation.cell;
-        // TODO: style in CSS
         return <div style={{ position: 'relative' }}>
-            <ExpandGroup header={`${repr.obj?.label || ''} Representation`} noOffset>
+            <ExpandGroup header={`${repr.obj?.label || ''} Representation`} noOffset headerStyle={{ fontWeight: 'bold' }}>
                 <UpdateTransformControl state={repr.parent} transform={repr.transform} customHeader='none' customUpdate={this.update} noMargin />
                 <IconButton onClick={this.remove} icon='remove' title='Remove' small style={{
-                    position: 'absolute', top: 0, right: 0, lineHeight: '20px', height: '20px', textAlign: 'right', width: '44px', paddingRight: '6px'
+                    position: 'absolute', top: 0, right: 0, lineHeight: '22px', height: '22px', textAlign: 'right', width: '44px', paddingRight: '6px'
                 }} />
             </ExpandGroup>
         </div>;

@@ -11,7 +11,7 @@ import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { StateBuilder } from '../../mol-state';
 import Expression from '../../mol-script/language/expression';
-import { BuiltInColorThemeName } from '../../mol-theme/color';
+import { ColorTheme } from '../../mol-theme/color';
 import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
 type SupportedFormats = 'cif' | 'pdb'
 
@@ -86,7 +86,7 @@ export namespace StateHelper {
         return visualRoot;
     }
 
-    export function ballsAndSticks(ctx: PluginContext, visualRoot: StateBuilder.To<PSO.Molecule.Structure>, expression: Expression, color?: BuiltInColorThemeName) {
+    export function ballsAndSticks(ctx: PluginContext, visualRoot: StateBuilder.To<PSO.Molecule.Structure>, expression: Expression, color?: ColorTheme.BuiltIn) {
         visualRoot
             .apply(StateTransforms.Model.StructureSelectionFromExpression, { expression })
             .apply(StateTransforms.Representation.StructureRepresentation3D,

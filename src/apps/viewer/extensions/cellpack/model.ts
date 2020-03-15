@@ -430,15 +430,15 @@ function getReprParams(ctx: PluginContext, params: { representation: Representat
         case 'spacefill':
             return traceOnly
                 ? {
-                    type: ctx.structureRepresentation.registry.get('spacefill'),
+                    type: ctx.representation.structure.registry.get('spacefill'),
                     typeParams: { sizeFactor: 2, ignoreHydrogens: true }
                 } : {
-                    type: ctx.structureRepresentation.registry.get('spacefill'),
+                    type: ctx.representation.structure.registry.get('spacefill'),
                     typeParams: { ignoreHydrogens: true }
                 }
         case 'gaussian-surface':
             return {
-                type: ctx.structureRepresentation.registry.get('gaussian-surface'),
+                type: ctx.representation.structure.registry.get('gaussian-surface'),
                 typeParams: {
                     quality: 'custom', resolution: 10, radiusOffset: 2,
                     alpha: 1.0, flatShaded: false, doubleSided: false,
@@ -446,9 +446,9 @@ function getReprParams(ctx: PluginContext, params: { representation: Representat
                 }
             }
         case 'point':
-            return { type: ctx.structureRepresentation.registry.get('point') }
+            return { type: ctx.representation.structure.registry.get('point') }
         case 'ellipsoid':
-            return { type: ctx.structureRepresentation.registry.get('orientation') }
+            return { type: ctx.representation.structure.registry.get('orientation') }
     }
 }
 

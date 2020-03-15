@@ -90,4 +90,4 @@ export const BuildInTrajectoryFormats = [
     ['3dg', Provider3dg] as const,
 ] as const
 
-export type BuildInTrajectoryFormat = (typeof BuildInTrajectoryFormats)[number][0]
+export type BuiltInTrajectoryFormat = (typeof BuildInTrajectoryFormats)[number][0]

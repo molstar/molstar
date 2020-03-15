@@ -21,9 +21,11 @@ import { PluginComponent } from '../../component';
 import { StructureComponentParams } from '../../helpers/structure-component';
 import { clearStructureOverpaint, setStructureOverpaint } from '../../helpers/structure-overpaint';
 import { StructureSelectionQueries, StructureSelectionQuery, StructureSelectionQueryOptions } from '../../helpers/structure-selection-query';
-import { CustomStructureProperties } from '../../transforms/model';
 import { StructureRepresentation3D } from '../../transforms/representation';
 import { HierarchyRef, StructureComponentRef, StructureRef, StructureRepresentationRef } from './hierarchy-state';
+import { createStructureColorThemeParams, createStructureSizeThemeParams } from '../../helpers/structure-representation-params';
+import { ColorTheme } from '../../../mol-theme/color';
+import { SizeTheme } from '../../../mol-theme/size';
 
 export { StructureComponentManager };
 
@@ -90,7 +92,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                 if (PD.areEqual(interactionParams, params, this.state.options.interactions)) continue;
 
                 const b = this.dataState.build();
-                b.to(s.properties.cell).update((old: StateTransformer.Params<CustomStructureProperties>) => {
+                b.to(s.properties.cell).update(old => {
                     arraySetAdd(old.autoAttach, InteractionsProvider.descriptor.name);
                     old.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
                 });
@@ -197,6 +199,30 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         return this.plugin.runTask(this.dataState.updateTree(update, { canUndo: true }));
     }
 
+    updateRepresentationsTheme<C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(components: ReadonlyArray<StructureComponentRef>, params: StructureComponentManager.UpdateThemeParams<C, S>): Promise<any> {
+        if (components.length === 0) return Promise.resolve();
+        
+        const update = this.dataState.build();
+
+        for (const c of components) {
+            for (const repr of c.representations) {
+                const old = repr.cell.transform.params;
+                const colorTheme = params.color 
+                    ? createStructureColorThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name, params.color, params.colorParams)
+                    : void 0;
+                const sizeTheme = params.color 
+                    ? createStructureSizeThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name, params.size, params.sizeParams)
+                    : void 0;
+                update.to(repr.cell).update(prev => { 
+                    if (colorTheme) prev.colorTheme = colorTheme;
+                    if (sizeTheme) prev.sizeTheme = sizeTheme;
+                });
+            }
+        }
+
+        return this.plugin.runTask(this.dataState.updateTree(update, { canUndo: true }));
+    }
+
     addRepresentation(components: ReadonlyArray<StructureComponentRef>, type: string) {
         if (components.length === 0) return;
 
@@ -207,7 +233,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         return this.plugin.dataTransaction(async () => {
             for (const component of components) {
                 await this.plugin.builders.structure.representation.addRepresentation(component.cell, {
-                    type: this.plugin.structureRepresentation.registry.get(type),
+                    type: this.plugin.representation.structure.registry.get(type),
                     typeParams
                 });
             }
@@ -229,7 +255,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                 });
                 if (params.representation === 'none' || !component) continue;
                 await this.plugin.builders.structure.representation.addRepresentation(component, {
-                    type: this.plugin.structureRepresentation.registry.get(params.representation)
+                    type: this.plugin.representation.structure.registry.get(params.representation)
                 });
             }
         }, { canUndo: true });
@@ -335,8 +361,8 @@ namespace StructureComponentManager {
 
     export function getRepresentationTypes(plugin: PluginContext, pivot: StructureRef | StructureComponentRef | undefined) {
         return pivot?.cell.obj?.data
-            ? plugin.structureRepresentation.registry.getApplicableTypes(pivot.cell.obj?.data!)
-            : plugin.structureRepresentation.registry.types;
+            ? plugin.representation.structure.registry.getApplicableTypes(pivot.cell.obj?.data!)
+            : plugin.representation.structure.registry.types;
     }
 
     function getRepresentationTypesSelect(plugin: PluginContext, pivot: StructureRef | undefined, custom: [string, string][], label?: string) {
@@ -348,4 +374,14 @@ namespace StructureComponentManager {
     }
 
     export type ModifyAction = 'union' | 'subtract' | 'intersect'
+
+    export interface UpdateThemeParams<C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn> {
+        /** 
+         * this works for any theme name (use 'name as any'), but code completion will break
+         */
+        color?: C,
+        colorParams?: ColorTheme.BuiltInParams<C>,
+        size?: S,
+        sizeParams?: SizeTheme.BuiltInParams<S>
+    }
 }

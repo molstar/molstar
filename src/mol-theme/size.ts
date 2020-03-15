@@ -36,17 +36,17 @@ namespace SizeTheme {
 
     export type Registry = ThemeRegistry<SizeTheme<any>>
     export function createRegistry() {
-        return new ThemeRegistry(BuiltInSizeThemes as { [k: string]: Provider<any> }, EmptyProvider)
+        return new ThemeRegistry(BuiltIn as { [k: string]: Provider<any> }, EmptyProvider)
     }
 
+    export const BuiltIn = {
+        'physical': PhysicalSizeThemeProvider,
+        'shape-group': ShapeGroupSizeThemeProvider,
+        'uncertainty': UncertaintySizeThemeProvider,
+        'uniform': UniformSizeThemeProvider
+    }
+    type _BuiltIn = typeof BuiltIn
+    export type BuiltIn = keyof _BuiltIn
     export type ParamValues<C extends SizeTheme.Provider<any>> = C extends SizeTheme.Provider<infer P> ? PD.Values<P> : never
+    export type BuiltInParams<T extends BuiltIn> = Partial<ParamValues<_BuiltIn[T]>>
 }
-
-export const BuiltInSizeThemes = {
-    'physical': PhysicalSizeThemeProvider,
-    'shape-group': ShapeGroupSizeThemeProvider,
-    'uncertainty': UncertaintySizeThemeProvider,
-    'uniform': UniformSizeThemeProvider
-}
-export type BuiltInSizeThemes = typeof BuiltInSizeThemes
-export type BuiltInSizeThemeName = keyof typeof BuiltInSizeThemes

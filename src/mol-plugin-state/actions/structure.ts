@@ -11,7 +11,7 @@ import { Task } from '../../mol-task';
 import { FileInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { TrajectoryFormat } from '../builder/structure';
-import { BuildInTrajectoryFormat } from '../formats/trajectory';
+import { BuiltInTrajectoryFormat } from '../formats/trajectory';
 import { RootStructureDefinition } from '../helpers/root-structure';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
@@ -187,7 +187,7 @@ const DownloadStructure = StateAction.build({
 
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
-    let supportProps = false, asTrajectory = false, format: BuildInTrajectoryFormat = 'mmcif';
+    let supportProps = false, asTrajectory = false, format: BuiltInTrajectoryFormat = 'mmcif';
 
     switch (src.name) {
         case 'url':

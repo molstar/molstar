@@ -17,7 +17,7 @@ import { StateAction, StateObject, StateTransformer } from '../../../../mol-stat
 import { getStreamingMethod, getIds, getContourLevel, getEmdbIds } from './util';
 import { VolumeStreaming } from './behavior';
 import { VolumeRepresentation3DHelpers } from '../../../../mol-plugin-state/transforms/representation';
-import { BuiltInVolumeRepresentations } from '../../../../mol-repr/volume/registry';
+import { VolumeRepresentationRegistry } from '../../../../mol-repr/volume/registry';
 import { Theme } from '../../../../mol-theme/theme';
 import { Box3D } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
@@ -246,10 +246,10 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
 
         const params = createVolumeProps(a.data, srcParams.channel);
 
-        const provider = BuiltInVolumeRepresentations.isosurface;
+        const provider = VolumeRepresentationRegistry.BuiltIn.isosurface;
         const props = params.type.params || {}
-        const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
-        repr.setTheme(Theme.create(plugin.volumeRepresentation.themeCtx, { volume: channel.data }, params))
+        const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams)
+        repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params))
         await repr.createOrUpdate(props, channel.data).runInContext(ctx);
         return new SO.Volume.Representation3D({ repr, source: a }, { label: `${Math.round(channel.isoValue.relativeValue * 100) / 100} σ [${srcParams.channel}]` });
     }),
@@ -262,7 +262,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
 
         const params = createVolumeProps(a.data, newParams.channel);
         const props = { ...b.data.repr.props, ...params.type.params };
-        b.data.repr.setTheme(Theme.create(plugin.volumeRepresentation.themeCtx, { volume: channel.data }, params))
+        b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params))
         await b.data.repr.createOrUpdate(props, channel.data).runInContext(ctx);
         return StateTransformer.UpdateResult.Updated;
     })

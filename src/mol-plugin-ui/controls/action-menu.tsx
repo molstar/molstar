@@ -14,14 +14,7 @@ export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
 
     render() {
         const cmd = this.props;
-
         return <div className='msp-action-menu-options' style={{ marginTop: cmd.header ? void 0 : '1px' }}>
-            {/* {cmd.header && <div className='msp-control-group-header' style={{ position: 'relative' }}>
-                <button className='msp-btn msp-btn-block' onClick={this.hide}>
-                    <Icon name='off' style={{ position: 'absolute', right: '2px', top: 0 }} />
-                    <b>{cmd.header}</b>
-                </button>
-            </div>} */}
             {cmd.header && <ControlGroup header={cmd.header} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hide} topRightIcon='off'></ControlGroup>}
             <Section items={cmd.items} onSelect={cmd.onSelect} current={cmd.current} multiselect={this.props.multiselect} />
         </div>
@@ -34,42 +27,58 @@ export namespace ActionMenu {
     export type OnSelect = (item: Item | undefined) => void
     export type OnSelectMany = (itemOrItems: Item[] | undefined) => void
 
-    export type Items =  string | Item | Items[]
-    export type Item = { label: string, icon?: IconName, disabled?: boolean, selected?: boolean, value: unknown }
+    export type Items =  Header | Item | Items[]
+    export type Header = { kind: 'header', label: string, isIndependent?: boolean, initiallyExpanded?: boolean }
+    export type Item = { kind: 'item', label: string, icon?: IconName, disabled?: boolean, selected?: boolean, value: unknown }
+
+    export function Header(label: string, options?: { isIndependent?: boolean, initiallyExpanded?: boolean }): Header {
+        return options ? { kind: 'header', label, ...options } : { kind: 'header', label };
+    }
 
     export function Item(label: string, value: unknown): Item
     export function Item(label: string, icon: string, value: unknown): Item
     export function Item(label: string, iconOrValue: any, value?: unknown): Item {
-        if (value) return { label, icon: iconOrValue, value };
-        return { label, value: iconOrValue };
+        if (value) return { kind: 'item', label, icon: iconOrValue, value };
+        return { kind: 'item', label, value: iconOrValue };
     }
 
-    export function createItems<T>(xs: ArrayLike<T>, options?: { filter?: (t: T) => boolean, label?: (t: T) => string, value?: (t: T) => any, category?: (t: T) => string | undefined }) {
-        const { label, value, category } = options || { };
-        let cats: Map<string, (ActionMenu.Item | string)[]> | undefined = void 0;
-        const items: (ActionMenu.Item | (ActionMenu.Item | string)[] | string)[] = [];
+    export interface CreateItemsParams<T> {
+        filter?: (t: T) => boolean,
+        label?: (t: T) => string,
+        value?: (t: T) => any,
+        category?: (t: T) => string | undefined,
+        icon?: (t: T) => IconName | undefined,
+        selected?: (t: T) => boolean | undefined
+    }
+
+    export function createItems<T>(xs: ArrayLike<T>, params?: CreateItemsParams<T>) {
+        const { label, value, category, selected, icon } = params || { };
+        let cats: Map<string, (ActionMenu.Item | ActionMenu.Header)[]> | undefined = void 0;
+        const items: (ActionMenu.Item | (ActionMenu.Item | ActionMenu.Header)[] | string)[] = [];
         for (let i = 0; i < xs.length; i++) {
             const x = xs[i];
 
-            if (options?.filter && !options.filter(x)) continue;
+            if (params?.filter && !params.filter(x)) continue;
 
             const catName = category?.(x);
             const l = label ? label(x) : '' + x;
             const v = value ? value(x) : x;
 
+            let cat: (ActionMenu.Item | ActionMenu.Header)[] | undefined;
             if (!!catName) {
-                if (!cats) cats = new Map<string, (ActionMenu.Item | string)[]>();
+                if (!cats) cats = new Map<string, (ActionMenu.Item | ActionMenu.Header)[]>();
 
-                let cat = cats.get(catName);
+                cat = cats.get(catName);
                 if (!cat) {
-                    cat = [catName];
+                    cat = [ActionMenu.Header(catName)];
                     cats.set(catName, cat);
                     items.push(cat);
                 }
-                cat.push(ActionMenu.Item(l, v));
             } else {
-                items.push(ActionMenu.Item(l, v));
+                cat = items as any;
             }
+            
+            cat!.push({ kind: 'item', label: l, value: v, icon: icon ? icon(x) : void 0, selected: selected ? selected(x) : void 0 });
         }
         return items as ActionMenu.Items;
     }
@@ -77,12 +86,12 @@ export namespace ActionMenu {
     type Opt = ParamDefinition.Select<any>['options'][0];
     const _selectOptions = { value: (o: Opt) => o[0], label: (o: Opt) => o[1], category: (o: Opt) => o[2] };
 
-    export function createItemsFromSelectParam(param: ParamDefinition.Select<any>) {
-        return createItems(param.options, _selectOptions);
+    export function createItemsFromSelectOptions(options: ParamDefinition.Select<any>['options'], params?: CreateItemsParams<ParamDefinition.Select<any>['options'][0]>) {
+        return createItems(options, params ? { ..._selectOptions, ...params } : _selectOptions);
     }
 
     export function hasSelectedItem(items: Items): boolean {
-        if (typeof items === 'string') return false;
+        if (isHeader(items)) return false;
         if (isItem(items)) return !!items.selected;
         for (const s of items) {
             const found = hasSelectedItem(s);
@@ -92,7 +101,7 @@ export namespace ActionMenu {
     }
 
     export function findItem(items: Items, value: any): Item | undefined {
-        if (typeof items === 'string') return;
+        if (isHeader(items)) return;
         if (isItem(items)) return items.value === value ? items : void 0;
         for (const s of items) {
             const found = findItem(s, value);
@@ -101,7 +110,7 @@ export namespace ActionMenu {
     }
 
     export function getFirstItem(items: Items): Item | undefined {
-        if (typeof items === 'string') return;
+        if (isHeader(items)) return;
         if (isItem(items)) return items;
         for (const s of items) {
             const found = getFirstItem(s);
@@ -110,21 +119,29 @@ export namespace ActionMenu {
     }
 }
 
-type SectionProps = { header?: string, items: ActionMenu.Items, onSelect: ActionMenu.OnSelect | ActionMenu.OnSelectMany, current: ActionMenu.Item | undefined, multiselect: boolean | undefined }
-type SectionState = { items: ActionMenu.Items, current: ActionMenu.Item | undefined, isExpanded: boolean }
+type SectionProps = { items: ActionMenu.Items, onSelect: ActionMenu.OnSelect | ActionMenu.OnSelectMany, current: ActionMenu.Item | undefined, multiselect: boolean | undefined }
+type SectionState = { items: ActionMenu.Items, current: ActionMenu.Item | undefined, isExpanded: boolean, hasCurrent: boolean, header?: ActionMenu.Header }
 
 class Section extends React.PureComponent<SectionProps, SectionState> {
-    state = {
-        items: this.props.items,
-        current: this.props.current,
-        isExpanded: this.hasCurrent
+    static createState(props: SectionProps): SectionState {
+        const header = isItems(props.items) && isHeader(props.items[0]) ? props.items[0] : void 0;
+
+        const hasCurrent = header?.isIndependent
+            ? false 
+            : props.multiselect
+                ? ActionMenu.hasSelectedItem(props.items)
+                : (!!props.current && !!ActionMenu.findItem(props.items, props.current.value)) || ActionMenu.hasSelectedItem(props.items);
+
+        return {
+            items: props.items,
+            current: props.current,
+            header,
+            hasCurrent,
+            isExpanded: hasCurrent || !!header?.initiallyExpanded
+        };
     }
 
-    get hasCurrent() {
-        return this.props.multiselect
-            ? ActionMenu.hasSelectedItem(this.props.items)
-            : !!this.props.current && !!ActionMenu.findItem(this.props.items, this.props.current.value);
-    }
+    state = Section.createState(this.props)
 
     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
         this.setState({ isExpanded: !this.state.isExpanded });
@@ -133,12 +150,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
 
     static getDerivedStateFromProps(props: SectionProps, state: SectionState) {
         if (props.items === state.items && props.current === state.current) return null;
-        return {
-            items: props.items,
-            current: props.current,
-            isExpanded: props.multiselect
-                ? ActionMenu.hasSelectedItem(props.items)
-                : props.current && !!ActionMenu.findItem(props.items, props.current.value) }
+        return Section.createState(props);
     }
 
     selectAll = () => {
@@ -152,13 +164,12 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
     }
 
     get multiselectHeader() {
-        const { header } = this.props;
-        const hasCurrent = this.hasCurrent;
+        const { header, hasCurrent } = this.state;
 
         return <div className='msp-control-group-header msp-flex-row' style={{ marginTop: '1px' }}>
             <button className='msp-btn msp-form-control msp-flex-item' onClick={this.toggleExpanded}>
                 <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
-                {hasCurrent ? <b>{header}</b> : header}
+                {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </button>
             <button className='msp-btn msp-form-control msp-flex-item' onClick={this.selectAll} style={{ flex: '0 0 50px', textAlign: 'right' }}>
                 <Icon name='check' />
@@ -172,30 +183,31 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
     }
 
     get basicHeader() {
-        const { header } = this.props;
-        const hasCurrent = this.hasCurrent;
+        const { header, hasCurrent } = this.state;
 
         return <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
             <button className='msp-btn msp-btn-block msp-form-control' onClick={this.toggleExpanded}>
                 <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
-                {hasCurrent ? <b>{header}</b> : header}
+                {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </button>
         </div>;
     }
 
     render() {
-        const { header, items, onSelect, current } = this.props;
+        const { items, onSelect, current } = this.props;
 
-        if (typeof items === 'string') return null;
+        if (isHeader(items)) return null;
         if (isItem(items)) return <Action item={items} onSelect={onSelect} current={current} multiselect={this.props.multiselect} />
+
+        const { header } = this.state;
 
         return <div>
             {header && (this.props.multiselect && this.state.isExpanded ? this.multiselectHeader : this.basicHeader)}
             <div className='msp-control-offset'>
                 {(!header || this.state.isExpanded) && items.map((x, i) => {
-                    if (typeof x === 'string') return null;
+                    if (isHeader(x)) return null;
                     if (isItem(x)) return <Action key={i} item={x} onSelect={onSelect} current={current} multiselect={this.props.multiselect} />
-                    return <Section key={i} header={typeof x[0] === 'string' ? x[0] : void 0} items={x} onSelect={onSelect} current={current} multiselect={this.props.multiselect} />
+                    return <Section key={i} items={x} onSelect={onSelect} current={current} multiselect={this.props.multiselect} />
                 })}
             </div>
         </div>;
@@ -214,13 +226,22 @@ const Action: React.FC<{
     </button>;
 }
 
+function isItems(x: any): x is ActionMenu.Items[] {
+    return !!x && Array.isArray(x);
+}
+
 function isItem(x: any): x is ActionMenu.Item {
     const v = x as ActionMenu.Item;
-    return v && !!v.label && typeof v.value !== 'undefined';
+    return v && v.kind === 'item';
+}
+
+function isHeader(x: any): x is ActionMenu.Header {
+    const v = x as ActionMenu.Header;
+    return v && v.kind === 'header';
 }
 
 function collectItems(items: ActionMenu.Items, target: ActionMenu.Item[]) {
-    if (typeof items === 'string') return target;
+    if (isHeader(items)) return target;
     if (isItem(items)) {
         target.push(items);
         return target;

@@ -5,17 +5,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
+import { Lines } from '../../mol-geo/geometry/lines/lines';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { Points } from '../../mol-geo/geometry/points/points';
+import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
+import { Text } from '../../mol-geo/geometry/text/text';
+import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
+import { Structure } from '../../mol-model/structure';
+import { StructureUnitTransforms } from '../../mol-model/structure/structure/util/unit-transforms';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Representation, RepresentationProps, RepresentationProvider } from '../representation';
-import { StructureUnitTransforms } from '../../mol-model/structure/structure/util/unit-transforms';
-import { Structure } from '../../mol-model/structure';
-import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
-import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
-import { Points } from '../../mol-geo/geometry/points/points';
-import { Lines } from '../../mol-geo/geometry/lines/lines';
-import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
-import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
-import { Text } from '../../mol-geo/geometry/text/text';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
 
 export function getUnitKindsParam(defaultValue: UnitKind[]) {
@@ -72,7 +72,7 @@ export type StructureDirectVolumeParams = typeof StructureDirectVolumeParams
 export const StructureTextureMeshParams = { ...TextureMesh.Params }
 export type StructureTextureMeshParams = typeof StructureTextureMeshParams
 
-export { ComplexRepresentation } from './complex-representation'
-export { UnitsRepresentation } from './units-representation'
-export { ComplexVisual } from './complex-visual'
-export { UnitsVisual } from './units-visual'
+export { ComplexRepresentation } from './complex-representation';
+export { ComplexVisual } from './complex-visual';
+export { UnitsRepresentation } from './units-representation';
+export { UnitsVisual } from './units-visual';

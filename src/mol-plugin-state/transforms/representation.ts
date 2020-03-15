@@ -8,12 +8,12 @@
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { VolumeData, VolumeIsoValue } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
-import { BuiltInVolumeRepresentationsName } from '../../mol-repr/volume/registry';
+import { VolumeRepresentationRegistry } from '../../mol-repr/volume/registry';
 import { VolumeParams } from '../../mol-repr/volume/representation';
 import { StateTransformer, StateObject } from '../../mol-state';
 import { Task } from '../../mol-task';
-import { BuiltInColorThemeName, ColorTheme } from '../../mol-theme/color';
-import { BuiltInSizeThemeName, SizeTheme } from '../../mol-theme/size';
+import { ColorTheme } from '../../mol-theme/color';
+import { SizeTheme } from '../../mol-theme/size';
 import { Theme } from '../../mol-theme/theme';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
@@ -51,7 +51,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure.Representation3D,
     params: (a, ctx: PluginContext) => {
-        const { registry, themeCtx } = ctx.structureRepresentation
+        const { registry, themes: themeCtx } = ctx.representation.structure
         const type = registry.get(registry.default.name);
 
         if (!a) {
@@ -121,12 +121,12 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
             const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
-            const provider = plugin.structureRepresentation.registry.get(params.type.name)
+            const provider = plugin.representation.structure.registry.get(params.type.name)
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data)
             const props = params.type.params || {}
-            const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, provider.getParams)
-            await Theme.ensureDependencies(propertyCtx, plugin.structureRepresentation.themeCtx, { structure: a.data }, params)
-            repr.setTheme(Theme.create(plugin.structureRepresentation.themeCtx, { structure: a.data }, params))
+            const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, provider.getParams)
+            await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, params)
+            repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, params))
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             return new SO.Molecule.Structure.Representation3D({ repr, source: a } , { label: provider.label });
@@ -134,17 +134,17 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
-            const oldProvider = plugin.structureRepresentation.registry.get(oldParams.type.name);
+            const oldProvider = plugin.representation.structure.registry.get(oldParams.type.name);
             const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
             if (oldProvider.ensureCustomProperties) oldProvider.ensureCustomProperties.detach(propertyCtx, a.data);
-            Theme.releaseDependencies(propertyCtx, plugin.structureRepresentation.themeCtx, { structure: a.data }, oldParams);
+            Theme.releaseDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, oldParams);
 
             if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
-            const provider = plugin.structureRepresentation.registry.get(newParams.type.name)
+            const provider = plugin.representation.structure.registry.get(newParams.type.name)
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data)
             const props = { ...b.data.repr.props, ...newParams.type.params }
-            await Theme.ensureDependencies(propertyCtx, plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams)
-            b.data.repr.setTheme(Theme.create(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams));
+            await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, newParams)
+            b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.data.source = a
             return StateTransformer.UpdateResult.Updated;
@@ -417,13 +417,13 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
 //
 
 export namespace VolumeRepresentation3DHelpers {
-    export function getDefaultParams(ctx: PluginContext, name: BuiltInVolumeRepresentationsName, volume: VolumeData, volumeParams?: Partial<PD.Values<VolumeParams>>): StateTransformer.Params<VolumeRepresentation3D> {
-        const type = ctx.volumeRepresentation.registry.get(name);
+    export function getDefaultParams(ctx: PluginContext, name: VolumeRepresentationRegistry.BuiltIn, volume: VolumeData, volumeParams?: Partial<PD.Values<VolumeParams>>): StateTransformer.Params<VolumeRepresentation3D> {
+        const type = ctx.representation.volume.registry.get(name);
 
         const themeDataCtx = { volume };
-        const colorParams = ctx.volumeRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme.name).getParams(themeDataCtx);
-        const sizeParams = ctx.volumeRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme.name).getParams(themeDataCtx)
-        const volumeDefaultParams = PD.getDefaultValues(type.getParams(ctx.volumeRepresentation.themeCtx, volume))
+        const colorParams = ctx.representation.volume.themes.colorThemeRegistry.get(type.defaultColorTheme.name).getParams(themeDataCtx);
+        const sizeParams = ctx.representation.volume.themes.sizeThemeRegistry.get(type.defaultSizeTheme.name).getParams(themeDataCtx)
+        const volumeDefaultParams = PD.getDefaultValues(type.getParams(ctx.representation.volume.themes, volume))
         return ({
             type: { name, params: volumeParams ? { ...volumeDefaultParams, ...volumeParams } : volumeDefaultParams },
             colorTheme: { name: type.defaultColorTheme.name, params: PD.getDefaultValues(colorParams) },
@@ -431,10 +431,10 @@ export namespace VolumeRepresentation3DHelpers {
         })
     }
 
-    export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInVolumeRepresentationsName, volumeParams?: Partial<PD.Values<PD.Params>>, colorName?: BuiltInColorThemeName, colorParams?: Partial<ColorTheme.Props>, sizeName?: BuiltInSizeThemeName, sizeParams?: Partial<SizeTheme.Props>): StateTransformer.Params<VolumeRepresentation3D> {
-        const type = ctx.volumeRepresentation.registry.get(name);
-        const colorType = ctx.volumeRepresentation.themeCtx.colorThemeRegistry.get(colorName || type.defaultColorTheme.name);
-        const sizeType = ctx.volumeRepresentation.themeCtx.sizeThemeRegistry.get(sizeName || type.defaultSizeTheme.name);
+    export function getDefaultParamsStatic(ctx: PluginContext, name: VolumeRepresentationRegistry.BuiltIn, volumeParams?: Partial<PD.Values<PD.Params>>, colorName?: ColorTheme.BuiltIn, colorParams?: Partial<ColorTheme.Props>, sizeName?: SizeTheme.BuiltIn, sizeParams?: Partial<SizeTheme.Props>): StateTransformer.Params<VolumeRepresentation3D> {
+        const type = ctx.representation.volume.registry.get(name);
+        const colorType = ctx.representation.volume.themes.colorThemeRegistry.get(colorName || type.defaultColorTheme.name);
+        const sizeType = ctx.representation.volume.themes.sizeThemeRegistry.get(sizeName || type.defaultSizeTheme.name);
         return ({
             type: { name, params: volumeParams ? { ...type.defaultValues, ...volumeParams } : type.defaultValues },
             colorTheme: { name: type.defaultColorTheme.name, params: colorParams ? { ...colorType.defaultValues, ...colorParams } : colorType.defaultValues },
@@ -453,7 +453,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     from: SO.Volume.Data,
     to: SO.Volume.Representation3D,
     params: (a, ctx: PluginContext) => {
-        const { registry, themeCtx } = ctx.volumeRepresentation
+        const { registry, themes: themeCtx } = ctx.representation.volume
         const type = registry.get(registry.default.name);
 
         if (!a) {
@@ -501,11 +501,11 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
             const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
-            const provider = plugin.volumeRepresentation.registry.get(params.type.name)
+            const provider = plugin.representation.volume.registry.get(params.type.name)
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data)
             const props = params.type.params || {}
-            const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
-            repr.setTheme(Theme.create(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))
+            const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams)
+            repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, params))
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             return new SO.Volume.Representation3D({ repr, source: a }, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
@@ -514,7 +514,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
             if (newParams.type.name !== oldParams.type.name) {
-                const oldProvider = plugin.volumeRepresentation.registry.get(oldParams.type.name);
+                const oldProvider = plugin.representation.volume.registry.get(oldParams.type.name);
                 if (oldProvider.ensureCustomProperties) {
                     const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
                     oldProvider.ensureCustomProperties.detach(propertyCtx, a.data)
@@ -522,7 +522,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
                 return StateTransformer.UpdateResult.Recreate;
             }
             const props = { ...b.data.repr.props, ...newParams.type.params }
-            b.data.repr.setTheme(Theme.create(plugin.volumeRepresentation.themeCtx, { volume: a.data }, newParams))
+            b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, newParams))
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.description = VolumeRepresentation3DHelpers.getDescription(props)
             return StateTransformer.UpdateResult.Updated;
@@ -612,7 +612,7 @@ const StructureSelectionsDistance3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Distance', async ctx => {
             const data = getDistanceDataFromStructureSelections(a.data)
-            const repr = DistanceRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, () => DistanceParams)
+            const repr = DistanceRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => DistanceParams)
             await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, source: a }, { label: `Distance` });
         });
@@ -645,7 +645,7 @@ const StructureSelectionsAngle3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Angle', async ctx => {
             const data = getAngleDataFromStructureSelections(a.data)
-            const repr = AngleRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, () => AngleParams)
+            const repr = AngleRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => AngleParams)
             await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, source: a }, { label: `Angle` });
         });
@@ -678,7 +678,7 @@ const StructureSelectionsDihedral3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Dihedral', async ctx => {
             const data = getDihedralDataFromStructureSelections(a.data)
-            const repr = DihedralRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, () => DihedralParams)
+            const repr = DihedralRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => DihedralParams)
             await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, source: a }, { label: `Dihedral` });
         });
@@ -711,7 +711,7 @@ const StructureSelectionsLabel3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Label', async ctx => {
             const data = getLabelDataFromStructureSelections(a.data)
-            const repr = LabelRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, () => LabelParams)
+            const repr = LabelRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => LabelParams)
             await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, source: a }, { label: `Label` });
         });
@@ -744,7 +744,7 @@ const StructureSelectionsOrientation3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Orientation', async ctx => {
             const data = getOrientationDataFromStructureSelections(a.data)
-            const repr = OrientationRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, () => OrientationParams)
+            const repr = OrientationRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => OrientationParams)
             await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, source: a }, { label: `Orientation` });
         });

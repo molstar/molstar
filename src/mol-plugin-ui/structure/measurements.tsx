@@ -112,11 +112,11 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
     get actions(): ActionMenu.Items {
         const history = this.selection.additionsHistory;
         const ret: ActionMenu.Item[] = [
-            { label: `Label ${history.length === 0 ? ' (1 selection required)' : ' (1st selection)'}`, value: this.addLabel, disabled: history.length === 0 },
-            { label: `Orientation ${history.length === 0 ? ' (1 selection required)' : ' (1st selection)'}`, value: this.addOrientation, disabled: history.length === 0 },
-            { label: `Distance ${history.length < 2 ? ' (2 selections required)' : ' (top 2 selections)'}`, value: this.measureDistance, disabled: history.length < 2 },
-            { label: `Angle ${history.length < 3 ? ' (3 selections required)' : ' (top 3 selections)'}`, value: this.measureAngle, disabled: history.length < 3 },
-            { label: `Dihedral ${history.length < 4 ? ' (4 selections required)' : ' (top 4 selections)'}`, value: this.measureDihedral, disabled: history.length < 4 },
+            { kind: 'item', label: `Label ${history.length === 0 ? ' (1 selection required)' : ' (1st selection)'}`, value: this.addLabel, disabled: history.length === 0 },
+            { kind: 'item', label: `Orientation ${history.length === 0 ? ' (1 selection required)' : ' (1st selection)'}`, value: this.addOrientation, disabled: history.length === 0 },
+            { kind: 'item', label: `Distance ${history.length < 2 ? ' (2 selections required)' : ' (top 2 selections)'}`, value: this.measureDistance, disabled: history.length < 2 },
+            { kind: 'item', label: `Angle ${history.length < 3 ? ' (3 selections required)' : ' (top 3 selections)'}`, value: this.measureAngle, disabled: history.length < 3 },
+            { kind: 'item', label: `Dihedral ${history.length < 4 ? ' (4 selections required)' : ' (top 4 selections)'}`, value: this.measureDihedral, disabled: history.length < 4 },
         ];
         return ret;
     }

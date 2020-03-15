@@ -47,7 +47,7 @@ class BasicWrapper {
             }
         });
 
-        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(StripedResidues.colorThemeProvider!);
+        this.plugin.representation.structure.themes.colorThemeRegistry.add(StripedResidues.colorThemeProvider!);
         this.plugin.managers.lociLabels.addProvider(StripedResidues.labelProvider!);
         this.plugin.customModelProperties.register(StripedResidues.propertyProvider, true);
     }
@@ -154,7 +154,7 @@ class BasicWrapper {
 
             const visuals = state.selectQ(q => q.ofTransformer(StateTransforms.Representation.StructureRepresentation3D));
             const tree = state.build();
-            const colorTheme = { name: StripedResidues.propertyProvider.descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(StripedResidues.propertyProvider.descriptor.name).defaultValues };
+            const colorTheme = { name: StripedResidues.propertyProvider.descriptor.name, params: this.plugin.representation.structure.themes.colorThemeRegistry.get(StripedResidues.propertyProvider.descriptor.name).defaultValues };
 
             for (const v of visuals) {
                 tree.to(v).update(old => ({ ...old, colorTheme }));

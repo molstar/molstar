@@ -103,18 +103,20 @@ export class PluginContext {
     readonly canvas3d: Canvas3D | undefined;
     readonly layout = new PluginLayout(this);
 
-    readonly structureRepresentation = {
-        registry: new StructureRepresentationRegistry(),
-        themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext,
-    } as const
-
-    readonly volumeRepresentation = {
-        registry: new VolumeRepresentationRegistry(),
-        themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
-    } as const
+    readonly representation = {
+        structure: {
+            registry: new StructureRepresentationRegistry(),
+            themes: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext,
+        },
+        volume: {
+            registry: new VolumeRepresentationRegistry(),
+            themes: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
+        }
+    } as const;
 
     readonly dataFormat = {
         trajectory: TrajectoryFormatRegistry(),
+        // TODO: separate registries for format catgories
         registry: new DataFormatRegistry()
     } as const
 

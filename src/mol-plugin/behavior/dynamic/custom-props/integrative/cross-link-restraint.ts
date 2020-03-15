@@ -22,15 +22,15 @@ export const CrossLinkRestraint = PluginBehavior.create<{ }>({
         register(): void {
             this.provider.formatRegistry.add('mmCIF', crossLinkRestraintFromMmcif)
 
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(CrossLinkColorThemeProvider)
-            this.ctx.structureRepresentation.registry.add(CrossLinkRestraintRepresentationProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(CrossLinkColorThemeProvider)
+            this.ctx.representation.structure.registry.add(CrossLinkRestraintRepresentationProvider)
         }
 
         unregister() {
             this.provider.formatRegistry.remove('mmCIF')
 
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(CrossLinkColorThemeProvider)
-            this.ctx.structureRepresentation.registry.remove(CrossLinkRestraintRepresentationProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(CrossLinkColorThemeProvider)
+            this.ctx.representation.structure.registry.remove(CrossLinkRestraintRepresentationProvider)
         }
     }
 });

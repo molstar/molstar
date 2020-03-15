@@ -75,36 +75,36 @@ namespace ColorTheme {
 
     export type Registry = ThemeRegistry<ColorTheme<any>>
     export function createRegistry() {
-        return new ThemeRegistry(BuiltInColorThemes as { [k: string]: Provider<any> }, EmptyProvider)
+        return new ThemeRegistry(BuiltIn as { [k: string]: Provider<any> }, EmptyProvider)
     }
 
+    export const BuiltIn = {
+        'carbohydrate-symbol': CarbohydrateSymbolColorThemeProvider,
+        'chain-id': ChainIdColorThemeProvider,
+        'element-index': ElementIndexColorThemeProvider,
+        'element-symbol': ElementSymbolColorThemeProvider,
+        'entity-source': EntitySourceColorThemeProvider,
+        'hydrophobicity': HydrophobicityColorThemeProvider,
+        'illustrative': IllustrativeColorThemeProvider,
+        'model-index': ModelIndexColorThemeProvider,
+        'molecule-type': MoleculeTypeColorThemeProvider,
+        'occupancy': OccupancyColorThemeProvider,
+        'operator-hkl': OperatorHklColorThemeProvider,
+        'operator-name': OperatorNameColorThemeProvider,
+        'polymer-id': PolymerIdColorThemeProvider,
+        'polymer-index': PolymerIndexColorThemeProvider,
+        'residue-name': ResidueNameColorThemeProvider,
+        'secondary-structure': SecondaryStructureColorThemeProvider,
+        'sequence-id': SequenceIdColorThemeProvider,
+        'shape-group': ShapeGroupColorThemeProvider,
+        'uncertainty': UncertaintyColorThemeProvider,
+        'unit-index': UnitIndexColorThemeProvider,
+        'uniform': UniformColorThemeProvider,
+    }
+    type _BuiltIn = typeof BuiltIn
+    export type BuiltIn = keyof _BuiltIn
     export type ParamValues<C extends ColorTheme.Provider<any>> = C extends ColorTheme.Provider<infer P> ? PD.Values<P> : never
+    export type BuiltInParams<T extends BuiltIn> = Partial<ParamValues<_BuiltIn[T]>>
 }
 
 export function ColorThemeProvider<P extends PD.Params, Id extends string>(p: ColorTheme.Provider<P, Id>): ColorTheme.Provider<P, Id> { return p; }
-
-export const BuiltInColorThemes = {
-    'carbohydrate-symbol': CarbohydrateSymbolColorThemeProvider,
-    'chain-id': ChainIdColorThemeProvider,
-    'element-index': ElementIndexColorThemeProvider,
-    'element-symbol': ElementSymbolColorThemeProvider,
-    'entity-source': EntitySourceColorThemeProvider,
-    'hydrophobicity': HydrophobicityColorThemeProvider,
-    'illustrative': IllustrativeColorThemeProvider,
-    'model-index': ModelIndexColorThemeProvider,
-    'molecule-type': MoleculeTypeColorThemeProvider,
-    'occupancy': OccupancyColorThemeProvider,
-    'operator-hkl': OperatorHklColorThemeProvider,
-    'operator-name': OperatorNameColorThemeProvider,
-    'polymer-id': PolymerIdColorThemeProvider,
-    'polymer-index': PolymerIndexColorThemeProvider,
-    'residue-name': ResidueNameColorThemeProvider,
-    'secondary-structure': SecondaryStructureColorThemeProvider,
-    'sequence-id': SequenceIdColorThemeProvider,
-    'shape-group': ShapeGroupColorThemeProvider,
-    'uncertainty': UncertaintyColorThemeProvider,
-    'unit-index': UnitIndexColorThemeProvider,
-    'uniform': UniformColorThemeProvider,
-}
-export type BuiltInColorThemes = typeof BuiltInColorThemes
-export type BuiltInColorThemeName = keyof typeof BuiltInColorThemes

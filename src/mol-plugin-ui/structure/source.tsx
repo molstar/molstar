@@ -38,7 +38,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
 
     getTrajectoryItems = (t: TrajectoryRef): ActionMenu.Items => {
         if (t.models.length === 0) return this.item(t);
-        return [t.cell.obj?.label!, ...t.models.map(this.getModelItems)];
+        return [ActionMenu.Header(t.cell.obj?.label!), ...t.models.map(this.getModelItems)];
     }
 
     private getModelItems = (m: ModelRef): ActionMenu.Items => {
@@ -48,7 +48,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             const ref = m.structures[0];
             return { label: `${m.cell.obj?.label} | ${ref.cell.obj?.label}`, selected: selected.has(ref.cell.transform.ref), value: [m, ref] } as ActionMenu.Item;
         }
-        return [m.cell.obj?.label!, ...m.structures.map(this.item)];
+        return [ActionMenu.Header(m.cell.obj?.label!), ...m.structures.map(this.item)];
     }
 
     get hierarchyItems() {
