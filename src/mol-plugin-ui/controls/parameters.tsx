@@ -5,25 +5,25 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import * as React from 'react';
 import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
+import { PluginContext } from '../../mol-plugin/context';
 import { Color } from '../../mol-util/color';
 import { ColorListName, getColorListFromName } from '../../mol-util/color/lists';
+import { Legend as LegendData } from '../../mol-util/legend';
 import { memoize1, memoizeLatest } from '../../mol-util/memoize';
+import { getPrecision } from '../../mol-util/number';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { ParamMapping } from '../../mol-util/param-mapping';
 import { camelCaseToWords } from '../../mol-util/string';
-import * as React from 'react';
+import { PluginUIComponent, _Props, _State } from '../base';
+import { ActionMenu } from './action-menu';
+import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
+import { ControlGroup, ExpandGroup, IconButton, NumericInput, ToggleButton } from './common';
+import { Icon } from './icons';
+import { legendFor } from './legend';
 import LineGraphComponent from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
-import { NumericInput, IconButton, ControlGroup, ToggleButton, ExpandGroup } from './common';
-import { _Props, _State, PluginUIComponent } from '../base';
-import { legendFor } from './legend';
-import { Legend as LegendData } from '../../mol-util/legend';
-import { CombinedColorControl, ColorValueOption, ColorOptions } from './color';
-import { getPrecision } from '../../mol-util/number';
-import { ParamMapping } from '../../mol-util/param-mapping';
-import { PluginContext } from '../../mol-plugin/context';
-import { ActionMenu } from './action-menu';
-import { Icon } from './icons';
 
 export type ParameterControlsCategoryFilter = string | null | (string | null)[]
 
@@ -751,8 +751,8 @@ export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiS
     }
 }
 
-export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> & { inMapped?: boolean }, { isExpanded: boolean }> {
-    state = { isExpanded: !!this.props.param.isExpanded }
+export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> & { inMapped?: boolean }, { isExpanded: boolean, showHelp: boolean }> {
+    state = { isExpanded: !!this.props.param.isExpanded, showHelp: false }
 
     change(value: any) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
@@ -764,11 +764,42 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
 
+    pivoted() {
+        const key = this.props.param.pivot as string;
+        const params = this.props.param.params;
+        const pivot = params[key];
+        const Control = controlFor(pivot)!;
+
+        const ctrl = <Control name={key} param={pivot} value={this.props.value[key]} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />;
+
+        if (!this.state.isExpanded) {
+            return <div className='msp-mapped-parameter-group'>
+                {ctrl}
+                <IconButton icon='dot-3' onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
+            </div>;
+        }
+
+        const filtered = Object.create(null);
+        for (const k of Object.keys(params)) {
+            if (k !== key) filtered[k] = params[k];
+        }
+
+        return <div className='msp-mapped-parameter-group'>
+            {ctrl}
+            <IconButton icon='dot-3' onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
+            <div className='msp-control-offset'>
+                <ParameterControls params={filtered} onEnter={this.props.onEnter} values={this.props.value} onChange={this.onChangeParam} isDisabled={this.props.isDisabled} />
+            </div>
+        </div>;        
+    }
+
     render() {
         const params = this.props.param.params;
 
         // Do not show if there are no params.
         if (Object.keys(params).length === 0) return null;
+
+        if (this.props.param.pivot) return this.pivoted();
 
         const label = this.props.param.label || camelCaseToWords(this.props.name);
 

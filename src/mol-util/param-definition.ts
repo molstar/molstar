@@ -122,7 +122,7 @@ export namespace ParamDefinition {
     }
     export function Color(defaultValue: ColorData, info?: Info & { isExpanded?: boolean }): Color {
         const ret = setInfo<Color>({ type: 'color', defaultValue }, info);
-        if (info && info.isExpanded) ret.isExpanded = info.isExpanded;
+        if (info?.isExpanded) ret.isExpanded = info.isExpanded;
         return ret;
     }
 
@@ -139,7 +139,7 @@ export namespace ParamDefinition {
     }
     export function File(info?: Info & { accept?: string, multiple?: boolean }): FileParam {
         const ret = setInfo<FileParam>({ type: 'file', defaultValue: void 0 as any }, info);
-        if (info && info.accept) ret.accept = info.accept;
+        if (info?.accept) ret.accept = info.accept;
         return ret;
     }
 
@@ -149,7 +149,7 @@ export namespace ParamDefinition {
     }
     export function FileList(info?: Info & { accept?: string, multiple?: boolean }): FileListParam {
         const ret = setInfo<FileListParam>({ type: 'file-list', defaultValue: void 0 as any }, info);
-        if (info && info.accept) ret.accept = info.accept;
+        if (info?.accept) ret.accept = info.accept;
         return ret;
     }
 
@@ -197,12 +197,14 @@ export namespace ParamDefinition {
         type: 'group',
         params: Params,
         isExpanded?: boolean,
-        isFlat?: boolean
+        isFlat?: boolean,
+        pivot?: keyof T
     }
-    export function Group<T>(params: For<T>, info?: Info & { isExpanded?: boolean, isFlat?: boolean, customDefault?: any }): Group<Normalize<T>> {
+    export function Group<T>(params: For<T>, info?: Info & { isExpanded?: boolean, isFlat?: boolean, customDefault?: any, pivot?: keyof T }): Group<Normalize<T>> {
         const ret = setInfo<Group<Normalize<T>>>({ type: 'group', defaultValue: info?.customDefault || getDefaultValues(params as any as Params) as any, params: params as any as Params }, info);
-        if (info && info.isExpanded) ret.isExpanded = info.isExpanded;
-        if (info && info.isFlat) ret.isFlat = info.isFlat;
+        if (info?.isExpanded) ret.isExpanded = info.isExpanded;
+        if (info?.isFlat) ret.isFlat = info.isFlat;
+        if (info?.pivot) ret.pivot = info.pivot as any;
         return ret;
     }
     export function EmptyGroup(info?: Info) {
@@ -226,7 +228,7 @@ export namespace ParamDefinition {
         }, info);
     }
     export function MappedStatic<C extends Params>(defaultKey: keyof C, map: C, info?: Info & { options?: [keyof C, string][], cycle?: boolean }): Mapped<NamedParamUnion<C>> {
-        const options: [string, string][] = info && info.options
+        const options: [string, string][] = info?.options
             ? info.options as [string, string][]
             : Object.keys(map).map(k => [k, map[k].label || stringToWords(k)]) as [string, string][];
         const name = checkDefaultKey(defaultKey, options);
@@ -245,7 +247,7 @@ export namespace ParamDefinition {
         getLabel(t: T): string
     }
     export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[], ctor?: () => T }): ObjectList<Normalize<T>> {
-        return setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, ctor: _defaultObjectListCtor, defaultValue: (info && info.defaultValue) || []  }, info);
+        return setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, ctor: _defaultObjectListCtor, defaultValue: (info?.defaultValue) || []  }, info);
     }
     function _defaultObjectListCtor(this: ObjectList) { return getDefaultValues(this.element) as any; }
 

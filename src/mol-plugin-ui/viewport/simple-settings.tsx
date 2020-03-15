@@ -5,19 +5,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { produce } from 'immer';
 import * as React from 'react';
 import { Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { ColorNames } from '../../mol-util/color/names';
-import { ParameterMappingControl } from '../controls/parameters';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { PluginUIComponent } from '../base';
-import { Color } from '../../mol-util/color';
-import { ParamMapping } from '../../mol-util/param-mapping';
 import { PluginContext } from '../../mol-plugin/context';
-import { Mutable } from '../../mol-util/type-helpers';
-import { produce } from 'immer';
 import { StateTransform } from '../../mol-state';
+import { Color } from '../../mol-util/color';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { ParamMapping } from '../../mol-util/param-mapping';
+import { Mutable } from '../../mol-util/type-helpers';
+import { PluginUIComponent } from '../base';
+import { ParameterMappingControl } from '../controls/parameters';
 
 export class SimpleSettingsControl extends PluginUIComponent {
     componentDidMount() {
@@ -31,18 +30,23 @@ export class SimpleSettingsControl extends PluginUIComponent {
 }
 
 const SimpleSettingsParams = {
-    layout: PD.MultiSelect<'sequence' | 'log' | 'left'>([], [['sequence', 'Sequence'], ['log', 'Log'], ['left', 'Left Panel']] as const),
-    spin: Canvas3DParams.trackball.params.spin,
+    spin: PD.Group({
+        spin: Canvas3DParams.trackball.params.spin,
+        speed: Canvas3DParams.trackball.params.spinSpeed
+    }, { pivot: 'spin' }),
     camera: Canvas3DParams.cameraMode,
-    background: PD.MappedStatic('opaque', {
-        'transparent': PD.EmptyGroup(),
-        'opaque': PD.Group({ color: PD.Color(Color(0xFCFBF9), { description: 'Custom background color' }) }, { isFlat: true })
-    }, { description: 'Background of the 3D canvas' }),
-    renderStyle: Canvas3DParams.renderer.params.style,
-    occlusion: Canvas3DParams.postprocessing.params.occlusion,
-    outline: Canvas3DParams.postprocessing.params.outline,
-    fog: PD.Boolean(false, { description: 'Show fog in the distance' }),
-    clipFar: PD.Boolean(true, { description: 'Clip scene in the distance' }),
+    background: PD.Group({ 
+        color: PD.Color(Color(0xFCFBF9), { label: "Background", description: 'Custom background color' }),
+        transparent: PD.Boolean(false)
+    }, { pivot: 'color' }),
+    renderer: PD.Group({
+        renderStyle: Canvas3DParams.renderer.params.style,
+        occlusion: Canvas3DParams.postprocessing.params.occlusion,
+        outline: Canvas3DParams.postprocessing.params.outline,
+        fog: PD.Boolean(false, { description: 'Show fog in the distance' }),
+        clipFar: PD.Boolean(true, { description: 'Clip scene in the distance' }),
+    }, { pivot: 'renderStyle' }),
+    layout: PD.MultiSelect<'sequence' | 'log' | 'left'>([], [['sequence', 'Sequence'], ['log', 'Log'], ['left', 'Left Panel']] as const),
 };
 
 type SimpleSettingsParams = typeof SimpleSettingsParams
@@ -62,29 +66,33 @@ const SimpleSettingsMapping = ParamMapping({
 
         return {
             layout: props.layout,
-            spin: !!canvas.trackball.spin,
+            spin: { spin: !!canvas.trackball.spin, speed: canvas.trackball.spinSpeed },
             camera: canvas.cameraMode,
-            background:  (renderer.backgroundColor === ColorNames.white && canvas.transparentBackground)
-                ? { name: 'transparent', params: { } }
-                : { name: 'opaque', params: { color: renderer.backgroundColor } },
-            renderStyle: renderer.style,
-            occlusion: canvas.postprocessing.occlusion,
-            outline: canvas.postprocessing.outline,
-            fog: ctx.canvas3d ? canvas.cameraFog > 1 : false,
-            clipFar: canvas.cameraClipFar
+            background: {
+                color: renderer.backgroundColor,
+                transparent: canvas.transparentBackground
+            },
+            renderer: {
+                renderStyle: renderer.style,
+                occlusion: canvas.postprocessing.occlusion,
+                outline: canvas.postprocessing.outline,
+                fog: ctx.canvas3d ? canvas.cameraFog > 1 : false,
+                clipFar: canvas.cameraClipFar
+            }
         };
     },
     update(s, props) {
         const canvas = props.canvas as Mutable<Canvas3DProps>;
-        canvas.trackball.spin = s.spin;
+        canvas.trackball.spin = s.spin.spin;
+        canvas.trackball.spinSpeed = s.spin.speed;
         canvas.cameraMode = s.camera;
-        canvas.transparentBackground = s.background.name === 'transparent';
-        canvas.renderer.backgroundColor = s.background.name === 'transparent' ? ColorNames.white : s.background.params.color;
-        canvas.renderer.style = s.renderStyle
-        canvas.postprocessing.occlusion = s.occlusion;
-        canvas.postprocessing.outline = s.outline;
-        canvas.cameraFog = s.fog ? 50 : 0;
-        canvas.cameraClipFar = s.clipFar;
+        canvas.transparentBackground = s.background.transparent;
+        canvas.renderer.backgroundColor = s.background.color;
+        canvas.renderer.style = s.renderer.renderStyle
+        canvas.postprocessing.occlusion = s.renderer.occlusion;
+        canvas.postprocessing.outline = s.renderer.outline;
+        canvas.cameraFog = s.renderer.fog ? 50 : 0;
+        canvas.cameraClipFar = s.renderer.clipFar;
 
         props.layout = s.layout;
     },

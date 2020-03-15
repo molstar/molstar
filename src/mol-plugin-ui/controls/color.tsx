@@ -29,6 +29,7 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
     onClickSwatch = (e: React.MouseEvent<HTMLButtonElement>) => {
         const value = Color(+(e.currentTarget.getAttribute('data-color') || '0'));
         if (value !== this.props.value) {
+            if (!this.props.param.isExpanded) this.setState({ isExpanded: false });
             this.update(value);
         }
     }
