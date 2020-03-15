@@ -213,7 +213,7 @@ function getHandleCenterPosition(vertical: boolean, handle: HTMLElement) {
         coords.left + (coords.width * 0.5);
 }
 
-function pauseEvent(e: Event) {
+function pauseEvent(e: MouseEvent | TouchEvent) {
     e.stopPropagation();
     e.preventDefault();
 }
@@ -244,17 +244,14 @@ export interface SliderBaseProps {
     defaultValue?: number | number[],
     value?: number | number[],
     marks?: any,
-    included?: boolean,
     className?: string,
     prefixCls?: string,
     disabled?: boolean,
-    children?: any,
     onBeforeChange?: (value: number | number[]) => void,
     onChange?: (value: number | number[]) => void,
     onAfterChange?: (value: number | number[]) => void,
     handle?: JSX.Element,
     tipFormatter?: (value: number, index: number) => any,
-    dots?: boolean,
     range?: boolean | number,
     vertical?: boolean,
     allowCross?: boolean,
@@ -268,8 +265,8 @@ export interface SliderBaseState {
 }
 
 export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState> {
-    private sliderElement: HTMLElement | undefined = void 0;
-    private handleElements: (HTMLElement | undefined)[] = [];
+    private sliderElement = React.createRef<HTMLDivElement>();
+    private handleElements: React.Ref<HTMLDivElement>[] = [];
 
     constructor(props: SliderBaseProps) {
         super(props);
@@ -307,9 +304,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         onChange: noop,
         onAfterChange: noop,
         tipFormatter: (value, index) => value,
-        included: true,
         disabled: false,
-        dots: false,
         range: false,
         vertical: false,
         allowCross: true,
@@ -360,7 +355,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         props.onChange!(changedValue);
     }
 
-    onMouseDown(e: MouseEvent) {
+    onMouseDown = (e: MouseEvent) => {
         if (e.button !== 0) { return; }
 
         let position = getMousePosition(this.props.vertical!, e);
@@ -455,7 +450,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         this.onChange({ bounds: nextBounds } as SliderBaseState);
     }
 
-    onTouchMove(e: TouchEvent) {
+    onTouchMove = (e: TouchEvent) => {
         if (isNotTouchEvent(e)) {
             this.end('touch');
             return;
@@ -465,7 +460,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         this.onMove(e, position - this.dragOffset);
     }
 
-    onTouchStart(e: TouchEvent) {
+    onTouchStart = (e: TouchEvent) => {
         if (isNotTouchEvent(e)) return;
 
         let position = getTouchPosition(this.props.vertical!, e);
@@ -512,7 +507,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
     }
 
     getSliderLength() {
-        const slider = this.sliderElement;
+        const slider = this.sliderElement.current;
         if (!slider) {
             return 0;
         }
@@ -521,7 +516,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
     }
 
     getSliderStart() {
-        const slider = this.sliderElement as HTMLElement;
+        const slider = this.sliderElement.current as HTMLElement;
         const rect = slider.getBoundingClientRect();
 
         return this.props.vertical ? rect.top : rect.left;
@@ -549,7 +544,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         }
     }
 
-    calcOffset(value: number) {
+    calcOffset = (value: number) => {
         const { min, max } = this.props;
         const ratio = (value - min) / (max - min);
         return ratio * 100;
@@ -574,17 +569,11 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         this.setState({ handle: null } as SliderBaseState);
     }
 
-    isEventFromHandle(e: Event) {
-        for (const h of this.handleElements) {
-            if (h === e.target) return true;
+    isEventFromHandle(e: MouseEvent | TouchEvent) {
+        for (const h of this.handleElements as any) {
+            if (h.current === e.target) return true;
         }
         return false;
-
-        // return this.state.bounds.some((x, i) => e.target
-
-        // (
-        //     //this.handleElements[i] && e.target === ReactDOM.findDOMNode(this.handleElements[i])
-        // ));
     }
 
     isValueOutOfBounds(value: number, props: SliderBaseProps) {
@@ -701,19 +690,15 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
             prefixCls,
             disabled,
             vertical,
-            dots,
-            included,
             range,
             step,
             marks,
-            max, min,
-            tipFormatter,
-            children,
+            tipFormatter
         } = this.props;
 
         const customHandle = this.props.handle;
 
-        const offsets = bounds.map(v => this.calcOffset(v));
+        const offsets = bounds.map(this.calcOffset);
 
         const handleClassName = `${prefixCls}-handle`;
 
@@ -733,7 +718,10 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
             vertical,
         };
 
-        this.handleElements = [];
+        if (this.handleElements.length !== bounds.length) {
+            this.handleElements = []; // = [];
+            for (let i = 0; i < bounds.length; i++) this.handleElements.push(React.createRef());
+        }
         const handles = bounds.map((v, i) => React.cloneElement(customHandle!, {
             ...commonHandleProps,
             className: handlesClassNames[i],
@@ -742,25 +730,10 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
             dragging: handle === i,
             index: i,
             key: i,
-            ref: (h: any) => this.handleElements.push(h)  // `handle-${i}`,
+            ref: this.handleElements[i]
         }));
         if (!range) { handles.shift(); }
-
-        const isIncluded = included || range;
-
-        const tracks: JSX.Element[] = [];
-        // for (let i = 1; i < bounds.length; ++i) {
-        //     const trackClassName = classNames({
-        //         [`${prefixCls}-track`]: true,
-        //         [`${prefixCls}-track-${i}`]: true,
-        //     });
-        //     tracks.push(
-        //         <Track className={trackClassName} vertical={vertical} included={isIncluded}
-        //             offset={offsets[i - 1]} length={offsets[i] - offsets[i - 1]} key={i}
-        //             />
-        //     );
-        // }
-
+ 
         const sliderClassName = classNames({
             [prefixCls!]: true,
             [`${prefixCls}-with-marks`]: Object.keys(marks).length,
@@ -770,22 +743,12 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         });
 
         return (
-            <div ref={e => this.sliderElement = e!} className={sliderClassName}
-                onTouchStart={disabled ? noop : this.onTouchStart.bind(this)}
-                onMouseDown={disabled ? noop : this.onMouseDown.bind(this)}
+            <div ref={this.sliderElement} className={sliderClassName} 
+                onTouchStart={disabled ? noop : this.onTouchStart as any} 
+                onMouseDown={disabled ? noop : this.onMouseDown as any}
             >
                 <div className={`${prefixCls}-rail`} />
-                {tracks}
-                <Steps prefixCls={prefixCls} vertical={vertical} marks={marks} dots={dots} step={step}
-                    included={isIncluded} lowerBound={bounds[0]}
-                    upperBound={bounds[bounds.length - 1]} max={max} min={min}
-                />
                 {handles}
-                <Marks className={`${prefixCls}-mark`} vertical={vertical!} marks={marks}
-                    included={isIncluded!} lowerBound={bounds[0]}
-                    upperBound={bounds[bounds.length - 1]} max={max} min={min}
-                />
-                {children}
             </div>
         );
     }
@@ -799,99 +762,3 @@ export interface HandleProps {
     value: number,
     index: number,
 }
-
-interface MarksProps {
-    className: string,
-    vertical: boolean,
-    marks: any,
-    included: boolean | number,
-    upperBound: number,
-    lowerBound: number,
-    max: number,
-    min: number
-}
-const Marks = ({ className, vertical, marks, included, upperBound, lowerBound, max, min }: MarksProps) => {
-    const marksKeys = Object.keys(marks);
-    const marksCount = marksKeys.length;
-    const unit = 100 / (marksCount - 1);
-    const markWidth = unit * 0.9;
-
-    const range = max - min;
-    const elements = marksKeys.map(parseFloat).sort((a, b) => a - b).map((point) => {
-        const isActived = (!included && point === upperBound) ||
-            (included && point <= upperBound && point >= lowerBound);
-        const markClassName = classNames({
-            [`${className}-text`]: true,
-            [`${className}-text-active`]: isActived,
-        });
-
-        const bottomStyle = {
-            // height: markWidth + '%',
-            marginBottom: '-50%',
-            bottom: `${(point - min) / range * 100}%`,
-        };
-
-        const leftStyle = {
-            width: `${markWidth}%`,
-            marginLeft: `${-markWidth / 2}%`,
-            left: `${(point - min) / range * 100}%`,
-        };
-
-        const style = vertical ? bottomStyle : leftStyle;
-
-        const markPoint = marks[point];
-        const markPointIsObject = typeof markPoint === 'object' && !React.isValidElement(markPoint);
-        const markLabel = markPointIsObject ? markPoint.label : markPoint;
-        const markStyle = markPointIsObject ? { ...style, ...markPoint.style } : style;
-        return (<span className={markClassName} style={markStyle} key={point}>
-            {markLabel}
-        </span>);
-    });
-
-    return <div className={className}>{elements}</div>;
-};
-
-function calcPoints(vertical: boolean, marks: any, dots: boolean, step: number, min: number, max: number) {
-    const points = Object.keys(marks).map(parseFloat);
-    if (dots) {
-        for (let i = min; i <= max; i = i + step) {
-            if (points.indexOf(i) >= 0) continue;
-            points.push(i);
-        }
-    }
-    return points;
-}
-
-const Steps = ({ prefixCls, vertical, marks, dots, step, included,
-    lowerBound, upperBound, max, min }: any) => {
-    const range = max - min;
-    const elements = calcPoints(vertical, marks, dots, step, min, max).map((point) => {
-        const offset = `${Math.abs(point - min) / range * 100}%`;
-        const style = vertical ? { bottom: offset } : { left: offset };
-
-        const isActived = (!included && point === upperBound) ||
-            (included && point <= upperBound && point >= lowerBound);
-        const pointClassName = classNames({
-            [`${prefixCls}-dot`]: true,
-            [`${prefixCls}-dot-active`]: isActived,
-        });
-
-        return <span className={pointClassName} style={style} key={point} />;
-    });
-
-    return <div className={`${prefixCls}-step`}>{elements}</div>;
-};
-
-    // const Track = ({ className, included, vertical, offset, length }: any) => {
-    //     const style: any = {
-    //         visibility: included ? 'visible' : 'hidden'
-    //     };
-    //     if (vertical) {
-    //         style.bottom = `${offset}%`;
-    //         style.height = `${length}%`;
-    //     } else {
-    //         style.left = `${offset}%`;
-    //         style.width = `${length}%`;
-    //     }
-    //     return <div className={className} style={style} />;
-    // };
