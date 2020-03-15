@@ -6,22 +6,17 @@
  */
 
 import { List } from 'immutable';
-import { formatTime } from '../mol-util';
-import { LogEntry } from '../mol-util/log-entry';
 import * as React from 'react';
 import { PluginContext } from '../mol-plugin/context';
+import { formatTime } from '../mol-util';
+import { LogEntry } from '../mol-util/log-entry';
 import { PluginReactContext, PluginUIComponent } from './base';
-import { LociLabels, TrajectoryViewportControls, StateSnapshotViewportControls, AnimationViewportControls, DefaultStructureTools } from './controls';
-import { StateObjectActionSelect } from './state/actions';
-import { BackgroundTaskProgress } from './task';
-import { Viewport, ViewportControls } from './viewport';
-import { StateTransform } from '../mol-state';
-import { UpdateTransformControl } from './state/update-transform';
-import { SequenceView } from './sequence';
-import { Toasts } from './toast';
-import { SectionHeader, ExpandGroup } from './controls/common';
+import { AnimationViewportControls, DefaultStructureTools, LociLabels, StateSnapshotViewportControls, TrajectoryViewportControls } from './controls';
 import { LeftPanelControls } from './left-panel';
-import { StateTreeSpine } from '../mol-state/tree/spine';
+import { SequenceView } from './sequence';
+import { BackgroundTaskProgress } from './task';
+import { Toasts } from './toast';
+import { Viewport, ViewportControls } from './viewport';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
@@ -126,7 +121,7 @@ export class ControlsWrapper extends PluginUIComponent {
     render() {
         const StructureTools = this.plugin.spec.components?.structureTools || DefaultStructureTools;
         return <div className='msp-scrollable-container'>
-            <CurrentObject />
+            {/* <CurrentObject /> */}
             <StructureTools />
         </div>;
     }
@@ -191,74 +186,74 @@ export class Log extends PluginUIComponent<{}, { entries: List<LogEntry> }> {
     }
 }
 
-export class CurrentObject extends PluginUIComponent {
-    get current() {
-        return this.plugin.state.behavior.currentObject.value;
-    }
+// export class CurrentObject extends PluginUIComponent {
+//     get current() {
+//         return this.plugin.state.behavior.currentObject.value;
+//     }
 
-    componentDidMount() {
-        this.subscribe(this.plugin.state.behavior.currentObject, o => {
-            this.forceUpdate();
-        });
+//     componentDidMount() {
+//         this.subscribe(this.plugin.state.behavior.currentObject, o => {
+//             this.forceUpdate();
+//         });
 
-        this.subscribe(this.plugin.behaviors.layout.leftPanelTabName, o => {
-            this.forceUpdate();
-        });
+//         this.subscribe(this.plugin.behaviors.layout.leftPanelTabName, o => {
+//             this.forceUpdate();
+//         });
 
-        this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
-            const current = this.current;
-            if (current.ref !== ref || current.state !== state) return;
-            this.forceUpdate();
-        });
-    }
+//         this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
+//             const current = this.current;
+//             if (current.ref !== ref || current.state !== state) return;
+//             this.forceUpdate();
+//         });
+//     }
 
-    render() {
-        const tabName = this.plugin.behaviors.layout.leftPanelTabName.value;
-        if (tabName !== 'data' && tabName !== 'settings') return null;
+//     render() {
+//         const tabName = this.plugin.behaviors.layout.leftPanelTabName.value;
+//         if (tabName !== 'data' && tabName !== 'settings') return null;
 
-        const current = this.current;
-        const ref = current.ref;
-        if (ref === StateTransform.RootRef) return null;
+//         const current = this.current;
+//         const ref = current.ref;
+//         if (ref === StateTransform.RootRef) return null;
 
-        const cell = current.state.cells.get(ref)!;
-        const transform = cell.transform;
+//         const cell = current.state.cells.get(ref)!;
+//         const transform = cell.transform;
 
-        let showActions = true;
-        if (ref === StateTransform.RootRef) {
-            const children = current.state.tree.children.get(ref);
-            showActions = children.size !== 0;
-        }
+//         let showActions = true;
+//         if (ref === StateTransform.RootRef) {
+//             const children = current.state.tree.children.get(ref);
+//             showActions = children.size !== 0;
+//         }
 
-        if (!showActions) return null;
+//         if (!showActions) return null;
 
-        const actions = cell.status === 'ok' && <StateObjectActionSelect state={current.state} nodeRef={ref} plugin={this.plugin} />
+//         const actions = cell.status === 'ok' && <StateObjectActionSelect state={current.state} nodeRef={ref} plugin={this.plugin} />
 
-        if (cell.status === 'error') {
-            return <>            
-                <SectionHeader icon='flow-cascade' title={`${cell.obj?.label || transform.transformer.definition.display.name}`} desc={transform.transformer.definition.display.name} />
-                <UpdateTransformControl state={current.state} transform={transform} customHeader='none' />
-                {actions}
-            </>;
-        }
+//         if (cell.status === 'error') {
+//             return <>            
+//                 <SectionHeader icon='flow-cascade' title={`${cell.obj?.label || transform.transformer.definition.display.name}`} desc={transform.transformer.definition.display.name} />
+//                 <UpdateTransformControl state={current.state} transform={transform} customHeader='none' />
+//                 {actions}
+//             </>;
+//         }
 
-        if (cell.status !== 'ok') return null;
+//         if (cell.status !== 'ok') return null;
 
-        const decoratorChain = StateTreeSpine.getDecoratorChain(this.current.state, this.current.ref);
-        const parent = decoratorChain[decoratorChain.length - 1];
+//         const decoratorChain = StateTreeSpine.getDecoratorChain(this.current.state, this.current.ref);
+//         const parent = decoratorChain[decoratorChain.length - 1];
 
-        let decorators: JSX.Element[] | undefined = decoratorChain.length > 1 ? [] : void 0;
-        for (let i = decoratorChain.length - 2; i >= 0; i--) {
-            const d = decoratorChain[i];
-            decorators!.push(<ExpandGroup key={`${d.transform.transformer.id}-${i}`} header={d.transform.transformer.definition.display.name}>
-                <UpdateTransformControl state={current.state} transform={d.transform} customHeader='none' />
-            </ExpandGroup>);
-        }
+//         let decorators: JSX.Element[] | undefined = decoratorChain.length > 1 ? [] : void 0;
+//         for (let i = decoratorChain.length - 2; i >= 0; i--) {
+//             const d = decoratorChain[i];
+//             decorators!.push(<ExpandGroup key={`${d.transform.transformer.id}-${i}`} header={d.transform.transformer.definition.display.name}>
+//                 <UpdateTransformControl state={current.state} transform={d.transform} customHeader='none' />
+//             </ExpandGroup>);
+//         }
 
-        return <>            
-            <SectionHeader icon='flow-cascade' title={`${parent.obj?.label || parent.transform.transformer.definition.display.name}`} desc={parent.transform.transformer.definition.display.name} />
-            <UpdateTransformControl state={current.state} transform={parent.transform} customHeader='none' />
-            {decorators && <div className='msp-controls-section'>{decorators}</div>}
-            {actions}
-        </>;
-    }
-}
+//         return <>            
+//             <SectionHeader icon='flow-cascade' title={`${parent.obj?.label || parent.transform.transformer.definition.display.name}`} desc={parent.transform.transformer.definition.display.name} />
+//             <UpdateTransformControl state={current.state} transform={parent.transform} customHeader='none' />
+//             {decorators && <div className='msp-controls-section'>{decorators}</div>}
+//             {actions}
+//         </>;
+//     }
+// }

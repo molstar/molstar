@@ -16,13 +16,13 @@ export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
         const cmd = this.props;
         return <div className='msp-action-menu-options' style={{ marginTop: cmd.header ? void 0 : '1px' }}>
             {cmd.header && <ControlGroup header={cmd.header} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hide} topRightIcon='off'></ControlGroup>}
-            <Section items={cmd.items} onSelect={cmd.onSelect} current={cmd.current} multiselect={this.props.multiselect} />
+            <Section items={cmd.items} onSelect={cmd.onSelect} current={cmd.current} multiselect={this.props.multiselect} noOffset={this.props.noOffset} />
         </div>
     }
 }
 
 export namespace ActionMenu {
-    export type Props = { items: Items, onSelect: OnSelect | OnSelectMany, header?: string, current?: Item, multiselect?: boolean }
+    export type Props = { items: Items, onSelect: OnSelect | OnSelectMany, header?: string, current?: Item, multiselect?: boolean, noOffset?: boolean }
 
     export type OnSelect = (item: Item | undefined) => void
     export type OnSelectMany = (itemOrItems: Item[] | undefined) => void
@@ -119,7 +119,7 @@ export namespace ActionMenu {
     }
 }
 
-type SectionProps = { items: ActionMenu.Items, onSelect: ActionMenu.OnSelect | ActionMenu.OnSelectMany, current: ActionMenu.Item | undefined, multiselect: boolean | undefined }
+type SectionProps = { items: ActionMenu.Items, onSelect: ActionMenu.OnSelect | ActionMenu.OnSelectMany, current: ActionMenu.Item | undefined, multiselect: boolean | undefined, noOffset?: boolean }
 type SectionState = { items: ActionMenu.Items, current: ActionMenu.Item | undefined, isExpanded: boolean, hasCurrent: boolean, header?: ActionMenu.Header }
 
 class Section extends React.PureComponent<SectionProps, SectionState> {
@@ -201,16 +201,16 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
 
         const { header } = this.state;
 
-        return <div>
+        return <>
             {header && (this.props.multiselect && this.state.isExpanded ? this.multiselectHeader : this.basicHeader)}
-            <div className='msp-control-offset'>
+            <div className={this.props.noOffset ? void 0 : 'msp-control-offset'}>
                 {(!header || this.state.isExpanded) && items.map((x, i) => {
                     if (isHeader(x)) return null;
                     if (isItem(x)) return <Action key={i} item={x} onSelect={onSelect} current={current} multiselect={this.props.multiselect} />
                     return <Section key={i} items={x} onSelect={onSelect} current={current} multiselect={this.props.multiselect} />
                 })}
             </div>
-        </div>;
+        </>;
     }
 }
 

@@ -131,7 +131,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         if (refs.length === 0) return;
         const deletes = this.plugin.state.data.build();
         for (const r of refs) deletes.delete(r.cell.transform.ref);
-        return this.plugin.updateState(deletes, { canUndo: canUndo ? 'Remove' : false });
+        return this.plugin.updateDataState(deletes, { canUndo: canUndo ? 'Remove' : false });
     }
 
     createAllModels(trajectory: TrajectoryRef) {
@@ -159,7 +159,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         for (const m of trajectory.models) {
             builder.delete(m.cell);
         }
-        return this.plugin.updateState(builder);
+        return this.plugin.updateDataState(builder);
     }
 
     constructor(private plugin: PluginContext) {

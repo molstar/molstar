@@ -62,7 +62,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         }
 
         return this.plugin.dataTransaction(async () => {
-            await this.plugin.updateState(update);
+            await this.plugin.updateDataState(update);
             if (interactionChanged) await this.updateInterationProps();
         });
     }
@@ -96,7 +96,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                     arraySetAdd(old.autoAttach, InteractionsProvider.descriptor.name);
                     old.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
                 });
-                await this.plugin.updateState(b);
+                await this.plugin.updateDataState(b);
             } else {
                 const pd = this.plugin.customStructureProperties.getParams(s.cell.obj?.data);
                 const params = PD.getDefaultValues(pd);
@@ -196,7 +196,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             update.to(repr.cell).update(params);
         }
 
-        return this.plugin.updateState(update, { canUndo: 'Update Representation' });
+        return this.plugin.updateDataState(update, { canUndo: 'Update Representation' });
     }
 
     updateRepresentationsTheme<C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(components: ReadonlyArray<StructureComponentRef>, params: StructureComponentManager.UpdateThemeParams<C, S>): Promise<any> {
@@ -220,7 +220,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             }
         }
 
-        return this.plugin.updateState(update, { canUndo: 'Update Theme' });
+        return this.plugin.updateDataState(update, { canUndo: 'Update Theme' });
     }
 
     addRepresentation(components: ReadonlyArray<StructureComponentRef>, type: string) {
@@ -318,7 +318,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                 if (s.currentFocus.surroundings) deletes.delete(s.currentFocus.surroundings.cell.transform.ref);
             }
         }
-        return this.plugin.updateState(deletes, { canUndo: 'Clear Selections' });
+        return this.plugin.updateDataState(deletes, { canUndo: 'Clear Selections' });
     }
 
     constructor(public plugin: PluginContext) {

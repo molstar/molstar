@@ -12,6 +12,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Subject } from 'rxjs';
 import { Icon } from '../controls/icons';
+import { ExpandGroup } from '../controls/common';
 
 export { StateTransformParameters, TransformControlBase };
 
@@ -100,7 +101,7 @@ namespace TransformControlBase {
     }
 }
 
-abstract class TransformControlBase<P, S extends TransformControlBase.ComponentState> extends PurePluginUIComponent<P & { noMargin?: boolean, applyLabel?: string }, S> {
+abstract class TransformControlBase<P, S extends TransformControlBase.ComponentState> extends PurePluginUIComponent<P & { noMargin?: boolean, applyLabel?: string, onApply?: () => void, wrapInExpander?: boolean }, S> {
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
     abstract getHeader(): StateTransformer.Definition['display'] | 'none';
@@ -148,6 +149,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         } catch {
             // eat errors because they should be handled elsewhere
         } finally {
+            this.props.onApply?.();
             this.busy.next(false);
         }
     }
@@ -190,8 +192,8 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
 
         const showBack = this.isUpdate() && !(this.state.busy || this.state.isInitial);
 
-        return <div className={wrapClass} style={{ marginBottom: this.props.noMargin ? 0 : void 0 }}>
-            {display !== 'none' && <div className='msp-transform-header'>
+        const ctrl = <div className={wrapClass} style={{ marginBottom: this.props.noMargin ? 0 : void 0 }}>
+            {display !== 'none' && !this.props.wrapInExpander && <div className='msp-transform-header'>
                 <button className={`msp-btn msp-btn-block${isEmpty ? '' : ' msp-btn-collapse'}`} onClick={this.toggleExpanded} title={display.description}>
                     {!isEmpty && <Icon name={this.state.isCollapsed ? 'expand' : 'collapse'} />}
                     {display.name}
@@ -213,6 +215,12 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
                     </div>
                 </div>
             </>}
-        </div>
+        </div>;
+
+        if (isEmpty || !this.props.wrapInExpander) return ctrl;
+
+        return <ExpandGroup header={this.isUpdate() ? `Update ${display === 'none' ? '' : display.name}` : `Apply ${display === 'none' ? '' : display.name}` }>
+            {ctrl}
+        </ExpandGroup>;
     }
 }

@@ -123,7 +123,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
 
         if (!changed) return;
 
-        return plugin.updateState(update, { doNotUpdateCurrent: true });
+        return plugin.updateDataState(update, { doNotUpdateCurrent: true });
     },
     async teardown(_, plugin) {
         const state = plugin.state.data;
@@ -133,7 +133,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
 
         const update = state.build();
         for (const r of reprs) update.delete(r.transform.ref);
-        return plugin.updateState(update);
+        return plugin.updateDataState(update);
     },
     async apply(animState, t, ctx) {
         const state = ctx.plugin.state.data;
@@ -190,7 +190,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
 
         if (!changed) return;
 
-        return plugin.updateState(update, { doNotUpdateCurrent: true });
+        return plugin.updateDataState(update, { doNotUpdateCurrent: true });
     },
     async teardown(_, plugin) {
         const state = plugin.state.data;
@@ -200,7 +200,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
 
         const update = state.build();
         for (const r of reprs) update.delete(r.transform.ref);
-        return plugin.updateState(update);
+        return plugin.updateDataState(update);
     },
     async apply(animState, t, ctx) {
         const state = ctx.plugin.state.data;

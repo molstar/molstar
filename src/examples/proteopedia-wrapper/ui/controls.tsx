@@ -6,23 +6,10 @@
 
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { PluginUIComponent } from '../../../mol-plugin-ui/base';
-import { CurrentObject, PluginContextContainer } from '../../../mol-plugin-ui/plugin';
-import { AnimationControls } from '../../../mol-plugin-ui/state/animation';
-import { CameraSnapshots } from '../../../mol-plugin-ui/camera';
-import { PluginContext } from '../../../mol-plugin/context';
+import { PluginContextContainer } from '../../../mol-plugin-ui/plugin';
 import { TransformUpdaterControl } from '../../../mol-plugin-ui/state/update-transform';
+import { PluginContext } from '../../../mol-plugin/context';
 import { StateElements } from '../helpers';
-
-export class ControlsWrapper extends PluginUIComponent {
-    render() {
-        return <div className='msp-scrollable-container msp-right-controls'>
-            <CurrentObject />
-            <AnimationControls />
-            <CameraSnapshots />
-        </div>;
-    }
-}
 
 export function volumeStreamingControls(plugin: PluginContext, parent: Element) {
     ReactDOM.render(<PluginContextContainer plugin={plugin}>

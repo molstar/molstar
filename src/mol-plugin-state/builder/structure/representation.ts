@@ -107,7 +107,7 @@ export class StructureRepresentationBuilder {
             .to(structure)
             .apply(StructureRepresentation3D, params, { tags: RepresentationProviderTags.Representation });
 
-        await this.plugin.updateState(repr);
+        await this.plugin.updateDataState(repr);
         return  repr.selector;
     }
 

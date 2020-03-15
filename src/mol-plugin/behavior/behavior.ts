@@ -66,7 +66,7 @@ namespace PluginBehavior {
         }
     });
 
-    const categoryMap = new Map<string, string>();
+    const categoryMap = new Map<string, keyof typeof Categories>();
     export function getCategoryId(t: StateTransformer) {
         return categoryMap.get(t.id)!;
     }

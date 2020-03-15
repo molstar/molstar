@@ -289,7 +289,6 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         (item?.value as any)();
     }
 
-
     get removeActions(): ActionMenu.Items {
         const ret = [
             ActionMenu.Item('Remove', 'remove', () => this.plugin.managers.structure.hierarchy.remove(this.props.group, true))

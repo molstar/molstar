@@ -65,7 +65,7 @@ async function eachRepr(plugin: PluginContext, components: StructureComponentRef
         }
     }
 
-    await plugin.updateState(update, { doNotUpdateCurrent: true });
+    await plugin.updateDataState(update, { doNotUpdateCurrent: true });
 }
 
 /** filter overpaint layers for given structure */

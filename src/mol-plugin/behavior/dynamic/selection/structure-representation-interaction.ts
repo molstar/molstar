@@ -29,12 +29,8 @@ const Trigger = Binding.Trigger
 const DefaultStructureRepresentationInteractionBindings = {
     clickInteractionAroundOnly: Binding([Trigger(B.Flag.Secondary, M.create()), Trigger(B.Flag.Primary, M.create({ control: true }))], 'Show the structure interaction around only the clicked element using ${triggers}.'),
 }
-// const StructureRepresentationInteractionParams = {
-//     bindings: PD.Value(DefaultStructureRepresentationInteractionBindings, { isHidden: true }),
-// }
 
 const StructureRepresentationInteractionParams = (plugin: PluginContext) => {
-    
     const reprParams = StateTransforms.Representation.StructureRepresentation3D.definition.params!(void 0, plugin) as PD.Params;
     return {
         bindings: PD.Value(DefaultStructureRepresentationInteractionBindings, { isHidden: true }),
@@ -48,7 +44,6 @@ const StructureRepresentationInteractionParams = (plugin: PluginContext) => {
         }),
         nciParams: PD.Group(reprParams, {
             label: 'Non-covalent Int.',
-            // customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', color: 'element-symbol', size: 'uniform' })
             customDefault: createStructureRepresentationParams(plugin, void 0, {
                 type: InteractionsRepresentationProvider,
                 color: InteractionTypeColorThemeProvider,

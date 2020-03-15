@@ -6,10 +6,14 @@
 
 import * as React from 'react';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { State, StateTree as _StateTree, StateObject, StateTransform, StateObjectCell } from '../../mol-state'
+import { State, StateTree as _StateTree, StateObject, StateTransform, StateObjectCell, StateAction } from '../../mol-state'
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginUIComponent, _Props, _State } from '../base';
 import { Icon } from '../controls/icons';
+import { ActionMenu } from '../controls/action-menu';
+import { ApplyActionControl } from './apply-action';
+import { ControlGroup } from '../controls/common';
+import { UpdateTransformControl } from './update-transform';
 
 export class StateTree extends PluginUIComponent<{ state: State }, { showActions: boolean }> {
     state = { showActions: true };
@@ -121,9 +125,14 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
     }
 }
 
-class StateTreeNodeLabel extends PluginUIComponent<
-    { cell: StateObjectCell, depth: number },
-    { isCurrent: boolean, isCollapsed: boolean }> {
+interface StateTreeNodeLabelState {
+    isCurrent: boolean,
+    isCollapsed: boolean,
+    action?: 'options' | 'apply',
+    currentAction?: StateAction
+}
+
+class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, depth: number }, StateTreeNodeLabelState> {
 
     is(e: State.ObjectEvent) {
         return e.ref === this.ref && e.state === this.props.cell.parent;
@@ -141,23 +150,34 @@ class StateTreeNodeLabel extends PluginUIComponent<
         this.subscribe(this.plugin.state.behavior.currentObject, e => {
             if (!this.is(e)) {
                 if (this.state.isCurrent && e.state.transforms.has(this.ref)) {
-                    this.setState({ isCurrent: this.props.cell.parent.current === this.ref });
+                    this._setCurrent(this.props.cell.parent.current === this.ref, this.state.isCollapsed);
                 }
                 return;
             }
 
             if (e.state.transforms.has(this.ref)) {
-                this.setState({
-                    isCurrent: this.props.cell.parent.current === this.ref,
-                    isCollapsed: !!this.props.cell.state.isCollapsed
-                });
+                this._setCurrent(this.props.cell.parent.current === this.ref, !!this.props.cell.state.isCollapsed)
+                // this.setState({
+                //     isCurrent: this.props.cell.parent.current === this.ref,
+                //     isCollapsed: !!this.props.cell.state.isCollapsed
+                // });
             }
         });
     }
 
-    state = {
+    private _setCurrent(isCurrent: boolean, isCollapsed: boolean) {
+        if (isCurrent) {
+            this.setState({ isCurrent, action: 'options', currentAction: void 0, isCollapsed });
+        } else {
+            this.setState({ isCurrent, action: void 0, currentAction: void 0, isCollapsed });
+        }
+    }
+
+    state: StateTreeNodeLabelState = {
         isCurrent: this.props.cell.parent.current === this.ref,
-        isCollapsed: !!this.props.cell.state.isCollapsed
+        isCollapsed: !!this.props.cell.state.isCollapsed,
+        action: void 0,
+        currentAction: void 0 as StateAction | undefined
     }
 
     static getDerivedStateFromProps(props: _Props<StateTreeNodeLabel>, state: _State<StateTreeNodeLabel>): _State<StateTreeNodeLabel> | null {
@@ -165,12 +185,12 @@ class StateTreeNodeLabel extends PluginUIComponent<
         const isCollapsed = !!props.cell.state.isCollapsed;
 
         if (state.isCollapsed === isCollapsed && state.isCurrent === isCurrent) return null;
-        return { isCurrent, isCollapsed };
+        return { isCurrent, isCollapsed, action: void 0, currentAction: void 0 };
     }
 
-    setCurrent = (e: React.MouseEvent<HTMLElement>) => {
-        e.preventDefault();
-        e.currentTarget.blur();
+    setCurrent = (e?: React.MouseEvent<HTMLElement>) => {
+        e?.preventDefault();
+        e?.currentTarget.blur();
         PluginCommands.State.SetCurrentObject(this.plugin, { state: this.props.cell.parent, ref: this.ref });
     }
 
@@ -180,8 +200,8 @@ class StateTreeNodeLabel extends PluginUIComponent<
         PluginCommands.State.SetCurrentObject(this.plugin, { state: this.props.cell.parent, ref: StateTransform.RootRef });
     }
 
-    remove = (e: React.MouseEvent<HTMLElement>) => {
-        e.preventDefault();
+    remove = (e?: React.MouseEvent<HTMLElement>) => {
+        e?.preventDefault();
         PluginCommands.State.RemoveObject(this.plugin, { state: this.props.cell.parent, ref: this.ref, removeParentGhosts: true });
     }
 
@@ -209,12 +229,37 @@ class StateTreeNodeLabel extends PluginUIComponent<
         e.currentTarget.blur();
     }
 
+    // toggleActions = () => {
+    //     if (this.state.action) this.setState({ action: void 0, currentAction: void 0 });
+    //     else this.setState({ action: 'options', currentAction: void 0 });
+    // }
+
+    hideAction = () => this.setState({ action: void 0, currentAction: void 0 });
+
+    get actions() {
+        const cell = this.props.cell;
+        const actions = [...cell.parent.actions.fromCell(cell, this.plugin)];
+        if (actions.length === 0) return;
+
+        actions.sort((a, b) => a.definition.display.name < b.definition.display.name ? -1 : a.definition.display.name === b.definition.display.name ? 0 : 1);
+
+        return [
+            ActionMenu.Header('Apply Action'),
+            ...actions.map(a => ActionMenu.Item(a.definition.display.name, () => this.setState({ action: 'apply', currentAction: a })))
+        ];
+    }
+
+    selectAction: ActionMenu.OnSelect = item => {
+        if (!item) return;
+        (item?.value as any)();
+    }
+
     render() {
         const cell = this.props.cell;
         const n = cell.transform;
         if (!cell) return null;
 
-        const isCurrent = this.state.isCurrent; // this.is(cell.parent.behaviors.currentObject.value);
+        const isCurrent = this.is(cell.parent.behaviors.currentObject.value);
 
         let label: any;
         if (cell.status === 'pending' || cell.status === 'processing') {
@@ -223,6 +268,8 @@ class StateTreeNodeLabel extends PluginUIComponent<
         } else if (cell.status !== 'ok' || !cell.obj) {
             const name = n.transformer.definition.display.name;
             const title = `${cell.errorText}`;
+
+            // {this.state.isCurrent ? this.setCurrentRoot : this.setCurrent
             label = <><button className='msp-btn-link msp-btn-tree-label' title={title} onClick={this.state.isCurrent ? this.setCurrentRoot : this.setCurrent}><b>[{cell.status}]</b> {name}: <i><span>{cell.errorText}</span></i> </button></>;
         } else {
             const obj = cell.obj as PluginStateObject.Any;
@@ -252,6 +299,26 @@ class StateTreeNodeLabel extends PluginUIComponent<
                 <Icon name='remove' />
             </button>}{visibility}
         </div>;
+
+        if (!isCurrent) return row;
+
+        if (this.state.action === 'apply' && this.state.currentAction) {
+            return <div style={{ marginBottom: '1px' }}>
+                {row}
+                <ControlGroup header={`Apply ${this.state.currentAction.definition.display.name}`} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hideAction} topRightIcon='off'>
+                    <ApplyActionControl onApply={this.hideAction} plugin={this.plugin} state={this.props.cell.parent} action={this.state.currentAction} nodeRef={this.props.cell.transform.ref} hideHeader noMargin />
+                </ControlGroup>
+            </div>
+        }
+
+        if (this.state.action === 'options') {
+            let actions = this.actions;
+            return <div style={{ marginBottom: '1px' }}>
+                {row}
+                <UpdateTransformControl state={cell.parent} transform={cell.transform} noMargin wrapInExpander />
+                {actions && <ActionMenu items={actions} onSelect={this.selectAction} />}
+            </div>
+        }
 
         // if (this.state.isCurrent) {
         //     return <>

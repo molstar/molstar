@@ -17,7 +17,7 @@ import { StateBuilder, StateObject, StateSelection } from '../../mol-state';
 import { EvolutionaryConservation } from './annotation';
 import { LoadParams, SupportedFormats, RepresentationStyle, ModelInfo, StateElements } from './helpers';
 import { RxEventHelper } from '../../mol-util/rx-event-helper';
-import { ControlsWrapper, volumeStreamingControls } from './ui/controls';
+import { volumeStreamingControls } from './ui/controls';
 import { PluginState } from '../../mol-plugin/state';
 import { Scheduler } from '../../mol-task';
 import { createProteopediaCustomTheme } from './coloring';
@@ -55,9 +55,6 @@ class MolStarProteopediaWrapper {
                 initial: {
                     isExpanded: false,
                     showControls: false
-                },
-                controls: {
-                    right: ControlsWrapper
                 }
             },
             components: {

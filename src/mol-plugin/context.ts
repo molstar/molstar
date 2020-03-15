@@ -202,7 +202,7 @@ export class PluginContext {
         return this.runTask(this.state.data.transaction(f, options));
     }
 
-    updateState(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>) {
+    updateDataState(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>) {
         return this.runTask(this.state.data.updateTree(tree, options));
     }
 
@@ -246,16 +246,28 @@ export class PluginContext {
     }
 
     private async initBehaviors() {
-        const tree = this.state.behaviors.build();
+        let tree = this.state.behaviors.build();
 
         for (const cat of Object.keys(PluginBehavior.Categories)) {
             tree.toRoot().apply(PluginBehavior.CreateCategory, { label: (PluginBehavior.Categories as any)[cat] }, { ref: cat, state: { isLocked: true } });
         }
 
+        // Init custom properties 1st
         for (const b of this.spec.behaviors) {
+            const cat = PluginBehavior.getCategoryId(b.transformer);
+            if (cat !== 'custom-props') continue;
+
             tree.to(PluginBehavior.getCategoryId(b.transformer)).apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
         }
+        await this.runTask(this.state.behaviors.updateTree(tree, { doNotUpdateCurrent: true, doNotLogTiming: true }));
 
+        tree = this.state.behaviors.build();
+        for (const b of this.spec.behaviors) {
+            const cat = PluginBehavior.getCategoryId(b.transformer);
+            if (cat === 'custom-props') continue;
+
+            tree.to(PluginBehavior.getCategoryId(b.transformer)).apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
+        }
         await this.runTask(this.state.behaviors.updateTree(tree, { doNotUpdateCurrent: true, doNotLogTiming: true }));
     }
 

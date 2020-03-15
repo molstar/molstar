@@ -35,7 +35,7 @@ export const MmcifProvider: TrajectoryFormatProvider = {
         const trajectory = state.build().to(data)
             .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
             .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { tags: params?.trajectoryTags })
-        await plugin.updateState(trajectory, { revertOnError: true });
+        await plugin.updateDataState(trajectory, { revertOnError: true });
         return { trajectory: trajectory.selector };
     }
 }
@@ -45,7 +45,7 @@ function directTrajectory(transformer: StateTransformer<PluginStateObject.Data.S
         const state = plugin.state.data;
         const trajectory = state.build().to(data)
             .apply(transformer, void 0, { tags: params?.trajectoryTags })
-        await plugin.updateState(trajectory, { revertOnError: true });
+        await plugin.updateDataState(trajectory, { revertOnError: true });
         return { trajectory: trajectory.selector };
     }
 }
