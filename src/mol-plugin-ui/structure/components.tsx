@@ -213,7 +213,7 @@ class CurrentFocus extends PluginUIComponent {
     render() {
         const interaction = this.findInteraction();
         if (!interaction) return null;
-        return <ExpandGroup header='Current Focus' marginTop={0} noOffset>
+        return <ExpandGroup header='Current Focus' noOffset>
             {interaction.focus && <StructureComponentGroup group={[interaction.focus]} />}
             {interaction.surroundings && <StructureComponentGroup group={[interaction.surroundings]} />}
         </ExpandGroup>;
@@ -332,7 +332,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         const component = this.pivot;
         const cell = component.cell;
         const label = cell.obj?.label;
-        return <div style={{ marginBottom: '6px' }}>
+        return <>
             <div className='msp-control-row'>
                 <button className='msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {label}
@@ -350,7 +350,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
                     {component.representations.map(r => <StructureRepresentationEntry group={this.props.group} key={r.cell.transform.ref} representation={r} />)}
                 </div>
             </>}
-        </div>;
+        </>;
     }
 }
 

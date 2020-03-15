@@ -131,7 +131,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         if (refs.length === 0) return;
         const deletes = this.plugin.state.dataState.build();
         for (const r of refs) deletes.delete(r.cell.transform.ref);
-        return this.plugin.runTask(this.plugin.state.dataState.updateTree(deletes, { canUndo }));
+        return this.plugin.runTask(this.plugin.state.dataState.updateTree(deletes, { canUndo: canUndo ? 'Remove' : false }));
     }
 
     createAllModels(trajectory: TrajectoryRef) {
