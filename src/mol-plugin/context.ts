@@ -48,6 +48,7 @@ import { StructureSelectionManager } from '../mol-plugin-state/manager/structure
 import { TrajectoryFormatRegistry } from '../mol-plugin-state/formats/trajectory';
 import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
 import { CameraManager } from '../mol-plugin-state/manager/camera';
+import { setAutoFreeze } from 'immer';
 
 export class PluginContext {
     private disposed = false;
@@ -286,6 +287,11 @@ export class PluginContext {
     }
 
     constructor(public spec: PluginSpec) {
+        // the reason for this is that sometimes, transform params get modified inline (i.e. palette.valueLabel)
+        // and freezing the params object causes "read-only exception"
+        // TODO: is this the best place to do it?
+        setAutoFreeze(false);
+
         this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e));
 
         this.initBehaviorEvents();
@@ -304,6 +310,5 @@ export class PluginContext {
         this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
         if (!isProductionMode) this.log.message(`Development mode enabled`);
         if (isDebugMode) this.log.message(`Debug mode enabled`);
-
     }
 }
