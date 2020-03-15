@@ -23,7 +23,7 @@ export type StructureMeasurementCell = StateObjectCell<PluginStateObject.Shape.R
 
 export const StructureMeasurementParams = {
     distanceUnitLabel: PD.Text('\u212B', { isEssential: true }),
-    ...MeasurementRepresentationCommonTextParams
+    textColor: MeasurementRepresentationCommonTextParams.textColor
 }
 const DefaultStructureMeasurementOptions = PD.getDefaultValues(StructureMeasurementParams)
 export type StructureMeasurementOptions = PD.ValuesFor<typeof StructureMeasurementParams>
@@ -63,17 +63,16 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
             update.to(cell).update((old: any) => { 
                 old.unitLabel = options.distanceUnitLabel;
                 old.textColor = options.textColor;
-                old.textSize = options.textSize;
             });
         }
         for (const cell of this.state.labels) {
-            update.to(cell).update((old: any) => { old.textColor = options.textColor; old.textSize = options.textSize; });
+            update.to(cell).update((old: any) => { old.textColor = options.textColor; });
         }
         for (const cell of this.state.angles) {
-            update.to(cell).update((old: any) => { old.textColor = options.textColor; old.textSize = options.textSize; });
+            update.to(cell).update((old: any) => { old.textColor = options.textColor; });
         }
         for (const cell of this.state.dihedrals) {
-            update.to(cell).update((old: any) => { old.textColor = options.textColor; old.textSize = options.textSize; });
+            update.to(cell).update((old: any) => { old.textColor = options.textColor; });
         }
         
         if (update.editInfo.count === 0) return;
@@ -102,7 +101,6 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
             }, { dependsOn })
             .apply(StateTransforms.Representation.StructureSelectionsDistance3D, {
                 unitLabel: this.state.options.distanceUnitLabel,
-                textSize: this.state.options.textSize,
                 textColor: this.state.options.textColor
             })
 
@@ -133,7 +131,6 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
                 label: 'Angle'
             }, { dependsOn })
             .apply(StateTransforms.Representation.StructureSelectionsAngle3D, {
-                textSize: this.state.options.textSize,
                 textColor: this.state.options.textColor
             })
 
@@ -167,7 +164,6 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
                 label: 'Dihedral'
             }, { dependsOn })
             .apply(StateTransforms.Representation.StructureSelectionsDihedral3D, {
-                textSize: this.state.options.textSize,
                 textColor: this.state.options.textColor
             })
 
@@ -192,7 +188,6 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
                 label: 'Label'
             }, { dependsOn })
             .apply(StateTransforms.Representation.StructureSelectionsLabel3D, {
-                textSize: this.state.options.textSize,
                 textColor: this.state.options.textColor
             })
 

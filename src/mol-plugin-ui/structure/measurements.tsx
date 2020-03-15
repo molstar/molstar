@@ -11,7 +11,6 @@ import { StructureMeasurementCell, StructureMeasurementOptions, StructureMeasure
 import { StructureSelectionHistoryEntry } from '../../mol-plugin-state/manager/structure/selection';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { State } from '../../mol-state';
 import { angleLabel, dihedralLabel, distanceLabel, lociLabel } from '../../mol-theme/label';
 import { FiniteArray } from '../../mol-util/type-helpers';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
@@ -19,6 +18,7 @@ import { ActionMenu } from '../controls/action-menu';
 import { ExpandGroup, IconButton, ToggleButton } from '../controls/common';
 import { Icon } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
+import { UpdateTransformControl } from '../state/update-transform';
 
 // TODO details, options (e.g. change text for labels)
 
@@ -56,13 +56,13 @@ export class MeasurementList extends PurePluginUIComponent {
     render() {
         const measurements = this.plugin.managers.structure.measurement.state;
 
-        return <>
+        return <div style={{ marginTop: '6px' }}>
             {this.renderGroup(measurements.labels, 'Labels')}
             {this.renderGroup(measurements.distances, 'Distances')}
             {this.renderGroup(measurements.angles, 'Angles')}
             {this.renderGroup(measurements.dihedrals, 'Dihedrals')}
             {this.renderGroup(measurements.orientations, 'Orientations')}
-        </>
+        </div>;
     }
 }
 
@@ -211,12 +211,12 @@ class MeasurementsOptions extends PurePluginUIComponent<{}, { isDisabled: boolea
     }
 }
 
-class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasurementCell }> {
+class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasurementCell }, { showUpdate: boolean }> {
+    state = { showUpdate: false }
+
     componentDidMount() {
         this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
-            if (State.ObjectEvent.isCell(e, this.props.cell)) {
-                this.forceUpdate();
-            }
+            this.forceUpdate();
         });
     }
 
@@ -249,6 +249,8 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         this.plugin.managers.interactivity.lociHighlights.clearHighlights();
     }
 
+    toggleUpdate = () => this.setState({ showUpdate: !this.state.showUpdate });
+
     focus = () => {
         const selections = this.selections;
         if (!selections) return;
@@ -270,18 +272,40 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         }
     }
 
+    get actions(): ActionMenu.Items {
+        this.props.cell.sourceRef
+        return [ActionMenu.Item('Select This', 'flash', () => this.plugin.managers.structure.selection.fromSelections(this.props.cell.sourceRef!))];
+    }
+    
+    selectAction: ActionMenu.OnSelect = item => {
+        if (!item) return;
+        this.setState({ showUpdate: false });
+        (item?.value as any)();
+    }
+
     render() {
         const { cell } = this.props;
         const { obj } = cell;
         if (!obj) return null;
 
-        return <div className='msp-btn-row-group' key={obj.id} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
-            <button className='msp-btn msp-btn-block msp-form-control' title='Click to focus. Hover to highlight.' onClick={this.focus} style={{ width: 'auto' }}>
-                <span dangerouslySetInnerHTML={{ __html: this.label }} />
-            </button>
-            <IconButton small={true} customClass='msp-form-control' onClick={this.delete} icon='remove' style={{ flex: '0 0 32px' }} title='Delete' />
-            <IconButton small={true} customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ flex: '0 0 32px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
-        </div>
+        return <>
+            <div className='msp-btn-row-group' key={obj.id} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
+                <button className='msp-btn msp-btn-block msp-form-control' title='Click to focus. Hover to highlight.' onClick={this.focus} style={{ width: 'auto', textAlign: 'left' }}>
+                    <span dangerouslySetInnerHTML={{ __html: this.label }} />
+                </button>
+                <IconButton small={true} customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ flex: '0 0 32px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
+                <IconButton small={true} customClass='msp-form-control' onClick={this.delete} icon='remove' style={{ flex: '0 0 32px' }} title='Delete' />
+                <IconButton small={true} customClass='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' style={{ flex: '0 0 32px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={this.state.showUpdate} />
+            </div>
+            {this.state.showUpdate && <>
+                <ActionMenu items={this.actions} onSelect={this.selectAction} />
+                <div className='msp-control-offset'>
+                    <ExpandGroup header='Options' noOffset>
+                        <UpdateTransformControl state={cell.parent} transform={cell.transform} customHeader='none' />
+                    </ExpandGroup>
+                </div>
+            </>}
+        </>
     }
 }
 

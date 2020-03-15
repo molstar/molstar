@@ -13,7 +13,7 @@ import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Structure, StructureElement, StructureSelection } from '../../../mol-model/structure';
 import { Boundary } from '../../../mol-model/structure/structure/util/boundary';
 import { PluginContext } from '../../../mol-plugin/context';
-import { StateObject } from '../../../mol-state';
+import { StateObject, StateObjectRef } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { structureElementStatsLabel } from '../../../mol-theme/label';
 import { arrayRemoveAtInPlace } from '../../../mol-util/array';
@@ -417,6 +417,21 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
                 this.triggerInteraction(modifier, StructureSelection.toLociWithSourceUnits(loci), applyGranularity);
             }
         }))
+    }
+
+    fromSelections(ref: StateObjectRef<PluginStateObject.Molecule.Structure.Selections>) {
+        const cell = StateObjectRef.resolveAndCheck(this.plugin.state.dataState, ref);
+        if (!cell || !cell.obj) return;
+
+        if (!PluginStateObject.Molecule.Structure.Selections.is(cell.obj)) {
+            console.warn('fromSelections applied to wrong object type.', cell.obj);
+            return;
+        }
+
+        this.clear();
+        for (const s of cell.obj?.data) {
+            this.fromLoci('set', s.loci);
+        }
     }
 
     constructor(private plugin: PluginContext) {

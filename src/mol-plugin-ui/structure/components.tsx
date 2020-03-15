@@ -282,6 +282,13 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
         return ret;
     }
+    
+    selectAction: ActionMenu.OnSelect = item => {
+        if (!item) return;
+        this.setState({ action: void 0 });
+        (item?.value as any)();
+    }
+
 
     get removeActions(): ActionMenu.Items {
         const ret = [
@@ -296,12 +303,6 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         ret.push(ActionMenu.Item(`Remove Representation${reprs.length > 1 ? 's' : ''}`, 'remove', () => this.plugin.managers.structure.component.removeRepresentations(this.props.group)));
 
         return ret;
-    }
-
-    selectAction: ActionMenu.OnSelect = item => {
-        if (!item) return;
-        this.setState({ action: void 0 });
-        (item?.value as any)();
     }
 
     selectRemoveAction: ActionMenu.OnSelect = item => {
