@@ -162,7 +162,7 @@ class AddComponentControls extends PurePluginUIComponent<AddComponentControlsPro
 
     render() {
         return <>
-            <ParameterControls params={this.state.params} values={this.state.values} onChangeObject={this.paramsChanged} />
+            <ParameterControls params={this.state.params} values={this.state.values} onChangeValues={this.paramsChanged} />
             <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-on`} onClick={this.apply} style={{ marginTop: '1px' }}>
                 <Icon name='plus' /> Create Selection
             </button>
@@ -178,7 +178,7 @@ class ComponentOptionsControls extends PurePluginUIComponent<{ isDisabled: boole
     update = (options: StructureComponentManager.Options) => this.plugin.managers.structure.component.setOptions(options)
 
     render() {
-        return <ParameterControls params={StructureComponentManager.OptionsParams} values={this.plugin.managers.structure.component.state.options} onChangeObject={this.update} isDisabled={this.props.isDisabled} />;
+        return <ParameterControls params={StructureComponentManager.OptionsParams} values={this.plugin.managers.structure.component.state.options} onChangeValues={this.update} isDisabled={this.props.isDisabled} />;
     }
 }
 

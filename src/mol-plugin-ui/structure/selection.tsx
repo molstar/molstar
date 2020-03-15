@@ -156,7 +156,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         const empty = stats.structureCount === 0 || stats.elementCount === 0;
 
         return <>
-            <ParameterControls params={StructureSelectionParams} values={this.values} onChangeObject={this.setProps} />
+            <ParameterControls params={StructureSelectionParams} values={this.values} onChangeValues={this.setProps} />
             {this.controls}
             <div className='msp-control-row msp-row-text' style={{ marginTop: '6px' }}>
                 <button className='msp-btn msp-btn-block' onClick={this.focus} title='Click to Focus Selection' disabled={empty}>
@@ -191,7 +191,7 @@ class ApplyColorControls extends PurePluginUIComponent<ApplyColorControlsProps, 
 
     render() {
         return <>
-            <ParameterControls params={this.params} values={this.state.values} onChangeObject={this.paramsChanged} />
+            <ParameterControls params={this.params} values={this.state.values} onChangeValues={this.paramsChanged} />
             <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-on`} onClick={this.apply} style={{ marginTop: '1px' }}>
                 <Icon name='brush' /> Apply Coloring
             </button>

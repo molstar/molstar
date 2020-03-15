@@ -225,7 +225,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         const params = m.cell.params?.definition;
         if (!params) return null;
 
-        return <ParameterControls params={params} values={m.cell.params?.values} onChangeObject={this.updateStructureModel} isDisabled={this.state.isBusy} />
+        return <ParameterControls params={params} values={m.cell.params?.values} onChangeValues={this.updateStructureModel} isDisabled={this.state.isBusy} />
     }
 
     updateStructure = async (params: any) => {
@@ -242,7 +242,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         const params = s.cell.params?.definition;
         if (!params) return null;
 
-        return <ParameterControls params={params} values={s.cell.params?.values} onChangeObject={this.updateStructure} isDisabled={this.state.isBusy} />
+        return <ParameterControls params={params} values={s.cell.params?.values} onChangeValues={this.updateStructure} isDisabled={this.state.isBusy} />
     }
 
     renderControls() {
