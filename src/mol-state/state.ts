@@ -68,12 +68,12 @@ class State {
     private spine = new StateTreeSpine.Impl(this.cells);
 
     private historyCapacity = 5;
-    private history: StateTree[] = [];
+    private history: [StateTree, string][] = [];
 
-    private addHistory(tree: StateTree) {
+    private addHistory(tree: StateTree, label?: string) {
         if (this.historyCapacity === 0) return;
 
-        this.history.unshift(tree);
+        this.history.unshift([tree, label || 'Update']);
         if (this.history.length > this.historyCapacity) this.history.pop();
 
         this.events.historyUpdated.next({ state: this });
@@ -85,6 +85,10 @@ class State {
         this.events.historyUpdated.next({ state: this });
     }
 
+    get latestUndoLabel() {
+        return this.history.length > 0 ? this.history[0][1] : void 0;
+    }
+
     get canUndo() {
         return this.history.length > 0;
     }
@@ -93,12 +97,12 @@ class State {
 
     undo() {
         return Task.create('Undo', async ctx => {
-            const tree = this.history.shift();
-            if (!tree) return;
+            const e = this.history.shift();
+            if (!e) return;
             this.events.historyUpdated.next({ state: this });
             this.undoingHistory = true;
             try {
-                await this.updateTree(tree, { canUndo: false }).runInContext(ctx);
+                await this.updateTree(e[0], { canUndo: false }).runInContext(ctx);
             } finally {
                 this.undoingHistory = false;
             }
@@ -169,7 +173,7 @@ class State {
     private inTransaction = false;
 
     /** Apply series of updates to the state. If any of them fail, revert to the original state. */
-    transaction(edits: () => Promise<void> | void, options?: { canUndo?: boolean }) {
+    transaction(edits: () => Promise<void> | void, options?: { canUndo?: string | boolean }) {
         return Task.create('State Transaction', async ctx => {
             const isNested = this.inTransaction;
 
@@ -202,7 +206,7 @@ class State {
                     this.events.isUpdating.next(false);
 
                     if (!restored) {
-                        if (options?.canUndo) this.addHistory(snapshot);
+                        if (options?.canUndo) this.addHistory(snapshot, typeof options.canUndo === 'string' ? options.canUndo : void 0);
                         else this.clearHistory();
                     }
                 }
@@ -245,7 +249,7 @@ class State {
                 if (!options?.canUndo) {
                     if (!this.undoingHistory) this.clearHistory();
                 } else if (!reverted) {
-                    this.addHistory(snapshot!);
+                    this.addHistory(snapshot!, typeof options.canUndo === 'string' ? options.canUndo : void 0);
                 }
             }
         }, () => {
@@ -368,7 +372,7 @@ namespace State {
         doNotUpdateCurrent: boolean,
         revertIfAborted: boolean,
         revertOnError: boolean,
-        canUndo: boolean
+        canUndo: boolean | string
     }
 
     export function create(rootObject: StateObject, params?: { globalContext?: unknown, rootState?: StateTransform.State }) {

@@ -198,7 +198,7 @@ export class PluginContext {
         return this.tasks.run(task);
     }
 
-    dataTransaction(f: () => Promise<void> | void, options?: { canUndo?: boolean }) {
+    dataTransaction(f: () => Promise<void> | void, options?: { canUndo?: string | boolean }) {
         return this.runTask(this.state.dataState.transaction(f, options));
     }
 

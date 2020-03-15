@@ -115,7 +115,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             for (const s of structures) {
                 await this.plugin.builders.structure.representation.applyPreset(s.cell, provider, params);
             }
-        }, { canUndo: true });
+        }, { canUndo: 'Preset' });
     }
 
     clear(structures: ReadonlyArray<StructureRef>) {
@@ -145,7 +145,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                 if (!selection || selection.elementCount === 0) continue;                
                 this.modifyComponent(b, c, selection, action);
             }
-            await this.dataState.updateTree(b, { canUndo: true }).runInContext(taskCtx);
+            await this.dataState.updateTree(b, { canUndo: 'Modify Selection' }).runInContext(taskCtx);
         }));
     }
 
@@ -196,7 +196,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             update.to(repr.cell).update(params);
         }
 
-        return this.plugin.runTask(this.dataState.updateTree(update, { canUndo: true }));
+        return this.plugin.runTask(this.dataState.updateTree(update, { canUndo: 'Update Representation' }));
     }
 
     updateRepresentationsTheme<C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(components: ReadonlyArray<StructureComponentRef>, params: StructureComponentManager.UpdateThemeParams<C, S>): Promise<any> {
@@ -220,7 +220,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             }
         }
 
-        return this.plugin.runTask(this.dataState.updateTree(update, { canUndo: true }));
+        return this.plugin.runTask(this.dataState.updateTree(update, { canUndo: 'Update Theme' }));
     }
 
     addRepresentation(components: ReadonlyArray<StructureComponentRef>, type: string) {
@@ -237,7 +237,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                     typeParams
                 });
             }
-        }, { canUndo: true });
+        }, { canUndo: 'Add Representation' });
     }
 
     async add(params: StructureComponentManager.AddParams, structures?: ReadonlyArray<StructureRef>) {
@@ -258,7 +258,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                     type: this.plugin.representation.structure.registry.get(params.representation)
                 });
             }
-        }, { canUndo: true });
+        }, { canUndo: 'Add Selection' });
     }
 
     async applyColor(params: StructureComponentManager.ColorParams, structures?: ReadonlyArray<StructureRef>) {
@@ -275,7 +275,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                     await setStructureOverpaint(this.plugin, s.components, p.color, getLoci, params.representations, p.opacity);
                 }
             }
-        }, { canUndo: true });
+        }, { canUndo: 'Apply Color' });
     }
 
     private modifyComponent(builder: StateBuilder.Root, component: StructureComponentRef, by: Structure, action: StructureComponentManager.ModifyAction) {
@@ -318,7 +318,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                 if (s.currentFocus.surroundings) deletes.delete(s.currentFocus.surroundings.cell.transform.ref);
             }
         }
-        return this.plugin.runTask(this.dataState.updateTree(deletes, { canUndo: true }));
+        return this.plugin.runTask(this.dataState.updateTree(deletes, { canUndo: 'Clear Selections' }));
     }
 
     constructor(public plugin: PluginContext) {
