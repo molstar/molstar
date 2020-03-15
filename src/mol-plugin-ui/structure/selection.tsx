@@ -54,7 +54,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             this.forceUpdate()
         });
 
-        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.current, c => {
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.changed, c => {
             const isEmpty = c.structures.length === 0;
             if (this.state.isEmpty !== isEmpty) {
                 this.setState({ isEmpty });

@@ -55,7 +55,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.current, c => this.setState({
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.changed, c => this.setState({
             action: this.state.action !== 'options' || c.structures.length === 0 ? void 0 : 'options',
             isEmpty: c.structures.length === 0
         }));
@@ -98,7 +98,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
         if (!item) return;
         const mng = this.plugin.managers.structure;
 
-        const structures = mng.hierarchy.state.current.structures;
+        const structures = mng.hierarchy.state.selection.structures;
         if (item.value === null) mng.component.clear(structures);
         else mng.component.applyPreset(structures, item.value as any);
     }
@@ -184,7 +184,7 @@ class ComponentOptionsControls extends PurePluginUIComponent<{ isDisabled: boole
 
 class ComponentListControls extends PurePluginUIComponent {
     get current() {
-        return this.plugin.managers.structure.hierarchy.behaviors.current;
+        return this.plugin.managers.structure.hierarchy.behaviors.changed;
     }
 
     componentDidMount() {
@@ -204,7 +204,7 @@ class ComponentListControls extends PurePluginUIComponent {
 
 class CurrentFocus extends PluginUIComponent {
     findInteraction() {
-        const xs = this.plugin.managers.structure.hierarchy.current.structures;
+        const xs = this.plugin.managers.structure.hierarchy.selection.structures;
         for (const s of xs) {
             if (s.currentFocus?.focus || s.currentFocus?.surroundings) return s.currentFocus;
         }

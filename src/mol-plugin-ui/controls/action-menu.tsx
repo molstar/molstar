@@ -200,7 +200,6 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         if (isItem(items)) return <Action item={items} onSelect={onSelect} current={current} multiselect={this.props.multiselect} />
 
         const { header } = this.state;
-
         return <>
             {header && (this.props.multiselect && this.state.isExpanded ? this.multiselectHeader : this.basicHeader)}
             <div className={this.props.noOffset ? void 0 : 'msp-control-offset'}>
