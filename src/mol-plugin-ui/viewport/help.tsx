@@ -16,7 +16,7 @@ function getBindingsList(bindings: { [k: string]: Binding }) {
     return Object.keys(bindings).map(k => [k, bindings[k]] as [string, Binding])
 }
 
-class BindingsHelp extends React.PureComponent<{ bindings: { [k: string]: Binding } }, { isExpanded: boolean }> {
+export class BindingsHelp extends React.PureComponent<{ bindings: { [k: string]: Binding } }> {
     getBindingComponents() {
         const bindingsList = getBindingsList(this.props.bindings)
         return <>

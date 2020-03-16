@@ -9,6 +9,8 @@ import { InitVolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-st
 import { CollapsableControls, CollapsableState } from '../base';
 import { ApplyActionControl } from '../state/apply-action';
 import { UpdateTransformControl } from '../state/update-transform';
+import { BindingsHelp } from '../viewport/help';
+import { ExpandGroup } from '../controls/common';
 
 interface VolumeStreamingControlState extends CollapsableState {
     isBusy: boolean
@@ -49,7 +51,13 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
 
     renderParams() {
         const pivot = this.pivot;
-        return <UpdateTransformControl state={pivot.cell.parent} transform={pivot.volumeStreaming!.cell.transform} customHeader='none' noMargin autoHideApply />;
+        const bindings = pivot.volumeStreaming?.cell.transform.params?.entry.params.view.name === 'selection-box' && pivot.volumeStreaming?.cell.transform.params?.bindings;
+        return <>
+            <UpdateTransformControl state={pivot.cell.parent} transform={pivot.volumeStreaming!.cell.transform} customHeader='none' noMargin autoHideApply />
+            {bindings && <ExpandGroup header='Controls Help'>
+                <BindingsHelp bindings={bindings} />
+            </ExpandGroup>}
+        </>;
     }
 
     renderControls() {
