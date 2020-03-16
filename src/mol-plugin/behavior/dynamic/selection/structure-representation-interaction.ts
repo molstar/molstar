@@ -27,7 +27,7 @@ const M = ModifiersKeys
 const Trigger = Binding.Trigger
 
 const DefaultStructureRepresentationInteractionBindings = {
-    clickInteractionAroundOnly: Binding([Trigger(B.Flag.Secondary, M.create()), Trigger(B.Flag.Primary, M.create({ control: true }))], 'Show the structure interaction around only the clicked element using ${triggers}.'),
+    clickInteractionAroundOnly: Binding([Trigger(B.Flag.Secondary, M.create()), Trigger(B.Flag.Primary, M.create({ control: true }))], 'Structure element interaction', 'Click element using ${triggers}; on nothing/same element to hide'),
 }
 
 const StructureRepresentationInteractionParams = (plugin: PluginContext) => {

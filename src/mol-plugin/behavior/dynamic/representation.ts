@@ -27,8 +27,8 @@ const Trigger = Binding.Trigger
 //
 
 const DefaultHighlightLociBindings = {
-    hoverHighlightOnly: Binding([Trigger(B.Flag.None)], 'Highlight hovered element using ${triggers}'),
-    hoverHighlightOnlyExtend: Binding([Trigger(B.Flag.None, M.create({ shift: true }))], 'Extend highlight from selected to hovered element along polymer using ${triggers}'),
+    hoverHighlightOnly: Binding([Trigger(B.Flag.None)], 'Highlight', 'Hover element using ${triggers}'),
+    hoverHighlightOnlyExtend: Binding([Trigger(B.Flag.None, M.create({ shift: true }))], 'Extend highlight', 'From selected to hovered element along polymer using ${triggers}'),
 }
 const HighlightLociParams = {
     bindings: PD.Value(DefaultHighlightLociBindings, { isHidden: true }),
@@ -76,11 +76,11 @@ export const HighlightLoci = PluginBehavior.create({
 
 const DefaultSelectLociBindings = {
     clickSelect: Binding.Empty,
-    clickToggleExtend: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Toggle selection of last click element extended along polymer using ${triggers}.'),
+    clickToggleExtend: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Toggle extended selection', '${triggers} to extend selection along polymer'),
     clickSelectOnly: Binding.Empty,
-    clickToggle: Binding([Trigger(B.Flag.Primary, M.create())], 'Toggle selection of clicked element using ${triggers}.'),
+    clickToggle: Binding([Trigger(B.Flag.Primary, M.create())], 'Toggle selection', '${triggers} on element'),
     clickDeselect: Binding.Empty,
-    clickDeselectAllOnEmpty: Binding([Trigger(B.Flag.Primary, M.create())], 'Deselect all when clicking on nothing using ${triggers}.'),
+    clickDeselectAllOnEmpty: Binding([Trigger(B.Flag.Primary, M.create())], 'Deselect all', 'Click on nothing using ${triggers}'),
 }
 const SelectLociParams = {
     bindings: PD.Value(DefaultSelectLociBindings, { isHidden: true }),

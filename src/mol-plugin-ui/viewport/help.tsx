@@ -16,17 +16,19 @@ function getBindingsList(bindings: { [k: string]: Binding }) {
     return Object.keys(bindings).map(k => [k, bindings[k]] as [string, Binding])
 }
 
-class BindingsHelp extends React.Component<{ bindings: { [k: string]: Binding } }, { isExpanded: boolean }> {
+class BindingsHelp extends React.PureComponent<{ bindings: { [k: string]: Binding } }, { isExpanded: boolean }> {
     getBindingComponents() {
         const bindingsList = getBindingsList(this.props.bindings)
-        return <ul style={{ paddingLeft: '20px' }}>
+        return <>
             {bindingsList.map(value => {
                 const [name, binding] = value
                 return !Binding.isEmpty(binding)
-                    ? <li key={name}>{Binding.format(binding, name)}</li>
+                    ? <div key={name} style={{ marginBottom: '6px' }}>
+                        <b>{binding.action}</b><br /><span dangerouslySetInnerHTML={{ __html: Binding.format(binding, name) }} />
+                    </div> 
                     : null
             })}
-        </ul>
+        </>
     }
 
     render() {
@@ -42,7 +44,7 @@ class HelpText extends React.PureComponent {
     }
 }
 
-class HelpGroup extends React.Component<{ header: string, initiallyExpanded?: boolean }, { isExpanded: boolean }> {
+class HelpGroup extends React.PureComponent<{ header: string, initiallyExpanded?: boolean }, { isExpanded: boolean }> {
     state = {
         header: this.props.header,
         isExpanded: !!this.props.initiallyExpanded
@@ -69,12 +71,12 @@ function HelpSection(props: { header: string }) {
     return <div className='msp-simple-help-section'>{props.header}</div>;
 }
 
-export class HelpContent extends PluginUIComponent {
+export class ViewportHelpContent extends PluginUIComponent {
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
     }
 
-    private getMouseBindingComponents() {
+    render() {
         const interactionBindings: { [k: string]: Binding } = {}
         this.plugin.spec.behaviors.forEach(b => {
             const { bindings } = b.defaultParams
@@ -88,6 +90,12 @@ export class HelpContent extends PluginUIComponent {
                 <BindingsHelp bindings={interactionBindings} />
             </HelpGroup>
         </>
+    }
+}
+
+export class HelpContent extends PluginUIComponent {
+    componentDidMount() {
+        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
     }
 
     private formatTriggers(binding: Binding) {
@@ -164,7 +172,7 @@ export class HelpContent extends PluginUIComponent {
             </HelpGroup>
 
             <HelpSection header='Mouse Controls' />
-            {this.getMouseBindingComponents()}
+            <ViewportHelpContent />
         </div>
     }
 }

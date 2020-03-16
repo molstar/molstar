@@ -17,6 +17,7 @@ import { ParamMapping } from '../../mol-util/param-mapping';
 import { Mutable } from '../../mol-util/type-helpers';
 import { PluginUIComponent } from '../base';
 import { ParameterMappingControl } from '../controls/parameters';
+import { ViewportHelpContent } from './help';
 
 export class SimpleSettingsControl extends PluginUIComponent {
     componentDidMount() {
@@ -31,7 +32,10 @@ export class SimpleSettingsControl extends PluginUIComponent {
 
     render() {
         if (!this.plugin.canvas3d) return null;
-        return <ParameterMappingControl mapping={SimpleSettingsMapping} />
+        return <>
+            <ParameterMappingControl mapping={SimpleSettingsMapping} />
+            <ViewportHelpContent />
+        </>
     }
 }
 

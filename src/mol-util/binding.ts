@@ -11,19 +11,20 @@ export { Binding }
 
 interface Binding {
     triggers: Binding.Trigger[]
+    action: string
     description: string
 }
 
-function Binding(triggers: Binding.Trigger[], description = '') {
-    return Binding.create(triggers, description)
+function Binding(triggers: Binding.Trigger[], action = '', description = '') {
+    return Binding.create(triggers, action, description)
 }
 
 namespace Binding {
-    export function create(triggers: Trigger[], description = ''): Binding {
-        return { triggers, description }
+    export function create(triggers: Trigger[], action = '', description = ''): Binding {
+        return { triggers, action, description }
     }
 
-    export const Empty: Binding = { triggers: [], description: '' }
+    export const Empty: Binding = { triggers: [], action: '', description: '' }
     export function isEmpty(binding: Binding) {
         return binding.triggers.length === 0 ||
             binding.triggers.every(t => t.buttons === undefined && t.modifiers === undefined)
@@ -35,7 +36,7 @@ namespace Binding {
 
     export function format(binding: Binding, name = '') {
         const help = binding.description || stringToWords(name)
-        return interpolate(help, { triggers: binding.triggers.map(t => Trigger.format(t)).join(' or ') })
+        return interpolate(help, { triggers: '<i>' + binding.triggers.map(t => Trigger.format(t)).join(' or ') + '</i>' })
     }
 
     export interface Trigger {

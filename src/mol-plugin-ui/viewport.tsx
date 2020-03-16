@@ -94,7 +94,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                     <div className='msp-semi-transparent-background' />
                     {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
                     {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
-                    {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
+                    {this.icon('settings', this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
                 </div>
             </div>
             {this.state.isScreenshotExpanded && <div className='msp-viewport-controls-panel'>
