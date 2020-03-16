@@ -12,7 +12,7 @@ import { StateTransform } from '../../../mol-state';
 
 interface StructureHierarchyManagerState {
     hierarchy: StructureHierarchy,
-    current: {
+    selection: {
         trajectories: ReadonlyArray<TrajectoryRef>,
         models: ReadonlyArray<ModelRef>,
         structures: ReadonlyArray<StructureRef>
@@ -21,11 +21,11 @@ interface StructureHierarchyManagerState {
 
 export class StructureHierarchyManager extends PluginComponent<StructureHierarchyManagerState> {
     readonly behaviors = {
-        current: this.ev.behavior({
+        changed: this.ev.behavior({
             hierarchy: this.state.hierarchy,
-            trajectories: this.state.current.trajectories,
-            models: this.state.current.models,
-            structures: this.state.current.structures
+            trajectories: this.state.selection.trajectories,
+            models: this.state.selection.models,
+            structures: this.state.selection.structures
         })
     }
 
@@ -37,22 +37,26 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
 
     get currentComponentGroups() {
         if (this._currentComponentGroups) return this._currentComponentGroups;
-        this._currentComponentGroups = StructureHierarchyManager.getComponentGroups(this.state.current.structures);
+        this._currentComponentGroups = StructureHierarchyManager.getComponentGroups(this.state.selection.structures);
         return this._currentComponentGroups;
     }
 
     private _currentSelectionSet: Set<string> | undefined = void 0;
-    get currentSeletionSet() {
+    get seletionSet() {
         if (this._currentSelectionSet) return this._currentSelectionSet;
         this._currentSelectionSet = new Set();
-        for (const r of this.state.current.trajectories) this._currentSelectionSet.add(r.cell.transform.ref);
-        for (const r of this.state.current.models) this._currentSelectionSet.add(r.cell.transform.ref);
-        for (const r of this.state.current.structures) this._currentSelectionSet.add(r.cell.transform.ref);
+        for (const r of this.state.selection.trajectories) this._currentSelectionSet.add(r.cell.transform.ref);
+        for (const r of this.state.selection.models) this._currentSelectionSet.add(r.cell.transform.ref);
+        for (const r of this.state.selection.structures) this._currentSelectionSet.add(r.cell.transform.ref);
         return this._currentSelectionSet;
     }
 
     get current() {
-        return this.state.current;
+        return this.state.hierarchy;
+    }
+
+    get selection() {
+        return this.state.selection;
     }
 
     private nextSelection: Set<StateTransform.Ref> = new Set();
@@ -90,21 +94,21 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         this._currentSelectionSet = void 0;
 
         const { hierarchy } = update;
-        const trajectories = this.syncCurrent(hierarchy, this.state.current.trajectories, hierarchy.trajectories);
-        const models = this.syncCurrent(hierarchy, this.state.current.models, hierarchy.models);
-        const structures = this.syncCurrent(hierarchy, this.state.current.structures, hierarchy.structures);
+        const trajectories = this.syncCurrent(hierarchy, this.state.selection.trajectories, hierarchy.trajectories);
+        const models = this.syncCurrent(hierarchy, this.state.selection.models, hierarchy.models);
+        const structures = this.syncCurrent(hierarchy, this.state.selection.structures, hierarchy.structures);
 
         this.nextSelection.clear();
 
-        this.updateState({ hierarchy, current: { trajectories, models, structures }});
-        this.behaviors.current.next({ hierarchy, trajectories, models, structures });
+        this.updateState({ hierarchy, selection: { trajectories, models, structures } });
+        this.behaviors.changed.next({ hierarchy, trajectories, models, structures });
     }
 
     updateCurrent(refs: HierarchyRef[], action: 'add' | 'remove') {
         const hierarchy = this.state.hierarchy;
         const set = action === 'add'
-            ? SetUtils.union(this.currentSeletionSet, new Set(refs.map(r => r.cell.transform.ref)))
-            : SetUtils.difference(this.currentSeletionSet, new Set(refs.map(r => r.cell.transform.ref)));
+            ? SetUtils.union(this.seletionSet, new Set(refs.map(r => r.cell.transform.ref)))
+            : SetUtils.difference(this.seletionSet, new Set(refs.map(r => r.cell.transform.ref)));
 
         const trajectories = [];
         const models = [];
@@ -122,9 +126,13 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
 
         this._currentComponentGroups = void 0;
         this._currentSelectionSet = void 0;
-     
-        this.updateState({ current: { trajectories, models, structures }});
-        this.behaviors.current.next({ hierarchy, trajectories, models, structures });
+
+        // if (trajectories.length === 0 && hierarchy.trajectories.length > 0) trajectories.push(hierarchy.trajectories[0]);
+        // if (models.length === 0 && hierarchy.models.length > 0) models.push(hierarchy.models[0]);
+        // if (structures.length === 0 && hierarchy.structures.length > 0) structures.push(hierarchy.structures[0]);
+
+        this.updateState({ selection: { trajectories, models, structures } });
+        this.behaviors.changed.next({ hierarchy, trajectories, models, structures });
     }
 
     remove(refs: HierarchyRef[], canUndo?: boolean) {
@@ -134,22 +142,34 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         return this.plugin.updateDataState(deletes, { canUndo: canUndo ? 'Remove' : false });
     }
 
-    createAllModels(trajectory: TrajectoryRef) {
+    createModels(trajectories: ReadonlyArray<TrajectoryRef>, kind: 'single' | 'all' = 'single') {
         return this.plugin.dataTransaction(async () => {
             this.nextSelection.clear();
 
-            this.nextSelection.add(trajectory.cell.transform.ref);
-            if (trajectory.models.length > 0) {
-                await this.clearTrajectory(trajectory);
-            }
+            for (const trajectory of trajectories) {
+                this.nextSelection.add(trajectory.cell.transform.ref);
+                if (trajectory.models.length > 0) {
+                    await this.clearTrajectory(trajectory);
+                }
 
-            const tr = trajectory.cell.obj?.data!;
-            for (let i = 0; i < tr.length; i++) {
-                const model = await this.plugin.builders.structure.createModel(trajectory.cell, { modelIndex: i }, { isCollapsed: true });
-                const structure = await this.plugin.builders.structure.createStructure(model, { name: 'deposited', params: { } });
-                this.nextSelection.add(model.ref);
-                this.nextSelection.add(structure.ref);
-                await this.plugin.builders.structure.representation.applyPreset(structure, 'auto', { globalThemeName: 'model-index' });
+                if (trajectory.models.length === 0) return;
+
+                const tr = trajectory.cell.obj?.data!;
+                if (kind === 'all' && tr.length > 1) {
+                    for (let i = 0; i < tr.length; i++) {
+                        const model = await this.plugin.builders.structure.createModel(trajectory.cell, { modelIndex: i }, { isCollapsed: true });
+                        const structure = await this.plugin.builders.structure.createStructure(model, { name: 'deposited', params: {} });
+                        this.nextSelection.add(model.ref);
+                        this.nextSelection.add(structure.ref);
+                        await this.plugin.builders.structure.representation.applyPreset(structure, 'auto', { globalThemeName: 'model-index' });
+                    }
+                } else {
+                    const model = await this.plugin.builders.structure.createModel(trajectory.cell, { modelIndex: 0 }, { isCollapsed: true });
+                    const structure = await this.plugin.builders.structure.createStructure(model);
+                    this.nextSelection.add(model.ref);
+                    this.nextSelection.add(structure.ref);
+                    await this.plugin.builders.structure.representation.applyPreset(structure, 'auto');
+                }
             }
         });
     }
@@ -165,7 +185,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
     constructor(private plugin: PluginContext) {
         super({
             hierarchy: StructureHierarchy(),
-            current: { trajectories: [], models: [], structures: [] }
+            selection: { trajectories: [], models: [], structures: [] }
         });
 
         plugin.state.data.events.changed.subscribe(e => {

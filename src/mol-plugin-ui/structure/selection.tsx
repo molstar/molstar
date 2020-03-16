@@ -54,7 +54,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             this.forceUpdate()
         });
 
-        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.current, c => {
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.changed, c => {
             const isEmpty = c.structures.length === 0;
             if (this.state.isEmpty !== isEmpty) {
                 this.setState({ isEmpty });
@@ -152,11 +152,14 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     }
 
     renderControls() {
+        const stats = this.plugin.managers.structure.selection.stats
+        const empty = stats.structureCount === 0 || stats.elementCount === 0;
+
         return <>
-            <ParameterControls params={StructureSelectionParams} values={this.values} onChangeObject={this.setProps} />
+            <ParameterControls params={StructureSelectionParams} values={this.values} onChangeValues={this.setProps} />
             {this.controls}
             <div className='msp-control-row msp-row-text' style={{ marginTop: '6px' }}>
-                <button className='msp-btn msp-btn-block' onClick={this.focus} title='Click to Focus Selection'>
+                <button className='msp-btn msp-btn-block' onClick={this.focus} title='Click to Focus Selection' disabled={empty}>
                     <Icon name='focus-on-visual' style={{ position: 'absolute', left: '5px' }} />
                     {this.stats}
                 </button>
@@ -188,7 +191,7 @@ class ApplyColorControls extends PurePluginUIComponent<ApplyColorControlsProps, 
 
     render() {
         return <>
-            <ParameterControls params={this.params} values={this.state.values} onChangeObject={this.paramsChanged} />
+            <ParameterControls params={this.params} values={this.state.values} onChangeValues={this.paramsChanged} />
             <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-on`} onClick={this.apply} style={{ marginTop: '1px' }}>
                 <Icon name='brush' /> Apply Coloring
             </button>

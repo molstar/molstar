@@ -31,7 +31,7 @@ export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
     values: any,
     onChange?: ParamsOnChange<PD.ValuesFor<P>>,
-    onChangeObject?: (values: PD.ValuesFor<P>, prev: PD.ValuesFor<P>) => void,
+    onChangeValues?: (values: PD.ValuesFor<P>, prev: PD.ValuesFor<P>) => void,
     isDisabled?: boolean,
     onEnter?: () => void
 }
@@ -39,9 +39,9 @@ export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
 export class ParameterControls<P extends PD.Params> extends React.PureComponent<ParameterControlsProps<P>> {
     onChange: ParamOnChange = (params) => {
         this.props.onChange?.(params, this.props.values);
-        if (this.props.onChangeObject) {
+        if (this.props.onChangeValues) {
             const values = { ...this.props.values, [params.name]: params.value };
-            this.props.onChangeObject(values, this.props.values);
+            this.props.onChangeValues(values, this.props.values);
         }
     }
 

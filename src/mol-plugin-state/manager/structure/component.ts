@@ -39,7 +39,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
     }
 
     get currentStructures() {
-        return this.plugin.managers.structure.hierarchy.state.current.structures;
+        return this.plugin.managers.structure.hierarchy.state.selection.structures;
     }
 
     get pivotStructure(): StructureRef | undefined {

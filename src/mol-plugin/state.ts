@@ -96,9 +96,9 @@ class PluginState {
         return PluginCommands.State.Update(this.plugin, { state, tree });
     }
 
-    updateTransform(state: State, a: StateTransform.Ref, params: any) {
+    updateTransform(state: State, a: StateTransform.Ref, params: any, canUndo?: string | boolean) {
         const tree = state.build().to(a).update(params);
-        return PluginCommands.State.Update(this.plugin, { state, tree });
+        return PluginCommands.State.Update(this.plugin, { state, tree, options: { canUndo } });
     }
 
     dispose() {

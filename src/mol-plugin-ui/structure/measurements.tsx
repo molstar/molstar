@@ -206,7 +206,7 @@ class MeasurementsOptions extends PurePluginUIComponent<{}, { isDisabled: boolea
         const measurements = this.plugin.managers.structure.measurement.state;
 
         return <div className='msp-control-offset'>
-            <ParameterControls params={StructureMeasurementParams} values={measurements.options} onChangeObject={this.changed} isDisabled={this.state.isDisabled} />
+            <ParameterControls params={StructureMeasurementParams} values={measurements.options} onChangeValues={this.changed} isDisabled={this.state.isDisabled} />
         </div>;
     }
 }

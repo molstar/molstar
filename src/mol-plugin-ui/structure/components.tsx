@@ -55,7 +55,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.current, c => this.setState({
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.changed, c => this.setState({
             action: this.state.action !== 'options' || c.structures.length === 0 ? void 0 : 'options',
             isEmpty: c.structures.length === 0
         }));
@@ -98,7 +98,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
         if (!item) return;
         const mng = this.plugin.managers.structure;
 
-        const structures = mng.hierarchy.state.current.structures;
+        const structures = mng.hierarchy.state.selection.structures;
         if (item.value === null) mng.component.clear(structures);
         else mng.component.applyPreset(structures, item.value as any);
     }
@@ -162,7 +162,7 @@ class AddComponentControls extends PurePluginUIComponent<AddComponentControlsPro
 
     render() {
         return <>
-            <ParameterControls params={this.state.params} values={this.state.values} onChangeObject={this.paramsChanged} />
+            <ParameterControls params={this.state.params} values={this.state.values} onChangeValues={this.paramsChanged} />
             <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-on`} onClick={this.apply} style={{ marginTop: '1px' }}>
                 <Icon name='plus' /> Create Selection
             </button>
@@ -178,13 +178,13 @@ class ComponentOptionsControls extends PurePluginUIComponent<{ isDisabled: boole
     update = (options: StructureComponentManager.Options) => this.plugin.managers.structure.component.setOptions(options)
 
     render() {
-        return <ParameterControls params={StructureComponentManager.OptionsParams} values={this.plugin.managers.structure.component.state.options} onChangeObject={this.update} isDisabled={this.props.isDisabled} />;
+        return <ParameterControls params={StructureComponentManager.OptionsParams} values={this.plugin.managers.structure.component.state.options} onChangeValues={this.update} isDisabled={this.props.isDisabled} />;
     }
 }
 
 class ComponentListControls extends PurePluginUIComponent {
     get current() {
-        return this.plugin.managers.structure.hierarchy.behaviors.current;
+        return this.plugin.managers.structure.hierarchy.behaviors.changed;
     }
 
     componentDidMount() {
@@ -204,7 +204,7 @@ class ComponentListControls extends PurePluginUIComponent {
 
 class CurrentFocus extends PluginUIComponent {
     findInteraction() {
-        const xs = this.plugin.managers.structure.hierarchy.current.structures;
+        const xs = this.plugin.managers.structure.hierarchy.selection.structures;
         for (const s of xs) {
             if (s.currentFocus?.focus || s.currentFocus?.surroundings) return s.currentFocus;
         }
