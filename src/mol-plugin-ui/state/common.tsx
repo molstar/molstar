@@ -122,7 +122,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     abstract getSourceAndTarget(): { a?: StateObject, b?: StateObject };
     abstract state: S;
 
-    private busy: Subject<boolean>;
+    private busy: Subject<boolean> = new Subject();
 
     private onEnter = () => {
         if (this.state.error) return;
@@ -165,10 +165,6 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
 
     componentDidMount() {
         this.subscribe(this.plugin.behaviors.state.isBusy, b => this.busy.next(b));
-    }
-
-    init() {
-        this.busy = new Subject();
         this.subscribe(this.busy, busy => this.setState({ busy }));
     }
 

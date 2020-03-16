@@ -65,6 +65,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     componentWillUnmount() {
+        super.componentWillUnmount();
+
         this.plugin.managers.interactivity.lociHighlights.removeProvider(this.lociHighlightProvider)
         this.plugin.managers.interactivity.lociSelects.removeProvider(this.lociSelectionProvider)
     }
