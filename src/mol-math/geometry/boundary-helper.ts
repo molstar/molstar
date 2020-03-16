@@ -122,16 +122,17 @@ export class BoundaryHelper {
     }
 }
 
-const tmpV = Vec3()
-
 export class HierarchyHelper {
+    private tmpV = Vec3()
+    private tmpS = Sphere3D()
+
     private sphere = Sphere3D()
     private normal = Vec3()
     private helperA = new BoundaryHelper(this.quality)
     private helperB = new BoundaryHelper(this.quality)
 
     private checkSide(p: Vec3) {
-        return Vec3.dot(this.normal, Vec3.sub(tmpV, this.sphere.center, p)) > 0
+        return Vec3.dot(this.normal, Vec3.sub(this.tmpV, this.sphere.center, p)) > 0
     }
 
     includeStep(p: Vec3) {
@@ -155,12 +156,17 @@ export class HierarchyHelper {
         }
     }
 
-    getSphere(): Sphere3D.Hierarchy {
-        return {
-            center: this.sphere.center,
+    getSphere(): Sphere3D {
+        const sphereA = this.helperA.getSphere()
+        const sphereB = this.helperB.getSphere()
+        Sphere3D.expandBySphere(this.tmpS, this.sphere, sphereA)
+        Sphere3D.expandBySphere(this.tmpS, this.tmpS, sphereB)
+        // check if the split spheres actually result in a smaller radius
+        return this.tmpS.radius < this.sphere.radius ? {
+            center: Vec3.clone(this.sphere.center),
             radius: this.sphere.radius,
             hierarchy: [this.helperA.getSphere(), this.helperB.getSphere()]
-        }
+        } : Sphere3D.clone(this.sphere)
     }
 
     reset(sphere: Sphere3D, normal: Vec3) {
