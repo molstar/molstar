@@ -319,9 +319,9 @@ namespace Canvas3D {
             if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) return false;
 
             if (debugHelper.isEnabled) debugHelper.update();
-            if (reprCount.value === 0) cameraResetRequested = true;
-            reprCount.next(reprRenderObjects.size);
+            if (reprCount.value === 0 || camera.state.radiusMax === 0) cameraResetRequested = true;
             camera.setState({ radiusMax: scene.boundingSphere.radius })
+            reprCount.next(reprRenderObjects.size);
             return true;
         }
 
@@ -441,7 +441,7 @@ namespace Canvas3D {
                         cameraState.clipFar = props.cameraClipping.far
                     }
                     if (props.cameraClipping.radius !== undefined) {
-                        const radius = (scene.boundingSphere.radius / 100) * (100 - props.cameraClipping.radius)                        
+                        const radius = (scene.boundingSphere.radius / 100) * (100 - props.cameraClipping.radius)
                         if (radius > 0 && radius !== cameraState.radius) {
                             // if radius = 0, NaNs happen
                             cameraState.radius = Math.max(radius, 0.01)
