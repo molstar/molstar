@@ -113,7 +113,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         return this.plugin.dataTransaction(async () => {
             await this.clearComponents(structures);
             for (const s of structures) {
-                await this.plugin.builders.structure.representation.applyPreset(s.cell, provider, params);
+                await this.plugin.builders.structure.representation.applyPreset(s.childRoot, provider, params);
             }
         }, { canUndo: 'Preset' });
     }
@@ -261,7 +261,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             const componentKey = UUID.create22();
             for (const s of xs) {
                 const component = await this.plugin.builders.structure.tryCreateQueryComponent({ 
-                    structure: s.cell,
+                    structure: s.childRoot,
                     query: params.selection,
                     key: componentKey,
                     label: params.label || (params.selection === StructureSelectionQueries.current ? 'Custom Selection' : ''),

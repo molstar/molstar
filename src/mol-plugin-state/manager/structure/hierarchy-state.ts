@@ -57,10 +57,12 @@ export interface ModelRef extends RefBase<'model', SO.Molecule.Model> {
     properties?: ModelPropertiesRef,
     structures: StructureRef[],
     genericRepresentations?: GenericRepresentationRef[],
+    /** to support decorators */
+    childRoot: StateObjectCell<SO.Molecule.Model>
 }
 
 function ModelRef(cell: StateObjectCell<SO.Molecule.Model>, trajectory?: TrajectoryRef): ModelRef {
-    return { kind: 'model', cell, version: cell.transform.version, trajectory, structures: [] };
+    return { kind: 'model', cell, version: cell.transform.version, trajectory, structures: [], childRoot: cell };
 }
 
 export interface ModelPropertiesRef extends RefBase<'model-properties', SO.Molecule.Model, StateTransforms['Model']['CustomModelProperties']> {
@@ -80,11 +82,13 @@ export interface StructureRef extends RefBase<'structure', SO.Molecule.Structure
         surroundings?: StructureComponentRef,
     },
     genericRepresentations?: GenericRepresentationRef[],
-    volumeStreaming?: StructureVolumeStreamingRef
+    volumeStreaming?: StructureVolumeStreamingRef,
+    /** to support decorators */
+    childRoot: StateObjectCell<SO.Molecule.Structure>
 }
 
 function StructureRef(cell: StateObjectCell<SO.Molecule.Structure>, model?: ModelRef): StructureRef {
-    return { kind: 'structure', cell, version: cell.transform.version, model, components: [] };
+    return { kind: 'structure', cell, version: cell.transform.version, model, components: [], childRoot: cell };
 }
 
 export interface StructurePropertiesRef extends RefBase<'structure-properties', SO.Molecule.Structure, StateTransforms['Model']['CustomStructureProperties']> {
@@ -260,6 +264,14 @@ function _doPreOrder(ctx: VisitorCtx, root: StateTransform) {
             }
             onLeave = l;
             break;
+        }
+    }
+
+    if (cell.transform.isDecorator) {
+        if (state.currentModel && SO.Molecule.Model.is(cell.obj)) {
+            state.currentModel.childRoot = cell;
+        } else if (state.currentStructure && !state.currentComponent && SO.Molecule.Structure.is(cell.obj)) {
+            state.currentStructure.childRoot = cell;
         }
     }
 
