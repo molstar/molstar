@@ -399,7 +399,7 @@ class MolStarProteopediaWrapper {
             // Vec3.normalize(position, position);
             // Vec3.scaleAndAdd(position, sphere.center, position, sphere.radius);
             const radius = Math.max(sphere.radius, 5)
-            const snapshot = this.plugin.canvas3d!.camera.getFocus(sphere.center, radius, radius);
+            const snapshot = this.plugin.canvas3d!.camera.getFocus(sphere.center, radius);
             PluginCommands.Camera.SetSnapshot(this.plugin, { snapshot, durationMs: 250 });
         }
     }

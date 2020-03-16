@@ -71,7 +71,7 @@ export const RendererParams = {
         glossy: PD.Group({}),
         metallic: PD.Group({}),
         plastic: PD.Group({}),
-    }, { label: 'Render Style', description: 'Style in which the 3D scene is rendered' }),
+    }, { label: 'Lighting', description: 'Style in which the 3D scene is rendered/lighted' }),
 }
 export type RendererProps = PD.Values<typeof RendererParams>
 

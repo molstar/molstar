@@ -21,6 +21,12 @@ import { ParameterMappingControl } from '../controls/parameters';
 export class SimpleSettingsControl extends PluginUIComponent {
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
+
+        this.plugin.canvas3d!.camera.stateChanged.subscribe(state => {
+            if (state.radiusMax !== undefined || state.radius !== undefined) {
+                this.forceUpdate()
+            }
+        })
     }
 
     render() {
@@ -35,17 +41,17 @@ const SimpleSettingsParams = {
         speed: Canvas3DParams.trackball.params.spinSpeed
     }, { pivot: 'spin' }),
     camera: Canvas3DParams.cameraMode,
-    background: PD.Group({ 
-        color: PD.Color(Color(0xFCFBF9), { label: "Background", description: 'Custom background color' }),
+    background: PD.Group({
+        color: PD.Color(Color(0xFCFBF9), { label: 'Background', description: 'Custom background color' }),
         transparent: PD.Boolean(false)
     }, { pivot: 'color' }),
-    renderer: PD.Group({
+    lighting: PD.Group({
         renderStyle: Canvas3DParams.renderer.params.style,
         occlusion: Canvas3DParams.postprocessing.params.occlusion,
         outline: Canvas3DParams.postprocessing.params.outline,
-        fog: PD.Boolean(false, { description: 'Show fog in the distance' }),
-        clipFar: PD.Boolean(true, { description: 'Clip scene in the distance' }),
+        fog: Canvas3DParams.cameraFog,
     }, { pivot: 'renderStyle' }),
+    clipping: Canvas3DParams.cameraClipping,
     layout: PD.MultiSelect<'sequence' | 'log' | 'left'>([], [['sequence', 'Sequence'], ['log', 'Log'], ['left', 'Left Panel']] as const),
 };
 
@@ -72,13 +78,13 @@ const SimpleSettingsMapping = ParamMapping({
                 color: renderer.backgroundColor,
                 transparent: canvas.transparentBackground
             },
-            renderer: {
+            lighting: {
                 renderStyle: renderer.style,
                 occlusion: canvas.postprocessing.occlusion,
                 outline: canvas.postprocessing.outline,
-                fog: ctx.canvas3d ? canvas.cameraFog > 1 : false,
-                clipFar: canvas.cameraClipFar
-            }
+                fog: canvas.cameraFog
+            },
+            clipping: canvas.cameraClipping
         };
     },
     update(s, props) {
@@ -88,11 +94,11 @@ const SimpleSettingsMapping = ParamMapping({
         canvas.cameraMode = s.camera;
         canvas.transparentBackground = s.background.transparent;
         canvas.renderer.backgroundColor = s.background.color;
-        canvas.renderer.style = s.renderer.renderStyle
-        canvas.postprocessing.occlusion = s.renderer.occlusion;
-        canvas.postprocessing.outline = s.renderer.outline;
-        canvas.cameraFog = s.renderer.fog ? 50 : 0;
-        canvas.cameraClipFar = s.renderer.clipFar;
+        canvas.renderer.style = s.lighting.renderStyle
+        canvas.postprocessing.occlusion = s.lighting.occlusion;
+        canvas.postprocessing.outline = s.lighting.outline;
+        canvas.cameraFog = s.lighting.fog
+        canvas.cameraClipping = s.clipping
 
         props.layout = s.layout;
     },

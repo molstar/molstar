@@ -17,19 +17,26 @@ class CameraTransitionManager {
     private start = 0;
     inTransition = false;
     private durationMs = 0;
-    private source: Camera.Snapshot = Camera.createDefaultSnapshot();
-    private target: Camera.Snapshot = Camera.createDefaultSnapshot();
-    private current = Camera.createDefaultSnapshot();
+    private _source: Camera.Snapshot = Camera.createDefaultSnapshot();
+    private _target: Camera.Snapshot = Camera.createDefaultSnapshot();
+    private _current = Camera.createDefaultSnapshot();
+
+    get source(): Readonly<Camera.Snapshot> { return this._source }
+    get target(): Readonly<Camera.Snapshot> { return this._target }
 
     apply(to: Partial<Camera.Snapshot>, durationMs: number = 0, transition?: CameraTransitionManager.TransitionFunc) {
-        if (durationMs <= 0 || (typeof to.mode !== 'undefined' && to.mode !== this.camera.state.mode)) {
-            this.finish(to);
-            return;
+        Camera.copySnapshot(this._source, this.camera.state);
+        Camera.copySnapshot(this._target, this.camera.state);
+        Camera.copySnapshot(this._target, to);
+
+        if (this._target.radius > this._target.radiusMax) {
+            this._target.radius = this._target.radiusMax
         }
 
-        Camera.copySnapshot(this.source, this.camera.state);
-        Camera.copySnapshot(this.target, this.camera.state);
-        Camera.copySnapshot(this.target, to);
+        if (durationMs <= 0 || (typeof to.mode !== 'undefined' && to.mode !== this.camera.state.mode)) {
+            this.finish(this._target);
+            return;
+        }
 
         this.inTransition = true;
         this.func = transition || CameraTransitionManager.defaultTransition;
@@ -52,12 +59,12 @@ class CameraTransitionManager {
 
         const normalized = Math.min((this.t - this.start) / this.durationMs, 1);
         if (normalized === 1) {
-            this.finish(this.target!);
+            this.finish(this._target!);
             return;
         }
 
-        this.func(this.current, normalized, this.source, this.target);
-        Camera.copySnapshot(this.camera.state, this.current);
+        this.func(this._current, normalized, this._source, this._target);
+        Camera.copySnapshot(this.camera.state, this._current);
     }
 
     constructor(private camera: Camera) {
@@ -79,9 +86,9 @@ namespace CameraTransitionManager {
         // Lerp target, position & radius
         Vec3.lerp(out.target, source.target, target.target, t);
         Vec3.lerp(out.position, source.position, target.position, t);
-        out.radiusNear = lerp(source.radiusNear, target.radiusNear, t);
+        out.radius = lerp(source.radius, target.radius, t);
         // TODO take change of `clipFar` into account
-        out.radiusFar = lerp(source.radiusFar, target.radiusFar, t);
+        out.radiusMax = lerp(source.radiusMax, target.radiusMax, t);
 
         // Lerp fov & fog
         out.fov = lerp(source.fov, target.fov, t);

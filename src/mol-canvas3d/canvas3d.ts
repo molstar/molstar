@@ -38,8 +38,17 @@ import { isDebugMode } from '../mol-util/debug';
 
 export const Canvas3DParams = {
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']] as const),
-    cameraFog: PD.Numeric(50, { min: 0, max: 100, step: 1 }),
-    cameraClipFar: PD.Boolean(true),
+    cameraFog: PD.MappedStatic('on', {
+        on: PD.Group({
+            intensity: PD.Numeric(50, { min: 1, max: 100, step: 1 }),
+        }),
+        off: PD.Group({})
+    }, { cycle: true, description: 'Show fog in the distance' }),
+    cameraClipping: PD.Group({
+        radius: PD.Numeric(100, { min: 0, max: 100, step: 1 }, { label: 'Clipping', description: 'How much of the scene to show.' }),
+        far: PD.Boolean(true, { description: 'Hide scene in the distance' }),
+    }, { pivot: 'radius' }),
+
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
     transparentBackground: PD.Boolean(false),
 
@@ -169,8 +178,8 @@ namespace Canvas3D {
         const camera = new Camera({
             position: Vec3.create(0, 0, 100),
             mode: p.cameraMode,
-            fog: p.cameraFog,
-            clipFar: p.cameraClipFar
+            fog: p.cameraFog.name === 'on' ? p.cameraFog.params.intensity : 0,
+            clipFar: p.cameraClipping.far
         })
 
         const controls = TrackballControls.create(input, camera, p.trackball)
@@ -293,7 +302,7 @@ namespace Canvas3D {
             const { center, radius } = scene.boundingSphere;
             if (radius > 0) {
                 const duration = nextCameraResetDuration === undefined ? p.cameraResetDurationMs : nextCameraResetDuration
-                const focus = camera.getFocus(center, radius, radius);
+                const focus = camera.getFocus(center, radius);
                 const snapshot = nextCameraResetSnapshot ? { ...focus, ...nextCameraResetSnapshot } : focus;
                 camera.setState(snapshot, duration);
             }
@@ -312,6 +321,7 @@ namespace Canvas3D {
             if (debugHelper.isEnabled) debugHelper.update();
             if (reprCount.value === 0) cameraResetRequested = true;
             reprCount.next(reprRenderObjects.size);
+            camera.setState({ radiusMax: scene.boundingSphere.radius })
             return true;
         }
 
@@ -418,15 +428,25 @@ namespace Canvas3D {
             didDraw,
             reprCount,
             setProps: (props: Partial<Canvas3DProps>) => {
+                const cameraState: Partial<Camera.Snapshot> = Object.create(null)
                 if (props.cameraMode !== undefined && props.cameraMode !== camera.state.mode) {
-                    camera.setState({ mode: props.cameraMode })
+                    cameraState.mode = props.cameraMode
                 }
-                if (props.cameraFog !== undefined && props.cameraFog !== camera.state.fog) {
-                    camera.setState({ fog: props.cameraFog })
+                if (props.cameraFog !== undefined) {
+                    const newFog = props.cameraFog.name === 'on' ? props.cameraFog.params.intensity : 0
+                    if (newFog !== camera.state.fog) cameraState.fog = newFog
                 }
-                if (props.cameraClipFar !== undefined && props.cameraClipFar !== camera.state.clipFar) {
-                    camera.setState({ clipFar: props.cameraClipFar })
+                if (props.cameraClipping !== undefined) {
+                    if (props.cameraClipping.far !== undefined && props.cameraClipping.far !== camera.state.clipFar) {
+                        cameraState.clipFar = props.cameraClipping.far
+                    }
+                    if (props.cameraClipping.radius !== undefined) {
+                        const radius = (scene.boundingSphere.radius / 100) * (100 - props.cameraClipping.radius)
+                        if (radius !== cameraState.radius) cameraState.radius = radius
+                    }
                 }
+                if (Object.keys(cameraState).length > 0) camera.setState(cameraState)
+
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground
 
@@ -442,10 +462,16 @@ namespace Canvas3D {
             },
 
             get props() {
+                const radius = scene.boundingSphere.radius > 0
+                    ? 100 - Math.round((camera.transition.target.radius / scene.boundingSphere.radius) * 100)
+                    : 0
+
                 return {
                     cameraMode: camera.state.mode,
-                    cameraFog: camera.state.fog,
-                    cameraClipFar: camera.state.clipFar,
+                    cameraFog: camera.state.fog > 0
+                        ? { name: 'on' as const, params: { intensity: camera.state.fog } }
+                        : { name: 'off' as const, params: {} },
+                    cameraClipping: { far: camera.state.clipFar, radius },
                     cameraResetDurationMs: p.cameraResetDurationMs,
                     transparentBackground: p.transparentBackground,
 

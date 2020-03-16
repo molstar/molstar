@@ -8,6 +8,7 @@
 import { Mat4, Vec3, Vec4, EPSILON } from '../mol-math/linear-algebra'
 import { Viewport, cameraProject, cameraUnproject } from './camera/util';
 import { CameraTransitionManager } from './camera/transition';
+import { BehaviorSubject } from 'rxjs';
 
 export { Camera }
 
@@ -33,6 +34,7 @@ class Camera {
     zoom = 1
 
     readonly transition: CameraTransitionManager = new CameraTransitionManager(this);
+    readonly stateChanged = new BehaviorSubject<Partial<Camera.Snapshot>>(this.state);
 
     get position() { return this.state.position; }
     set position(v: Vec3) { Vec3.copy(this.state.position, v); }
@@ -76,18 +78,19 @@ class Camera {
 
     setState(snapshot: Partial<Camera.Snapshot>, durationMs?: number) {
         this.transition.apply(snapshot, durationMs);
+        this.stateChanged.next(snapshot);
     }
 
     getSnapshot() {
         return Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state);
     }
 
-    getFocus(target: Vec3, radiusNear: number, radiusFar: number, up?: Vec3, dir?: Vec3): Partial<Camera.Snapshot> {
-        const fov = this.state.fov
+    getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3): Partial<Camera.Snapshot> {
+        const { fov } = this.state
         const { width, height } = this.viewport
         const aspect = width / height
         const aspectFactor = (height < width ? 1 : aspect)
-        const targetDistance = Math.abs((radiusNear / aspectFactor) / Math.sin(fov / 2))
+        const targetDistance = Math.abs((radius / aspectFactor) / Math.sin(fov / 2))
 
         Vec3.sub(this.deltaDirection, this.target, this.position)
         if (dir) Vec3.matchDirection(this.deltaDirection, dir, this.deltaDirection)
@@ -96,17 +99,16 @@ class Camera {
 
         const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state)
         state.target = Vec3.clone(target)
-        state.radiusNear = radiusNear
-        state.radiusFar = radiusFar
+        state.radius = radius
         state.position = Vec3.clone(this.newPosition)
         if (up) Vec3.matchDirection(state.up, up, state.up)
 
         return state
     }
 
-    focus(target: Vec3, radiusNear: number, radiusFar: number, durationMs?: number, up?: Vec3, dir?: Vec3) {
-        if (radiusNear > 0 && radiusFar > 0) {
-            this.setState(this.getFocus(target, radiusNear, radiusFar, up, dir), durationMs);
+    focus(target: Vec3, radius: number, durationMs?: number, up?: Vec3, dir?: Vec3) {
+        if (radius > 0) {
+            this.setState(this.getFocus(target, radius, up, dir), durationMs);
         }
     }
 
@@ -161,8 +163,8 @@ namespace Camera {
             up: Vec3.create(0, 1, 0),
             target: Vec3.create(0, 0, 0),
 
-            radiusNear: 10,
-            radiusFar: 10,
+            radius: 10,
+            radiusMax: 10,
             fog: 50,
             clipFar: true
         };
@@ -176,8 +178,8 @@ namespace Camera {
         up: Vec3
         target: Vec3
 
-        radiusNear: number
-        radiusFar: number
+        radius: number
+        radiusMax: number
         fog: number
         clipFar: boolean
     }
@@ -192,8 +194,8 @@ namespace Camera {
         if (typeof source.up !== 'undefined') Vec3.copy(out.up, source.up);
         if (typeof source.target !== 'undefined') Vec3.copy(out.target, source.target);
 
-        if (typeof source.radiusNear !== 'undefined') out.radiusNear = source.radiusNear;
-        if (typeof source.radiusFar !== 'undefined') out.radiusFar = source.radiusFar;
+        if (typeof source.radius !== 'undefined') out.radius = source.radius;
+        if (typeof source.radiusMax !== 'undefined') out.radiusMax = source.radiusMax;
         if (typeof source.fog !== 'undefined') out.fog = source.fog;
         if (typeof source.clipFar !== 'undefined') out.clipFar = source.clipFar;
 
@@ -262,11 +264,11 @@ function updatePers(camera: Camera) {
 }
 
 function updateClip(camera: Camera) {
-    const { radiusNear, radiusFar, mode, fog, clipFar } = camera.state
+    const { radius, radiusMax, mode, fog, clipFar } = camera.state
 
-    const normalizedFar = clipFar ? radiusNear : radiusFar
+    const normalizedFar = clipFar ? radius : radiusMax
     const cameraDistance = Vec3.distance(camera.position, camera.target)
-    let near = cameraDistance - radiusNear
+    let near = cameraDistance - radius
     let far = cameraDistance + normalizedFar
 
     const fogNearFactor = -(50 - fog) / 50

@@ -47,7 +47,7 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                         const sphere = Loci.getBoundingSphere(loci);
                         if (sphere) {
                             const radius = Math.max(sphere.radius + p.extraRadius, p.minRadius);
-                            this.ctx.canvas3d.camera.focus(sphere.center, radius, this.ctx.canvas3d.boundingSphere.radius, p.durationMs);
+                            this.ctx.canvas3d.camera.focus(sphere.center, radius, p.durationMs);
                         }
                     }
                 }

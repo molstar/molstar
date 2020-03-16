@@ -30,6 +30,7 @@ export function SetSnapshot(ctx: PluginContext) {
 export function Focus(ctx: PluginContext) {
     PluginCommands.Camera.Focus.subscribe(ctx, ({ center, radius, durationMs }) => {
         ctx.managers.camera.focusSphere({ center, radius }, { durationMs });
+        ctx.events.canvas3d.settingsUpdated.next();
     })
 }
 

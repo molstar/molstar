@@ -25,7 +25,7 @@ export const PluginCommands = {
 
         ToggleExpanded: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
         ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
-        
+
         Snapshots: {
             Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.GetSnapshotParams }>(),
             Replace: PluginCommand<{ id: string, params?: PluginState.GetSnapshotParams }>(),

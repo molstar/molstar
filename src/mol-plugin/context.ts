@@ -77,7 +77,7 @@ export class PluginContext {
         task: this.tasks.events,
         canvas3d: {
             initialized: this.ev(),
-            settingsUpdated: this.ev()
+            settingsUpdated: this.ev(),
         }
     } as const
 
