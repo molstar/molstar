@@ -167,7 +167,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { header, hasCurrent } = this.state;
 
         return <div className='msp-control-group-header msp-flex-row' style={{ marginTop: '1px' }}>
-            <button className='msp-btn msp-form-control msp-flex-item' onClick={this.toggleExpanded}>
+            <button className='msp-btn msp-form-control msp-flex-item msp-no-overflow' onClick={this.toggleExpanded}>
                 <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </button>
@@ -219,7 +219,7 @@ const Action: React.FC<{
     multiselect: boolean | undefined, 
     current: ActionMenu.Item | undefined }> = ({ item, onSelect, current, multiselect }) => {
     const isCurrent = current === item;
-    return  <button className='msp-btn msp-btn-block msp-form-control msp-action-menu-button' onClick={() => onSelect(multiselect ? [item] : item as any)} disabled={item.disabled}>
+    return  <button className='msp-btn msp-btn-block msp-form-control msp-action-menu-button msp-no-overflow' onClick={() => onSelect(multiselect ? [item] : item as any)} disabled={item.disabled}>
         {item.icon && <Icon name={item.icon} />}
         {isCurrent || item.selected ? <b>{item.label}</b> : item.label}
     </button>;

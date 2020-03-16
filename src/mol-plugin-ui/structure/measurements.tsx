@@ -290,7 +290,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
 
         return <>
             <div className='msp-btn-row-group' key={obj.id} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
-                <button className='msp-btn msp-btn-block msp-form-control' title='Click to focus. Hover to highlight.' onClick={this.focus} style={{ width: 'auto', textAlign: 'left' }}>
+                <button className='msp-btn msp-btn-block msp-form-control msp-no-overflow' title='Click to focus. Hover to highlight.' onClick={this.focus} style={{ width: 'auto', textAlign: 'left' }}>
                     <span dangerouslySetInnerHTML={{ __html: this.label }} />
                 </button>
                 <IconButton small={true} customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ flex: '0 0 32px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />

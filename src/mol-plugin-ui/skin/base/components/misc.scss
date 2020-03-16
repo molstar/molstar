@@ -194,3 +194,8 @@
     fill: none;
     stroke: $font-color;
 }
+
+.msp-no-overflow {    
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
