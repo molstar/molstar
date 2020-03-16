@@ -21,7 +21,7 @@ interface StructureHierarchyManagerState {
 
 export class StructureHierarchyManager extends PluginComponent<StructureHierarchyManagerState> {
     readonly behaviors = {
-        changed: this.ev.behavior({
+        selection: this.ev.behavior({
             hierarchy: this.state.hierarchy,
             trajectories: this.state.selection.trajectories,
             models: this.state.selection.models,
@@ -101,7 +101,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         this.nextSelection.clear();
 
         this.updateState({ hierarchy, selection: { trajectories, models, structures } });
-        this.behaviors.changed.next({ hierarchy, trajectories, models, structures });
+        this.behaviors.selection.next({ hierarchy, trajectories, models, structures });
     }
 
     updateCurrent(refs: HierarchyRef[], action: 'add' | 'remove') {
@@ -132,7 +132,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         // if (structures.length === 0 && hierarchy.structures.length > 0) structures.push(hierarchy.structures[0]);
 
         this.updateState({ selection: { trajectories, models, structures } });
-        this.behaviors.changed.next({ hierarchy, trajectories, models, structures });
+        this.behaviors.selection.next({ hierarchy, trajectories, models, structures });
     }
 
     remove(refs: HierarchyRef[], canUndo?: boolean) {

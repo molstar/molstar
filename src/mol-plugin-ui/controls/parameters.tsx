@@ -857,6 +857,13 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
 
+    areParamsEmpty(params: PD.Params) {
+        for (const k of Object.keys(params)) {
+            if (!params[k].isHidden) return false;
+        }
+        return true;
+    }
+
     render() {
         const value: PD.Mapped<any>['defaultValue'] = this.props.value;
         const param = this.props.param.map(value.name);
@@ -880,7 +887,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
         }
 
         if (param.type === 'group' && !param.isFlat) {
-            if (Object.keys(param.params).length > 0) {
+            if (!this.areParamsEmpty(param.params)) {
                 return <div className='msp-mapped-parameter-group'>
                     {Select}
                     <IconButton icon='dot-3' onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`${label} Properties`} />
@@ -1036,12 +1043,12 @@ export class ObjectListControl extends React.PureComponent<ParamProps<PD.ObjectL
             <div className='msp-control-row'>
                 <span>{label}</span>
                 <div>
-                    <button onClick={this.toggleExpanded}>{value}</button>
+                    <button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{value}</button>
                 </div>
             </div>
 
             {this.state.isExpanded && <div className='msp-control-offset'>
-                {this.props.value.map((v, i) => <ObjectListItem key={i} param={this.props.param} value={v} index={i} actions={this.actions} />)}
+                {this.props.value.map((v, i) => <ObjectListItem key={i} param={this.props.param} value={v} index={i} actions={this.actions} isDisabled={this.props.isDisabled} />)}
                 <ControlGroup header='New Item'>
                     <ObjectListEditor params={this.props.param.element} apply={this.add} value={this.props.param.ctor()} isDisabled={this.props.isDisabled} />
                 </ControlGroup>

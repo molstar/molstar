@@ -21,6 +21,7 @@ import { VolumeRepresentationRegistry } from '../../../../mol-repr/volume/regist
 import { Theme } from '../../../../mol-theme/theme';
 import { Box3D } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { PluginConfig } from '../../../config';
 
 function addEntry(entries: InfoEntryProps[], method: VolumeServerInfo.Kind, dataId: string, emDefaultContourLevel: number) {
     entries.push({
@@ -34,7 +35,7 @@ function addEntry(entries: InfoEntryProps[], method: VolumeServerInfo.Kind, data
 export const InitVolumeStreaming = StateAction.build({
     display: { name: 'Volume Streaming' },
     from: SO.Molecule.Structure,
-    params(a) {
+    params(a, plugin: PluginContext) {
         const method = getStreamingMethod(a && a.data);
         const ids = getIds(method, a && a.data);
         return {
@@ -42,7 +43,7 @@ export const InitVolumeStreaming = StateAction.build({
             entries: PD.ObjectList({ id: PD.Text(ids[0] || '') }, ({ id }) => id, { defaultValue: ids.map(id => ({ id })) }),
             defaultView: PD.Select<VolumeStreaming.ViewTypes>(method === 'em' ? 'cell' : 'selection-box', VolumeStreaming.ViewTypeOptions as any),
             options: PD.Group({
-                serverUrl: PD.Text('https://ds.litemol.org'),
+                serverUrl: PD.Text(plugin.config.get(PluginConfig.VolumeStreaming.DefaultServer) || 'https://ds.litemol.org'),
                 behaviorRef: PD.Text('', { isHidden: true }),
                 emContourProvider: PD.Select<'wwpdb' | 'pdbe'>('wwpdb', [['wwpdb', 'wwPDB'], ['pdbe', 'PDBe']], { isHidden: true }),
                 bindings: PD.Value(VolumeStreaming.DefaultBindings, { isHidden: true }),
@@ -50,7 +51,11 @@ export const InitVolumeStreaming = StateAction.build({
             })
         };
     },
-    isApplicable: (a) => a.data.models.length === 1
+    isApplicable: (a, _, plugin: PluginContext) => {
+        const canStreamTest = plugin.config.get(PluginConfig.VolumeStreaming.CanStream);
+        if (canStreamTest) return canStreamTest(a.data, plugin);
+        return a.data.models.length === 1;
+    }
 })(({ ref, state, params }, plugin: PluginContext) => Task.create('Volume Streaming', async taskCtx => {
     const entries: InfoEntryProps[] = []
 

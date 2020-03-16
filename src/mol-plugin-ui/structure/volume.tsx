@@ -1,0 +1,61 @@
+/**
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import * as React from 'react';
+import { InitVolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
+import { CollapsableControls, CollapsableState } from '../base';
+import { ApplyActionControl } from '../state/apply-action';
+import { UpdateTransformControl } from '../state/update-transform';
+
+interface VolumeStreamingControlState extends CollapsableState {
+    isBusy: boolean
+}
+
+export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStreamingControlState> {
+    protected defaultState(): VolumeStreamingControlState {
+        return {
+            header: 'Volume Streaming',
+            isCollapsed: false,
+            isBusy: false,
+            isHidden: true
+        };
+    }
+
+    componentDidMount() {
+        // TODO: do not hide this but instead show some help text??
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, () => this.setState({ isHidden: !this.canEnable() }));
+        this.subscribe(this.plugin.behaviors.state.isBusy, v => this.setState({ isBusy: v }));
+    }
+
+    get pivot() {
+        return this.plugin.managers.structure.hierarchy.selection.structures[0];
+    }
+
+    canEnable() {
+        const { selection } = this.plugin.managers.structure.hierarchy;
+        if (selection.structures.length !== 1) return false;
+        const pivot = this.pivot.cell;
+        if (!pivot.obj) return false;
+        return !!InitVolumeStreaming.definition.isApplicable?.(pivot.obj, pivot.transform, this.plugin);
+    }
+
+    renderEnable() {
+        const pivot = this.pivot.cell;
+        return <ApplyActionControl state={pivot.parent} action={InitVolumeStreaming} initiallyCollapsed={true} nodeRef={pivot.transform.ref} simpleApply={{ header: 'Enable', icon: 'check' }} />;
+    }
+
+    renderParams() {
+        const pivot = this.pivot;
+        return <UpdateTransformControl state={pivot.cell.parent} transform={pivot.volumeStreaming!.cell.transform} customHeader='none' noMargin autoHideApply />;
+    }
+
+    renderControls() {
+        const pivot = this.pivot;
+        if (!pivot) return null;
+        if (!pivot.volumeStreaming) return this.renderEnable();
+        return this.renderParams();
+    }
+}

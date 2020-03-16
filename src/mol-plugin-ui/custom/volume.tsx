@@ -38,7 +38,7 @@ function Channel(props: {
     const channel = props.channels[props.name]!;
 
     const { min, max, mean, sigma } = stats;
-    const value = channel.isoValue.kind === 'relative' ? channel.isoValue.relativeValue : channel.isoValue.absoluteValue;
+    const value =  Math.round(100 * (channel.isoValue.kind === 'relative' ? channel.isoValue.relativeValue : channel.isoValue.absoluteValue)) / 100;
     const relMin = (min - mean) / sigma;
     const relMax = (max - mean) / sigma;
     const step = toPrecision(isRelative ? Math.round(((max - min) / sigma)) / 100 : sigma / 100, 2)
@@ -180,25 +180,30 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
 
         const sampling = b.info.header.sampling[0];
 
-        // TODO: factor common things out
+        const isRelativeParam = PD.Boolean(isRelative, { description: 'Use normalized or absolute isocontour scale.', label: 'Normalized' });
+
+        const isOff = params.entry.params.view.name === 'off';
+        // TODO: factor common things out, cache
         const OptionsParams = {
-            entry: PD.Select(params.entry.name, b.data.entries.map(info => [info.dataId, info.dataId] as [string, string]), { description: 'Which entry with volume data to display.' }),
+            entry: PD.Select(params.entry.name, b.data.entries.map(info => [info.dataId, info.dataId] as [string, string]), { isHidden: isOff, description: 'Which entry with volume data to display.' }),
             view: PD.MappedStatic(params.entry.params.view.name, {
-                'off': PD.Group({}, { description: 'Display off.' }),
+                'off': PD.Group({ 
+                    isRelative: PD.Boolean(isRelative, { isHidden: true })
+                }, { description: 'Display off.' }),
                 'box': PD.Group({
                     bottomLeft: PD.Vec3(Vec3.zero()),
                     topRight: PD.Vec3(Vec3.zero()),
                     detailLevel,
-                    isRelative: PD.Boolean(isRelative, { description: 'Use normalized or absolute isocontour scale.', label: 'Normalized' })
+                    isRelative: isRelativeParam
                 }, { description: 'Static box defined by cartesian coords.' }),
                 'selection-box': PD.Group({
                     radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
                     detailLevel,
-                    isRelative: PD.Boolean(isRelative, { description: 'Use normalized or absolute isocontour scale.', label: 'Normalized' })
+                    isRelative: isRelativeParam
                 }, { description: 'Box around last-interacted element.' }),
                 'cell': PD.Group({
                     detailLevel,
-                    isRelative: PD.Boolean(isRelative, { description: 'Use normalized or absolute isocontour scale.', label: 'Normalized' })
+                    isRelative: isRelativeParam
                 }, { description: 'Box around the structure\'s bounding box.' }),
                 // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.
             }, { options: VolumeStreaming.ViewTypeOptions, description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Around Interaction" shows the volume around the element/atom last interacted with. "Whole Structure" shows the volume for the whole structure.' })
@@ -216,6 +221,10 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                 }
             }
         };
+
+        if (isOff) {
+            return <ParameterControls onChange={this.changeOption} params={OptionsParams} values={options} onEnter={this.props.events.onEnter} />;
+        }
 
         return <>
             {!isEM && <Channel label='2Fo-Fc' name='2fo-fc' channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[0]} />}

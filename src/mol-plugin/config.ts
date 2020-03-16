@@ -4,6 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Structure } from '../mol-model/structure';
+import { PluginContext } from './context';
+
 export class PluginConfigItem<T = any> {
     toString() { return this.key; }
     valueOf() { return this.key; }
@@ -17,6 +20,10 @@ export const PluginConfig = {
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
         CurrentServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state')
+    },
+    VolumeStreaming: {
+        DefaultServer: item('volume-streaming.server', 'https://ds.litemol.org'),
+        CanStream: item('volume-streaming.can-stream', (s: Structure, plugin: PluginContext) => s.models.length === 1)
     }
 }
 

@@ -55,7 +55,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.changed, c => this.setState({
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, c => this.setState({
             action: this.state.action !== 'options' || c.structures.length === 0 ? void 0 : 'options',
             isEmpty: c.structures.length === 0
         }));
@@ -184,7 +184,7 @@ class ComponentOptionsControls extends PurePluginUIComponent<{ isDisabled: boole
 
 class ComponentListControls extends PurePluginUIComponent {
     get current() {
-        return this.plugin.managers.structure.hierarchy.behaviors.changed;
+        return this.plugin.managers.structure.hierarchy.behaviors.selection;
     }
 
     componentDidMount() {

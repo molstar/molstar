@@ -70,7 +70,7 @@ export type _State<C extends React.Component> = C extends React.Component<any, i
 //
 
 export type CollapsableProps = { initiallyCollapsed?: boolean, header?: string }
-export type CollapsableState = { isCollapsed: boolean, header: string }
+export type CollapsableState = { isCollapsed: boolean, header: string, isHidden?: boolean }
 
 export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends PluginUIComponent<P & CollapsableProps, S & CollapsableState, SS> {
     toggleCollapsed = () => {
@@ -81,6 +81,8 @@ export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends Plugi
     protected abstract renderControls(): JSX.Element | null
 
     render() {
+        if (this.state.isHidden) return null;
+
         const wrapClass = this.state.isCollapsed
             ? 'msp-transform-wrapper msp-transform-wrapper-collapsed'
             : 'msp-transform-wrapper';

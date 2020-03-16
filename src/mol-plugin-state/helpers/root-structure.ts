@@ -47,7 +47,7 @@ export namespace RootStructureDefinition {
                     : PD.Text('', { label: 'Asm Id', description: 'Assembly Id (use empty for the 1st assembly)' }))
             }, { isFlat: true }),
             'symmetry-mates': PD.Group({
-                radius: PD.Numeric(5)
+                radius: PD.Numeric(5, { min: 0, max: 50, step: 1 })
             }, { isFlat: true }),
             'symmetry': PD.Group({
                 ijkMin: PD.Vec3(Vec3.create(-1, -1, -1), { step: 1 }, { label: 'Min IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } }),

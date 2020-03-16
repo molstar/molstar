@@ -10,6 +10,8 @@ import { StructureBuilderTags } from '../../builder/structure';
 import { RepresentationProviderTags } from '../../builder/structure/provider';
 import { StructureRepresentationInteractionTags } from '../../../mol-plugin/behavior/dynamic/selection/structure-representation-interaction';
 import { StateTransforms } from '../../transforms';
+import { VolumeStreaming } from '../../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
+import { CreateVolumeStreamingBehavior } from '../../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
 
 export function buildStructureHierarchy(state: State, previous?: StructureHierarchy) {
     const build = BuildState(state, previous || StructureHierarchy());
@@ -39,7 +41,8 @@ interface RefBase<K extends string = string, O extends StateObject = StateObject
 export type HierarchyRef = 
     | TrajectoryRef
     | ModelRef | ModelPropertiesRef
-    | StructureRef | StructurePropertiesRef | StructureComponentRef | StructureRepresentationRef
+    | StructureRef | StructurePropertiesRef | StructureVolumeStreamingRef | StructureComponentRef | StructureRepresentationRef
+    | GenericRepresentationRef
 
 export interface TrajectoryRef extends RefBase<'trajectory', SO.Molecule.Trajectory> {
     models: ModelRef[]
@@ -77,7 +80,7 @@ export interface StructureRef extends RefBase<'structure', SO.Molecule.Structure
         surroundings?: StructureComponentRef,
     },
     genericRepresentations?: GenericRepresentationRef[],
-    // volumeStreaming?: ....
+    volumeStreaming?: StructureVolumeStreamingRef
 }
 
 function StructureRef(cell: StateObjectCell<SO.Molecule.Structure>, model?: ModelRef): StructureRef {
@@ -90,6 +93,14 @@ export interface StructurePropertiesRef extends RefBase<'structure-properties', 
 
 function StructurePropertiesRef(cell: StateObjectCell<SO.Molecule.Structure>, structure: StructureRef): StructurePropertiesRef {
     return { kind: 'structure-properties', cell, version: cell.transform.version, structure };
+}
+
+export interface StructureVolumeStreamingRef extends RefBase<'structure-volume-streaming', VolumeStreaming, CreateVolumeStreamingBehavior> {
+    structure: StructureRef
+}
+
+function StructureVolumeStreamingRef(cell: StateObjectCell<VolumeStreaming>, structure: StructureRef): StructureVolumeStreamingRef {
+    return { kind: 'structure-volume-streaming', cell, version: cell.transform.version, structure };
 }
 
 export interface StructureComponentRef extends RefBase<'structure-component', SO.Molecule.Structure, StateTransforms['Model']['StructureComponent']> {
@@ -157,9 +168,10 @@ function createOrUpdateRefList<R extends HierarchyRef, C extends any[]>(state: B
     return ref;
 }
 
-function createOrUpdateRef<R extends HierarchyRef, C extends any[]>(state: BuildState, cell: StateObjectCell, old: R | undefined, ctor: (...args: C) => R, ...args: C) {
+function createOrUpdateRef<R extends HierarchyRef, C extends any[]>(state: BuildState, cell: StateObjectCell, ctor: (...args: C) => R, ...args: C) {
     const ref: R = ctor(...args);
     state.hierarchy.refs.set(cell.transform.ref, ref);
+    const old = state.oldHierarchy.refs.get(cell.transform.ref);
     if (old) {
         if (old.version !== cell.transform.version) state.updated.push(ref);
     } else {
@@ -176,25 +188,25 @@ const tagMap: [string, (state: BuildState, cell: StateObjectCell) => boolean | v
         if (state.currentTrajectory) {
             state.currentModel = createOrUpdateRefList(state, cell, state.currentTrajectory.models, ModelRef, cell, state.currentTrajectory);
         } else {
-            state.currentModel = ModelRef(cell)
+            state.currentModel = createOrUpdateRef(state, cell, ModelRef, cell);
         }
         state.hierarchy.models.push(state.currentModel);
     }, state => state.currentModel = void 0],
     [StructureBuilderTags.ModelProperties, (state, cell) => {
         if (!state.currentModel) return false;
-        state.currentModel.properties = createOrUpdateRef(state, cell, state.currentModel.properties, ModelPropertiesRef, cell, state.currentModel);
+        state.currentModel.properties = createOrUpdateRef(state, cell, ModelPropertiesRef, cell, state.currentModel);
     }, state => { }],
     [StructureBuilderTags.Structure, (state, cell) => {
         if (state.currentModel) {
             state.currentStructure = createOrUpdateRefList(state, cell, state.currentModel.structures, StructureRef, cell, state.currentModel);
         } else {
-            state.currentStructure = StructureRef(cell);
+            state.currentStructure = createOrUpdateRef(state, cell, StructureRef, cell);
         }
         state.hierarchy.structures.push(state.currentStructure);
     }, state => state.currentStructure = void 0],
     [StructureBuilderTags.StructureProperties, (state, cell) => {
         if (!state.currentStructure) return false;
-        state.currentStructure.properties = createOrUpdateRef(state, cell, state.currentStructure.properties, StructurePropertiesRef, cell, state.currentStructure);
+        state.currentStructure.properties = createOrUpdateRef(state, cell, StructurePropertiesRef, cell, state.currentStructure);
     }, state => { }],
     [StructureBuilderTags.Component, (state, cell) => {
         if (!state.currentStructure) return false;
@@ -207,13 +219,13 @@ const tagMap: [string, (state: BuildState, cell: StateObjectCell) => boolean | v
     [StructureRepresentationInteractionTags.ResidueSel, (state, cell) => {
         if (!state.currentStructure) return false;
         if (!state.currentStructure.currentFocus) state.currentStructure.currentFocus = { };
-        state.currentStructure.currentFocus.focus = StructureComponentRef(cell, state.currentStructure);
+        state.currentStructure.currentFocus.focus = createOrUpdateRef(state, cell, StructureComponentRef, cell, state.currentStructure);
         state.currentComponent = state.currentStructure.currentFocus.focus;
     }, state => state.currentComponent = void 0],
     [StructureRepresentationInteractionTags.SurrSel, (state, cell) => {
         if (!state.currentStructure) return false;
         if (!state.currentStructure.currentFocus) state.currentStructure.currentFocus = { };
-        state.currentStructure.currentFocus.surroundings = StructureComponentRef(cell, state.currentStructure);
+        state.currentStructure.currentFocus.surroundings = createOrUpdateRef(state, cell, StructureComponentRef, cell, state.currentStructure);
         state.currentComponent = state.currentStructure.currentFocus.surroundings;
     }, state => state.currentComponent = void 0]
 ]
@@ -257,8 +269,11 @@ function _doPreOrder(ctx: VisitorCtx, root: StateTransform) {
         const genericTarget = state.currentComponent || state.currentModel || state.currentStructure;
         if (genericTarget) {
             if (!genericTarget.genericRepresentations) genericTarget.genericRepresentations = [];
-            genericTarget.genericRepresentations.push(GenericRepresentationRef(cell, genericTarget));
+            genericTarget.genericRepresentations.push(createOrUpdateRef(state, cell, GenericRepresentationRef, cell, genericTarget));
         }
+    } else if (state.currentStructure && VolumeStreaming.is(cell.obj)) {
+        state.currentStructure.volumeStreaming = createOrUpdateRef(state, cell, StructureVolumeStreamingRef, cell, state.currentStructure);
+        return;
     }
 
     const children = ctx.tree.children.get(root.ref);

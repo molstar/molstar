@@ -11,8 +11,8 @@ import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { PluginContext } from '../../mol-plugin/context';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Subject } from 'rxjs';
-import { Icon } from '../controls/icons';
-import { ExpandGroup } from '../controls/common';
+import { Icon, IconName } from '../controls/icons';
+import { ExpandGroup, ToggleButton } from '../controls/common';
 
 export { StateTransformParameters, TransformControlBase };
 
@@ -99,9 +99,18 @@ namespace TransformControlBase {
         simpleOnly?: boolean,
         isCollapsed?: boolean
     }
+
+    export interface CommonProps {
+        simpleApply?: { header: string, icon: IconName },
+        noMargin?: boolean,
+        applyLabel?: string,
+        onApply?: () => void,
+        autoHideApply?: boolean,
+        wrapInExpander?: boolean
+    }
 }
 
-abstract class TransformControlBase<P, S extends TransformControlBase.ComponentState> extends PurePluginUIComponent<P & { noMargin?: boolean, applyLabel?: string, onApply?: () => void, wrapInExpander?: boolean }, S> {
+abstract class TransformControlBase<P, S extends TransformControlBase.ComponentState> extends PurePluginUIComponent<P & TransformControlBase.CommonProps, S> {
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
     abstract getHeader(): StateTransformer.Definition['display'] | 'none';
@@ -154,6 +163,10 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         }
     }
 
+    componentDidMount() {
+        this.subscribe(this.plugin.behaviors.state.isBusy, b => this.busy.next(b));
+    }
+
     init() {
         this.busy = new Subject();
         this.subscribe(this.busy, busy => this.setState({ busy }));
@@ -173,7 +186,27 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         this.setState({ isCollapsed: !this.state.isCollapsed });
     }
 
-    render() {
+    renderApply() {
+        const showBack = this.isUpdate() && !(this.state.busy || this.state.isInitial);
+        const canApply = this.canApply();
+
+        return this.props.autoHideApply && !canApply
+            ? null
+            : <div className='msp-transform-apply-wrap'>
+                <button className='msp-btn msp-btn-block msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params'><Icon name='cw' /></button>
+                {showBack && <button className='msp-btn msp-btn-block msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
+                    <Icon name='back' /> Back
+                </button>}
+                <div className={`msp-transform-apply${!showBack ? ' msp-transform-apply-wider' : ''}`}>
+                    <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-${canApply ? 'on' : 'off'}`} onClick={this.apply} disabled={!canApply}>
+                        {canApply && <Icon name='ok' />}
+                        {this.props.applyLabel || this.applyText()}
+                    </button>
+                </div>
+            </div>;
+    }
+
+    renderDefault() {
         const info = this.getInfo();
         const isEmpty = info.isEmpty && this.isUpdate();
 
@@ -189,8 +222,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
             : 'msp-transform-wrapper';
 
         const { a, b } = this.getSourceAndTarget();
-
-        const showBack = this.isUpdate() && !(this.state.busy || this.state.isInitial);
+        const applyControl = this.renderApply();
 
         const ctrl = <div className={wrapClass} style={{ marginBottom: this.props.noMargin ? 0 : void 0 }}>
             {display !== 'none' && !this.props.wrapInExpander && <div className='msp-transform-header'>
@@ -201,19 +233,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
             </div>}
             {!isEmpty && !this.state.isCollapsed && <>
                 <ParamEditor info={info} a={a} b={b} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
-
-                <div className='msp-transform-apply-wrap'>
-                    <button className='msp-btn msp-btn-block msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params'><Icon name='cw' /></button>
-                    {showBack && <button className='msp-btn msp-btn-block msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
-                        <Icon name='back' /> Back
-                    </button>}
-                    <div className={`msp-transform-apply${!showBack ? ' msp-transform-apply-wider' : ''}`}>
-                        <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-${this.canApply() ? 'on' : 'off'}`} onClick={this.apply} disabled={!this.canApply()}>
-                            {this.canApply() && <Icon name='ok' />}
-                            {this.props.applyLabel || this.applyText()}
-                        </button>
-                    </div>
-                </div>
+                {applyControl}
             </>}
         </div>;
 
@@ -222,5 +242,34 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         return <ExpandGroup header={this.isUpdate() ? `Update ${display === 'none' ? '' : display.name}` : `Apply ${display === 'none' ? '' : display.name}` }>
             {ctrl}
         </ExpandGroup>;
+    }
+
+    renderSimple() {        
+        const info = this.getInfo();
+        const canApply = this.canApply();
+        const apply = <div className='msp-control-row msp-select-row'>
+            <button disabled={this.state.busy || !canApply} onClick={this.apply}>
+                <Icon name={this.props.simpleApply?.icon} />
+                {this.props.simpleApply?.header}
+            </button>
+            {!info.isEmpty && <ToggleButton icon='cog' label='' title='Options' toggle={this.toggleExpanded} isSelected={!this.state.isCollapsed} disabled={this.state.busy} style={{ flex: '0 0 40px' }} />}
+        </div>
+
+        if (this.state.isCollapsed) return apply;
+
+        const tId = this.getTransformerId();
+        const ParamEditor: StateTransformParameters.Class = this.plugin.customParamEditors.has(tId)
+            ? this.plugin.customParamEditors.get(tId)!
+            : StateTransformParameters;
+        const { a, b } = this.getSourceAndTarget();
+
+        return <>
+            {apply}
+            <ParamEditor info={info} a={a} b={b} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
+        </>
+    }
+
+    render() {
+        return this.props.simpleApply ? this.renderSimple() : this.renderDefault();
     }
 }

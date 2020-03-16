@@ -306,7 +306,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
             return <div style={{ marginBottom: '1px' }}>
                 {row}
                 <ControlGroup header={`Apply ${this.state.currentAction.definition.display.name}`} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hideAction} topRightIcon='off'>
-                    <ApplyActionControl onApply={this.hideAction} plugin={this.plugin} state={this.props.cell.parent} action={this.state.currentAction} nodeRef={this.props.cell.transform.ref} hideHeader noMargin />
+                    <ApplyActionControl onApply={this.hideAction} state={this.props.cell.parent} action={this.state.currentAction} nodeRef={this.props.cell.transform.ref} hideHeader noMargin />
                 </ControlGroup>
             </div>
         }
