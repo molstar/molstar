@@ -248,10 +248,11 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
     renderControls() {
         const disabled = this.state.isBusy || this.isEmpty;
         const actions = this.actions(this.plugin.managers.structure.hierarchy.selection);
+        const label = this.label;
         return <>
             <div className='msp-btn-row-group' style={{ marginTop: '1px' }}>
-                <button className='msp-btn msp-form-control msp-flex-item' onClick={this.toggleHierarchy} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} disabled={disabled}>
-                    {this.label}
+                <button className='msp-btn msp-form-control msp-flex-item' onClick={this.toggleHierarchy} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} disabled={disabled} title={label}>
+                    {label}
                 </button>
                 {actions.length > 0 && <IconButton customClass='msp-form-control' style={{ flex: '0 0 32px' }} onClick={this.toggleActions} icon='dot-3' title='Actions' toggleState={this.state.show === 'actions'} disabled={disabled} />}
             </div>
