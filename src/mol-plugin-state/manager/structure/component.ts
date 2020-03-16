@@ -149,11 +149,24 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         }));
     }
 
-    toggleVisibility(components: ReadonlyArray<StructureComponentRef>) {
+    toggleVisibility(components: ReadonlyArray<StructureComponentRef>, reprPivot?: StructureRepresentationRef) {
         if (components.length === 0) return;
-        const isHidden = !components[0].cell.state.isHidden;
-        for (const c of components) {
-            setSubtreeVisibility(this.dataState, c.cell.transform.ref, isHidden);
+
+        if (!reprPivot) {
+            const isHidden = !components[0].cell.state.isHidden;
+            for (const c of components) {
+                setSubtreeVisibility(this.dataState, c.cell.transform.ref, isHidden);
+            }
+        } else {            
+            const index = components[0].representations.indexOf(reprPivot);
+            const isHidden = !reprPivot.cell.state.isHidden;
+
+            for (const c of components) {
+                // TODO: is it ok to use just the index here? Could possible lead to ugly edge cases, but perhaps not worth the trouble to "fix".
+                const repr = c.representations[index];
+                if (!repr) continue;
+                setSubtreeVisibility(this.dataState, repr.cell.transform.ref, isHidden)
+            }
         }
     }
 

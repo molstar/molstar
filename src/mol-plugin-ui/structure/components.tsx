@@ -346,7 +346,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
             {this.state.action === 'remove' && <ActionMenu items={this.removeActions} onSelect={this.selectRemoveAction} />}
             {this.state.action === 'action' && <>
                 <ActionMenu items={this.actions} onSelect={this.selectAction} />
-                <div className='msp-control-offset'>
+                <div className='msp-control-offset' style={{ margin: '6px 0' }}>
                     {component.representations.map(r => <StructureRepresentationEntry group={this.props.group} key={r.cell.transform.ref} representation={r} />)}
                 </div>
             </>}
@@ -356,18 +356,32 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
 class StructureRepresentationEntry extends PurePluginUIComponent<{ group: StructureComponentRef[], representation: StructureRepresentationRef }> {
     remove = () => this.plugin.managers.structure.component.removeRepresentations(this.props.group, this.props.representation);
+    toggleVisible = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        e.currentTarget.blur();
+        this.plugin.managers.structure.component.toggleVisibility(this.props.group, this.props.representation);
+    }
+
+    componentDidMount() {
+        this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
+            if (State.ObjectEvent.isCell(e, this.props.representation.cell)) this.forceUpdate();
+        });
+    }
 
     update = (params: any) => this.plugin.managers.structure.component.updateRepresentations(this.props.group, this.props.representation, params);
 
     render() {
         const repr = this.props.representation.cell;
-        return <div style={{ position: 'relative' }}>
-            <ExpandGroup header={`${repr.obj?.label || ''} Representation`} noOffset headerStyle={{ fontWeight: 'bold' }}>
+        return <div className='msp-representation-entry'>
+            <ExpandGroup header={`${repr.obj?.label || ''} Representation`} noOffset>
                 <UpdateTransformControl state={repr.parent} transform={repr.transform} customHeader='none' customUpdate={this.update} noMargin />
-                <IconButton onClick={this.remove} icon='remove' title='Remove' small style={{
-                    position: 'absolute', top: 0, right: 0, lineHeight: '22px', height: '22px', textAlign: 'right', width: '44px', paddingRight: '6px'
-                }} />
             </ExpandGroup>
+            <IconButton onClick={this.remove} icon='remove' title='Remove' small style={{
+                position: 'absolute', top: 0, right: '32px', lineHeight: '24px', height: '24px', textAlign: 'right', width: '44px', paddingRight: '6px'
+            }} />
+            <IconButton onClick={this.toggleVisible} toggleState={!this.props.representation.cell.state.isHidden} icon='visual-visibility' title='Remove' small style={{
+                position: 'absolute', top: 0, right: 0, lineHeight: '24px', height: '24px', textAlign: 'right', width: '24px', paddingRight: '6px'
+            }} />
         </div>;
     }
 }

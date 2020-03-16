@@ -336,3 +336,17 @@
         }
     }
 }
+
+.msp-representation-entry {
+    position: relative;
+    > .msp-control-group-header {
+        > .msp-btn {
+            border-left: 1px solid $entity-color-Group;
+            font-weight: bold;
+        }
+        > .msp-icon, > .msp-btn-link {
+            line-height: 24px;
+            height: 24px;
+        }
+    }
+}
