@@ -45,7 +45,7 @@ export const Canvas3DParams = {
         off: PD.Group({})
     }, { cycle: true, description: 'Show fog in the distance' }),
     cameraClipping: PD.Group({
-        radius: PD.Numeric(100, { min: 0, max: 100, step: 1 }, { label: 'Clipping', description: 'How much of the scene to show.' }),
+        radius: PD.Numeric(100, { min: 0, max: 99, step: 1 }, { label: 'Clipping', description: 'How much of the scene to show.' }),
         far: PD.Boolean(true, { description: 'Hide scene in the distance' }),
     }, { pivot: 'radius' }),
 
@@ -441,8 +441,11 @@ namespace Canvas3D {
                         cameraState.clipFar = props.cameraClipping.far
                     }
                     if (props.cameraClipping.radius !== undefined) {
-                        const radius = (scene.boundingSphere.radius / 100) * (100 - props.cameraClipping.radius)
-                        if (radius !== cameraState.radius) cameraState.radius = radius
+                        const radius = (scene.boundingSphere.radius / 100) * (100 - props.cameraClipping.radius)                        
+                        if (radius > 0 && radius !== cameraState.radius) {
+                            // if radius = 0, NaNs happen
+                            cameraState.radius = Math.max(radius, 0.01)
+                        }
                     }
                 }
                 if (Object.keys(cameraState).length > 0) camera.setState(cameraState)
@@ -455,6 +458,7 @@ namespace Canvas3D {
                 if (props.renderer) renderer.setProps(props.renderer)
                 if (props.trackball) controls.setProps(props.trackball)
                 if (props.debug) debugHelper.setProps(props.debug)
+
                 requestDraw(true)
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {

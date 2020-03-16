@@ -103,7 +103,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </ControlGroup>
             </div>}
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-panel'>
-                <ControlGroup header='Settings' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded} topRightIcon='off'>
+                <ControlGroup header='Settings / Controls Info' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded} topRightIcon='off'>
                     <SimpleSettingsControl />
                 </ControlGroup>
             </div>}

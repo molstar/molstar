@@ -86,11 +86,12 @@ class Camera {
     }
 
     getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3): Partial<Camera.Snapshot> {
+        const r = Math.max(radius, 0.01)
         const { fov } = this.state
         const { width, height } = this.viewport
         const aspect = width / height
         const aspectFactor = (height < width ? 1 : aspect)
-        const targetDistance = Math.abs((radius / aspectFactor) / Math.sin(fov / 2))
+        const targetDistance = Math.abs((r / aspectFactor) / Math.sin(fov / 2))
 
         Vec3.sub(this.deltaDirection, this.target, this.position)
         if (dir) Vec3.matchDirection(this.deltaDirection, dir, this.deltaDirection)
@@ -99,7 +100,7 @@ class Camera {
 
         const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state)
         state.target = Vec3.clone(target)
-        state.radius = radius
+        state.radius = r
         state.position = Vec3.clone(this.newPosition)
         if (up) Vec3.matchDirection(state.up, up, state.up)
 
@@ -264,7 +265,8 @@ function updatePers(camera: Camera) {
 }
 
 function updateClip(camera: Camera) {
-    const { radius, radiusMax, mode, fog, clipFar } = camera.state
+    let { radius, radiusMax, mode, fog, clipFar } = camera.state
+    if (radius < 0.01) radius = 0.01
 
     const normalizedFar = clipFar ? radius : radiusMax
     const cameraDistance = Vec3.distance(camera.position, camera.target)
