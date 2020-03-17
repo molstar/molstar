@@ -17,6 +17,7 @@ import { addFixedCountDashedCylinder } from '../../../mol-geo/geometry/mesh/buil
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
+import { Sphere3D } from '../../../mol-math/geometry';
 // import { TriangularPyramid } from '../../../mol-geo/primitive/pyramid';
 
 const segmentCount = 10
@@ -77,7 +78,12 @@ function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure:
         i += 2
     }
 
-    return MeshBuilder.getMesh(builderState)
+    const m = MeshBuilder.getMesh(builderState)
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor)
+    m.setBoundingSphere(sphere)
+
+    return m
 }
 
 export const PolymerGapParams = {

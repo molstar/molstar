@@ -21,6 +21,7 @@ import { Interval, OrderedSet } from '../../../mol-data/int';
 import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
 import { ignoreBondType, BondCylinderParams, BondIterator } from './util/bond';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
@@ -92,7 +93,12 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
         ignore: (edgeIndex: number) => ignoreHydrogen(edgeIndex) || ignoreBondType(include, exclude, _flags[edgeIndex])
     }
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
+    const m = createLinkCylinderMesh(ctx, builderProps, props, mesh)
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * sizeFactor)
+    m.setBoundingSphere(sphere)
+
+    return m
 }
 
 export const IntraUnitBondParams = {

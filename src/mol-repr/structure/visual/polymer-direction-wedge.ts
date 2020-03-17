@@ -16,6 +16,7 @@ import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment,
 import { isNucleic, SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -82,7 +83,12 @@ function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, structu
         ++i
     }
 
-    return MeshBuilder.getMesh(builderState)
+    const m = MeshBuilder.getMesh(builderState)
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor)
+    m.setBoundingSphere(sphere)
+
+    return m
 }
 
 export const PolymerDirectionParams = {

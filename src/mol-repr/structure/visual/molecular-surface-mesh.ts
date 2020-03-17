@@ -16,6 +16,7 @@ import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/a
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { CommonSurfaceParams } from './util/common';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
@@ -37,6 +38,9 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
 
     Mesh.transform(surface, transform)
     if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface)
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.probeRadius)
+    surface.setBoundingSphere(sphere)
 
     return surface
 }

@@ -14,6 +14,7 @@ import { PointsBuilder } from '../../../mol-geo/geometry/points/points-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 export const ElementPointParams = {
     ...UnitsPointsParams,
@@ -39,7 +40,13 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
         pos(elements[i], p)
         builder.add(p[0], p[1], p[2], i)
     }
-    return builder.getPoints()
+
+    const pt = builder.getPoints()
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor)
+    pt.setBoundingSphere(sphere)
+
+    return pt
 }
 
 export function ElementPointVisual(materialId: number): UnitsVisual<ElementPointParams> {

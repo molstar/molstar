@@ -20,6 +20,7 @@ import { addRibbon } from '../../../mol-geo/geometry/mesh/builder/ribbon';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 export const PolymerTubeMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
@@ -100,7 +101,12 @@ function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Struct
         ++i
     }
 
-    return MeshBuilder.getMesh(builderState)
+    const m = MeshBuilder.getMesh(builderState)
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor)
+    m.setBoundingSphere(sphere)
+
+    return m
 }
 
 export const PolymerTubeParams = {

@@ -20,6 +20,7 @@ import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
 import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/property/anisotropic'
 import { equalEps } from '../../../mol-math/linear-algebra/3d/common';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 export const EllipsoidMeshParams = {
     ...UnitsMeshParams,
@@ -66,7 +67,7 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
     if (!atomSiteAnisotrop) return Mesh.createEmpty(mesh)
 
     const v = Vec3()
-    const m = Mat3()
+    const mat = Mat3()
     const eigvals = Vec3()
     const eigvec1 = Vec3()
     const eigvec2 = Vec3()
@@ -87,11 +88,11 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
         pos(ei, v)
 
         builderState.currentGroup = i
-        Tensor.toMat3(m, space, U.value(ai))
-        Mat3.symmtricFromLower(m, m)
-        Mat3.symmetricEigenvalues(eigvals, m)
-        Mat3.eigenvector(eigvec1, m, eigvals[1])
-        Mat3.eigenvector(eigvec2, m, eigvals[2])
+        Tensor.toMat3(mat, space, U.value(ai))
+        Mat3.symmtricFromLower(mat, mat)
+        Mat3.symmetricEigenvalues(eigvals, mat)
+        Mat3.eigenvector(eigvec1, mat, eigvals[1])
+        Mat3.eigenvector(eigvec2, mat, eigvals[2])
         for (let j = 0; j < 3; ++j) {
             // show 50% probability surface, needs sqrt as U matrix is in angstrom-squared
             // take abs of eigenvalue to avoid reflection
@@ -106,5 +107,10 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
         }
     }
 
-    return MeshBuilder.getMesh(builderState)
+    const m = MeshBuilder.getMesh(builderState)
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * sizeFactor)
+    m.setBoundingSphere(sphere)
+
+    return m
 }

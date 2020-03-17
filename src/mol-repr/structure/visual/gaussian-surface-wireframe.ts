@@ -14,6 +14,7 @@ import { computeMarchingCubesLines } from '../../../mol-geo/util/marching-cubes/
 import { UnitsLinesParams, UnitsVisual, UnitsLinesVisual } from '../units-visual';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props
@@ -27,6 +28,9 @@ async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure
     const wireframe = await computeMarchingCubesLines(params, lines).runAsChild(ctx.runtime)
 
     Lines.transform(wireframe, transform)
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset)
+    wireframe.setBoundingSphere(sphere)
 
     return wireframe
 }

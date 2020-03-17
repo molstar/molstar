@@ -14,7 +14,7 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
-import { Axes3D } from '../../../mol-math/geometry';
+import { Axes3D, Sphere3D } from '../../../mol-math/geometry';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { OrderedSet, Interval } from '../../../mol-data/int';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
@@ -82,7 +82,12 @@ export function createOrientationEllipsoidMesh(ctx: VisualContext, unit: Unit, s
     builderState.currentGroup = 0
     addEllipsoid(builderState, origin, dirA, dirB, radiusScale, detail)
 
-    return MeshBuilder.getMesh(builderState)
+    const m = MeshBuilder.getMesh(builderState)
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor)
+    m.setBoundingSphere(sphere)
+
+    return m
 }
 
 //

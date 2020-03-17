@@ -21,6 +21,7 @@ import { StructureGroup } from '../../../../mol-repr/structure/units-visual';
 import { Spheres } from '../../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../../mol-geo/geometry/spheres/spheres-builder';
 import { isHydrogen } from './common';
+import { Sphere3D } from '../../../../mol-math/geometry';
 
 export interface ElementSphereMeshProps {
     detail: number,
@@ -51,7 +52,12 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
         addSphere(builderState, v, theme.size.size(l) * sizeFactor, detail)
     }
 
-    return MeshBuilder.getMesh(builderState)
+    const m = MeshBuilder.getMesh(builderState)
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * sizeFactor)
+    m.setBoundingSphere(sphere)
+
+    return m
 }
 
 export interface ElementSphereImpostorProps {
@@ -74,7 +80,12 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
         builder.add(v[0], v[1], v[2], i)
     }
 
-    return builder.getSpheres()
+    const s = builder.getSpheres()
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1)
+    s.setBoundingSphere(sphere)
+
+    return s
 }
 
 export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {

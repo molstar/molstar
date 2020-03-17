@@ -16,6 +16,7 @@ import { computeMarchingCubesLines } from '../../../mol-geo/util/marching-cubes/
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { CommonSurfaceParams } from './util/common';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 export const MolecularSurfaceWireframeParams = {
     ...UnitsLinesParams,
@@ -37,6 +38,9 @@ async function createMolecularSurfaceWireframe(ctx: VisualContext, unit: Unit, s
     const wireframe = await computeMarchingCubesLines(params, lines).runAsChild(ctx.runtime)
 
     Lines.transform(wireframe, transform)
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.probeRadius)
+    wireframe.setBoundingSphere(sphere)
 
     return wireframe
 }

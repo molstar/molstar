@@ -19,6 +19,7 @@ import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 export const PolymerBackboneCylinderParams = {
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
@@ -58,7 +59,12 @@ function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, struc
         addCylinder(builderState, pB, pA, 0.5, cylinderProps)
     }
 
-    return MeshBuilder.getMesh(builderState)
+    const m = MeshBuilder.getMesh(builderState)
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor)
+    m.setBoundingSphere(sphere)
+
+    return m
 }
 
 export const PolymerBackboneParams = {
