@@ -18,7 +18,7 @@ import { getApiSchema, shortcutIconLink } from './api-schema';
 import { swaggerUiAssetsHandler, swaggerUiIndexHandler } from '../../common/swagger-ui';
 
 function makePath(p: string) {
-    return Config.appPrefix + '/' + p;
+    return Config.apiPrefix + '/' + p;
 }
 
 function wrapResponse(fn: string, res: express.Response) {
@@ -187,7 +187,7 @@ export function initWebApi(app: express.Express) {
     app.use(makePath(''), swaggerUiAssetsHandler());
     app.get(makePath(''), swaggerUiIndexHandler({
         openapiJsonUrl: makePath('openapi.json'),
-        apiPrefix: Config.appPrefix,
+        apiPrefix: Config.apiPrefix,
         title: 'ModelServer API',
         shortcutIconLink
     }));

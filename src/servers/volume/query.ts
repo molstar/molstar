@@ -7,16 +7,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as argparse from 'argparse'
-import * as LocalApi from './server/local-api'
-import VERSION from './server/version'
-import * as fs from 'fs'
-import { LimitsConfig, addLimitsArgs, setLimitsConfig } from './config';
+import * as fs from 'fs';
+import { configureLocal } from './config';
+import * as LocalApi from './server/local-api';
 
-console.log(`VolumeServer Local ${VERSION}, (c) 2018-2019, Mol* contributors`);
-console.log();
+const config = configureLocal();
 
-function description() {
+if (config.jobsTemplate !== null) {
     const exampleJobs: LocalApi.JobEntry[] = [{
         source: {
             filename: `g:/test/mdb/xray-1tqn.mdb`,
@@ -49,29 +46,20 @@ function description() {
         },
         outputFolder: 'g:/test/local-test'
     }];
-
-    return `Usage: node local jobs.json\n\nExample jobs.json: ${JSON.stringify(exampleJobs, null, 2)}`
+    console.log(JSON.stringify(exampleJobs, null, 2));
+    process.exit();
 }
-
-const parser = new argparse.ArgumentParser({
-    addHelp: true,
-    description: description()
-});
-addLimitsArgs(parser)
-parser.addArgument(['jobs'], {
-    help: `Path to jobs JSON file.`
-})
-
-const config: LimitsConfig & { jobs: string } = parser.parseArgs()
-setLimitsConfig(config) // sets the config for global use
 
 async function run() {
     let jobs: LocalApi.JobEntry[];
     try {
+        if (!config.jobs) {
+            throw new Error(`Please provide 'jobs' argument. See [-h] for help.`);
+        }
+
         jobs = JSON.parse(fs.readFileSync(config.jobs, 'utf-8'));
     } catch (e) {
-        console.log('Error:');
-        console.error(e);
+        console.error('' + e);
         return;
     }
 

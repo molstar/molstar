@@ -9,7 +9,7 @@
 import { CifWriter } from '../../../../mol-io/writer/cif'
 import * as Data from './data-model'
 import * as Coords from '../algebra/coordinate'
-import VERSION from '../version'
+import { VOLUME_SERVER_VERSION as VERSION } from '../version'
 import * as DataFormat from '../../common/data-format'
 import { Column } from '../../../../mol-data/db';
 import { ArrayEncoding, ArrayEncoder } from '../../../../mol-io/common/binary-cif';

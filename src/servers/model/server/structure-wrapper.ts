@@ -49,12 +49,12 @@ export interface StructureWrapper {
 }
 
 export async function createStructureWrapperFromJob(job: Job, propertyProvider: ModelPropertiesProvider | undefined, allowCache = true): Promise<StructureWrapper> {
-    if (allowCache && Config.cacheParams.useCache) {
+    if (allowCache && Config.cacheMaxSizeInBytes > 0) {
         const ret = StructureCache.get(job.key);
         if (ret) return ret;
     }
     const ret = await readStructureWrapper(job.key, job.sourceId, job.entryId, propertyProvider);
-    if (allowCache && Config.cacheParams.useCache) {
+    if (allowCache && Config.cacheMaxSizeInBytes > 0) {
         StructureCache.add(ret);
     }
     return ret;

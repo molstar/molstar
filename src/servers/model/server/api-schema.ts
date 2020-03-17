@@ -44,7 +44,7 @@ export function getApiSchema() {
 function getPaths() {
     const ret: any = {};
     for (const { name, definition } of QueryList) {
-        ret[`${ServerConfig.appPrefix}/v1/{id}/${name}`] = getQueryInfo(definition);
+        ret[`${ServerConfig.apiPrefix}/v1/{id}/${name}`] = getQueryInfo(definition);
     }
     return ret;
 }

@@ -48,7 +48,7 @@ export class Cache<T> {
     private refresh(e: CacheNode<T>) {
         this.clearTimeout(e);
 
-        e.value.timeoutId = setTimeout(() => this.expireNode(e), ServerConfig.cacheParams.entryTimeoutInMs);
+        e.value.timeoutId = setTimeout(() => this.expireNode(e), ServerConfig.cacheEntryTimeoutMs);
         this.entries.remove(e);
         this.entries.addFirst(e.value);
     }
@@ -74,7 +74,7 @@ export class Cache<T> {
 
         if (this.entryMap.has(key)) this.dispose(this.entryMap.get(key)!);
 
-        if (ServerConfig.cacheParams.maxApproximateSizeInBytes < this.approximateSize + approximateSize) {
+        if (ServerConfig.cacheMaxSizeInBytes < this.approximateSize + approximateSize) {
             if (this.entries.last) this.dispose(this.entries.last);
         }
 
