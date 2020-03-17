@@ -6,7 +6,7 @@
 
 import { Sphere3D } from '../../mol-math/geometry'
 import { Vec3 } from '../../mol-math/linear-algebra'
-import { BoundaryHelper, HierarchyHelper } from '../../mol-math/geometry/boundary-helper';
+import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 
 export function calculateTextureInfo (n: number, itemSize: number) {
     const sqN = Math.sqrt(n)
@@ -83,22 +83,14 @@ export function printImageData(imageData: ImageData, scale = 1, pixelated = fals
 const v = Vec3.zero()
 const boundaryHelperCoarse = new BoundaryHelper('14')
 const boundaryHelperFine = new BoundaryHelper('98')
-const hierarchyHelperCoarse = new HierarchyHelper('14')
-const hierarchyHelperFine = new HierarchyHelper('98')
 
 function getHelper(count: number) {
-    return count > 500_000 ? {
-        boundaryHelper: boundaryHelperCoarse,
-        hierarchyHelper: hierarchyHelperCoarse
-    } : {
-        boundaryHelper: boundaryHelperFine,
-        hierarchyHelper: hierarchyHelperFine
-    }
+    return count > 500_000 ? boundaryHelperCoarse : boundaryHelperFine
 }
 
 export function calculateInvariantBoundingSphere(position: Float32Array, positionCount: number, stepFactor: number): Sphere3D {
     const step = stepFactor * 3
-    const { boundaryHelper, hierarchyHelper } = getHelper(positionCount)
+    const boundaryHelper = getHelper(positionCount)
 
     boundaryHelper.reset()
     for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
@@ -111,49 +103,42 @@ export function calculateInvariantBoundingSphere(position: Float32Array, positio
         boundaryHelper.radiusStep(v)
     }
 
-    const hierarchyInput = boundaryHelper.getHierarchyInput()
-    if (hierarchyInput) {
-        hierarchyHelper.reset(hierarchyInput.sphere, hierarchyInput.normal)
-        for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
-            Vec3.fromArray(v, position, i)
-            hierarchyHelper.includeStep(v)
-        }
-        hierarchyHelper.finishedIncludeStep()
-        for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
-            Vec3.fromArray(v, position, i)
-            hierarchyHelper.radiusStep(v)
-        }
-        return hierarchyHelper.getSphere()
-    } else {
-        return boundaryHelper.getSphere()
-    }
+    return boundaryHelper.getSphere()
 }
 
 export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere3D, transform: Float32Array, transformCount: number): Sphere3D {
-    const { boundaryHelper } = getHelper(transformCount)
+    const boundaryHelper = getHelper(transformCount)
     boundaryHelper.reset()
 
-    const transformedSpheres: Sphere3D[] = []
-    for (const b of Sphere3D.getList(invariantBoundingSphere)) {
+    const { center, radius, extrema } = invariantBoundingSphere
+
+    if (extrema) {
         for (let i = 0, _i = transformCount; i < _i; ++i) {
-            const c = Vec3.transformMat4Offset(Vec3(), b.center, transform, 0, 0, i * 16)
-            transformedSpheres.push(Sphere3D.create(c as Vec3, b.radius))
+            for (const e of extrema) {
+                Vec3.transformMat4Offset(v, e, transform, 0, 0, i * 16)
+                boundaryHelper.includeStep(v)
+            }
+        }
+        boundaryHelper.finishedIncludeStep()
+        for (let i = 0, _i = transformCount; i < _i; ++i) {
+            for (const e of extrema) {
+                Vec3.transformMat4Offset(v, e, transform, 0, 0, i * 16)
+                boundaryHelper.radiusStep(v)
+            }
+        }
+    } else {
+        for (let i = 0, _i = transformCount; i < _i; ++i) {
+            Vec3.transformMat4Offset(v, center, transform, 0, 0, i * 16)
+            boundaryHelper.includeSphereStep(v, radius)
+        }
+        boundaryHelper.finishedIncludeStep()
+        for (let i = 0, _i = transformCount; i < _i; ++i) {
+            Vec3.transformMat4Offset(v, center, transform, 0, 0, i * 16)
+            boundaryHelper.radiusSphereStep(v, radius)
         }
     }
 
-    for (const b of transformedSpheres) {
-        boundaryHelper.includeSphereStep(b.center, b.radius)
-    }
-    boundaryHelper.finishedIncludeStep()
-    for (const b of transformedSpheres) {
-        boundaryHelper.radiusSphereStep(b.center, b.radius)
-    }
-
-    const sphere = boundaryHelper.getSphere()
-    if (transformedSpheres.length > 1) {
-        (sphere as Sphere3D.Hierarchy).hierarchy = transformedSpheres
-    }
-    return sphere
+    return boundaryHelper.getSphere()
 }
 
 export function calculateBoundingSphere(position: Float32Array, positionCount: number, transform: Float32Array, transformCount: number, padding = 0, stepFactor = 1): { boundingSphere: Sphere3D, invariantBoundingSphere: Sphere3D } {

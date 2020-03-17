@@ -8,24 +8,23 @@
 import { Vec3, Mat4, EPSILON } from '../../linear-algebra'
 import { PositionData } from '../common'
 import { OrderedSet } from '../../../mol-data/int';
-import { NumberArray } from '../../../mol-util/type-helpers';
+import { NumberArray, PickRequired } from '../../../mol-util/type-helpers';
 import { Box3D } from './box3d';
 import { Axes3D } from './axes3d';
 
-type Sphere3D = Sphere3D.Data | Sphere3D.Hierarchy
+interface Sphere3D {
+    center: Vec3,
+    radius: number,
+    extrema?: Vec3[]
+}
 
 function Sphere3D() {
     return Sphere3D.zero();
 }
 
 namespace Sphere3D {
-    export interface Data { center: Vec3, radius: number }
-    export interface Hierarchy extends Data { hierarchy: Sphere3D[] }
-    export function isHierarchy(x: Sphere3D | Hierarchy): x is Hierarchy {
-        return 'hierarchy' in x
-    }
-    export function getList(sphere: Sphere3D) {
-        return Sphere3D.isHierarchy(sphere) ? sphere.hierarchy : [sphere]
+    export function hasExtrema(sphere: Sphere3D): sphere is PickRequired<Sphere3D, 'extrema'> {
+        return sphere.extrema !== undefined
     }
 
     export function create(center: Vec3, radius: number): Sphere3D { return { center, radius }; }
@@ -33,22 +32,25 @@ namespace Sphere3D {
 
     export function clone(a: Sphere3D): Sphere3D {
         const out = create(Vec3.clone(a.center), a.radius)
-        if (isHierarchy(a)) (out as Hierarchy).hierarchy = a.hierarchy
+        if (hasExtrema(a)) out.extrema = a.extrema
         return out;
     }
 
     export function copy(out: Sphere3D, a: Sphere3D) {
         Vec3.copy(out.center, a.center)
         out.radius = a.radius
-        if (isHierarchy(a)) {
-            if (isHierarchy(out)) {
-                out.hierarchy.length = 0
-                out.hierarchy.push(...a.hierarchy)
-            } else {
-                (out as Hierarchy).hierarchy = a.hierarchy
-            }
-        }
+        if (hasExtrema(a)) setExtrema(out, a.extrema)
         return out;
+    }
+
+    export function setExtrema(out: Sphere3D, extrema: Vec3[]): Sphere3D {
+        if (out.extrema !== undefined) {
+            out.extrema.length = 0
+            out.extrema.push(...extrema)
+        } else {
+            out.extrema = [...extrema]
+        }
+        return out
     }
 
     export function computeBounding(data: PositionData): Sphere3D {
@@ -129,18 +131,19 @@ namespace Sphere3D {
         return out
     }
 
+    const tmpDir = Vec3()
     /** Expand sphere radius by delta */
     export function expand(out: Sphere3D, sphere: Sphere3D, delta: number): Sphere3D {
         Vec3.copy(out.center, sphere.center)
         out.radius = sphere.radius + delta
-        if (isHierarchy(sphere)) {
-            const hierarchy = sphere.hierarchy.map(s => expand(Sphere3D(), s, delta))
-            if (isHierarchy(out)) {
-                out.hierarchy.length = 0
-                out.hierarchy.push(...hierarchy)
-            } else {
-                (out as Hierarchy).hierarchy = hierarchy
-            }
+        if (hasExtrema(sphere)) {
+            setExtrema(out, sphere.extrema.map(e => {
+                Vec3.sub(tmpDir, sphere.center, e)
+                const dist = Vec3.distance(sphere.center, e)
+                Vec3.normalize(tmpDir, tmpDir)
+                return Vec3.scaleAndAdd(Vec3(), e, tmpDir, dist + delta)
+            }))
+            setExtrema(out, sphere.extrema)
         }
         return out
     }

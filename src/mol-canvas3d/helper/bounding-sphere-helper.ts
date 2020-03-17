@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -45,16 +45,16 @@ export class BoundingSphereHelper {
     }
 
     update() {
-        const newSceneData = updateBoundingSphereData(this.scene, this.parent.boundingSphere, this.sceneData, ColorNames.grey)
+        const newSceneData = updateBoundingSphereData(this.scene, this.parent.boundingSphere, this.sceneData, ColorNames.grey, sceneMaterialId)
         if (newSceneData) this.sceneData = newSceneData
 
         this.parent.forEach((r, ro) => {
             const objectData = this.objectsData.get(ro)
-            const newObjectData = updateBoundingSphereData(this.scene, r.values.boundingSphere.ref.value, objectData, ColorNames.tomato)
+            const newObjectData = updateBoundingSphereData(this.scene, r.values.boundingSphere.ref.value, objectData, ColorNames.tomato, objectMaterialId)
             if (newObjectData) this.objectsData.set(ro, newObjectData)
 
             const instanceData = this.instancesData.get(ro)
-            const newInstanceData = updateBoundingSphereData(this.scene, r.values.invariantBoundingSphere.ref.value, instanceData, ColorNames.skyblue, {
+            const newInstanceData = updateBoundingSphereData(this.scene, r.values.invariantBoundingSphere.ref.value, instanceData, ColorNames.skyblue, instanceMaterialId, {
                 aTransform: ro.values.aTransform,
                 matrix: ro.values.matrix,
                 transform: ro.values.transform,
@@ -114,10 +114,10 @@ export class BoundingSphereHelper {
     }
 }
 
-function updateBoundingSphereData(scene: Scene, boundingSphere: Sphere3D, data: BoundingSphereData | undefined, color: Color, transform?: TransformData) {
+function updateBoundingSphereData(scene: Scene, boundingSphere: Sphere3D, data: BoundingSphereData | undefined, color: Color, materialId: number, transform?: TransformData) {
     if (!data || !Sphere3D.equals(data.boundingSphere, boundingSphere)) {
         const mesh = createBoundingSphereMesh(boundingSphere, data && data.mesh)
-        const renderObject = data ? data.renderObject : createBoundingSphereRenderObject(mesh, color, transform)
+        const renderObject = data ? data.renderObject : createBoundingSphereRenderObject(mesh, color, materialId, transform)
         if (data) {
             ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(mesh))
         } else {
@@ -132,15 +132,19 @@ function createBoundingSphereMesh(boundingSphere: Sphere3D, mesh?: Mesh) {
     const vertexCount = sphereVertexCount(detail)
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh)
     if (boundingSphere.radius) {
-        for (const b of Sphere3D.getList(boundingSphere)) {
-            addSphere(builderState, b.center, b.radius, detail)
+        addSphere(builderState, boundingSphere.center, boundingSphere.radius, detail)
+        if (Sphere3D.hasExtrema(boundingSphere)) {
+            for (const e of boundingSphere.extrema) addSphere(builderState, e, 1.0, 0)
         }
     }
     return MeshBuilder.getMesh(builderState)
 }
 
-const boundingSphereHelberMaterialId = getNextMaterialId()
-function createBoundingSphereRenderObject(mesh: Mesh, color: Color, transform?: TransformData) {
+const sceneMaterialId = getNextMaterialId()
+const objectMaterialId = getNextMaterialId()
+const instanceMaterialId = getNextMaterialId()
+
+function createBoundingSphereRenderObject(mesh: Mesh, color: Color, materialId: number, transform?: TransformData) {
     const values = Mesh.Utils.createValuesSimple(mesh, { alpha: 0.1, doubleSided: false }, color, 1, transform)
-    return createRenderObject('mesh', values, { visible: true, alphaFactor: 1, pickable: false, opaque: false }, boundingSphereHelberMaterialId)
+    return createRenderObject('mesh', values, { visible: true, alphaFactor: 1, pickable: false, opaque: false }, materialId)
 }

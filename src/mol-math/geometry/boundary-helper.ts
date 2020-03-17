@@ -11,8 +11,6 @@ import { Box3D } from './primitives/box3d';
 
 // implementing http://www.ep.liu.se/ecp/034/009/ecp083409.pdf
 
-const MinThresholdDist = 0.1
-
 export class BoundaryHelper {
     private dir: Vec3[]
 
@@ -74,30 +72,8 @@ export class BoundaryHelper {
         this.centroidHelper.radiusSphereStep(center, radius);
     }
 
-    getHierarchyInput() {
-        if (this.centroidHelper.getCount() < 2) return false
-
-        const sphere = this.centroidHelper.getSphere();
-        const normal = Vec3()
-        const t = sphere.radius * this.hierarchyThresholdFactor
-
-        let maxDist = -Infinity
-        let belowThreshold = false
-
-        for (let i = 0; i < this.extrema.length; i += 2) {
-            const halfDist = Vec3.distance(this.extrema[i], this.extrema[i + 1]) / 2
-            if (halfDist > maxDist) {
-                maxDist = halfDist
-                Vec3.normalize(normal, Vec3.sub(normal, this.extrema[i], this.extrema[i + 1]))
-            }
-            if (halfDist < t) belowThreshold = true
-        }
-
-        return (belowThreshold && maxDist > MinThresholdDist) ? { sphere, normal } : false
-    }
-
     getSphere(sphere?: Sphere3D) {
-        return this.centroidHelper.getSphere(sphere)
+        return Sphere3D.setExtrema(this.centroidHelper.getSphere(sphere), this.extrema)
     }
 
     getBox(box?: Box3D) {
@@ -116,67 +92,10 @@ export class BoundaryHelper {
         this.centroidHelper.reset()
     }
 
-    constructor(quality: EposQuality, private hierarchyThresholdFactor = 0.66) {
+    constructor(quality: EposQuality) {
         this.dir = getEposDir(quality)
         this.reset()
     }
-}
-
-export class HierarchyHelper {
-    private tmpV = Vec3()
-    private tmpS = Sphere3D()
-
-    private sphere = Sphere3D()
-    private normal = Vec3()
-    private helperA = new BoundaryHelper(this.quality)
-    private helperB = new BoundaryHelper(this.quality)
-
-    private checkSide(p: Vec3) {
-        return Vec3.dot(this.normal, Vec3.sub(this.tmpV, this.sphere.center, p)) > 0
-    }
-
-    includeStep(p: Vec3) {
-        if (this.checkSide(p)) {
-            this.helperA.includeStep(p)
-        } else {
-            this.helperB.includeStep(p)
-        }
-    }
-
-    finishedIncludeStep() {
-        this.helperA.finishedIncludeStep();
-        this.helperB.finishedIncludeStep();
-    }
-
-    radiusStep(p: Vec3) {
-        if (this.checkSide(p)) {
-            this.helperA.radiusStep(p)
-        } else {
-            this.helperB.radiusStep(p)
-        }
-    }
-
-    getSphere(): Sphere3D {
-        const sphereA = this.helperA.getSphere()
-        const sphereB = this.helperB.getSphere()
-        Sphere3D.expandBySphere(this.tmpS, this.sphere, sphereA)
-        Sphere3D.expandBySphere(this.tmpS, this.tmpS, sphereB)
-        // check if the split spheres actually result in a smaller radius
-        return this.tmpS.radius < this.sphere.radius ? {
-            center: Vec3.clone(this.sphere.center),
-            radius: this.sphere.radius,
-            hierarchy: [this.helperA.getSphere(), this.helperB.getSphere()]
-        } : Sphere3D.clone(this.sphere)
-    }
-
-    reset(sphere: Sphere3D, normal: Vec3) {
-        Sphere3D.copy(this.sphere, sphere)
-        Vec3.copy(this.normal, normal)
-        this.helperA.reset()
-        this.helperB.reset()
-    }
-
-    constructor(private quality: EposQuality) { }
 }
 
 type EposQuality = '6' | '14' | '26' | '98'
