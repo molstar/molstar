@@ -17,6 +17,7 @@ import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { transformCage, cloneCage } from '../../mol-geo/primitive/cage';
 import { radToDeg } from '../../mol-math/misc';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
+import { Sphere3D } from '../../mol-math/geometry';
 
 const translate05 = Mat4.fromTranslation(Mat4(), Vec3.create(0.5, 0.5, 0.5))
 const unitCage = transformCage(cloneCage(BoxCage()), translate05)
@@ -50,7 +51,24 @@ function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) 
     state.currentGroup = 1
     MeshBuilder.addCage(state, fromFractional, cellCage, radius, 2, 20)
 
-    return MeshBuilder.getMesh(state)
+    const cpA = Vec3.create(0, 0, 0)
+    Vec3.transformMat4(cpA, Vec3.add(cpA, cpA, tmpRef), fromFractional)
+    const cpB = Vec3.create(1, 1, 1)
+    Vec3.transformMat4(cpB, Vec3.add(cpB, cpB, tmpRef), fromFractional)
+    const cpC = Vec3.create(1, 0, 0)
+    Vec3.transformMat4(cpC, Vec3.add(cpC, cpC, tmpRef), fromFractional)
+    const cpD = Vec3.create(0, 1, 1)
+    Vec3.transformMat4(cpD, Vec3.add(cpD, cpD, tmpRef), fromFractional)
+
+    const center = Vec3()
+    Vec3.add(center, cpA, cpB)
+    Vec3.scale(center, center, 0.5)
+    const d = Math.max(Vec3.distance(cpA, cpB), Vec3.distance(cpC, cpD))
+    const sphere = Sphere3D.create(center, d / 2 + radius)
+
+    const m = MeshBuilder.getMesh(state)
+    m.setBoundingSphere(sphere)
+    return m
 }
 
 export async function getUnitcellRepresentation(ctx: RuntimeContext, model: Model, params: UnitcellProps, prev?: ShapeRepresentation<UnitcellData, Mesh, Mesh.Params>) {
