@@ -7,6 +7,7 @@
 
 export type Mutable<T> = { -readonly [P in keyof T]: T[P] }
 export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
+export type PickRequired<T, K extends keyof T> = T & Required<Pick<T, K>>
 
 export type TypedIntArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array
 export type TypedFloatArray = Float32Array | Float64Array
