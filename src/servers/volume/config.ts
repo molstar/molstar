@@ -6,6 +6,7 @@
  */
 
 import * as argparse from 'argparse'
+import { ObjectKeys } from '../../mol-util/type-helpers';
 
 export function addLimitsArgs(parser: argparse.ArgumentParser) {
     parser.addArgument([ '--maxRequestBlockCount' ], {
@@ -63,9 +64,31 @@ export function addServerArgs(parser: argparse.ArgumentParser) {
         help: [
             'Map `id`s for a `type` to a file path.',
             'Example: x-ray \'../../data/mdb/xray/${id}-ccp4.mdb\'',
-            'Note: Can be specified multiple times.'
+            '',
+            '  - JS expressions can be used with in the ${}, e.g. \'${id.substr(1, 2)}/${id}.mdb\'',
+            '  - Can be specified multiple times.',
+            '  - The "TYPE" variable (e.g. "x-ray") is arbitrary and depends on how you plan to use the server.',
+            '    By default, Mol* Viewer uses "x-ray" and "em", but any particular use case may vary. '
         ].join('\n'),
     });
+}
+
+export function addJsonConfigArgs(parser: argparse.ArgumentParser) {
+    parser.addArgument(['--cfg'], { 
+        help: [
+            'JSON config file path',
+            'If a property is not specified, cmd line param/OS variable/default value are used.'
+        ].join('\n'),
+        required: false 
+    });
+    parser.addArgument(['--printCfg'], { help: 'Print current config for validation and exit.', required: false, nargs: 0 });
+    parser.addArgument(['--printCfgTemplate'], { help: 'Prints default JSON config template to be modified and exits.', required: false, nargs: 0 });
+}
+
+export interface ServerJsonConfig {
+    cfg?: string,
+    printCfg?: any,
+    printCfgTemplate?: any
 }
 
 const DefaultServerConfig = {
@@ -77,8 +100,17 @@ const DefaultServerConfig = {
 }
 export type ServerConfig = typeof DefaultServerConfig
 export const ServerConfig = { ...DefaultServerConfig }
+
 export function setServerConfig(config: ServerConfig) {
-    Object.assign(ServerConfig, config)
+    for (const k of ObjectKeys(ServerConfig)) {
+        if (config[k]) (ServerConfig as any)[k] = config[k];
+    }
+}
+
+export function validateServerConfig() {
+    if (!ServerConfig.idMap || ServerConfig.idMap.length === 0) {
+        throw new Error(`Please provide 'idMap' configuration. See [-h] for available options.`);
+    }
 }
 
 const DefaultLimitsConfig = {
@@ -97,10 +129,21 @@ const DefaultLimitsConfig = {
 export type LimitsConfig = typeof DefaultLimitsConfig
 export const LimitsConfig = { ...DefaultLimitsConfig }
 export function setLimitsConfig(config: LimitsConfig) {
-    Object.assign(LimitsConfig, config)
+    for (const k of ObjectKeys(LimitsConfig)) {
+        if (config[k]) (LimitsConfig as any)[k] = config[k];
+    }
 }
 
 export function setConfig(config: ServerConfig & LimitsConfig) {
     setServerConfig(config)
     setLimitsConfig(config)
+}
+
+export const ServerConfigTemplate: ServerConfig & LimitsConfig = {
+    ...DefaultServerConfig,
+    idMap: [
+        ['x-ray', './path-to-xray-data/${id.substr(1, 2)}/${id}.mdb'],
+        ['em', './path-to-em-data/emd-${id}.mdb']
+    ] as [string, string][],
+    ...DefaultLimitsConfig
 }

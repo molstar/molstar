@@ -14,8 +14,9 @@ import init from './server/web-api'
 import VERSION from './server/version'
 import { ConsoleLogger } from '../../mol-util/console-logger'
 import { State } from './server/state'
-import { addServerArgs, addLimitsArgs, LimitsConfig, setConfig, ServerConfig } from './config';
+import { addServerArgs, addLimitsArgs, LimitsConfig, setConfig, ServerConfig, addJsonConfigArgs, ServerJsonConfig, ServerConfigTemplate, validateServerConfig } from './config';
 import * as argparse from 'argparse'
+import * as fs from 'fs'
 
 function setupShutdown() {
     if (ServerConfig.shutdownTimeoutVarianceMinutes > ServerConfig.shutdownTimeoutMinutes) {
@@ -48,11 +49,35 @@ const parser = new argparse.ArgumentParser({
     addHelp: true,
     description: `VolumeServer ${VERSION}, (c) 2018-2019, Mol* contributors`
 });
+addJsonConfigArgs(parser);
 addServerArgs(parser)
 addLimitsArgs(parser)
 
-const config: ServerConfig & LimitsConfig = parser.parseArgs()
-setConfig(config) // sets the config for global use
+const config: ServerConfig & LimitsConfig & ServerJsonConfig = parser.parseArgs()
+
+if (config.printCfgTemplate !== null) {
+    console.log(JSON.stringify(ServerConfigTemplate, null, 2));
+    process.exit(0);
+}
+
+try {
+    setConfig(config) // sets the config for global use
+
+    if (config.cfg) {
+        const cfg = JSON.parse(fs.readFileSync(config.cfg, 'utf8')) as ServerConfig & LimitsConfig;
+        setConfig(cfg);
+    }
+
+    if (config.printCfg !== null) {
+        console.log(JSON.stringify({ ...ServerConfig, ...LimitsConfig }, null, 2));
+        process.exit(0);
+    }
+
+    validateServerConfig();
+} catch (e) {
+    console.error('' + e);
+    process.exit(1);
+}
 
 const port = process.env.port || ServerConfig.defaultPort;
 
