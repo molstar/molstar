@@ -13,6 +13,7 @@ import { OrderedSet } from '../../../../mol-data/int';
 import { StructureUniqueSubsetBuilder } from './unique-subset-builder';
 import StructureElement from '../element';
 import Unit from '../unit';
+import { getBoundary } from '../../../../mol-math/geometry/boundary';
 
 export interface StructureResult extends Result<StructureElement.UnitIndex> {
     units: Unit[]
@@ -174,6 +175,7 @@ export class StructureLookup3D {
             radius[i] = s.radius;
         }
 
-        this.unitLookup = GridLookup3D({ x: xs, y: ys, z: zs, radius, indices: OrderedSet.ofBounds(0, unitCount) });
+        const position = { x: xs, y: ys, z: zs, radius, indices: OrderedSet.ofBounds(0, unitCount) }
+        this.unitLookup = GridLookup3D(position, getBoundary(position));
     }
 }

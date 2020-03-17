@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,6 +20,7 @@ import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElement
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { getPrincipalAxes } from './util/principal-axes';
+import { Boundary, getBoundary } from '../../../mol-math/geometry/boundary';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -128,6 +129,7 @@ namespace Unit {
         getChild(elements: StructureElement.Set): Unit,
         applyOperator(id: number, operator: SymmetryOperator, dontCompose?: boolean /* = false */): Unit,
 
+        readonly boundary: Boundary
         readonly lookup3d: Lookup3D<StructureElement.UnitIndex>
         readonly polymerElements: SortedArray<ElementIndex>
         readonly gapElements: SortedArray<ElementIndex>
@@ -138,6 +140,7 @@ namespace Unit {
     }
 
     interface BaseProperties {
+        boundary: ValueRef<Boundary | undefined>,
         lookup3d: ValueRef<Lookup3D<StructureElement.UnitIndex> | undefined>,
         principalAxes: ValueRef<PrincipalAxes | undefined>,
         polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
@@ -147,6 +150,7 @@ namespace Unit {
 
     function BaseProperties(): BaseProperties {
         return {
+            boundary: ValueRef.create(void 0),
             lookup3d: ValueRef.create(void 0),
             principalAxes: ValueRef.create(void 0),
             polymerElements: ValueRef.create(void 0),
@@ -203,10 +207,17 @@ namespace Unit {
             return new Atomic(id, this.invariantId, this.chainGroupId, this.traits, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomicConformation, this.conformation.r), this.props);
         }
 
+        get boundary() {
+            if (this.props.boundary.ref) return this.props.boundary.ref;
+            const { x, y, z } = this.model.atomicConformation;
+            this.props.boundary.ref = getBoundary({ x, y, z, indices: this.elements });
+            return this.props.boundary.ref;
+        }
+
         get lookup3d() {
             if (this.props.lookup3d.ref) return this.props.lookup3d.ref;
             const { x, y, z } = this.model.atomicConformation;
-            this.props.lookup3d.ref = GridLookup3D({ x, y, z, indices: this.elements });
+            this.props.lookup3d.ref = GridLookup3D({ x, y, z, indices: this.elements }, this.boundary);
             return this.props.lookup3d.ref;
         }
 
@@ -333,11 +344,19 @@ namespace Unit {
             return ret;
         }
 
+        get boundary() {
+            if (this.props.boundary.ref) return this.props.boundary.ref;
+            // TODO: support sphere radius?
+            const { x, y, z } = this.getCoarseConformation();
+            this.props.boundary.ref = getBoundary({ x, y, z, indices: this.elements });
+            return this.props.boundary.ref;
+        }
+
         get lookup3d() {
             if (this.props.lookup3d.ref) return this.props.lookup3d.ref;
             // TODO: support sphere radius?
             const { x, y, z } = this.getCoarseConformation();
-            this.props.lookup3d.ref = GridLookup3D({ x, y, z, indices: this.elements });
+            this.props.lookup3d.ref = GridLookup3D({ x, y, z, indices: this.elements }, this.boundary);
             return this.props.lookup3d.ref;
         }
 

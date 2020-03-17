@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,14 +11,14 @@ import { Sphere3D } from '../primitives/sphere3d';
 import { PositionData } from '../common';
 import { Vec3 } from '../../linear-algebra';
 import { OrderedSet } from '../../../mol-data/int';
-import { BoundaryHelper } from '../boundary-helper';
+import { Boundary } from '../../../mol-model/structure/structure/util/boundary';
 
 interface GridLookup3D<T = number> extends Lookup3D<T> {
     readonly buckets: { readonly offset: ArrayLike<number>, readonly count: ArrayLike<number>, readonly array: ArrayLike<number> }
 }
 
-function GridLookup3D<T extends number = number>(data: PositionData, cellSizeOrCount?: Vec3 | number): GridLookup3D<T> {
-    return new GridLookup3DImpl<T>(data, cellSizeOrCount);
+function GridLookup3D<T extends number = number>(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | number): GridLookup3D<T> {
+    return new GridLookup3DImpl<T>(data, boundary, cellSizeOrCount);
 }
 
 export { GridLookup3D }
@@ -48,8 +48,8 @@ class GridLookup3DImpl<T extends number = number> implements GridLookup3D<T> {
         return query(this.ctx);
     }
 
-    constructor(data: PositionData, cellSizeOrCount?: Vec3 | number) {
-        const structure = build(data, cellSizeOrCount);
+    constructor(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | number) {
+        const structure = build(data, boundary, cellSizeOrCount);
         this.ctx = createContext<T>(structure);
         this.boundary = { box: structure.boundingBox, sphere: structure.boundingSphere };
         this.buckets = { offset: structure.bucketOffset, count: structure.bucketCounts, array: structure.bucketArray };
@@ -166,36 +166,9 @@ function _build(state: BuildState): Grid3D {
     }
 }
 
-const boundaryHelperCoarse = new BoundaryHelper('14');
-const boundaryHelperFine = new BoundaryHelper('98');
-function getBoundaryHelper(count: number) {
-    return count > 500_000 ? boundaryHelperCoarse : boundaryHelperFine
-}
-
-function getBoundary(data: PositionData) {
-    const { x, y, z, radius, indices } = data;
-    const p = Vec3();
-    const boundaryHelper = getBoundaryHelper(OrderedSet.size(indices));
-    boundaryHelper.reset();
-    for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
-        const i = OrderedSet.getAt(indices, t);
-        Vec3.set(p, x[i], y[i], z[i]);
-        boundaryHelper.includeSphereStep(p, (radius && radius[i]) || 0);
-    }
-    boundaryHelper.finishedIncludeStep();
-    for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
-        const i = OrderedSet.getAt(indices, t);
-        Vec3.set(p, x[i], y[i], z[i]);
-        boundaryHelper.radiusSphereStep(p, (radius && radius[i]) || 0);
-    }
-
-    return { boundingBox: boundaryHelper.getBox(), boundingSphere: boundaryHelper.getSphere() };
-}
-
-function build(data: PositionData, cellSizeOrCount?: Vec3 | number) {
-    const { boundingBox, boundingSphere } = getBoundary(data);
+function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | number) {
     // need to expand the grid bounds to avoid rounding errors
-    const expandedBox = Box3D.expand(Box3D.empty(), boundingBox, Vec3.create(0.5, 0.5, 0.5));
+    const expandedBox = Box3D.expand(Box3D.empty(), boundary.box, Vec3.create(0.5, 0.5, 0.5));
     const { indices } = data;
 
     const S = Box3D.size(Vec3.zero(), expandedBox);
@@ -233,8 +206,8 @@ function build(data: PositionData, cellSizeOrCount?: Vec3 | number) {
         size,
         data: inputData,
         expandedBox,
-        boundingBox,
-        boundingSphere,
+        boundingBox: boundary.box,
+        boundingSphere: boundary.sphere,
         elementCount,
         delta
     }

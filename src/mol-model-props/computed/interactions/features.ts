@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,6 +11,7 @@ import { OrderedSet, SortedArray } from '../../../mol-data/int';
 import { FeatureGroup, FeatureType } from './common';
 import { ValenceModelProvider } from '../valence-model';
 import { Vec3 } from '../../../mol-math/linear-algebra';
+import { getBoundary } from '../../../mol-math/geometry/boundary';
 
 export { Features }
 
@@ -105,7 +106,11 @@ namespace Features {
         return {
             ...data,
             get lookup3d() {
-                return lookup3d || (lookup3d = GridLookup3D({ x: data.x, y: data.y, z: data.z, indices: OrderedSet.ofBounds(0 as FeatureIndex, data.count as FeatureIndex) }))
+                if (!lookup3d) {
+                    const position = { x: data.x, y: data.y, z: data.z, indices: OrderedSet.ofBounds(0 as FeatureIndex, data.count as FeatureIndex) }
+                    lookup3d = GridLookup3D(position, getBoundary(position))
+                }
+                return lookup3d
             },
             get elementsIndex() {
                 return elementsIndex || (elementsIndex = createElementsIndex(data, elementsCount))
@@ -128,7 +133,11 @@ namespace Features {
         return {
             indices,
             get lookup3d() {
-                return lookup3d || (lookup3d = GridLookup3D({ x: data.x, y: data.y, z: data.z, indices }))
+                if (!lookup3d) {
+                    const position = { x: data.x, y: data.y, z: data.z, indices }
+                    lookup3d = GridLookup3D(position, getBoundary(position))
+                }
+                return lookup3d
             }
         }
     }

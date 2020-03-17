@@ -15,6 +15,7 @@ import { PositionData } from './common';
 import { Mat4 } from '../../mol-math/linear-algebra/3d';
 import { Box3D, GridLookup3D, fillGridDim } from '../../mol-math/geometry';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
+import { Boundary } from '../../mol-model/structure/structure/util/boundary';
 
 function normalToLine (out: Vec3, p: Vec3) {
     out[0] = out[1] = out[2] = 1.0
@@ -54,7 +55,7 @@ export const DefaultMolecularSurfaceCalculationProps = PD.getDefaultValues(Molec
 export type MolecularSurfaceCalculationProps = typeof DefaultMolecularSurfaceCalculationProps
 
 
-export async function calcMolecularSurface(ctx: RuntimeContext, position: Required<PositionData>, maxRadius: number, box: Box3D | null, props: MolecularSurfaceCalculationProps) {
+export async function calcMolecularSurface(ctx: RuntimeContext, position: Required<PositionData>, boundary: Boundary, maxRadius: number, box: Box3D | null, props: MolecularSurfaceCalculationProps) {
     // Field generation method adapted from AstexViewer (Mike Hartshorn) by Fred Ludlow.
     // Other parts based heavily on NGL (Alexander Rose) EDT Surface class
 
@@ -320,7 +321,7 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
 
     const cellSize = Vec3.create(maxRadius, maxRadius, maxRadius)
     Vec3.scale(cellSize, cellSize, 2)
-    const lookup3d = GridLookup3D(position, cellSize)
+    const lookup3d = GridLookup3D(position, boundary, cellSize)
     const neighbours = lookup3d.result
     if (box === null) box = lookup3d.boundary.box
 

@@ -14,6 +14,7 @@ import { AtomicNumbers, AtomNumber } from '../../../../mol-model/structure/model
 import { fillSerial } from '../../../../mol-util/array';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { AssignableArrayLike } from '../../../../mol-util/type-helpers';
+import { getBoundary } from '../../../../mol-math/geometry/boundary';
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
@@ -139,7 +140,7 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, p
 
     const { x, y, z } = getConformation(rootUnit)
     const { elements } = rootUnit
-    const { center, radius: sphereRadius } = unit.lookup3d.boundary.sphere
+    const { center, radius: sphereRadius } = unit.boundary.sphere
     const extraRadius = (2 + 1.5) * 2 // TODO should be twice (the max vdW/sphere radius plus the probe radius)
     const radiusSq = (sphereRadius + extraRadius) * (sphereRadius + extraRadius)
 
@@ -169,6 +170,7 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, p
     }
 
     const position = { indices, x, y, z, id }
+    const boundary = unit === rootUnit ? unit.boundary : getBoundary(position)
 
     const l = StructureElement.Location.create(structure, rootUnit)
     const sizeTheme = PhysicalSizeTheme({}, {})
@@ -177,7 +179,7 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, p
         return sizeTheme.size(l)
     }
 
-    return { position, radius }
+    return { position, boundary, radius }
 }
 
 export function getStructureConformationAndRadius(structure: Structure, ignoreHydrogens: boolean) {

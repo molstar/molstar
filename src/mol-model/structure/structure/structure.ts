@@ -28,6 +28,7 @@ import { UUID } from '../../../mol-util';
 import { CustomProperties } from '../common/custom-property';
 import { AtomicHierarchy } from '../model/properties/atomic';
 import { StructureSelection } from '../query/selection';
+import { getBoundary } from '../../../mol-math/geometry/boundary';
 
 class Structure {
     /** Maps unit.id to unit */
@@ -696,7 +697,8 @@ namespace Structure {
 
     function partitionAtomicUnitByAtom(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean) {
         const { x, y, z } = model.atomicConformation;
-        const lookup = GridLookup3D({ x, y, z, indices }, 8192);
+        const position = { x, y, z, indices }
+        const lookup = GridLookup3D(position, getBoundary(position), 8192);
         const { offset, count, array } = lookup.buckets;
 
         const traits = (multiChain ? Unit.Trait.MultiChain : Unit.Trait.None) | (offset.length > 1 ? Unit.Trait.Partitioned : Unit.Trait.None);
@@ -731,7 +733,8 @@ namespace Structure {
         const gridCellCount = 512 * firstResidueAtomCount
 
         const { x, y, z } = model.atomicConformation;
-        const lookup = GridLookup3D({ x, y, z, indices: SortedArray.ofSortedArray(startIndices) }, gridCellCount);
+        const position = { x, y, z, indices: SortedArray.ofSortedArray(startIndices) }
+        const lookup = GridLookup3D(position, getBoundary(position), gridCellCount);
         const { offset, count, array } = lookup.buckets;
 
         const traits = (multiChain ? Unit.Trait.MultiChain : Unit.Trait.None) | (offset.length > 1 ? Unit.Trait.Partitioned : Unit.Trait.None);
