@@ -62,6 +62,8 @@ export interface Text {
     readonly boundingSphere: Sphere3D
     /** Maps group ids to text indices */
     readonly groupMapping: GroupMapping
+
+    setBoundingSphere(boundingSphere: Sphere3D): void
 }
 
 export namespace Text {
@@ -124,6 +126,10 @@ export namespace Text {
                     currentGroup = text.groupBuffer.ref.version
                 }
                 return groupMapping
+            },
+            setBoundingSphere(sphere: Sphere3D) {
+                Sphere3D.copy(boundingSphere, sphere)
+                currentHash = hashCode(text)
             }
         }
         return text

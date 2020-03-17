@@ -42,6 +42,8 @@ export interface Spheres {
     readonly boundingSphere: Sphere3D
     /** Maps group ids to sphere indices */
     readonly groupMapping: GroupMapping
+
+    setBoundingSphere(boundingSphere: Sphere3D): void
 }
 
 export namespace Spheres {
@@ -97,6 +99,10 @@ export namespace Spheres {
                     currentGroup = spheres.groupBuffer.ref.version
                 }
                 return groupMapping
+            },
+            setBoundingSphere(sphere: Sphere3D) {
+                Sphere3D.copy(boundingSphere, sphere)
+                currentHash = hashCode(spheres)
             }
         }
         return spheres

@@ -6,9 +6,7 @@
 
 import { ValueCell } from '../../../mol-util'
 import { Mat4 } from '../../../mol-math/linear-algebra'
-import { transformPositionArray,/* , transformDirectionArray, getNormalMatrix */
-GroupMapping,
-createGroupMapping} from '../../util';
+import { transformPositionArray, GroupMapping, createGroupMapping} from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
@@ -43,6 +41,8 @@ export interface Points {
     readonly boundingSphere: Sphere3D
     /** Maps group ids to point indices */
     readonly groupMapping: GroupMapping
+
+    setBoundingSphere(boundingSphere: Sphere3D): void
 }
 
 export namespace Points {
@@ -92,6 +92,10 @@ export namespace Points {
                     currentGroup = points.groupBuffer.ref.version
                 }
                 return groupMapping
+            },
+            setBoundingSphere(sphere: Sphere3D) {
+                Sphere3D.copy(boundingSphere, sphere)
+                currentHash = hashCode(points)
             }
         }
         return points

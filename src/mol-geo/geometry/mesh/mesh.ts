@@ -45,6 +45,8 @@ export interface Mesh {
     readonly boundingSphere: Sphere3D
     /** Maps group ids to vertex indices */
     readonly groupMapping: GroupMapping
+
+    setBoundingSphere(boundingSphere: Sphere3D): void
 }
 
 export namespace Mesh {
@@ -101,6 +103,10 @@ export namespace Mesh {
                     currentGroup = mesh.groupBuffer.ref.version
                 }
                 return groupMapping
+            },
+            setBoundingSphere(sphere: Sphere3D) {
+                Sphere3D.copy(boundingSphere, sphere)
+                currentHash = hashCode(mesh)
             }
         }
         return mesh
