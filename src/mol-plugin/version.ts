@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export const PLUGIN_VERSION = '0.5.5';
+export const PLUGIN_VERSION = '0.6.0';
 /** unix time stamp, to be filled in at bundle build time */
 declare const __PLUGIN_VERSION_TIMESTAMP__: number
 export const PLUGIN_VERSION_TIMESTAMP = __PLUGIN_VERSION_TIMESTAMP__;
