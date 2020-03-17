@@ -26,7 +26,7 @@ import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { Script } from '../../mol-script/script';
-import { getUnitcellRepresentation, UnitcellParams } from '../helpers/model-unitcell';
+import { UnitcellParams, UnitcellRepresentation, getUnitcellData } from '../../mol-repr/shape/model/unitcell';
 import { DistanceParams, DistanceRepresentation } from '../../mol-repr/shape/loci/distance';
 import { getDistanceDataFromStructureSelections, getLabelDataFromStructureSelections, getOrientationDataFromStructureSelections, getAngleDataFromStructureSelections, getDihedralDataFromStructureSelections } from './helpers';
 import { LabelParams, LabelRepresentation } from '../../mol-repr/shape/loci/label';
@@ -579,17 +579,24 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
     canAutoUpdate({ oldParams, newParams }) {
         return true;
     },
-    apply({ a, params }) {
+    apply({ a, params }, plugin: PluginContext) {
         return Task.create('Model Unitcell', async ctx => {
             const symmetry = ModelSymmetry.Provider.get(a.data)
             if (!symmetry) return StateObject.Null
-            const repr = await getUnitcellRepresentation(ctx, a.data, params);
+            const data = getUnitcellData(a.data, symmetry)
+            const repr = UnitcellRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => UnitcellParams)
+            await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, source: a }, { label: `Unitcell`, description: symmetry.spacegroup.name });
         });
     },
     update({ a, b, newParams }) {
         return Task.create('Model Unitcell', async ctx => {
-            await getUnitcellRepresentation(ctx, a.data, newParams, b.data.repr);
+            const symmetry = ModelSymmetry.Provider.get(a.data)
+            if (!symmetry) return StateTransformer.UpdateResult.Null
+            const props = { ...b.data.repr.props, ...newParams }
+            const data = getUnitcellData(a.data, symmetry)
+            await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
+            b.data.source = a
             return StateTransformer.UpdateResult.Updated;
         });
     }

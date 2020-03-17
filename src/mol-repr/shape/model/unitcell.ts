@@ -4,20 +4,20 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model, Symmetry } from '../../mol-model/structure';
-import { ShapeRepresentation } from '../../mol-repr/shape/representation';
-import { Shape } from '../../mol-model/shape';
-import { ColorNames } from '../../mol-util/color/names';
-import { RuntimeContext } from '../../mol-task';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
-import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
-import { BoxCage } from '../../mol-geo/primitive/box';
-import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
-import { transformCage, cloneCage } from '../../mol-geo/primitive/cage';
-import { radToDeg } from '../../mol-math/misc';
-import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
-import { Sphere3D } from '../../mol-math/geometry';
+import { Model, Symmetry } from '../../../mol-model/structure';
+import { ShapeRepresentation } from '../representation';
+import { Shape } from '../../../mol-model/shape';
+import { ColorNames } from '../../../mol-util/color/names';
+import { RuntimeContext } from '../../../mol-task';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
+import { BoxCage } from '../../../mol-geo/primitive/box';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { transformCage, cloneCage } from '../../../mol-geo/primitive/cage';
+import { radToDeg } from '../../../mol-math/misc';
+import { Sphere3D } from '../../../mol-math/geometry';
+import { RepresentationParamsGetter, Representation, RepresentationContext } from '../../representation';
 
 const translate05 = Mat4.fromTranslation(Mat4(), Vec3.create(0.5, 0.5, 0.5))
 const unitCage = transformCage(cloneCage(BoxCage()), translate05)
@@ -30,10 +30,19 @@ interface UnitcellData {
     ref: Vec3
 }
 
-export const UnitcellParams = {
+const CellParams = {
     ...Mesh.Params,
     cellColor: PD.Color(ColorNames.orange),
     cellScale: PD.Numeric(2, { min: 0.1, max: 5, step: 0.1 })
+}
+type MeshParams = typeof CellParams
+
+const UnitcellVisuals = {
+    'mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<UnitcellData, MeshParams>) => ShapeRepresentation(getUnitcellShape, Mesh.Utils),
+}
+
+export const UnitcellParams = {
+    ...CellParams
 }
 export type UnitcellParams = typeof UnitcellParams
 export type UnitcellProps = PD.Values<UnitcellParams>
@@ -71,19 +80,6 @@ function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) 
     return m
 }
 
-export async function getUnitcellRepresentation(ctx: RuntimeContext, model: Model, params: UnitcellProps, prev?: ShapeRepresentation<UnitcellData, Mesh, Mesh.Params>) {
-    const repr = prev || ShapeRepresentation(getUnitcellShape, Mesh.Utils);
-    const symmetry = ModelSymmetry.Provider.get(model)
-    if (symmetry) {
-        const data = {
-            symmetry,
-            ref: Vec3.transformMat4(Vec3(), Model.getCenter(model), symmetry.spacegroup.cell.toFractional)
-        }
-        await repr.createOrUpdate(params, data).runInContext(ctx);
-    }
-    return repr;
-}
-
 function getUnitcellLabel(data: UnitcellData) {
     const { cell, name, num } = data.symmetry.spacegroup
     const { size, anglesInRadians } = cell
@@ -107,4 +103,18 @@ function getUnitcellShape(ctx: RuntimeContext, data: UnitcellData, props: Unitce
     const geo = getUnitcellMesh(data, props, shape && shape.geometry);
     const label = getUnitcellLabel(data)
     return Shape.create('Unitcell', data, geo, () => props.cellColor, () => 1, () => label)
+}
+
+//
+
+export function getUnitcellData(model: Model, symmetry: Symmetry) {
+    return {
+        symmetry,
+        ref: Vec3.transformMat4(Vec3(), Model.getCenter(model), symmetry.spacegroup.cell.toFractional)
+    }
+}
+
+export type UnitcellRepresentation = Representation<UnitcellData, UnitcellParams>
+export function UnitcellRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<UnitcellData, UnitcellParams>): UnitcellRepresentation {
+    return Representation.createMulti('Unitcell', ctx, getParams, Representation.StateBuilder, UnitcellVisuals as unknown as Representation.Def<UnitcellData, UnitcellParams>)
 }
