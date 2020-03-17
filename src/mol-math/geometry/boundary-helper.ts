@@ -77,9 +77,12 @@ export class BoundaryHelper {
     }
 
     getBox(box?: Box3D) {
-        // TODO can we get a tighter box from the extrema???
         if (!box) box = Box3D()
-        return Box3D.fromSphere3D(box, this.centroidHelper.getSphere())
+        Box3D.setEmpty(box)
+        for (let i = 0; i < this.extrema.length; i++) {
+            Box3D.add(box, this.extrema[i])
+        }
+        return box
     }
 
     reset() {
