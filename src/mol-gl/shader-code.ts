@@ -37,7 +37,6 @@ import assign_color_varying from './shader/chunks/assign-color-varying.glsl'
 import assign_group from './shader/chunks/assign-group.glsl'
 import assign_marker_varying from './shader/chunks/assign-marker-varying.glsl'
 import assign_material_color from './shader/chunks/assign-material-color.glsl'
-import assign_normal from './shader/chunks/assign-normal.glsl'
 import assign_position from './shader/chunks/assign-position.glsl'
 import assign_size from './shader/chunks/assign-size.glsl'
 import check_picking_alpha from './shader/chunks/check-picking-alpha.glsl'
@@ -63,7 +62,6 @@ const ShaderChunks: { [k: string]: string } = {
     assign_group,
     assign_marker_varying,
     assign_material_color,
-    assign_normal,
     assign_position,
     assign_size,
     check_picking_alpha,

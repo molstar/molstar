@@ -25,7 +25,11 @@ void main() {
         bool frontFacing = dot(vNormal, vViewPosition) < 0.0;
     #endif
 
-    interior = !frontFacing; // TODO take dFlipSided into account
+    #if defined(dFlipSided)
+        interior = frontFacing;
+    #else
+        interior = !frontFacing;
+    #endif
 
     #include assign_material_color
 
@@ -38,7 +42,14 @@ void main() {
         #ifdef dIgnoreLight
             gl_FragColor = material;
         #else
-            #include assign_normal
+            #if defined(dFlatShaded) && defined(enabledStandardDerivatives)
+                vec3 normal = -faceNormal;
+            #else
+                vec3 normal = -normalize(vNormal);
+                #ifdef dDoubleSided
+                    normal = normal * (float(frontFacing) * 2.0 - 1.0);
+                #endif
+            #endif
             #include apply_light_color
         #endif
 
