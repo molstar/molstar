@@ -30,7 +30,7 @@ node lib/servers/model/server/server
 ## From NPM
 
 ```
-npm install molstar
+npm install --production molstar
 ./model-server 
 ```
 

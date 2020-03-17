@@ -34,7 +34,7 @@ node lib/servers/volume/server
 ## From NPM
 
 ```
-npm install molstar
+npm install --production molstar
 ./volume-server 
 ```
 
