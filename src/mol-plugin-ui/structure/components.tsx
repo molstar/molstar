@@ -246,9 +246,9 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         const repr = this.pivot.representations[0];
         const name = repr.cell.transform.params?.colorTheme.name;
         const themes = getStructureThemeTypes(this.plugin, this.pivot.cell.obj?.data);
-        return ActionMenu.createItemsFromSelectOptions(themes, { 
+        return ActionMenu.createItemsFromSelectOptions(themes, {
             value: o => () => mng.updateRepresentationsTheme(this.props.group, { color: o[0] }),
-            selected: o => o[0] === name 
+            selected: o => o[0] === name
         }) as ActionMenu.Item[];
     }
 
@@ -282,7 +282,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
         return ret;
     }
-    
+
     selectAction: ActionMenu.OnSelect = item => {
         if (!item) return;
         this.setState({ action: void 0 });

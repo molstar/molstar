@@ -86,7 +86,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
     private async updateInterationProps() {
         for (const s of this.currentStructures) {
             const interactionParams = InteractionsProvider.getParams(s.cell.obj?.data!);
-            
+
             if (s.properties) {
                 const params = s.properties.cell.transform.params;
                 if (PD.areEqual(interactionParams, params, this.state.options.interactions)) continue;
@@ -137,12 +137,12 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
 
     modifyByCurrentSelection(components: ReadonlyArray<StructureComponentRef>, action: StructureComponentManager.ModifyAction) {
         return this.plugin.runTask(Task.create('Modify Component', async taskCtx => {
-            const b = this.dataState.build();        
+            const b = this.dataState.build();
             for (const c of components) {
                 if (!this.canBeModified(c)) continue;
 
                 const selection = this.plugin.managers.structure.selection.getStructure(c.structure.cell.obj!.data);
-                if (!selection || selection.elementCount === 0) continue;                
+                if (!selection || selection.elementCount === 0) continue;
                 this.modifyComponent(b, c, selection, action);
             }
             await this.dataState.updateTree(b, { canUndo: 'Modify Selection' }).runInContext(taskCtx);
@@ -157,7 +157,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             for (const c of components) {
                 setSubtreeVisibility(this.dataState, c.cell.transform.ref, isHidden);
             }
-        } else {            
+        } else {
             const index = components[0].representations.indexOf(reprPivot);
             const isHidden = !reprPivot.cell.state.isHidden;
 
@@ -192,14 +192,14 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         return this.plugin.managers.structure.hierarchy.remove(toRemove, true);
     }
 
-    updateRepresentations(components: ReadonlyArray<StructureComponentRef>, pivot: StructureRepresentationRef, params: StateTransformer.Params<StructureRepresentation3D>) {        
+    updateRepresentations(components: ReadonlyArray<StructureComponentRef>, pivot: StructureRepresentationRef, params: StateTransformer.Params<StructureRepresentation3D>) {
         if (components.length === 0) return Promise.resolve();
 
         const index = components[0].representations.indexOf(pivot);
         if (index < 0) return Promise.resolve();
-        
+
         const update = this.dataState.build();
-        
+
         for (const c of components) {
             // TODO: is it ok to use just the index here? Could possible lead to ugly edge cases, but perhaps not worth the trouble to "fix".
             const repr = c.representations[index];
@@ -214,19 +214,19 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
 
     updateRepresentationsTheme<C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(components: ReadonlyArray<StructureComponentRef>, params: StructureComponentManager.UpdateThemeParams<C, S>): Promise<any> {
         if (components.length === 0) return Promise.resolve();
-        
+
         const update = this.dataState.build();
 
         for (const c of components) {
             for (const repr of c.representations) {
                 const old = repr.cell.transform.params;
-                const colorTheme = params.color 
+                const colorTheme = params.color
                     ? createStructureColorThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name, params.color, params.colorParams)
                     : void 0;
-                const sizeTheme = params.color 
+                const sizeTheme = params.color
                     ? createStructureSizeThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name, params.size, params.sizeParams)
                     : void 0;
-                update.to(repr.cell).update(prev => { 
+                update.to(repr.cell).update(prev => {
                     if (colorTheme) prev.colorTheme = colorTheme;
                     if (sizeTheme) prev.sizeTheme = sizeTheme;
                 });
@@ -260,7 +260,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
 
             const componentKey = UUID.create22();
             for (const s of xs) {
-                const component = await this.plugin.builders.structure.tryCreateQueryComponent({ 
+                const component = await this.plugin.builders.structure.tryCreateQueryComponent({
                     structure: s.childRoot,
                     query: params.selection,
                     key: componentKey,
@@ -297,11 +297,11 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         if ((action === 'subtract' || action === 'intersect') && !structureAreIntersecting(structure, by)) return;
 
         const parent = component.structure.cell.obj?.data!;
-        const modified = action === 'union' 
-            ? structureUnion(parent, [structure, by]) 
+        const modified = action === 'union'
+            ? structureUnion(parent, [structure, by])
             : action === 'intersect'
-            ? structureIntersect(structure, by)
-            : structureSubtract(structure, by);
+                ? structureIntersect(structure, by)
+                : structureSubtract(structure, by);
 
         if (modified.elementCount === 0) {
             builder.delete(component.cell.transform.ref);
@@ -346,9 +346,9 @@ namespace StructureComponentManager {
         interactions: PD.Group(InteractionsProvider.defaultParams, { label: 'Non-covalent Interactions' }),
     }
     export type Options = PD.Values<typeof OptionsParams>
-    
+
     const SelectionParam = PD.Select(StructureSelectionQueryOptions[1][0], StructureSelectionQueryOptions)
-    
+
     export function getAddParams(plugin: PluginContext) {
         return {
             selection: SelectionParam,
@@ -389,7 +389,7 @@ namespace StructureComponentManager {
     export type ModifyAction = 'union' | 'subtract' | 'intersect'
 
     export interface UpdateThemeParams<C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn> {
-        /** 
+        /**
          * this works for any theme name (use 'name as any'), but code completion will break
          */
         color?: C,

@@ -15,7 +15,7 @@ import { CreateVolumeStreamingBehavior } from '../../../mol-plugin/behavior/dyna
 
 export function buildStructureHierarchy(state: State, previous?: StructureHierarchy) {
     const build = BuildState(state, previous || StructureHierarchy());
-//    StateTree.doPreOrder(state.tree, state.tree.root, build, visitCell);
+    // StateTree.doPreOrder(state.tree, state.tree.root, build, visitCell);
     doPreOrder(state.tree, build);
     if (previous) previous.refs.forEach(isRemoved, build);
     return { hierarchy: build.hierarchy, added: build.added, updated: build.updated, removed: build.removed };
@@ -38,7 +38,7 @@ interface RefBase<K extends string = string, O extends StateObject = StateObject
     version: StateTransform['version']
 }
 
-export type HierarchyRef = 
+export type HierarchyRef =
     | TrajectoryRef
     | ModelRef | ModelPropertiesRef
     | StructureRef | StructurePropertiesRef | StructureVolumeStreamingRef | StructureComponentRef | StructureRepresentationRef
@@ -48,7 +48,7 @@ export interface TrajectoryRef extends RefBase<'trajectory', SO.Molecule.Traject
     models: ModelRef[]
 }
 
-function TrajectoryRef(cell: StateObjectCell<SO.Molecule.Trajectory>): TrajectoryRef { 
+function TrajectoryRef(cell: StateObjectCell<SO.Molecule.Trajectory>): TrajectoryRef {
     return { kind: 'trajectory', cell, version: cell.transform.version, models: [] };
 }
 
@@ -199,6 +199,11 @@ const tagMap: [string, (state: BuildState, cell: StateObjectCell) => boolean | v
     [StructureBuilderTags.ModelProperties, (state, cell) => {
         if (!state.currentModel) return false;
         state.currentModel.properties = createOrUpdateRef(state, cell, ModelPropertiesRef, cell, state.currentModel);
+    }, state => { }],
+    [StructureBuilderTags.ModelGenericRepresentation, (state, cell) => {
+        if (!state.currentModel) return false;
+        if (!state.currentModel.genericRepresentations) state.currentModel.genericRepresentations = []
+        createOrUpdateRefList(state, cell, state.currentModel.genericRepresentations, GenericRepresentationRef, cell, state.currentModel);
     }, state => { }],
     [StructureBuilderTags.Structure, (state, cell) => {
         if (state.currentModel) {

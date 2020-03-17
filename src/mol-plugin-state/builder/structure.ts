@@ -22,6 +22,7 @@ export enum StructureBuilderTags {
     Trajectory = 'trajectory',
     Model = 'model',
     ModelProperties = 'model-properties',
+    ModelGenericRepresentation = 'model-generic-representation',
     Structure = 'structure',
     StructureProperties = 'structure-properties',
     Component = 'structure-component'
@@ -43,7 +44,7 @@ export class StructureBuilder {
         const state = this.dataState;
         const trajectory = state.build().to(data)
             .apply(StateTransforms.Data.ParseBlob, params, { state: { isGhost: true } })
-            .apply(StateTransforms.Model.TrajectoryFromBlob, void 0, { tags: StructureBuilderTags.Trajectory });        
+            .apply(StateTransforms.Model.TrajectoryFromBlob, void 0, { tags: StructureBuilderTags.Trajectory });
         await this.plugin.updateDataState(trajectory, { revertOnError: true });
         return trajectory.selector;
     }
@@ -60,18 +61,18 @@ export class StructureBuilder {
         structure?: RootStructureDefinition.Params,
         structureProperties?: boolean | StateTransformer.Params<StateTransforms['Model']['CustomStructureProperties']>
     }) {
-        const trajectory = params.data 
+        const trajectory = params.data
             ? await this.parseTrajectory(params.data, params.dataFormat! || 'cif')
             : await this.parseTrajectoryBlob(params.blob!, params.blobParams!);
-        
+
         const model = await this.createModel(trajectory, params.model);
-        const modelProperties = !!params.modelProperties 
+        const modelProperties = !!params.modelProperties
             ? await this.insertModelProperties(model, typeof params?.modelProperties !== 'boolean' ? params?.modelProperties : void 0) : void 0;
-        
+
         const structure = await this.createStructure(modelProperties || model, params.structure);
-        const structureProperties = !!params.structureProperties 
+        const structureProperties = !!params.structureProperties
             ? await this.insertStructureProperties(structure, typeof params?.structureProperties !== 'boolean' ? params?.structureProperties : void 0) : void 0;
-    
+
         return {
             trajectory,
             model: modelProperties || model,
@@ -116,7 +117,7 @@ export class StructureBuilder {
     async createStructure(model: StateObjectRef<SO.Molecule.Model>, params?: RootStructureDefinition.Params, initialState?: Partial<StateTransform.State>) {
         const state = this.dataState;
         const structure = state.build().to(model)
-            .apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } }, { tags: StructureBuilderTags.Structure, state: initialState });        
+            .apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } }, { tags: StructureBuilderTags.Structure, state: initialState });
 
         await this.plugin.updateDataState(structure, { revertOnError: true });
         return structure.selector;
@@ -141,7 +142,7 @@ export class StructureBuilder {
         const root = state.build().to(structure);
 
         const keyTag = `structure-component-${key}`;
-        const component = root.applyOrUpdateTagged(keyTag, StateTransforms.Model.StructureComponent, params, { 
+        const component = root.applyOrUpdateTagged(keyTag, StateTransforms.Model.StructureComponent, params, {
             tags: tags ? [...tags, StructureBuilderTags.Component, keyTag] : [StructureBuilderTags.Component, keyTag]
         });
 
@@ -158,7 +159,7 @@ export class StructureBuilder {
         return selector;
     }
 
-    tryCreateStaticComponent(params: { structure: StateObjectRef<SO.Molecule.Structure>, type: StaticStructureComponentType, key: string, label?: string, tags?: string[] }) { 
+    tryCreateStaticComponent(params: { structure: StateObjectRef<SO.Molecule.Structure>, type: StaticStructureComponentType, key: string, label?: string, tags?: string[] }) {
         return this.tryCreateComponent(params.structure, {
             type: { name: 'static', params: params.type },
             nullIfEmpty: true,
@@ -168,13 +169,13 @@ export class StructureBuilder {
 
     tryCreateQueryComponent(params: { structure: StateObjectRef<SO.Molecule.Structure>, query: StructureSelectionQuery, key: string, label?: string, tags?: string[] }): Promise<StateObjectRef<SO.Molecule.Structure> | undefined> {
         return this.plugin.runTask(Task.create('Query Component', async taskCtx => {
-            let { structure, query, key, label, tags } = params;        
+            let { structure, query, key, label, tags } = params;
             label = (label || '').trim();
 
             const structureData = StateObjectRef.resolveAndCheck(this.dataState, structure)?.obj?.data;
 
             if (!structureData) return;
-    
+
             const transformParams: StructureComponentParams = query.referencesCurrent
                 ? {
                     type: {
@@ -191,25 +192,25 @@ export class StructureBuilder {
             if (query.ensureCustomProperties) {
                 await query.ensureCustomProperties({ fetch: this.plugin.fetch, runtime: taskCtx }, structureData);
             }
-            
+
             const state = this.dataState;
             const root = state.build().to(structure);
             const keyTag = `structure-component-${key}`;
-            const component = root.applyOrUpdateTagged(keyTag, StateTransforms.Model.StructureComponent, transformParams, { 
+            const component = root.applyOrUpdateTagged(keyTag, StateTransforms.Model.StructureComponent, transformParams, {
                 tags: tags ? [...tags, StructureBuilderTags.Component, keyTag] : [StructureBuilderTags.Component, keyTag]
             });
-    
+
             await this.dataState.updateTree(component).runInContext(taskCtx);
-    
+
             const selector = component.selector;
-    
+
             if (!selector.isOk || selector.cell?.obj?.data.elementCount === 0) {
                 const del = state.build().delete(selector.ref);
                 await this.plugin.updateDataState(del);
                 return;
             }
-    
-            return selector; 
+
+            return selector;
         }))
     }
 
