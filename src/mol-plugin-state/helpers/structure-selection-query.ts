@@ -188,7 +188,7 @@ const helix = StructureSelectionQuery('Helix', MS.struct.modifier.union([
             MS.core.type.bitflags([SecondaryStructureType.Flag.Helix])
         ])
     })
-]), { category: StructureSelectionCategory.Residue })
+]), { category: StructureSelectionCategory.Structure })
 
 const beta = StructureSelectionQuery('Beta Strand/Sheet', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -204,7 +204,7 @@ const beta = StructureSelectionQuery('Beta Strand/Sheet', MS.struct.modifier.uni
             MS.core.type.bitflags([SecondaryStructureType.Flag.Beta])
         ])
     })
-]), { category: StructureSelectionCategory.Residue })
+]), { category: StructureSelectionCategory.Structure })
 
 const water = StructureSelectionQuery('Water', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
