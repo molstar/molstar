@@ -163,7 +163,8 @@ function addServerArgs(parser: argparse.ArgumentParser) {
             'Example: pdb-bcif \'../../data/bcif/${id}.bcif\' ',
             'JS expressions can be used inside ${}, e.g. \'${id.substr(1, 2)}/${id}.mdb\'',
             'Can be specified multiple times.',
-            'The `SOURCE` variable (e.g. `pdb-bcif`) is arbitrary and depends on how you plan to use the server.'
+            'The `SOURCE` variable (e.g. `pdb-bcif`) is arbitrary and depends on how you plan to use the server.',
+            `Supported formats: ${ModelServerFetchFormats.join(', ')}`
         ].join('\n'),
     });
     parser.addArgument([ '--sourceMapUrl' ], {
@@ -171,9 +172,9 @@ function addServerArgs(parser: argparse.ArgumentParser) {
         action: 'append',
         metavar: ['SOURCE', 'PATH', 'SOURCE_MAP_FORMAT'] as any,
         help: [
-            'Same as --sourceMap but for URL. --sourceMap src url format',
-            'Example: pdb-cif "https://www.ebi.ac.uk/pdbe/entry-files/download/${id}_updated.cif" cif',
-            'Format is either cif or bcif'
+            'Same as --sourceMap but for URL. \'--sourceMapUrl src url format\'',
+            'Example: \'pdb-cif "https://www.ebi.ac.uk/pdbe/entry-files/download/${id}_updated.cif" cif\'',
+            `Supported formats: ${ModelServerFetchFormats.join(', ')}`
         ].join('\n'),
     });
 }
