@@ -276,7 +276,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         this.props.cell.sourceRef
         return [ActionMenu.Item('Select This', 'flash', () => this.plugin.managers.structure.selection.fromSelections(this.props.cell.sourceRef!))];
     }
-    
+
     selectAction: ActionMenu.OnSelect = item => {
         if (!item) return;
         this.setState({ showUpdate: false });
@@ -295,7 +295,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
                 </button>
                 <IconButton small={true} customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ flex: '0 0 32px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
                 <IconButton small={true} customClass='msp-form-control' onClick={this.delete} icon='remove' style={{ flex: '0 0 32px' }} title='Delete' />
-                <IconButton small={true} customClass='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' style={{ flex: '0 0 32px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={this.state.showUpdate} />
+                <IconButton small={true} customClass='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' style={{ flex: '0 0 32px' }} title='Actions' toggleState={this.state.showUpdate} />
             </div>
             {this.state.showUpdate && <>
                 <ActionMenu items={this.actions} onSelect={this.selectAction} />

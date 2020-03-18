@@ -60,7 +60,7 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
 
         const update = this.plugin.state.data.build();
         for (const cell of this.state.distances) {
-            update.to(cell).update((old: any) => { 
+            update.to(cell).update((old: any) => {
                 old.unitLabel = options.distanceUnitLabel;
                 old.textColor = options.textColor;
             });
@@ -74,7 +74,7 @@ class StructureMeasurementManager extends PluginComponent<StructureMeasurementMa
         for (const cell of this.state.dihedrals) {
             update.to(cell).update((old: any) => { old.textColor = options.textColor; });
         }
-        
+
         if (update.editInfo.count === 0) return;
 
         await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.data, tree: update, options: { doNotLogTiming: true } });
