@@ -241,7 +241,7 @@ namespace Loci {
     /**
      * Converts structure related loci to StructureElement.Loci and applies
      * granularity if given
-    */
+     */
     export function normalize(loci: Loci, granularity?: Granularity) {
         if (granularity !== 'element' && Bond.isLoci(loci)) {
             // convert Bond.Loci to a StructureElement.Loci so granularity can be applied

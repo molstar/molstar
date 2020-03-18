@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { EmptyLoci, EveryLoci, isEmptyLoci, Loci as ModelLoci } from '../../mol-model/loci';
+import { EveryLoci, isEmptyLoci, Loci } from '../../mol-model/loci';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
 import { Representation } from '../../mol-repr/representation';
@@ -63,25 +63,16 @@ class InteractivityManager extends PluginComponent<InteractivityManagerState> {
 }
 
 namespace InteractivityManager {
-    export interface Loci<T extends ModelLoci = ModelLoci> { loci: T, repr?: Representation.Any }
-
-    export namespace Loci {
-        export function areEqual(a: Loci, b: Loci) {
-            return a.repr === b.repr && ModelLoci.areEqual(a.loci, b.loci);
-        }
-        export const Empty: Loci = { loci: EmptyLoci };
-    }
-
     export const Params = {
-        granularity: PD.Select('residue', ModelLoci.GranularityOptions, { label: 'Picking Level', description: 'Controls if selections are expanded upon picking to whole residues, chains, structures, instances, or left as atoms and coarse elements' }),
+        granularity: PD.Select('residue', Loci.GranularityOptions, { label: 'Picking Level', description: 'Controls if selections are expanded upon picking to whole residues, chains, structures, instances, or left as atoms and coarse elements' }),
     }
     export type Params = typeof Params
     export type Props = PD.Values<Params>
 
-    export interface HoverEvent { current: Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
-    export interface ClickEvent { current: Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
+    export interface HoverEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
+    export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
 
-    export type LociMarkProvider = (loci: Loci, action: MarkerAction) => void
+    export type LociMarkProvider = (loci: Representation.Loci, action: MarkerAction) => void
 
     export abstract class LociMarkManager {
         protected providers: LociMarkProvider[] = [];
@@ -102,13 +93,13 @@ namespace InteractivityManager {
             // TODO clear, then re-apply remaining providers
         }
 
-        protected normalizedLoci(interactivityLoci: Loci, applyGranularity = true) {
-            const { loci, repr } = interactivityLoci
+        protected normalizedLoci(reprLoci: Representation.Loci, applyGranularity = true) {
+            const { loci, repr } = reprLoci
             const granularity =  applyGranularity ? this.props.granularity : undefined
-            return { loci: ModelLoci.normalize(loci, granularity), repr }
+            return { loci: Loci.normalize(loci, granularity), repr }
         }
 
-        protected mark(current: Loci<ModelLoci>, action: MarkerAction) {
+        protected mark(current: Representation.Loci, action: MarkerAction) {
             for (let p of this.providers) p(current, action);
         }
 
@@ -121,16 +112,16 @@ namespace InteractivityManager {
     //
 
     export class LociHighlightManager extends LociMarkManager {
-        private prev: Loci[] = [];
+        private prev: Representation.Loci[] = [];
 
-        private isHighlighted(loci: Loci) {
+        private isHighlighted(loci: Representation.Loci) {
             for (const p of this.prev) {
-                if (Loci.areEqual(p, loci)) return true
+                if (Representation.Loci.areEqual(p, loci)) return true
             }
             return false
         }
 
-        private addHighlight(loci: Loci) {
+        private addHighlight(loci: Representation.Loci) {
             this.mark(loci, MarkerAction.Highlight);
             this.prev.push(loci)
         }
@@ -142,14 +133,14 @@ namespace InteractivityManager {
             this.prev.length = 0
         }
 
-        highlight(current: Loci, applyGranularity = true) {
+        highlight(current: Representation.Loci, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (!this.isHighlighted(normalized)) {
                 this.addHighlight(normalized)
             }
         }
 
-        highlightOnly(current: Loci, applyGranularity = true) {
+        highlightOnly(current: Representation.Loci, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (!this.isHighlighted(normalized)) {
                 this.clearHighlights()
@@ -157,7 +148,7 @@ namespace InteractivityManager {
             }
         }
 
-        highlightOnlyExtend(current: Loci, applyGranularity = true) {
+        highlightOnlyExtend(current: Representation.Loci, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 const loci = {
@@ -175,8 +166,8 @@ namespace InteractivityManager {
     //
 
     export class LociSelectManager extends LociMarkManager {
-        toggle(current: Loci<ModelLoci>, applyGranularity = true) {
-            if (ModelLoci.isEmpty(current.loci)) return;
+        toggle(current: Representation.Loci, applyGranularity = true) {
+            if (Loci.isEmpty(current.loci)) return;
 
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
@@ -186,8 +177,8 @@ namespace InteractivityManager {
             }
         }
 
-        toggleExtend(current: Loci<ModelLoci>, applyGranularity = true) {
-            if (ModelLoci.isEmpty(current.loci)) return;
+        toggleExtend(current: Representation.Loci, applyGranularity = true) {
+            if (Loci.isEmpty(current.loci)) return;
 
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
@@ -196,7 +187,7 @@ namespace InteractivityManager {
             }
         }
 
-        select(current: Loci<ModelLoci>, applyGranularity = true) {
+        select(current: Representation.Loci, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.sel.modify('add', normalized.loci);
@@ -204,7 +195,7 @@ namespace InteractivityManager {
             this.mark(normalized, MarkerAction.Select);
         }
 
-        selectJoin(current: Loci<ModelLoci>, applyGranularity = true) {
+        selectJoin(current: Representation.Loci, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.sel.modify('intersect', normalized.loci);
@@ -212,7 +203,7 @@ namespace InteractivityManager {
             this.mark(normalized, MarkerAction.Select);
         }
 
-        selectOnly(current: Loci<ModelLoci>, applyGranularity = true) {
+        selectOnly(current: Representation.Loci, applyGranularity = true) {
             this.deselectAll()
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
@@ -221,7 +212,7 @@ namespace InteractivityManager {
             this.mark(normalized, MarkerAction.Select);
         }
 
-        deselect(current: Loci<ModelLoci>, applyGranularity = true) {
+        deselect(current: Representation.Loci, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.sel.modify('remove', normalized.loci);
@@ -234,11 +225,11 @@ namespace InteractivityManager {
             this.mark({ loci: EveryLoci }, MarkerAction.Deselect);
         }
 
-        deselectAllOnEmpty(current: Loci<ModelLoci>) {
+        deselectAllOnEmpty(current: Representation.Loci) {
             if (isEmptyLoci(current.loci)) this.deselectAll()
         }
 
-        protected mark(current: Loci<ModelLoci>, action: MarkerAction.Select | MarkerAction.Deselect) {
+        protected mark(current: Representation.Loci, action: MarkerAction.Select | MarkerAction.Deselect) {
             const { loci } = current
             if (StructureElement.Loci.is(loci)) {
                 // do a full deselect/select for the current structure so visuals that are
@@ -251,7 +242,7 @@ namespace InteractivityManager {
             }
         }
 
-        private toggleSel(current: Loci<ModelLoci>) {
+        private toggleSel(current: Representation.Loci) {
             if (this.sel.has(current.loci)) {
                 this.sel.modify('remove', current.loci);
                 this.mark(current, MarkerAction.Deselect);

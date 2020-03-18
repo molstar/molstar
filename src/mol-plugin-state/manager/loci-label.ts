@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,6 +9,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { Loci } from '../../mol-model/loci';
 import { Representation } from '../../mol-repr/representation';
 import { MarkerAction } from '../../mol-util/marker-action';
+import { arrayRemoveAtInPlace } from '../../mol-util/array';
 
 export type LociLabelEntry = JSX.Element | string
 export type LociLabelProvider = (info: Loci, repr?: Representation<any>) => LociLabelEntry | undefined
@@ -18,25 +19,55 @@ export class LociLabelManager {
 
     addProvider(provider: LociLabelProvider) {
         this.providers.push(provider);
+        this.isDirty = true
+        this.showLabels()
     }
 
     removeProvider(provider: LociLabelProvider) {
         this.providers = this.providers.filter(p => p !== provider);
-        // Event.Interactivity.Highlight.dispatch(this.ctx, []);
+        this.isDirty = true
+        this.showLabels()
     }
 
-    private empty: LociLabelEntry[] = [];
-    private getInfo({ loci, repr }: Representation.Loci, action: MarkerAction) {
-        if (Loci.isEmpty(loci) || action !== MarkerAction.Highlight) return this.empty;
-        const info: LociLabelEntry[] = [];
-        for (let p of this.providers) {
-            const e = p(loci, repr);
-            if (e) info.push(e);
+    private locis: Representation.Loci[] = []
+
+    private mark(loci: Representation.Loci, action: MarkerAction) {
+        const idx = this.locis.findIndex(l => Representation.Loci.areEqual(loci, l))
+        if (idx === -1 && action === MarkerAction.Highlight) {
+            this.locis.push(loci)
+            this.isDirty = true
+        } else if(idx !== -1 && action === MarkerAction.RemoveHighlight) {
+            arrayRemoveAtInPlace(this.locis, idx)
+            this.isDirty = true
         }
-        return info;
+    }
+
+    private isDirty = false
+    private entries: LociLabelEntry[] = []
+
+    private showLabels() {
+        this.ctx.behaviors.labels.highlight.next({ entries: this.getEntries() })
+    }
+
+    private getEntries() {
+        if (this.isDirty) {
+            this.entries.length = 0
+            for (const provider of this.providers) {
+                for (const loci of this.locis) {
+                    if (Loci.isEmpty(loci.loci)) continue
+                    const entry = provider(loci.loci, loci.repr)
+                    if (entry) this.entries.push(entry)
+                }
+            }
+            this.isDirty = false
+        }
+        return this.entries
     }
 
     constructor(public ctx: PluginContext) {
-        ctx.managers.interactivity.lociHighlights.addProvider((loci, action) => ctx.behaviors.labels.highlight.next({ entries: this.getInfo(loci, action) }))
+        ctx.managers.interactivity.lociHighlights.addProvider((loci, action) => {
+            this.mark(loci, action)
+            this.showLabels()
+        })
     }
 }

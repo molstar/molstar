@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,7 +7,6 @@
 
 import * as React from 'react'
 import { PluginUIComponent } from '../base';
-import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { ButtonsType, ModifiersKeys, getButtons, getModifiers, getButton } from '../../mol-util/input/input-observer';
 import { SequenceWrapper } from './wrapper';
@@ -16,6 +15,7 @@ import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { Color } from '../../mol-util/color';
 import { OrderedSet } from '../../mol-data/int';
+import { Representation } from '../../mol-repr/representation';
 
 type SequenceProps = {
     sequenceWrapper: SequenceWrapper.Any,
@@ -32,12 +32,12 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     private lastMouseOverSeqIdx = -1;
     private highlightQueue = new Subject<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>();
 
-    private lociHighlightProvider = (loci: InteractivityManager.Loci, action: MarkerAction) => {
+    private lociHighlightProvider = (loci: Representation.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action)
         if (changed) this.updateMarker();
     }
 
-    private lociSelectionProvider = (loci: InteractivityManager.Loci, action: MarkerAction) => {
+    private lociSelectionProvider = (loci: Representation.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action)
         if (changed) this.updateMarker();
     }
@@ -88,7 +88,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     hover(loci: StructureElement.Loci | undefined, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
-        const ev = { current: InteractivityManager.Loci.Empty, buttons, button, modifiers }
+        const ev = { current: Representation.Loci.Empty, buttons, button, modifiers }
         if (loci !== undefined && !StructureElement.Loci.isEmpty(loci)) {
             ev.current = { loci };
         }
@@ -96,7 +96,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     click(loci: StructureElement.Loci | undefined, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
-        const ev = { current: InteractivityManager.Loci.Empty, buttons, button, modifiers }
+        const ev = { current: Representation.Loci.Empty, buttons, button, modifiers }
         if (loci !== undefined && !StructureElement.Loci.isEmpty(loci)) {
             ev.current = { loci };
         }

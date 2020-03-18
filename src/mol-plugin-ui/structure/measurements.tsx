@@ -301,7 +301,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
                 <ActionMenu items={this.actions} onSelect={this.selectAction} />
                 <div className='msp-control-offset'>
                     <ExpandGroup header='Options' noOffset>
-                        <UpdateTransformControl state={cell.parent} transform={cell.transform} customHeader='none' />
+                        <UpdateTransformControl state={cell.parent} transform={cell.transform} customHeader='none' autoHideApply />
                     </ExpandGroup>
                 </div>
             </>}

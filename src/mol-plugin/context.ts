@@ -49,6 +49,7 @@ import { TaskManager } from './util/task-manager';
 import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
+import { Representation } from '../mol-repr/representation';
 
 export class PluginContext {
     private disposed = false;
@@ -90,8 +91,8 @@ export class PluginContext {
             isBusy: this.ev.behavior<boolean>(false)
         },
         interaction: {
-            hover: this.ev.behavior<InteractivityManager.HoverEvent>({ current: InteractivityManager.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
-            click: this.ev.behavior<InteractivityManager.ClickEvent>({ current: InteractivityManager.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 })
+            hover: this.ev.behavior<InteractivityManager.HoverEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
+            click: this.ev.behavior<InteractivityManager.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 })
         },
         labels: {
             highlight: this.ev.behavior<{ entries: ReadonlyArray<LociLabelEntry> }>({ entries: [] })

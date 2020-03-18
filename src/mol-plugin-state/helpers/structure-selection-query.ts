@@ -77,7 +77,7 @@ function StructureSelectionQuery(label: string, expression: Expression, props: S
             if (props.ensureCustomProperties) {
                 await props.ensureCustomProperties({ fetch: plugin.fetch, runtime }, structure)
             }
-            if (!_query) _query = compile<StructureSelection>(expression)    
+            if (!_query) _query = compile<StructureSelection>(expression)
             return _query(new QueryContext(structure, { currentSelection }));
         }
     }

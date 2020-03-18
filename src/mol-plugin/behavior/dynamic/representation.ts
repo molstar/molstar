@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -10,7 +10,6 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { lociLabel } from '../../../mol-theme/label';
 import { PluginBehavior } from '../behavior';
-import { InteractivityManager } from '../../../mol-plugin-state/manager/interactivity';
 import { StateTreeSpine } from '../../../mol-state/tree/spine';
 import { StateSelection } from '../../../mol-state';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
@@ -19,6 +18,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Structure } from '../../../mol-model/structure';
 import { arrayMax } from '../../../mol-util/array';
+import { Representation } from '../../../mol-repr/representation';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -39,7 +39,7 @@ export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<HighlightLociProps> {
-        private lociMarkProvider = (interactionLoci: InteractivityManager.Loci, action: MarkerAction) => {
+        private lociMarkProvider = (interactionLoci: Representation.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d) return;
             this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action)
         }
@@ -92,9 +92,9 @@ export const SelectLoci = PluginBehavior.create({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<SelectLociProps> {
         private spine: StateTreeSpine.Impl
-        private lociMarkProvider = (interactionLoci: InteractivityManager.Loci, action: MarkerAction) => {
+        private lociMarkProvider = (reprLoci: Representation.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d) return;
-            this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action)
+            this.ctx.canvas3d.mark({ loci: reprLoci.loci }, action)
         }
         private applySelectMark(ref: string, clear?: boolean) {
             const cell = this.ctx.state.data.cells.get(ref)
@@ -111,10 +111,10 @@ export const SelectLoci = PluginBehavior.create({
             }
         }
         register() {
-            const lociIsEmpty = (current: InteractivityManager.Loci) => Loci.isEmpty(current.loci)
-            const lociIsNotEmpty = (current: InteractivityManager.Loci) => !Loci.isEmpty(current.loci)
+            const lociIsEmpty = (current: Representation.Loci) => Loci.isEmpty(current.loci)
+            const lociIsNotEmpty = (current: Representation.Loci) => !Loci.isEmpty(current.loci)
 
-            const actions: [keyof typeof DefaultSelectLociBindings, (current: InteractivityManager.Loci) => void, ((current: InteractivityManager.Loci) => boolean) | undefined][] = [
+            const actions: [keyof typeof DefaultSelectLociBindings, (current: Representation.Loci) => void, ((current: Representation.Loci) => boolean) | undefined][] = [
                 ['clickSelect', current => this.ctx.managers.interactivity.lociSelects.select(current), lociIsNotEmpty],
                 ['clickToggle', current => this.ctx.managers.interactivity.lociSelects.toggle(current), lociIsNotEmpty],
                 ['clickToggleExtend', current => this.ctx.managers.interactivity.lociSelects.toggleExtend(current), lociIsNotEmpty],

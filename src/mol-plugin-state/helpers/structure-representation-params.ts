@@ -46,7 +46,7 @@ export function createStructureRepresentationParams
     (ctx: PluginContext, structure?: Structure, props?: StructureRepresentationBuiltInProps<R, C, S>): StateTransformer.Params<StructureRepresentation3D>
 export function createStructureRepresentationParams
     <R extends RepresentationProvider<Structure>, C extends ColorTheme.Provider, S extends SizeTheme.Provider>
-    (ctx: PluginContext, structure?: Structure, props?: StructureRepresentationProps<R, C, S>): StateTransformer.Params<StructureRepresentation3D> 
+    (ctx: PluginContext, structure?: Structure, props?: StructureRepresentationProps<R, C, S>): StateTransformer.Params<StructureRepresentation3D>
 export function createStructureRepresentationParams(ctx: PluginContext, structure?: Structure, props: any = {}): StateTransformer.Params<StructureRepresentation3D>  {
     const p = props as StructureRepresentationBuiltInProps;
     if (typeof p.type === 'string' || typeof p.color === 'string' || typeof p.size === 'string') return createParamsByName(ctx, structure || Structure.Empty, props);
@@ -86,7 +86,7 @@ export function createStructureSizeThemeParams(ctx: PluginContext, structure: St
 function createParamsByName(ctx: PluginContext, structure: Structure, props: StructureRepresentationBuiltInProps): StateTransformer.Params<StructureRepresentation3D> {
     const typeProvider = (props.type && ctx.representation.structure.registry.get(props.type))
         || ctx.representation.structure.registry.default.provider;
-    const colorProvider = (props.color && ctx.representation.structure.themes.colorThemeRegistry.get(props.color)) 
+    const colorProvider = (props.color && ctx.representation.structure.themes.colorThemeRegistry.get(props.color))
         || ctx.representation.structure.themes.colorThemeRegistry.get(typeProvider.defaultColorTheme.name);
     const sizeProvider = (props.size && ctx.representation.structure.themes.sizeThemeRegistry.get(props.size))
         || ctx.representation.structure.themes.sizeThemeRegistry.get(typeProvider.defaultSizeTheme.name);
@@ -104,11 +104,11 @@ function createParamsByName(ctx: PluginContext, structure: Structure, props: Str
 function createParamsProvider(ctx: PluginContext, structure: Structure, props: StructureRepresentationProps = {}): StateTransformer.Params<StructureRepresentation3D> {
     const { themes: themeCtx } = ctx.representation.structure
     const themeDataCtx = { structure };
-    
+
     const repr = props.type || ctx.representation.structure.registry.default.provider;
     const reprDefaultParams = PD.getDefaultValues(repr.getParams(themeCtx, structure));
     const reprParams = Object.assign(reprDefaultParams, props.typeParams);
-    
+
     const color = props.color || themeCtx.colorThemeRegistry.get(repr.defaultColorTheme.name);
     const colorDefaultParams = PD.getDefaultValues(color.getParams(themeDataCtx));
     if (color.name === repr.defaultColorTheme.name) Object.assign(colorDefaultParams, repr.defaultColorTheme.props);
