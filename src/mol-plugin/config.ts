@@ -2,9 +2,10 @@
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure } from '../mol-model/structure';
+import { Structure, Model } from '../mol-model/structure';
 import { PluginContext } from './context';
 
 export class PluginConfigItem<T = any> {
@@ -23,7 +24,11 @@ export const PluginConfig = {
     },
     VolumeStreaming: {
         DefaultServer: item('volume-streaming.server', 'https://ds.litemol.org'),
-        CanStream: item('volume-streaming.can-stream', (s: Structure, plugin: PluginContext) => s.models.length === 1)
+        CanStream: item('volume-streaming.can-stream', (s: Structure, plugin: PluginContext) => {
+            return s.models.length === 1 && (Model.hasDensityMap(s.models[0])
+                // the following test is to include e.g. 'updated' files from PDBe
+                || (!Model.isFromPdbArchive(s.models[0]) && s.models[0].entryId.length === 4))
+        })
     }
 }
 

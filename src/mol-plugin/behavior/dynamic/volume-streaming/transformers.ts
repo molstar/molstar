@@ -22,6 +22,7 @@ import { Theme } from '../../../../mol-theme/theme';
 import { Box3D } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { PluginConfig } from '../../../config';
+import { Model } from '../../../../mol-model/structure';
 
 function addEntry(entries: InfoEntryProps[], method: VolumeServerInfo.Kind, dataId: string, emDefaultContourLevel: number) {
     entries.push({
@@ -54,7 +55,7 @@ export const InitVolumeStreaming = StateAction.build({
     isApplicable: (a, _, plugin: PluginContext) => {
         const canStreamTest = plugin.config.get(PluginConfig.VolumeStreaming.CanStream);
         if (canStreamTest) return canStreamTest(a.data, plugin);
-        return a.data.models.length === 1;
+        return a.data.models.length === 1 && Model.hasDensityMap(a.data.models[0]);
     }
 })(({ ref, state, params }, plugin: PluginContext) => Task.create('Volume Streaming', async taskCtx => {
     const entries: InfoEntryProps[] = []
