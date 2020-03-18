@@ -41,12 +41,8 @@ export interface StructureRepresentationProps<
     sizeParams?: Partial<SizeTheme.ParamValues<S>>
 }
 
-export function createStructureRepresentationParams
-    <R extends StructureRepresentationRegistry.BuiltIn, C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>
-    (ctx: PluginContext, structure?: Structure, props?: StructureRepresentationBuiltInProps<R, C, S>): StateTransformer.Params<StructureRepresentation3D>
-export function createStructureRepresentationParams
-    <R extends RepresentationProvider<Structure>, C extends ColorTheme.Provider, S extends SizeTheme.Provider>
-    (ctx: PluginContext, structure?: Structure, props?: StructureRepresentationProps<R, C, S>): StateTransformer.Params<StructureRepresentation3D>
+export function createStructureRepresentationParams<R extends StructureRepresentationRegistry.BuiltIn, C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(ctx: PluginContext, structure?: Structure, props?: StructureRepresentationBuiltInProps<R, C, S>): StateTransformer.Params<StructureRepresentation3D>
+export function createStructureRepresentationParams<R extends RepresentationProvider<Structure>, C extends ColorTheme.Provider, S extends SizeTheme.Provider>(ctx: PluginContext, structure?: Structure, props?: StructureRepresentationProps<R, C, S>): StateTransformer.Params<StructureRepresentation3D>
 export function createStructureRepresentationParams(ctx: PluginContext, structure?: Structure, props: any = {}): StateTransformer.Params<StructureRepresentation3D>  {
     const p = props as StructureRepresentationBuiltInProps;
     if (typeof p.type === 'string' || typeof p.color === 'string' || typeof p.size === 'string') return createParamsByName(ctx, structure || Structure.Empty, props);
@@ -59,8 +55,7 @@ export function getStructureThemeTypes(ctx: PluginContext, structure?: Structure
     return themeCtx.colorThemeRegistry.getApplicableTypes({ structure });
 }
 
-export function createStructureColorThemeParams<T extends ColorTheme.BuiltIn>
-    (ctx: PluginContext, structure: Structure | undefined, typeName: string | undefined, themeName: T, params?: ColorTheme.BuiltInParams<T>): StateTransformer.Params<StructureRepresentation3D>['colorTheme']
+export function createStructureColorThemeParams<T extends ColorTheme.BuiltIn>(ctx: PluginContext, structure: Structure | undefined, typeName: string | undefined, themeName: T, params?: ColorTheme.BuiltInParams<T>): StateTransformer.Params<StructureRepresentation3D>['colorTheme']
 export function createStructureColorThemeParams(ctx: PluginContext, structure: Structure | undefined, typeName: string | undefined, themeName?: string, params?: any): StateTransformer.Params<StructureRepresentation3D>['colorTheme']
 export function createStructureColorThemeParams(ctx: PluginContext, structure: Structure | undefined, typeName: string | undefined, themeName?: string, params?: any): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
     const { registry, themes } = ctx.representation.structure;
@@ -71,8 +66,7 @@ export function createStructureColorThemeParams(ctx: PluginContext, structure: S
     return { name: color.name, params: Object.assign(colorDefaultParams, params) };
 }
 
-export function createStructureSizeThemeParams<T extends SizeTheme.BuiltIn>
-    (ctx: PluginContext, structure: Structure | undefined, typeName: string | undefined, themeName: T, params?: SizeTheme.BuiltInParams<T>): StateTransformer.Params<StructureRepresentation3D>['sizeTheme']
+export function createStructureSizeThemeParams<T extends SizeTheme.BuiltIn>(ctx: PluginContext, structure: Structure | undefined, typeName: string | undefined, themeName: T, params?: SizeTheme.BuiltInParams<T>): StateTransformer.Params<StructureRepresentation3D>['sizeTheme']
 export function createStructureSizeThemeParams(ctx: PluginContext, structure: Structure | undefined, typeName: string | undefined, themeName?: string, params?: any): StateTransformer.Params<StructureRepresentation3D>['sizeTheme']
 export function createStructureSizeThemeParams(ctx: PluginContext, structure: Structure | undefined, typeName: string | undefined, themeName?: string, params?: any): StateTransformer.Params<StructureRepresentation3D>['sizeTheme'] {
     const { registry, themes } = ctx.representation.structure;

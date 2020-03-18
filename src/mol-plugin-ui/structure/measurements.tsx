@@ -290,12 +290,12 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
 
         return <>
             <div className='msp-btn-row-group' key={obj.id} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
-                <button className='msp-btn msp-btn-block msp-form-control msp-no-overflow' title='Click to focus. Hover to highlight.' onClick={this.focus} style={{ width: 'auto', textAlign: 'left' }}>
+                <button className='msp-form-control msp-control-button-label msp-no-overflow' title='Click to focus. Hover to highlight.' onClick={this.focus} style={{ width: 'auto', textAlign: 'left' }}>
                     <span dangerouslySetInnerHTML={{ __html: this.label }} />
                 </button>
-                <IconButton small={true} customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ flex: '0 0 32px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
-                <IconButton small={true} customClass='msp-form-control' onClick={this.delete} icon='remove' style={{ flex: '0 0 32px' }} title='Delete' />
-                <IconButton small={true} customClass='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' style={{ flex: '0 0 32px' }} title='Actions' toggleState={this.state.showUpdate} />
+                <IconButton small customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ flex: '0 0 32px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
+                <IconButton small customClass='msp-form-control' onClick={this.delete} icon='remove' style={{ flex: '0 0 32px' }} title='Delete' />
+                <IconButton customClass='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' style={{ flex: '0 0 32px', padding: '0px' }} title='Actions' toggleState={this.state.showUpdate} />
             </div>
             {this.state.showUpdate && <>
                 <ActionMenu items={this.actions} onSelect={this.selectAction} />

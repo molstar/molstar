@@ -195,7 +195,8 @@
     stroke: $font-color;
 }
 
-.msp-no-overflow {    
+.msp-no-overflow {
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }

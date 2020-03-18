@@ -333,15 +333,13 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         const cell = component.cell;
         const label = cell.obj?.label;
         return <>
-            <div className='msp-control-row'>
-                <button className='msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
+            <div className='msp-btn-row-group'>
+                <button className='msp-form-control msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {label}
                 </button>
-                <div className='msp-select-row'>
-                    <IconButton onClick={this.toggleVisible} icon='visual-visibility' toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small />
-                    <IconButton onClick={this.toggleRemove} icon='remove' title='Remove' small toggleState={this.state.action === 'remove'} />
-                    <IconButton onClick={this.toggleAction} icon='dot-3' title='Actions' toggleState={this.state.action === 'action'} />
-                </div>
+                <IconButton onClick={this.toggleVisible} icon='visual-visibility' toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small customClass='msp-form-control' style={{ flex: '0 0 32px' }} />
+                <IconButton onClick={this.toggleRemove} icon='remove' title='Remove' small toggleState={this.state.action === 'remove'} customClass='msp-form-control' style={{ flex: '0 0 32px' }} />
+                <IconButton onClick={this.toggleAction} icon='dot-3' title='Actions' toggleState={this.state.action === 'action'} customClass='msp-form-control' style={{ flex: '0 0 32px', padding: '0px' }} />
             </div>
             {this.state.action === 'remove' && <ActionMenu items={this.removeActions} onSelect={this.selectRemoveAction} />}
             {this.state.action === 'action' && <>

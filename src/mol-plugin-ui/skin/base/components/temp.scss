@@ -38,6 +38,7 @@
     height: $row-height;
     margin-top: 1px;
     width: 100%;
+    background: $default-background;
 
     > button {
         margin: 0;
@@ -48,6 +49,10 @@
 
     > button:last-child {
         margin-right: 0;
+    }
+
+    > button.msp-control-button-label {
+        background: $default-background;
     }
 }
 
@@ -327,9 +332,9 @@
         text-align: left;
     }
 
-    
+
     .msp-action-menu-button {
-        margin-top: 1px;   
+        margin-top: 1px;
         .msp-icon {
             font-size: 80%;
             margin-right: 6px;
