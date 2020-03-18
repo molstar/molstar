@@ -22,7 +22,7 @@ export function preprocessFile(filename: string, propertyProvider?: ModelPropert
 }
 
 async function preprocess(filename: string, propertyProvider?: ModelPropertiesProvider, outputCif?: string, outputBcif?: string) {
-    const input = await readStructureWrapper('entry', '_local_', filename, propertyProvider);
+    const input = await readStructureWrapper('entry', '_local_', filename, void 0, propertyProvider);
     const categories = await classifyCif(input.cifFrame);
     const inputStructures = (await resolveStructures(input))!;
     const exportCtx = CifExportContext.create(inputStructures);

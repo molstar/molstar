@@ -86,17 +86,24 @@ const DefaultModelServerConfig = {
     defaultSource: 'pdb-cif' as string,
 
     /**
-     * Maps a request identifier to a filename given a 'source' and 'id' variables.
+     * Maps a request identifier to either:
+     * - filename [source, mapping]
+     * - URI [source, mapping, format]
      *
+     * Mapping is provided 'source' and 'id' variables to interpolate. 
+     * 
      * /static query uses 'pdb-cif' and 'pdb-bcif' source names.
      */
     sourceMap: [
         ['pdb-cif', 'e:/test/quick/${id}_updated.cif'],
         // ['pdb-bcif', 'e:/test/quick/${id}.bcif'],
-    ] as [string, string][]
+    ] as ([string, string] | [string, string, ModelServerFetchFormats])[]
 };
 
-export let mapSourceAndIdToFilename: (source: string, id: string) => string = () => {
+export const ModelServerFetchFormats = ['cif', 'bcif', 'cif.gz', 'bcif.gz'] as const
+export type ModelServerFetchFormats = (typeof ModelServerFetchFormats)[number]
+
+export let mapSourceAndIdToFilename: (source: string, id: string) => [string, ModelServerFetchFormats] = () => {
     throw new Error('call setupConfig & validateConfigAndSetupSourceMap to initialize this function');
 }
 
@@ -159,6 +166,16 @@ function addServerArgs(parser: argparse.ArgumentParser) {
             'The `SOURCE` variable (e.g. `pdb-bcif`) is arbitrary and depends on how you plan to use the server.'
         ].join('\n'),
     });
+    parser.addArgument([ '--sourceMapUrl' ], {
+        nargs: 3,
+        action: 'append',
+        metavar: ['SOURCE', 'PATH', 'SOURCE_MAP_FORMAT'] as any,
+        help: [
+            'Same as --sourceMap but for URL. --sourceMap src url format',
+            'Example: pdb-cif "https://www.ebi.ac.uk/pdbe/entry-files/download/${id}_updated.cif" cif',
+            'Format is either cif or bcif'
+        ].join('\n'),
+    });
 }
 
 export type ModelServerConfig = typeof DefaultModelServerConfig
@@ -170,7 +187,7 @@ export const ModelServerConfigTemplate: ModelServerConfig = {
     sourceMap: [
         ['pdb-bcif', './path-to-binary-cif/${id.substr(1, 2)}/${id}.bcif'],
         ['pdb-cif', './path-to-text-cif/${id.substr(1, 2)}/${id}.cif'],
-        ['pdb-updated', './path-to-updated-cif/${id}.bcif']
+        ['pdb-updated', 'https://www.ebi.ac.uk/pdbe/entry-files/download/${id}_updated.cif', 'cif']
     ] as [string, string][]
 }
 
@@ -199,6 +216,11 @@ function setConfig(config: ModelServerConfig) {
     for (const k of ObjectKeys(ModelServerConfig)) {
         if (config[k] !== void 0) (ModelServerConfig as any)[k] = config[k];
     }
+
+    if ((config as any).sourceMapUrl) {
+        if (!ModelServerConfig.sourceMap) ModelServerConfig.sourceMap = [];
+        ModelServerConfig.sourceMap.push(...(config as any).sourceMapUrl);
+    }
 }
 
 function validateConfigAndSetupSourceMap() {
@@ -208,7 +230,7 @@ function validateConfigAndSetupSourceMap() {
     
     mapSourceAndIdToFilename = new Function('source', 'id', [
         'switch (source.toLowerCase()) {',
-        ...ModelServerConfig.sourceMap.map(([source, path]) => `case '${source.toLowerCase()}': return \`${path}\`;`),
+        ...ModelServerConfig.sourceMap.map(([source, path, format]) => `case '${source.toLowerCase()}': return [\`${path}\`, '${format}'];`),
         '}',
     ].join('\n')) as any;
 }
