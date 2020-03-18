@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "0.5.6",
+  "version": "0.6.0-dev.3",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -26,7 +26,7 @@
     "serve": "http-server -p 1338",
     "model-server": "node lib/servers/model/server.js",
     "model-server-watch": "nodemon --watch lib lib/servers/model/server.js",
-    "volume-server": "node lib/servers/volume/server.js --idMap em 'test/${id}.mdb' --defaultPort 1336",
+    "volume-server-test": "node lib/servers/volume/server.js --idMap em 'test/${id}.mdb' --defaultPort 1336",
     "plugin-state": "node lib/servers/plugin-state/index.js",
     "preversion": "npm run test",
     "postversion": "git push && git push --tags",
@@ -35,6 +35,14 @@
   "files": [
     "lib/"
   ],
+  "bin": {
+    "model-server": "lib/servers/model/server.js",
+    "model-server-query": "lib/servers/model/local.js",
+    "model-server-preprocess": "lib/servers/model/preprocess.js",
+    "volume-server": "lib/servers/volume/server.js",
+    "volume-server-query": "lib/servers/volume/query.js",
+    "volume-server-pack": "lib/servers/volume/pack.js"
+  },
   "nodemonConfig": {
     "ignoreRoot": [
       "./node_modules",

@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import VERSION from './version'
+import { VOLUME_SERVER_VERSION } from './version'
 import { LimitsConfig, ServerConfig } from '../config';
 
 export function getSchema() {
@@ -18,7 +18,7 @@ export function getSchema() {
     return {
         openapi: '3.0.0',
         info: {
-            version: VERSION,
+            version: VOLUME_SERVER_VERSION,
             title: 'Volume Server',
             description: 'The VolumeServer is a service for accessing subsets of volumetric data. It automatically downsamples the data depending on the volume of the requested region to reduce the bandwidth requirements and provide near-instant access to even the largest data sets.',
         },

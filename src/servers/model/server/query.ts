@@ -57,7 +57,7 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
         const queries = structures.map(s => job.queryDefinition.query(job.normalizedParams, s));
         const result: Structure[] = [];
         for (let i = 0; i < structures.length; i++) {
-            const s = await StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], { timeoutMs: Config.maxQueryTimeInMs }))
+            const s = await StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], { timeoutMs: Config.queryTimeoutMs }))
             if (s.elementCount > 0) result.push(s);
         }
         perf.end('query');
@@ -112,7 +112,7 @@ function doError(job: Job, e: any) {
     return encoder;
 }
 
-const maxTime = Config.maxQueryTimeInMs;
+const maxTime = Config.queryTimeoutMs;
 export function abortingObserver(p: Progress) {
     if (now() - p.root.progress.startedTime > maxTime) {
         p.requestAbort(`Exceeded maximum allowed time for a query (${maxTime}ms)`);

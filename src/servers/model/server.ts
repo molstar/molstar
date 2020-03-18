@@ -1,28 +1,27 @@
+#!/usr/bin/env node
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as express from 'express'
 import * as compression from 'compression'
-import * as fs from 'fs'
-import * as argparse from 'argparse'
-import { ModelServerConfig as ServerConfig, setupConfig, ModelServerConfig } from './config'
-import { ConsoleLogger } from '../../mol-util/console-logger';
-import { PerformanceMonitor } from '../../mol-util/performance-monitor';
-import { initWebApi } from './server/api-web';
+import * as express from 'express'
+import { ConsoleLogger } from '../../mol-util/console-logger'
+import { PerformanceMonitor } from '../../mol-util/performance-monitor'
+import { configureServer, ModelServerConfig as ServerConfig } from './config'
+import { initWebApi } from './server/api-web'
 import Version from './version'
 
 function setupShutdown() {
-    if (ServerConfig.shutdownParams.timeoutVarianceMinutes > ServerConfig.shutdownParams.timeoutMinutes) {
+    if (ServerConfig.shutdownTimeoutVarianceMinutes > ServerConfig.shutdownTimeoutMinutes) {
         ConsoleLogger.log('Server', 'Shutdown timeout variance is greater than the timer itself, ignoring.');
     } else {
         let tVar = 0;
-        if (ServerConfig.shutdownParams.timeoutVarianceMinutes > 0) {
-            tVar = 2 * (Math.random() - 0.5) * ServerConfig.shutdownParams.timeoutVarianceMinutes;
+        if (ServerConfig.shutdownTimeoutVarianceMinutes > 0) {
+            tVar = 2 * (Math.random() - 0.5) * ServerConfig.shutdownTimeoutVarianceMinutes;
         }
-        let tMs = (ServerConfig.shutdownParams.timeoutMinutes + tVar) * 60 * 1000;
+        let tMs = (ServerConfig.shutdownTimeoutMinutes + tVar) * 60 * 1000;
 
         console.log(`----------------------------------------------------------------------------`);
         console.log(`  The server will shut down in ${PerformanceMonitor.format(tMs)} to prevent slow performance.`);
@@ -41,22 +40,7 @@ function setupShutdown() {
     }
 }
 
-const cmdParser = new argparse.ArgumentParser({
-    addHelp: true
-});
-
-cmdParser.addArgument(['--cfg'], { help: 'Config file path.', required: false });
-cmdParser.addArgument(['--printcfg'], { help: 'Prints out current config and exits.', required: false, nargs: 0 });
-
-interface CmdArgs {
-    cfg?: string,
-    printcfg?: boolean
-}
-
-const cmdArgs = cmdParser.parseArgs() as CmdArgs;
-
-const cfg = cmdArgs.cfg ? JSON.parse(fs.readFileSync(cmdArgs.cfg, 'utf8')) : void 0;
-setupConfig(cfg);
+configureServer();
 
 function startServer() {
     let app = express();
@@ -73,12 +57,8 @@ function startServer() {
     console.log(``);
 }
 
-if (cmdArgs.printcfg !== null) {
-    console.log(JSON.stringify(ModelServerConfig, null, 2));
-} else {
-    startServer();
+startServer();
 
-    if (ServerConfig.shutdownParams && ServerConfig.shutdownParams.timeoutMinutes > 0) {
-        setupShutdown();
-    }
+if (ServerConfig.shutdownTimeoutMinutes > 0) {
+    setupShutdown();
 }

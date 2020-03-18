@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -8,7 +9,7 @@ import * as fs from 'fs'
 import Version from './version';
 import { LocalInput, runLocal } from './server/api-local';
 
-console.log(`Mol* ModelServer (${Version}), (c) 2018 Mol* authors`);
+console.log(`Mol* ModelServer (${Version}), (c) 2018-2020 Mol* authors`);
 console.log(``);
 
 let exampleWorkload: LocalInput = [{

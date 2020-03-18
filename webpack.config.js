@@ -2,7 +2,6 @@ const common = require('./webpack.config.common.js');
 const createApp = common.createApp; 
 const createEntry = common.createEntry;
 const createBrowserTest = common.createBrowserTest;
-const createNodeEntryPoint = common.createNodeEntryPoint;
 const createNodeApp = common.createNodeApp;
 
 module.exports = [
@@ -11,7 +10,6 @@ module.exports = [
     createEntry('examples/proteopedia-wrapper/index', 'examples/proteopedia-wrapper', 'index'),
     createEntry('apps/demos/lighting/index', 'demos/lighting', 'index'),
     createNodeApp('state-docs'),
-    createNodeEntryPoint('preprocess', 'servers/model', 'model-server'),
     createApp('model-server-query'),
 
     createBrowserTest('font-atlas'),

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -7,15 +8,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as express from 'express'
 import * as compression from 'compression'
-
-import init from './server/web-api'
-import VERSION from './server/version'
+import * as express from 'express'
 import { ConsoleLogger } from '../../mol-util/console-logger'
+import { configureServer, ServerConfig } from './config'
 import { State } from './server/state'
-import { addServerArgs, addLimitsArgs, LimitsConfig, setConfig, ServerConfig } from './config';
-import * as argparse from 'argparse'
+import { VOLUME_SERVER_HEADER } from './server/version'
+import init from './server/web-api'
+
 
 function setupShutdown() {
     if (ServerConfig.shutdownTimeoutVarianceMinutes > ServerConfig.shutdownTimeoutMinutes) {
@@ -44,15 +44,7 @@ function setupShutdown() {
     }
 }
 
-const parser = new argparse.ArgumentParser({
-    addHelp: true,
-    description: `VolumeServer ${VERSION}, (c) 2018-2019, Mol* contributors`
-});
-addServerArgs(parser)
-addLimitsArgs(parser)
-
-const config: ServerConfig & LimitsConfig = parser.parseArgs()
-setConfig(config) // sets the config for global use
+configureServer();
 
 const port = process.env.port || ServerConfig.defaultPort;
 
@@ -62,11 +54,11 @@ init(app);
 
 app.listen(port);
 
-console.log(`VolumeServer ${VERSION}, (c) 2018-2019, Mol* contributors`);
+console.log(VOLUME_SERVER_HEADER);
 console.log(``);
 console.log(`The server is running on port ${port}.`);
 console.log(``);
 
-if (config.shutdownTimeoutMinutes > 0) {
+if (ServerConfig.shutdownTimeoutMinutes > 0) {
     setupShutdown();
 }
