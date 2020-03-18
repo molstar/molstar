@@ -138,12 +138,11 @@ namespace Sphere3D {
         out.radius = sphere.radius + delta
         if (hasExtrema(sphere)) {
             setExtrema(out, sphere.extrema.map(e => {
-                Vec3.sub(tmpDir, sphere.center, e)
+                Vec3.sub(tmpDir, e, sphere.center)
                 const dist = Vec3.distance(sphere.center, e)
                 Vec3.normalize(tmpDir, tmpDir)
-                return Vec3.scaleAndAdd(Vec3(), e, tmpDir, dist + delta)
+                return Vec3.scaleAndAdd(Vec3(), sphere.center, tmpDir, dist + delta)
             }))
-            setExtrema(out, sphere.extrema)
         }
         return out
     }

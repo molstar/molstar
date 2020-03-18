@@ -103,7 +103,17 @@ export function calculateInvariantBoundingSphere(position: Float32Array, positio
         boundaryHelper.radiusStep(v)
     }
 
-    return boundaryHelper.getSphere()
+    const sphere = boundaryHelper.getSphere()
+
+    if (positionCount <= 98) {
+        const extrema: Vec3[] = []
+        for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
+            extrema.push(Vec3.fromArray(Vec3(), position, i));
+        }
+        Sphere3D.setExtrema(sphere, extrema)
+    }
+
+    return sphere
 }
 
 export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere3D, transform: Float32Array, transformCount: number): Sphere3D {
