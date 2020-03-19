@@ -14,6 +14,7 @@ import { ActionMenu } from '../controls/action-menu';
 import { ApplyActionControl } from './apply-action';
 import { ControlGroup } from '../controls/common';
 import { UpdateTransformControl } from './update-transform';
+import { StateTreeSpine } from '../../mol-state/tree/spine';
 
 export class StateTree extends PluginUIComponent<{ state: State }, { showActions: boolean }> {
     state = { showActions: true };
@@ -254,6 +255,19 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         (item?.value as any)();
     }
 
+    updates() {
+        const cell = this.props.cell;
+        const decoratorChain = StateTreeSpine.getDecoratorChain(cell.parent, cell.transform.ref);
+
+        const decorators = [];
+        for (let i = decoratorChain.length - 1; i >= 0; i--) {
+            const d = decoratorChain[i];
+            decorators!.push(<UpdateTransformControl key={`${d.transform.transformer.id}-${i}`} state={cell.parent} transform={d.transform} noMargin wrapInExpander />);
+        }
+
+        return decorators;
+    }
+
     render() {
         const cell = this.props.cell;
         const n = cell.transform;
@@ -315,38 +329,11 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
             let actions = this.actions;
             return <div style={{ marginBottom: '1px' }}>
                 {row}
-                <UpdateTransformControl state={cell.parent} transform={cell.transform} noMargin wrapInExpander />
+                {this.updates()}
                 {actions && <ActionMenu items={actions} onSelect={this.selectAction} />}
             </div>
         }
 
-        // if (this.state.isCurrent) {
-        //     return <>
-        //         {row}
-        //         <StateTreeNodeTransform {...this.props} toggleCollapsed={this.toggleUpdaterObs} />
-        //     </>
-        // }
-
         return row;
     }
 }
-
-// class StateTreeNodeTransform extends PluginUIComponent<{ nodeRef: string, state: State, depth: number, toggleCollapsed?: Observable<any> }> {
-//     componentDidMount() {
-//         // this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
-//         //     if (this.props.nodeRef !== ref || this.props.state !== state) return;
-//         //     this.forceUpdate();
-//         // });
-//     }
-
-//     render() {
-//         const ref = this.props.nodeRef;
-//         const cell = this.props.state.cells.get(ref)!;
-//         const parent: StateObjectCell | undefined = (cell.sourceRef && this.props.state.cells.get(cell.sourceRef)!) || void 0;
-
-//         if (!parent || parent.status !== 'ok') return null;
-
-//         const transform = cell.transform;
-//         return <UpdateTransformContol state={this.props.state} transform={transform} initiallyCollapsed={true} toggleCollapsed={this.props.toggleCollapsed} />;
-//     }
-// }

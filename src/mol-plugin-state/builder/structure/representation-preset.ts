@@ -67,6 +67,14 @@ function reprBuilder(plugin: PluginContext, params: CommonStructureRepresentatio
     return { update, builder, color, typeParams };
 }
 
+const empty = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-empty',
+    display: { name: 'Empty', group: 'Preset' },
+    async apply(ref, params, plugin) {
+        return { };
+    }
+});
+
 const polymerAndLigand = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-polymer-and-ligand',
     display: { name: 'Polymer & Ligand', group: 'Preset' },
@@ -228,6 +236,7 @@ export function presetSelectionComponent(plugin: PluginContext, structure: State
 }
 
 export const PresetStructureReprentations = {
+    empty,
     auto,
     'atomic-detail': atomicDetail,
     'polymer-cartoon': polymerCartoon,

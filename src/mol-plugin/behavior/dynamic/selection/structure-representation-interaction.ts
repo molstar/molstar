@@ -55,8 +55,6 @@ const StructureRepresentationInteractionParams = (plugin: PluginContext) => {
 
 type StructureRepresentationInteractionProps = PD.ValuesFor<ReturnType<typeof StructureRepresentationInteractionParams>>
 
-//PD.Values<typeof StructureRepresentationInteractionParams>
-
 export enum StructureRepresentationInteractionTags {
     Group = 'structure-interaction-group',
     ResidueSel = 'structure-interaction-residue-sel',
@@ -213,7 +211,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         const state = this.plugin.state.data;
         const builder = state.build();
 
-        const all = StateSelection.Generators.root.subtree();        
+        const all = StateSelection.Generators.root.subtree();
         for (const repr of state.select(all.withTag(StructureRepresentationInteractionTags.ResidueRepr))) {
             builder.to(repr).update(this.params.focusParams);
         }

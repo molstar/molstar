@@ -54,6 +54,15 @@ export class StructureRepresentationBuilder {
         return ret;
     }
 
+    getPresetSelect(s?: PluginStateObject.Molecule.Structure): PD.Select<string> {
+        const options: [string, string][] = [];
+        for (const p of this._providers) {
+            if (s && p.isApplicable && !p.isApplicable(s, this.plugin)) continue;
+            options.push([p.id, p.display.name]);
+        }
+        return PD.Select('auto', options);
+    }
+
     getPresetsWithOptions(s: PluginStateObject.Molecule.Structure) {
         const options: [string, string][] = [];
         const map: { [K in string]: PD.Any } = Object.create(null);

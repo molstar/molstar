@@ -229,7 +229,7 @@ export class Log extends PluginUIComponent<{}, { entries: List<LogEntry> }> {
 //         const actions = cell.status === 'ok' && <StateObjectActionSelect state={current.state} nodeRef={ref} plugin={this.plugin} />
 
 //         if (cell.status === 'error') {
-//             return <>            
+//             return <>
 //                 <SectionHeader icon='flow-cascade' title={`${cell.obj?.label || transform.transformer.definition.display.name}`} desc={transform.transformer.definition.display.name} />
 //                 <UpdateTransformControl state={current.state} transform={transform} customHeader='none' />
 //                 {actions}
@@ -249,7 +249,7 @@ export class Log extends PluginUIComponent<{}, { entries: List<LogEntry> }> {
 //             </ExpandGroup>);
 //         }
 
-//         return <>            
+//         return <>
 //             <SectionHeader icon='flow-cascade' title={`${parent.obj?.label || parent.transform.transformer.definition.display.name}`} desc={parent.transform.transformer.definition.display.name} />
 //             <UpdateTransformControl state={current.state} transform={parent.transform} customHeader='none' />
 //             {decorators && <div className='msp-controls-section'>{decorators}</div>}

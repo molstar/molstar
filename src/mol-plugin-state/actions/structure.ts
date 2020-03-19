@@ -19,6 +19,7 @@ import { Download, ParsePsf } from '../transforms/data';
 import { CoordinatesFromDcd, CustomModelProperties, CustomStructureProperties, TopologyFromPsf, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant } from './data-format';
 import { applyTrajectoryHierarchyPreset } from '../builder/structure/hierarchy-preset';
+import { PresetStructureReprentations } from '../builder/structure/representation-preset';
 
 // TODO make unitcell creation part of preset
 
@@ -36,7 +37,8 @@ export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | P
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('mmCIF default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, 'mmcif');
-            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, noRepresentation: !options.visuals });
+            const representationPreset = options.visuals ? 'auto' : 'empty';
+            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
         })
     }
 }
@@ -52,7 +54,8 @@ export const PdbProvider: DataFormatProvider<any> = {
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('PDB default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, 'pdb');
-            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, noRepresentation: !options.visuals });
+            const representationPreset = options.visuals ? 'auto' : 'empty';
+            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
         })
     }
 }
@@ -68,7 +71,8 @@ export const GroProvider: DataFormatProvider<any> = {
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('GRO default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, 'gro');
-            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, noRepresentation: !options.visuals });
+            const representationPreset = options.visuals ? 'auto' : 'empty';
+            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
         })
     }
 }
@@ -84,7 +88,8 @@ export const Provider3dg: DataFormatProvider<any> = {
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('3DG default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, '3dg');
-            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, noRepresentation: !options.visuals });
+            const representationPreset = options.visuals ? 'auto' : 'empty';
+            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
         })
     }
 }
@@ -123,59 +128,51 @@ export const DcdProvider: DataFormatProvider<any> = {
 
 //
 
-const DownloadModelRepresentationOptions = PD.Group({
+const DownloadModelRepresentationOptions = (plugin: PluginContext) => PD.Group({
     type: RootStructureDefinition.getParams(void 0, 'assembly').type,
-    noRepresentation: PD.Optional(PD.Boolean(false, { description: 'Omit creating default representation.' }))
-}, { isExpanded: false });
-
-const DownloadStructurePdbIdSourceOptions = PD.Group({
-    // supportProps: PD.Optional(PD.Boolean(false)),
+    representation: PD.Select(PresetStructureReprentations.auto.id,
+        plugin.builders.structure.representation.getPresets().map(p => [p.id, p.display.name] as any),
+        { description: 'Which representation preset to use.' }),
     asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
-});
+}, { isExpanded: false });
 
 export { DownloadStructure };
 type DownloadStructure = typeof DownloadStructure
 const DownloadStructure = StateAction.build({
     from: PluginStateObject.Root,
     display: { name: 'Download Structure', description: 'Load a structure from the provided source and create its representation.' },
-    params: {
-        source: PD.MappedStatic('bcif-static', {
-            'pdbe-updated': PD.Group({
-                id: PD.Text('1cbs', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
-                structure: DownloadModelRepresentationOptions,
-                options: DownloadStructurePdbIdSourceOptions
-            }, { isFlat: true, label: 'PDBe Updated' }),
-            'rcsb': PD.Group({
-                id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
-                structure: DownloadModelRepresentationOptions,
-                options: DownloadStructurePdbIdSourceOptions
-            }, { isFlat: true, label: 'RCSB' }),
-            'pdb-dev': PD.Group({
-                id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma separated ids.' }),
-                structure: DownloadModelRepresentationOptions,
-                options: DownloadStructurePdbIdSourceOptions
-            }, { isFlat: true, label: 'PDBDEV' }),
-            'bcif-static': PD.Group({
-                id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
-                structure: DownloadModelRepresentationOptions,
-                options: DownloadStructurePdbIdSourceOptions
-            }, { isFlat: true, label: 'BinaryCIF (static PDBe Updated)' }),
-            'swissmodel': PD.Group({
-                id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma separated ACs.' }),
-                structure: DownloadModelRepresentationOptions,
-                options: DownloadStructurePdbIdSourceOptions
-            }, { isFlat: true, label: 'SWISS-MODEL', description: 'Loads the best homology model or experimental structure' }),
-            'url': PD.Group({
-                url: PD.Text(''),
-                format: PD.Select('mmcif', [['mmcif', 'CIF'], ['pdb', 'PDB']] as ['mmcif' | 'pdb', string][]),
-                isBinary: PD.Boolean(false),
-                structure: DownloadModelRepresentationOptions,
-                options: PD.Group({
-                    // supportProps: PD.Optional(PD.Boolean(false)),
-                    createRepresentation: PD.Optional(PD.Boolean(true))
-                })
-            }, { isFlat: true, label: 'URL' })
-        })
+    params: (_, plugin: PluginContext) => {
+        const options = DownloadModelRepresentationOptions(plugin);
+        return {
+            source: PD.MappedStatic('bcif-static', {
+                'pdbe-updated': PD.Group({
+                    id: PD.Text('1cbs', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
+                    options
+                }, { isFlat: true, label: 'PDBe Updated' }),
+                'rcsb': PD.Group({
+                    id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
+                    options
+                }, { isFlat: true, label: 'RCSB' }),
+                'pdb-dev': PD.Group({
+                    id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma separated ids.' }),
+                    options
+                }, { isFlat: true, label: 'PDBDEV' }),
+                'bcif-static': PD.Group({
+                    id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
+                    options
+                }, { isFlat: true, label: 'BinaryCIF (static PDBe Updated)' }),
+                'swissmodel': PD.Group({
+                    id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma separated ACs.' }),
+                    options
+                }, { isFlat: true, label: 'SWISS-MODEL', description: 'Loads the best homology model or experimental structure' }),
+                'url': PD.Group({
+                    url: PD.Text(''),
+                    format: PD.Select('mmcif', [['mmcif', 'CIF'], ['pdb', 'PDB']] as ['mmcif' | 'pdb', string][]),
+                    isBinary: PD.Boolean(false),
+                    options
+                }, { isFlat: true, label: 'URL' })
+            })
+        }
     }
 })(({ params, state }, plugin: PluginContext) => Task.create('Download Structure', async ctx => {
     plugin.behaviors.layout.leftPanelTabName.next('data');
@@ -227,7 +224,8 @@ const DownloadStructure = StateAction.build({
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
-    const createRepr = !params.source.params.structure.noRepresentation;
+    const representationPreset: any = params.source.params.options.representation || PresetStructureReprentations.auto.id;
+    const showUnitcell = representationPreset !== PresetStructureReprentations.empty.id;
 
     await state.transaction(async () => {
         if (downloadParams.length > 0 && asTrajectory) {
@@ -237,13 +235,21 @@ const DownloadStructure = StateAction.build({
             }, { state: { isGhost: true } });
             const trajectory = await plugin.builders.structure.parseTrajectory(blob, { formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' })) });
 
-            await applyTrajectoryHierarchyPreset(plugin, trajectory, 'first-model', { showUnitcell: createRepr, noRepresentation: !createRepr });
+            await applyTrajectoryHierarchyPreset(plugin, trajectory, 'first-model', {
+                structure: src.params.options.type,
+                showUnitcell,
+                representationPreset
+            });
         } else {
             for (const download of downloadParams) {
                 const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
                 const trajectory = await plugin.builders.structure.parseTrajectory(data, format);
 
-                await applyTrajectoryHierarchyPreset(plugin, trajectory, 'first-model', { showUnitcell: createRepr, noRepresentation: !createRepr });
+                await applyTrajectoryHierarchyPreset(plugin, trajectory, 'first-model', {
+                    structure: src.params.options.type,
+                    showUnitcell,
+                    representationPreset
+                });
             }
         }
     }).runInContext(ctx);

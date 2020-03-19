@@ -212,24 +212,41 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         return this.plugin.updateDataState(update, { canUndo: 'Update Representation' });
     }
 
-    updateRepresentationsTheme<C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(components: ReadonlyArray<StructureComponentRef>, params: StructureComponentManager.UpdateThemeParams<C, S>): Promise<any> {
-        if (components.length === 0) return Promise.resolve();
+    /**
+     * To update theme for all selected structures, use
+     *   plugin.dataTransaction(async () => {
+     *      for (const s of structure.hierarchy.selection.structures) await updateRepresentationsTheme(s.componets, ...);
+     *   }, { canUndo: 'Update Theme' });
+     */
+    updateRepresentationsTheme<C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(components: ReadonlyArray<StructureComponentRef>, params: StructureComponentManager.UpdateThemeParams<C, S>): Promise<any> | undefined
+    updateRepresentationsTheme<C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(components: ReadonlyArray<StructureComponentRef>, params: (c: StructureComponentRef, r: StructureRepresentationRef) => StructureComponentManager.UpdateThemeParams<C, S>): Promise<any> | undefined
+    updateRepresentationsTheme(components: ReadonlyArray<StructureComponentRef>, paramsOrProvider: StructureComponentManager.UpdateThemeParams<any, any> | ((c: StructureComponentRef, r: StructureRepresentationRef) => StructureComponentManager.UpdateThemeParams<any, any>)) {
+        if (components.length === 0) return;
 
         const update = this.dataState.build();
 
         for (const c of components) {
             for (const repr of c.representations) {
                 const old = repr.cell.transform.params;
-                const colorTheme = params.color
-                    ? createStructureColorThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name, params.color, params.colorParams)
-                    : void 0;
-                const sizeTheme = params.color
-                    ? createStructureSizeThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name, params.size, params.sizeParams)
-                    : void 0;
-                update.to(repr.cell).update(prev => {
-                    if (colorTheme) prev.colorTheme = colorTheme;
-                    if (sizeTheme) prev.sizeTheme = sizeTheme;
-                });
+                const params: StructureComponentManager.UpdateThemeParams<any, any> = typeof paramsOrProvider === 'function' ? paramsOrProvider(c, repr) : paramsOrProvider;
+
+                const colorTheme = params.color === 'default'
+                    ? createStructureColorThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name)
+                    : params.color
+                        ? createStructureColorThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name, params.color, params.colorParams)
+                        : void 0;
+                const sizeTheme = params.size === 'default'
+                    ? createStructureSizeThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name)
+                    : params.color
+                        ? createStructureSizeThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name, params.size, params.sizeParams)
+                        : void 0;
+
+                if (colorTheme || sizeTheme) {
+                    update.to(repr.cell).update(prev => {
+                        if (colorTheme) prev.colorTheme = colorTheme;
+                        if (sizeTheme) prev.sizeTheme = sizeTheme;
+                    });
+                }
             }
         }
 
@@ -392,9 +409,9 @@ namespace StructureComponentManager {
         /**
          * this works for any theme name (use 'name as any'), but code completion will break
          */
-        color?: C,
+        color?: C | 'default',
         colorParams?: ColorTheme.BuiltInParams<C>,
-        size?: S,
+        size?: S | 'default',
         sizeParams?: SizeTheme.BuiltInParams<S>
     }
 }

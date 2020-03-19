@@ -88,7 +88,6 @@ async function tryLoadFromUrl(ctx: PluginContext) {
                     format: format as any,
                     isBinary,
                     options: params.source.params.options,
-                    structure: params.source.params.structure,
                 }
             }
         }));

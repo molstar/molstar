@@ -32,7 +32,6 @@ const FirstModelParams = (a: PluginStateObject.Molecule.Trajectory | undefined, 
     model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin))),
     showUnitcell: PD.Optional(PD.Boolean(true)),
     structure: PD.Optional(RootStructureDefinition.getParams(void 0, 'assembly').type),
-    noRepresentation: PD.Optional(PD.Boolean(false)),
     ...CommonParams(a, plugin)
 });
 
@@ -44,27 +43,20 @@ const firstModel = TrajectoryHierarchyPresetProvider({
         const builder = plugin.builders.structure;
 
         const model = await builder.createModel(trajectory, params.model);
-        const modelProperties = !!params.modelProperties
-            ? await builder.insertModelProperties(model, params.modelProperties) : void 0;
-        const modelChildParent = modelProperties || model;
+        const modelProperties = await builder.insertModelProperties(model, params.modelProperties);
 
         const structure = await builder.createStructure(modelProperties || model, params.structure);
-        const structureProperties = !!params.structureProperties
-            ? await builder.insertStructureProperties(structure, params.structureProperties) : void 0;
-        const structureChildParent = structureProperties || structure;
+        const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
-        const unitcell = params.showUnitcell === void 0 || !!params.showUnitcell ? await builder.tryCreateUnitcell(modelChildParent, undefined, { isHidden: true }) : void 0;
-
-        const representation = !params.noRepresentation
-            ? await plugin.builders.structure.representation.applyPreset(structureChildParent, params.representationPreset || 'auto')
-            : void 0;
+        const unitcell = params.showUnitcell === void 0 || !!params.showUnitcell ? await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: true }) : void 0;
+        const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto');
 
         return {
-            model: modelChildParent,
+            model: modelProperties,
             modelRoot: model,
             modelProperties,
             unitcell,
-            structure: structureChildParent,
+            structure: structureProperties,
             structureRoot: structure,
             structureProperties,
             representation
@@ -86,10 +78,13 @@ const allModels = TrajectoryHierarchyPresetProvider({
 
         for (let i = 0; i < tr.length; i++) {
             const model = await builder.createModel(trajectory, { modelIndex: i }, { isCollapsed: true });
-            const structure = await builder.createStructure(model, { name: 'deposited', params: {} });
+            const modelProperties = await builder.insertModelProperties(model, params.modelProperties);
+            const structure = await builder.createStructure(modelProperties || model, { name: 'deposited', params: {} });
+            const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
+
             models.push(model);
             structures.push(structure);
-            await builder.representation.applyPreset(structure, params.representationPreset || 'auto', { globalThemeName: 'model-index' });
+            await builder.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { globalThemeName: 'model-index' });
         }
 
         return { models, structures };
