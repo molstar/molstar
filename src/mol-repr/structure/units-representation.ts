@@ -90,13 +90,13 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                             applyMarkerAction(arr, Interval.ofBounds(0, arr.length), MarkerAction.RemoveHighlight);
                         }
                     } else {
-                        // console.log(label, 'not found visualGroup to reuse, creating new')
+                        // console.log(label, 'did not find visualGroup to reuse, creating new')
                         // newGroups.push(group)
                         const visual = visualCtor(materialId)
-                        // ensure state is current for new visual
-                        setVisualState(visual, group, _state)
                         const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                         if (promise) await promise
+                        // ensure state is current for new visual
+                        setVisualState(visual, group, _state)
                         visuals.set(group.hashCode, { visual, group })
                     }
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length })
@@ -234,6 +234,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         if (syncManually !== _state.syncManually) newState.syncManually = syncManually
         if (markerActions !== _state.markerActions) newState.markerActions = markerActions
 
+        console.log('newState', { ...newState })
         visuals.forEach(({ visual, group }) => setVisualState(visual, group, newState))
 
         StructureRepresentationStateBuilder.update(_state, newState)
