@@ -13,7 +13,6 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { StateBuilder, StateTransformer } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { UUID } from '../../../mol-util';
-import { arraySetAdd } from '../../../mol-util/array';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StructureRepresentationPresetProvider } from '../../builder/structure/representation-preset';
@@ -88,12 +87,11 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
             const interactionParams = InteractionsProvider.getParams(s.cell.obj?.data!);
 
             if (s.properties) {
-                const params = s.properties.cell.transform.params;
-                if (PD.areEqual(interactionParams, params, this.state.options.interactions)) continue;
+                const oldParams = s.properties.cell.transform.params?.properties[InteractionsProvider.descriptor.name];
+                if (PD.areEqual(interactionParams, oldParams, this.state.options.interactions)) continue;
 
                 const b = this.dataState.build();
                 b.to(s.properties.cell).update(old => {
-                    arraySetAdd(old.autoAttach, InteractionsProvider.descriptor.name);
                     old.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
                 });
                 await this.plugin.updateDataState(b);
@@ -101,8 +99,6 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
                 const pd = this.plugin.customStructureProperties.getParams(s.cell.obj?.data);
                 const params = PD.getDefaultValues(pd);
                 if (PD.areEqual(interactionParams, params.properties[InteractionsProvider.descriptor.name], this.state.options.interactions)) continue;
-
-                arraySetAdd(params.autoAttach, InteractionsProvider.descriptor.name);
                 params.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
                 await this.plugin.builders.structure.insertStructureProperties(s.cell, params);
             }
