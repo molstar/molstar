@@ -11,6 +11,7 @@ import { Model } from '../../model'
 import { Spacegroup } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { ModelSymmetry } from '../../../../mol-model-formats/structure/property/symmetry';
+import { radToDeg } from '../../../../mol-math/misc';
 
 /** Determine an atom set and a list of operators that should be applied to that set  */
 export interface OperatorGroup {
@@ -66,6 +67,25 @@ namespace Symmetry {
         const _id = id.toLocaleLowerCase();
         const symmetry = ModelSymmetry.Provider.get(model)
         return symmetry ? arrayFind(symmetry.assemblies, a => a.id.toLowerCase() === _id) : undefined;
+    }
+
+    export function getUnitcellLabel(symmetry: Symmetry) {
+        const { cell, name, num } = symmetry.spacegroup
+        const { size, anglesInRadians } = cell
+        const a = size[0].toFixed(2)
+        const b = size[1].toFixed(2)
+        const c = size[2].toFixed(2)
+        const alpha = radToDeg(anglesInRadians[0]).toFixed(2)
+        const beta = radToDeg(anglesInRadians[1]).toFixed(2)
+        const gamma = radToDeg(anglesInRadians[2]).toFixed(2)
+        const label: string[] = []
+        // name
+        label.push(`Unitcell <b>${name}</b> #${num}`)
+        // sizes
+        label.push(`${a}\u00D7${b}\u00D7${c} \u212B`)
+        // angles
+        label.push(`\u03b1=${alpha}\u00B0 \u03b2=${beta}\u00B0 \u03b3=${gamma}\u00B0`)
+        return label.join(' | ')
     }
 }
 

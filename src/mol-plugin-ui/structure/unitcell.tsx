@@ -31,9 +31,7 @@ export class UnitcellEntry extends PurePluginUIComponent<{ cell: UnitcellCell },
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        if (!this.props.cell.state.isHidden) {
-            PluginCommands.Interactivity.Object.Highlight(this.plugin, { state: this.props.cell.parent, ref: this.props.cell.transform.ref });
-        }
+        PluginCommands.Interactivity.Object.Highlight(this.plugin, { state: this.props.cell.parent, ref: this.props.cell.transform.ref });
     }
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
@@ -56,10 +54,12 @@ export class UnitcellEntry extends PurePluginUIComponent<{ cell: UnitcellCell },
         const { obj } = cell;
         if (!obj) return null;
 
+        const { label, description } = obj
+
         return <>
             <div className='msp-btn-row-group' style={{ marginTop: '6px' }}>
-                <button className='msp-form-control msp-control-button-label' title={`Unitcell. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
-                    Unitcell
+                <button className='msp-form-control msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
+                    {label} <small>{description}</small>
                 </button>
                 <IconButton customClass='msp-form-control' onClick={this.toggleVisibility} icon='visual-visibility' toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'}`} small style={{ flex: '0 0 32px' }} />
                 <IconButton customClass='msp-form-control' onClick={this.toggleOptions} icon='dot-3' title='Options' toggleState={this.state.showOptions} style={{ flex: '0 0 32px', padding: '0px' }} />

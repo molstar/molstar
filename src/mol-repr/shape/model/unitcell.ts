@@ -15,7 +15,6 @@ import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { BoxCage } from '../../../mol-geo/primitive/box';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { transformCage, cloneCage } from '../../../mol-geo/primitive/cage';
-import { radToDeg } from '../../../mol-math/misc';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { RepresentationParamsGetter, Representation, RepresentationContext } from '../../representation';
 
@@ -80,29 +79,10 @@ function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) 
     return m
 }
 
-function getUnitcellLabel(data: UnitcellData) {
-    const { cell, name, num } = data.symmetry.spacegroup
-    const { size, anglesInRadians } = cell
-    const a = size[0].toFixed(2)
-    const b = size[1].toFixed(2)
-    const c = size[2].toFixed(2)
-    const alpha = radToDeg(anglesInRadians[0]).toFixed(2)
-    const beta = radToDeg(anglesInRadians[1]).toFixed(2)
-    const gamma = radToDeg(anglesInRadians[2]).toFixed(2)
-    const label: string[] = []
-    // name
-    label.push(`${name} #${num}`)
-    // sizes
-    label.push(`${a}\u00D7${b}\u00D7${c} \u212B`)
-    // angles
-    label.push(`\u03b1=${alpha}\u00B0 \u03b2=${beta}\u00B0 \u03b3=${gamma}\u00B0`)
-    return label.join(' | ')
-}
-
 function getUnitcellShape(ctx: RuntimeContext, data: UnitcellData, props: UnitcellProps, shape?: Shape<Mesh>) {
     const geo = getUnitcellMesh(data, props, shape && shape.geometry);
-    const label = getUnitcellLabel(data)
-    return Shape.create('Unitcell', data, geo, () => props.cellColor, () => 1, () => label)
+    const label = Symmetry.getUnitcellLabel(data.symmetry)
+    return Shape.create(label, data, geo, () => props.cellColor, () => 1, () => label)
 }
 
 //
