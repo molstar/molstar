@@ -273,10 +273,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
 
             const componentKey = UUID.create22();
             for (const s of xs) {
-                const component = await this.plugin.builders.structure.tryCreateQueryComponent({
-                    structure: s.childRoot,
-                    query: params.selection,
-                    key: componentKey,
+                const component = await this.plugin.builders.structure.tryCreateComponentFromSelection(s.childRoot, params.selection, componentKey, {
                     label: params.label || (params.selection === StructureSelectionQueries.current ? 'Custom Selection' : ''),
                 });
                 if (params.representation === 'none' || !component) continue;

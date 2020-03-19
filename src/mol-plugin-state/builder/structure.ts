@@ -17,6 +17,7 @@ import { Task } from '../../mol-task';
 import { StructureElement } from '../../mol-model/structure';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 import { SpacegroupCell } from '../../mol-math/geometry';
+import Expression from '../../mol-script/language/expression';
 
 export type TrajectoryFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
@@ -175,58 +176,49 @@ export class StructureBuilder {
         return selector;
     }
 
-    tryCreateStaticComponent(params: { structure: StateObjectRef<SO.Molecule.Structure>, type: StaticStructureComponentType, key: string, label?: string, tags?: string[] }) {
-        return this.tryCreateComponent(params.structure, {
-            type: { name: 'static', params: params.type },
+    tryCreateComponentFromExpression(structure: StateObjectRef<SO.Molecule.Structure>, expression: Expression, key: string, params?: { label?: string, tags?: string[] }) {
+        return this.tryCreateComponent(structure, {
+            type: { name: 'expression', params: expression },
             nullIfEmpty: true,
-            label: ''
-        }, params.key, params.tags);
+            label: (params?.label || '').trim()
+        }, key, params?.tags);
     }
 
-    tryCreateQueryComponent(params: { structure: StateObjectRef<SO.Molecule.Structure>, query: StructureSelectionQuery, key: string, label?: string, tags?: string[] }): Promise<StateObjectRef<SO.Molecule.Structure> | undefined> {
+    tryCreateComponentStatic(structure: StateObjectRef<SO.Molecule.Structure>, type: StaticStructureComponentType, key: string, params?: { label?: string, tags?: string[] }) {
+        return this.tryCreateComponent(structure, {
+            type: { name: 'static', params: type },
+            nullIfEmpty: true,
+            label: (params?.label || '').trim()
+        }, key, params?.tags);
+    }
+
+    tryCreateComponentFromSelection(structure: StateObjectRef<SO.Molecule.Structure>, selection: StructureSelectionQuery, key: string, params?: { label?: string, tags?: string[] }): Promise<StateObjectRef<SO.Molecule.Structure> | undefined> {
         return this.plugin.runTask(Task.create('Query Component', async taskCtx => {
-            let { structure, query, key, label, tags } = params;
+            let { label, tags } = params || { };
             label = (label || '').trim();
 
             const structureData = StateObjectRef.resolveAndCheck(this.dataState, structure)?.obj?.data;
 
             if (!structureData) return;
 
-            const transformParams: StructureComponentParams = query.referencesCurrent
+            const transformParams: StructureComponentParams = selection.referencesCurrent
                 ? {
                     type: {
                         name: 'bundle',
-                        params: StructureElement.Bundle.fromSelection(await query.getSelection(this.plugin, taskCtx, structureData)) },
+                        params: StructureElement.Bundle.fromSelection(await selection.getSelection(this.plugin, taskCtx, structureData)) },
                     nullIfEmpty: true,
-                    label: label || query.label
+                    label: label || selection.label
                 } : {
-                    type: { name: 'expression', params: query.expression },
+                    type: { name: 'expression', params: selection.expression },
                     nullIfEmpty: true,
-                    label: label || query.label
+                    label: label || selection.label
                 };
 
-            if (query.ensureCustomProperties) {
-                await query.ensureCustomProperties({ fetch: this.plugin.fetch, runtime: taskCtx }, structureData);
+            if (selection.ensureCustomProperties) {
+                await selection.ensureCustomProperties({ fetch: this.plugin.fetch, runtime: taskCtx }, structureData);
             }
 
-            const state = this.dataState;
-            const root = state.build().to(structure);
-            const keyTag = `structure-component-${key}`;
-            const component = root.applyOrUpdateTagged(keyTag, StateTransforms.Model.StructureComponent, transformParams, {
-                tags: tags ? [...tags, StructureBuilderTags.Component, keyTag] : [StructureBuilderTags.Component, keyTag]
-            });
-
-            await this.dataState.updateTree(component).runInContext(taskCtx);
-
-            const selector = component.selector;
-
-            if (!selector.isOk || selector.cell?.obj?.data.elementCount === 0) {
-                const del = state.build().delete(selector.ref);
-                await this.plugin.updateDataState(del);
-                return;
-            }
-
-            return selector;
+            return this.tryCreateComponent(structure, transformParams, key, tags);
         }))
     }
 
