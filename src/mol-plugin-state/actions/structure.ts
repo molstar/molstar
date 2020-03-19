@@ -18,6 +18,7 @@ import { StateTransforms } from '../transforms';
 import { Download, ParsePsf } from '../transforms/data';
 import { CoordinatesFromDcd, CustomModelProperties, CustomStructureProperties, TopologyFromPsf, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant } from './data-format';
+import { applyTrajectoryHierarchyPreset } from '../builder/structure/hierarchy-preset';
 
 // TODO make unitcell creation part of preset
 
@@ -33,12 +34,9 @@ export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | P
         return false
     },
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
-        return Task.create('mmCIF default builder', async taskCtx => {
-            const { structure, model } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'mmcif' });
-            if (options.visuals) {
-                await ctx.builders.structure.representation.applyPreset(structure, 'auto');
-                await ctx.builders.structure.tryCreateUnitcell(model, undefined, { isHidden: true })
-            }
+        return Task.create('mmCIF default builder', async () => {
+            const trajectory = await ctx.builders.structure.parseTrajectory(data, 'mmcif');
+            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, noRepresentation: !options.visuals });
         })
     }
 }
@@ -53,11 +51,8 @@ export const PdbProvider: DataFormatProvider<any> = {
     },
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('PDB default builder', async () => {
-            const { structure, model } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'pdb' });
-            if (options.visuals) {
-                await ctx.builders.structure.representation.applyPreset(structure, 'auto');
-                await ctx.builders.structure.tryCreateUnitcell(model, undefined, { isHidden: true })
-            }
+            const trajectory = await ctx.builders.structure.parseTrajectory(data, 'pdb');
+            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, noRepresentation: !options.visuals });
         })
     }
 }
@@ -72,11 +67,8 @@ export const GroProvider: DataFormatProvider<any> = {
     },
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('GRO default builder', async () => {
-            const { structure, model } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'gro' });
-            if (options.visuals) {
-                await ctx.builders.structure.representation.applyPreset(structure, 'auto');
-                await ctx.builders.structure.tryCreateUnitcell(model, undefined, { isHidden: true })
-            }
+            const trajectory = await ctx.builders.structure.parseTrajectory(data, 'gro');
+            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, noRepresentation: !options.visuals });
         })
     }
 }
@@ -91,11 +83,8 @@ export const Provider3dg: DataFormatProvider<any> = {
     },
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('3DG default builder', async () => {
-            const { structure, model } = await ctx.builders.structure.parseStructure({ data, dataFormat: '3dg' });
-            if (options.visuals) {
-                await ctx.builders.structure.representation.applyPreset(structure, 'auto');
-                await ctx.builders.structure.tryCreateUnitcell(model, undefined, { isHidden: true })
-            }
+            const trajectory = await ctx.builders.structure.parseTrajectory(data, '3dg');
+            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, noRepresentation: !options.visuals });
         })
     }
 }
@@ -140,7 +129,7 @@ const DownloadModelRepresentationOptions = PD.Group({
 }, { isExpanded: false });
 
 const DownloadStructurePdbIdSourceOptions = PD.Group({
-    supportProps: PD.Optional(PD.Boolean(false)),
+    // supportProps: PD.Optional(PD.Boolean(false)),
     asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
 });
 
@@ -182,7 +171,7 @@ const DownloadStructure = StateAction.build({
                 isBinary: PD.Boolean(false),
                 structure: DownloadModelRepresentationOptions,
                 options: PD.Group({
-                    supportProps: PD.Optional(PD.Boolean(false)),
+                    // supportProps: PD.Optional(PD.Boolean(false)),
                     createRepresentation: PD.Optional(PD.Boolean(true))
                 })
             }, { isFlat: true, label: 'URL' })
@@ -193,22 +182,23 @@ const DownloadStructure = StateAction.build({
 
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
-    let supportProps = false, asTrajectory = false, format: BuiltInTrajectoryFormat = 'mmcif';
+    // let supportProps = false
+    let asTrajectory = false, format: BuiltInTrajectoryFormat = 'mmcif';
 
     switch (src.name) {
         case 'url':
             downloadParams = [{ url: src.params.url, isBinary: src.params.isBinary }];
-            supportProps = !!src.params.options.supportProps;
+            // supportProps = !!src.params.options.supportProps;
             format = src.params.format
             break;
         case 'pdbe-updated':
             downloadParams = getDownloadParams(src.params.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}_updated.cif`, id => `PDBe: ${id}`, false);
-            supportProps = !!src.params.options.supportProps;
+            // supportProps = !!src.params.options.supportProps;
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'rcsb':
             downloadParams = getDownloadParams(src.params.id, id => `https://files.rcsb.org/download/${id.toUpperCase()}.cif`, id => `RCSB: ${id}`, false);
-            supportProps = !!src.params.options.supportProps;
+            // supportProps = !!src.params.options.supportProps;
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'pdb-dev':
@@ -220,17 +210,17 @@ const DownloadStructure = StateAction.build({
                 id => id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`,
                 false
             );
-            supportProps = !!src.params.options.supportProps;
+            // supportProps = !!src.params.options.supportProps;
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'bcif-static':
             downloadParams = getDownloadParams(src.params.id, id => `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${id.toLowerCase()}`, id => `BinaryCIF: ${id}`, true);
-            supportProps = !!src.params.options.supportProps;
+            // supportProps = !!src.params.options.supportProps;
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'swissmodel':
             downloadParams = getDownloadParams(src.params.id, id => `https://swissmodel.expasy.org/repository/uniprot/${id.toUpperCase()}.pdb`, id => `SWISS-MODEL: ${id}`, false);
-            supportProps = !!src.params.options.supportProps;
+            // supportProps = !!src.params.options.supportProps;
             asTrajectory = !!src.params.options.asTrajectory;
             format = 'pdb'
             break;
@@ -245,29 +235,15 @@ const DownloadStructure = StateAction.build({
                 sources: downloadParams.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
                 maxConcurrency: 6
             }, { state: { isGhost: true } });
-            const { structure, model } = await plugin.builders.structure.parseStructure({
-                blob,
-                blobParams:  { formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' })) },
-                modelProperties: supportProps,
-                structureProperties: supportProps
-            });
-            if (createRepr) {
-                await plugin.builders.structure.representation.applyPreset(structure, 'auto');
-                await plugin.builders.structure.tryCreateUnitcell(model, undefined, { isHidden: true })
-            }
+            const trajectory = await plugin.builders.structure.parseTrajectory(blob, { formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' })) });
+
+            await applyTrajectoryHierarchyPreset(plugin, trajectory, 'first-model', { showUnitcell: createRepr, noRepresentation: !createRepr });
         } else {
             for (const download of downloadParams) {
                 const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
-                const { structure, model } = await plugin.builders.structure.parseStructure({
-                    data,
-                    dataFormat: format,
-                    modelProperties: supportProps,
-                    structureProperties: supportProps
-                });
-                if (createRepr) {
-                    await plugin.builders.structure.representation.applyPreset(structure, 'auto');
-                    await plugin.builders.structure.tryCreateUnitcell(model, undefined, { isHidden: true })
-                }
+                const trajectory = await plugin.builders.structure.parseTrajectory(data, format);
+
+                await applyTrajectoryHierarchyPreset(plugin, trajectory, 'first-model', { showUnitcell: createRepr, noRepresentation: !createRepr });
             }
         }
     }).runInContext(ctx);
@@ -308,10 +284,10 @@ export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary
 export const Create3DRepresentationPreset = StateAction.build({
     display: { name: '3D Representation Preset', description: 'Create one of preset 3D representations.' },
     from: PluginStateObject.Molecule.Structure,
-    isApplicable(a, _, plugin: PluginContext) { return plugin.builders.structure.representation.hasPreset(a.data); },
+    isApplicable(a, _, plugin: PluginContext) { return plugin.builders.structure.representation.hasPreset(a); },
     params(a, plugin: PluginContext) {
         return {
-            type: plugin.builders.structure.representation.getPresetsWithOptions(a.data)
+            type: plugin.builders.structure.representation.getPresetsWithOptions(a)
         };
     }
 })(({ ref, params }, plugin: PluginContext) => {

@@ -5,42 +5,50 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { PresetProvider } from '../preset-provider';
+import { PluginStateObject } from '../../objects';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualQuality, VisualQualityOptions } from '../../../mol-geo/geometry/base';
+import { ColorTheme } from '../../../mol-theme/color';
 import { Structure } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateObjectRef } from '../../../mol-state';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StaticStructureComponentType } from '../../helpers/structure-component';
 import { StructureSelectionQueries as Q } from '../../helpers/structure-selection-query';
-import { PluginStateObject } from '../../objects';
-import { RepresentationProviderTags, StructureRepresentationProvider } from './provider';
-import { ColorTheme } from '../../../mol-theme/color';
 
-export const CommonStructureRepresentationParams = {
+export interface StructureRepresentationPresetProvider<P = any, S = {}> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
+export namespace StructureRepresentationPresetProvider {
+    export type Params<P extends StructureRepresentationPresetProvider> = P extends StructureRepresentationPresetProvider<infer T> ? T : never;
+    export type State<P extends StructureRepresentationPresetProvider> = P extends StructureRepresentationPresetProvider<infer _, infer S> ? S : never;
+}
+export function StructureRepresentationPresetProvider<P, S>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
+
+export const CommonStructureRepresentationPresetParams = {
     ignoreHydrogens: PD.Optional(PD.Boolean(false)),
     quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
     globalThemeName: PD.Optional(PD.Text<ColorTheme.BuiltIn>(''))
 }
-export type CommonStructureRepresentationParams = PD.ValuesFor<typeof CommonStructureRepresentationParams>
+export type CommonStructureRepresentationParams = PD.ValuesFor<typeof CommonStructureRepresentationPresetParams>
 
-const auto = StructureRepresentationProvider({
+const auto = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-auto',
     display: { name: 'Automatic', group: 'Preset' },
-    params: () => CommonStructureRepresentationParams,
-    apply(ctx, state, structureCell, params, plugin) {
-        const structure = structureCell.obj!.data;
+    params: () => CommonStructureRepresentationPresetParams,
+    apply(ref, params, plugin) {
+        const structure = StateObjectRef.resolveAndCheck(plugin.state.data, ref)?.obj?.data;
+        if (!structure) return { };
         const size = Structure.getSize(structure)
 
         switch (size) {
             case Structure.Size.Gigantic:
             case Structure.Size.Huge:
-                return coarseSurface.apply(ctx, state, structureCell, params, plugin);
+                return coarseSurface.apply(ref, params, plugin);
             case Structure.Size.Large:
-                return polymerCartoon.apply(ctx, state, structureCell, params, plugin);
+                return polymerCartoon.apply(ref, params, plugin);
             case Structure.Size.Medium:
-                return polymerAndLigand.apply(ctx, state, structureCell, params, plugin);
+                return polymerAndLigand.apply(ref, params, plugin);
             case Structure.Size.Small:
-                return atomicDetail.apply(ctx, state, structureCell, params, plugin);
+                return atomicDetail.apply(ref, params, plugin);
         }
     }
 });
@@ -59,11 +67,14 @@ function reprBuilder(plugin: PluginContext, params: CommonStructureRepresentatio
     return { update, builder, color, typeParams };
 }
 
-const polymerAndLigand = StructureRepresentationProvider({
+const polymerAndLigand = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-polymer-and-ligand',
     display: { name: 'Polymer & Ligand', group: 'Preset' },
-    params: () => CommonStructureRepresentationParams,
-    async apply(ctx, state, structureCell, params, plugin) {
+    params: () => CommonStructureRepresentationPresetParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        if (!structureCell) return {};
+
         const components = {
             polymer: await presetStaticComponent(plugin, structureCell, 'polymer'),
             ligand: await presetStaticComponent(plugin, structureCell, 'ligand'),
@@ -86,16 +97,19 @@ const polymerAndLigand = StructureRepresentationProvider({
             coarse: builder.buildRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'polymer-id' })
         };
 
-        await state.updateTree(update, { revertOnError: false }).runInContext(ctx);
+        await plugin.updateDataState(update, { revertOnError: false });
         return { components, representations };
     }
 });
 
-const proteinAndNucleic = StructureRepresentationProvider({
+const proteinAndNucleic = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-protein-and-nucleic',
     display: { name: 'Protein & Nucleic', group: 'Preset' },
-    params: () => CommonStructureRepresentationParams,
-    async apply(ctx, state, structureCell, params, plugin) {
+    params: () => CommonStructureRepresentationPresetParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        if (!structureCell) return {};
+
         const components = {
             protein: await presetSelectionComponent(plugin, structureCell, 'protein'),
             nucleic: await presetSelectionComponent(plugin, structureCell, 'nucleic'),
@@ -107,19 +121,22 @@ const proteinAndNucleic = StructureRepresentationProvider({
             nucleic: builder.buildRepresentation(update, components.nucleic, { type: 'gaussian-surface', typeParams, color })
         };
 
-        await state.updateTree(update, { revertOnError: true }).runInContext(ctx);
+        await plugin.updateDataState(update, { revertOnError: true });
         return { components, representations };
     }
 });
 
-const coarseSurface = StructureRepresentationProvider({
+const coarseSurface = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-coarse-surface',
     display: { name: 'Coarse Surface', group: 'Preset' },
-    params: () => CommonStructureRepresentationParams,
-    async apply(ctx, state, structureCell, params, plugin) {
+    params: () => CommonStructureRepresentationPresetParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        if (!structureCell) return {};
+
         const structure = structureCell.obj!.data;
         const size = Structure.getSize(structure)
-        
+
         const gaussianProps = Object.create(null);
         const components = Object.create(null);
 
@@ -139,22 +156,25 @@ const coarseSurface = StructureRepresentationProvider({
             components.trace = await presetSelectionComponent(plugin, structureCell, 'polymer')
         }
 
-        
+
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);
         const representations = {
             trace: builder.buildRepresentation(update, components.trace, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color })
         };
 
-        await state.updateTree(update, { revertOnError: true }).runInContext(ctx);
+        await plugin.updateDataState(update, { revertOnError: true });
         return { components, representations };
     }
 });
 
-const polymerCartoon = StructureRepresentationProvider({
+const polymerCartoon = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-polymer-cartoon',
     display: { name: 'Polymer Cartoon', group: 'Preset' },
-    params: () => CommonStructureRepresentationParams,
-    async apply(ctx, state, structureCell, params, plugin) {
+    params: () => CommonStructureRepresentationPresetParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        if (!structureCell) return {};
+
         const components = {
             polymer: await presetSelectionComponent(plugin, structureCell, 'polymer'),
         };
@@ -164,16 +184,18 @@ const polymerCartoon = StructureRepresentationProvider({
             polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams, color })
         };
 
-        await state.updateTree(update, { revertOnError: true }).runInContext(ctx);
+        await plugin.updateDataState(update, { revertOnError: true });
         return { components, representations };
     }
 });
 
-const atomicDetail = StructureRepresentationProvider({
+const atomicDetail = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-atomic-detail',
     display: { name: 'Atomic Detail', group: 'Preset' },
-    params: () => CommonStructureRepresentationParams,
-    async apply(ctx, state, structureCell, params, plugin) {
+    params: () => CommonStructureRepresentationPresetParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        if (!structureCell) return {};
 
         const components = {
             all: await presetSelectionComponent(plugin, structureCell, 'all'),
@@ -184,7 +206,7 @@ const atomicDetail = StructureRepresentationProvider({
             all: builder.buildRepresentation(update, components.all, { type: 'ball-and-stick', typeParams, color })
         };
 
-        await state.updateTree(update, { revertOnError: true }).runInContext(ctx);
+        await plugin.updateDataState(update, { revertOnError: true });
         return { components, representations };
     }
 });
@@ -193,26 +215,24 @@ export function presetStaticComponent(plugin: PluginContext, structure: StateObj
     return plugin.builders.structure.tryCreateStaticComponent({
         structure,
         type,
-        key: `static-${type}`,
-        tags: [RepresentationProviderTags.Component]
+        key: `static-${type}`
     });
 }
 
 export function presetSelectionComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, query: keyof typeof Q) {
-    return plugin.builders.structure.tryCreateQueryComponent({ 
+    return plugin.builders.structure.tryCreateQueryComponent({
         structure,
         query: Q[query],
-        key: `selection-${query}`,
-        tags: [RepresentationProviderTags.Component]
+        key: `selection-${query}`
     });
 }
 
 export const PresetStructureReprentations = {
     auto,
-    atomicDetail,
-    polymerCartoon,
-    polymerAndLigand,
-    proteinAndNucleic,
-    coarseSurface
+    'atomic-detail': atomicDetail,
+    'polymer-cartoon': polymerCartoon,
+    'polymer-and-ligand': polymerAndLigand,
+    'protein-and-nucleic': proteinAndNucleic,
+    'coarse-surface': coarseSurface
 };
 export type PresetStructureReprentations = typeof PresetStructureReprentations;

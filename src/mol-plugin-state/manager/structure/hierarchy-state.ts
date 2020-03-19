@@ -7,7 +7,7 @@
 import { PluginStateObject as SO } from '../../objects';
 import { StateObject, StateTransform, State, StateObjectCell, StateTree, StateTransformer } from '../../../mol-state';
 import { StructureBuilderTags } from '../../builder/structure';
-import { RepresentationProviderTags } from '../../builder/structure/provider';
+import { StructureRepresentationBuilderTags } from '../../builder/structure/representation';
 import { StructureRepresentationInteractionTags } from '../../../mol-plugin/behavior/dynamic/selection/structure-representation-interaction';
 import { StateTransforms } from '../../transforms';
 import { VolumeStreaming } from '../../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
@@ -15,7 +15,6 @@ import { CreateVolumeStreamingBehavior } from '../../../mol-plugin/behavior/dyna
 
 export function buildStructureHierarchy(state: State, previous?: StructureHierarchy) {
     const build = BuildState(state, previous || StructureHierarchy());
-    // StateTree.doPreOrder(state.tree, state.tree.root, build, visitCell);
     doPreOrder(state.tree, build);
     if (previous) previous.refs.forEach(isRemoved, build);
     return { hierarchy: build.hierarchy, added: build.added, updated: build.updated, removed: build.removed };
@@ -234,7 +233,7 @@ const tagMap: [string, (state: BuildState, cell: StateObjectCell) => boolean | v
         if (!state.currentStructure) return false;
         state.currentComponent = createOrUpdateRefList(state, cell, state.currentStructure.components, StructureComponentRef, cell, state.currentStructure);
     }, state => state.currentComponent = void 0],
-    [RepresentationProviderTags.Representation, (state, cell) => {
+    [StructureRepresentationBuilderTags.Representation, (state, cell) => {
         if (!state.currentComponent) return false;
         createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
     }, state => { }],

@@ -31,6 +31,10 @@ namespace Transformer {
     export type To<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? B : unknown;
     export type Cell<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? StateObjectCell<B> : unknown;
 
+    export function getParamDefinition<T extends Transformer>(t: T, a: From<T> | undefined, globalCtx: unknown): PD.For<Params<T>> {
+        return t.definition.params ? t.definition.params(a, globalCtx) as any : { } as any;
+    }
+
     export function is(obj: any): obj is Transformer {
         return !!obj && typeof (obj as Transformer).toAction === 'function' && typeof (obj as Transformer).apply === 'function';
     }

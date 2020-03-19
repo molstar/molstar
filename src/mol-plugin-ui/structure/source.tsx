@@ -192,7 +192,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         const ret: ActionMenu.Items = [];
 
         const { selection } = this.plugin.managers.structure.hierarchy;
-        if (selection.trajectories.some(t => t.cell.obj?.data.length! > 1)) {
+        if (selection.trajectories.some(t => t.cell.obj?.data.length! > 1 && t.cell.obj?.data.length! !== t.models.length)) {
             ret.push(ActionMenu.Item('Load all models', () => this.plugin.managers.structure.hierarchy.createModels(selection.trajectories, 'all')));
         }
         if (selection.trajectories.some(t => t.models.length > 1)) {

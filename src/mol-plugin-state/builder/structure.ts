@@ -54,38 +54,38 @@ export class StructureBuilder {
 
     readonly representation = new StructureRepresentationBuilder(this.plugin);
 
-    async parseStructure(params: {
-        data?: StateObjectRef<SO.Data.Binary | SO.Data.String>,
-        dataFormat?: BuiltInTrajectoryFormat | TrajectoryFormatProvider,
-        blob?: StateObjectRef<SO.Data.Blob>
-        blobParams?: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>,
-        model?: StateTransformer.Params<StateTransforms['Model']['ModelFromTrajectory']>,
-        modelProperties?: boolean | StateTransformer.Params<StateTransforms['Model']['CustomModelProperties']>,
-        structure?: RootStructureDefinition.Params,
-        structureProperties?: boolean | StateTransformer.Params<StateTransforms['Model']['CustomStructureProperties']>
-    }) {
-        const trajectory = params.data
-            ? await this.parseTrajectory(params.data, params.dataFormat! || 'cif')
-            : await this.parseTrajectoryBlob(params.blob!, params.blobParams!);
+    // async parseStructure(params: {
+    //     data?: StateObjectRef<SO.Data.Binary | SO.Data.String>,
+    //     dataFormat?: BuiltInTrajectoryFormat | TrajectoryFormatProvider,
+    //     blob?: StateObjectRef<SO.Data.Blob>
+    //     blobParams?: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>,
+    //     model?: StateTransformer.Params<StateTransforms['Model']['ModelFromTrajectory']>,
+    //     modelProperties?: boolean | StateTransformer.Params<StateTransforms['Model']['CustomModelProperties']>,
+    //     structure?: RootStructureDefinition.Params,
+    //     structureProperties?: boolean | StateTransformer.Params<StateTransforms['Model']['CustomStructureProperties']>
+    // }) {
+    //     const trajectory = params.data
+    //         ? await this.parseTrajectory(params.data, params.dataFormat! || 'cif')
+    //         : await this.parseTrajectoryBlob(params.blob!, params.blobParams!);
 
-        const model = await this.createModel(trajectory, params.model);
-        const modelProperties = !!params.modelProperties
-            ? await this.insertModelProperties(model, typeof params?.modelProperties !== 'boolean' ? params?.modelProperties : void 0) : void 0;
+    //     const model = await this.createModel(trajectory, params.model);
+    //     const modelProperties = !!params.modelProperties
+    //         ? await this.insertModelProperties(model, typeof params?.modelProperties !== 'boolean' ? params?.modelProperties : void 0) : void 0;
 
-        const structure = await this.createStructure(modelProperties || model, params.structure);
-        const structureProperties = !!params.structureProperties
-            ? await this.insertStructureProperties(structure, typeof params?.structureProperties !== 'boolean' ? params?.structureProperties : void 0) : void 0;
+    //     const structure = await this.createStructure(modelProperties || model, params.structure);
+    //     const structureProperties = !!params.structureProperties
+    //         ? await this.insertStructureProperties(structure, typeof params?.structureProperties !== 'boolean' ? params?.structureProperties : void 0) : void 0;
 
-        return {
-            trajectory,
-            model: modelProperties || model,
-            modelRoot: model,
-            modelProperties,
-            structure: structureProperties || structure,
-            structureRoot: structure,
-            structureProperties
-        };
-    }
+    //     return {
+    //         trajectory,
+    //         model: modelProperties || model,
+    //         modelRoot: model,
+    //         modelProperties,
+    //         structure: structureProperties || structure,
+    //         structureRoot: structure,
+    //         structureProperties
+    //     };
+    // }
 
     async parseTrajectory(data: StateObjectRef<SO.Data.Binary | SO.Data.String>, format: BuiltInTrajectoryFormat | TrajectoryFormatProvider): Promise<StateObjectSelector<SO.Molecule.Trajectory>>
     async parseTrajectory(blob: StateObjectRef<SO.Data.Blob>, params: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>): Promise<StateObjectSelector<SO.Molecule.Trajectory>>

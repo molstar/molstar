@@ -85,7 +85,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
             ActionMenu.Item('Clear', null),
         ];
         const pivot = this.plugin.managers.structure.component.pivotStructure;
-        const providers = this.plugin.builders.structure.representation.getPresets(pivot?.cell.obj?.data)
+        const providers = this.plugin.builders.structure.representation.getPresets(pivot?.cell.obj)
         for (const p of providers) {
             actions.push(ActionMenu.Item(p.display.name, p));
         }

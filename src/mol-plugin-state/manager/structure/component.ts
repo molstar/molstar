@@ -16,7 +16,7 @@ import { UUID } from '../../../mol-util';
 import { arraySetAdd } from '../../../mol-util/array';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { StructureRepresentationProvider } from '../../builder/structure/provider';
+import { StructureRepresentationPresetProvider } from '../../builder/structure/representation-preset';
 import { PluginComponent } from '../../component';
 import { StructureComponentParams } from '../../helpers/structure-component';
 import { clearStructureOverpaint, setStructureOverpaint } from '../../helpers/structure-overpaint';
@@ -109,7 +109,7 @@ class StructureComponentManager extends PluginComponent<StructureComponentManage
         }
     }
 
-    applyPreset<P = any, S = {}>(structures: ReadonlyArray<StructureRef>, provider: StructureRepresentationProvider<P, S>, params?: P): Promise<any>  {
+    applyPreset<P = any, S = {}>(structures: ReadonlyArray<StructureRef>, provider: StructureRepresentationPresetProvider<P, S>, params?: P): Promise<any>  {
         return this.plugin.dataTransaction(async () => {
             await this.clearComponents(structures);
             for (const s of structures) {

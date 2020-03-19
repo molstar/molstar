@@ -5,7 +5,6 @@
  */
 
 import { arrayFind } from '../../../mol-data/util';
-import { Structure } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateBuilder, StateObjectRef, StateObjectSelector } from '../../../mol-state';
 import { Task } from '../../../mol-task';
@@ -15,34 +14,37 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { createStructureRepresentationParams, StructureRepresentationBuiltInProps, StructureRepresentationProps } from '../../helpers/structure-representation-params';
 import { PluginStateObject } from '../../objects';
 import { StructureRepresentation3D } from '../../transforms/representation';
-import { PresetStructureReprentations } from './preset';
-import { RepresentationProviderTags, StructureRepresentationProvider } from './provider';
+import { PresetStructureReprentations, StructureRepresentationPresetProvider } from './representation-preset';
 
-export type StructureRepresentationProviderRef = keyof PresetStructureReprentations | StructureRepresentationProvider | string
+export type StructureRepresentationPresetProviderRef = keyof PresetStructureReprentations | StructureRepresentationPresetProvider | string
+
+export const enum StructureRepresentationBuilderTags {
+    Representation = 'structure-representation'
+}
 
 export class StructureRepresentationBuilder {
-    private _providers: StructureRepresentationProvider[] = [];
-    private providerMap: Map<string, StructureRepresentationProvider> = new Map();
+    private _providers: StructureRepresentationPresetProvider[] = [];
+    private providerMap: Map<string, StructureRepresentationPresetProvider> = new Map();
     private get dataState() { return this.plugin.state.data; }
 
     readonly defaultProvider = PresetStructureReprentations.auto;
 
-    private resolveProvider(ref: StructureRepresentationProviderRef) {
+    private resolveProvider(ref: StructureRepresentationPresetProviderRef) {
         return typeof ref === 'string'
             ? PresetStructureReprentations[ref as keyof PresetStructureReprentations] ?? arrayFind(this._providers, p => p.id === ref)
             : ref;
     }
 
-    hasPreset(s: Structure) {
+    hasPreset(s: PluginStateObject.Molecule.Structure) {
         for (const p of this._providers) {
             if (!p.isApplicable || p.isApplicable(s, this.plugin)) return true;
         }
         return false;
     }
 
-    get providers(): ReadonlyArray<StructureRepresentationProvider> { return this._providers; }
+    get providers(): ReadonlyArray<StructureRepresentationPresetProvider> { return this._providers; }
 
-    getPresets(s?: Structure) {
+    getPresets(s?: PluginStateObject.Molecule.Structure) {
         if (!s) return this.providers;
         const ret = [];
         for (const p of this._providers) {
@@ -52,7 +54,7 @@ export class StructureRepresentationBuilder {
         return ret;
     }
 
-    getPresetsWithOptions(s: Structure) {
+    getPresetsWithOptions(s: PluginStateObject.Molecule.Structure) {
         const options: [string, string][] = [];
         const map: { [K in string]: PD.Any } = Object.create(null);
         for (const p of this._providers) {
@@ -65,7 +67,7 @@ export class StructureRepresentationBuilder {
         return PD.MappedStatic(options[0][0], map, { options });
     }
 
-    registerPreset(provider: StructureRepresentationProvider) {
+    registerPreset(provider: StructureRepresentationPresetProvider) {
         if (this.providerMap.has(provider.id)) {
             throw new Error(`Repr. provider with id '${provider.id}' already registered.`);
         }
@@ -73,10 +75,10 @@ export class StructureRepresentationBuilder {
         this.providerMap.set(provider.id, provider);
     }
 
-    applyPreset<K extends keyof PresetStructureReprentations>(parent: StateObjectRef, preset: K, params?: StructureRepresentationProvider.Params<PresetStructureReprentations[K]>): Promise<StructureRepresentationProvider.State<PresetStructureReprentations[K]>> | undefined
-    applyPreset<P = any, S = {}>(parent: StateObjectRef, providers: StructureRepresentationProvider<P, S>, params?: P): Promise<S> | undefined
-    applyPreset(parent: StateObjectRef, providerId: string, params?: any): Promise<any> | undefined
-    applyPreset(parent: StateObjectRef, providerRef: string | StructureRepresentationProvider, params?: any): Promise<any> | undefined {
+    applyPreset<K extends keyof PresetStructureReprentations>(parent: StateObjectRef<PluginStateObject.Molecule.Structure>, preset: K, params?: StructureRepresentationPresetProvider.Params<PresetStructureReprentations[K]>): Promise<StructureRepresentationPresetProvider.State<PresetStructureReprentations[K]>> | undefined
+    applyPreset<P = any, S = {}>(parent: StateObjectRef<PluginStateObject.Molecule.Structure>, provider: StructureRepresentationPresetProvider<P, S>, params?: P): Promise<S> | undefined
+    applyPreset(parent: StateObjectRef<PluginStateObject.Molecule.Structure>, providerId: string, params?: any): Promise<any> | undefined
+    applyPreset(parent: StateObjectRef, providerRef: string | StructureRepresentationPresetProvider, params?: any): Promise<any> | undefined {
         const provider = this.resolveProvider(providerRef);
         if (!provider) return;
 
@@ -88,11 +90,11 @@ export class StructureRepresentationBuilder {
         }
 
         const prms = params || (provider.params
-            ? PD.getDefaultValues(provider.params(cell.obj!.data, this.plugin) as PD.Params)
+            ? PD.getDefaultValues(provider.params(cell.obj, this.plugin) as PD.Params)
             : {})
 
 
-        const task = Task.create(`${provider.display.name}`, ctx => provider.apply(ctx, state, cell, prms, this.plugin) as Promise<any>);
+        const task = Task.create(`${provider.display.name}`, () => provider.apply(cell, prms, this.plugin) as Promise<any>);
         return this.plugin.runTask(task);
     }
 
@@ -105,7 +107,7 @@ export class StructureRepresentationBuilder {
         const params = createStructureRepresentationParams(this.plugin, data, props);
         const repr = this.dataState.build()
             .to(structure)
-            .apply(StructureRepresentation3D, params, { tags: RepresentationProviderTags.Representation });
+            .apply(StructureRepresentation3D, params, { tags: StructureRepresentationBuilderTags.Representation });
 
         await this.plugin.updateDataState(repr);
         return  repr.selector;
@@ -121,7 +123,7 @@ export class StructureRepresentationBuilder {
         const params = createStructureRepresentationParams(this.plugin, data, props);
         return builder
             .to(structure)
-            .apply(StructureRepresentation3D, params, { tags: RepresentationProviderTags.Representation })
+            .apply(StructureRepresentation3D, params, { tags: StructureRepresentationBuilderTags.Representation })
             .selector;
     }
 

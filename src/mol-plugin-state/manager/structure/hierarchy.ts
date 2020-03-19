@@ -9,6 +9,7 @@ import { StructureHierarchy, buildStructureHierarchy, ModelRef, StructureCompone
 import { PluginComponent } from '../../component';
 import { SetUtils } from '../../../mol-util/set';
 import { StateTransform } from '../../../mol-state';
+import { applyTrajectoryHierarchyPreset } from '../../builder/structure/hierarchy-preset';
 
 interface StructureHierarchyManagerState {
     hierarchy: StructureHierarchy,
@@ -156,19 +157,21 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
 
                 const tr = trajectory.cell.obj?.data!;
                 if (kind === 'all' && tr.length > 1) {
-                    for (let i = 0; i < tr.length; i++) {
-                        const model = await this.plugin.builders.structure.createModel(trajectory.cell, { modelIndex: i }, { isCollapsed: true });
-                        const structure = await this.plugin.builders.structure.createStructure(model, { name: 'deposited', params: {} });
-                        this.nextSelection.add(model.ref);
-                        this.nextSelection.add(structure.ref);
-                        await this.plugin.builders.structure.representation.applyPreset(structure, 'auto', { globalThemeName: 'model-index' });
-                    }
+
+                    const { models = [], structures = [] } = (await applyTrajectoryHierarchyPreset(this.plugin, trajectory.cell, 'all-models'))!;
+                    for (const m of models) this.nextSelection.add(m.ref);
+                    for (const s of structures) this.nextSelection.add(s.ref);
                 } else {
-                    const model = await this.plugin.builders.structure.createModel(trajectory.cell, { modelIndex: 0 }, { isCollapsed: true });
-                    const structure = await this.plugin.builders.structure.createStructure(model);
-                    this.nextSelection.add(model.ref);
-                    this.nextSelection.add(structure.ref);
-                    await this.plugin.builders.structure.representation.applyPreset(structure, 'auto');
+
+                    const preset = await applyTrajectoryHierarchyPreset(this.plugin, trajectory.cell, 'first-model');
+
+                    // const model = await this.plugin.builders.structure.createModel(trajectory.cell, { modelIndex: 0 }, { isCollapsed: true });
+                    // const structure = await this.plugin.builders.structure.createStructure(model);
+
+                    if (preset) {
+                        this.nextSelection.add(preset.modelRoot.ref);
+                        this.nextSelection.add(preset.structureRoot.ref);
+                    }
                 }
             }
         });
