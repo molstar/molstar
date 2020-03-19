@@ -699,6 +699,7 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
     },
     update({ a, b, oldParams, newParams }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
+            b.data = a.data;
             b.label = a.label;
             b.description = a.description;
             for (const name of oldParams.autoAttach) {
@@ -747,6 +748,7 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
     },
     update({ a, b, oldParams, newParams }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
+            b.data = a.data;
             b.label = a.label;
             b.description = a.description;
             for (const name of oldParams.autoAttach) {
