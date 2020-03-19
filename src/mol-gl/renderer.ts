@@ -16,7 +16,6 @@ import { ValueCell } from '../mol-util';
 import { RenderableValues, GlobalUniformValues, BaseValues } from './renderable/schema';
 import { GraphicsRenderVariant } from './webgl/render-item';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
-import { deepClone } from '../mol-util/object';
 
 export interface RendererStats {
     programCount: number
@@ -110,7 +109,7 @@ function getStyle(props: RendererProps['style']) {
 namespace Renderer {
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
         const { gl, state, stats } = ctx
-        const p = deepClone({ ...PD.getDefaultValues(RendererParams), ...props })
+        const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props)
         const style = getStyle(p.style)
 
         const viewport = Viewport()

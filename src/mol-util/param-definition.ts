@@ -397,6 +397,38 @@ export namespace ParamDefinition {
         return false;
     }
 
+    export function merge(params: Params, a: any, b: any): any {
+        if (a === undefined) return deepClone(b);
+        if (b === undefined) return deepClone(a);
+
+        const o = Object.create(null)
+        for (const k of Object.keys(params)) {
+            o[k] = mergeParam(params[k], a[k], b[k])
+        }
+        return o;
+    }
+
+    export function mergeParam(p: Any, a: any, b: any): any {
+        if (a === undefined) return deepClone(b);
+        if (b === undefined) return deepClone(a);
+
+        if (p.type === 'group') {
+            return merge(p.params, a, b);
+        } else if (p.type === 'mapped') {
+            const u = a as NamedParams, v = b as NamedParams;
+            if (u.name !== v.name) return deepClone(v);
+            const map = p.map(v.name);
+            return {
+                name: v.name,
+                params: mergeParam(map, u.params, v.params)
+            };
+        } else if (typeof a === 'object' || typeof b === 'object') {
+            return Object.assign({}, deepClone(a), deepClone(b));
+        } else {
+            return b
+        }
+    }
+
     /**
      * Map an object to a list of [K, string][] to be used as options, stringToWords for key used by default (or identity of null).
      *

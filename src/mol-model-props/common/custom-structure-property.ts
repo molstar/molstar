@@ -54,8 +54,9 @@ namespace CustomStructureProperty {
             attach: async (ctx: CustomProperty.Context, data: Structure, props: Partial<PD.Values<Params>> = {}, addRef) => {
                 if (addRef) data.customPropertyDescriptors.reference(builder.descriptor, true);
                 if (builder.type === 'root') data = data.root
+                const rootProps = get(data.root).props
                 const property = get(data)
-                const p = { ...property.props, ...props }
+                const p = PD.merge(builder.defaultParams, rootProps, props)
                 if (property.data.value && PD.areEqual(builder.defaultParams, property.props, p)) return
                 const value = await builder.obtain(ctx, data, p)
                 data.customPropertyDescriptors.add(builder.descriptor);
@@ -66,7 +67,7 @@ namespace CustomStructureProperty {
             set: (data: Structure, props: Partial<PD.Values<Params>> = {}, value?: Value) => {
                 if (builder.type === 'root') data = data.root
                 const property = get(data)
-                const p = { ...property.props, ...props }
+                const p = PD.merge(builder.defaultParams, property.props, props)
                 if (!PD.areEqual(builder.defaultParams, property.props, p)) {
                     // this invalidates property.value
                     set(data, p, value)

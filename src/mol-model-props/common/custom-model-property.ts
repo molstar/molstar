@@ -54,7 +54,7 @@ namespace CustomModelProperty {
             attach: async (ctx: CustomProperty.Context, data: Model, props: Partial<PD.Values<Params>> = {}, addRef) => {
                 if (addRef) data.customProperties.reference(builder.descriptor, true);
                 const property = get(data)
-                const p = { ...property.props, ...props }
+                const p = PD.merge(builder.defaultParams, property.props, props)
                 if (property.data.value && PD.areEqual(builder.defaultParams, property.props, p)) return
                 const value = await builder.obtain(ctx, data, p)
                 data.customProperties.add(builder.descriptor);
@@ -64,7 +64,7 @@ namespace CustomModelProperty {
             get: (data: Model) => get(data)?.data,
             set: (data: Model, props: Partial<PD.Values<Params>> = {}) => {
                 const property = get(data)
-                const p = { ...property.props, ...props }
+                const p = PD.merge(builder.defaultParams, property.props, props)
                 if (!PD.areEqual(builder.defaultParams, property.props, p)) {
                     // this invalidates property.value
                     set(data, p, undefined)

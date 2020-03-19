@@ -737,12 +737,12 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: (a, ctx: PluginContext) => {
-        return ctx.customStructureProperties.getParams(a?.data)
+        return ctx.customStructureProperties.getParams(a?.data.root)
     }
 })({
     apply({ a, params }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
-            await attachStructureProps(a.data, ctx, taskCtx, params);
+            await attachStructureProps(a.data.root, ctx, taskCtx, params);
             return new SO.Molecule.Structure(a.data, { label: a.label, description: a.description });
         });
     },
@@ -756,7 +756,7 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
                 if (!property) continue;
                 a.data.customPropertyDescriptors.reference(property.descriptor, false);
             }
-            await attachStructureProps(a.data, ctx, taskCtx, newParams);
+            await attachStructureProps(a.data.root, ctx, taskCtx, newParams);
             return StateTransformer.UpdateResult.Updated;
         });
     }
