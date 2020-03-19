@@ -14,6 +14,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { memoize1 } from '../../mol-util/memoize';
 import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
+import { UnitcellEntry } from './unitcell';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
@@ -197,7 +198,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         if (selection.trajectories.some(t => t.models.length > 1)) {
             ret.push(ActionMenu.Item('Load single model', () => this.plugin.managers.structure.hierarchy.createModels(selection.trajectories, 'single')));
         }
-        
+
         // TODO: remove actions?
         return ret;
     }
@@ -245,6 +246,24 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         return <ParameterControls params={params} values={s.cell.params?.values} onChangeValues={this.updateStructure} isDisabled={this.state.isBusy} />
     }
 
+    get unitcell() {
+        const { selection } = this.plugin.managers.structure.hierarchy;
+        if (selection.structures.length !== 1) return null;
+
+        const model = selection.structures[0].model
+        if (!model) return null
+
+        const unitcell = model.unitcell
+        if (!unitcell) {
+            // this.plugin.builders.structure.createUnitcell(model.cell, undefined, { isHidden: true })
+            return null
+        } else if (!unitcell.cell.obj) {
+            return null;
+        }
+
+        return <UnitcellEntry key={unitcell.cell.obj.id} cell={unitcell.cell} />
+    }
+
     renderControls() {
         const disabled = this.state.isBusy || this.isEmpty;
         const actions = this.actions(this.plugin.managers.structure.hierarchy.selection);
@@ -260,6 +279,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             {this.state.show === 'actions' && <ActionMenu items={actions} onSelect={this.selectAction} />}
             {this.modelIndex}
             {this.structureType}
+            {this.unitcell}
         </>;
     }
 }

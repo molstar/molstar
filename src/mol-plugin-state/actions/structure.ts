@@ -19,6 +19,8 @@ import { Download, ParsePsf } from '../transforms/data';
 import { CoordinatesFromDcd, CustomModelProperties, CustomStructureProperties, TopologyFromPsf, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant } from './data-format';
 
+// TODO make unitcell creation part of preset
+
 export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | PluginStateObject.Data.Binary> = {
     label: 'mmCIF',
     description: 'mmCIF',
@@ -32,9 +34,10 @@ export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | P
     },
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('mmCIF default builder', async taskCtx => {
-            const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'mmcif' });
+            const { structure, model } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'mmcif' });
             if (options.visuals) {
                 await ctx.builders.structure.representation.applyPreset(structure, 'auto');
+                await ctx.builders.structure.createUnitcell(model, undefined, { isHidden: true })
             }
         })
     }
@@ -50,9 +53,10 @@ export const PdbProvider: DataFormatProvider<any> = {
     },
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('PDB default builder', async () => {
-            const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'pdb' });
+            const { structure, model } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'pdb' });
             if (options.visuals) {
                 await ctx.builders.structure.representation.applyPreset(structure, 'auto');
+                await ctx.builders.structure.createUnitcell(model, undefined, { isHidden: true })
             }
         })
     }
@@ -68,9 +72,10 @@ export const GroProvider: DataFormatProvider<any> = {
     },
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('GRO default builder', async () => {
-            const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'gro' });
+            const { structure, model } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'gro' });
             if (options.visuals) {
                 await ctx.builders.structure.representation.applyPreset(structure, 'auto');
+                await ctx.builders.structure.createUnitcell(model, undefined, { isHidden: true })
             }
         })
     }
@@ -86,9 +91,10 @@ export const Provider3dg: DataFormatProvider<any> = {
     },
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('3DG default builder', async () => {
-            const { structure } = await ctx.builders.structure.parseStructure({ data, dataFormat: '3dg' });
+            const { structure, model } = await ctx.builders.structure.parseStructure({ data, dataFormat: '3dg' });
             if (options.visuals) {
                 await ctx.builders.structure.representation.applyPreset(structure, 'auto');
+                await ctx.builders.structure.createUnitcell(model, undefined, { isHidden: true })
             }
         })
     }
@@ -238,8 +244,8 @@ const DownloadStructure = StateAction.build({
             const blob = await plugin.builders.data.downloadBlob({
                 sources: downloadParams.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
                 maxConcurrency: 6
-            }, { state: { isGhost: true } });        
-            const { structure } = await plugin.builders.structure.parseStructure({
+            }, { state: { isGhost: true } });
+            const { structure, model } = await plugin.builders.structure.parseStructure({
                 blob,
                 blobParams:  { formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' })) },
                 modelProperties: supportProps,
@@ -247,11 +253,12 @@ const DownloadStructure = StateAction.build({
             });
             if (createRepr) {
                 await plugin.builders.structure.representation.applyPreset(structure, 'auto');
+                await plugin.builders.structure.createUnitcell(model, undefined, { isHidden: true })
             }
         } else {
             for (const download of downloadParams) {
                 const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
-                const { structure } = await plugin.builders.structure.parseStructure({
+                const { structure, model } = await plugin.builders.structure.parseStructure({
                     data,
                     dataFormat: format,
                     modelProperties: supportProps,
@@ -259,6 +266,7 @@ const DownloadStructure = StateAction.build({
                 });
                 if (createRepr) {
                     await plugin.builders.structure.representation.applyPreset(structure, 'auto');
+                    await plugin.builders.structure.createUnitcell(model, undefined, { isHidden: true })
                 }
             }
         }

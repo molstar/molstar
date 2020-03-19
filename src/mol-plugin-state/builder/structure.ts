@@ -21,6 +21,7 @@ export type TrajectoryFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 export enum StructureBuilderTags {
     Trajectory = 'trajectory',
     Model = 'model',
+    ModelUnitcell = 'model-unitcell',
     ModelProperties = 'model-properties',
     ModelGenericRepresentation = 'model-generic-representation',
     Structure = 'structure',
@@ -112,6 +113,15 @@ export class StructureBuilder {
             .insert(StateTransforms.Model.CustomModelProperties, params, { tags: StructureBuilderTags.ModelProperties, isDecorator: true });
         await this.plugin.updateDataState(props, { revertOnError: true });
         return props.selector;
+    }
+
+    async createUnitcell(model: StateObjectRef<SO.Molecule.Model>, params?: StateTransformer.Params<StateTransforms['Representation']['ModelUnitcell3D']>, initialState?: Partial<StateTransform.State>) {
+        const state = this.plugin.state.data;
+        const unitcell = state.build().to(model)
+            .apply(StateTransforms.Representation.ModelUnitcell3D, params, { tags: StructureBuilderTags.ModelUnitcell, state: initialState });
+
+        await this.plugin.updateDataState(unitcell, { revertOnError: true });
+        return unitcell.selector;
     }
 
     async createStructure(model: StateObjectRef<SO.Molecule.Model>, params?: RootStructureDefinition.Params, initialState?: Partial<StateTransform.State>) {

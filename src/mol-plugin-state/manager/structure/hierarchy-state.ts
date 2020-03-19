@@ -40,7 +40,7 @@ interface RefBase<K extends string = string, O extends StateObject = StateObject
 
 export type HierarchyRef =
     | TrajectoryRef
-    | ModelRef | ModelPropertiesRef
+    | ModelRef | ModelPropertiesRef | ModelUnitcellRef
     | StructureRef | StructurePropertiesRef | StructureVolumeStreamingRef | StructureComponentRef | StructureRepresentationRef
     | GenericRepresentationRef
 
@@ -57,6 +57,7 @@ export interface ModelRef extends RefBase<'model', SO.Molecule.Model> {
     properties?: ModelPropertiesRef,
     structures: StructureRef[],
     genericRepresentations?: GenericRepresentationRef[],
+    unitcell?: ModelUnitcellRef,
     /** to support decorators */
     childRoot: StateObjectCell<SO.Molecule.Model>
 }
@@ -71,6 +72,14 @@ export interface ModelPropertiesRef extends RefBase<'model-properties', SO.Molec
 
 function ModelPropertiesRef(cell: StateObjectCell<SO.Molecule.Model>, model: ModelRef): ModelPropertiesRef {
     return { kind: 'model-properties', cell, version: cell.transform.version, model };
+}
+
+export interface ModelUnitcellRef extends RefBase<'model-unitcell', SO.Shape.Representation3D, StateTransforms['Representation']['ModelUnitcell3D']> {
+    model: ModelRef
+}
+
+function ModelUnitcellRef(cell: StateObjectCell<SO.Shape.Representation3D>, model: ModelRef): ModelUnitcellRef {
+    return { kind: 'model-unitcell', cell, version: cell.transform.version, model };
 }
 
 export interface StructureRef extends RefBase<'structure', SO.Molecule.Structure> {
@@ -199,6 +208,10 @@ const tagMap: [string, (state: BuildState, cell: StateObjectCell) => boolean | v
     [StructureBuilderTags.ModelProperties, (state, cell) => {
         if (!state.currentModel) return false;
         state.currentModel.properties = createOrUpdateRef(state, cell, ModelPropertiesRef, cell, state.currentModel);
+    }, state => { }],
+    [StructureBuilderTags.ModelUnitcell, (state, cell) => {
+        if (!state.currentModel) return false;
+        state.currentModel.unitcell = createOrUpdateRef(state, cell, ModelUnitcellRef, cell, state.currentModel);
     }, state => { }],
     [StructureBuilderTags.ModelGenericRepresentation, (state, cell) => {
         if (!state.currentModel) return false;

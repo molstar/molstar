@@ -26,7 +26,7 @@ export class DataBuilder {
         return data.selector;
     }
 
-    async downloadBlob(params: StateTransformer.Params<DownloadBlob>, options?: Partial<StateTransform.Options>) {        
+    async downloadBlob(params: StateTransformer.Params<DownloadBlob>, options?: Partial<StateTransform.Options>) {
         const data = this.dataState.build().toRoot().apply(DownloadBlob, params, options);
         await this.plugin.updateDataState(data, { revertOnError: true });
         return data.selector;
