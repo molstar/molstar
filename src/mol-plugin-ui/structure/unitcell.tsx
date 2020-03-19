@@ -57,7 +57,7 @@ export class UnitcellEntry extends PurePluginUIComponent<{ cell: UnitcellCell },
         if (!obj) return null;
 
         return <>
-            <div className='msp-btn-row-group' style={{ marginTop: '3px' }}>
+            <div className='msp-btn-row-group' style={{ marginTop: '6px' }}>
                 <button className='msp-form-control msp-control-button-label' title={`Unitcell. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     Unitcell
                 </button>

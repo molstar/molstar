@@ -37,7 +37,7 @@ export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | P
             const { structure, model } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'mmcif' });
             if (options.visuals) {
                 await ctx.builders.structure.representation.applyPreset(structure, 'auto');
-                await ctx.builders.structure.createUnitcell(model, undefined, { isHidden: true })
+                await ctx.builders.structure.tryCreateUnitcell(model, undefined, { isHidden: true })
             }
         })
     }
@@ -56,7 +56,7 @@ export const PdbProvider: DataFormatProvider<any> = {
             const { structure, model } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'pdb' });
             if (options.visuals) {
                 await ctx.builders.structure.representation.applyPreset(structure, 'auto');
-                await ctx.builders.structure.createUnitcell(model, undefined, { isHidden: true })
+                await ctx.builders.structure.tryCreateUnitcell(model, undefined, { isHidden: true })
             }
         })
     }
@@ -75,7 +75,7 @@ export const GroProvider: DataFormatProvider<any> = {
             const { structure, model } = await ctx.builders.structure.parseStructure({ data, dataFormat: 'gro' });
             if (options.visuals) {
                 await ctx.builders.structure.representation.applyPreset(structure, 'auto');
-                await ctx.builders.structure.createUnitcell(model, undefined, { isHidden: true })
+                await ctx.builders.structure.tryCreateUnitcell(model, undefined, { isHidden: true })
             }
         })
     }
@@ -94,7 +94,7 @@ export const Provider3dg: DataFormatProvider<any> = {
             const { structure, model } = await ctx.builders.structure.parseStructure({ data, dataFormat: '3dg' });
             if (options.visuals) {
                 await ctx.builders.structure.representation.applyPreset(structure, 'auto');
-                await ctx.builders.structure.createUnitcell(model, undefined, { isHidden: true })
+                await ctx.builders.structure.tryCreateUnitcell(model, undefined, { isHidden: true })
             }
         })
     }
@@ -253,7 +253,7 @@ const DownloadStructure = StateAction.build({
             });
             if (createRepr) {
                 await plugin.builders.structure.representation.applyPreset(structure, 'auto');
-                await plugin.builders.structure.createUnitcell(model, undefined, { isHidden: true })
+                await plugin.builders.structure.tryCreateUnitcell(model, undefined, { isHidden: true })
             }
         } else {
             for (const download of downloadParams) {
@@ -266,7 +266,7 @@ const DownloadStructure = StateAction.build({
                 });
                 if (createRepr) {
                     await plugin.builders.structure.representation.applyPreset(structure, 'auto');
-                    await plugin.builders.structure.createUnitcell(model, undefined, { isHidden: true })
+                    await plugin.builders.structure.tryCreateUnitcell(model, undefined, { isHidden: true })
                 }
             }
         }

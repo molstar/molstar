@@ -15,6 +15,8 @@ import { StructureRepresentationBuilder } from './structure/representation';
 import { StructureSelectionQuery } from '../helpers/structure-selection-query';
 import { Task } from '../../mol-task';
 import { StructureElement } from '../../mol-model/structure';
+import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
+import { SpacegroupCell } from '../../mol-math/geometry';
 
 export type TrajectoryFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
@@ -115,11 +117,15 @@ export class StructureBuilder {
         return props.selector;
     }
 
-    async createUnitcell(model: StateObjectRef<SO.Molecule.Model>, params?: StateTransformer.Params<StateTransforms['Representation']['ModelUnitcell3D']>, initialState?: Partial<StateTransform.State>) {
-        const state = this.plugin.state.data;
+    async tryCreateUnitcell(model: StateObjectRef<SO.Molecule.Model>, params?: StateTransformer.Params<StateTransforms['Representation']['ModelUnitcell3D']>, initialState?: Partial<StateTransform.State>) {
+        const state = this.dataState;
+        const m = StateObjectRef.resolveAndCheck(state, model)?.obj?.data;
+        if (!m) return;
+        const cell = ModelSymmetry.Provider.get(m)?.spacegroup.cell;
+        if (SpacegroupCell.isZero(cell)) return;
+
         const unitcell = state.build().to(model)
             .apply(StateTransforms.Representation.ModelUnitcell3D, params, { tags: StructureBuilderTags.ModelUnitcell, state: initialState });
-
         await this.plugin.updateDataState(unitcell, { revertOnError: true });
         return unitcell.selector;
     }
