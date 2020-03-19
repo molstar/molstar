@@ -81,6 +81,7 @@ export function UpdateRepresentationVisibility(ctx: PluginContext) {
         const cell = e.state.cells.get(e.ref)!;
         if (!SO.isRepresentation3D(cell.obj)) return;
         updateVisibility(cell, cell.obj.data.repr);
+        ctx.canvas3d?.syncVisibility();
         ctx.canvas3d?.requestDraw(true);
     })
 }

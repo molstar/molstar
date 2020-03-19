@@ -15,6 +15,7 @@ import { CommitQueue } from './commit-queue';
 import { now } from '../mol-util/now';
 import { arraySetRemove } from '../mol-util/array';
 import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
+import { hash1 } from '../mol-data/util';
 
 const boundaryHelper = new BoundaryHelper('98')
 
@@ -22,6 +23,8 @@ function calculateBoundingSphere(renderables: Renderable<RenderableValues & Base
     boundaryHelper.reset();
 
     for (let i = 0, il = renderables.length; i < il; ++i) {
+        if (!renderables[i].state.visible) continue;
+
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
 
@@ -35,6 +38,8 @@ function calculateBoundingSphere(renderables: Renderable<RenderableValues & Base
     }
     boundaryHelper.finishedIncludeStep();
     for (let i = 0, il = renderables.length; i < il; ++i) {
+        if (!renderables[i].state.visible) continue;
+
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
 
@@ -70,6 +75,8 @@ interface Scene extends Object3D {
     readonly renderables: ReadonlyArray<Renderable<RenderableValues & BaseValues>>
     readonly boundingSphere: Sphere3D
 
+    /** Returns `true` if some visibility has changed, `false` otherwise. */
+    syncVisibility: () => boolean
     update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean, isRemoving?: boolean) => void
     add: (o: GraphicsRenderObject) => void // Renderable<any>
     remove: (o: GraphicsRenderObject) => void
@@ -84,7 +91,7 @@ namespace Scene {
     export function create(ctx: WebGLContext): Scene {
         const renderableMap = new Map<GraphicsRenderObject, Renderable<RenderableValues & BaseValues>>()
         const renderables: Renderable<RenderableValues & BaseValues>[] = []
-        const boundingSphere = Sphere3D.zero()
+        const boundingSphere = Sphere3D()
 
         let boundingSphereDirty = true
 
@@ -139,13 +146,35 @@ namespace Scene {
 
         const commitQueue = new CommitQueue();
 
+        let visibleHash = -1
+        function computeVisibleHash() {
+            let hash = 23
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                if (!renderables[i].state.visible) continue;
+                hash = (31 * hash + renderables[i].id) | 0;
+            }
+            hash = hash1(hash);
+            if (hash === -1) hash = 0;
+            return hash
+        }
+
+        function syncVisibility() {
+            const newVisibleHash = computeVisibleHash()
+            if (newVisibleHash !== visibleHash) {
+                boundingSphereDirty = true
+                return true
+            } else {
+                return false
+            }
+        }
+
         return {
             get view () { return object3d.view },
             get position () { return object3d.position },
             get direction () { return object3d.direction },
             get up () { return object3d.up },
-            // get isCommiting () { return commitQueue.length > 0 },
 
+            syncVisibility,
             update(objects, keepBoundingSphere, isRemoving) {
                 Object3D.update(object3d)
                 if (objects) {
@@ -159,7 +188,11 @@ namespace Scene {
                         renderables[i].update()
                     }
                 }
-                if (!keepBoundingSphere) boundingSphereDirty = true
+                if (!keepBoundingSphere) {
+                    boundingSphereDirty = true
+                } else {
+                    syncVisibility()
+                }
             },
             add: (o: GraphicsRenderObject) => commitQueue.add(o),
             remove: (o: GraphicsRenderObject) => commitQueue.remove(o),
@@ -184,8 +217,11 @@ namespace Scene {
             },
             renderables,
             get boundingSphere() {
-                if (boundingSphereDirty) calculateBoundingSphere(renderables, boundingSphere)
-                boundingSphereDirty = false
+                if (boundingSphereDirty) {
+                    calculateBoundingSphere(renderables, boundingSphere)
+                    boundingSphereDirty = false
+                    visibleHash = computeVisibleHash()
+                }
                 return boundingSphere
             }
         }

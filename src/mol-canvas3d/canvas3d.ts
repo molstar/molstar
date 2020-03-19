@@ -74,6 +74,7 @@ interface Canvas3D {
     commit(isSynchronous?: boolean): void
     update(repr?: Representation.Any, keepBoundingSphere?: boolean): void
     clear(): void
+    syncVisibility(): void
 
     requestDraw(force?: boolean): void
     animate(): void
@@ -396,6 +397,11 @@ namespace Canvas3D {
                 debugHelper.clear()
                 requestDraw(true)
                 reprCount.next(reprRenderObjects.size)
+            },
+            syncVisibility: () => {
+                if (scene.syncVisibility()) {
+                    camera.setState({ radiusMax: scene.boundingSphere.radius })
+                }
             },
 
             // draw,
