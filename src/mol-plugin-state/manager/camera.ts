@@ -1,14 +1,15 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Sphere3D } from '../../mol-math/geometry';
-import { StructureElement } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
 import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-axes';
 import { Camera } from '../../mol-canvas3d/camera';
+import { Loci } from '../../mol-model/loci';
 
 // TODO: make this customizable somewhere?
 const DefaultCameraFocusOptions = {
@@ -20,14 +21,16 @@ const DefaultCameraFocusOptions = {
 export type CameraFocusOptions = typeof DefaultCameraFocusOptions
 
 export class CameraManager {
-    focusLoci(loci: StructureElement.Loci, options?: Partial<CameraFocusOptions>) {
+    focusLoci(loci: Loci, options?: Partial<CameraFocusOptions>) {
         // TODO: allow computation of principal axes here?
         // perhaps have an optimized function, that does exact axes small Loci and approximate/sampled from big ones?
 
         const { extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
-        const { sphere } = StructureElement.Loci.getBoundary(loci);
-        const radius = Math.max(sphere.radius + extraRadius, minRadius);
-        this.plugin.canvas3d?.camera.focus(sphere.center, radius, durationMs);
+        const sphere = Loci.getBoundingSphere(loci);
+        if (sphere) {
+            const radius = Math.max(sphere.radius + extraRadius, minRadius);
+            this.plugin.canvas3d?.camera.focus(sphere.center, radius, durationMs);
+        }
     }
 
     focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes }) {
