@@ -85,7 +85,8 @@ export function deepClone<T>(source: T): T {
         return copy as any as T;
     }
 
-    if (source instanceof Object) {
+    // `instanceof Object` does not find `Object.create(null)`
+    if (typeof source === 'object' && !('prototype' in source)) {
         const copy: { [k: string]: any } = {};
         for (let k in source) {
             if (hasOwnProperty.call(source, k)) copy[k] = deepClone(source[k]);
