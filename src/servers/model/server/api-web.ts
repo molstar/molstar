@@ -119,36 +119,46 @@ function mapQuery(app: express.Express, queryName: string, queryDefinition: Quer
     });
 }
 
-export function initWebApi(app: express.Express) {
-    app.use(bodyParser.json({ limit: '1mb' }));
+function serveStatic(req: express.Request, res: express.Response) {
+    const source = req.params.source === 'bcif' 
+        ? 'pdb-bcif'
+        : req.params.source === 'cif'
+        ? 'pdb-cif'
+        : req.params.source;
+    
+    const id = req.params.id;
+    const [fn, format] = mapSourceAndIdToFilename(source, id);
+    const binary = format === 'bcif' || fn.indexOf('.bcif') > 0;
 
-    app.get(makePath('static/:format/:id'), async (req, res) => {
-        const binary = req.params.format === 'bcif';
-        const id = req.params.id;
-        const fn = mapSourceAndIdToFilename(binary ? 'pdb-bcif' : 'pdb-cif', id);
-        if (!fn || !fs.existsSync(fn)) {
+    if (!fn || !fs.existsSync(fn)) {
+        res.status(404);
+        res.end();
+        return;
+    }
+    fs.readFile(fn, (err, data) => {
+        if (err) {
             res.status(404);
             res.end();
             return;
         }
-        fs.readFile(fn, (err, data) => {
-            if (err) {
-                res.status(404);
-                res.end();
-                return;
-            }
 
-            const f = path.parse(fn);
-            res.writeHead(200, {
-                'Content-Type': binary ? 'application/octet-stream' : 'text/plain; charset=utf-8',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'X-Requested-With',
-                'Content-Disposition': `inline; filename="${f.name}${f.ext}"`
-            });
-            res.write(data);
-            res.end();
+        const f = path.parse(fn);
+        res.writeHead(200, {
+            'Content-Type': binary ? 'application/octet-stream' : 'text/plain; charset=utf-8',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'X-Requested-With',
+            'Content-Disposition': `inline; filename="${f.name}${f.ext}"`
         });
-    })
+        res.write(data);
+        res.end();
+    });
+}
+
+export function initWebApi(app: express.Express) {
+    app.use(bodyParser.json({ limit: '1mb' }));
+
+    app.get(makePath('static/:source/:id'), (req, res) => serveStatic(req, res));
+    app.get(makePath('v1/static/:source/:id'), (req, res) => serveStatic(req, res));
 
     // app.get(makePath('v1/json'), (req, res) => {
     //     const query = /\?(.*)$/.exec(req.url)![1];

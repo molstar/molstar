@@ -51,7 +51,7 @@ const struct_conf_fields: CifField[] = [
     CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('details', (i, data) => data[i].element.details || '', {
         valueKind: (i, d) => !!d[i].element.details ? Column.ValueKind.Present : Column.ValueKind.Unknown
     }),
-    CifField.int<number, SSElement<SecondaryStructure.Helix>[]>('pdbx_PDB_helix_class', (i, data) => data[i].length)
+    CifField.int<number, SSElement<SecondaryStructure.Helix>[]>('pdbx_PDB_helix_length', (i, data) => data[i].length)
 ];
 
 const struct_sheet_range_fields: CifField[] = [

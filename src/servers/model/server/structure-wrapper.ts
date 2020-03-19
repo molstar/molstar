@@ -7,7 +7,7 @@
 import { Structure, Model } from '../../../mol-model/structure';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { Cache } from './cache';
-import { ModelServerConfig as Config, mapSourceAndIdToFilename } from '../config';
+import { ModelServerConfig as Config, mapSourceAndIdToFilename, ModelServerFetchFormats } from '../config';
 import { CIF, CifFrame, CifBlock } from '../../../mol-io/reader/cif'
 import * as util from 'util'
 import * as fs from 'fs'
@@ -16,6 +16,7 @@ import { Job } from './jobs';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { ModelPropertiesProvider } from '../property-provider';
 import { trajectoryFromMmCIF } from '../../../mol-model-formats/structure/mmcif';
+import { fetchRetry } from '../utils/fetch-retry';
 
 require('util.promisify').shim();
 
@@ -53,7 +54,7 @@ export async function createStructureWrapperFromJob(job: Job, propertyProvider: 
         const ret = StructureCache.get(job.key);
         if (ret) return ret;
     }
-    const ret = await readStructureWrapper(job.key, job.sourceId, job.entryId, propertyProvider);
+    const ret = await readStructureWrapper(job.key, job.sourceId, job.entryId, job.id, propertyProvider);
     if (allowCache && Config.cacheMaxSizeInBytes > 0) {
         StructureCache.add(ret);
     }
@@ -73,13 +74,13 @@ async function readFile(filename: string) {
         if (isGz) input = await unzipAsync(input);
         const data = new Uint8Array(input.byteLength);
         for (let i = 0; i < input.byteLength; i++) data[i] = input[i];
-        return data;
+        return { data, isBinary: true };
     } else {
         if (isGz) {
             const data = await unzipAsync(await readFileAsync(filename));
-            return data.toString('utf8');
+            return { data: data.toString('utf8'), isBinary: false };
         }
-        return readFileAsync(filename, 'utf8');
+        return { data: await readFileAsync(filename, 'utf8'), isBinary: false };
     }
 }
 
@@ -90,11 +91,13 @@ async function parseCif(data: string|Uint8Array) {
     return parsed.result;
 }
 
-export async function readDataAndFrame(filename: string, key?: string): Promise<{ data: string | Uint8Array, frame: CifBlock }> {
+export async function readDataAndFrame(filename: string, key?: string): Promise<{ data: string | Uint8Array, frame: CifBlock, isBinary: boolean }> {
     perf.start('read');
-    let data;
+    let data, isBinary;
     try {
-        data = await readFile(filename);
+        const read = await readFile(filename);
+        data = read.data;
+        isBinary = read.isBinary;
     } catch (e) {
         ConsoleLogger.error(key || filename, '' + e);
         throw new Error(`Could not read the file for '${key || filename}' from disk.`);
@@ -105,15 +108,57 @@ export async function readDataAndFrame(filename: string, key?: string): Promise<
     const frame = (await parseCif(data)).blocks[0];
     perf.end('parse');
 
-    return { data, frame };
+    return { data, frame, isBinary };
 }
 
-export async function readStructureWrapper(key: string, sourceId: string | '_local_', entryId: string, propertyProvider: ModelPropertiesProvider | undefined) {
-    const filename = sourceId === '_local_' ? entryId : mapSourceAndIdToFilename(sourceId, entryId);
-    if (!filename) throw new Error(`Cound not map '${key}' to a valid filename.`);
-    if (!fs.existsSync(filename)) throw new Error(`Could not find source file for '${key}'.`);
+async function fetchDataAndFrame(jobId: string, uri: string, format: ModelServerFetchFormats, key?: string): Promise<{ data: string | Uint8Array, frame: CifBlock, isBinary: boolean }> {
+    perf.start('read');
+    const isBinary = format.startsWith('bcif');
+    let data;
+    try {
+        ConsoleLogger.logId(jobId, 'Fetch', `${uri}`);
+        const response = await fetchRetry(uri, 500, 3, () => ConsoleLogger.logId(jobId, 'Fetch', `Retrying to fetch '${uri}'`));
 
-    const { data, frame } = await readDataAndFrame(filename, key);
+        if (format.endsWith('.gz')) {
+            const input = await unzipAsync(await response.arrayBuffer());
+
+            if (isBinary) {
+                data = new Uint8Array(input.byteLength);
+                for (let i = 0; i < input.byteLength; i++) data[i] = input[i];
+            } else {
+                data = input.toString('utf8');
+            }
+        } else {
+            data = isBinary ? new Uint8Array(await response.arrayBuffer()) : await response.text();
+        }
+    } catch (e) {
+        ConsoleLogger.error(key || uri, '' + e);
+        throw new Error(`Could not fetch the file for '${key || uri}'.`);
+    }
+
+    perf.end('read');
+    perf.start('parse');
+    const frame = (await parseCif(data)).blocks[0];
+    perf.end('parse');
+
+    return { data, frame, isBinary };
+}
+
+function readOrFetch(jobId: string, key: string, sourceId: string | '_local_', entryId: string) {
+    const mapped = sourceId === '_local_' ? [entryId] as const : mapSourceAndIdToFilename(sourceId, entryId);
+    if (!mapped) throw new Error(`Cound not map '${key}' for a resource.`);
+
+    const uri = mapped[0].toLowerCase();
+    if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('ftp://')) {
+        return fetchDataAndFrame(jobId, mapped[0], (mapped[1] || 'cif').toLowerCase() as any, key);
+    } 
+
+    if (!fs.existsSync(mapped[0])) throw new Error(`Could not find source file for '${key}'.`);
+    return readDataAndFrame(mapped[0], key);
+}
+
+export async function readStructureWrapper(key: string, sourceId: string | '_local_', entryId: string, jobId: string | undefined, propertyProvider: ModelPropertiesProvider | undefined) {
+    const { data, frame, isBinary } = await readOrFetch(jobId || '', key, sourceId, entryId);
     perf.start('createModel');
     const models = await trajectoryFromMmCIF(frame).run();
     perf.end('createModel');
@@ -133,7 +178,7 @@ export async function readStructureWrapper(key: string, sourceId: string | '_loc
             sourceId,
             entryId
         },
-        isBinary: /\.bcif/.test(filename),
+        isBinary,
         key,
         approximateSize: typeof data === 'string' ? 2 * data.length : data.length,
         models,
