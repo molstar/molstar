@@ -234,7 +234,6 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         if (syncManually !== _state.syncManually) newState.syncManually = syncManually
         if (markerActions !== _state.markerActions) newState.markerActions = markerActions
 
-        console.log('newState', { ...newState })
         visuals.forEach(({ visual, group }) => setVisualState(visual, group, newState))
 
         StructureRepresentationStateBuilder.update(_state, newState)
