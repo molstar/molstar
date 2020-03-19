@@ -103,13 +103,13 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         if (!refs[StructureRepresentationInteractionTags.SurrRepr]) {
             refs[StructureRepresentationInteractionTags.SurrRepr] = builder
                 .to(refs['structure-interaction-surr-sel']!)
-                .apply(StateTransforms.Representation.StructureRepresentation3D,this.params.nciParams, { tags: StructureRepresentationInteractionTags.SurrRepr }).ref;
+                .apply(StateTransforms.Representation.StructureRepresentation3D,this.params.surroundingsParams, { tags: StructureRepresentationInteractionTags.SurrRepr }).ref;
         }
 
         if (!refs[StructureRepresentationInteractionTags.SurrNciRepr]) {
             refs[StructureRepresentationInteractionTags.SurrNciRepr] = builder
                 .to(refs['structure-interaction-surr-sel']!)
-                .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.surroundingsParams, { tags: StructureRepresentationInteractionTags.SurrNciRepr }).ref;
+                .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.nciParams, { tags: StructureRepresentationInteractionTags.SurrNciRepr }).ref;
         }
 
         return { state, builder, refs };
