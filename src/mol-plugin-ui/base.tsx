@@ -70,7 +70,7 @@ export type _State<C extends React.Component> = C extends React.Component<any, i
 //
 
 export type CollapsableProps = { initiallyCollapsed?: boolean, header?: string }
-export type CollapsableState = { isCollapsed: boolean, header: string, isHidden?: boolean }
+export type CollapsableState = { isCollapsed: boolean, header: string, description?: string, isHidden?: boolean }
 
 export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends PluginUIComponent<P & CollapsableProps, S & CollapsableState, SS> {
     toggleCollapsed = () => {
@@ -89,9 +89,10 @@ export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends Plugi
 
         return <div className={wrapClass}>
             <div className='msp-transform-header'>
-                <button className='msp-btn msp-btn-block msp-btn-collapse' onClick={this.toggleCollapsed}>
+                <button className='msp-btn msp-btn-block msp-btn-collapse msp-no-overflow' onClick={this.toggleCollapsed}>
                     <Icon name={this.state.isCollapsed ? 'expand' : 'collapse'} />
                     {this.state.header}
+                    <small style={{ margin: '0 6px' }}>{this.state.isCollapsed ? '' : this.state.description}</small>
                 </button>
             </div>
             {!this.state.isCollapsed && this.renderControls()}

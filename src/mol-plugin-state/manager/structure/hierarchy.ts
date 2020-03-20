@@ -227,4 +227,29 @@ export namespace StructureHierarchyManager {
 
         return groups;
     }
+
+    export function getSelectedStructuresDescription(plugin: PluginContext) {
+        const { structures } = plugin.managers.structure.hierarchy.state.selection;
+        if (structures.length === 0) return '';
+
+        if (structures.length === 1) {
+            const s = structures[0];
+            const entryId = s.cell.obj?.data.models[0].entryId;
+            if (s.model?.trajectory?.models && s.model.trajectory.models.length === 1) return entryId;
+            if (s.model) return `${s.model.cell.obj?.label} | ${entryId}`;
+            return entryId;
+        }
+
+        const p = structures[0];
+        const t = p?.model?.trajectory;
+        let sameTraj = true;
+        for (const s of structures) {
+            if (s?.model?.trajectory !== t) {
+                sameTraj = false;
+                break;
+            }
+        }
+
+        return sameTraj && t ? `${t.cell.obj?.label} | ${structures.length} structures` : `${structures.length} structures`;
+    }
 }

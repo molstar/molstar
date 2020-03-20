@@ -18,6 +18,7 @@ import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 import { PluginContext } from '../../mol-plugin/context';
 import { getStructureThemeTypes } from '../../mol-plugin-state/helpers/structure-representation-params';
+import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
 
 interface StructureComponentControlState extends CollapsableState {
     isDisabled: boolean
@@ -26,6 +27,12 @@ interface StructureComponentControlState extends CollapsableState {
 export class StructureComponentControls extends CollapsableControls<{}, StructureComponentControlState> {
     protected defaultState(): StructureComponentControlState {
         return { header: 'Representation', isCollapsed: false, isDisabled: false };
+    }
+
+    componentDidMount() {
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, c => this.setState({
+            description: StructureHierarchyManager.getSelectedStructuresDescription(this.plugin)
+        }));
     }
 
     renderControls() {

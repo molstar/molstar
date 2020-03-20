@@ -77,12 +77,12 @@ export namespace ActionMenu {
             } else {
                 cat = items as any;
             }
-            
+
             cat!.push({ kind: 'item', label: l, value: v, icon: icon ? icon(x) : void 0, selected: selected ? selected(x) : void 0 });
         }
         return items as ActionMenu.Items;
     }
-    
+
     type Opt = ParamDefinition.Select<any>['options'][0];
     const _selectOptions = { value: (o: Opt) => o[0], label: (o: Opt) => o[1], category: (o: Opt) => o[2] };
 
@@ -127,7 +127,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const header = isItems(props.items) && isHeader(props.items[0]) ? props.items[0] : void 0;
 
         const hasCurrent = header?.isIndependent
-            ? false 
+            ? false
             : props.multiselect
                 ? ActionMenu.hasSelectedItem(props.items)
                 : (!!props.current && !!ActionMenu.findItem(props.items, props.current.value)) || ActionMenu.hasSelectedItem(props.items);
@@ -214,9 +214,9 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
 }
 
 const Action: React.FC<{
-    item: ActionMenu.Item, 
-    onSelect: ActionMenu.OnSelect | ActionMenu.OnSelectMany, 
-    multiselect: boolean | undefined, 
+    item: ActionMenu.Item,
+    onSelect: ActionMenu.OnSelect | ActionMenu.OnSelectMany,
+    multiselect: boolean | undefined,
     current: ActionMenu.Item | undefined }> = ({ item, onSelect, current, multiselect }) => {
     const isCurrent = current === item;
     return  <button className='msp-btn msp-btn-block msp-form-control msp-action-menu-button msp-no-overflow' onClick={() => onSelect(multiselect ? [item] : item as any)} disabled={item.disabled}>
