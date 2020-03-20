@@ -398,8 +398,8 @@ export namespace ParamDefinition {
     }
 
     export function merge(params: Params, a: any, b: any): any {
-        if (a === undefined) return deepClone(b);
-        if (b === undefined) return deepClone(a);
+        if (a === undefined) return { ...b };
+        if (b === undefined) return { ...a };
 
         const o = Object.create(null)
         for (const k of Object.keys(params)) {
@@ -409,21 +409,21 @@ export namespace ParamDefinition {
     }
 
     export function mergeParam(p: Any, a: any, b: any): any {
-        if (a === undefined) return deepClone(b);
-        if (b === undefined) return deepClone(a);
+        if (a === undefined) return b;
+        if (b === undefined) return a;
 
         if (p.type === 'group') {
             return merge(p.params, a, b);
         } else if (p.type === 'mapped') {
             const u = a as NamedParams, v = b as NamedParams;
-            if (u.name !== v.name) return deepClone(v);
+            if (u.name !== v.name) return v;
             const map = p.map(v.name);
             return {
                 name: v.name,
                 params: mergeParam(map, u.params, v.params)
             };
         } else if (typeof a === 'object' || typeof b === 'object') {
-            return Object.assign({}, deepClone(a), deepClone(b));
+            return { ...a, ...b };
         } else {
             return b
         }
