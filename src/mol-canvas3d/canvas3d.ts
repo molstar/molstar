@@ -313,16 +313,38 @@ namespace Canvas3D {
             cameraResetRequested = false;
         }
 
+        const oldBoundary = Sphere3D.zero();
+        function shouldResetCamera() {
+            if (camera.state.radiusMax === 0) return true;
+
+            // check if any renderable center has moved outside of the old boundary
+            for (const r of scene.renderables) {
+                if (!r.state.visible) continue;
+                const { center, radius } = r.values.boundingSphere.ref.value;
+                if (!radius) continue;
+                // TODO: include renderable radius into this?
+                if (Vec3.distance(oldBoundary.center, center) > 1.1 * oldBoundary.radius) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         const sceneCommitTimeoutMs = 250;
         function commitScene(isSynchronous: boolean) {
             if (!scene.needsCommit) return true;
 
+            // snapshot the current bounding sphere
+            Sphere3D.copy(oldBoundary, scene.boundingSphere);
+
             if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) return false;
 
             if (debugHelper.isEnabled) debugHelper.update();
-            if (reprCount.value === 0 || camera.state.radiusMax === 0) cameraResetRequested = true;
+            if (reprCount.value === 0 || shouldResetCamera()) cameraResetRequested = true;
+
             camera.setState({ radiusMax: scene.boundingSphere.radius })
             reprCount.next(reprRenderObjects.size);
+
             return true;
         }
 
