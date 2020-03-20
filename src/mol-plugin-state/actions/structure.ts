@@ -144,15 +144,21 @@ const DownloadStructure = StateAction.build({
     params: (_, plugin: PluginContext) => {
         const options = DownloadModelRepresentationOptions(plugin);
         return {
-            source: PD.MappedStatic('bcif-static', {
-                'pdbe-updated': PD.Group({
-                    id: PD.Text('1cbs', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
+            source: PD.MappedStatic('pdb', {
+                'pdb': PD.Group({
+                    provider: PD.Group({
+                        id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
+                        server: PD.MappedStatic('rcsb', {
+                            'rcsb': PD.Group({
+                                encoding: PD.Select('bcif', [['cif', 'cif'], ['bcif', 'bcif']] as ['cif' | 'bcif', string][]),
+                            }, { label: 'RCSB PDB', isFlat: true }),
+                            'pdbe': PD.Group({
+                                variant: PD.Select('updated', [['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'archival', string][]),
+                            }, { label: 'PDBe', isFlat: true }),
+                        }),
+                    }, { pivot: 'id' }),
                     options
-                }, { isFlat: true, label: 'PDBe Updated' }),
-                'rcsb': PD.Group({
-                    id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
-                    options
-                }, { isFlat: true, label: 'RCSB' }),
+                }, { isFlat: true, label: 'PDB' }),
                 'pdb-dev': PD.Group({
                     id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma separated ids.' }),
                     options
@@ -179,45 +185,40 @@ const DownloadStructure = StateAction.build({
 
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
-    // let supportProps = false
     let asTrajectory = false, format: BuiltInTrajectoryFormat = 'mmcif';
 
     switch (src.name) {
         case 'url':
             downloadParams = [{ url: src.params.url, isBinary: src.params.isBinary }];
-            // supportProps = !!src.params.options.supportProps;
             format = src.params.format
             break;
-        case 'pdbe-updated':
-            downloadParams = getDownloadParams(src.params.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}_updated.cif`, id => `PDBe: ${id}`, false);
-            // supportProps = !!src.params.options.supportProps;
-            asTrajectory = !!src.params.options.asTrajectory;
-            break;
-        case 'rcsb':
-            downloadParams = getDownloadParams(src.params.id, id => `https://files.rcsb.org/download/${id.toUpperCase()}.cif`, id => `RCSB: ${id}`, false);
-            // supportProps = !!src.params.options.supportProps;
+        case 'pdb':
+            downloadParams = src.params.provider.server.name === 'pdbe'
+                ? src.params.provider.server.params.variant === 'updated'
+                    ? getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}_updated.cif`, id => `PDBe: ${id} (updated cif)`, false)
+                    : getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}.cif`, id => `PDBe: ${id} (cif)`, false)
+                : src.params.provider.server.params.encoding === 'cif'
+                    ? getDownloadParams(src.params.provider.id, id => `https://files.rcsb.org/download/${id.toUpperCase()}.cif`, id => `RCSB: ${id} (cif)`, false)
+                    : getDownloadParams(src.params.provider.id, id => `https://models.rcsb.org/${id.toUpperCase()}.bcif`, id => `RCSB: ${id} (bcif)`, true);
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'pdb-dev':
             downloadParams = getDownloadParams(src.params.id,
                 id => {
                     const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`
-                    return `https://pdb-dev.wwpdb.org/static/cif/${nId.toUpperCase()}.cif`
+                    return `https://pdb-dev.wwpdb.org/cif/${nId.toUpperCase()}.cif`
                 },
                 id => id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`,
                 false
             );
-            // supportProps = !!src.params.options.supportProps;
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'bcif-static':
             downloadParams = getDownloadParams(src.params.id, id => `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${id.toLowerCase()}`, id => `BinaryCIF: ${id}`, true);
-            // supportProps = !!src.params.options.supportProps;
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'swissmodel':
             downloadParams = getDownloadParams(src.params.id, id => `https://swissmodel.expasy.org/repository/uniprot/${id.toUpperCase()}.pdb`, id => `SWISS-MODEL: ${id}`, false);
-            // supportProps = !!src.params.options.supportProps;
             asTrajectory = !!src.params.options.asTrajectory;
             format = 'pdb'
             break;

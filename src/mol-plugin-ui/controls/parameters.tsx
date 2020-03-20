@@ -790,7 +790,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
             <div className='msp-control-offset'>
                 <ParameterControls params={filtered} onEnter={this.props.onEnter} values={this.props.value} onChange={this.onChangeParam} isDisabled={this.props.isDisabled} />
             </div>
-        </div>;        
+        </div>;
     }
 
     render() {
