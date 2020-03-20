@@ -38,10 +38,12 @@ function getLocations(gl: GLRenderingContext, program: WebGLProgram, schema: Ren
         const spec = schema[k]
         if (spec.type === 'attribute') {
             const loc = gl.getAttribLocation(program, k)
+            // unused attributes will result in a `-1` location which is usually fine
             // if (loc === -1) console.info(`Could not get attribute location for '${k}'`)
             locations[k] = loc
         } else if (spec.type === 'uniform' || spec.type === 'texture') {
             const loc = gl.getUniformLocation(program, k)
+            // unused uniforms will result in a `null` location which is usually fine
             // if (loc === null) console.info(`Could not get uniform location for '${k}'`)
             locations[k] = loc as number
         }
@@ -146,8 +148,8 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
     const vertShader = getShader('vert', shaderCode.vert)
     const fragShader = getShader('frag', shaderCode.frag)
 
-    let locations: Locations // = getLocations(gl, program, schema)
-    let uniformSetters: UniformSetters // = getUniformSetters(schema)
+    let locations: Locations
+    let uniformSetters: UniformSetters
 
     function init() {
         vertShader.attach(program)
@@ -186,9 +188,9 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
                 }
             }
         },
-        bindAttributes: (attribueBuffers: AttributeBuffers) => {
-            for (let i = 0, il = attribueBuffers.length; i < il; ++i) {
-                const [k, buffer] = attribueBuffers[i]
+        bindAttributes: (attributeBuffers: AttributeBuffers) => {
+            for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
+                const [k, buffer] = attributeBuffers[i]
                 const l = locations[k]
                 if (l !== -1) buffer.bind(l)
             }

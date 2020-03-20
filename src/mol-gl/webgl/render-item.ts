@@ -198,9 +198,6 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
                 try {
                     checkError(ctx.gl)
                 } catch (e) {
-                    // console.log('shaderCode', shaderCode)
-                    // console.log('schema', schema)
-                    // console.log('attributeBuffers', attributeBuffers)
                     throw new Error(`Error rendering item id ${id}: '${e}'`)
                 }
             }
@@ -246,10 +243,10 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
                 const value = attributeValues[k]
                 if (value.ref.version !== versions[k]) {
                     if (buffer.length >= value.ref.value.length) {
-                        // console.log('attribute array large enough to update', k, value.ref.id, value.ref.version)
+                        // console.log('attribute array large enough to update', buffer.id, k, value.ref.id, value.ref.version)
                         buffer.updateData(value.ref.value)
                     } else {
-                        // console.log('attribute array to small, need to create new attribute', k, value.ref.id, value.ref.version)
+                        // console.log('attribute array too small, need to create new attribute', buffer.id, k, value.ref.id, value.ref.version)
                         buffer.destroy()
                         const { itemSize, divisor } = schema[k] as AttributeSpec<AttributeKind>
                         attributeBuffers[i][1] = resources.attribute(value.ref.value, itemSize, divisor)
@@ -276,7 +273,8 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
                 // console.log('program/defines or buffers changed, update vaos')
                 Object.keys(renderVariantDefines).forEach(k => {
                     const vertexArray = vertexArrays[k]
-                    if (vertexArray) vertexArray.update()
+                    if (vertexArray) vertexArray.destroy()
+                    vertexArrays[k] = vertexArrayObject ? resources.vertexArray(programs[k], attributeBuffers, elementsBuffer) : null
                 })
             }
 
