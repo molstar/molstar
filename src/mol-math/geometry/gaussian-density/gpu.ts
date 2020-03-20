@@ -46,7 +46,7 @@ export const GaussianDensitySchema = {
 }
 
 export const GaussianDensityShaderCode = ShaderCode(
-    gaussian_density_vert, gaussian_density_frag,
+    'gaussian-density', gaussian_density_vert, gaussian_density_frag,
     { standardDerivatives: false, fragDepth: false }
 )
 

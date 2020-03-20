@@ -34,7 +34,7 @@ function getHistopyramidSumRenderable(ctx: WebGLContext, texture: Texture) {
         }
 
         const schema = { ...HistopyramidSumSchema }
-        const shaderCode = ShaderCode(quad_vert, sum_frag)
+        const shaderCode = ShaderCode('sum', quad_vert, sum_frag)
         const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
         HistopyramidSumRenderable = createComputeRenderable(renderItem, values)

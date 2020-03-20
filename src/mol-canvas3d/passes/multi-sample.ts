@@ -40,7 +40,7 @@ function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture): Compose
     }
 
     const schema = { ...ComposeSchema }
-    const shaderCode = ShaderCode(quad_vert, compose_frag)
+    const shaderCode = ShaderCode('compose', quad_vert, compose_frag)
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
     return createComputeRenderable(renderItem, values)

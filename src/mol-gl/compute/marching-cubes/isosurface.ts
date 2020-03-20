@@ -62,7 +62,7 @@ function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture
     }
 
     const schema = { ...IsosurfaceSchema }
-    const shaderCode = ShaderCode(quad_vert, isosurface_frag, { drawBuffers: true })
+    const shaderCode = ShaderCode('isosurface', quad_vert, isosurface_frag, { drawBuffers: true })
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
     return createComputeRenderable(renderItem, values);

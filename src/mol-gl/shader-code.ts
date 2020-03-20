@@ -24,6 +24,7 @@ export interface ShaderExtensions {
 
 export interface ShaderCode {
     readonly id: number
+    readonly name: string
     readonly vert: string
     readonly frag: string
     readonly extensions: ShaderExtensions
@@ -97,33 +98,33 @@ function addIncludes(text: string) {
         .replace(reMultipleLinebreaks, '\n')
 }
 
-export function ShaderCode(vert: string, frag: string, extensions: ShaderExtensions = {}): ShaderCode {
-    return { id: shaderCodeId(), vert: addIncludes(vert), frag: addIncludes(frag), extensions }
+export function ShaderCode(name: string, vert: string, frag: string, extensions: ShaderExtensions = {}): ShaderCode {
+    return { id: shaderCodeId(), name, vert: addIncludes(vert), frag: addIncludes(frag), extensions }
 }
 
 import points_vert from './shader/points.vert'
 import points_frag from './shader/points.frag'
-export const PointsShaderCode = ShaderCode(points_vert, points_frag)
+export const PointsShaderCode = ShaderCode('points', points_vert, points_frag)
 
 import spheres_vert from './shader/spheres.vert'
 import spheres_frag from './shader/spheres.frag'
-export const SpheresShaderCode = ShaderCode(spheres_vert, spheres_frag, { fragDepth: true })
+export const SpheresShaderCode = ShaderCode('spheres', spheres_vert, spheres_frag, { fragDepth: true })
 
 import text_vert from './shader/text.vert'
 import text_frag from './shader/text.frag'
-export const TextShaderCode = ShaderCode(text_vert, text_frag, { standardDerivatives: true })
+export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { standardDerivatives: true })
 
 import lines_vert from './shader/lines.vert'
 import lines_frag from './shader/lines.frag'
-export const LinesShaderCode = ShaderCode(lines_vert, lines_frag)
+export const LinesShaderCode = ShaderCode('lines', lines_vert, lines_frag)
 
 import mesh_vert from './shader/mesh.vert'
 import mesh_frag from './shader/mesh.frag'
-export const MeshShaderCode = ShaderCode(mesh_vert, mesh_frag, { standardDerivatives: true })
+export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { standardDerivatives: true })
 
 import direct_volume_vert from './shader/direct-volume.vert'
 import direct_volume_frag from './shader/direct-volume.frag'
-export const DirectVolumeShaderCode = ShaderCode(direct_volume_vert, direct_volume_frag, { fragDepth: true })
+export const DirectVolumeShaderCode = ShaderCode('direct-volume', direct_volume_vert, direct_volume_frag, { fragDepth: true })
 
 //
 
@@ -233,6 +234,7 @@ export function addShaderDefines(gl: GLRenderingContext, extensions: WebGLExtens
     const frag = isWebGL2(gl) ? transformGlsl300Frag(shaders.frag) : shaders.frag
     return {
         id: shaderCodeId(),
+        name: shaders.name,
         vert: `${vertPrefix}${header}${shaders.vert}`,
         frag: `${fragPrefix}${header}${frag}`,
         extensions: shaders.extensions

@@ -41,7 +41,7 @@ function getHistopyramidReductionRenderable(ctx: WebGLContext, initialTexture: T
         }
 
         const schema = { ...HistopyramidReductionSchema }
-        const shaderCode = ShaderCode(quad_vert, reduction_frag)
+        const shaderCode = ShaderCode('reduction', quad_vert, reduction_frag)
         const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
         HistopyramidReductionRenderable = createComputeRenderable(renderItem, values);

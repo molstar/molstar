@@ -46,7 +46,7 @@ function getActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridD
     }
 
     const schema = { ...ActiveVoxelsSchema }
-    const shaderCode = ShaderCode(quad_vert, active_voxels_frag)
+    const shaderCode = ShaderCode('active-voxels', quad_vert, active_voxels_frag)
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
     return createComputeRenderable(renderItem, values);

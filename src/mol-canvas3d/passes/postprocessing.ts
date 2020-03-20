@@ -96,7 +96,7 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
     }
 
     const schema = { ...PostprocessingSchema }
-    const shaderCode = ShaderCode(quad_vert, postprocessing_frag)
+    const shaderCode = ShaderCode('postprocessing', quad_vert, postprocessing_frag)
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
     return createComputeRenderable(renderItem, values)
