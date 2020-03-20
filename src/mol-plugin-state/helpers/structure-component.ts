@@ -115,7 +115,7 @@ export function updateStructureComponent(a: Structure, b: SO.Molecule.Structure,
                 return StateTransformer.UpdateResult.Recreate;
             }
 
-            if (a !== cache.source) return StateTransformer.UpdateResult.Unchanged;
+            if (a === cache.source) return StateTransformer.UpdateResult.Unchanged;
 
             const entry = (cache as { entry: StructureQueryHelper.CacheEntry }).entry;
 
