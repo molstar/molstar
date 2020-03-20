@@ -131,9 +131,18 @@ export class StructureBuilder {
         return unitcell.selector;
     }
 
-    async createStructure(model: StateObjectRef<SO.Molecule.Model>, params?: RootStructureDefinition.Params, initialState?: Partial<StateTransform.State>) {
+    async createStructure(modelRef: StateObjectRef<SO.Molecule.Model>, params?: RootStructureDefinition.Params, initialState?: Partial<StateTransform.State>) {
         const state = this.dataState;
-        const structure = state.build().to(model)
+
+        if (!params) {
+            const model = StateObjectRef.resolveAndCheck(state, modelRef);
+            if (model) {
+                const symm = ModelSymmetry.Provider.get(model.obj?.data!);
+                if (!symm || symm?.assemblies.length === 0) params = { name: 'deposited', params: { } };
+            }
+        }
+
+        const structure = state.build().to(modelRef)
             .apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } }, { tags: StructureBuilderTags.Structure, state: initialState });
 
         await this.plugin.updateDataState(structure, { revertOnError: true });

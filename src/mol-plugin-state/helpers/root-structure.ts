@@ -17,7 +17,7 @@ import { PluginStateObject as SO } from '../objects';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 
 export namespace RootStructureDefinition {
-    export function getParams(model?: Model, defaultValue?: 'deposited' | 'assembly' | 'symmetry' | 'symmetry-mates' | 'symmetry-assembly') {
+    export function getParams(model?: Model, defaultValue?: 'auto' | 'deposited' | 'assembly' | 'symmetry' | 'symmetry-mates' | 'symmetry-assembly') {
         const symmetry = model && ModelSymmetry.Provider.get(model)
 
         const assemblyIds = symmetry ? symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]) : [];
@@ -40,6 +40,7 @@ export namespace RootStructureDefinition {
         }
 
         const modes = {
+            auto: PD.EmptyGroup(),
             deposited: PD.EmptyGroup(),
             assembly: PD.Group({
                 id: PD.Optional(model
@@ -68,11 +69,15 @@ export namespace RootStructureDefinition {
             }, { isFlat: true })
         };
 
-        const options: [keyof typeof modes, string][] = [
-            ['deposited', 'Deposited']
-        ];
+        const options: [keyof typeof modes, string][] = [];
 
-        if (assemblyIds) {
+        if (defaultValue === 'auto') {
+            options.push(['auto', 'Auto']);
+        }
+
+        options.push(['deposited', 'Deposited']);
+
+        if (assemblyIds.length > 0) {
             options.push(['assembly', 'Assembly']);
         }
 
@@ -148,6 +153,14 @@ export namespace RootStructureDefinition {
         if (!symmetry || !params || params.name === 'deposited') {
             const s = Structure.ofModel(model);
             return new SO.Molecule.Structure(s, { label: 'Deposited', description: Structure.elementDescription(s) });
+        }
+        if (params.name === 'auto') {
+            if (symmetry.assemblies.length === 0) {
+                const s = Structure.ofModel(model);
+                return new SO.Molecule.Structure(s, { label: 'Deposited', description: Structure.elementDescription(s) });
+            } else {
+                return buildAssembly(plugin, ctx, model);
+            }
         }
         if (params.name === 'assembly') {
             return buildAssembly(plugin, ctx, model, params.params.id)

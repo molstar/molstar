@@ -129,7 +129,7 @@ export const DcdProvider: DataFormatProvider<any> = {
 //
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => PD.Group({
-    type: RootStructureDefinition.getParams(void 0, 'assembly').type,
+    type: RootStructureDefinition.getParams(void 0, 'auto').type,
     representation: PD.Select(PresetStructureReprentations.auto.id,
         plugin.builders.structure.representation.getPresets().map(p => [p.id, p.display.name] as any),
         { description: 'Which representation preset to use.' }),
@@ -228,6 +228,8 @@ const DownloadStructure = StateAction.build({
     const representationPreset: any = params.source.params.options.representation || PresetStructureReprentations.auto.id;
     const showUnitcell = representationPreset !== PresetStructureReprentations.empty.id;
 
+    const structure = src.params.options.type.name === 'auto' ? void 0 : src.params.options.type;
+
     await state.transaction(async () => {
         if (downloadParams.length > 0 && asTrajectory) {
             const blob = await plugin.builders.data.downloadBlob({
@@ -237,7 +239,7 @@ const DownloadStructure = StateAction.build({
             const trajectory = await plugin.builders.structure.parseTrajectory(blob, { formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' })) });
 
             await applyTrajectoryHierarchyPreset(plugin, trajectory, 'first-model', {
-                structure: src.params.options.type,
+                structure,
                 showUnitcell,
                 representationPreset
             });
@@ -247,7 +249,7 @@ const DownloadStructure = StateAction.build({
                 const trajectory = await plugin.builders.structure.parseTrajectory(data, format);
 
                 await applyTrajectoryHierarchyPreset(plugin, trajectory, 'first-model', {
-                    structure: src.params.options.type,
+                    structure,
                     showUnitcell,
                     representationPreset
                 });
