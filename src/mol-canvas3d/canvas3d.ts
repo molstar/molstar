@@ -423,6 +423,7 @@ namespace Canvas3D {
             syncVisibility: () => {
                 if (scene.syncVisibility()) {
                     camera.setState({ radiusMax: scene.boundingSphere.radius })
+                    if (debugHelper.isEnabled) debugHelper.update()
                 }
             },
 
