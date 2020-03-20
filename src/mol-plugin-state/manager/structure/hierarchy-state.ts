@@ -17,7 +17,7 @@ export function buildStructureHierarchy(state: State, previous?: StructureHierar
     const build = BuildState(state, previous || StructureHierarchy());
     doPreOrder(state.tree, build);
     if (previous) previous.refs.forEach(isRemoved, build);
-    return { hierarchy: build.hierarchy, added: build.added, updated: build.updated, removed: build.removed };
+    return { hierarchy: build.hierarchy, added: build.added, changed: build.changed };
 }
 
 export interface StructureHierarchy {
@@ -158,13 +158,12 @@ interface BuildState {
     currentStructure?: StructureRef,
     currentComponent?: StructureComponentRef,
 
-    updated: HierarchyRef[],
-    added: HierarchyRef[],
-    removed: HierarchyRef[]
+    changed: boolean,
+    added: Set<StateTransform.Ref>
 }
 
 function BuildState(state: State, oldHierarchy: StructureHierarchy): BuildState {
-    return { state, oldHierarchy, hierarchy: StructureHierarchy(), updated: [], added: [], removed: [] };
+    return { state, oldHierarchy, hierarchy: StructureHierarchy(), changed: false, added: new Set() };
 }
 
 function createOrUpdateRefList<R extends HierarchyRef, C extends any[]>(state: BuildState, cell: StateObjectCell, list: R[], ctor: (...args: C) => R, ...args: C) {
@@ -173,9 +172,10 @@ function createOrUpdateRefList<R extends HierarchyRef, C extends any[]>(state: B
     state.hierarchy.refs.set(cell.transform.ref, ref);
     const old = state.oldHierarchy.refs.get(cell.transform.ref);
     if (old) {
-        if (old.version !== cell.transform.version) state.updated.push(ref);
+        if (old.version !== cell.transform.version) state.changed = true;
     } else {
-        state.added.push(ref);
+        state.added.add(ref.cell.transform.ref);
+        state.changed = true;
     }
     return ref;
 }
@@ -185,9 +185,10 @@ function createOrUpdateRef<R extends HierarchyRef, C extends any[]>(state: Build
     state.hierarchy.refs.set(cell.transform.ref, ref);
     const old = state.oldHierarchy.refs.get(cell.transform.ref);
     if (old) {
-        if (old.version !== cell.transform.version) state.updated.push(ref);
+        if (old.version !== cell.transform.version) state.changed = true;
     } else {
-        state.added.push(ref);
+        state.added.add(ref.cell.transform.ref);
+        state.changed = true;
     }
     return ref;
 }
@@ -261,7 +262,7 @@ function isValidCell(cell?: StateObjectCell): cell is StateObjectCell {
 function isRemoved(this: BuildState, ref: HierarchyRef) {
     const { cell } = ref;
     if (isValidCell(cell)) return;
-    this.removed.push(ref);
+    this.changed = true;
 }
 
 type VisitorCtx = { tree: StateTree, state: BuildState };
@@ -298,7 +299,7 @@ function _doPreOrder(ctx: VisitorCtx, root: StateTransform) {
         const genericTarget = state.currentComponent || state.currentModel || state.currentStructure;
         if (genericTarget) {
             if (!genericTarget.genericRepresentations) genericTarget.genericRepresentations = [];
-            genericTarget.genericRepresentations.push(createOrUpdateRef(state, cell, GenericRepresentationRef, cell, genericTarget));
+            createOrUpdateRefList(state, cell, genericTarget.genericRepresentations, GenericRepresentationRef, cell, genericTarget);
         }
     } else if (state.currentStructure && VolumeStreaming.is(cell.obj)) {
         state.currentStructure.volumeStreaming = createOrUpdateRef(state, cell, StructureVolumeStreamingRef, cell, state.currentStructure);

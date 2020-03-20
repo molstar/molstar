@@ -42,7 +42,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         return this._currentComponentGroups;
     }
 
-    private _currentSelectionSet: Set<string> | undefined = void 0;
+    private _currentSelectionSet: Set<StateTransform.Ref> | undefined = void 0;
     get seletionSet() {
         if (this._currentSelectionSet) return this._currentSelectionSet;
         this._currentSelectionSet = new Set();
@@ -60,25 +60,13 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         return this.state.selection;
     }
 
-    private nextSelection: Set<StateTransform.Ref> = new Set();
-    private syncCurrent<T extends HierarchyRef>(hierarchy: StructureHierarchy, current: ReadonlyArray<T>, all: ReadonlyArray<T>): T[] {
-        if (this.nextSelection.size > 0) {
-            const newCurrent: T[] = [];
-            for (const r of all) {
-                if (this.nextSelection.has(r.cell.transform.ref)) {
-                    newCurrent.push(r);
-                }
-            }
-            if (newCurrent.length === 0) return all.length > 0 ? [all[0]] : [];
-            return newCurrent;
-        }
-
-        if (current.length === 0) return all.length > 0 ? [all[0]] : [];
-
+    private syncCurrent<T extends HierarchyRef>(all: ReadonlyArray<T>, added: Set<StateTransform.Ref>): T[] {
+        const current = this.seletionSet;
         const newCurrent: T[] = [];
-        for (const c of current) {
-            const ref = hierarchy.refs.get(c.cell.transform.ref) as T;
-            if (ref) newCurrent.push(ref);
+
+        for (const r of all) {
+            const ref = r.cell.transform.ref;
+            if (current.has(ref) || added.has(ref)) newCurrent.push(r);
         }
 
         if (newCurrent.length === 0) return all.length > 0 ? [all[0]] : [];
@@ -87,19 +75,17 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
 
     private sync() {
         const update = buildStructureHierarchy(this.plugin.state.data, this.state.hierarchy);
-        if (update.added.length === 0 && update.updated.length === 0 && update.removed.length === 0) {
+        if (!update.changed) {
             return;
         }
 
+        const { hierarchy } = update;
+        const trajectories = this.syncCurrent(hierarchy.trajectories, update.added);
+        const models = this.syncCurrent(hierarchy.models, update.added);
+        const structures = this.syncCurrent(hierarchy.structures, update.added);
+
         this._currentComponentGroups = void 0;
         this._currentSelectionSet = void 0;
-
-        const { hierarchy } = update;
-        const trajectories = this.syncCurrent(hierarchy, this.state.selection.trajectories, hierarchy.trajectories);
-        const models = this.syncCurrent(hierarchy, this.state.selection.models, hierarchy.models);
-        const structures = this.syncCurrent(hierarchy, this.state.selection.structures, hierarchy.structures);
-
-        this.nextSelection.clear();
 
         this.updateState({ hierarchy, selection: { trajectories, models, structures } });
         this.behaviors.selection.next({ hierarchy, trajectories, models, structures });
@@ -128,10 +114,6 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         this._currentComponentGroups = void 0;
         this._currentSelectionSet = void 0;
 
-        // if (trajectories.length === 0 && hierarchy.trajectories.length > 0) trajectories.push(hierarchy.trajectories[0]);
-        // if (models.length === 0 && hierarchy.models.length > 0) models.push(hierarchy.models[0]);
-        // if (structures.length === 0 && hierarchy.structures.length > 0) structures.push(hierarchy.structures[0]);
-
         this.updateState({ selection: { trajectories, models, structures } });
         this.behaviors.selection.next({ hierarchy, trajectories, models, structures });
     }
@@ -145,10 +127,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
 
     createModels(trajectories: ReadonlyArray<TrajectoryRef>, kind: 'single' | 'all' = 'single') {
         return this.plugin.dataTransaction(async () => {
-            this.nextSelection.clear();
-
             for (const trajectory of trajectories) {
-                this.nextSelection.add(trajectory.cell.transform.ref);
                 if (trajectory.models.length > 0) {
                     await this.clearTrajectory(trajectory);
                 }
@@ -157,21 +136,9 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
 
                 const tr = trajectory.cell.obj?.data!;
                 if (kind === 'all' && tr.length > 1) {
-
-                    const { models = [], structures = [] } = (await applyTrajectoryHierarchyPreset(this.plugin, trajectory.cell, 'all-models'))!;
-                    for (const m of models) this.nextSelection.add(m.ref);
-                    for (const s of structures) this.nextSelection.add(s.ref);
+                    await applyTrajectoryHierarchyPreset(this.plugin, trajectory.cell, 'all-models');
                 } else {
-
-                    const preset = await applyTrajectoryHierarchyPreset(this.plugin, trajectory.cell, 'first-model');
-
-                    // const model = await this.plugin.builders.structure.createModel(trajectory.cell, { modelIndex: 0 }, { isCollapsed: true });
-                    // const structure = await this.plugin.builders.structure.createStructure(model);
-
-                    if (preset) {
-                        this.nextSelection.add(preset.modelRoot.ref);
-                        this.nextSelection.add(preset.structureRoot.ref);
-                    }
+                    await applyTrajectoryHierarchyPreset(this.plugin, trajectory.cell, 'first-model');
                 }
             }
         });
