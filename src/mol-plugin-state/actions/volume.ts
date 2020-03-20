@@ -110,22 +110,27 @@ const DownloadDensity = StateAction.build({
     params: (a, ctx: PluginContext) => {
         const { options } = ctx.dataFormat.registry
         return {
-            source: PD.MappedStatic('rcsb', {
-                'pdbe': PD.Group({
-                    id: PD.Text('1tqn', { label: 'Id' }),
+            source: PD.MappedStatic('pdb-xray', {
+                'pdb-xray': PD.Group({
+                    provider: PD.Group({
+                        id: PD.Text('1tqn', { label: 'Id' }),
+                        server: PD.Select('rcsb', [['pdbe', 'PDBe'], ['rcsb', 'RCSB PDB']]),
+                    }, { pivot: 'id' }),
                     type: PD.Select('2fofc', [['2fofc', '2Fo-Fc'], ['fofc', 'Fo-Fc']]),
                 }, { isFlat: true }),
-                'pdbe-emd-ds': PD.Group({
-                    id: PD.Text('emd-8004', { label: 'Id' }),
+                'pdb-xray-ds': PD.Group({
+                    provider: PD.Group({
+                        id: PD.Text('1tqn', { label: 'Id' }),
+                        server: PD.Select('pdbe', [['pdbe', 'PDBe'], ['rcsb', 'RCSB PDB']]),
+                    }, { pivot: 'id' }),
                     detail: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { label: 'Detail' }),
                 }, { isFlat: true }),
-                'pdbe-xray-ds': PD.Group({
-                    id: PD.Text('1tqn', { label: 'Id' }),
+                'pdb-emd-ds': PD.Group({
+                    provider: PD.Group({
+                        id: PD.Text('emd-8004', { label: 'Id' }),
+                        server: PD.Select('pdbe', [['pdbe', 'PDBe'], ['rcsb', 'RCSB PDB']]),
+                    }, { pivot: 'id' }),
                     detail: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { label: 'Detail' }),
-                }, { isFlat: true }),
-                'rcsb': PD.Group({
-                    id: PD.Text('1tqn', { label: 'Id' }),
-                    type: PD.Select('2fofc', [['2fofc', '2Fo-Fc'], ['fofc', 'Fo-Fc']]),
                 }, { isFlat: true }),
                 'url': PD.Group({
                     url: PD.Text(''),
@@ -134,10 +139,9 @@ const DownloadDensity = StateAction.build({
                 }, { isFlat: true })
             }, {
                 options: [
-                    ['pdbe', 'PDBe X-ray maps'],
-                    ['pdbe-emd-ds', 'PDBe EMD Density Server'],
-                    ['pdbe-xray-ds', 'PDBe X-ray Density Server'],
-                    ['rcsb', 'RCSB X-ray maps'],
+                    ['pdb-xray', 'PDB X-ray maps'],
+                    ['pdb-emd-ds', 'PDB EMD Density Server'],
+                    ['pdb-xray-ds', 'PDB X-ray Density Server'],
                     ['url', 'URL']
                 ]
             })
@@ -152,58 +156,61 @@ const DownloadDensity = StateAction.build({
         case 'url':
             downloadParams = src.params;
             break;
-        case 'pdbe':
-            downloadParams = {
+        case 'pdb-xray':
+            downloadParams = src.params.provider.server === 'pdbe' ? {
                 url: src.params.type === '2fofc'
-                    ? `http://www.ebi.ac.uk/pdbe/coordinates/files/${src.params.id.toLowerCase()}.ccp4`
-                    : `http://www.ebi.ac.uk/pdbe/coordinates/files/${src.params.id.toLowerCase()}_diff.ccp4`,
+                    ? `http://www.ebi.ac.uk/pdbe/coordinates/files/${src.params.provider.id.toLowerCase()}.ccp4`
+                    : `http://www.ebi.ac.uk/pdbe/coordinates/files/${src.params.provider.id.toLowerCase()}_diff.ccp4`,
                 isBinary: true,
-                label: `PDBe X-ray map: ${src.params.id}`
-            };
-            break;
-        case 'pdbe-emd-ds':
-            downloadParams = {
-                url: `https://www.ebi.ac.uk/pdbe/densities/emd/${src.params.id.toLowerCase()}/cell?detail=${src.params.detail}`,
-                isBinary: true,
-                label: `PDBe EMD Density Server: ${src.params.id}`
-            };
-            break;
-        case 'pdbe-xray-ds':
-            downloadParams = {
-                url: `https://www.ebi.ac.uk/pdbe/densities/x-ray/${src.params.id.toLowerCase()}/cell?detail=${src.params.detail}`,
-                isBinary: true,
-                label: `PDBe X-ray Density Server: ${src.params.id}`
-            };
-            break;
-        case 'rcsb':
-            downloadParams = {
+                label: `PDBe X-ray map: ${src.params.provider.id}`
+            } : {
                 url: src.params.type === '2fofc'
-                    ? `https://edmaps.rcsb.org/maps/${src.params.id.toLowerCase()}_2fofc.dsn6`
-                    : `https://edmaps.rcsb.org/maps/${src.params.id.toLowerCase()}_fofc.dsn6`,
+                    ? `https://edmaps.rcsb.org/maps/${src.params.provider.id.toLowerCase()}_2fofc.dsn6`
+                    : `https://edmaps.rcsb.org/maps/${src.params.provider.id.toLowerCase()}_fofc.dsn6`,
                 isBinary: true,
-                label: `RCSB X-ray map: ${src.params.id}`
+                label: `RCSB X-ray map: ${src.params.provider.id}`
+            };
+            break;
+        case 'pdb-emd-ds':
+            downloadParams = src.params.provider.server === 'pdbe' ? {
+                url: `https://www.ebi.ac.uk/pdbe/densities/emd/${src.params.provider.id.toLowerCase()}/cell?detail=${src.params.detail}`,
+                isBinary: true,
+                label: `PDBe EMD Density Server: ${src.params.provider.id}`
+            } : {
+                url: `https://maps.rcsb.org/em/${src.params.provider.id.toLowerCase()}/cell?detail=${src.params.detail}`,
+                isBinary: true,
+                label: `RCSB PDB EMD Density Server: ${src.params.provider.id}`
+            };
+            break;
+        case 'pdb-xray-ds':
+            downloadParams = src.params.provider.server === 'pdbe' ? {
+                url: `https://www.ebi.ac.uk/pdbe/densities/x-ray/${src.params.provider.id.toLowerCase()}/cell?detail=${src.params.detail}`,
+                isBinary: true,
+                label: `PDBe X-ray Density Server: ${src.params.provider.id}`
+            } : {
+                url: `https://maps.rcsb.org/x-ray/${src.params.provider.id.toLowerCase()}/cell?detail=${src.params.detail}`,
+                isBinary: true,
+                label: `RCSB PDB X-ray Density Server: ${src.params.provider.id}`
             };
             break;
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
     const data = await ctx.builders.data.download(downloadParams);
-    //const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
 
     switch (src.name) {
         case 'url':
             downloadParams = src.params;
             provider = src.params.format === 'auto' ? ctx.dataFormat.registry.auto(getFileInfo(downloadParams.url), data.cell?.obj!) : ctx.dataFormat.registry.get(src.params.format)
             break;
-        case 'pdbe':
-            provider = ctx.dataFormat.registry.get('ccp4')
+        case 'pdb-xray':
+            provider = src.params.provider.server === 'pdbe'
+                ? ctx.dataFormat.registry.get('ccp4')
+                : ctx.dataFormat.registry.get('dsn6')
             break;
-        case 'pdbe-emd-ds':
-        case 'pdbe-xray-ds':
+        case 'pdb-emd-ds':
+        case 'pdb-xray-ds':
             provider = ctx.dataFormat.registry.get('dscif')
-            break;
-        case 'rcsb':
-            provider = ctx.dataFormat.registry.get('dsn6')
             break;
         default: throw new Error(`${(src as any).name} not supported.`);
     }
