@@ -85,7 +85,7 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
                 <IconButton icon='home' toggleState={tab === 'root'} onClick={() => this.set('root')} title='Home' />
                 {/* <IconButton icon='flow-tree' toggleState={tab === 'data'} onClick={() => this.set('data')} title='State Tree' /> */}
                 <DataIcon set={this.set} />
-                {this.plugin.spec.components?.remoteState !== 'none' && <IconButton icon='floppy' toggleState={tab === 'states'} onClick={() => this.set('states')} title='Plugin State' />}
+                <IconButton icon='floppy' toggleState={tab === 'states'} onClick={() => this.set('states')} title='Plugin State' />
                 <IconButton icon='help-circle' toggleState={tab === 'help'} onClick={() => this.set('help')} title='Help' />
                 <div className='msp-left-panel-controls-buttons-bottom'>
                     <IconButton icon='settings' toggleState={tab === 'settings'} onClick={() => this.set('settings')} title='Settings' />

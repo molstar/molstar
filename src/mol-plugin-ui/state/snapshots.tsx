@@ -47,8 +47,8 @@ export class StateSnapshots extends PluginUIComponent<{ }> {
 }
 
 class LocalStateSnapshots extends PluginUIComponent<
-    { },
-    { params: PD.Values<typeof LocalStateSnapshots.Params> }> {
+{ },
+{ params: PD.Values<typeof LocalStateSnapshots.Params> }> {
 
     state = { params: PD.getDefaultValues(LocalStateSnapshots.Params) };
 
@@ -162,8 +162,8 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
 
 export type RemoteEntry = { url: string, removeUrl: string, timestamp: number, id: string, name: string, description: string, isSticky?: boolean }
 export class RemoteStateSnapshots extends PluginUIComponent<
-    { listOnly?: boolean },
-    { params: PD.Values<RemoteStateSnapshots['Params']>, entries: OrderedMap<string, RemoteEntry>, isBusy: boolean }> {
+{ listOnly?: boolean },
+{ params: PD.Values<RemoteStateSnapshots['Params']>, entries: OrderedMap<string, RemoteEntry>, isBusy: boolean }> {
 
     Params = {
         name: PD.Text(),
@@ -299,8 +299,8 @@ export class RemoteStateSnapshots extends PluginUIComponent<
 }
 
 class RemoteStateSnapshotList extends PurePluginUIComponent<
-    { entries: OrderedMap<string, RemoteEntry>, serverUrl: string, isBusy: boolean, fetch: (e: React.MouseEvent<HTMLElement>) => void, remove?: (e: React.MouseEvent<HTMLElement>) => void },
-    { }> {
+{ entries: OrderedMap<string, RemoteEntry>, serverUrl: string, isBusy: boolean, fetch: (e: React.MouseEvent<HTMLElement>) => void, remove?: (e: React.MouseEvent<HTMLElement>) => void },
+{ }> {
 
     open = async (e: React.MouseEvent<HTMLElement>) => {
         const id = e.currentTarget.getAttribute('data-id');
