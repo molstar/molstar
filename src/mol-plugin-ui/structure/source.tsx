@@ -248,20 +248,16 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
 
     get unitcell() {
         const { selection } = this.plugin.managers.structure.hierarchy;
-        if (selection.structures.length !== 1) return null;
+        if (selection.structures.length === 0) return null;
 
-        const model = selection.structures[0].model
-        if (!model) return null
-
-        const unitcell = model.unitcell
-        if (!unitcell) {
-            // this.plugin.builders.structure.createUnitcell(model.cell, undefined, { isHidden: true })
-            return null
-        } else if (!unitcell.cell.obj) {
-            return null;
+        const refs = [];
+        for (const s of selection.structures) {
+            const model = s.model;
+            if (model?.unitcell && model.unitcell?.cell.obj) refs.push(model.unitcell);
         }
+        if (refs.length === 0) return null;
 
-        return <UnitcellEntry key={unitcell.cell.obj.id} cell={unitcell.cell} />
+        return <UnitcellEntry refs={refs} />;
     }
 
     renderControls() {

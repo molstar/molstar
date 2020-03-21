@@ -28,13 +28,7 @@ function calculateBoundingSphere(renderables: Renderable<RenderableValues & Base
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
 
-        if (Sphere3D.hasExtrema(boundingSphere)) {
-            for (const e of boundingSphere.extrema) {
-                boundaryHelper.includeStep(e)
-            }
-        } else {
-            boundaryHelper.includeSphereStep(boundingSphere.center, boundingSphere.radius);
-        }
+        boundaryHelper.includeSphere(boundingSphere);
     }
     boundaryHelper.finishedIncludeStep();
     for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -43,13 +37,7 @@ function calculateBoundingSphere(renderables: Renderable<RenderableValues & Base
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
 
-        if (Sphere3D.hasExtrema(boundingSphere)) {
-            for (const e of boundingSphere.extrema) {
-                boundaryHelper.radiusStep(e)
-            }
-        } else {
-            boundaryHelper.radiusSphereStep(boundingSphere.center, boundingSphere.radius);
-        }
+        boundaryHelper.radiusSphere(boundingSphere);
     }
 
     return boundaryHelper.getSphere(boundingSphere);

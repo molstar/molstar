@@ -346,12 +346,12 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
             const { box, sphere } = boundaries[i];
             Vec3.min(min, min, box.min);
             Vec3.max(max, max, box.max);
-            boundaryHelper.includeSphereStep(sphere.center, sphere.radius)
+            boundaryHelper.includePositionRadius(sphere.center, sphere.radius)
         }
         boundaryHelper.finishedIncludeStep();
         for (let i = 0, il = boundaries.length; i < il; ++i) {
             const { sphere } = boundaries[i];
-            boundaryHelper.radiusSphereStep(sphere.center, sphere.radius);
+            boundaryHelper.radiusPositionRadius(sphere.center, sphere.radius);
         }
 
         return { box: { min, max }, sphere: boundaryHelper.getSphere() };

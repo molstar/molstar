@@ -28,13 +28,13 @@ export function getBoundary(data: PositionData): Boundary {
     for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
         const i = OrderedSet.getAt(indices, t);
         Vec3.set(p, x[i], y[i], z[i]);
-        boundaryHelper.includeSphereStep(p, (radius && radius[i]) || 0);
+        boundaryHelper.includePositionRadius(p, (radius && radius[i]) || 0);
     }
     boundaryHelper.finishedIncludeStep();
     for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
         const i = OrderedSet.getAt(indices, t);
         Vec3.set(p, x[i], y[i], z[i]);
-        boundaryHelper.radiusSphereStep(p, (radius && radius[i]) || 0);
+        boundaryHelper.radiusPositionRadius(p, (radius && radius[i]) || 0);
     }
 
     const sphere = boundaryHelper.getSphere()

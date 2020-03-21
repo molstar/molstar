@@ -71,9 +71,9 @@ namespace Loci {
     export function getBundleBoundingSphere(bundle: Bundle<any>): Sphere3D {
         const spheres = bundle.loci.map(l => getBoundingSphere(l)).filter(s => !!s) as Sphere3D[]
         boundaryHelper.reset();
-        for (const s of spheres) boundaryHelper.includeSphereStep(s.center, s.radius);
+        for (const s of spheres) boundaryHelper.includePositionRadius(s.center, s.radius);
         boundaryHelper.finishedIncludeStep();
-        for (const s of spheres) boundaryHelper.radiusSphereStep(s.center, s.radius);
+        for (const s of spheres) boundaryHelper.radiusPositionRadius(s.center, s.radius);
         return boundaryHelper.getSphere();
     }
 

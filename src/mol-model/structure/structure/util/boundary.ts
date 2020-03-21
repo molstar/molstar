@@ -34,14 +34,14 @@ export function computeStructureBoundary(s: Structure): Boundary {
             Vec3.min(min, min, invariantBoundary.box.min);
             Vec3.max(max, max, invariantBoundary.box.max);
 
-            boundaryHelper.includeSphereStep(invariantBoundary.sphere.center, invariantBoundary.sphere.radius);
+            boundaryHelper.includePositionRadius(invariantBoundary.sphere.center, invariantBoundary.sphere.radius);
         } else {
             Box3D.transform(tmpBox, invariantBoundary.box, o.matrix);
             Vec3.min(min, min, tmpBox.min);
             Vec3.max(max, max, tmpBox.max);
 
             Sphere3D.transform(tmpSphere, invariantBoundary.sphere, o.matrix);
-            boundaryHelper.includeSphereStep(tmpSphere.center, tmpSphere.radius);
+            boundaryHelper.includePositionRadius(tmpSphere.center, tmpSphere.radius);
         }
     }
 
@@ -53,10 +53,10 @@ export function computeStructureBoundary(s: Structure): Boundary {
         const o = u.conformation.operator;
 
         if (o.isIdentity) {
-            boundaryHelper.radiusSphereStep(invariantBoundary.sphere.center, invariantBoundary.sphere.radius);
+            boundaryHelper.radiusPositionRadius(invariantBoundary.sphere.center, invariantBoundary.sphere.radius);
         } else {
             Sphere3D.transform(tmpSphere, invariantBoundary.sphere, o.matrix);
-            boundaryHelper.radiusSphereStep(tmpSphere.center, tmpSphere.radius);
+            boundaryHelper.radiusPositionRadius(tmpSphere.center, tmpSphere.radius);
         }
     }
 

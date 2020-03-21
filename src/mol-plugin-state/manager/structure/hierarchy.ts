@@ -10,6 +10,7 @@ import { PluginComponent } from '../../component';
 import { SetUtils } from '../../../mol-util/set';
 import { StateTransform } from '../../../mol-state';
 import { applyTrajectoryHierarchyPreset } from '../../builder/structure/hierarchy-preset';
+import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 
 interface StructureHierarchyManagerState {
     hierarchy: StructureHierarchy,
@@ -123,6 +124,15 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         const deletes = this.plugin.state.data.build();
         for (const r of refs) deletes.delete(r.cell.transform.ref);
         return this.plugin.updateDataState(deletes, { canUndo: canUndo ? 'Remove' : false });
+    }
+
+    toggleVisibility(refs: ReadonlyArray<HierarchyRef>) {
+        if (refs.length === 0) return;
+
+        const isHidden = !refs[0].cell.state.isHidden;
+        for (const c of refs) {
+            setSubtreeVisibility(this.dataState, c.cell.transform.ref, isHidden);
+        }
     }
 
     createModels(trajectories: ReadonlyArray<TrajectoryRef>, kind: 'single' | 'all' = 'single') {

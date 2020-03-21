@@ -78,7 +78,7 @@ class State {
 
         this.events.historyUpdated.next({ state: this });
     }
-    
+
     private clearHistory() {
         if (this.history.length === 0) return;
         this.history = [];
@@ -243,13 +243,13 @@ class State {
                 return ret.cell;
             } finally {
                 this.updateQueue.handled(params);
-                if (this.inTransaction) return;
-                
-                this.events.isUpdating.next(false);
-                if (!options?.canUndo) {
-                    if (!this.undoingHistory) this.clearHistory();
-                } else if (!reverted) {
-                    this.addHistory(snapshot!, typeof options.canUndo === 'string' ? options.canUndo : void 0);
+                if (!this.inTransaction) {
+                    this.events.isUpdating.next(false);
+                    if (!options?.canUndo) {
+                        if (!this.undoingHistory) this.clearHistory();
+                    } else if (!reverted) {
+                        this.addHistory(snapshot!, typeof options.canUndo === 'string' ? options.canUndo : void 0);
+                    }
                 }
             }
         }, () => {
@@ -358,8 +358,8 @@ namespace State {
     }
 
     export namespace ObjectEvent {
-        export function isCell(e: ObjectEvent, cell: StateObjectCell) {
-            return e.ref === cell.transform.ref && e.state === cell.parent
+        export function isCell(e: ObjectEvent, cell?: StateObjectCell) {
+            return !!cell && e.ref === cell.transform.ref && e.state === cell.parent;
         }
     }
 

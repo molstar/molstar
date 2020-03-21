@@ -45,13 +45,23 @@ export class BoundaryHelper {
         }
     }
 
-    includeStep(p: Vec3) {
+    includeSphere(s: Sphere3D) {
+        if (Sphere3D.hasExtrema(s)) {
+            for (const e of s.extrema) {
+                this.includePosition(e);
+            }
+        } else {
+            this.includePositionRadius(s.center, s.radius);
+        }
+    }
+
+    includePosition(p: Vec3) {
         for (let i = 0, il = this.dir.length; i < il; ++i) {
             this.computeExtrema(i, p)
         }
     }
 
-    includeSphereStep(center: Vec3, radius: number) {
+    includePositionRadius(center: Vec3, radius: number) {
         for (let i = 0, il = this.dir.length; i < il; ++i) {
             this.computeSphereExtrema(i, center, radius)
         }
@@ -64,11 +74,21 @@ export class BoundaryHelper {
         this.centroidHelper.finishedIncludeStep();
     }
 
-    radiusStep(p: Vec3) {
+    radiusSphere(s: Sphere3D) {
+        if (Sphere3D.hasExtrema(s)) {
+            for (const e of s.extrema) {
+                this.radiusPosition(e)
+            }
+        } else {
+            this.radiusPositionRadius(s.center, s.radius);
+        }
+    }
+
+    radiusPosition(p: Vec3) {
         this.centroidHelper.radiusStep(p);
     }
 
-    radiusSphereStep(center: Vec3, radius: number) {
+    radiusPositionRadius(center: Vec3, radius: number) {
         this.centroidHelper.radiusSphereStep(center, radius);
     }
 

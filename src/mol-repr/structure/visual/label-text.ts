@@ -120,12 +120,12 @@ function createResidueText(ctx: VisualContext, structure: Structure, theme: Them
             boundaryHelper.reset();
             for (let eI = start; eI < j; eI++) {
                 pos(elements[eI], tmpVec);
-                boundaryHelper.includeStep(tmpVec);
+                boundaryHelper.includePosition(tmpVec);
             }
             boundaryHelper.finishedIncludeStep();
             for (let eI = start; eI < j; eI++) {
                 pos(elements[eI], tmpVec);
-                boundaryHelper.radiusStep(tmpVec);
+                boundaryHelper.radiusPosition(tmpVec);
             }
 
             l.element = elements[start];

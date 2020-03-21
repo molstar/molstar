@@ -29,7 +29,7 @@ export interface TextureVolume<T extends Uint8Array | Float32Array> {
     readonly depth: number
 }
 
-export function createTextureImage<T extends Uint8Array | Float32Array>(n: number, itemSize: number, arrayCtor: new (length: number) => T, array?: T): TextureImage<T> {
+export function createTextureImage<T extends Uint8Array | Float32Array>(n: number, itemSize: number, arrayCtor: new (length: number)=> T, array?: T): TextureImage<T> {
     const { length, width, height } = calculateTextureInfo(n, itemSize)
     array = array && array.length >= length ? array : new arrayCtor(length)
     return { array, width, height }
@@ -95,12 +95,12 @@ export function calculateInvariantBoundingSphere(position: Float32Array, positio
     boundaryHelper.reset()
     for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
         Vec3.fromArray(v, position, i)
-        boundaryHelper.includeStep(v)
+        boundaryHelper.includePosition(v)
     }
     boundaryHelper.finishedIncludeStep()
     for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
         Vec3.fromArray(v, position, i)
-        boundaryHelper.radiusStep(v)
+        boundaryHelper.radiusPosition(v)
     }
 
     const sphere = boundaryHelper.getSphere()
@@ -126,25 +126,25 @@ export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere
         for (let i = 0, _i = transformCount; i < _i; ++i) {
             for (const e of extrema) {
                 Vec3.transformMat4Offset(v, e, transform, 0, 0, i * 16)
-                boundaryHelper.includeStep(v)
+                boundaryHelper.includePosition(v)
             }
         }
         boundaryHelper.finishedIncludeStep()
         for (let i = 0, _i = transformCount; i < _i; ++i) {
             for (const e of extrema) {
                 Vec3.transformMat4Offset(v, e, transform, 0, 0, i * 16)
-                boundaryHelper.radiusStep(v)
+                boundaryHelper.radiusPosition(v)
             }
         }
     } else {
         for (let i = 0, _i = transformCount; i < _i; ++i) {
             Vec3.transformMat4Offset(v, center, transform, 0, 0, i * 16)
-            boundaryHelper.includeSphereStep(v, radius)
+            boundaryHelper.includePositionRadius(v, radius)
         }
         boundaryHelper.finishedIncludeStep()
         for (let i = 0, _i = transformCount; i < _i; ++i) {
             Vec3.transformMat4Offset(v, center, transform, 0, 0, i * 16)
-            boundaryHelper.radiusSphereStep(v, radius)
+            boundaryHelper.radiusPositionRadius(v, radius)
         }
     }
 

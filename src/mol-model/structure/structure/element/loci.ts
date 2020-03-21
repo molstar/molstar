@@ -485,7 +485,7 @@ export namespace Loci {
             for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
                 const eI = elements[OrderedSet.getAt(indices, i)];
                 pos(eI, tempPosBoundary);
-                boundaryHelper.includeSphereStep(tempPosBoundary, r(eI));
+                boundaryHelper.includePositionRadius(tempPosBoundary, r(eI));
             }
         }
         boundaryHelper.finishedIncludeStep();
@@ -496,7 +496,7 @@ export namespace Loci {
             for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
                 const eI = elements[OrderedSet.getAt(indices, i)];
                 pos(eI, tempPosBoundary);
-                boundaryHelper.radiusSphereStep(tempPosBoundary, r(eI));
+                boundaryHelper.radiusPositionRadius(tempPosBoundary, r(eI));
             }
         }
 
