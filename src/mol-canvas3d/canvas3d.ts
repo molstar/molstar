@@ -300,7 +300,7 @@ namespace Canvas3D {
 
         function resolveCameraReset() {
             if (!cameraResetRequested) return;
-            const { center, radius } = scene.boundingSphere;
+            const { center, radius } = scene.boundingSphereVisible;
             if (radius > 0) {
                 const duration = nextCameraResetDuration === undefined ? p.cameraResetDurationMs : nextCameraResetDuration
                 const focus = camera.getFocus(center, radius);
@@ -313,34 +313,42 @@ namespace Canvas3D {
             cameraResetRequested = false;
         }
 
-        const oldBoundary = Sphere3D.zero();
+        const oldBoundingSphereVisible = Sphere3D();
+        const cameraSphere = Sphere3D();
+
         function shouldResetCamera() {
             if (camera.state.radiusMax === 0) return true;
 
-            // check if any renderable center has moved outside of the old boundary
+            let cameraSphereOverlapsNone = true
+            Sphere3D.set(cameraSphere, camera.state.target, camera.state.radius)
+
+            // check if any renderable has moved outside of the old bounding sphere
+            // and if no renderable is overlapping with the camera sphere
             for (const r of scene.renderables) {
                 if (!r.state.visible) continue;
-                const { center, radius } = r.values.boundingSphere.ref.value;
-                if (!radius) continue;
-                // TODO: include renderable radius into this?
-                if (Vec3.distance(oldBoundary.center, center) > 1.1 * oldBoundary.radius) {
-                    return true;
-                }
+
+                const b = r.values.boundingSphere.ref.value;
+                if (!b.radius) continue;
+
+                if (!Sphere3D.includes(oldBoundingSphereVisible, b)) return true;
+                if (Sphere3D.overlaps(cameraSphere, b)) cameraSphereOverlapsNone = false;
             }
-            return false;
+
+            return cameraSphereOverlapsNone;
         }
 
         const sceneCommitTimeoutMs = 250;
         function commitScene(isSynchronous: boolean) {
             if (!scene.needsCommit) return true;
 
-            // snapshot the current bounding sphere
-            Sphere3D.copy(oldBoundary, scene.boundingSphere);
+            // snapshot the current bounding sphere of visible objects
+            Sphere3D.copy(oldBoundingSphereVisible, scene.boundingSphereVisible);
 
             if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) return false;
 
             if (debugHelper.isEnabled) debugHelper.update();
             if (reprCount.value === 0 || shouldResetCamera()) cameraResetRequested = true;
+            if (oldBoundingSphereVisible.radius === 0) nextCameraResetDuration = 0;
 
             camera.setState({ radiusMax: scene.boundingSphere.radius })
             reprCount.next(reprRenderObjects.size);
@@ -421,8 +429,12 @@ namespace Canvas3D {
                 reprCount.next(reprRenderObjects.size)
             },
             syncVisibility: () => {
+                if (camera.state.radiusMax === 0) {
+                    cameraResetRequested = true
+                    nextCameraResetDuration = 0
+                }
+
                 if (scene.syncVisibility()) {
-                    camera.setState({ radiusMax: scene.boundingSphere.radius })
                     if (debugHelper.isEnabled) debugHelper.update()
                 }
             },

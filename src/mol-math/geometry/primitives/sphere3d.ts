@@ -28,12 +28,18 @@ namespace Sphere3D {
     }
 
     export function create(center: Vec3, radius: number): Sphere3D { return { center, radius }; }
-    export function zero(): Sphere3D { return { center: Vec3.zero(), radius: 0 }; }
+    export function zero(): Sphere3D { return { center: Vec3(), radius: 0 }; }
 
     export function clone(a: Sphere3D): Sphere3D {
         const out = create(Vec3.clone(a.center), a.radius)
         if (hasExtrema(a)) out.extrema = a.extrema
         return out;
+    }
+
+    export function set(out: Sphere3D, center: Vec3, radius: number) {
+        Vec3.copy(out.center, center)
+        out.radius = radius
+        return out
     }
 
     export function copy(out: Sphere3D, a: Sphere3D) {
@@ -128,6 +134,12 @@ namespace Sphere3D {
     export function expandBySphere(out: Sphere3D, sphere: Sphere3D, by: Sphere3D) {
         Vec3.copy(out.center, sphere.center)
         out.radius = Math.max(sphere.radius, Vec3.distance(sphere.center, by.center) + by.radius)
+        if (hasExtrema(sphere) && hasExtrema(by)) {
+            setExtrema(out, [
+                ...sphere.extrema.map(e => Vec3.clone(e)),
+                ...by.extrema.map(e => Vec3.clone(e))
+            ])
+        }
         return out
     }
 
@@ -162,6 +174,30 @@ namespace Sphere3D {
         const br = b.radius;
         return (Math.abs(ar - br) <= EPSILON * Math.max(1.0, Math.abs(ar), Math.abs(br)) &&
                 Vec3.equals(a.center, b.center));
+    }
+
+    /**
+     * Check if `a` includes `b`, use `extrema` of `b` when available
+     */
+    export function includes(a: Sphere3D, b: Sphere3D) {
+        if (hasExtrema(b)) {
+            for (const e of b.extrema) {
+                if (Vec3.distance(a.center, e) > a.radius) return false
+            }
+            return true
+        } else {
+            return Vec3.distance(a.center, b.center) + b.radius <= a.radius
+        }
+    }
+
+    /** Check if `a` and `b` are overlapping */
+    export function overlaps(a: Sphere3D, b: Sphere3D) {
+        return Vec3.distance(a.center, b.center) <= a.radius + b.radius
+    }
+
+    /** Get the signed distance of `a` and `b` */
+    export function distance(a: Sphere3D, b: Sphere3D) {
+        return Vec3.distance(a.center, b.center) - a.radius + b.radius
     }
 }
 

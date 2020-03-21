@@ -85,13 +85,18 @@ class Camera {
         return Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state);
     }
 
-    getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3): Partial<Camera.Snapshot> {
+    getTargetDistance(radius: number) {
         const r = Math.max(radius, 0.01)
         const { fov } = this.state
         const { width, height } = this.viewport
         const aspect = width / height
         const aspectFactor = (height < width ? 1 : aspect)
-        const targetDistance = Math.abs((r / aspectFactor) / Math.sin(fov / 2))
+        return Math.abs((r / aspectFactor) / Math.sin(fov / 2))
+    }
+
+    getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3): Partial<Camera.Snapshot> {
+        const r = Math.max(radius, 0.01)
+        const targetDistance = this.getTargetDistance(r)
 
         Vec3.sub(this.deltaDirection, this.target, this.position)
         if (dir) Vec3.matchDirection(this.deltaDirection, dir, this.deltaDirection)
@@ -125,7 +130,6 @@ class Camera {
         this.viewport = viewport;
         Camera.copySnapshot(this.state, state);
     }
-
 }
 
 namespace Camera {

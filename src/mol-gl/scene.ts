@@ -19,11 +19,11 @@ import { hash1 } from '../mol-data/util';
 
 const boundaryHelper = new BoundaryHelper('98')
 
-function calculateBoundingSphere(renderables: Renderable<RenderableValues & BaseValues>[], boundingSphere: Sphere3D): Sphere3D {
+function calculateBoundingSphere(renderables: Renderable<RenderableValues & BaseValues>[], boundingSphere: Sphere3D, onlyVisible: boolean): Sphere3D {
     boundaryHelper.reset();
 
     for (let i = 0, il = renderables.length; i < il; ++i) {
-        if (!renderables[i].state.visible) continue;
+        if (onlyVisible && !renderables[i].state.visible) continue;
 
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
@@ -38,7 +38,7 @@ function calculateBoundingSphere(renderables: Renderable<RenderableValues & Base
     }
     boundaryHelper.finishedIncludeStep();
     for (let i = 0, il = renderables.length; i < il; ++i) {
-        if (!renderables[i].state.visible) continue;
+        if (onlyVisible && !renderables[i].state.visible) continue;
 
         const boundingSphere = renderables[i].values.boundingSphere.ref.value
         if (!boundingSphere.radius) continue;
@@ -74,6 +74,7 @@ interface Scene extends Object3D {
     readonly count: number
     readonly renderables: ReadonlyArray<Renderable<RenderableValues & BaseValues>>
     readonly boundingSphere: Sphere3D
+    readonly boundingSphereVisible: Sphere3D
 
     /** Returns `true` if some visibility has changed, `false` otherwise. */
     syncVisibility: () => boolean
@@ -92,8 +93,10 @@ namespace Scene {
         const renderableMap = new Map<GraphicsRenderObject, Renderable<RenderableValues & BaseValues>>()
         const renderables: Renderable<RenderableValues & BaseValues>[] = []
         const boundingSphere = Sphere3D()
+        const boundingSphereVisible = Sphere3D()
 
         let boundingSphereDirty = true
+        let boundingSphereVisibleDirty = true
 
         const object3d = Object3D.create()
 
@@ -103,6 +106,7 @@ namespace Scene {
                 renderables.push(renderable)
                 renderableMap.set(o, renderable)
                 boundingSphereDirty = true
+                boundingSphereVisibleDirty = true
                 return renderable;
             } else {
                 console.warn(`RenderObject with id '${o.id}' already present`)
@@ -117,6 +121,7 @@ namespace Scene {
                 arraySetRemove(renderables, renderable);
                 renderableMap.delete(o)
                 boundingSphereDirty = true
+                boundingSphereVisibleDirty = true
             }
         }
 
@@ -161,7 +166,7 @@ namespace Scene {
         function syncVisibility() {
             const newVisibleHash = computeVisibleHash()
             if (newVisibleHash !== visibleHash) {
-                boundingSphereDirty = true
+                boundingSphereVisibleDirty = true
                 return true
             } else {
                 return false
@@ -190,6 +195,7 @@ namespace Scene {
                 }
                 if (!keepBoundingSphere) {
                     boundingSphereDirty = true
+                    boundingSphereVisibleDirty = true
                 } else {
                     syncVisibility()
                 }
@@ -208,6 +214,7 @@ namespace Scene {
                 renderables.length = 0
                 renderableMap.clear()
                 boundingSphereDirty = true
+                boundingSphereVisibleDirty = true
             },
             forEach: (callbackFn: (value: Renderable<any>, key: GraphicsRenderObject) => void) => {
                 renderableMap.forEach(callbackFn)
@@ -218,11 +225,18 @@ namespace Scene {
             renderables,
             get boundingSphere() {
                 if (boundingSphereDirty) {
-                    calculateBoundingSphere(renderables, boundingSphere)
+                    calculateBoundingSphere(renderables, boundingSphere, false)
                     boundingSphereDirty = false
-                    visibleHash = computeVisibleHash()
                 }
                 return boundingSphere
+            },
+            get boundingSphereVisible() {
+                if (boundingSphereVisibleDirty) {
+                    calculateBoundingSphere(renderables, boundingSphereVisible, true)
+                    boundingSphereVisibleDirty = false
+                    visibleHash = computeVisibleHash()
+                }
+                return boundingSphereVisible
             }
         }
     }
