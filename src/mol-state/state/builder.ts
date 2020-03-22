@@ -111,11 +111,26 @@ namespace StateBuilder {
 
         readonly ref: StateTransform.Ref;
 
+        private getApplyRoot(ref?: StateTransform.Ref): StateTransform.Ref {
+            const children = this.state.tree.children.get(ref || this.ref);
+            if (children.size !== 1) return ref || this.ref;
+            const child = this.state.tree.transforms.get(children.first());
+            if (child.transformer.definition.isDecorator) return this.getApplyRoot(child.ref);
+            return ref || this.ref;
+        }
+
         /**
          * Apply the transformed to the parent node
          * If no params are specified (params <- undefined), default params are lazily resolved.
          */
-        apply<T extends StateTransformer<A, any, any>>(tr: T, params?: Partial<StateTransformer.Params<T>>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {const t = tr.apply(this.ref, params, options);
+        apply<T extends StateTransformer<A, any, any>>(tr: T, params?: Partial<StateTransformer.Params<T>>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {
+            if (tr.definition.isDecorator) {
+                return this.insert(tr, params, options);
+            }
+
+            const applyRoot = this.getApplyRoot();
+            const t = tr.apply(applyRoot, params, options);
+
             this.state.tree.add(t);
             this.editInfo.count++;
             this.editInfo.lastUpdate = t.ref;
@@ -141,9 +156,16 @@ namespace StateBuilder {
         /**
          * Apply the transformed to the parent node
          * If no params are specified (params <- undefined), default params are lazily resolved.
+         * The transformer cannot be a decorator to be able to use this.
          */
         applyOrUpdateTagged<T extends StateTransformer<A, any, any>>(tags: string | string[], tr: T, params?: Partial<StateTransformer.Params<T>>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {
-            const children = this.state.tree.children.get(this.ref).values();
+            if (tr.definition.isDecorator) {
+                throw new Error(`Can't use applyOrUpdateTagged on decorator transformers.`);
+            }
+
+            const applyRoot = this.getApplyRoot();
+
+            const children = this.state.tree.children.get(applyRoot).values();
             while (true) {
                 const child = children.next();
                 if (child.done) break;
@@ -155,7 +177,7 @@ namespace StateBuilder {
                 }
             }
 
-            const t = tr.apply(this.ref, params, { ...options, tags: tagsUnion(tags, options && options.tags) });
+            const t = tr.apply(applyRoot, params, { ...options, tags: tagsUnion(tags, options && options.tags) });
             this.state.tree.add(t);
             this.editInfo.count++;
             this.editInfo.lastUpdate = t.ref;

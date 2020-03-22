@@ -685,6 +685,7 @@ type CustomModelProperties = typeof CustomModelProperties
 const CustomModelProperties = PluginStateTransform.BuiltIn({
     name: 'custom-model-properties',
     display: { name: 'Custom Model Properties' },
+    isDecorator: true,
     from: SO.Molecule.Model,
     to: SO.Molecule.Model,
     params: (a, ctx: PluginContext) => {
@@ -734,6 +735,7 @@ type CustomStructureProperties = typeof CustomStructureProperties
 const CustomStructureProperties = PluginStateTransform.BuiltIn({
     name: 'custom-structure-properties',
     display: { name: 'Custom Structure Properties' },
+    isDecorator: true,
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: (a, ctx: PluginContext) => {

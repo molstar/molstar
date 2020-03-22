@@ -106,7 +106,16 @@ namespace Transformer {
         readonly from: StateObject.Ctor[],
         readonly to: StateObject.Ctor[],
         readonly display: { readonly name: string, readonly description?: string },
-        params?(a: A | undefined, globalCtx: unknown): { [K in keyof P]: PD.Any }
+        params?(a: A | undefined, globalCtx: unknown): { [K in keyof P]: PD.Any },
+
+        /**
+         * Decorators are special Transformers mapping the object to the same type.
+         *
+         * Special rules apply:
+         * - applying decorator always "inserts" it instead
+         * - applying to a decorated Transform is applied to the decorator instead (transitive)
+         */
+        readonly isDecorator?: boolean
     }
 
     const registry = new Map<Id, Transformer<any, any>>();
@@ -175,7 +184,8 @@ namespace Transformer {
             to: B | B[],
             /** The source StateObject can be undefined: used for generating docs. */
             params?: PD.For<P> | ((a: StateObject.From<A> | undefined, globalCtx: any) => PD.For<P>),
-            display?: string | { name: string, description?: string }
+            display?: string | { name: string, description?: string },
+            isDecorator?: boolean
         }
 
         export interface Root {
@@ -201,6 +211,7 @@ namespace Transformer {
                     : !!info.params
                         ? info.params as any
                         : void 0,
+                isDecorator: info.isDecorator,
                 ...def
             });
         }

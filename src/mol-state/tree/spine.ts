@@ -56,7 +56,7 @@ namespace StateTreeSpine {
         const cells = state.cells;
         let current = cells.get(currentRef)!;
         const ret: StateObjectCell[] = [current];
-        while (current?.transform.isDecorator) {
+        while (current?.transform.transformer.definition.isDecorator) {
             current = cells.get(current.transform.parent)!;
             ret.push(current);
         }

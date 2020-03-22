@@ -113,7 +113,7 @@ export class StructureBuilder {
     async insertModelProperties(model: StateObjectRef<SO.Molecule.Model>, params?: StateTransformer.Params<StateTransforms['Model']['CustomModelProperties']>) {
         const state = this.dataState;
         const props = state.build().to(model)
-            .insert(StateTransforms.Model.CustomModelProperties, params, { tags: StructureBuilderTags.ModelProperties, isDecorator: true });
+            .apply(StateTransforms.Model.CustomModelProperties, params, { tags: StructureBuilderTags.ModelProperties });
         await this.plugin.updateDataState(props, { revertOnError: true });
         return props.selector;
     }
@@ -152,7 +152,7 @@ export class StructureBuilder {
     async insertStructureProperties(structure: StateObjectRef<SO.Molecule.Structure>, params?: StateTransformer.Params<StateTransforms['Model']['CustomStructureProperties']>) {
         const state = this.dataState;
         const props = state.build().to(structure)
-            .insert(StateTransforms.Model.CustomStructureProperties, params, { tags: StructureBuilderTags.StructureProperties, isDecorator: true });
+            .apply(StateTransforms.Model.CustomStructureProperties, params, { tags: StructureBuilderTags.StructureProperties });
         await this.plugin.updateDataState(props, { revertOnError: true });
         return props.selector;
     }

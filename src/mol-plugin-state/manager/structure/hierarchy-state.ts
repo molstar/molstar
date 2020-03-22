@@ -56,13 +56,11 @@ export interface ModelRef extends RefBase<'model', SO.Molecule.Model> {
     properties?: ModelPropertiesRef,
     structures: StructureRef[],
     genericRepresentations?: GenericRepresentationRef[],
-    unitcell?: ModelUnitcellRef,
-    /** to support decorators */
-    childRoot: StateObjectCell<SO.Molecule.Model>
+    unitcell?: ModelUnitcellRef
 }
 
 function ModelRef(cell: StateObjectCell<SO.Molecule.Model>, trajectory?: TrajectoryRef): ModelRef {
-    return { kind: 'model', cell, version: cell.transform.version, trajectory, structures: [], childRoot: cell };
+    return { kind: 'model', cell, version: cell.transform.version, trajectory, structures: [] };
 }
 
 export interface ModelPropertiesRef extends RefBase<'model-properties', SO.Molecule.Model, StateTransforms['Model']['CustomModelProperties']> {
@@ -90,13 +88,11 @@ export interface StructureRef extends RefBase<'structure', SO.Molecule.Structure
         surroundings?: StructureComponentRef,
     },
     genericRepresentations?: GenericRepresentationRef[],
-    volumeStreaming?: StructureVolumeStreamingRef,
-    /** to support decorators */
-    childRoot: StateObjectCell<SO.Molecule.Structure>
+    volumeStreaming?: StructureVolumeStreamingRef
 }
 
 function StructureRef(cell: StateObjectCell<SO.Molecule.Structure>, model?: ModelRef): StructureRef {
-    return { kind: 'structure', cell, version: cell.transform.version, model, components: [], childRoot: cell };
+    return { kind: 'structure', cell, version: cell.transform.version, model, components: [] };
 }
 
 export interface StructurePropertiesRef extends RefBase<'structure-properties', SO.Molecule.Structure, StateTransforms['Model']['CustomStructureProperties']> {
@@ -282,14 +278,6 @@ function _doPreOrder(ctx: VisitorCtx, root: StateTransform) {
             }
             onLeave = l;
             break;
-        }
-    }
-
-    if (cell.transform.isDecorator) {
-        if (state.currentModel && SO.Molecule.Model.is(cell.obj)) {
-            state.currentModel.childRoot = cell;
-        } else if (state.currentStructure && !state.currentComponent && SO.Molecule.Structure.is(cell.obj)) {
-            state.currentStructure.childRoot = cell;
         }
     }
 

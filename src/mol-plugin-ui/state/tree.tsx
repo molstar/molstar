@@ -93,7 +93,7 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
     hasDecorator(children: _StateTree.ChildSet) {
         if (children.size !== 1) return false;
         const ref = children.values().next().value;
-        return !!this.props.cell.parent.tree.transforms.get(ref).isDecorator;
+        return !!this.props.cell.parent.tree.transforms.get(ref).transformer.definition.isDecorator;
     }
 
     render() {

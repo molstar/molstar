@@ -276,9 +276,7 @@ export namespace VolumeStreaming {
             const parent = this.plugin.helpers.substructureParent.get(loci.structure);
             if (!parent) return Box3D.empty();
             const root = this.getStructureRoot();
-            if (!root || !root.obj) return Box3D.empty();
-            const rootParent = this.plugin.helpers.substructureParent.get(root.obj.data);
-            if (parent !== rootParent) return Box3D.empty();
+            if (!root || root.obj?.data !== parent.obj?.data) return Box3D.empty();
 
             const extendedLoci = StructureElement.Loci.extendToWholeResidues(loci)
             const box = StructureElement.Loci.getBoundary(extendedLoci).box

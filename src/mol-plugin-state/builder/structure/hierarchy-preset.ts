@@ -52,12 +52,10 @@ const firstModel = TrajectoryHierarchyPresetProvider({
         const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto');
 
         return {
-            model: modelProperties,
-            modelRoot: model,
+            model,
             modelProperties,
             unitcell,
-            structure: structureProperties,
-            structureRoot: structure,
+            structure,
             structureProperties,
             representation
         };

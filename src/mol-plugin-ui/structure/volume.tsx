@@ -46,7 +46,7 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
 
     renderEnable() {
         const pivot = this.pivot;
-        return <ApplyActionControl state={pivot.cell.parent} action={InitVolumeStreaming} initiallyCollapsed={true} nodeRef={pivot.childRoot.transform.ref} simpleApply={{ header: 'Enable', icon: 'check' }} />;
+        return <ApplyActionControl state={pivot.cell.parent} action={InitVolumeStreaming} initiallyCollapsed={true} nodeRef={pivot.cell.transform.ref} simpleApply={{ header: 'Enable', icon: 'check' }} />;
     }
 
     renderParams() {
