@@ -10,6 +10,7 @@ import Unit from './unit'
 import { VdwRadius } from '../model/properties/atomic';
 import { SecondaryStructureType } from '../model/types';
 import { SecondaryStructureProvider } from '../../../mol-model-props/computed/secondary-structure';
+import { SymmetryOperator } from '../../../mol-math/geometry';
 
 function p<T>(p: StructureElement.Property<T>) { return p; }
 
@@ -167,6 +168,7 @@ const entity = {
     pdbx_ec: p(l => l.unit.model.entities.data.pdbx_ec.value(eK(l)))
 }
 
+const _emptyList: any[] = [];
 const unit = {
     id: p(l => l.unit.id),
     chainGroupId: p(l => l.unit.chainGroupId),
@@ -180,8 +182,8 @@ const unit = {
     spgrOp: p(l => l.unit.conformation.operator.spgrOp),
 
     model_num: p(l => l.unit.model.modelNum),
-    pdbx_struct_assembly_id: p(l => l.unit.conformation.operator.assembly.id),
-    pdbx_struct_oper_list_ids: p(l => l.unit.conformation.operator.assembly.operList),
+    pdbx_struct_assembly_id: p(l => l.unit.conformation.operator.assembly?.id || SymmetryOperator.DefaultName),
+    pdbx_struct_oper_list_ids: p(l => l.unit.conformation.operator.assembly?.operList || _emptyList),
     struct_ncs_oper_id: p(l => l.unit.conformation.operator.ncsId),
 }
 

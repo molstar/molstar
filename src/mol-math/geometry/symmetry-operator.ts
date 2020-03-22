@@ -11,7 +11,7 @@ import { defaults } from '../../mol-util';
 interface SymmetryOperator {
     readonly name: string,
 
-    readonly assembly: {
+    readonly assembly?: {
         /** pointer to `pdbx_struct_assembly.id` or empty string */
         readonly id: string
         /** pointers to `pdbx_struct_oper_list.id` or empty list */
@@ -34,11 +34,11 @@ interface SymmetryOperator {
 
 namespace SymmetryOperator {
     export const DefaultName = '1_555'
-    export const Default: SymmetryOperator = create(DefaultName, Mat4.identity(), { id: '', operList: [] });
+    export const Default: SymmetryOperator = create(DefaultName, Mat4.identity());
 
     export const RotationTranslationEpsilon = 0.005;
 
-    export function create(name: string, matrix: Mat4, assembly: SymmetryOperator['assembly'], ncsId?: string, hkl?: Vec3, spgrOp?: number): SymmetryOperator {
+    export function create(name: string, matrix: Mat4, assembly?: SymmetryOperator['assembly'], ncsId?: string, hkl?: Vec3, spgrOp?: number): SymmetryOperator {
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3.zero();
         spgrOp = defaults(spgrOp, -1)
         ncsId = ncsId || ''

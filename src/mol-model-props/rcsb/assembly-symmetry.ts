@@ -42,7 +42,7 @@ export namespace AssemblySymmetry {
         // check if assembly is 'biological'
         const mmcif = structure.models[0].sourceData.data.db
         if (!mmcif.pdbx_struct_assembly.details.isDefined) return false
-        const id = structure.units[0].conformation.operator.assembly.id
+        const id = structure.units[0].conformation.operator.assembly?.id || ''
         if (id === '' || id === 'deposited') return true
         const indices = Column.indicesOf(mmcif.pdbx_struct_assembly.id, e => e === id)
         if (indices.length !== 1) return false
@@ -55,7 +55,7 @@ export namespace AssemblySymmetry {
 
         const client = new GraphQLClient(props.serverUrl, ctx.fetch)
         const variables: AssemblySymmetryQueryVariables = {
-            assembly_id: structure.units[0].conformation.operator.assembly.id || 'deposited',
+            assembly_id: structure.units[0].conformation.operator.assembly?.id || 'deposited',
             entry_id: structure.units[0].model.entryId
         }
         const result = await client.request<AssemblySymmetryQuery>(ctx.runtime, query, variables)

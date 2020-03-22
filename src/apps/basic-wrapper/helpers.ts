@@ -58,12 +58,14 @@ export namespace StateHelper {
 
     export function identityTransform(b: StateBuilder.To<PSO.Molecule.Structure>, m: Mat4) {
         return b.apply(StateTransforms.Model.TransformStructureConformation,
-            { axis: Vec3.create(1, 0, 0), angle: 0, translation: Vec3.zero() },
+            { transform: { name: 'components', params: { axis: Vec3.create(1, 0, 0), angle: 0, translation: Vec3.zero() } } },
             { tags: 'transform' });
     }
 
     export function transform(b: StateBuilder.To<PSO.Molecule.Structure>, matrix: Mat4) {
-        return b.apply(StateTransforms.Model.TransformStructureConformationByMatrix, { matrix }, { tags: 'transform' });
+        return b.apply(StateTransforms.Model.TransformStructureConformation, { 
+            transform: { name: 'matrix', params: matrix }
+        }, { tags: 'transform' });
     }
 
     export function assemble(b: StateBuilder.To<PSO.Molecule.Model>, id?: string) {

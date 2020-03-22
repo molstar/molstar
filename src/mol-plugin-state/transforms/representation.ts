@@ -118,7 +118,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             oldParams.type.name === newParams.type.name && newParams.type.params.quality !== 'custom'
         );
     },
-    apply({ a, params }, plugin: PluginContext) {
+    apply({ a, params, cache }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
             const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
             const provider = plugin.representation.structure.registry.get(params.type.name)
@@ -127,12 +127,19 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, provider.getParams)
             await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, params)
             repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, params))
+
+            // TODO: build this into representation?
+            if (!a.data.coordinateSystem.isIdentity) {
+                (cache as any)['transform'] = a.data.coordinateSystem;
+                repr.setState({ transform: a.data.coordinateSystem.matrix });
+            }
+
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             return new SO.Molecule.Structure.Representation3D({ repr, source: a } , { label: provider.label });
         });
     },
-    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+    update({ a, b, oldParams, newParams, cache }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
             const oldProvider = plugin.representation.structure.registry.get(oldParams.type.name);
             const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
@@ -145,6 +152,13 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams.type.params }
             await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, newParams)
             b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, newParams));
+
+            // TODO: build this into representation?
+            if ((cache as any)['transform'] !== a.data.coordinateSystem) {
+                (cache as any)['transform'] = a.data.coordinateSystem;
+                b.data.repr.setState({ transform: a.data.coordinateSystem.matrix });
+            }
+
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.data.source = a
             return StateTransformer.UpdateResult.Updated;

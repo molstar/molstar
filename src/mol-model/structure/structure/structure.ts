@@ -205,7 +205,13 @@ class Structure {
     }
 
     get coordinateSystem() {
-        return this._props.coordinateSystem;
+        // TODO: do not use SymmetryOperator for this?
+        // TODO: figure out a good way to compose this
+        return this.parent?.coordinateSystem || this._props.coordinateSystem;
+    }
+
+    set coordinateSystem(op: SymmetryOperator) {
+        this._props.coordinateSystem = op;
     }
 
     get label() {

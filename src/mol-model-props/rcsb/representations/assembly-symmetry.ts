@@ -87,7 +87,7 @@ export type AssemblySymmetryProps = PD.Values<AssemblySymmetryParams>
 //
 
 function getAssemblyName(s: Structure) {
-    const { id } = s.units[0].conformation.operator.assembly
+    const id = s.units[0].conformation.operator.assembly?.id || ''
     return isInteger(id) ? `Assembly ${id}` : id
 }
 

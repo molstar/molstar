@@ -356,15 +356,6 @@ export const EnableStructureCustomProps = StateAction.build({
     }
 })(({ ref, params }, ctx: PluginContext) => ctx.builders.structure.insertStructureProperties(ref, params));
 
-export const TransformStructureConformation = StateAction.build({
-    display: { name: 'Transform Conformation' },
-    from: PluginStateObject.Molecule.Structure,
-    params: StateTransforms.Model.TransformStructureConformation.definition.params,
-})(({ ref, params, state }) => {
-    const root = state.build().to(ref).insert(StateTransforms.Model.TransformStructureConformation, params as any);
-    return state.updateTree(root);
-});
-
 export const AddTrajectory = StateAction.build({
     display: { name: 'Add Trajectory', description: 'Add trajectory from existing model/topology and coordinates.' },
     from: PluginStateObject.Root,

@@ -69,11 +69,12 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
         const palette = getPalette(clusters.length, props)
         legend = palette.legend
 
+        const _emptyList: any[] = [];
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location)) {
                 const { assembly } = location.unit.conformation.operator
                 const asymId = getAsymId(location.unit)(location)
-                const cluster = clusterByMember.get(clusterMemberKey(asymId, assembly.operList))
+                const cluster = clusterByMember.get(clusterMemberKey(asymId, assembly?.operList || _emptyList))
                 return cluster !== undefined ? palette.color(cluster) : DefaultColor
             }
             return DefaultColor
