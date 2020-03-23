@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginComponent } from '../component';
+import { StatefulPluginComponent } from '../component';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginStateAnimation } from './model';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -15,7 +15,7 @@ export { PluginAnimationManager }
 // TODO: handle unregistered animations on state restore
 // TODO: better API
 
-class PluginAnimationManager extends PluginComponent<PluginAnimationManager.State> {
+class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationManager.State> {
     private map = new Map<string, PluginStateAnimation>();
     private animations: PluginStateAnimation[] = [];
     private _current: PluginAnimationManager.Current;

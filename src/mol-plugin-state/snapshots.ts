@@ -7,12 +7,12 @@
 import { List } from 'immutable';
 import { UUID } from '../mol-util';
 import { PluginState } from '../mol-plugin/state';
-import { PluginComponent } from './component';
+import { StatefulPluginComponent } from './component';
 import { PluginContext } from '../mol-plugin/context';
 
 export { PluginStateSnapshotManager }
 
-class PluginStateSnapshotManager extends PluginComponent<{
+class PluginStateSnapshotManager extends StatefulPluginComponent<{
     current?: UUID | undefined,
     entries: List<PluginStateSnapshotManager.Entry>,
     isPlaying: boolean,

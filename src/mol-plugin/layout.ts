@@ -6,7 +6,7 @@
  */
 
 import { ParamDefinition as PD } from '../mol-util/param-definition';
-import { PluginComponent } from '../mol-plugin-state/component';
+import { StatefulPluginComponent } from '../mol-plugin-state/component';
 import { PluginContext } from './context';
 import { PluginCommands } from './commands';
 
@@ -59,7 +59,7 @@ interface RootState {
     zIndex: string | null
 }
 
-export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
+export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps> {
     readonly events = {
         updated: this.ev()
     }

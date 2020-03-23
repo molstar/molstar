@@ -16,7 +16,7 @@ import { UUID } from '../../../mol-util';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StructureRepresentationPresetProvider } from '../../builder/structure/representation-preset';
-import { PluginComponent } from '../../component';
+import { StatefulPluginComponent } from '../../component';
 import { StructureComponentParams } from '../../helpers/structure-component';
 import { clearStructureOverpaint, setStructureOverpaint } from '../../helpers/structure-overpaint';
 import { StructureSelectionQueries, StructureSelectionQuery, StructureSelectionQueryOptions } from '../../helpers/structure-selection-query';
@@ -32,13 +32,13 @@ interface StructureComponentManagerState {
     options: StructureComponentManager.Options
 }
 
-class StructureComponentManager extends PluginComponent<StructureComponentManagerState> {
+class StructureComponentManager extends StatefulPluginComponent<StructureComponentManagerState> {
     readonly events = {
         optionsUpdated: this.ev<undefined>()
     }
 
     get currentStructures() {
-        return this.plugin.managers.structure.hierarchy.state.selection.structures;
+        return this.plugin.managers.structure.hierarchy.selection.structures;
     }
 
     get pivotStructure(): StructureRef | undefined {

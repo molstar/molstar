@@ -17,7 +17,7 @@ import { StateObject, StateObjectRef } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { structureElementStatsLabel } from '../../../mol-theme/label';
 import { arrayRemoveAtInPlace } from '../../../mol-util/array';
-import { PluginComponent } from '../../component';
+import { StatefulPluginComponent } from '../../component';
 import { StructureSelectionQuery } from '../../helpers/structure-selection-query';
 import { PluginStateObject } from '../../objects';
 import { UUID } from '../../../mol-util';
@@ -33,7 +33,7 @@ const HISTORY_CAPACITY = 8;
 
 export type StructureSelectionModifier = 'add' | 'remove' | 'intersect' | 'set'
 
-export class StructureSelectionManager extends PluginComponent<StructureSelectionManagerState> {
+export class StructureSelectionManager extends StatefulPluginComponent<StructureSelectionManagerState> {
     readonly events = {
         changed: this.ev<undefined>(),
         additionsHistoryUpdated: this.ev<undefined>()
@@ -384,7 +384,7 @@ export class StructureSelectionManager extends PluginComponent<StructureSelectio
     }
 
     private get applicableStructures() {
-        return this.plugin.managers.structure.hierarchy.state.selection.structures
+        return this.plugin.managers.structure.hierarchy.selection.structures
             .filter(s => !!s.cell.obj)
             .map(s => s.cell.obj!.data);
     }

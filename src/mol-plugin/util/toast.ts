@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginComponent } from '../../mol-plugin-state/component';
+import { StatefulPluginComponent } from '../../mol-plugin-state/component';
 import { OrderedMap } from 'immutable';
 import { PluginContext } from '../context';
 import { PluginCommands } from '../commands';
@@ -27,7 +27,7 @@ export interface PluginToast {
     timeoutMs?: number
 }
 
-export class PluginToastManager extends PluginComponent<{
+export class PluginToastManager extends StatefulPluginComponent<{
     entries: OrderedMap<number, PluginToastManager.Entry>
 }> {
     readonly events = {

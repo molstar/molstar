@@ -7,11 +7,11 @@
 import { Camera } from '../mol-canvas3d/camera';
 import { OrderedMap } from 'immutable';
 import { UUID } from '../mol-util';
-import { PluginComponent } from './component';
+import { StatefulPluginComponent } from './component';
 
 export { CameraSnapshotManager }
 
-class CameraSnapshotManager extends PluginComponent<{ entries: OrderedMap<string, CameraSnapshotManager.Entry> }> {
+class CameraSnapshotManager extends StatefulPluginComponent<{ entries: OrderedMap<string, CameraSnapshotManager.Entry> }> {
     readonly events = {
         changed: this.ev()
     };

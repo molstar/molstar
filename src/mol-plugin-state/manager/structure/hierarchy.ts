@@ -12,22 +12,24 @@ import { StateTransform } from '../../../mol-state';
 import { applyTrajectoryHierarchyPreset } from '../../builder/structure/hierarchy-preset';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 
-interface StructureHierarchyManagerState {
-    hierarchy: StructureHierarchy,
-    selection: {
-        trajectories: ReadonlyArray<TrajectoryRef>,
-        models: ReadonlyArray<ModelRef>,
-        structures: ReadonlyArray<StructureRef>
-    }
-}
+export class StructureHierarchyManager extends PluginComponent {
+    private state = {
+        syncedTree: this.dataState.tree,
 
-export class StructureHierarchyManager extends PluginComponent<StructureHierarchyManagerState> {
+        hierarchy: StructureHierarchy(),
+        selection: {
+            trajectories: [] as ReadonlyArray<TrajectoryRef>,
+            models: [] as ReadonlyArray<ModelRef>,
+            structures: []  as ReadonlyArray<StructureRef>
+        }
+    }
+
     readonly behaviors = {
         selection: this.ev.behavior({
-            hierarchy: this.state.hierarchy,
-            trajectories: this.state.selection.trajectories,
-            models: this.state.selection.models,
-            structures: this.state.selection.structures
+            hierarchy: this.current,
+            trajectories: this.selection.trajectories,
+            models: this.selection.models,
+            structures: this.selection.structures
         })
     }
 
@@ -39,7 +41,7 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
 
     get currentComponentGroups() {
         if (this._currentComponentGroups) return this._currentComponentGroups;
-        this._currentComponentGroups = StructureHierarchyManager.getComponentGroups(this.state.selection.structures);
+        this._currentComponentGroups = StructureHierarchyManager.getComponentGroups(this.selection.structures);
         return this._currentComponentGroups;
     }
 
@@ -47,17 +49,19 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
     get seletionSet() {
         if (this._currentSelectionSet) return this._currentSelectionSet;
         this._currentSelectionSet = new Set();
-        for (const r of this.state.selection.trajectories) this._currentSelectionSet.add(r.cell.transform.ref);
-        for (const r of this.state.selection.models) this._currentSelectionSet.add(r.cell.transform.ref);
-        for (const r of this.state.selection.structures) this._currentSelectionSet.add(r.cell.transform.ref);
+        for (const r of this.selection.trajectories) this._currentSelectionSet.add(r.cell.transform.ref);
+        for (const r of this.selection.models) this._currentSelectionSet.add(r.cell.transform.ref);
+        for (const r of this.selection.structures) this._currentSelectionSet.add(r.cell.transform.ref);
         return this._currentSelectionSet;
     }
 
     get current() {
+        this.sync();
         return this.state.hierarchy;
     }
 
     get selection() {
+        this.sync();
         return this.state.selection;
     }
 
@@ -75,7 +79,11 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
     }
 
     private sync() {
-        const update = buildStructureHierarchy(this.plugin.state.data, this.state.hierarchy);
+        if (this.state.syncedTree === this.dataState.tree) return;
+
+        this.state.syncedTree = this.dataState.tree;
+
+        const update = buildStructureHierarchy(this.plugin.state.data, this.current);
         if (!update.changed) {
             return;
         }
@@ -88,12 +96,16 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         this._currentComponentGroups = void 0;
         this._currentSelectionSet = void 0;
 
-        this.updateState({ hierarchy, selection: { trajectories, models, structures } });
+        this.state.hierarchy = hierarchy;
+        this.state.selection.trajectories = trajectories;
+        this.state.selection.models = models;
+        this.state.selection.structures = structures;
+
         this.behaviors.selection.next({ hierarchy, trajectories, models, structures });
     }
 
     updateCurrent(refs: HierarchyRef[], action: 'add' | 'remove') {
-        const hierarchy = this.state.hierarchy;
+        const hierarchy = this.current;
         const set = action === 'add'
             ? SetUtils.union(this.seletionSet, new Set(refs.map(r => r.cell.transform.ref)))
             : SetUtils.difference(this.seletionSet, new Set(refs.map(r => r.cell.transform.ref)));
@@ -115,7 +127,10 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
         this._currentComponentGroups = void 0;
         this._currentSelectionSet = void 0;
 
-        this.updateState({ selection: { trajectories, models, structures } });
+        this.state.selection.trajectories = trajectories;
+        this.state.selection.models = models;
+        this.state.selection.structures = structures;
+
         this.behaviors.selection.next({ hierarchy, trajectories, models, structures });
     }
 
@@ -163,17 +178,14 @@ export class StructureHierarchyManager extends PluginComponent<StructureHierarch
     }
 
     constructor(private plugin: PluginContext) {
-        super({
-            hierarchy: StructureHierarchy(),
-            selection: { trajectories: [], models: [], structures: [] }
-        });
+        super();
 
-        plugin.state.data.events.changed.subscribe(e => {
+        this.subscribe(plugin.state.data.events.changed, e => {
             if (e.inTransaction || plugin.behaviors.state.isAnimating.value) return;
             this.sync();
         });
 
-        plugin.behaviors.state.isAnimating.subscribe(isAnimating => {
+        this.subscribe(plugin.behaviors.state.isAnimating, isAnimating => {
             if (!isAnimating && !plugin.behaviors.state.isUpdating.value) this.sync();
         });
     }
@@ -206,7 +218,7 @@ export namespace StructureHierarchyManager {
     }
 
     export function getSelectedStructuresDescription(plugin: PluginContext) {
-        const { structures } = plugin.managers.structure.hierarchy.state.selection;
+        const { structures } = plugin.managers.structure.hierarchy.selection;
         if (structures.length === 0) return '';
 
         if (structures.length === 1) {

@@ -115,7 +115,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
     }
 
     get label() {
-        const { structures, models, trajectories } = this.plugin.managers.structure.hierarchy.state.selection;
+        const { structures, models, trajectories } = this.plugin.managers.structure.hierarchy.selection;
 
         if (structures.length === 1) {
             const s = structures[0];

@@ -103,7 +103,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
         if (!item) return;
         const mng = this.plugin.managers.structure;
 
-        const structures = mng.hierarchy.state.selection.structures;
+        const structures = mng.hierarchy.selection.structures;
         if (item.value === null) mng.component.clear(structures);
         else mng.component.applyPreset(structures, item.value as any);
     }

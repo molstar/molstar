@@ -13,7 +13,7 @@ import { ButtonsType, ModifiersKeys } from '../../mol-util/input/input-observer'
 import { MarkerAction } from '../../mol-util/marker-action';
 import { shallowEqual } from '../../mol-util/object';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { PluginComponent } from '../component';
+import { StatefulPluginComponent } from '../component';
 import { StructureSelectionManager } from './structure/selection';
 
 export { InteractivityManager };
@@ -31,7 +31,7 @@ const DefaultInteractivityFocusOptions = {
 
 export type InteractivityFocusLociOptions = typeof DefaultInteractivityFocusOptions
 
-class InteractivityManager extends PluginComponent<InteractivityManagerState> {
+class InteractivityManager extends StatefulPluginComponent<InteractivityManagerState> {
     readonly lociSelects: InteractivityManager.LociSelectManager;
     readonly lociHighlights: InteractivityManager.LociHighlightManager;
 
