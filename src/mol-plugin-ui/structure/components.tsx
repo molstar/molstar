@@ -10,7 +10,7 @@ import { StructureComponentRef, StructureRepresentationRef, StructureRef } from 
 import { PluginCommands } from '../../mol-plugin/commands';
 import { State } from '../../mol-state';
 import { ParamDefinition } from '../../mol-util/param-definition';
-import { CollapsableControls, CollapsableState, PurePluginUIComponent, PluginUIComponent } from '../base';
+import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { ExpandGroup, IconButton, ToggleButton } from '../controls/common';
 import { Icon } from '../controls/icons';
@@ -202,26 +202,7 @@ class ComponentListControls extends PurePluginUIComponent {
 
         return <div style={{ marginTop: '6px' }}>
             {componentGroups.map(g => <StructureComponentGroup key={g[0].cell.transform.ref} group={g} />)}
-            <CurrentFocus />
         </div>;
-    }
-}
-
-class CurrentFocus extends PluginUIComponent {
-    findInteraction() {
-        const xs = this.plugin.managers.structure.hierarchy.selection.structures;
-        for (const s of xs) {
-            if (s.currentFocus?.focus || s.currentFocus?.surroundings) return s.currentFocus;
-        }
-    }
-
-    render() {
-        const interaction = this.findInteraction();
-        if (!interaction) return null;
-        return <ExpandGroup header='Current Focus' noOffset>
-            {interaction.focus && <StructureComponentGroup group={[interaction.focus]} />}
-            {interaction.surroundings && <StructureComponentGroup group={[interaction.surroundings]} />}
-        </ExpandGroup>;
     }
 }
 

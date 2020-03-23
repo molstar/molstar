@@ -56,7 +56,6 @@ const StructureRepresentationInteractionParams = (plugin: PluginContext) => {
 type StructureRepresentationInteractionProps = PD.ValuesFor<ReturnType<typeof StructureRepresentationInteractionParams>>
 
 export enum StructureRepresentationInteractionTags {
-    Group = 'structure-interaction-group',
     ResidueSel = 'structure-interaction-residue-sel',
     ResidueRepr = 'structure-interaction-residue-repr',
     SurrSel = 'structure-interaction-surr-sel',
@@ -64,7 +63,7 @@ export enum StructureRepresentationInteractionTags {
     SurrNciRepr = 'structure-interaction-surr-nci-repr'
 }
 
-const TagSet: Set<StructureRepresentationInteractionTags> = new Set([StructureRepresentationInteractionTags.Group, StructureRepresentationInteractionTags.ResidueSel, StructureRepresentationInteractionTags.ResidueRepr, StructureRepresentationInteractionTags.SurrSel, StructureRepresentationInteractionTags.SurrRepr, StructureRepresentationInteractionTags.SurrNciRepr])
+const TagSet: Set<StructureRepresentationInteractionTags> = new Set([StructureRepresentationInteractionTags.ResidueSel, StructureRepresentationInteractionTags.ResidueRepr, StructureRepresentationInteractionTags.SurrSel, StructureRepresentationInteractionTags.SurrRepr, StructureRepresentationInteractionTags.SurrNciRepr])
 
 export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<StructureRepresentationInteractionProps> {
     private ensureShape(cell: StateObjectCell<PluginStateObject.Molecule.Structure>) {
@@ -72,25 +71,19 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         const builder = state.build();
         const refs = StateSelection.findUniqueTagsInSubtree(tree, cell.transform.ref, TagSet);
 
-        if (!refs['structure-interaction-group']) {
-            refs['structure-interaction-group'] = builder
-                .to(cell)
-                .group(StateTransforms.Misc.CreateGroup, { label: 'Current Focus' }, { tags: StructureRepresentationInteractionTags.Group }).ref;
-        }
-
         // Selections
         if (!refs[StructureRepresentationInteractionTags.ResidueSel]) {
             refs[StructureRepresentationInteractionTags.ResidueSel] = builder
-                .to(refs['structure-interaction-group'])
+                .to(cell) // refs['structure-interaction-group'])
                 .apply(StateTransforms.Model.StructureSelectionFromBundle,
-                    { bundle: { } as any, label: 'Focus' }, { tags: StructureRepresentationInteractionTags.ResidueSel }).ref;
+                    { bundle: {} as any, label: 'Focus' }, { tags: StructureRepresentationInteractionTags.ResidueSel }).ref;
         }
 
         if (!refs[StructureRepresentationInteractionTags.SurrSel]) {
             refs[StructureRepresentationInteractionTags.SurrSel] = builder
-                .to(refs['structure-interaction-group'])
+                .to(cell) // .to(refs['structure-interaction-group'])
                 .apply(StateTransforms.Model.StructureSelectionFromExpression,
-                    { expression: { } as any, label: 'Surroundings' }, { tags: StructureRepresentationInteractionTags.SurrSel }).ref;
+                    { expression: {} as any, label: 'Focus Surroundings' }, { tags: StructureRepresentationInteractionTags.SurrSel }).ref;
         }
 
         // Representations
@@ -103,7 +96,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         if (!refs[StructureRepresentationInteractionTags.SurrRepr]) {
             refs[StructureRepresentationInteractionTags.SurrRepr] = builder
                 .to(refs['structure-interaction-surr-sel']!)
-                .apply(StateTransforms.Representation.StructureRepresentation3D,this.params.surroundingsParams, { tags: StructureRepresentationInteractionTags.SurrRepr }).ref;
+                .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.surroundingsParams, { tags: StructureRepresentationInteractionTags.SurrRepr }).ref;
         }
 
         if (!refs[StructureRepresentationInteractionTags.SurrNciRepr]) {
@@ -117,19 +110,20 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
     private clear(root: StateTransform.Ref) {
         const state = this.plugin.state.data;
-        const groups = state.select(StateSelection.Generators.byRef(root).subtree().withTag(StructureRepresentationInteractionTags.Group));
-        if (groups.length === 0) return;
+
+        const foci = state.select(StateSelection.Generators.byRef(root).subtree().withTag(StructureRepresentationInteractionTags.ResidueSel));
+        const surrs = state.select(StateSelection.Generators.byRef(root).subtree().withTag(StructureRepresentationInteractionTags.SurrSel));
+        if (foci.length === 0 && surrs.length === 0) return;
 
         const update = state.build();
         const bundle = StructureElement.Bundle.Empty;
-        const expression = MS.struct.generator.empty();
-        for (const g of groups) {
-            // TODO: update props of the group node to ghost
+        for (const f of foci) {
+            update.to(f).update(StateTransforms.Model.StructureSelectionFromBundle, old => ({ ...old, bundle }));
+        }
 
-            const res = StateSelection.findTagInSubtree(state.tree, g.transform.ref, StructureRepresentationInteractionTags.ResidueSel);
-            const surr = StateSelection.findTagInSubtree(state.tree, g.transform.ref, StructureRepresentationInteractionTags.SurrSel);
-            if (res) update.to(res).update(StateTransforms.Model.StructureSelectionFromBundle, old => ({ ...old, bundle }));
-            if (surr) update.to(surr).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression }));
+        const expression = MS.struct.generator.empty();
+        for (const s of surrs) {
+            update.to(s).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression }));
         }
 
         PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });

@@ -7,7 +7,6 @@
 import { PluginStateObject as SO } from '../../objects';
 import { StateObject, StateTransform, State, StateObjectCell, StateTree, StateTransformer } from '../../../mol-state';
 import { StructureBuilderTags } from '../../builder/structure';
-import { StructureRepresentationInteractionTags } from '../../../mol-plugin/behavior/dynamic/selection/structure-representation-interaction';
 import { StateTransforms } from '../../transforms';
 import { VolumeStreaming } from '../../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
 import { CreateVolumeStreamingBehavior } from '../../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
@@ -82,10 +81,6 @@ export interface StructureRef extends RefBase<'structure', SO.Molecule.Structure
     model?: ModelRef,
     properties?: StructurePropertiesRef,
     components: StructureComponentRef[],
-    currentFocus?: {
-        focus?: StructureComponentRef,
-        surroundings?: StructureComponentRef,
-    },
     genericRepresentations?: GenericRepresentationRef[],
     volumeStreaming?: StructureVolumeStreamingRef
 }
@@ -192,9 +187,9 @@ type TestCell = (cell: StateObjectCell, state: BuildState) => boolean
 type ApplyRef = (state: BuildState, cell: StateObjectCell) => boolean | void
 type LeaveRef = (state: BuildState) => any
 
-function isTag(t: string): TestCell {
-    return (cell) => StateObject.hasTag(cell.obj!, t);
-}
+// function isTag(t: string): TestCell {
+//     return (cell) => StateObject.hasTag(cell.obj!, t);
+// }
 
 function isType(t: StateObject.Ctor): TestCell {
     return (cell) => t.is(cell.obj);
@@ -279,20 +274,6 @@ const tagMap: [TestCell, ApplyRef, LeaveRef][] = [
         // Nothing useful down the line;
         return false;
     }, noop],
-
-    // Current interaction
-    [isTag(StructureRepresentationInteractionTags.ResidueSel), (state, cell) => {
-        if (!state.currentStructure) return false;
-        if (!state.currentStructure.currentFocus) state.currentStructure.currentFocus = { };
-        state.currentStructure.currentFocus.focus = createOrUpdateRef(state, cell, StructureComponentRef, cell, state.currentStructure);
-        state.currentComponent = state.currentStructure.currentFocus.focus;
-    }, state => state.currentComponent = void 0],
-    [isTag(StructureRepresentationInteractionTags.SurrSel), (state, cell) => {
-        if (!state.currentStructure) return false;
-        if (!state.currentStructure.currentFocus) state.currentStructure.currentFocus = { };
-        state.currentStructure.currentFocus.surroundings = createOrUpdateRef(state, cell, StructureComponentRef, cell, state.currentStructure);
-        state.currentComponent = state.currentStructure.currentFocus.surroundings;
-    }, state => state.currentComponent = void 0],
 
     // Generic Representation
     [cell => !cell.state.isGhost && SO.isRepresentation3D(cell.obj), (state, cell) => {

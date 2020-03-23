@@ -56,8 +56,6 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             for (const c of s.components) {
                 this.updateReprParams(update, c);
             }
-            if (s.currentFocus?.focus) this.updateReprParams(update, s.currentFocus.focus);
-            if (s.currentFocus?.surroundings) this.updateReprParams(update, s.currentFocus.surroundings);
         }
 
         return this.plugin.dataTransaction(async () => {
@@ -335,10 +333,6 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         for (const s of structures) {
             for (const c of s.components) {
                 deletes.delete(c.cell.transform.ref);
-            }
-            if (s.currentFocus) {
-                if (s.currentFocus.focus) deletes.delete(s.currentFocus.focus.cell.transform.ref);
-                if (s.currentFocus.surroundings) deletes.delete(s.currentFocus.surroundings.cell.transform.ref);
             }
         }
         return this.plugin.updateDataState(deletes, { canUndo: 'Clear Selections' });
