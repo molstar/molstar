@@ -116,7 +116,7 @@ namespace CustomElementProperty {
         return function(loci: Loci): string | undefined {
             if (loci.kind === 'element-loci') {
                 const e = loci.elements[0];
-                if (!e) return
+                if (!e || !e.unit.model.customProperties.hasReference(modelProperty.descriptor)) return
                 const data = modelProperty.get(e.unit.model).value
                 const element = e.unit.elements[OrderedSet.start(e.indices)]
                 const value = data?.get(element)

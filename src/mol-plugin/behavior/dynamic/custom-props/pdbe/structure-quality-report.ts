@@ -25,7 +25,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
 
         private labelPDBeValidation = (loci: Loci): string | undefined => {
             if (!this.params.showTooltip) return void 0;
-            
+
             switch (loci.kind) {
                 case 'element-loci':
                     if (loci.elements.length === 0) return void 0;

@@ -97,7 +97,6 @@ class MolStarProteopediaWrapper {
         }
 
         const s = model
-            .apply(StateTransforms.Model.CustomModelProperties, { autoAttach: [EvolutionaryConservation.propertyProvider.descriptor.name], properties: {} }, { ref: StateElements.ModelProps, state: { isGhost: false } })
             .apply(StateTransforms.Model.StructureFromModel, props, { ref: StateElements.Assembly });
 
         s.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' }, { ref: StateElements.Sequence });
