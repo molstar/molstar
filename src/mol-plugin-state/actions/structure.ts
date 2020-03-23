@@ -6,11 +6,10 @@
  */
 
 import { PluginContext } from '../../mol-plugin/context';
-import { StateAction, StateBuilder, StateSelection, StateTransformer } from '../../mol-state';
+import { StateAction, StateSelection, StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { FileInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { TrajectoryFormat } from '../builder/structure';
 import { BuiltInTrajectoryFormat } from '../formats/trajectory';
 import { RootStructureDefinition } from '../helpers/root-structure';
 import { PluginStateObject } from '../objects';
@@ -266,42 +265,6 @@ function getDownloadParams(src: string, url: (id: string) => string, label: (id:
     }
     return ret;
 }
-
-export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: TrajectoryFormat = 'cif') {
-    let parsed: StateBuilder.To<PluginStateObject.Molecule.Trajectory>
-    switch (format) {
-        case 'cif':
-            parsed = b.apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
-                .apply(StateTransforms.Model.TrajectoryFromMmCif)
-            break
-        case 'pdb':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFromPDB);
-            break
-        case 'gro':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO);
-            break
-        case '3dg':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFrom3DG);
-            break
-        default:
-            throw new Error('unsupported format')
-    }
-
-    return parsed.apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
-}
-
-export const Create3DRepresentationPreset = StateAction.build({
-    display: { name: '3D Representation Preset', description: 'Create one of preset 3D representations.' },
-    from: PluginStateObject.Molecule.Structure,
-    isApplicable(a, _, plugin: PluginContext) { return plugin.builders.structure.representation.hasPreset(a); },
-    params(a, plugin: PluginContext) {
-        return {
-            type: plugin.builders.structure.representation.getPresetsWithOptions(a)
-        };
-    }
-})(({ ref, params }, plugin: PluginContext) => {
-    return plugin.builders.structure.representation.applyPreset(ref, params.type.name, params.type.params);
-});
 
 export const UpdateTrajectory = StateAction.build({
     display: { name: 'Update Trajectory' },

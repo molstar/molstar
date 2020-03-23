@@ -25,7 +25,6 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateActions.Structure.AddTrajectory),
         PluginSpec.Action(StateActions.Volume.DownloadDensity),
         PluginSpec.Action(StateActions.DataFormat.OpenFiles),
-        PluginSpec.Action(StateActions.Structure.Create3DRepresentationPreset),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
         PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
 
@@ -75,7 +74,7 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.CustomProps.ValenceModel),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.CrossLinkRestraint),
 
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true, showTooltip: true }),
+        PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBValidationReport),
     ],
@@ -89,7 +88,8 @@ export const DefaultPluginSpec: PluginSpec = {
         AnimateStateInterpolation
     ],
     config: new Map([
-        [PluginConfig.State.DefaultServer, 'https://webchem.ncbr.muni.cz/molstar-state']
+        [PluginConfig.State.DefaultServer, 'https://webchem.ncbr.muni.cz/molstar-state'],
+        [PluginConfig.VolumeStreaming.DefaultServer, 'https://ds.litemol.org']
     ])
 }
 
