@@ -27,10 +27,11 @@ import { RuntimeContext } from '../../mol-task';
 
 const AxesParams = {
     ...Mesh.Params,
-    colorX: PD.Color(ColorNames.red),
-    colorY: PD.Color(ColorNames.green),
-    colorZ: PD.Color(ColorNames.blue),
-    scale: PD.Numeric(1, { min: 0.1, max: 2, step: 0.1 }),
+    ignoreLight: { ...Mesh.Params.ignoreLight, defaultValue: true },
+    colorX: PD.Color(ColorNames.red, { isEssential: true }),
+    colorY: PD.Color(ColorNames.green, { isEssential: true }),
+    colorZ: PD.Color(ColorNames.blue, { isEssential: true }),
+    scale: PD.Numeric(0.5, { min: 0.1, max: 2, step: 0.1 }, { isEssential: true }),
 }
 type AxesParams = typeof AxesParams
 type AxesProps = PD.Values<AxesParams>
