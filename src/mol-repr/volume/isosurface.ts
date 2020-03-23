@@ -53,7 +53,8 @@ export function createIsoValueParam(defaultValue: VolumeIsoValue, stats?: Volume
             )
         },
         (v: VolumeIsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
-        (v: VolumeIsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? VolumeIsoValue.toAbsolute(v, sts) : VolumeIsoValue.toRelative(v, sts)
+        (v: VolumeIsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? VolumeIsoValue.toAbsolute(v, sts) : VolumeIsoValue.toRelative(v, sts),
+        { isEssential: true }
     );
 }
 
