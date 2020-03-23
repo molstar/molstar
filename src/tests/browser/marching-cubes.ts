@@ -1,13 +1,12 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import './index.html'
 import { resizeCanvas } from '../../mol-canvas3d/util';
-import { Canvas3D } from '../../mol-canvas3d/canvas3d';
-import { RendererParams } from '../../mol-gl/renderer';
+import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { ColorNames } from '../../mol-util/color/names';
 import { PositionData, Box3D, Sphere3D } from '../../mol-math/geometry';
 import { OrderedSet } from '../../mol-data/int';
@@ -32,9 +31,9 @@ const canvas = document.createElement('canvas')
 parent.appendChild(canvas)
 resizeCanvas(canvas, parent)
 
-const canvas3d = Canvas3D.fromCanvas(canvas, {
-    renderer: { ...PD.getDefaultValues(RendererParams), backgroundColor: ColorNames.white },
-    cameraMode: 'orthographic'
+const canvas3d = PD.merge(Canvas3DParams, PD.getDefaultValues(Canvas3DParams), {
+    renderer: { backgroundColor: ColorNames.white },
+    camera: { mode: 'orthographic' }
 })
 canvas3d.animate()
 

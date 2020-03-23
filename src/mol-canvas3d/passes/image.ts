@@ -15,6 +15,7 @@ import { PostprocessingPass, PostprocessingParams } from './postprocessing'
 import { MultiSamplePass, MultiSampleParams } from './multi-sample'
 import { Camera } from '../camera';
 import { Viewport } from '../camera/util';
+import { CameraHelper } from '../helper/camera-helper';
 
 export const ImageParams = {
     transparentBackground: PD.Boolean(false),
@@ -39,12 +40,12 @@ export class ImagePass {
     get width() { return this._width }
     get height() { return this._height }
 
-    constructor(webgl: WebGLContext, private renderer: Renderer, scene: Scene, private camera: Camera, debugHelper: BoundingSphereHelper, props: Partial<ImageProps>) {
+    constructor(webgl: WebGLContext, private renderer: Renderer, scene: Scene, private camera: Camera, debugHelper: BoundingSphereHelper, cameraHelper: CameraHelper, props: Partial<ImageProps>) {
         const p = { ...PD.getDefaultValues(ImageParams), ...props }
 
         this._transparentBackground = p.transparentBackground
 
-        this.drawPass = new DrawPass(webgl, renderer, scene, this._camera, debugHelper)
+        this.drawPass = new DrawPass(webgl, renderer, scene, this._camera, debugHelper, cameraHelper)
         this.postprocessing = new PostprocessingPass(webgl, this._camera, this.drawPass, p.postprocessing)
         this.multiSample = new MultiSamplePass(webgl, this._camera, this.drawPass, this.postprocessing, p.multiSample)
 

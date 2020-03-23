@@ -254,6 +254,31 @@ namespace Mat4 {
         return out;
     }
 
+    export function extractRotation(out: Mat4, mat: Mat4) {
+        const scaleX = 1 / Math.sqrt(mat[0] * mat[0] + mat[1] * mat[1] + mat[2] * mat[2]);
+        const scaleY = 1 / Math.sqrt(mat[4] * mat[4] + mat[5] * mat[5] + mat[6] * mat[6]);
+        const scaleZ = 1 / Math.sqrt(mat[8] * mat[8] + mat[9] * mat[9] + mat[10] * mat[10]);
+
+        out[0] = mat[0] * scaleX;
+        out[1] = mat[1] * scaleX;
+        out[2] = mat[2] * scaleX;
+        out[3] = 0;
+        out[4] = mat[4] * scaleY;
+        out[5] = mat[5] * scaleY;
+        out[6] = mat[6] * scaleY;
+        out[7] = 0;
+        out[8] = mat[8] * scaleZ;
+        out[9] = mat[9] * scaleZ;
+        out[10] = mat[10] * scaleZ;
+        out[11] = 0;
+        out[12] = 0;
+        out[13] = 0;
+        out[14] = 0;
+        out[15] = 1;
+
+        return out;
+    }
+
     export function transpose(out: Mat4, a: Mat4) {
         // If we are transposing ourselves we can skip a few steps but have to cache some values
         if (out === a) {

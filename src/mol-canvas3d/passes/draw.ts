@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,6 +11,7 @@ import Scene from '../../mol-gl/scene';
 import { BoundingSphereHelper } from '../helper/bounding-sphere-helper';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { Camera } from '../camera';
+import { CameraHelper } from '../helper/camera-helper';
 
 export class DrawPass {
     colorTarget: RenderTarget
@@ -19,7 +20,7 @@ export class DrawPass {
 
     private depthTarget: RenderTarget | null
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private debugHelper: BoundingSphereHelper) {
+    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private debugHelper: BoundingSphereHelper, private cameraHelper: CameraHelper) {
         const { gl, extensions, resources } = webgl
         const width = gl.drawingBufferWidth
         const height = gl.drawingBufferHeight
@@ -43,7 +44,7 @@ export class DrawPass {
     }
 
     render(toDrawingBuffer: boolean, transparentBackground: boolean) {
-        const { webgl, renderer, scene, camera, debugHelper, colorTarget, depthTarget } = this
+        const { webgl, renderer, colorTarget, depthTarget } = this
         if (toDrawingBuffer) {
             webgl.unbindFramebuffer()
         } else {
@@ -55,21 +56,26 @@ export class DrawPass {
         }
 
         renderer.setViewport(0, 0, colorTarget.getWidth(), colorTarget.getHeight())
-        renderer.render(scene, camera, 'color', true, transparentBackground)
-        if (debugHelper.isEnabled) {
-            debugHelper.syncVisibility()
-            renderer.render(debugHelper.scene, camera, 'color', false, transparentBackground)
-        }
+        this.renderInternal('color', transparentBackground)
 
         // do a depth pass if not rendering to drawing buffer and
         // extensions.depthTexture is unsupported (i.e. depthTarget is set)
         if (!toDrawingBuffer && depthTarget) {
             depthTarget.bind()
-            renderer.render(scene, camera, 'depth', true, transparentBackground)
-            if (debugHelper.isEnabled) {
-                debugHelper.syncVisibility()
-                renderer.render(debugHelper.scene, camera, 'depth', false, transparentBackground)
-            }
+            this.renderInternal('depth', transparentBackground)
+        }
+    }
+
+    private renderInternal(variant: 'color' | 'depth', transparentBackground: boolean) {
+        const { renderer, scene, camera, debugHelper, cameraHelper } = this
+        renderer.render(scene, camera, variant, true, transparentBackground)
+        if (debugHelper.isEnabled) {
+            debugHelper.syncVisibility()
+            renderer.render(debugHelper.scene, camera, variant, false, transparentBackground)
+        }
+        if (cameraHelper.isEnabled) {
+            cameraHelper.update(camera)
+            renderer.render(cameraHelper.scene, cameraHelper.camera, variant, false, transparentBackground)
         }
     }
 }

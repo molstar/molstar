@@ -546,6 +546,8 @@ namespace Vec3 {
         return `[${a[0].toPrecision(precision)} ${a[1].toPrecision(precision)} ${a[2].toPrecision(precision)}]`;
     }
 
+    export const origin: ReadonlyVec3 = Vec3.create(0, 0, 0)
+
     export const unit: ReadonlyVec3 = Vec3.create(1, 1, 1)
     export const negUnit: ReadonlyVec3 = Vec3.create(-1, -1, -1)
 

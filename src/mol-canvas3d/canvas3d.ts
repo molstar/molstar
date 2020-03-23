@@ -34,9 +34,13 @@ import { PickPass } from './passes/pick';
 import { ImagePass, ImageProps } from './passes/image';
 import { Sphere3D } from '../mol-math/geometry';
 import { isDebugMode } from '../mol-util/debug';
+import { CameraHelper, CameraHelperParams } from './helper/camera-helper';
 
 export const Canvas3DParams = {
-    cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']] as const),
+    camera: PD.Group({
+        mode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']] as const, { label: 'Camera' }),
+        helper: PD.Group(CameraHelperParams, { isFlat: true })
+    }, { pivot: 'mode' }),
     cameraFog: PD.MappedStatic('on', {
         on: PD.Group({
             intensity: PD.Numeric(50, { min: 1, max: 100, step: 1 }),
@@ -176,7 +180,7 @@ namespace Canvas3D {
 
         const camera = new Camera({
             position: Vec3.create(0, 0, 100),
-            mode: p.cameraMode,
+            mode: p.camera.mode,
             fog: p.cameraFog.name === 'on' ? p.cameraFog.params.intensity : 0,
             clipFar: p.cameraClipping.far
         })
@@ -185,8 +189,9 @@ namespace Canvas3D {
         const renderer = Renderer.create(webgl, p.renderer)
         const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
+        const cameraHelper = new CameraHelper(webgl, p.camera.helper);
 
-        const drawPass = new DrawPass(webgl, renderer, scene, camera, debugHelper)
+        const drawPass = new DrawPass(webgl, renderer, scene, camera, debugHelper, cameraHelper)
         const pickPass = new PickPass(webgl, renderer, scene, camera, 0.5)
         const postprocessing = new PostprocessingPass(webgl, camera, drawPass, p.postprocessing)
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample)
@@ -468,8 +473,8 @@ namespace Canvas3D {
             reprCount,
             setProps: (props: Partial<Canvas3DProps>) => {
                 const cameraState: Partial<Camera.Snapshot> = Object.create(null)
-                if (props.cameraMode !== undefined && props.cameraMode !== camera.state.mode) {
-                    cameraState.mode = props.cameraMode
+                if (props.camera && props.camera.mode !== undefined && props.camera.mode !== camera.state.mode) {
+                    cameraState.mode = props.camera.mode
                 }
                 if (props.cameraFog !== undefined) {
                     const newFog = props.cameraFog.name === 'on' ? props.cameraFog.params.intensity : 0
@@ -489,6 +494,7 @@ namespace Canvas3D {
                 }
                 if (Object.keys(cameraState).length > 0) camera.setState(cameraState)
 
+                if (props.camera?.helper) cameraHelper.setProps(props.camera.helper)
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground
 
@@ -501,7 +507,7 @@ namespace Canvas3D {
                 requestDraw(true)
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
-                return new ImagePass(webgl, renderer, scene, camera, debugHelper, props)
+                return new ImagePass(webgl, renderer, scene, camera, debugHelper, cameraHelper, props)
             },
 
             get props() {
@@ -510,7 +516,10 @@ namespace Canvas3D {
                     : 0
 
                 return {
-                    cameraMode: camera.state.mode,
+                    camera: {
+                        mode: camera.state.mode,
+                        helper: { ...cameraHelper.props }
+                    },
                     cameraFog: camera.state.fog > 0
                         ? { name: 'on' as const, params: { intensity: camera.state.fog } }
                         : { name: 'off' as const, params: {} },
