@@ -23,7 +23,7 @@ export class SimpleSettingsControl extends PluginUIComponent {
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
 
-        this.plugin.canvas3d!.camera.stateChanged.subscribe(state => {
+        this.subscribe(this.plugin.canvas3d!.camera.stateChanged, state => {
             if (state.radiusMax !== undefined || state.radius !== undefined) {
                 this.forceUpdate()
             }
@@ -44,7 +44,7 @@ const SimpleSettingsParams = {
         spin: Canvas3DParams.trackball.params.spin,
         speed: Canvas3DParams.trackball.params.spinSpeed
     }, { pivot: 'spin' }),
-    camera: Canvas3DParams.cameraMode,
+    camera: Canvas3DParams.camera,
     background: PD.Group({
         color: PD.Color(Color(0xFCFBF9), { label: 'Background', description: 'Custom background color' }),
         transparent: PD.Boolean(false)
@@ -77,7 +77,7 @@ const SimpleSettingsMapping = ParamMapping({
         return {
             layout: props.layout,
             spin: { spin: !!canvas.trackball.spin, speed: canvas.trackball.spinSpeed },
-            camera: canvas.cameraMode,
+            camera: canvas.camera,
             background: {
                 color: renderer.backgroundColor,
                 transparent: canvas.transparentBackground
@@ -95,7 +95,7 @@ const SimpleSettingsMapping = ParamMapping({
         const canvas = props.canvas as Mutable<Canvas3DProps>;
         canvas.trackball.spin = s.spin.spin;
         canvas.trackball.spinSpeed = s.spin.speed;
-        canvas.cameraMode = s.camera;
+        canvas.camera = s.camera;
         canvas.transparentBackground = s.background.transparent;
         canvas.renderer.backgroundColor = s.background.color;
         canvas.renderer.style = s.lighting.renderStyle

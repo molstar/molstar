@@ -409,20 +409,20 @@ export namespace ParamDefinition {
     }
 
     export function mergeParam(p: Any, a: any, b: any): any {
-        if (a === undefined) return b;
-        if (b === undefined) return a;
+        if (a === undefined) return typeof b === 'object' ? { ...b } : b;
+        if (b === undefined) return typeof a === 'object' ? { ...a } : a;
 
         if (p.type === 'group') {
             return merge(p.params, a, b);
         } else if (p.type === 'mapped') {
             const u = a as NamedParams, v = b as NamedParams;
-            if (u.name !== v.name) return v;
+            if (u.name !== v.name) return { ...v };
             const map = p.map(v.name);
             return {
                 name: v.name,
                 params: mergeParam(map, u.params, v.params)
             };
-        } else if (typeof a === 'object' || typeof b === 'object') {
+        } else if (typeof a === 'object' && typeof b === 'object') {
             return { ...a, ...b };
         } else {
             return b
