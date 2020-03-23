@@ -45,6 +45,10 @@ export const ColorLists = {
         '',
         [0xfff5f0, 0xfee0d2, 0xfcbba1, 0xfc9272, 0xfb6a4a, 0xef3b2c, 0xcb181d, 0xa50f15, 0x67000d]
     ),
+    'reds-darker': ColorList('Reds-darker', 'sequential',
+        '',
+        [0xff5252, 0xff0000, 0xa70000]
+    ),
     'red-purple': ColorList('Red-Purple', 'sequential',
         '',
         [0xfff7f3, 0xfde0dd, 0xfcc5c0, 0xfa9fb5, 0xf768a1, 0xdd3497, 0xae017e, 0x7a0177, 0x49006a]
