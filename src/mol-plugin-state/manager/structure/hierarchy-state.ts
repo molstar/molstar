@@ -7,7 +7,6 @@
 import { PluginStateObject as SO } from '../../objects';
 import { StateObject, StateTransform, State, StateObjectCell, StateTree, StateTransformer } from '../../../mol-state';
 import { StructureBuilderTags } from '../../builder/structure';
-import { StructureRepresentationBuilderTags } from '../../builder/structure/representation';
 import { StructureRepresentationInteractionTags } from '../../../mol-plugin/behavior/dynamic/selection/structure-representation-interaction';
 import { StateTransforms } from '../../transforms';
 import { VolumeStreaming } from '../../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
@@ -189,11 +188,34 @@ function createOrUpdateRef<R extends HierarchyRef, C extends any[]>(state: Build
     return ref;
 }
 
-const tagMap: [string, (state: BuildState, cell: StateObjectCell) => boolean | void, (state: BuildState) => any][] = [
-    [StructureBuilderTags.Trajectory, (state, cell) => {
+type TestCell = (cell: StateObjectCell, state: BuildState) => boolean
+type ApplyRef = (state: BuildState, cell: StateObjectCell) => boolean | void
+type LeaveRef = (state: BuildState) => any
+
+function isTag(t: string): TestCell {
+    return (cell) => StateObject.hasTag(cell.obj!, t);
+}
+
+function isType(t: StateObject.Ctor): TestCell {
+    return (cell) => t.is(cell.obj);
+}
+
+function isTypeRoot(t: StateObject.Ctor, target: (state: BuildState) => any): TestCell {
+    return (cell, state) => !target(state) && t.is(cell.obj);
+}
+
+function isTransformer(t: StateTransformer): TestCell {
+    return cell => cell.transform.transformer === t;
+}
+
+const tagMap: [TestCell, ApplyRef, LeaveRef][] = [
+    // Trajectory
+    [isType(SO.Molecule.Trajectory), (state, cell) => {
         state.currentTrajectory = createOrUpdateRefList(state, cell, state.hierarchy.trajectories, TrajectoryRef, cell);
     }, state => state.currentTrajectory = void 0],
-    [StructureBuilderTags.Model, (state, cell) => {
+
+    // Model
+    [isTypeRoot(SO.Molecule.Model, s => s.currentModel), (state, cell) => {
         if (state.currentTrajectory) {
             state.currentModel = createOrUpdateRefList(state, cell, state.currentTrajectory.models, ModelRef, cell, state.currentTrajectory);
         } else {
@@ -201,20 +223,22 @@ const tagMap: [string, (state: BuildState, cell: StateObjectCell) => boolean | v
         }
         state.hierarchy.models.push(state.currentModel);
     }, state => state.currentModel = void 0],
-    [StructureBuilderTags.ModelProperties, (state, cell) => {
+    [isTransformer(StateTransforms.Model.CustomModelProperties), (state, cell) => {
         if (!state.currentModel) return false;
         state.currentModel.properties = createOrUpdateRef(state, cell, ModelPropertiesRef, cell, state.currentModel);
     }, state => { }],
-    [StructureBuilderTags.ModelUnitcell, (state, cell) => {
+    [isTag(StructureBuilderTags.ModelUnitcell), (state, cell) => {
         if (!state.currentModel) return false;
         state.currentModel.unitcell = createOrUpdateRef(state, cell, ModelUnitcellRef, cell, state.currentModel);
     }, state => { }],
-    [StructureBuilderTags.ModelGenericRepresentation, (state, cell) => {
+    [isTag(StructureBuilderTags.ModelGenericRepresentation), (state, cell) => {
         if (!state.currentModel) return false;
         if (!state.currentModel.genericRepresentations) state.currentModel.genericRepresentations = []
         createOrUpdateRefList(state, cell, state.currentModel.genericRepresentations, GenericRepresentationRef, cell, state.currentModel);
     }, state => { }],
-    [StructureBuilderTags.Structure, (state, cell) => {
+
+    // Structure
+    [isTypeRoot(SO.Molecule.Structure, s => s.currentStructure), (state, cell) => {
         if (state.currentModel) {
             state.currentStructure = createOrUpdateRefList(state, cell, state.currentModel.structures, StructureRef, cell, state.currentModel);
         } else {
@@ -222,25 +246,38 @@ const tagMap: [string, (state: BuildState, cell: StateObjectCell) => boolean | v
         }
         state.hierarchy.structures.push(state.currentStructure);
     }, state => state.currentStructure = void 0],
-    [StructureBuilderTags.StructureProperties, (state, cell) => {
+    [isTransformer(StateTransforms.Model.CustomStructureProperties), (state, cell) => {
         if (!state.currentStructure) return false;
         state.currentStructure.properties = createOrUpdateRef(state, cell, StructurePropertiesRef, cell, state.currentStructure);
     }, state => { }],
-    [StructureBuilderTags.Component, (state, cell) => {
+
+    // Component
+    [(cell, state) => {
+        if (!state.currentStructure || !SO.Molecule.Structure.is(cell.obj) || cell.transform.transformer.definition.isDecorator) return false;
+        if (StateObject.hasTag(cell.obj!, StructureBuilderTags.Component)) return true;
+        const parent = state.state.cells.get(cell.transform.parent);
+        return SO.Molecule.Structure.is(parent?.obj) && SO.Molecule.Structure.is(cell.obj);
+    }, (state, cell) => {
         if (!state.currentStructure) return false;
         state.currentComponent = createOrUpdateRefList(state, cell, state.currentStructure.components, StructureComponentRef, cell, state.currentStructure);
     }, state => state.currentComponent = void 0],
-    [StructureRepresentationBuilderTags.Representation, (state, cell) => {
+
+    // Component Rpresentation
+    [(cell, state) => {
+        return !cell.state.isGhost && !!state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj)
+    }, (state, cell) => {
         if (!state.currentComponent) return false;
         createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
     }, state => { }],
-    [StructureRepresentationInteractionTags.ResidueSel, (state, cell) => {
+
+    // Current interaction
+    [isTag(StructureRepresentationInteractionTags.ResidueSel), (state, cell) => {
         if (!state.currentStructure) return false;
         if (!state.currentStructure.currentFocus) state.currentStructure.currentFocus = { };
         state.currentStructure.currentFocus.focus = createOrUpdateRef(state, cell, StructureComponentRef, cell, state.currentStructure);
         state.currentComponent = state.currentStructure.currentFocus.focus;
     }, state => state.currentComponent = void 0],
-    [StructureRepresentationInteractionTags.SurrSel, (state, cell) => {
+    [isTag(StructureRepresentationInteractionTags.SurrSel), (state, cell) => {
         if (!state.currentStructure) return false;
         if (!state.currentStructure.currentFocus) state.currentStructure.currentFocus = { };
         state.currentStructure.currentFocus.surroundings = createOrUpdateRef(state, cell, StructureComponentRef, cell, state.currentStructure);
@@ -270,8 +307,8 @@ function _doPreOrder(ctx: VisitorCtx, root: StateTransform) {
     if (!isValidCell(cell)) return;
 
     let onLeave: undefined | ((state: BuildState) => any) = void 0;
-    for (const [t, f, l] of tagMap) {
-        if (StateObject.hasTag(cell.obj!, t)) {
+    for (const [test, f, l] of tagMap) {
+        if (test(cell, state)) {
             const stop = f(state, cell);
             if (stop === false) {
                 return;

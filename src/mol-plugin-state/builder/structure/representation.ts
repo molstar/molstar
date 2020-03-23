@@ -6,7 +6,7 @@
 
 import { arrayFind } from '../../../mol-data/util';
 import { PluginContext } from '../../../mol-plugin/context';
-import { StateBuilder, StateObjectRef, StateObjectSelector } from '../../../mol-state';
+import { StateBuilder, StateObjectRef, StateObjectSelector, StateTransform } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { isProductionMode } from '../../../mol-util/debug';
 import { objectForEach } from '../../../mol-util/object';
@@ -17,10 +17,6 @@ import { StructureRepresentation3D } from '../../transforms/representation';
 import { PresetStructureReprentations, StructureRepresentationPresetProvider } from './representation-preset';
 
 export type StructureRepresentationPresetProviderRef = keyof PresetStructureReprentations | StructureRepresentationPresetProvider | string
-
-export const enum StructureRepresentationBuilderTags {
-    Representation = 'structure-representation'
-}
 
 export class StructureRepresentationBuilder {
     private _providers: StructureRepresentationPresetProvider[] = [];
@@ -107,36 +103,37 @@ export class StructureRepresentationBuilder {
         return this.plugin.runTask(task);
     }
 
-    async addRepresentation<P extends StructureRepresentationBuiltInProps>(structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props?: P): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
-    async addRepresentation<P extends StructureRepresentationProps>(structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props?: P): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
-    async addRepresentation(structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props?: any) {
-        const data = StateObjectRef.resolveAndCheck(this.dataState, structure)?.obj?.data;
-        if (!data) return;
-
-        const params = createStructureRepresentationParams(this.plugin, data, props);
-        const repr = this.dataState.build()
-            .to(structure)
-            .apply(StructureRepresentation3D, params, { tags: StructureRepresentationBuilderTags.Representation });
+    async addRepresentation<P extends StructureRepresentationBuiltInProps>(structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props: P, options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
+    async addRepresentation<P extends StructureRepresentationProps>(structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props: P, options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
+    async addRepresentation(structure: StateObjectRef<PluginStateObject.Molecule.Structure>, props: any, options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>) {
+        const repr = this.dataState.build();
+        const selector = this.buildRepresentation(repr, structure, props, options);
+        if (!selector) return;
 
         await this.plugin.updateDataState(repr);
-        return  repr.selector;
+        return selector;
     }
 
-    async buildRepresentation<P extends StructureRepresentationBuiltInProps>(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props?: P): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
-    async buildRepresentation<P extends StructureRepresentationProps>(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props?: P): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
-    async buildRepresentation(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props?: any) {
+    async buildRepresentation<P extends StructureRepresentationBuiltInProps>(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props: P, options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
+    async buildRepresentation<P extends StructureRepresentationProps>(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props: P, options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
+    async buildRepresentation(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props: any, options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>) {
         if (!structure) return;
         const data = StateObjectRef.resolveAndCheck(this.dataState, structure)?.obj?.data;
         if (!data) return;
 
         const params = createStructureRepresentationParams(this.plugin, data, props);
-        return builder
-            .to(structure)
-            .apply(StructureRepresentation3D, params, { tags: StructureRepresentationBuilderTags.Representation })
-            .selector;
+        return builder.to(structure)
+            .apply(StructureRepresentation3D, params, { tags: options?.tag, state: options?.initialState }).selector;
     }
 
     constructor(public plugin: PluginContext) {
         objectForEach(PresetStructureReprentations, r => this.registerPreset(r));
+    }
+}
+
+export namespace StructureRepresentationBuilder {
+    export interface AddRepresentationOptions {
+        initialState?: Partial<StateTransform.State>,
+        tag?: string
     }
 }
