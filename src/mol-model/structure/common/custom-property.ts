@@ -69,6 +69,6 @@ class CustomProperties {
     }
 
     has(desc: CustomPropertyDescriptor<any>): boolean {
-        return this._refs.has(desc);
+        return this._set.has(desc);
     }
 }

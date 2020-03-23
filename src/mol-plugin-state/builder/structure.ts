@@ -19,13 +19,6 @@ import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmet
 import { SpacegroupCell } from '../../mol-math/geometry';
 import Expression from '../../mol-script/language/expression';
 
-export type TrajectoryFormat = 'pdb' | 'cif' | 'gro' | '3dg'
-
-export enum StructureBuilderTags {
-    // TODO: this tag might be redundant
-    Component = 'structure-component'
-}
-
 export class StructureBuilder {
     private get dataState() {
         return this.plugin.state.data;
@@ -130,7 +123,7 @@ export class StructureBuilder {
 
         const keyTag = `structure-component-${key}`;
         const component = root.applyOrUpdateTagged(keyTag, StateTransforms.Model.StructureComponent, params, {
-            tags: tags ? [...tags, StructureBuilderTags.Component, keyTag] : [StructureBuilderTags.Component, keyTag]
+            tags: tags ? [...tags, keyTag] : [keyTag]
         });
 
         await this.plugin.updateDataState(component);

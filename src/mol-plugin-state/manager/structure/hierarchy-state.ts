@@ -6,7 +6,6 @@
 
 import { PluginStateObject as SO } from '../../objects';
 import { StateObject, StateTransform, State, StateObjectCell, StateTree, StateTransformer } from '../../../mol-state';
-import { StructureBuilderTags } from '../../builder/structure';
 import { StateTransforms } from '../../transforms';
 import { VolumeStreaming } from '../../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
 import { CreateVolumeStreamingBehavior } from '../../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
@@ -253,10 +252,8 @@ const tagMap: [TestCell, ApplyRef, LeaveRef][] = [
 
     // Component
     [(cell, state) => {
-        if (!state.currentStructure || !SO.Molecule.Structure.is(cell.obj) || cell.transform.transformer.definition.isDecorator) return false;
-        if (StateObject.hasTag(cell.obj!, StructureBuilderTags.Component)) return true;
-        const parent = state.state.cells.get(cell.transform.parent);
-        return SO.Molecule.Structure.is(parent?.obj) && SO.Molecule.Structure.is(cell.obj);
+        if (state.currentComponent || !state.currentStructure || cell.transform.transformer.definition.isDecorator) return false;
+        return SO.Molecule.Structure.is(cell.obj);
     }, (state, cell) => {
         if (state.currentStructure) {
             state.currentComponent = createOrUpdateRefList(state, cell, state.currentStructure.components, StructureComponentRef, cell, state.currentStructure);
@@ -271,7 +268,7 @@ const tagMap: [TestCell, ApplyRef, LeaveRef][] = [
             createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
         }
 
-        // Nothing useful down the line;
+        // Nothing useful down the line
         return false;
     }, noop],
 
