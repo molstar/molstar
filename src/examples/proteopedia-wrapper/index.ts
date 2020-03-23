@@ -26,9 +26,8 @@ import { ColorNames } from '../../mol-util/color/names';
 import { InitVolumeStreaming, CreateVolumeStreamingInfo } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
 import { DefaultCanvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
-// import { Vec3 } from 'mol-math/linear-algebra';
-// import { ParamDefinition } from 'mol-util/param-definition';
-// import { Text } from 'mol-geo/geometry/text/text';
+import { download } from '../../mol-util/download';
+import { getFormattedTime } from '../../mol-util/date';
 require('../../mol-plugin-ui/skin/light.scss')
 
 class MolStarProteopediaWrapper {
@@ -426,10 +425,16 @@ class MolStarProteopediaWrapper {
         set: (snapshot: PluginState.Snapshot) => {
             return this.plugin.state.setSnapshot(snapshot);
         },
-        download: async (url: string) => {
+        download: () => {
+            const json = JSON.stringify(this.plugin.state.getSnapshot(), null, 2);
+            const blob = new Blob([json], {type : 'application/json;charset=utf-8'});
+            download(blob, `mol-star_state_${(name || getFormattedTime())}.json`)
+        },
+        fetch: async (url: string) => {
             try {
                 const snapshot = await this.plugin.runTask(this.plugin.fetch({ url, type: 'json' }));
-                await this.plugin.state.setSnapshot(snapshot);
+                // TODO: is this OK to test for snapshots from server?
+                await this.plugin.state.setSnapshot(snapshot?.data?.entries[0]?.snapshot || snapshot);
             } catch (e) {
                 console.log(e);
             }

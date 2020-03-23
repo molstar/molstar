@@ -172,16 +172,17 @@
             addHeader('State');
 
             var snapshot;
-            addControl('Create Snapshot', () => {
+            addControl('Set Snapshot', () => {
                 snapshot = PluginWrapper.snapshot.get();
                 // could use JSON.stringify(snapshot) and upload the data
+                // console.log(JSON.stringify(snapshot, null, 2));
             });
-            addControl('Apply Snapshot', () => {
+            addControl('Restore Snapshot', () => {
                 if (!snapshot) return;
                 PluginWrapper.snapshot.set(snapshot);
-
-                // or download snapshot using fetch or ajax or whatever
-                // or PluginWrapper.snapshot.download(url);
+            });
+            addControl('Download Snapshot', () => {
+                snapshot = PluginWrapper.snapshot.download();
             });
 
             ////////////////////////////////////////////////////////
