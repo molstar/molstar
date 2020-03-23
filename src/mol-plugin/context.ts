@@ -160,7 +160,7 @@ export class PluginContext {
             this.layout.setRoot(container);
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
 
-            (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas, {}, t => this.runTask(t));
+            (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas);
             this.events.canvas3d.initialized.next()
             this.events.canvas3d.initialized.isStopped = true // TODO is this a good way?
             const renderer = this.canvas3d!.props.renderer;

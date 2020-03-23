@@ -31,7 +31,6 @@ import { PixelData } from '../mol-util/image';
 import { readTexture } from '../mol-gl/compute/util';
 import { DrawPass } from './passes/draw';
 import { PickPass } from './passes/pick';
-import { Task } from '../mol-task';
 import { ImagePass, ImageProps } from './passes/image';
 import { Sphere3D } from '../mol-math/geometry';
 import { isDebugMode } from '../mol-util/debug';
@@ -105,13 +104,12 @@ interface Canvas3D {
 }
 
 const requestAnimationFrame = typeof window !== 'undefined' ? window.requestAnimationFrame : (f: (time: number) => void) => setImmediate(()=>f(Date.now()))
-const DefaultRunTask = (task: Task<unknown>) => task.run()
 
 namespace Canvas3D {
     export interface HoverEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
 
-    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, runTask = DefaultRunTask) {
+    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}) {
         const gl = getGLContext(canvas, {
             alpha: true,
             antialias: true,
@@ -156,10 +154,10 @@ namespace Canvas3D {
             if (isDebugMode) console.log('context restored')
         }, false)
 
-        return Canvas3D.create(webgl, input, props, runTask)
+        return Canvas3D.create(webgl, input, props)
     }
 
-    export function create(webgl: WebGLContext, input: InputObserver, props: Partial<Canvas3DProps> = {}, runTask = DefaultRunTask): Canvas3D {
+    export function create(webgl: WebGLContext, input: InputObserver, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p = { ...DefaultCanvas3DParams, ...props }
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>()
