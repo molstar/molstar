@@ -36,7 +36,7 @@ export namespace ActionMenu {
     }
 
     export function Item(label: string, value: unknown): Item
-    export function Item(label: string, icon: string, value: unknown): Item
+    export function Item(label: string, icon: IconName, value: unknown): Item
     export function Item(label: string, iconOrValue: any, value?: unknown): Item {
         if (value) return { kind: 'item', label, icon: iconOrValue, value };
         return { kind: 'item', label, value: iconOrValue };

@@ -25,6 +25,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.msp-svg-icon svg {
+  height: 2.25em;
+  width: 2.25em;
+}
+
+.msp-svg-icon {
+  display: inline-flex;
+  align-self: center;
+}
+
 .msp-icon-help-circle-expand {
 	width: 2.5em !important;
 }

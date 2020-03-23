@@ -8,7 +8,6 @@ import * as React from 'react';
 import { Color } from '../../mol-util/color';
 import { PurePluginUIComponent } from '../base';
 import { IconName, Icon } from './icons';
-import { ShapeName, Shape } from './shapes';
 
 export class ControlGroup extends React.Component<{
     header: string,
@@ -311,7 +310,6 @@ export type ToggleButtonProps = {
     label?: string | JSX.Element,
     title?: string,
     icon?: IconName,
-    shape?: ShapeName,
     isSelected?: boolean,
     toggle: () => void
 }
@@ -329,7 +327,6 @@ export class ToggleButton extends React.PureComponent<ToggleButtonProps> {
         return <button onClick={this.onClick} title={this.props.title}
             disabled={props.disabled} style={props.style} className={className}>
             <Icon name={this.props.icon} />
-            <Shape name={this.props.shape} />
             {label && this.props.isSelected ? <b>{label}</b> : label}
         </button>;
     }

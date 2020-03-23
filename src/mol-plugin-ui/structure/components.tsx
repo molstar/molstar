@@ -258,13 +258,13 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         if (mng.canBeModified(this.props.group[0])) {
             ret.push([
                 ActionMenu.Header('Modify by Selection'),
-                ActionMenu.Item('Include', 'plus', () => mng.modifyByCurrentSelection(this.props.group, 'union')),
-                ActionMenu.Item('Subtract', 'minus', () => mng.modifyByCurrentSelection(this.props.group, 'subtract')),
-                ActionMenu.Item('Intersect', 'shuffle', () => mng.modifyByCurrentSelection(this.props.group, 'intersect'))
+                ActionMenu.Item('Include', 'union', () => mng.modifyByCurrentSelection(this.props.group, 'union')),
+                ActionMenu.Item('Subtract', 'subtract', () => mng.modifyByCurrentSelection(this.props.group, 'subtract')),
+                ActionMenu.Item('Intersect', 'intersect', () => mng.modifyByCurrentSelection(this.props.group, 'intersect'))
             ]);
         }
 
-        ret.push(ActionMenu.Item('Select This', 'flash', () => mng.selectThis(this.props.group)));
+        ret.push(ActionMenu.Item('Select This', 'set', () => mng.selectThis(this.props.group)));
 
         return ret;
     }

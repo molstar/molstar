@@ -2,11 +2,32 @@
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as React from 'react';
 
-export type IconName =
+export type IconName = FontIconName | SvgIconName
+
+export function Icon(props: {
+    name: IconName | undefined,
+    style?: React.CSSProperties,
+    title?: string
+}) {
+    if (!props.name) return null;
+    switch (props.name) {
+        case 'union':
+        case 'subtract':
+        case 'intersect':
+        case 'set':
+            return <SvgIcon name={props.name} title={props.title} style={props.style} />
+        default: return <FontIcon name={props.name} title={props.title} style={props.style} />
+    }
+}
+
+//
+
+type FontIconName =
     | '' | 'expand-layout' | 'plus' | 'minus' | 'reset-scene' | 'ok' | 'back' | 'block' | 'off' | 'expand' | 'collapse' | 'visual-visibility'
     | 'abort' | 'focus-on-visual' | 'settings' | 'tools' | 'log' | 'remove' | 'help' | 'help-circle' | 'info' | 'left-open-big' | 'right-open-big'
     | 'left-open' | 'right-open' | 'screenshot' | 'model-prev' | 'model-next' | 'model-first' | 'down-thin' | 'up-thin' | 'left-thin' | 'right-thin'
@@ -29,11 +50,95 @@ export type IconName =
     | 'credit-card' | 'clipboard' | 'megaphone' | 'drive' | 'bucket' | 'thermometer' | 'key' | 'flow-branch' | 'flow-line' | 'flow-parallel' | 'rocket'
     | 'gauge' | 'help-circle-collapse' | 'help-circle-expand'
 
-export function Icon(props: {
-    name: IconName | undefined,
+function FontIcon(props: {
+    name: FontIconName,
     style?: React.CSSProperties,
     title?: string
 }) {
-    if (!props.name) return null;
     return <span className={`msp-icon msp-icon-${props.name}`} style={props.style} title={props.title} />;
+}
+
+//
+
+type SvgIconName =
+    | '' | 'set' | 'intersect' | 'union' | 'subtract'
+
+function SvgIcon(props: {
+    name: SvgIconName,
+    style?: React.CSSProperties,
+    title?: string
+}) {
+    return <div className='msp-icon msp-svg-icon' style={props.style} title={props.title}>{getSvg(props.name)}</div>;
+}
+
+function getSvg(name: SvgIconName) {
+    switch (name) {
+        case 'union': return <Union />
+        case 'subtract': return <Subtract />
+        case 'intersect': return <Intersect />
+        case 'set': return <Set />
+    }
+}
+
+const circleLeft = <circle r="6px" id="circle-left" cy="16px" cx="12px" strokeWidth="1"/>
+const circleRight = <circle r="6px" id="circle-right" cy="16px" cx="20px" strokeWidth="1"/>
+
+function Union() {
+    return <svg width="32px" height="32px" viewBox="0 0 32 32">
+        <defs>
+            {circleLeft}
+            {circleRight}
+        </defs>
+        <g>
+            <use href="#circle-left" className="msp-shape-filled"/>
+            <use href="#circle-right" className="msp-shape-filled"/>
+        </g>
+    </svg>;
+}
+
+function Subtract() {
+    return <svg width="32px" height="32px" viewBox="0 0 32 32">
+        <defs>
+            {circleLeft}
+            {circleRight}
+            <mask id="mask-left">
+                <use href="#circle-left" fill="white" stroke="white"/>
+                <use href="#circle-right" fill="black" strokeWidth="0" stroke="white"/>
+            </mask>
+        </defs>
+        <g>
+            <use href="#circle-left" className="msp-shape-filled" mask="url(#mask-left)"/>
+            <use href="#circle-right" className="msp-shape-empty"/>
+        </g>
+    </svg>;
+}
+
+function Intersect() {
+    return <svg width="32px" height="32px" viewBox="0 0 32 32">
+        <defs>
+            {circleLeft}
+            {circleRight}
+            <clipPath id="clip-left">
+                <use href="#circle-right"/>
+            </clipPath>
+        </defs>
+        <g>
+            <use href="#circle-left" className="msp-shape-filled" clipPath="url(#clip-left)"/>
+            <use href="#circle-left" className="msp-shape-empty"/>
+            <use href="#circle-right" className="msp-shape-empty"/>
+        </g>
+    </svg>;
+}
+
+function Set() {
+    return <svg width="32px" height="32px" viewBox="0 0 32 32">
+        <defs>
+            {circleLeft}
+            {circleRight}
+        </defs>
+        <g>
+            <use href="#circle-left" className="msp-shape-empty"/>
+            <use href="#circle-right" className="msp-shape-filled"/>
+        </g>
+    </svg>;
 }
