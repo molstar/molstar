@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -47,8 +47,8 @@ class Camera {
 
     private prevProjection = Mat4.identity();
     private prevView = Mat4.identity();
-    private deltaDirection = Vec3.zero();
-    private newPosition = Vec3.zero();
+    private deltaDirection = Vec3();
+    private newPosition = Vec3();
 
     update() {
         const snapshot = this.state as Camera.Snapshot;

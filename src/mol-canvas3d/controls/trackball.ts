@@ -208,7 +208,7 @@ namespace TrackballControls {
         function focusCamera() {
             const factor = (_focusEnd[1] - _focusStart[1]) * p.zoomSpeed
             if (factor !== 0.0) {
-                const radius = Math.max(1, camera.state.radius + 10 * factor)
+                const radius = Math.max(1, camera.state.radius + camera.state.radius * factor)
                 camera.setState({ radius })
             }
 
@@ -248,10 +248,14 @@ namespace TrackballControls {
             }
         }
 
-        /** Ensure the distance between object and target is within the min/max distance */
+        /**
+         * Ensure the distance between object and target is within the min/max distance
+         * and not too large compared to `camera.state.radiusMax`
+         */
         function checkDistances() {
-            if (Vec3.squaredMagnitude(_eye) > p.maxDistance * p.maxDistance) {
-                Vec3.setMagnitude(_eye, _eye, p.maxDistance)
+            const maxDistance = Math.min(Math.max(camera.state.radiusMax * 1000, 0.01), p.maxDistance)
+            if (Vec3.squaredMagnitude(_eye) > maxDistance * maxDistance) {
+                Vec3.setMagnitude(_eye, _eye, maxDistance)
                 Vec3.add(camera.position, camera.target, _eye)
                 Vec2.copy(_zoomStart, _zoomEnd)
                 Vec2.copy(_focusStart, _focusEnd)
