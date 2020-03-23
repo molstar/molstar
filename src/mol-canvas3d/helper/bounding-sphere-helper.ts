@@ -20,9 +20,10 @@ import { ValueCell } from '../../mol-util';
 import { Geometry } from '../../mol-geo/geometry/geometry';
 
 export const DebugHelperParams = {
-    sceneBoundingSpheres: PD.Boolean(false, { description: 'Show scene bounding spheres.' }),
-    objectBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of render objects.' }),
-    instanceBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of instances.' }),
+    sceneBoundingSpheres: PD.Boolean(false, { description: 'Show full scene bounding spheres.' }),
+    visibleSceneBoundingSpheres: PD.Boolean(false, { description: 'Show visible scene bounding spheres.' }),
+    objectBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of visible render objects.' }),
+    instanceBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of visible instances.' }),
 }
 export type DebugHelperParams = typeof DebugHelperParams
 export type DebugHelperProps = PD.Values<DebugHelperParams>
@@ -37,6 +38,7 @@ export class BoundingSphereHelper {
     private objectsData = new Map<GraphicsRenderObject, BoundingSphereData>()
     private instancesData = new Map<GraphicsRenderObject, BoundingSphereData>()
     private sceneData: BoundingSphereData | undefined
+    private visibleSceneData: BoundingSphereData | undefined
 
     constructor(ctx: WebGLContext, parent: Scene, props: Partial<DebugHelperProps>) {
         this.scene = Scene.create(ctx)
@@ -45,8 +47,11 @@ export class BoundingSphereHelper {
     }
 
     update() {
-        const newSceneData = updateBoundingSphereData(this.scene, this.parent.boundingSphere, this.sceneData, ColorNames.grey, sceneMaterialId)
+        const newSceneData = updateBoundingSphereData(this.scene, this.parent.boundingSphere, this.sceneData, ColorNames.lightgrey, sceneMaterialId)
         if (newSceneData) this.sceneData = newSceneData
+
+        const newVisibleSceneData = updateBoundingSphereData(this.scene, this.parent.boundingSphereVisible, this.visibleSceneData, ColorNames.black, visibleSceneMaterialId)
+        if (newVisibleSceneData) this.visibleSceneData = newVisibleSceneData
 
         this.parent.forEach((r, ro) => {
             const objectData = this.objectsData.get(ro)
@@ -88,6 +93,10 @@ export class BoundingSphereHelper {
             this.sceneData.renderObject.state.visible = this._props.sceneBoundingSpheres
         }
 
+        if (this.visibleSceneData) {
+            this.visibleSceneData.renderObject.state.visible = this._props.visibleSceneBoundingSpheres
+        }
+
         this.parent.forEach((_, ro) => {
             const objectData = this.objectsData.get(ro)
             if (objectData) objectData.renderObject.state.visible = ro.state.visible && this._props.objectBoundingSpheres
@@ -104,7 +113,10 @@ export class BoundingSphereHelper {
     }
 
     get isEnabled() {
-        return this._props.sceneBoundingSpheres || this._props.objectBoundingSpheres || this._props.instanceBoundingSpheres
+        return (
+            this._props.sceneBoundingSpheres || this._props.visibleSceneBoundingSpheres ||
+            this._props.objectBoundingSpheres || this._props.instanceBoundingSpheres
+        )
     }
     get props() { return this._props as Readonly<DebugHelperProps> }
 
@@ -141,6 +153,7 @@ function createBoundingSphereMesh(boundingSphere: Sphere3D, mesh?: Mesh) {
 }
 
 const sceneMaterialId = getNextMaterialId()
+const visibleSceneMaterialId = getNextMaterialId()
 const objectMaterialId = getNextMaterialId()
 const instanceMaterialId = getNextMaterialId()
 
