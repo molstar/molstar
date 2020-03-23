@@ -118,7 +118,7 @@ export interface StructureComponentRef extends RefBase<'structure-component', SO
 }
 
 function componentKey(cell: StateObjectCell<SO.Molecule.Structure>) {
-    if (!cell.transform.tags) return;
+    if (!cell.transform.tags) return cell.transform.ref;
     return [...cell.transform.tags].sort().join();
 }
 
@@ -208,6 +208,8 @@ function isTransformer(t: StateTransformer): TestCell {
     return cell => cell.transform.transformer === t;
 }
 
+function noop() { }
+
 const tagMap: [TestCell, ApplyRef, LeaveRef][] = [
     // Trajectory
     [isType(SO.Molecule.Trajectory), (state, cell) => {
@@ -226,16 +228,11 @@ const tagMap: [TestCell, ApplyRef, LeaveRef][] = [
     [isTransformer(StateTransforms.Model.CustomModelProperties), (state, cell) => {
         if (!state.currentModel) return false;
         state.currentModel.properties = createOrUpdateRef(state, cell, ModelPropertiesRef, cell, state.currentModel);
-    }, state => { }],
-    [isTag(StructureBuilderTags.ModelUnitcell), (state, cell) => {
+    }, noop],
+    [isTransformer(StateTransforms.Representation.ModelUnitcell3D), (state, cell) => {
         if (!state.currentModel) return false;
         state.currentModel.unitcell = createOrUpdateRef(state, cell, ModelUnitcellRef, cell, state.currentModel);
-    }, state => { }],
-    [isTag(StructureBuilderTags.ModelGenericRepresentation), (state, cell) => {
-        if (!state.currentModel) return false;
-        if (!state.currentModel.genericRepresentations) state.currentModel.genericRepresentations = []
-        createOrUpdateRefList(state, cell, state.currentModel.genericRepresentations, GenericRepresentationRef, cell, state.currentModel);
-    }, state => { }],
+    }, noop],
 
     // Structure
     [isTypeRoot(SO.Molecule.Structure, s => s.currentStructure), (state, cell) => {
@@ -249,7 +246,15 @@ const tagMap: [TestCell, ApplyRef, LeaveRef][] = [
     [isTransformer(StateTransforms.Model.CustomStructureProperties), (state, cell) => {
         if (!state.currentStructure) return false;
         state.currentStructure.properties = createOrUpdateRef(state, cell, StructurePropertiesRef, cell, state.currentStructure);
-    }, state => { }],
+    }, noop],
+
+    // Volume Streaming
+    [isType(VolumeStreaming), (state, cell) => {
+        if (!state.currentStructure) return false;
+        state.currentStructure.volumeStreaming = createOrUpdateRef(state, cell, StructureVolumeStreamingRef, cell, state.currentStructure);
+        // Do not continue into VolumeStreaming subtree.
+        return false;
+    }, noop],
 
     // Component
     [(cell, state) => {
@@ -258,17 +263,22 @@ const tagMap: [TestCell, ApplyRef, LeaveRef][] = [
         const parent = state.state.cells.get(cell.transform.parent);
         return SO.Molecule.Structure.is(parent?.obj) && SO.Molecule.Structure.is(cell.obj);
     }, (state, cell) => {
-        if (!state.currentStructure) return false;
-        state.currentComponent = createOrUpdateRefList(state, cell, state.currentStructure.components, StructureComponentRef, cell, state.currentStructure);
+        if (state.currentStructure) {
+            state.currentComponent = createOrUpdateRefList(state, cell, state.currentStructure.components, StructureComponentRef, cell, state.currentStructure);
+        }
     }, state => state.currentComponent = void 0],
 
     // Component Rpresentation
     [(cell, state) => {
         return !cell.state.isGhost && !!state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj)
     }, (state, cell) => {
-        if (!state.currentComponent) return false;
-        createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
-    }, state => { }],
+        if (state.currentComponent) {
+            createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
+        }
+
+        // Nothing useful down the line;
+        return false;
+    }, noop],
 
     // Current interaction
     [isTag(StructureRepresentationInteractionTags.ResidueSel), (state, cell) => {
@@ -282,7 +292,16 @@ const tagMap: [TestCell, ApplyRef, LeaveRef][] = [
         if (!state.currentStructure.currentFocus) state.currentStructure.currentFocus = { };
         state.currentStructure.currentFocus.surroundings = createOrUpdateRef(state, cell, StructureComponentRef, cell, state.currentStructure);
         state.currentComponent = state.currentStructure.currentFocus.surroundings;
-    }, state => state.currentComponent = void 0]
+    }, state => state.currentComponent = void 0],
+
+    // Generic Representation
+    [cell => !cell.state.isGhost && SO.isRepresentation3D(cell.obj), (state, cell) => {
+        const genericTarget = state.currentComponent || state.currentModel || state.currentStructure;
+        if (genericTarget) {
+            if (!genericTarget.genericRepresentations) genericTarget.genericRepresentations = [];
+            createOrUpdateRefList(state, cell, genericTarget.genericRepresentations, GenericRepresentationRef, cell, genericTarget);
+        }
+    }, noop],
 ]
 
 function isValidCell(cell?: StateObjectCell): cell is StateObjectCell {
@@ -309,26 +328,13 @@ function _doPreOrder(ctx: VisitorCtx, root: StateTransform) {
     let onLeave: undefined | ((state: BuildState) => any) = void 0;
     for (const [test, f, l] of tagMap) {
         if (test(cell, state)) {
-            const stop = f(state, cell);
-            if (stop === false) {
+            const cont = f(state, cell);
+            if (cont === false) {
                 return;
             }
             onLeave = l;
             break;
         }
-    }
-
-    if (!onLeave && !cell.state.isGhost && state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj)) {
-        createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
-    } else if (!cell.state.isGhost && SO.isRepresentation3D(cell.obj)) {
-        const genericTarget = state.currentComponent || state.currentModel || state.currentStructure;
-        if (genericTarget) {
-            if (!genericTarget.genericRepresentations) genericTarget.genericRepresentations = [];
-            createOrUpdateRefList(state, cell, genericTarget.genericRepresentations, GenericRepresentationRef, cell, genericTarget);
-        }
-    } else if (state.currentStructure && VolumeStreaming.is(cell.obj)) {
-        state.currentStructure.volumeStreaming = createOrUpdateRef(state, cell, StructureVolumeStreamingRef, cell, state.currentStructure);
-        return;
     }
 
     const children = ctx.tree.children.get(root.ref);

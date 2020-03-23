@@ -98,7 +98,7 @@ export interface DataFormatProvider<P = any, R = any> {
     stringExtensions: string[]
     binaryExtensions: string[]
     isApplicable(info: FileInfo, data: string | Uint8Array): boolean
-    parse(plugin: PluginContext, data: StateObjectRef<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, params: P | undefined): Promise<R>
+    parse(plugin: PluginContext, data: StateObjectRef<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, params?: P): Promise<R>
 }
 
 type cifVariants = 'dscif' | -1

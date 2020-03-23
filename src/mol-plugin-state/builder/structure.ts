@@ -22,13 +22,7 @@ import Expression from '../../mol-script/language/expression';
 export type TrajectoryFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
 export enum StructureBuilderTags {
-    Trajectory = 'trajectory',
-    Model = 'model',
-    ModelUnitcell = 'model-unitcell',
-    ModelProperties = 'model-properties',
-    ModelGenericRepresentation = 'model-generic-representation',
-    Structure = 'structure',
-    StructureProperties = 'structure-properties',
+    // TODO: this tag might be redundant
     Component = 'structure-component'
 }
 
@@ -40,7 +34,7 @@ export class StructureBuilder {
     private async parseTrajectoryData(data: StateObjectRef<SO.Data.Binary | SO.Data.String>, format: BuiltInTrajectoryFormat | TrajectoryFormatProvider) {
         const provider = typeof format === 'string' ? this.plugin.dataFormat.trajectory.get(format) : format;
         if (!provider) throw new Error(`'${format}' is not a supported data format.`);
-        const { trajectory } = await provider.parse(this.plugin, data, { trajectoryTags: StructureBuilderTags.Trajectory });
+        const { trajectory } = await provider.parse(this.plugin, data);
         return trajectory;
     }
 
@@ -48,45 +42,12 @@ export class StructureBuilder {
         const state = this.dataState;
         const trajectory = state.build().to(data)
             .apply(StateTransforms.Data.ParseBlob, params, { state: { isGhost: true } })
-            .apply(StateTransforms.Model.TrajectoryFromBlob, void 0, { tags: StructureBuilderTags.Trajectory });
+            .apply(StateTransforms.Model.TrajectoryFromBlob, void 0);
         await this.plugin.updateDataState(trajectory, { revertOnError: true });
         return trajectory.selector;
     }
 
     readonly representation = new StructureRepresentationBuilder(this.plugin);
-
-    // async parseStructure(params: {
-    //     data?: StateObjectRef<SO.Data.Binary | SO.Data.String>,
-    //     dataFormat?: BuiltInTrajectoryFormat | TrajectoryFormatProvider,
-    //     blob?: StateObjectRef<SO.Data.Blob>
-    //     blobParams?: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>,
-    //     model?: StateTransformer.Params<StateTransforms['Model']['ModelFromTrajectory']>,
-    //     modelProperties?: boolean | StateTransformer.Params<StateTransforms['Model']['CustomModelProperties']>,
-    //     structure?: RootStructureDefinition.Params,
-    //     structureProperties?: boolean | StateTransformer.Params<StateTransforms['Model']['CustomStructureProperties']>
-    // }) {
-    //     const trajectory = params.data
-    //         ? await this.parseTrajectory(params.data, params.dataFormat! || 'cif')
-    //         : await this.parseTrajectoryBlob(params.blob!, params.blobParams!);
-
-    //     const model = await this.createModel(trajectory, params.model);
-    //     const modelProperties = !!params.modelProperties
-    //         ? await this.insertModelProperties(model, typeof params?.modelProperties !== 'boolean' ? params?.modelProperties : void 0) : void 0;
-
-    //     const structure = await this.createStructure(modelProperties || model, params.structure);
-    //     const structureProperties = !!params.structureProperties
-    //         ? await this.insertStructureProperties(structure, typeof params?.structureProperties !== 'boolean' ? params?.structureProperties : void 0) : void 0;
-
-    //     return {
-    //         trajectory,
-    //         model: modelProperties || model,
-    //         modelRoot: model,
-    //         modelProperties,
-    //         structure: structureProperties || structure,
-    //         structureRoot: structure,
-    //         structureProperties
-    //     };
-    // }
 
     async parseTrajectory(data: StateObjectRef<SO.Data.Binary | SO.Data.String>, format: BuiltInTrajectoryFormat | TrajectoryFormatProvider): Promise<StateObjectSelector<SO.Molecule.Trajectory>>
     async parseTrajectory(blob: StateObjectRef<SO.Data.Blob>, params: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>): Promise<StateObjectSelector<SO.Molecule.Trajectory>>
@@ -104,7 +65,7 @@ export class StructureBuilder {
     async createModel(trajectory: StateObjectRef<SO.Molecule.Trajectory>, params?: StateTransformer.Params<StateTransforms['Model']['ModelFromTrajectory']>, initialState?: Partial<StateTransform.State>) {
         const state = this.dataState;
         const model = state.build().to(trajectory)
-            .apply(StateTransforms.Model.ModelFromTrajectory, params || { modelIndex: 0 }, { tags: StructureBuilderTags.Model, state: initialState });
+            .apply(StateTransforms.Model.ModelFromTrajectory, params || { modelIndex: 0 }, { state: initialState });
 
         await this.plugin.updateDataState(model, { revertOnError: true });
         return model.selector;
@@ -113,7 +74,7 @@ export class StructureBuilder {
     async insertModelProperties(model: StateObjectRef<SO.Molecule.Model>, params?: StateTransformer.Params<StateTransforms['Model']['CustomModelProperties']>) {
         const state = this.dataState;
         const props = state.build().to(model)
-            .apply(StateTransforms.Model.CustomModelProperties, params, { tags: StructureBuilderTags.ModelProperties });
+            .apply(StateTransforms.Model.CustomModelProperties, params);
         await this.plugin.updateDataState(props, { revertOnError: true });
         return props.selector;
     }
@@ -126,7 +87,7 @@ export class StructureBuilder {
         if (SpacegroupCell.isZero(cell)) return;
 
         const unitcell = state.build().to(model)
-            .apply(StateTransforms.Representation.ModelUnitcell3D, params, { tags: StructureBuilderTags.ModelUnitcell, state: initialState });
+            .apply(StateTransforms.Representation.ModelUnitcell3D, params, { state: initialState });
         await this.plugin.updateDataState(unitcell, { revertOnError: true });
         return unitcell.selector;
     }
@@ -143,7 +104,7 @@ export class StructureBuilder {
         }
 
         const structure = state.build().to(modelRef)
-            .apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } }, { tags: StructureBuilderTags.Structure, state: initialState });
+            .apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } }, { state: initialState });
 
         await this.plugin.updateDataState(structure, { revertOnError: true });
         return structure.selector;
@@ -152,7 +113,7 @@ export class StructureBuilder {
     async insertStructureProperties(structure: StateObjectRef<SO.Molecule.Structure>, params?: StateTransformer.Params<StateTransforms['Model']['CustomStructureProperties']>) {
         const state = this.dataState;
         const props = state.build().to(structure)
-            .apply(StateTransforms.Model.CustomStructureProperties, params, { tags: StructureBuilderTags.StructureProperties });
+            .apply(StateTransforms.Model.CustomStructureProperties, params);
         await this.plugin.updateDataState(props, { revertOnError: true });
         return props.selector;
     }
