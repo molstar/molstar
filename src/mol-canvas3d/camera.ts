@@ -290,6 +290,11 @@ function updateClip(camera: Camera) {
         far = Math.max(0, far)
     }
 
+    if (near === far) {
+        // make sure near and far are not identical to avoid Infinity in the projection matrix
+        far = near + 0.01
+    }
+
     camera.near = near;
     camera.far = far;
     camera.fogNear = fogNear;
