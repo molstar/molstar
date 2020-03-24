@@ -6,14 +6,14 @@
  */
 
 import * as React from 'react';
-import { ModelUnitcellRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
+import { HierarchyRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { State } from '../../mol-state';
 import { PurePluginUIComponent } from '../base';
 import { IconButton } from '../controls/common';
 import { UpdateTransformControl } from '../state/update-transform';
 
-export class UnitcellEntry extends PurePluginUIComponent<{ refs: ModelUnitcellRef[] }, { showOptions: boolean }> {
+export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<{ refs: T[], labelMultiple?: string }, { showOptions: boolean }> {
     state = { showOptions: false }
 
     componentDidMount() {
@@ -59,7 +59,7 @@ export class UnitcellEntry extends PurePluginUIComponent<{ refs: ModelUnitcellRe
     toggleOptions = () => this.setState({ showOptions: !this.state.showOptions })
 
     render() {
-        const { refs } = this.props;
+        const { refs, labelMultiple } = this.props;
         if (refs.length === 0) return null;
 
         const pivot = refs[0];
@@ -71,11 +71,11 @@ export class UnitcellEntry extends PurePluginUIComponent<{ refs: ModelUnitcellRe
             label = obj?.label;
             description = obj?.description;
         } else {
-            label = 'Unitcells';
+            label = `${refs.length} ${labelMultiple || 'Objects'}`;
         }
 
         return <>
-            <div className='msp-btn-row-group' style={{ marginTop: '6px' }}>
+            <div className='msp-btn-row-group'>
                 <button className='msp-form-control msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {label} <small>{description}</small>
                 </button>

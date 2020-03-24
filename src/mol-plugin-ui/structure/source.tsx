@@ -2,6 +2,7 @@
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as React from 'react';
@@ -14,7 +15,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { memoize1 } from '../../mol-util/memoize';
 import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
-import { UnitcellEntry } from './unitcell';
+import { GenericEntry } from './generic';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
@@ -257,7 +258,20 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         }
         if (refs.length === 0) return null;
 
-        return <UnitcellEntry refs={refs} />;
+        return <GenericEntry refs={refs} labelMultiple='Unitcells' />;
+    }
+
+    get customControls(): JSX.Element[] | null {
+        const controls: JSX.Element[] = []
+        this.plugin.customSourceControls.forEach((provider, key) => {
+            const [refs, labelMultiple] = provider(this.plugin.managers.structure.hierarchy.selection)
+            if (refs.length > 0) {
+                controls.push(<div key={key}>
+                    <GenericEntry refs={refs} labelMultiple={labelMultiple} />
+                </div>)
+            }
+        })
+        return controls.length > 0 ? controls : null
     }
 
     renderControls() {
@@ -275,7 +289,10 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             {this.state.show === 'actions' && <ActionMenu items={actions} onSelect={this.selectAction} />}
             {this.modelIndex}
             {this.structureType}
-            {this.unitcell}
+            <div style={{ marginTop: '6px' }}>
+                {this.unitcell}
+                {this.customControls}
+            </div>
         </>;
     }
 }

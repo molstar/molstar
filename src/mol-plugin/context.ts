@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -50,6 +50,7 @@ import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { Representation } from '../mol-repr/representation';
+import { HierarchyRef } from '../mol-plugin-state/manager/structure/hierarchy-state';
 
 export class PluginContext {
     private disposed = false;
@@ -143,6 +144,7 @@ export class PluginContext {
     readonly customModelProperties = new CustomProperty.Registry<Model>();
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
+    readonly customSourceControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [HierarchyRef[], string]>();
 
     readonly helpers = {
         substructureParent: new SubstructureParentHelper(this),

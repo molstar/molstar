@@ -240,7 +240,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         </ExpandGroup>;
     }
 
-    renderSimple() {        
+    renderSimple() {
         const info = this.getInfo();
         const canApply = this.canApply();
         const apply = <div className='msp-control-row msp-select-row'>

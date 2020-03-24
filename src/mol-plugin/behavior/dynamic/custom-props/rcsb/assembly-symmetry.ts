@@ -13,6 +13,7 @@ import { PluginStateTransform, PluginStateObject } from '../../../../../mol-plug
 import { Task } from '../../../../../mol-task';
 import { PluginContext } from '../../../../context';
 import { StateTransformer, StateAction, StateObject } from '../../../../../mol-state';
+import { GenericRepresentationRef } from '../../../../../mol-plugin-state/manager/structure/hierarchy-state';
 
 const Tag = AssemblySymmetry.Tag
 
@@ -30,6 +31,29 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
             this.ctx.state.data.actions.add(InitAssemblySymmetry3D)
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
             this.ctx.representation.structure.themes.colorThemeRegistry.add(AssemblySymmetryClusterColorThemeProvider)
+
+            this.ctx.customSourceControls.set(Tag.Representation, selection => {
+                const refs: GenericRepresentationRef[] = []
+                selection.structures.forEach(structure => {
+                    const symmRepr = structure.genericRepresentations?.filter(r => r.cell.transform.transformer.id === AssemblySymmetry3D.id)[0]
+                    if (symmRepr) refs.push(symmRepr)
+                })
+                return [refs, 'Symmetries']
+            })
+
+            // TODO this should probably be done via a hierarchy preset
+            this.subscribeObservable(this.ctx.managers.structure.hierarchy.behaviors.selection, selection => {
+                for (const structure of selection.structures) {
+                    const symmRepr = structure.genericRepresentations?.filter(r => r.cell.transform.transformer.id === AssemblySymmetry3D.id)[0]
+
+                    if (!symmRepr) {
+                        const state = this.ctx.state.data;
+                        const symmReprBuilder = state.build().to(structure.cell.transform.ref)
+                            .apply(AssemblySymmetry3D, { symmetryIndex: 0 }, { state: {} });
+                        this.ctx.updateDataState(symmReprBuilder, { revertOnError: true });
+                    }
+                }
+            })
         }
 
         update(p: { autoAttach: boolean }) {
@@ -43,6 +67,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
             this.ctx.state.data.actions.remove(InitAssemblySymmetry3D)
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(AssemblySymmetryClusterColorThemeProvider)
+            this.ctx.customSourceControls.delete(Tag.Representation)
         }
     },
     params: () => ({
@@ -50,6 +75,8 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         serverUrl: PD.Text(AssemblySymmetry.DefaultServerUrl)
     })
 });
+
+//
 
 const InitAssemblySymmetry3D = StateAction.build({
     display: {
