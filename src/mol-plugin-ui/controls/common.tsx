@@ -15,6 +15,7 @@ export class ControlGroup extends React.Component<{
     hideExpander?: boolean,
     hideOffset?: boolean,
     topRightIcon?: IconName,
+    headerLeftMargin?: string,
     onHeaderClick?: () => void
 }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initialExpanded }
@@ -30,7 +31,7 @@ export class ControlGroup extends React.Component<{
     render() {
         // TODO: customize header style (bg color, togle button etc)
         return <div className='msp-control-group-wrapper' style={{ position: 'relative' }}>
-            <div className='msp-control-group-header'>
+            <div className='msp-control-group-header' style={{ marginLeft: this.props.headerLeftMargin }}>
                 <button className='msp-btn msp-btn-block' onClick={this.headerClicked}>
                     {!this.props.hideExpander && <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />}
                     {this.props.topRightIcon && <Icon name={this.props.topRightIcon} style={{ position: 'absolute', right: '2px', top: 0 }} />}
@@ -332,14 +333,14 @@ export class ToggleButton extends React.PureComponent<ToggleButtonProps> {
     }
 }
 
-export class ExpandGroup extends React.PureComponent<{ header: string, headerStyle?: React.CSSProperties, initiallyExpanded?: boolean, noOffset?: boolean, marginTop?: 0 | string }, { isExpanded: boolean }> {
+export class ExpandGroup extends React.PureComponent<{ header: string, headerStyle?: React.CSSProperties, initiallyExpanded?: boolean, noOffset?: boolean, marginTop?: 0 | string, headerLeftMargin?: string }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initiallyExpanded };
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
 
     render() {
         return <>
-            <div className='msp-control-group-header' style={{ marginTop: this.props.marginTop !== void 0 ? this.props.marginTop : '1px' }}>
+            <div className='msp-control-group-header' style={{ marginTop: this.props.marginTop !== void 0 ? this.props.marginTop : '1px', marginLeft: this.props.headerLeftMargin }}>
                 <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded} style={this.props.headerStyle}>
                     <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
                     {this.props.header}

@@ -106,7 +106,8 @@ namespace TransformControlBase {
         applyLabel?: string,
         onApply?: () => void,
         autoHideApply?: boolean,
-        wrapInExpander?: boolean
+        wrapInExpander?: boolean,
+        expanderHeaderLeftMargin?: string
     }
 }
 
@@ -235,7 +236,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
 
         if (isEmpty || !this.props.wrapInExpander) return ctrl;
 
-        return <ExpandGroup header={this.isUpdate() ? `Update ${display === 'none' ? '' : display.name}` : `Apply ${display === 'none' ? '' : display.name}` }>
+        return <ExpandGroup header={this.isUpdate() ? `Update ${display === 'none' ? '' : display.name}` : `Apply ${display === 'none' ? '' : display.name}` } headerLeftMargin={this.props.expanderHeaderLeftMargin}>
             {ctrl}
         </ExpandGroup>;
     }

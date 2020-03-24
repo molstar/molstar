@@ -204,7 +204,7 @@ function isTransformer(t: StateTransformer): TestCell {
 
 function noop() { }
 
-const tagMap: [TestCell, ApplyRef, LeaveRef][] = [
+const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
     // Trajectory
     [isType(SO.Molecule.Trajectory), (state, cell) => {
         state.currentTrajectory = createOrUpdateRefList(state, cell, state.hierarchy.trajectories, TrajectoryRef, cell);
@@ -304,7 +304,7 @@ function _doPreOrder(ctx: VisitorCtx, root: StateTransform) {
     if (!isValidCell(cell)) return;
 
     let onLeave: undefined | ((state: BuildState) => any) = void 0;
-    for (const [test, f, l] of tagMap) {
+    for (const [test, f, l] of Mapping) {
         if (test(cell, state)) {
             const cont = f(state, cell);
             if (cont === false) {

@@ -157,11 +157,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
             }
 
             if (e.state.transforms.has(this.ref)) {
-                this._setCurrent(this.props.cell.parent.current === this.ref, !!this.props.cell.state.isCollapsed)
-                // this.setState({
-                //     isCurrent: this.props.cell.parent.current === this.ref,
-                //     isCollapsed: !!this.props.cell.state.isCollapsed
-                // });
+                this._setCurrent(this.props.cell.parent.current === this.ref, !!this.props.cell.state.isCollapsed);
             }
         });
     }
@@ -195,9 +191,9 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         PluginCommands.State.SetCurrentObject(this.plugin, { state: this.props.cell.parent, ref: this.ref });
     }
 
-    setCurrentRoot = (e: React.MouseEvent<HTMLElement>) => {
-        e.preventDefault();
-        e.currentTarget.blur();
+    setCurrentRoot = (e?: React.MouseEvent<HTMLElement>) => {
+        e?.preventDefault();
+        e?.currentTarget.blur();
         PluginCommands.State.SetCurrentObject(this.plugin, { state: this.props.cell.parent, ref: StateTransform.RootRef });
     }
 
@@ -230,12 +226,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         e.currentTarget.blur();
     }
 
-    // toggleActions = () => {
-    //     if (this.state.action) this.setState({ action: void 0, currentAction: void 0 });
-    //     else this.setState({ action: 'options', currentAction: void 0 });
-    // }
-
-    hideAction = () => this.setState({ action: void 0, currentAction: void 0 });
+    hideApply = () => this.setState({ action: 'options', currentAction: void 0 });
 
     get actions() {
         const cell = this.props.cell;
@@ -255,14 +246,14 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         (item?.value as any)();
     }
 
-    updates() {
+    updates(margin: string) {
         const cell = this.props.cell;
         const decoratorChain = StateTreeSpine.getDecoratorChain(cell.parent, cell.transform.ref);
 
         const decorators = [];
         for (let i = decoratorChain.length - 1; i >= 0; i--) {
             const d = decoratorChain[i];
-            decorators!.push(<UpdateTransformControl key={`${d.transform.transformer.id}-${i}`} state={cell.parent} transform={d.transform} noMargin wrapInExpander />);
+            decorators!.push(<UpdateTransformControl key={`${d.transform.transformer.id}-${i}`} state={cell.parent} transform={d.transform} noMargin wrapInExpander expanderHeaderLeftMargin={margin} />);
         }
 
         return decorators;
@@ -298,13 +289,13 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
             <Icon name='visual-visibility' />
         </button>;
 
-        const style: React.HTMLAttributes<HTMLDivElement>['style'] = {
+        const marginStyle: React.CSSProperties = {
             marginLeft: /* this.state.isCurrent ? void 0 :*/ `${this.props.depth * 8}px`,
             // paddingLeft: !this.state.isCurrent ? void 0 : `${this.props.depth * 10}px`,
             borderLeft: /* isCurrent || */ this.props.depth === 0 ? 'none' : void 0
         }
 
-        const row = <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={style}>
+        const row = <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={marginStyle}>
             {label}
             {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
                 <Icon name={cellState.isCollapsed ? 'expand' : 'collapse'} />
@@ -319,8 +310,8 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         if (this.state.action === 'apply' && this.state.currentAction) {
             return <div style={{ marginBottom: '1px' }}>
                 {row}
-                <ControlGroup header={`Apply ${this.state.currentAction.definition.display.name}`} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hideAction} topRightIcon='off'>
-                    <ApplyActionControl onApply={this.hideAction} state={this.props.cell.parent} action={this.state.currentAction} nodeRef={this.props.cell.transform.ref} hideHeader noMargin />
+                <ControlGroup header={`Apply ${this.state.currentAction.definition.display.name}`} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hideApply} topRightIcon='off' headerLeftMargin={marginStyle.marginLeft as string}>
+                    <ApplyActionControl onApply={this.hideApply} state={this.props.cell.parent} action={this.state.currentAction} nodeRef={this.props.cell.transform.ref} hideHeader noMargin />
                 </ControlGroup>
             </div>
         }
@@ -329,8 +320,10 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
             let actions = this.actions;
             return <div style={{ marginBottom: '1px' }}>
                 {row}
-                {this.updates()}
-                {actions && <ActionMenu items={actions} onSelect={this.selectAction} />}
+                {this.updates(marginStyle.marginLeft as string)}
+                {actions && <div style={marginStyle}>
+                    <ActionMenu items={actions} onSelect={this.selectAction} />
+                </div>}
             </div>
         }
 

@@ -34,6 +34,8 @@ const StructureRepresentationInteractionParams = (plugin: PluginContext) => {
     const reprParams = StateTransforms.Representation.StructureRepresentation3D.definition.params!(void 0, plugin) as PD.Params;
     return {
         bindings: PD.Value(DefaultStructureRepresentationInteractionBindings, { isHidden: true }),
+        // TODO: min = 0 to turn them off?
+        expandRadius: PD.Numeric(5, { min: 1, max: 10, step: 1 }),
         focusParams: PD.Group(reprParams, {
             label: 'Focus',
             customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'uniform' })
@@ -66,6 +68,8 @@ export enum StructureRepresentationInteractionTags {
 const TagSet: Set<StructureRepresentationInteractionTags> = new Set([StructureRepresentationInteractionTags.ResidueSel, StructureRepresentationInteractionTags.ResidueRepr, StructureRepresentationInteractionTags.SurrSel, StructureRepresentationInteractionTags.SurrRepr, StructureRepresentationInteractionTags.SurrNciRepr])
 
 export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<StructureRepresentationInteractionProps> {
+    private get surrLabel() { return `[Focus +${this.params.expandRadius} Å Surrounding]`; }
+
     private ensureShape(cell: StateObjectCell<PluginStateObject.Molecule.Structure>) {
         const state = this.plugin.state.data, tree = state.tree;
         const builder = state.build();
@@ -76,14 +80,14 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
             refs[StructureRepresentationInteractionTags.ResidueSel] = builder
                 .to(cell) // refs['structure-interaction-group'])
                 .apply(StateTransforms.Model.StructureSelectionFromBundle,
-                    { bundle: {} as any, label: 'Focus' }, { tags: StructureRepresentationInteractionTags.ResidueSel }).ref;
+                    { bundle: StructureElement.Bundle.Empty, label: '[Focus]' }, { tags: StructureRepresentationInteractionTags.ResidueSel }).ref;
         }
 
         if (!refs[StructureRepresentationInteractionTags.SurrSel]) {
             refs[StructureRepresentationInteractionTags.SurrSel] = builder
                 .to(cell) // .to(refs['structure-interaction-group'])
                 .apply(StateTransforms.Model.StructureSelectionFromExpression,
-                    { expression: {} as any, label: 'Focus Surroundings' }, { tags: StructureRepresentationInteractionTags.SurrSel }).ref;
+                    { expression: MS.struct.generator.empty(), label: this.surrLabel }, { tags: StructureRepresentationInteractionTags.SurrSel }).ref;
         }
 
         // Representations
@@ -126,7 +130,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
             update.to(s).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression }));
         }
 
-        PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
+        return PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
     }
 
     register(ref: string): void {
@@ -185,14 +189,14 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
                 const surroundings = MS.struct.modifier.includeSurroundings({
                     0: StructureElement.Bundle.toExpression(residueBundle),
-                    radius: 5,
+                    radius: this.params.expandRadius,
                     'as-whole-residues': true
                 });
 
                 const { state, builder, refs } = this.ensureShape(parent);
 
                 builder.to(refs[StructureRepresentationInteractionTags.ResidueSel]!).update(StateTransforms.Model.StructureSelectionFromBundle, old => ({ ...old, bundle: residueBundle }));
-                builder.to(refs[StructureRepresentationInteractionTags.SurrSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: surroundings }));
+                builder.to(refs[StructureRepresentationInteractionTags.SurrSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: surroundings, label: this.surrLabel }));
 
                 PluginCommands.State.Update(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
             }
@@ -200,6 +204,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
     }
 
     async update(params: StructureRepresentationInteractionProps) {
+        let oldRadius = this.params.expandRadius;
         this.params = params;
 
         const state = this.plugin.state.data;
@@ -217,6 +222,10 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         }
 
         await PluginCommands.State.Update(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
+
+        // TODO: update properly
+        if (params.expandRadius !== oldRadius) await this.clear(StateTransform.RootRef);
+
         return true;
     }
 }

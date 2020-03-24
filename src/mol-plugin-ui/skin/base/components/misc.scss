@@ -200,3 +200,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+.msp-25-lower-contrast-text {
+    color: color-lower-contrast($font-color, 25%);
+}

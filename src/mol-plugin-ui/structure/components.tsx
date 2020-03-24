@@ -316,14 +316,23 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         });
     }
 
+    get reprLabel() {
+        // TODO: handle generic reprs.
+        const pivot = this.pivot;
+        if (pivot.representations.length === 0) return 'No repr.';
+        if (pivot.representations.length === 1) return pivot.representations[0].cell.obj?.label;
+        return `${pivot.representations.length} reprs`;
+    }
+
     render() {
         const component = this.pivot;
         const cell = component.cell;
         const label = cell.obj?.label;
+        const reprLabel = this.reprLabel;
         return <>
             <div className='msp-btn-row-group'>
-                <button className='msp-form-control msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
-                    {label}
+                <button className='msp-form-control msp-control-button-label msp-no-overflow' title={`${label}, ${reprLabel}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
+                    {label} <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{reprLabel}</small>
                 </button>
                 <IconButton onClick={this.toggleVisible} icon='visual-visibility' toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small customClass='msp-form-control' style={{ flex: '0 0 32px' }} />
                 <IconButton onClick={this.toggleRemove} icon='remove' title='Remove' small toggleState={this.state.action === 'remove'} customClass='msp-form-control' style={{ flex: '0 0 32px' }} />
