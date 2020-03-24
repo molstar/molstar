@@ -260,7 +260,7 @@ const tagMap: [TestCell, ApplyRef, LeaveRef][] = [
         }
     }, state => state.currentComponent = void 0],
 
-    // Component Rpresentation
+    // Component Representation
     [(cell, state) => {
         return !cell.state.isGhost && !!state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj)
     }, (state, cell) => {
@@ -274,7 +274,7 @@ const tagMap: [TestCell, ApplyRef, LeaveRef][] = [
 
     // Generic Representation
     [cell => !cell.state.isGhost && SO.isRepresentation3D(cell.obj), (state, cell) => {
-        const genericTarget = state.currentComponent || state.currentModel || state.currentStructure;
+        const genericTarget = state.currentComponent || state.currentStructure || state.currentModel;
         if (genericTarget) {
             if (!genericTarget.genericRepresentations) genericTarget.genericRepresentations = [];
             createOrUpdateRefList(state, cell, genericTarget.genericRepresentations, GenericRepresentationRef, cell, genericTarget);
