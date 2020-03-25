@@ -8,7 +8,7 @@
 import { Column, Table } from '../../../mol-data/db';
 import { Interval, Segmentation } from '../../../mol-data/int';
 import UUID from '../../../mol-util/uuid';
-import { ElementIndex } from '../../../mol-model/structure';
+import { ElementIndex, ChainIndex } from '../../../mol-model/structure';
 import { Model } from '../../../mol-model/structure/model/model';
 import { AtomicConformation, AtomicData, AtomicHierarchy, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from '../../../mol-model/structure/model/properties/atomic';
 import { getAtomicIndex } from '../../../mol-model/structure/model/properties/utils/atomic-index';
@@ -16,6 +16,12 @@ import { ElementSymbol } from '../../../mol-model/structure/model/types';
 import { Entities } from '../../../mol-model/structure/model/properties/common';
 import { getAtomicDerivedData } from '../../../mol-model/structure/model/properties/utils/atomic-derived';
 import { AtomSite } from './schema';
+import { ModelFormat } from '../format';
+import { SymmetryOperator } from '../../../mol-math/geometry';
+import { MmcifFormat } from '../mmcif';
+import { AtomSiteOperatorMappingSchema } from '../../../mol-model/structure/export/categories/atom_site_operator_mapping';
+import { toDatabase } from '../../../mol-io/reader/cif/schema';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 
 function findHierarchyOffsets(atom_site: AtomSite) {
     if (atom_site._rowCount === 0) return { residues: [], chains: [] };
@@ -95,14 +101,70 @@ function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
         && Table.areEqual(a.atoms, b.atoms)
 }
 
-function getAtomicHierarchy(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, chemicalComponentMap: Model['properties']['chemicalComponentMap'], previous?: Model) {
+function createChainOperatorMappingAndSubstituteNames(hierarchy: AtomicData, format: ModelFormat) {
+    const mapping = new Map<ChainIndex, SymmetryOperator>();
+    if (!MmcifFormat.is(format)) return mapping;
+
+    const { molstar_atom_site_operator_mapping: entries } = toDatabase(AtomSiteOperatorMappingSchema, format.data.frame);
+    if (entries._rowCount === 0) return mapping;
+
+    const labelMap = new Map<string, { name: string, operator: SymmetryOperator }>();
+    const authMap = new Map<string, string>();
+
+    for (let i = 0; i < entries._rowCount; i++) {
+        const assembly: SymmetryOperator['assembly'] = entries.assembly_operator_id.valueKind(i) === Column.ValueKind.Present
+            ? { id: entries.assembly_id.value(i), operList: [], operId: entries.assembly_operator_id.value(i) }
+            : void 0;
+
+        const operator = SymmetryOperator.create(entries.operator_name.value(i), Mat4.identity(), {
+            assembly,
+            spgrOp: entries.symmetry_operator_index.valueKind(i) === Column.ValueKind.Present ? entries.symmetry_operator_index.value(i) : void 0,
+            hkl: Vec3.ofArray(entries.symmetry_hkl.value(i)),
+            ncsId: entries.ncs_id.value(i)
+        });
+
+        const suffix = entries.suffix.value(i);
+        const label = entries.label_asym_id.value(i);
+        labelMap.set(`${label}${suffix}`, { name: label, operator });
+        const auth = entries.auth_asym_id.value(i);
+        authMap.set(`${auth}${suffix}`, auth);
+    }
+
+    const { label_asym_id, auth_asym_id } = hierarchy.chains;
+    const mappedLabel: string[] = new Array(label_asym_id.rowCount);
+    const mappedAuth: string[] = new Array(label_asym_id.rowCount);
+
+    for (let i = 0 as ChainIndex; i < label_asym_id.rowCount; i++) {
+        const label = label_asym_id.value(i), auth = auth_asym_id.value(i);
+        if (!labelMap.has(label)) {
+            mappedLabel[i] = label;
+            mappedAuth[i] = auth;
+            continue;
+        }
+
+        const { name, operator } = labelMap.get(label)!;
+        mapping.set(i, operator);
+
+        mappedLabel[i] = name;
+        mappedAuth[i] = authMap.get(auth) || auth;
+    }
+
+    hierarchy.chains.label_asym_id = Column.ofArray({ array: mappedLabel, valueKind: hierarchy.chains.label_asym_id.valueKind, schema: hierarchy.chains.label_asym_id.schema });
+    hierarchy.chains.auth_asym_id = Column.ofArray({ array: mappedAuth, valueKind: hierarchy.chains.auth_asym_id.valueKind, schema: hierarchy.chains.auth_asym_id.schema });
+
+    return mapping;
+}
+
+function getAtomicHierarchy(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, chemicalComponentMap: Model['properties']['chemicalComponentMap'], format: ModelFormat, previous?: Model) {
     const hierarchyOffsets = findHierarchyOffsets(atom_site);
     const hierarchyData = createHierarchyData(atom_site, sourceIndex, hierarchyOffsets);
+    const chainOperatorMapping = createChainOperatorMappingAndSubstituteNames(hierarchyData, format);
 
     if (previous && isHierarchyDataEqual(previous.atomicHierarchy, hierarchyData)) {
         return {
             sameAsPrevious: true,
             hierarchy: previous.atomicHierarchy,
+            chainOperatorMapping
         };
     }
 
@@ -114,11 +176,11 @@ function getAtomicHierarchy(atom_site: AtomSite, sourceIndex: Column<number>, en
     const index = getAtomicIndex(hierarchyData, entities, hierarchySegments);
     const derived = getAtomicDerivedData(hierarchyData, index, chemicalComponentMap);
     const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchySegments, index, derived };
-    return { sameAsPrevious: false, hierarchy };
+    return { sameAsPrevious: false, hierarchy, chainOperatorMapping };
 }
 
-export function getAtomicHierarchyAndConformation(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, chemicalComponentMap: Model['properties']['chemicalComponentMap'], previous?: Model) {
-    const { sameAsPrevious, hierarchy } = getAtomicHierarchy(atom_site, sourceIndex, entities, chemicalComponentMap, previous)
+export function getAtomicHierarchyAndConformation(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, chemicalComponentMap: Model['properties']['chemicalComponentMap'], format: ModelFormat, previous?: Model) {
+    const { sameAsPrevious, hierarchy, chainOperatorMapping } = getAtomicHierarchy(atom_site, sourceIndex, entities, chemicalComponentMap, format, previous)
     const conformation = getConformation(atom_site)
-    return { sameAsPrevious, hierarchy, conformation };
+    return { sameAsPrevious, hierarchy, conformation, chainOperatorMapping };
 }

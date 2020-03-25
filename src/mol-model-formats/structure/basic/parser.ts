@@ -39,7 +39,7 @@ export async function createModels(data: BasicData, format: ModelFormat, ctx: Ru
 /** Standard atomic model */
 function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, properties: Model['properties'], format: ModelFormat, previous?: Model): Model {
 
-    const atomic = getAtomicHierarchyAndConformation(atom_site, sourceIndex, entities, properties.chemicalComponentMap, previous);
+    const atomic = getAtomicHierarchyAndConformation(atom_site, sourceIndex, entities, properties.chemicalComponentMap, format, previous);
     const modelNum = atom_site.pdbx_PDB_model_num.value(0)
     if (previous && atomic.sameAsPrevious) {
         return {
@@ -75,6 +75,7 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
         atomicHierarchy: atomic.hierarchy,
         atomicConformation: atomic.conformation,
         atomicRanges,
+        atomicChainOperatorMappinng: atomic.chainOperatorMapping,
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties,
@@ -86,7 +87,7 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
 
 /** Integrative model with atomic/coarse parts */
 function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Model['properties'], format: ModelFormat): Model {
-    const atomic = getAtomicHierarchyAndConformation(ihm.atom_site, ihm.atom_site_sourceIndex, ihm.entities, properties.chemicalComponentMap);
+    const atomic = getAtomicHierarchyAndConformation(ihm.atom_site, ihm.atom_site_sourceIndex, ihm.entities, properties.chemicalComponentMap, format);
     const coarse = getCoarse(ihm, properties);
     const sequence = getSequence(data, ihm.entities, atomic.hierarchy, coarse.hierarchy)
     const atomicRanges = getAtomicRanges(atomic.hierarchy, ihm.entities, atomic.conformation, sequence)
@@ -113,6 +114,7 @@ function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Mo
         atomicHierarchy: atomic.hierarchy,
         atomicConformation: atomic.conformation,
         atomicRanges,
+        atomicChainOperatorMappinng: atomic.chainOperatorMapping,
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties,

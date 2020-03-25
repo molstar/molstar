@@ -26,8 +26,8 @@ export const AtomSiteOperatorMappingSchema = {
         suffix: Column.Schema.Str(),
 
         // assembly
-        assembly_operator_id: Column.Schema.Str(),
-        assembly_operator_index: Column.Schema.Int(),
+        assembly_id: Column.Schema.Str(),
+        assembly_operator_id: Column.Schema.Int(),
 
         // symmetry
         symmetry_operator_index: Column.Schema.Int(),
@@ -48,8 +48,8 @@ const Fields = CifWriter.fields<number, Entry[], keyof (typeof AtomSiteOperatorM
     .str('suffix', (i, xs) => xs[i].operator.suffix)
     // assembly
     // TODO: include oper list as well?
-    .str('assembly_operator_id', (i, xs) => xs[i].operator.assembly?.id || '', { valueKind: asmValueKind })
-    .int('assembly_operator_index', (i, xs) => xs[i].operator.assembly?.operId || 0, { valueKind: asmValueKind })
+    .str('assembly_id', (i, xs) => xs[i].operator.assembly?.id || '', { valueKind: asmValueKind })
+    .int('assembly_operator_id', (i, xs) => xs[i].operator.assembly?.operId || 0, { valueKind: asmValueKind })
     // symmetry
     .int('symmetry_operator_index', (i, xs) => xs[i].operator.spgrOp, { valueKind: symmetryValueKind })
     .vec('symmetry_hkl', [(i, xs) => xs[i].operator.hkl[0], (i, xs) => xs[i].operator.hkl[1], (i, xs) => xs[i].operator.hkl[2]], { valueKind: symmetryValueKind })
