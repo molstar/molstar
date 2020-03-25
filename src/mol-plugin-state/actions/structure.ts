@@ -17,8 +17,7 @@ import { StateTransforms } from '../transforms';
 import { Download, ParsePsf } from '../transforms/data';
 import { CoordinatesFromDcd, CustomModelProperties, CustomStructureProperties, TopologyFromPsf, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant } from './data-format';
-import { applyTrajectoryHierarchyPreset } from '../builder/structure/hierarchy-preset';
-import { PresetStructureReprentations } from '../builder/structure/representation-preset';
+import { PresetStructureRepresentations } from '../builder/structure/representation-preset';
 
 // TODO make unitcell creation part of preset
 
@@ -37,7 +36,7 @@ export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | P
         return Task.create('mmCIF default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, 'mmcif');
             const representationPreset = options.visuals ? 'auto' : 'empty';
-            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
+            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
         })
     }
 }
@@ -54,7 +53,7 @@ export const PdbProvider: DataFormatProvider<any> = {
         return Task.create('PDB default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, 'pdb');
             const representationPreset = options.visuals ? 'auto' : 'empty';
-            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
+            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
         })
     }
 }
@@ -71,7 +70,7 @@ export const GroProvider: DataFormatProvider<any> = {
         return Task.create('GRO default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, 'gro');
             const representationPreset = options.visuals ? 'auto' : 'empty';
-            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
+            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
         })
     }
 }
@@ -88,7 +87,7 @@ export const Provider3dg: DataFormatProvider<any> = {
         return Task.create('3DG default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, '3dg');
             const representationPreset = options.visuals ? 'auto' : 'empty';
-            await applyTrajectoryHierarchyPreset(ctx, trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
+            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
         })
     }
 }
@@ -129,7 +128,7 @@ export const DcdProvider: DataFormatProvider<any> = {
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => PD.Group({
     type: RootStructureDefinition.getParams(void 0, 'auto').type,
-    representation: PD.Select(PresetStructureReprentations.auto.id,
+    representation: PD.Select(PresetStructureRepresentations.auto.id,
         plugin.builders.structure.representation.getPresets().map(p => [p.id, p.display.name] as any),
         { description: 'Which representation preset to use.' }),
     asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
@@ -224,8 +223,8 @@ const DownloadStructure = StateAction.build({
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
-    const representationPreset: any = params.source.params.options.representation || PresetStructureReprentations.auto.id;
-    const showUnitcell = representationPreset !== PresetStructureReprentations.empty.id;
+    const representationPreset: any = params.source.params.options.representation || PresetStructureRepresentations.auto.id;
+    const showUnitcell = representationPreset !== PresetStructureRepresentations.empty.id;
 
     const structure = src.params.options.type.name === 'auto' ? void 0 : src.params.options.type;
 
@@ -237,7 +236,7 @@ const DownloadStructure = StateAction.build({
             }, { state: { isGhost: true } });
             const trajectory = await plugin.builders.structure.parseTrajectory(blob, { formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' })) });
 
-            await applyTrajectoryHierarchyPreset(plugin, trajectory, 'first-model', {
+            await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'first-model', {
                 structure,
                 showUnitcell,
                 representationPreset
@@ -247,7 +246,7 @@ const DownloadStructure = StateAction.build({
                 const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
                 const trajectory = await plugin.builders.structure.parseTrajectory(data, format);
 
-                await applyTrajectoryHierarchyPreset(plugin, trajectory, 'first-model', {
+                await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'first-model', {
                     structure,
                     showUnitcell,
                     representationPreset

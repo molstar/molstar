@@ -13,13 +13,11 @@ import { IconButton } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { memoize1 } from '../../mol-util/memoize';
-import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
 import { GenericEntry } from './generic';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
-    show?: 'hierarchy' | 'actions'
+    show?: 'hierarchy' | 'presets'
 }
 
 export class StructureSourceControls extends CollapsableControls<{}, StructureSourceControlState> {
@@ -185,29 +183,28 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
     }
 
     toggleHierarchy = () => this.setState({ show: this.state.show !== 'hierarchy' ? 'hierarchy' : void 0 });
-    toggleActions = () => this.setState({ show: this.state.show !== 'actions' ? 'actions' : void 0 });
+    togglePreset = () => this.setState({ show: this.state.show !== 'presets' ? 'presets' : void 0 });
 
-    actions = memoize1((sel: StructureHierarchyManager['selection']) => this._actions);
+    get presetActions() {
+        const actions: ActionMenu.Item[] = [];
+        const { trajectories } = this.plugin.managers.structure.hierarchy.selection;
+        if (trajectories.length !== 1) return actions
 
-    get _actions() {
-        const ret: ActionMenu.Items = [];
-
-        const { selection } = this.plugin.managers.structure.hierarchy;
-        if (selection.trajectories.some(t => t.cell.obj?.data.length! > 1 && t.cell.obj?.data.length! !== t.models.length)) {
-            ret.push(ActionMenu.Item('Load all models', () => this.plugin.managers.structure.hierarchy.createModels(selection.trajectories, 'all')));
+        const providers = this.plugin.builders.structure.hierarchy.getPresets(trajectories[0].cell.obj)
+        for (const p of providers) {
+            actions.push(ActionMenu.Item(p.display.name, p));
         }
-        if (selection.trajectories.some(t => t.models.length > 1)) {
-            ret.push(ActionMenu.Item('Load single model', () => this.plugin.managers.structure.hierarchy.createModels(selection.trajectories, 'single')));
-        }
-
-        // TODO: remove actions?
-        return ret;
+        return actions;
     }
 
-    selectAction: ActionMenu.OnSelect = item => {
-        if (!item) return;
+    applyPreset: ActionMenu.OnSelect = item => {
         this.setState({ show: void 0 });
-        (item?.value as any)();
+
+        if (!item) return;
+        const mng = this.plugin.managers.structure;
+
+        const { trajectories } = mng.hierarchy.selection;
+        mng.hierarchy.applyPreset(trajectories, item.value as any);
     }
 
     updateStructureModel = async (params: any) => {
@@ -276,17 +273,17 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
 
     renderControls() {
         const disabled = this.state.isBusy || this.isEmpty;
-        const actions = this.actions(this.plugin.managers.structure.hierarchy.selection);
+        const presets = this.presetActions;
         const label = this.label;
         return <>
             <div className='msp-btn-row-group' style={{ marginTop: '1px' }}>
                 <button className='msp-btn msp-form-control msp-flex-item msp-no-overflow' onClick={this.toggleHierarchy} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} disabled={disabled} title={label}>
                     {label}
                 </button>
-                {actions.length > 0 && <IconButton customClass='msp-form-control' style={{ flex: '0 0 32px' }} onClick={this.toggleActions} icon='dot-3' title='Actions' toggleState={this.state.show === 'actions'} disabled={disabled} />}
+                {presets.length > 0 && <IconButton customClass='msp-form-control' style={{ flex: '0 0 32px' }} onClick={this.togglePreset} icon='bookmarks' title='Presets' toggleState={this.state.show === 'presets'} disabled={disabled} />}
             </div>
             {this.state.show === 'hierarchy' && <ActionMenu items={this.hierarchyItems} onSelect={this.selectHierarchy} multiselect />}
-            {this.state.show === 'actions' && <ActionMenu items={actions} onSelect={this.selectAction} />}
+            {this.state.show === 'presets' && <ActionMenu items={presets} onSelect={this.applyPreset} />}
             {this.modelIndex}
             {this.structureType}
             <div style={{ marginTop: '6px' }}>

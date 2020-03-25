@@ -2,6 +2,7 @@
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { PluginContext } from '../../../mol-plugin/context';
@@ -9,7 +10,7 @@ import { StructureHierarchy, buildStructureHierarchy, ModelRef, StructureCompone
 import { PluginComponent } from '../../component';
 import { SetUtils } from '../../../mol-util/set';
 import { StateTransform } from '../../../mol-state';
-import { applyTrajectoryHierarchyPreset } from '../../builder/structure/hierarchy-preset';
+import { TrajectoryHierarchyPresetProvider } from '../../builder/structure/hierarchy-preset';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 
 export class StructureHierarchyManager extends PluginComponent {
@@ -150,21 +151,16 @@ export class StructureHierarchyManager extends PluginComponent {
         }
     }
 
-    createModels(trajectories: ReadonlyArray<TrajectoryRef>, kind: 'single' | 'all' = 'single') {
+    applyPreset<P = any, S = {}>(trajectories: ReadonlyArray<TrajectoryRef>, provider: TrajectoryHierarchyPresetProvider<P, S>, params?: P): Promise<any>  {
         return this.plugin.dataTransaction(async () => {
-            for (const trajectory of trajectories) {
-                if (trajectory.models.length > 0) {
-                    await this.clearTrajectory(trajectory);
+            for (const t of trajectories) {
+                if (t.models.length > 0) {
+                    await this.clearTrajectory(t);
                 }
 
-                if (trajectory.models.length === 0) return;
+                if (t.models.length === 0) return;
 
-                const tr = trajectory.cell.obj?.data!;
-                if (kind === 'all' && tr.length > 1) {
-                    await applyTrajectoryHierarchyPreset(this.plugin, trajectory.cell, 'all-models');
-                } else {
-                    await applyTrajectoryHierarchyPreset(this.plugin, trajectory.cell, 'first-model');
-                }
+                await this.plugin.builders.structure.hierarchy.applyPreset(t.cell, provider, params);
             }
         });
     }

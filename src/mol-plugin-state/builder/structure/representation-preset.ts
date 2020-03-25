@@ -227,7 +227,7 @@ export function presetSelectionComponent(plugin: PluginContext, structure: State
     return plugin.builders.structure.tryCreateComponentFromSelection(structure, Q[query], `selection-${query}`);
 }
 
-export const PresetStructureReprentations = {
+export const PresetStructureRepresentations = {
     empty,
     auto,
     'atomic-detail': atomicDetail,
@@ -236,4 +236,4 @@ export const PresetStructureReprentations = {
     'protein-and-nucleic': proteinAndNucleic,
     'coarse-surface': coarseSurface
 };
-export type PresetStructureReprentations = typeof PresetStructureReprentations;
+export type PresetStructureRepresentations = typeof PresetStructureRepresentations;

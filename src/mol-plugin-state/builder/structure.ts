@@ -18,6 +18,7 @@ import { StructureElement } from '../../mol-model/structure';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 import { SpacegroupCell } from '../../mol-math/geometry';
 import Expression from '../../mol-script/language/expression';
+import { TrajectoryHierarchyBuilder } from './structure/hierarchy';
 
 export class StructureBuilder {
     private get dataState() {
@@ -40,6 +41,7 @@ export class StructureBuilder {
         return trajectory.selector;
     }
 
+    readonly hierarchy = new TrajectoryHierarchyBuilder(this.plugin);
     readonly representation = new StructureRepresentationBuilder(this.plugin);
 
     async parseTrajectory(data: StateObjectRef<SO.Data.Binary | SO.Data.String>, format: BuiltInTrajectoryFormat | TrajectoryFormatProvider): Promise<StateObjectSelector<SO.Molecule.Trajectory>>

@@ -10,10 +10,10 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StateObjectRef, StateTransformer } from '../../../mol-state';
 import { StateTransforms } from '../../transforms';
 import { RootStructureDefinition } from '../../helpers/root-structure';
-import { PresetStructureReprentations } from './representation-preset';
+import { PresetStructureRepresentations } from './representation-preset';
 import { PluginContext } from '../../../mol-plugin/context';
-import { isProductionMode } from '../../../mol-util/debug';
-import { Task } from '../../../mol-task';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Model } from '../../../mol-model/structure';
 
 export interface TrajectoryHierarchyPresetProvider<P = any, S = {}> extends PresetProvider<PluginStateObject.Molecule.Trajectory, P, S> { }
 export namespace TrajectoryHierarchyPresetProvider {
@@ -25,12 +25,12 @@ export function TrajectoryHierarchyPresetProvider<P, S>(preset: TrajectoryHierar
 const CommonParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
     modelProperties: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.CustomModelProperties, void 0, plugin))),
     structureProperties: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.CustomStructureProperties, void 0, plugin))),
-    representationPreset: PD.Optional(PD.Text<keyof PresetStructureReprentations>('auto' as const)),
+    representationPreset: PD.Optional(PD.Text<keyof PresetStructureRepresentations>('auto' as const)),
 })
 
 const FirstModelParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) =>  ({
     model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin))),
-    showUnitcell: PD.Optional(PD.Boolean(true)),
+    showUnitcell: PD.Optional(PD.Boolean(false)),
     structure: PD.Optional(RootStructureDefinition.getParams(void 0, 'assembly').type),
     ...CommonParams(a, plugin)
 });
@@ -38,6 +38,9 @@ const FirstModelParams = (a: PluginStateObject.Molecule.Trajectory | undefined, 
 const firstModel = TrajectoryHierarchyPresetProvider({
     id: 'preset-trajectory-first-model',
     display: { name: 'First Model', group: 'Preset' },
+    isApplicable: o => {
+        return true
+    },
     params: FirstModelParams,
     async apply(trajectory, params, plugin) {
         const builder = plugin.builders.structure;
@@ -65,6 +68,9 @@ const firstModel = TrajectoryHierarchyPresetProvider({
 const allModels = TrajectoryHierarchyPresetProvider({
     id: 'preset-trajectory-all-models',
     display: { name: 'All Models', group: 'Preset' },
+    isApplicable: o => {
+        return o.data.length > 1
+    },
     params: CommonParams,
     async apply(trajectory, params, plugin) {
         const tr = StateObjectRef.resolveAndCheck(plugin.state.data, trajectory)?.obj?.data;
@@ -82,34 +88,71 @@ const allModels = TrajectoryHierarchyPresetProvider({
 
             models.push(model);
             structures.push(structure);
-            await builder.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { globalThemeName: 'model-index' });
+            await builder.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { globalThemeName: 'model-index', quality: 'medium' });
         }
 
         return { models, structures };
     }
 });
 
-export const PresetStructureTrajectoryHierarchy = {
-    'first-model': firstModel,
-    'all-models': allModels
-};
-export type PresetStructureTrajectoryHierarchy = typeof PresetStructureTrajectoryHierarchy;
+const CrystalSymmetryParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
+    model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin))),
+    ...CommonParams(a, plugin)
+});
 
-// TODO: should there be a registry like for representations?
+async function applyCrystalSymmetry(ijk: { ijkMin: Vec3, ijkMax: Vec3 }, trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory>, params: PD.ValuesFor<ReturnType<typeof CrystalSymmetryParams>>, plugin: PluginContext) {
+    const builder = plugin.builders.structure;
 
-export function applyTrajectoryHierarchyPreset<K extends keyof PresetStructureTrajectoryHierarchy>(plugin: PluginContext, parent: StateObjectRef<PluginStateObject.Molecule.Trajectory>, preset: K, params?: Partial<TrajectoryHierarchyPresetProvider.Params<PresetStructureTrajectoryHierarchy[K]>>): Promise<TrajectoryHierarchyPresetProvider.State<PresetStructureTrajectoryHierarchy[K]>> | undefined
-export function applyTrajectoryHierarchyPreset<P = any, S = {}>(plugin: PluginContext, parent: StateObjectRef<PluginStateObject.Molecule.Trajectory>, provider: TrajectoryHierarchyPresetProvider<P, S>, params?: P): Promise<S> | undefined
-export function applyTrajectoryHierarchyPreset(plugin: PluginContext, parent: StateObjectRef, providerRef: string | TrajectoryHierarchyPresetProvider, params?: any): Promise<any> | undefined {
-    const provider = typeof providerRef === 'string' ? (PresetStructureTrajectoryHierarchy as any)[providerRef] : providerRef;
-    if (!provider) return;
+    const model = await builder.createModel(trajectory, params.model);
+    const modelProperties = await builder.insertModelProperties(model, params.modelProperties);
 
-    const state = plugin.state.data;
-    const cell = StateObjectRef.resolveAndCheck(state, parent);
-    if (!cell) {
-        if (!isProductionMode) console.warn(`Applying hierarchy preset provider to bad cell.`);
-        return;
-    }
-    const prms = { ...PD.getDefaultValues(provider.params(cell.obj!, plugin) as PD.Params), ...params };
-    const task = Task.create(`${provider.display.name}`, () => provider.apply(cell, prms, plugin) as Promise<any>);
-    return plugin.runTask(task);
+    const structure = await builder.createStructure(modelProperties || model, {
+        name: 'symmetry',
+        params: ijk
+    });
+    const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
+
+    const unitcell = await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: false });
+    const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto');
+
+    return {
+        model,
+        modelProperties,
+        unitcell,
+        structure,
+        structureProperties,
+        representation
+    };
 }
+
+const unitcell = TrajectoryHierarchyPresetProvider({
+    id: 'preset-trajectory-unitcell',
+    display: { name: 'Unitcell', group: 'Preset' },
+    isApplicable: o => {
+        return Model.hasCrystalSymmetry(o.data[0])
+    },
+    params: CrystalSymmetryParams,
+    async apply(trajectory, params, plugin) {
+        return await applyCrystalSymmetry({ ijkMin: Vec3.create(0, 0, 0), ijkMax: Vec3.create(0, 0, 0) }, trajectory, params, plugin);
+    }
+});
+
+const supercell = TrajectoryHierarchyPresetProvider({
+    id: 'preset-trajectory-supercell',
+    display: { name: 'Supercell', group: 'Preset' },
+    isApplicable: o => {
+        return Model.hasCrystalSymmetry(o.data[0])
+    },
+    params: CrystalSymmetryParams,
+    async apply(trajectory, params, plugin) {
+        return await applyCrystalSymmetry({ ijkMin: Vec3.create(-1, -1, -1), ijkMax: Vec3.create(1, 1, 1) }, trajectory, params, plugin);
+    }
+});
+
+export const PresetTrajectoryHierarchy = {
+    'first-model': firstModel,
+    'all-models': allModels,
+    unitcell,
+    supercell,
+};
+export type PresetTrajectoryHierarchy = typeof PresetTrajectoryHierarchy;
