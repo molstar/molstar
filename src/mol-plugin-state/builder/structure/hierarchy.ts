@@ -14,6 +14,7 @@ import { objectForEach } from '../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject } from '../../objects';
 import { PresetTrajectoryHierarchy, TrajectoryHierarchyPresetProvider } from './hierarchy-preset';
+import { arrayRemoveInPlace } from '../../../mol-util/array';
 
 // TODO factor out code shared with StructureRepresentationBuilder?
 
@@ -78,6 +79,11 @@ export class TrajectoryHierarchyBuilder {
         }
         this._providers.push(provider);
         this.providerMap.set(provider.id, provider);
+    }
+
+    unregisterPreset(provider: TrajectoryHierarchyPresetProvider) {
+        this.providerMap.delete(provider.id)
+        arrayRemoveInPlace(this._providers, provider)
     }
 
     applyPreset<K extends keyof PresetTrajectoryHierarchy>(parent: StateObjectRef<PluginStateObject.Molecule.Trajectory>, preset: K, params?: Partial<TrajectoryHierarchyPresetProvider.Params<PresetTrajectoryHierarchy[K]>>): Promise<TrajectoryHierarchyPresetProvider.State<PresetTrajectoryHierarchy[K]>> | undefined

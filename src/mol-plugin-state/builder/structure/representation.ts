@@ -15,6 +15,7 @@ import { createStructureRepresentationParams, StructureRepresentationBuiltInProp
 import { PluginStateObject } from '../../objects';
 import { StructureRepresentation3D } from '../../transforms/representation';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from './representation-preset';
+import { arrayRemoveInPlace } from '../../../mol-util/array';
 
 // TODO factor out code shared with TrajectoryHierarchyBuilder?
 
@@ -80,6 +81,11 @@ export class StructureRepresentationBuilder {
         }
         this._providers.push(provider);
         this.providerMap.set(provider.id, provider);
+    }
+
+    unregisterPreset(provider: StructureRepresentationPresetProvider) {
+        this.providerMap.delete(provider.id)
+        arrayRemoveInPlace(this._providers, provider)
     }
 
     applyPreset<K extends keyof PresetStructureRepresentations>(parent: StateObjectRef<PluginStateObject.Molecule.Structure>, preset: K, params?: StructureRepresentationPresetProvider.Params<PresetStructureRepresentations[K]>): Promise<StructureRepresentationPresetProvider.State<PresetStructureRepresentations[K]>> | undefined
