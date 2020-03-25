@@ -151,7 +151,7 @@ function readOrFetch(jobId: string, key: string, sourceId: string | '_local_', e
     const uri = mapped[0].toLowerCase();
     if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('ftp://')) {
         return fetchDataAndFrame(jobId, mapped[0], (mapped[1] || 'cif').toLowerCase() as any, key);
-    } 
+    }
 
     if (!fs.existsSync(mapped[0])) throw new Error(`Could not find source file for '${key}'.`);
     return readDataAndFrame(mapped[0], key);

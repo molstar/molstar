@@ -16,8 +16,8 @@ interface SymmetryOperator {
         readonly id: string,
         /** pointers to `pdbx_struct_oper_list.id` or empty list */
         readonly operList: string[],
-        /** (arbitrary) index of the operator to be used in suffix */
-        readonly operIndex: number
+        /** (arbitrary) unique id of the operator to be used in suffix */
+        readonly operId: number
     },
 
     /** pointer to `struct_ncs_oper.id` or empty string */
@@ -35,8 +35,7 @@ interface SymmetryOperator {
 
     /**
      * Suffix based on operator type.
-     * - Empty if isIdentity
-     * - Assembly: _{assembly.operIndex + 1}
+     * - Assembly: _assembly.operId
      * - Crytal: -op_ijk
      * - ncs: _ncsId
      */
@@ -55,18 +54,17 @@ namespace SymmetryOperator {
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3.zero();
         spgrOp = defaults(spgrOp, -1);
         ncsId = ncsId || '';
-        const isIdentity = Mat4.isIdentity(matrix);
-        const suffix = getSuffix(isIdentity, info);
+        const suffix = getSuffix(info);
         if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix };
         if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
         return { name, assembly, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl, spgrOp, ncsId, suffix };
     }
 
-    function getSuffix(isIdentity: boolean, info?: CreateInfo) {
-        if (!info || isIdentity) return '';
+    function getSuffix(info?: CreateInfo) {
+        if (!info) return '';
 
         if (info.assembly) {
-            return `_${info.assembly.operIndex + 1}`;
+            return `_${info.assembly.operId}`;
         }
 
         if (typeof info.spgrOp !== 'undefined' && typeof info.hkl !== 'undefined' && info.spgrOp !== -1) {

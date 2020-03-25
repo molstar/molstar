@@ -23,6 +23,10 @@ export default class TextEncoder implements Encoder<string> {
         this.filter = filter || Category.DefaultFilter;
     }
 
+    isCategoryIncluded(name: string) {
+        return this.filter.includeCategory(name);
+    }
+
     setFormatter(formatter?: Category.Formatter) {
         this.formatter = formatter || Category.DefaultFormatter;
     }
@@ -32,7 +36,7 @@ export default class TextEncoder implements Encoder<string> {
         StringBuilder.write(this.builder, `data_${(header || '').replace(/[ \n\t]/g, '').toUpperCase()}\n#\n`);
     }
 
-    writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx) {
+    writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx, options?: Encoder.WriteCategoryOptions) {
         if (this.encoded) {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
@@ -41,7 +45,7 @@ export default class TextEncoder implements Encoder<string> {
             throw new Error('No data block created.');
         }
 
-        if (!this.filter.includeCategory(category.name)) return;
+        if (!options?.ignoreFilter && !this.filter.includeCategory(category.name)) return;
         const { instance, rowCount, source } = getCategoryInstanceData(category, context);
         if (!rowCount) return;
 

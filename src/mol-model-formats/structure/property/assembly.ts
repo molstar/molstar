@@ -117,7 +117,7 @@ function getAssemblyOperators(matrices: Matrices, operatorNames: string[][], sta
             Mat4.mul(m, m, matrices.get(op[i])!);
         }
         index++
-        operators[operators.length] = SymmetryOperator.create(`ASM_${index}`, m, { assembly: { id: assemblyId, operIndex: index, operList: op } });
+        operators[operators.length] = SymmetryOperator.create(`ASM_${index}`, m, { assembly: { id: assemblyId, operId: index, operList: op } });
     }
 
     return operators;

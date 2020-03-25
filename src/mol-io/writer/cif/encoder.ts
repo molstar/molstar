@@ -72,25 +72,32 @@ export namespace Field {
         return int(name, (e, d, i) => i + 1, { typedArray: Int32Array, encoder: ArrayEncoding.by(ArrayEncoding.delta).and(ArrayEncoding.runLength).and(ArrayEncoding.integerPacking) })
     }
 
-    export class Builder<K = number, D = any> {
+    export class Builder<K = number, D = any, N extends string = string> {
         private fields: Field<K, D>[] = [];
 
-        index(name: string) {
+        index(name: N) {
             this.fields.push(Field.index(name));
             return this;
         }
 
-        str(name: string, value: (k: K, d: D, index: number) => string, params?: ParamsBase<K, D>) {
+        str(name: N, value: (k: K, d: D, index: number) => string, params?: ParamsBase<K, D>) {
             this.fields.push(Field.str(name, value, params));
             return this;
         }
 
-        int(name: string, value: (k: K, d: D, index: number) => number, params?:  ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor }) {
+        int(name: N, value: (k: K, d: D, index: number) => number, params?:  ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor }) {
             this.fields.push(Field.int(name, value, params));
             return this;
         }
 
-        float(name: string, value: (k: K, d: D, index: number) => number, params?: ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor, digitCount?: number }) {
+        vec(name: N, values: ((k: K, d: D, index: number) => number)[], params?: ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor }) {
+            for (let i = 0; i < values.length; i++) {
+                this.fields.push(Field.int(`${name}[${i + 1}]`, values[i], params));
+            }
+            return this;
+        }
+
+        float(name: N, value: (k: K, d: D, index: number) => number, params?: ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor, digitCount?: number }) {
             this.fields.push(Field.float(name, value, params));
             return this;
         }
@@ -103,8 +110,8 @@ export namespace Field {
         getFields() { return this.fields; }
     }
 
-    export function build<K = number, D = any>() {
-        return new Builder<K, D>();
+    export function build<K = number, D = any, N extends string  = string>() {
+        return new Builder<K, D, N>();
     }
 }
 
@@ -215,14 +222,19 @@ export namespace Category {
 
 export interface Encoder<T = string | Uint8Array> extends EncoderBase {
     setFilter(filter?: Category.Filter): void,
+    isCategoryIncluded(name: string): boolean,
     setFormatter(formatter?: Category.Formatter): void,
 
     startDataBlock(header: string): void,
-    writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx): void,
+    writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx, options?: Encoder.WriteCategoryOptions): void,
     getData(): T
 }
 
 export namespace Encoder {
+    export interface WriteCategoryOptions {
+        ignoreFilter?: boolean
+    }
+
     export function writeDatabase(encoder: Encoder, name: string, database: Database<Database.Schema>) {
         encoder.startDataBlock(name);
         for (const table of database._tableNames) {

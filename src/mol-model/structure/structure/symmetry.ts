@@ -26,7 +26,7 @@ namespace StructureSymmetry {
             const assembly = Symmetry.findAssembly(models[0], asmName);
             if (!assembly) throw new Error(`Assembly '${asmName}' is not defined.`);
 
-            const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { assembly: { id: assembly.id, operIndex: 0, operList: [] } })
+            const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { assembly: { id: assembly.id, operId: 0, operList: [] } })
             const assembler = Structure.Builder({ coordinateSystem, label: structure.label });
 
             const queryCtx = new QueryContext(structure);

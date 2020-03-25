@@ -111,7 +111,7 @@ function getAssembly(transforms: Mat4[], structure: Structure) {
 
     for (let i = 0, il = transforms.length; i < il; ++i) {
         const id = `${i + 1}`
-        const op = SymmetryOperator.create(id, transforms[i], { assembly: { id, operIndex: i, operList: [ id ] } })
+        const op = SymmetryOperator.create(id, transforms[i], { assembly: { id, operId: i, operList: [ id ] } })
         for (const unit of units) {
             builder.addWithOperator(unit, op)
         }
