@@ -641,11 +641,13 @@ namespace Structure {
      */
     export function ofModel(model: Model): Structure {
         const chains = model.atomicHierarchy.chainAtomSegments;
-        const { index } = model.atomicHierarchy
-        const { auth_asym_id } = model.atomicHierarchy.chains
+        const { index } = model.atomicHierarchy;
+        const { auth_asym_id } = model.atomicHierarchy.chains;
+        const { atomicChainOperatorMappinng } = model;
         const builder = new StructureBuilder({ label: model.label });
 
         for (let c = 0 as ChainIndex; c < chains.count; c++) {
+            const operator = atomicChainOperatorMappinng.get(c) || SymmetryOperator.Default;
             const start = chains.offsets[c];
 
             // set to true for chains that consist of "single atom residues",
@@ -661,11 +663,15 @@ namespace Structure {
                 singleAtomResidues = true
                 const e1 = index.getEntityFromChain(c);
                 const e2 = index.getEntityFromChain(c + 1 as ChainIndex);
-                if (e1 !== e2) break
+                if (e1 !== e2) break;
 
                 const a1 = auth_asym_id.value(c);
                 const a2 = auth_asym_id.value(c + 1);
-                if (a1 !== a2) break
+                if (a1 !== a2) break;
+
+                const op1 = atomicChainOperatorMappinng.get(c);
+                const op2 = atomicChainOperatorMappinng.get(c + 1 as ChainIndex);
+                if (op1 !== op2) break;
 
                 multiChain = true
                 c++;
@@ -674,12 +680,12 @@ namespace Structure {
             const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
 
             if (singleAtomResidues) {
-                partitionAtomicUnitByAtom(model, elements, builder, multiChain);
+                partitionAtomicUnitByAtom(model, elements, builder, multiChain, operator);
             } else if (elements.length > 200000 || isWaterChain(model, c)) {
                 // split up very large chains e.g. lipid bilayers, micelles or water with explicit H
-                partitionAtomicUnitByResidue(model, elements, builder, multiChain);
+                partitionAtomicUnitByResidue(model, elements, builder, multiChain, operator);
             } else {
-                builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, multiChain ? Unit.Trait.MultiChain : Unit.Trait.None);
+                builder.addUnit(Unit.Kind.Atomic, model, operator, elements, multiChain ? Unit.Trait.MultiChain : Unit.Trait.None);
             }
         }
 
@@ -701,7 +707,7 @@ namespace Structure {
         return model.entities.data.type.value(e) === 'water';
     }
 
-    function partitionAtomicUnitByAtom(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean) {
+    function partitionAtomicUnitByAtom(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean, operator: SymmetryOperator) {
         const { x, y, z } = model.atomicConformation;
         const position = { x, y, z, indices }
         const lookup = GridLookup3D(position, getBoundary(position), 8192);
@@ -716,13 +722,13 @@ namespace Structure {
             for (let j = 0, _j = count[i]; j < _j; j++) {
                 set[j] = indices[array[start + j]];
             }
-            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(set), traits);
+            builder.addUnit(Unit.Kind.Atomic, model, operator, SortedArray.ofSortedArray(set), traits);
         }
         builder.endChainGroup();
     }
 
     // keeps atoms of residues together
-    function partitionAtomicUnitByResidue(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean) {
+    function partitionAtomicUnitByResidue(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean, operator: SymmetryOperator) {
         const { residueAtomSegments } = model.atomicHierarchy
 
         const startIndices: number[] = []
@@ -755,7 +761,7 @@ namespace Structure {
                     set[set.length] = l;
                 }
             }
-            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(new Int32Array(set)), traits);
+            builder.addUnit(Unit.Kind.Atomic, model, operator, SortedArray.ofSortedArray(new Int32Array(set)), traits);
         }
         builder.endChainGroup();
     }
@@ -775,12 +781,12 @@ namespace Structure {
         const units: Unit[] = [];
         for (const u of s.units) {
             const old = u.conformation.operator;
-            const op = SymmetryOperator.create(old.name, transform, old.assembly, old.ncsId, old.hkl);
+            const op = SymmetryOperator.create(old.name, transform, old);
             units.push(u.applyOperator(u.id, op));
         }
 
         const cs = s.coordinateSystem;
-        const newCS = SymmetryOperator.compose(SymmetryOperator.create(cs.name, transform, cs.assembly, cs.ncsId, cs.hkl), cs);
+        const newCS = SymmetryOperator.compose(SymmetryOperator.create(cs.name, transform, cs), cs);
         return new Structure(units, { parent: s, coordinateSystem: newCS });
     }
 

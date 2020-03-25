@@ -12,6 +12,22 @@ import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
 import E = CifWriter.Encodings
 
+const _label_asym_id = P.chain.label_asym_id;
+function atom_site_label_asym_id(e: StructureElement.Location) {
+    const l = _label_asym_id(e);
+    const suffix = e.unit.conformation.operator.suffix;
+    if (!suffix) return l;
+    return l + suffix;
+}
+
+const _auth_asym_id = P.chain.auth_asym_id;
+function atom_site_auth_asym_id(e: StructureElement.Location) {
+    const l = _auth_asym_id(e);
+    const suffix = e.unit.conformation.operator.suffix;
+    if (!suffix) return l;
+    return l + suffix;
+}
+
 const atom_site_fields = CifWriter.fields<StructureElement.Location, Structure>()
     .str('group_PDB', P.residue.group_PDB)
     .index('id')
@@ -29,14 +45,14 @@ const atom_site_fields = CifWriter.fields<StructureElement.Location, Structure>(
     .str('label_alt_id', P.atom.label_alt_id)
     .str('pdbx_PDB_ins_code', P.residue.pdbx_PDB_ins_code)
 
-    .str('label_asym_id', P.chain.label_asym_id)
+    .str('label_asym_id', atom_site_label_asym_id)
     .str('label_entity_id', P.chain.label_entity_id)
 
     .float('Cartn_x', P.atom.x, { digitCount: 3, encoder: E.fixedPoint3 })
     .float('Cartn_y', P.atom.y, { digitCount: 3, encoder: E.fixedPoint3 })
     .float('Cartn_z', P.atom.z, { digitCount: 3, encoder: E.fixedPoint3 })
     .float('occupancy', P.atom.occupancy, { digitCount: 2, encoder: E.fixedPoint2 })
-    .int('pdbx_formal_charge', P.atom.pdbx_formal_charge, { 
+    .int('pdbx_formal_charge', P.atom.pdbx_formal_charge, {
         encoder: E.deltaRLE,
         valueKind: (k, d) =>  k.unit.model.atomicHierarchy.atoms.pdbx_formal_charge.valueKind(k.element)
     })
@@ -44,12 +60,12 @@ const atom_site_fields = CifWriter.fields<StructureElement.Location, Structure>(
     .str('auth_atom_id', P.atom.auth_atom_id)
     .str('auth_comp_id', P.residue.auth_comp_id)
     .int('auth_seq_id', P.residue.auth_seq_id, { encoder: E.deltaRLE })
-    .str('auth_asym_id', P.chain.auth_asym_id)
+    .str('auth_asym_id', atom_site_auth_asym_id)
 
     .int('pdbx_PDB_model_num', P.unit.model_num, { encoder: E.deltaRLE })
-    .str('operator_name', P.unit.operator_name, {
-        shouldInclude: structure => structure.units.some(u => !u.conformation.operator.isIdentity)
-    })
+    // .str('operator_name', P.unit.operator_name, {
+    //     shouldInclude: structure => structure.units.some(u => !u.conformation.operator.isIdentity)
+    // })
     .getFields();
 
 export const _atom_site: CifCategory<CifExportContext> = {

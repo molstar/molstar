@@ -16,6 +16,7 @@ import { Model } from '../model';
 import { getUniqueEntityIndicesFromStructures, copy_mmCif_category } from './categories/utils';
 import { _struct_asym, _entity_poly, _entity_poly_seq } from './categories/sequence';
 import { CustomPropertyDescriptor } from '../common/custom-property';
+import { atom_site_operator_mapping } from './categories/atom_site_operator_mapping';
 
 export interface CifExportContext {
     structures: Structure[],
@@ -134,6 +135,10 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: 
     for (const cat of Categories) {
         if (_params.skipCategoryNames && _params.skipCategoryNames.has(cat.name)) continue;
         encoder.writeCategory(cat, ctx);
+    }
+
+    if ((!_params.skipCategoryNames || !_params.skipCategoryNames.has('atom_site')) && encoder.isCategoryIncluded('atom_site')) {
+        atom_site_operator_mapping(encoder, ctx);
     }
 
     for (const customProp of models[0].customProperties.all) {

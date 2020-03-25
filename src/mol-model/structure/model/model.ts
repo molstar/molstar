@@ -22,6 +22,8 @@ import { Task } from '../../../mol-task';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { createModels } from '../../../mol-model-formats/structure/basic/parser';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
+import { ChainIndex } from './indexing';
+import { SymmetryOperator } from '../../../mol-math/geometry';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -60,6 +62,7 @@ export interface Model extends Readonly<{
     atomicHierarchy: AtomicHierarchy,
     atomicConformation: AtomicConformation,
     atomicRanges: AtomicRanges,
+    atomicChainOperatorMappinng: Map<ChainIndex, SymmetryOperator>,
 
     properties: {
         /** map that holds details about unobserved or zero occurrence residues */

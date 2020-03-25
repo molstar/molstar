@@ -26,7 +26,7 @@ namespace StructureSymmetry {
             const assembly = Symmetry.findAssembly(models[0], asmName);
             if (!assembly) throw new Error(`Assembly '${asmName}' is not defined.`);
 
-            const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { id: assembly.id, operList: [] })
+            const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { assembly: { id: assembly.id, operId: 0, operList: [] } })
             const assembler = Structure.Builder({ coordinateSystem, label: structure.label });
 
             const queryCtx = new QueryContext(structure);
@@ -150,7 +150,12 @@ function getOperatorsForIndex(symmetry: Symmetry, index: number, i: number, j: n
         for (let u = 0, ul = ncsOperators.length; u < ul; ++u) {
             const ncsOp = ncsOperators![u]
             const matrix = Mat4.mul(Mat4(), symOp.matrix, ncsOp.matrix)
-            const operator = SymmetryOperator.create(`${symOp.name} ${ncsOp.name}`, matrix, symOp.assembly, ncsOp.ncsId, symOp.hkl, symOp.spgrOp);
+            const operator = SymmetryOperator.create(`${symOp.name} ${ncsOp.name}`, matrix, {
+                assembly: symOp.assembly,
+                ncsId: ncsOp.ncsId,
+                hkl: symOp.hkl,
+                spgrOp: symOp.spgrOp
+            });
             operators.push(operator)
         }
     } else {

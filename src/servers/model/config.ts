@@ -90,8 +90,8 @@ const DefaultModelServerConfig = {
      * - filename [source, mapping]
      * - URI [source, mapping, format]
      *
-     * Mapping is provided 'source' and 'id' variables to interpolate. 
-     * 
+     * Mapping is provided 'source' and 'id' variables to interpolate.
+     *
      * /static query uses 'pdb-cif' and 'pdb-bcif' source names.
      */
     sourceMap: [
@@ -152,7 +152,7 @@ function addServerArgs(parser: argparse.ArgumentParser) {
     parser.addArgument([ '--defaultSource' ], {
         defaultValue: DefaultModelServerConfig.defaultSource,
         metavar: 'DEFAULT_SOURCE',
-        help: `modifies which 'sourceMap' source to use by default` 
+        help: `modifies which 'sourceMap' source to use by default`
     });
     parser.addArgument([ '--sourceMap' ], {
         nargs: 2,
@@ -182,7 +182,7 @@ function addServerArgs(parser: argparse.ArgumentParser) {
 export type ModelServerConfig = typeof DefaultModelServerConfig
 export const ModelServerConfig = { ...DefaultModelServerConfig }
 
-export const ModelServerConfigTemplate: ModelServerConfig = { 
+export const ModelServerConfigTemplate: ModelServerConfig = {
     ...DefaultModelServerConfig,
     defaultSource: 'pdb-bcif',
     sourceMap: [
@@ -202,12 +202,12 @@ interface ServerJsonConfig {
 }
 
 function addJsonConfigArgs(parser: argparse.ArgumentParser) {
-    parser.addArgument(['--cfg'], { 
+    parser.addArgument(['--cfg'], {
         help: [
             'JSON config file path',
             'If a property is not specified, cmd line param/OS variable/default value are used.'
         ].join('\n'),
-        required: false 
+        required: false
     });
     parser.addArgument(['--printCfg'], { help: 'Print current config for validation and exit.', required: false, nargs: 0 });
     parser.addArgument(['--cfgTemplate'], { help: 'Prints default JSON config template to be modified and exits.', required: false, nargs: 0 });
@@ -228,7 +228,7 @@ function validateConfigAndSetupSourceMap() {
     if (!ModelServerConfig.sourceMap || ModelServerConfig.sourceMap.length === 0) {
         throw new Error(`Please provide 'sourceMap' configuration. See [-h] for available options.`);
     }
-    
+
     mapSourceAndIdToFilename = new Function('source', 'id', [
         'switch (source.toLowerCase()) {',
         ...ModelServerConfig.sourceMap.map(([source, path, format]) => `case '${source.toLowerCase()}': return [\`${path}\`, '${format}'];`),
@@ -254,23 +254,23 @@ export function configureServer() {
         console.log(JSON.stringify(ModelServerConfigTemplate, null, 2));
         process.exit(0);
     }
-    
+
     try {
         setConfig(config) // sets the config for global use
-    
+
         if (config.cfg) {
             const cfg = JSON.parse(fs.readFileSync(config.cfg, 'utf8')) as ModelServerConfig;
             setConfig(cfg);
         }
-    
+
         if (config.printCfg !== null) {
             console.log(JSON.stringify(ModelServerConfig, null, 2));
             process.exit(0);
         }
-    
+
         validateConfigAndSetupSourceMap();
     } catch (e) {
         console.error('' + e);
         process.exit(1);
-    }    
+    }
 }

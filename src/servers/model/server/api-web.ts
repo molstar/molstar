@@ -120,12 +120,12 @@ function mapQuery(app: express.Express, queryName: string, queryDefinition: Quer
 }
 
 function serveStatic(req: express.Request, res: express.Response) {
-    const source = req.params.source === 'bcif' 
+    const source = req.params.source === 'bcif'
         ? 'pdb-bcif'
         : req.params.source === 'cif'
-        ? 'pdb-cif'
-        : req.params.source;
-    
+            ? 'pdb-cif'
+            : req.params.source;
+
     const id = req.params.id;
     const [fn, format] = mapSourceAndIdToFilename(source, id);
     const binary = format === 'bcif' || fn.indexOf('.bcif') > 0;

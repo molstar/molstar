@@ -29,8 +29,8 @@ export namespace CifWriter {
         return binary ? new BinaryEncoder(encoderName, params ? params.binaryEncodingPovider : void 0, params ? !!params.binaryAutoClassifyEncoding : false) : new TextEncoder();
     }
 
-    export function fields<K = number, D = any>() {
-        return Field.build<K, D>();
+    export function fields<K = number, D = any, N extends string = string>() {
+        return Field.build<K, D, N>();
     }
 
     import E = Encoding

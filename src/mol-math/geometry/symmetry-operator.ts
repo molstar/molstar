@@ -13,10 +13,12 @@ interface SymmetryOperator {
 
     readonly assembly?: {
         /** pointer to `pdbx_struct_assembly.id` or empty string */
-        readonly id: string
+        readonly id: string,
         /** pointers to `pdbx_struct_oper_list.id` or empty list */
-        readonly operList: string[]
-    }
+        readonly operList: string[],
+        /** (arbitrary) unique id of the operator to be used in suffix */
+        readonly operId: number
+    },
 
     /** pointer to `struct_ncs_oper.id` or empty string */
     readonly ncsId: string,
@@ -29,7 +31,15 @@ interface SymmetryOperator {
     // cache the inverse of the transform
     readonly inverse: Mat4,
     // optimize the identity case
-    readonly isIdentity: boolean
+    readonly isIdentity: boolean,
+
+    /**
+     * Suffix based on operator type.
+     * - Assembly: _assembly.operId
+     * - Crytal: -op_ijk
+     * - ncs: _ncsId
+     */
+    readonly suffix: string
 }
 
 namespace SymmetryOperator {
@@ -38,13 +48,35 @@ namespace SymmetryOperator {
 
     export const RotationTranslationEpsilon = 0.005;
 
-    export function create(name: string, matrix: Mat4, assembly?: SymmetryOperator['assembly'], ncsId?: string, hkl?: Vec3, spgrOp?: number): SymmetryOperator {
+    export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: string, hkl?: Vec3, spgrOp?: number }
+    export function create(name: string, matrix: Mat4, info?: CreateInfo): SymmetryOperator {
+        let { assembly, ncsId, hkl, spgrOp } = info || { };
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3.zero();
-        spgrOp = defaults(spgrOp, -1)
-        ncsId = ncsId || ''
-        if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId };
+        spgrOp = defaults(spgrOp, -1);
+        ncsId = ncsId || '';
+        const suffix = getSuffix(info);
+        if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix };
         if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
-        return { name, assembly, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl, spgrOp, ncsId };
+        return { name, assembly, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl, spgrOp, ncsId, suffix };
+    }
+
+    function getSuffix(info?: CreateInfo) {
+        if (!info) return '';
+
+        if (info.assembly) {
+            return `_${info.assembly.operId}`;
+        }
+
+        if (typeof info.spgrOp !== 'undefined' && typeof info.hkl !== 'undefined' && info.spgrOp !== -1) {
+            const [i, j, k] = info.hkl;
+            return `-${info.spgrOp + 1}_${5 + i}${5 + j}${5 + k}`
+        }
+
+        if (info.ncsId) {
+            return `_${info.ncsId}`;
+        }
+
+        return '';
     }
 
     export function checkIfRotationAndTranslation(rot: Mat3, offset: Vec3) {
@@ -66,7 +98,7 @@ namespace SymmetryOperator {
             }
         }
         Mat4.setTranslation(t, offset);
-        return create(name, t, { id: '', operList: [] }, ncsId);
+        return create(name, t, { ncsId });
     }
 
     const _q1 = Quat.identity(), _q2 = Quat.zero(), _q3 = Quat.zero(), _axis = Vec3.zero();
@@ -114,7 +146,7 @@ namespace SymmetryOperator {
      */
     export function compose(first: SymmetryOperator, second: SymmetryOperator) {
         const matrix = Mat4.mul(Mat4.zero(), second.matrix, first.matrix);
-        return create(second.name, matrix, second.assembly, second.ncsId, second.hkl, second.spgrOp);
+        return create(second.name, matrix, second);
     }
 
     export interface CoordinateMapper<T extends number> { (index: T, slot: Vec3): Vec3 }
