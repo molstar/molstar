@@ -434,7 +434,7 @@ class MolStarProteopediaWrapper {
             try {
                 const snapshot = await this.plugin.runTask(this.plugin.fetch({ url, type: 'json' }));
                 // TODO: is this OK to test for snapshots from server?
-                await this.plugin.state.setSnapshot(snapshot?.data?.entries[0]?.snapshot || snapshot);
+                await this.plugin.state.setSnapshot(snapshot?.data?.entries?.[0]?.snapshot || snapshot);
             } catch (e) {
                 console.log(e);
             }
