@@ -775,12 +775,12 @@ namespace Structure {
         const units: Unit[] = [];
         for (const u of s.units) {
             const old = u.conformation.operator;
-            const op = SymmetryOperator.create(old.name, transform, old.assembly, old.ncsId, old.hkl);
+            const op = SymmetryOperator.create(old.name, transform, old);
             units.push(u.applyOperator(u.id, op));
         }
 
         const cs = s.coordinateSystem;
-        const newCS = SymmetryOperator.compose(SymmetryOperator.create(cs.name, transform, cs.assembly, cs.ncsId, cs.hkl), cs);
+        const newCS = SymmetryOperator.compose(SymmetryOperator.create(cs.name, transform, cs), cs);
         return new Structure(units, { parent: s, coordinateSystem: newCS });
     }
 

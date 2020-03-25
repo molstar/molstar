@@ -104,9 +104,9 @@ namespace Spacegroup {
         );
     }
 
-    export function getSymmetryOperator(spacegroup: Spacegroup, index: number, i: number, j: number, k: number): SymmetryOperator {
-        const operator = setOperatorMatrix(spacegroup, index, i, j, k, Mat4.zero());
-        return SymmetryOperator.create(`${index + 1}_${5 + i}${5 + j}${5 + k}`, operator, { id: '', operList: [] }, '', Vec3.create(i, j, k), index);
+    export function getSymmetryOperator(spacegroup: Spacegroup, spgrOp: number, i: number, j: number, k: number): SymmetryOperator {
+        const operator = setOperatorMatrix(spacegroup, spgrOp, i, j, k, Mat4.zero());
+        return SymmetryOperator.create(`${spgrOp + 1}_${5 + i}${5 + j}${5 + k}`, operator, { hkl: Vec3.create(i, j, k), spgrOp });
     }
 
     const _translationRef = Vec3()
@@ -135,9 +135,9 @@ namespace Spacegroup {
      * Get Symmetry operator for transformation around the given
      * reference point `ref` in fractional coordinates
      */
-    export function getSymmetryOperatorRef(spacegroup: Spacegroup, index: number, i: number, j: number, k: number, ref: Vec3) {
-        const operator = setOperatorMatrixRef(spacegroup, index, i, j, k, ref, Mat4.zero());
-        return SymmetryOperator.create(`${index + 1}_${5 + i}${5 + j}${5 + k}`, operator, { id: '', operList: [] }, '', Vec3.create(i, j, k), index);
+    export function getSymmetryOperatorRef(spacegroup: Spacegroup, spgrOp: number, i: number, j: number, k: number, ref: Vec3) {
+        const operator = setOperatorMatrixRef(spacegroup, spgrOp, i, j, k, ref, Mat4.zero());
+        return SymmetryOperator.create(`${spgrOp + 1}_${5 + i}${5 + j}${5 + k}`, operator, { hkl: Vec3.create(i, j, k), spgrOp });
     }
 
     function getOperatorMatrix(ids: number[]) {
