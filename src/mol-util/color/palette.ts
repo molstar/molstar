@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../param-definition'
@@ -10,6 +11,7 @@ import { ColorScale } from './scale';
 import { Color } from '.';
 import { ColorListName, ColorListOptionsScale, ColorListOptionsSet, getColorListFromName } from './lists';
 import { TableLegend, ScaleLegend } from '../legend';
+import { ColorNames } from './names';
 
 type PaletteType = 'generate' | 'scale' | 'set'
 
@@ -32,7 +34,12 @@ export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
         palette: PD.MappedStatic(p.type, {
             scale: PD.Group({
                 ...LabelParams,
-                list: PD.ColorList<ColorListName>(p.scaleList, ColorListOptionsScale),
+                list: PD.MappedStatic('predefined', {
+                    predefined: PD.ColorList<ColorListName>(p.scaleList, ColorListOptionsScale),
+                    custom: PD.ObjectList({ color: PD.Color(0x0 as Color) }, ({ color }) => Color.toHexString(color), {
+                        defaultValue: [ { color: ColorNames.red }, { color: ColorNames.green }, { color: ColorNames.blue } ]
+                    })
+                })
             }, { isFlat: true }),
             set: PD.Group({
                 ...LabelParams,
@@ -66,8 +73,17 @@ export function getPalette(count: number, props: PaletteProps) {
     let legend: ScaleLegend | TableLegend | undefined
 
     if (props.palette.name === 'scale') {
-        const { list: listOrName, minLabel, maxLabel } = props.palette.params
+        const { list, minLabel, maxLabel } = props.palette.params
         const domain: [number, number] = [0, count - 1]
+
+        let listOrName: ColorListName | Color[];
+        if (list.name === 'predefined') {
+            listOrName = list.params;
+        } else {
+            listOrName = list.params.map(c => c.color);
+            if (listOrName.length === 0) listOrName = [ColorNames.black];
+        }
+
         const scale = ColorScale.create({ listOrName, domain, minLabel, maxLabel })
         legend = scale.legend
         color = scale.color
