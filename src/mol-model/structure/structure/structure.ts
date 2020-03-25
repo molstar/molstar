@@ -1036,7 +1036,7 @@ namespace Structure {
     function hasHighSymmetry(structure: Structure, thresholds: SizeThresholds) {
         const polymerSymmetryGroups = getPolymerSymmetryGroups(structure)
         return (
-            polymerSymmetryGroups.length > 1 &&
+            polymerSymmetryGroups.length >= 1 &&
             polymerSymmetryGroups[0].units.length > thresholds.highSymmetryUnitCount
         )
     }
