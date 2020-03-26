@@ -31,20 +31,20 @@ export namespace TrajectoryHierarchyPresetProvider {
 
 const CommonParams = TrajectoryHierarchyPresetProvider.CommonParams
 
-const FirstModelParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) =>  ({
+const DefaultParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) =>  ({
     model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin))),
     showUnitcell: PD.Optional(PD.Boolean(false)),
     structure: PD.Optional(RootStructureDefinition.getParams(void 0, 'assembly').type),
     ...CommonParams(a, plugin)
 });
 
-const firstModel = TrajectoryHierarchyPresetProvider({
-    id: 'preset-trajectory-first-model',
-    display: { name: 'First Model', group: 'Preset' },
+const defaultPreset = TrajectoryHierarchyPresetProvider({
+    id: 'preset-trajectory-default',
+    display: { name: 'Default (Assembly)', group: 'Preset' },
     isApplicable: o => {
         return true
     },
-    params: FirstModelParams,
+    params: DefaultParams,
     async apply(trajectory, params, plugin) {
         const builder = plugin.builders.structure;
 
@@ -153,7 +153,7 @@ const supercell = TrajectoryHierarchyPresetProvider({
 });
 
 export const PresetTrajectoryHierarchy = {
-    'first-model': firstModel,
+    'default': defaultPreset,
     'all-models': allModels,
     unitcell,
     supercell,

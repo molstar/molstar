@@ -24,7 +24,7 @@ export class TrajectoryHierarchyBuilder {
     private _providers: TrajectoryHierarchyPresetProvider[] = [];
     private providerMap: Map<string, TrajectoryHierarchyPresetProvider> = new Map();
 
-    readonly defaultProvider = PresetTrajectoryHierarchy['first-model'];
+    readonly defaultProvider = PresetTrajectoryHierarchy.default;
 
     private resolveProvider(ref: TrajectoryHierarchyPresetProviderRef) {
         return typeof ref === 'string'

@@ -36,7 +36,7 @@ export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | P
         return Task.create('mmCIF default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, 'mmcif');
             const representationPreset = options.visuals ? 'auto' : 'empty';
-            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
+            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'default', { showUnitcell: options.visuals, representationPreset });
         })
     }
 }
@@ -53,7 +53,7 @@ export const PdbProvider: DataFormatProvider<any> = {
         return Task.create('PDB default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, 'pdb');
             const representationPreset = options.visuals ? 'auto' : 'empty';
-            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
+            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'default', { showUnitcell: options.visuals, representationPreset });
         })
     }
 }
@@ -70,7 +70,7 @@ export const GroProvider: DataFormatProvider<any> = {
         return Task.create('GRO default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, 'gro');
             const representationPreset = options.visuals ? 'auto' : 'empty';
-            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
+            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'default', { showUnitcell: options.visuals, representationPreset });
         })
     }
 }
@@ -87,7 +87,7 @@ export const Provider3dg: DataFormatProvider<any> = {
         return Task.create('3DG default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, '3dg');
             const representationPreset = options.visuals ? 'auto' : 'empty';
-            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'first-model', { showUnitcell: options.visuals, representationPreset });
+            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'default', { showUnitcell: options.visuals, representationPreset });
         })
     }
 }
@@ -236,7 +236,7 @@ const DownloadStructure = StateAction.build({
             }, { state: { isGhost: true } });
             const trajectory = await plugin.builders.structure.parseTrajectory(blob, { formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' })) });
 
-            await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'first-model', {
+            await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
                 structure,
                 showUnitcell,
                 representationPreset
@@ -246,7 +246,7 @@ const DownloadStructure = StateAction.build({
                 const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
                 const trajectory = await plugin.builders.structure.parseTrajectory(data, format);
 
-                await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'first-model', {
+                await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
                     structure,
                     showUnitcell,
                     representationPreset
