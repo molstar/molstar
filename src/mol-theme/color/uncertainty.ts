@@ -10,14 +10,13 @@ import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { ColorListName, ColorListOptionsScale } from '../../mol-util/color/lists';
 
 const DefaultUncertaintyColor = Color(0xffff99)
 const Description = `Assigns a color based on the uncertainty or disorder of an element's position, e.g. B-factor or RMSF, depending on the data availability and experimental technique.`
 
 export const UncertaintyColorThemeParams = {
     domain: PD.Interval([0, 100]),
-    list: PD.ColorList<ColorListName>('red-white-blue', ColorListOptionsScale),
+    list: PD.ColorList('red-white-blue', { presetKind: 'scale' }),
 }
 export type UncertaintyColorThemeParams = typeof UncertaintyColorThemeParams
 export function getUncertaintyColorThemeParams(ctx: ThemeDataContext) {
@@ -38,7 +37,7 @@ export function UncertaintyColorTheme(ctx: ThemeDataContext, props: PD.Values<Un
     const scale = ColorScale.create({
         reverse: true,
         domain: props.domain,
-        listOrName: props.list,
+        listOrName: props.list.colors,
     })
 
     // TODO calc domain based on data, set min/max as 10/90 percentile to be robust against outliers

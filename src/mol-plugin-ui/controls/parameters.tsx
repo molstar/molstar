@@ -9,7 +9,7 @@ import * as React from 'react';
 import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { PluginContext } from '../../mol-plugin/context';
 import { Color } from '../../mol-util/color';
-import { ColorListName, getColorListFromName } from '../../mol-util/color/lists';
+import { ColorListOptions, ColorListOptionsScale, ColorListOptionsSet, getColorListFromName, ColorListName } from '../../mol-util/color/lists';
 import { Legend as LegendData } from '../../mol-util/legend';
 import { memoize1, memoizeLatest } from '../../mol-util/memoize';
 import { getPrecision } from '../../mol-util/number';
@@ -79,7 +79,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
         return parts;
     }
 
-    paramGroups = memoize1((params: PD.Params) => classifyParams(params));
+    paramGroups = memoizeLatest((params: PD.Params) => classifyParams(params));
 
     render() {
         const groups = this.paramGroups(this.props.params);
@@ -586,32 +586,112 @@ const colorGradientBanded = memoize1((colors: Color[]) => {
     return `linear-gradient(to right, ${styles.join(', ')})`
 });
 
-function colorGradient(name: ColorListName, banded: boolean) {
-    const { list, type } = getColorListFromName(name)
-    return type === 'qualitative' ? colorGradientBanded(list) : colorGradientInterpolated(list)
+function colorStripStyle(list: PD.ColorList['defaultValue'], right = '0'): React.CSSProperties {
+    return {
+        background: colorGradient(list.colors, list.kind === 'set'),
+        position: 'absolute',
+        bottom: '0',
+        height: '4px',
+        right,
+        left: '0'
+    };
 }
 
-export class ColorListControl extends SimpleParam<PD.ColorList<any>> {
-    onChange = (e: React.ChangeEvent<HTMLSelectElement>) => { this.update(e.target.value); }
+function colorGradient(colors: Color[], banded: boolean) {
+    return banded ? colorGradientBanded(colors) : colorGradientInterpolated(colors)
+}
 
-    stripStyle(): React.CSSProperties {
-        return {
-            background: colorGradient(this.props.value, true),
-            position: 'absolute',
-            bottom: '0',
-            height: '4px',
-            right: '0',
-            left: '0'
-        };
+function createColorListHelpers() {
+
+    const addOn = (l: [ColorListName, any, any]) => {
+        const preset = getColorListFromName(l[0]);
+        return <div style={colorStripStyle({ kind: preset.type !== 'qualitative' ? 'interpolate' : 'set', colors: preset.list })} />;
     }
 
+    return {
+        ColorPresets: {
+            all: ActionMenu.createItemsFromSelectOptions(ColorListOptions, { addOn }),
+            scale: ActionMenu.createItemsFromSelectOptions(ColorListOptionsScale, { addOn }),
+            set: ActionMenu.createItemsFromSelectOptions(ColorListOptionsSet, { addOn })
+        },
+        ColorsParam: PD.ObjectList({ color: PD.Color(0x0 as Color) }, ({ color }) => Color.toHexString(color).toUpperCase()),
+        IsInterpolatedParam: PD.Boolean(false, { label: 'Interpolated' })
+    };
+}
+
+let _colorListHelpers: ReturnType<typeof createColorListHelpers>
+function ColorListHelpers() {
+    if (_colorListHelpers) return _colorListHelpers;
+    _colorListHelpers = createColorListHelpers();
+    return _colorListHelpers;
+}
+
+export class ColorListControl extends React.PureComponent<ParamProps<PD.ColorList>, { showHelp: boolean, show?: 'edit' | 'presets' }> {
+    state = { showHelp: false, show: void 0 as 'edit' | 'presets' | undefined };
+
+    protected update(value: PD.ColorList['defaultValue']) {
+        this.props.onChange({ param: this.props.param, name: this.props.name, value });
+    }
+
+    toggleEdit = () => this.setState({ show: this.state.show === 'edit' ? void 0 : 'edit' });
+    togglePresets = () => this.setState({ show: this.state.show === 'presets' ? void 0 : 'presets' });
+
     renderControl() {
-        return <div style={{ position: 'relative' }}>
-            <select value={this.props.value || ''} onChange={this.onChange} disabled={this.props.isDisabled}>
-                {this.props.param.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-            <div style={this.stripStyle()} />
+        const { value } = this.props;
+        // TODO: fix the button right offset
+        return <>
+            <button onClick={this.toggleEdit} style={{ position: 'relative', paddingRight: '33px' }}>
+                {value.colors.length === 1 ? '1 color' : `${value.colors.length} colors`}
+                <div style={colorStripStyle(value, '33px')} />
+            </button>
+            <IconButton icon='bookmarks' onClick={this.togglePresets} toggleState={this.state.show === 'presets'} title='Color Presets'
+                style={{ padding: 0, position: 'absolute', right: 0, top: 0, width: '32px' }} />
+        </>
+    }
+
+    selectPreset: ActionMenu.OnSelect = item => {
+        if (!item) return;
+        this.setState({ show: void 0 });
+
+        const preset = getColorListFromName(item.value as ColorListName);
+        this.update({ kind: preset.type !== 'qualitative' ? 'interpolate' : 'set', colors: preset.list });
+    }
+
+    colorsChanged: ParamOnChange = ({ value }) => {
+        this.update({
+            kind: this.props.value.kind,
+            colors: (value as (typeof _colorListHelpers)['ColorsParam']['defaultValue']).map(c => c.color)
+        });
+    }
+
+    isInterpolatedChanged: ParamOnChange = ({ value }) => {
+        this.update({ kind: value ? 'interpolate' : 'set', colors: this.props.value.colors })
+    }
+
+    renderColors() {
+        if (!this.state.show) return null;
+        const { ColorPresets, ColorsParam, IsInterpolatedParam } = ColorListHelpers();
+
+        const preset = ColorPresets[this.props.param.presetKind];
+        if (this.state.show === 'presets') return <ActionMenu items={preset} onSelect={this.selectPreset} />;
+
+        const values = this.props.value.colors.map(color => ({ color }));
+        return <div className='msp-control-offset'>
+            <ObjectListControl name='colors' param={ColorsParam} value={values} onChange={this.colorsChanged} isDisabled={this.props.isDisabled} onEnter={this.props.onEnter} />
+            <BoolControl name='isInterpolated' param={IsInterpolatedParam} value={this.props.value.kind === 'interpolate'} onChange={this.isInterpolatedChanged} isDisabled={this.props.isDisabled} onEnter={this.props.onEnter} />
         </div>;
+    }
+
+    toggleHelp = () => this.setState({ showHelp: !this.state.showHelp });
+
+    render() {
+        return renderSimple({
+            props: this.props,
+            state: this.state,
+            control: this.renderControl(),
+            toggleHelp: this.toggleHelp,
+            addOn: this.renderColors()
+        });
     }
 }
 

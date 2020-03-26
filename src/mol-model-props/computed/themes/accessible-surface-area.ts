@@ -5,7 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ColorListName, ColorListOptionsScale } from '../../../mol-util/color/lists'
 import { ParamDefinition as PD } from '../../../mol-util/param-definition'
 import { Color, ColorScale } from '../../../mol-util/color'
 import { ThemeDataContext } from '../../../mol-theme/theme'
@@ -20,7 +19,7 @@ const DefaultColor = Color(0xFAFAFA)
 const Description = 'Assigns a color based on the relative accessible surface area of a residue.'
 
 export const AccessibleSurfaceAreaColorThemeParams = {
-    list: PD.ColorList<ColorListName>('rainbow', ColorListOptionsScale)
+    list: PD.ColorList('rainbow', { presetKind: 'scale' })
 }
 export type AccessibleSurfaceAreaColorThemeParams = typeof AccessibleSurfaceAreaColorThemeParams
 export function getAccessibleSurfaceAreaColorThemeParams(ctx: ThemeDataContext) {
@@ -30,7 +29,7 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
     let color: LocationColor
 
     const scale = ColorScale.create({
-        listOrName: props.list,
+        listOrName: props.list.colors,
         minLabel: 'buried',
         maxLabel: 'exposed',
         domain: [0.0, 1.0]

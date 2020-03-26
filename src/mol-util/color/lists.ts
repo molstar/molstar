@@ -5,6 +5,7 @@
  */
 
 import { ColorList } from './color';
+import { capitalize } from '../string';
 
 export const ColorLists = {
     /**
@@ -205,7 +206,7 @@ export const ColorLists = {
 
 export type ColorListName = keyof typeof ColorLists
 export const ColorListNames = Object.keys(ColorLists)
-export const ColorListOptions = ColorListNames.map(n => [n, ColorLists[n as ColorListName].label] as [ColorListName, string])
+export const ColorListOptions = ColorListNames.map(n => [n, ColorLists[n as ColorListName].label, capitalize(ColorLists[n as ColorListName].type)] as [ColorListName, string, string])
 
 export const ColorListOptionsScale = ColorListOptions.filter(v => ColorLists[v[0]].type === 'diverging' || ColorLists[v[0]].type === 'sequential')
 export const ColorListOptionsSet = ColorListOptions.filter(v => ColorLists[v[0]].type === 'qualitative')

@@ -11,7 +11,7 @@ import { InteractivityManager } from '../../mol-plugin-state/manager/interactivi
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
 import { StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { StructureSelectionModifier } from '../../mol-plugin-state/manager/structure/selection';
-import { memoize1 } from '../../mol-util/memoize';
+import { memoizeLatest } from '../../mol-util/memoize';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { stripTags } from '../../mol-util/string';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
@@ -177,7 +177,7 @@ interface ApplyColorControlsProps {
 }
 
 class ApplyColorControls extends PurePluginUIComponent<ApplyColorControlsProps, ApplyColorControlsState> {
-    _params = memoize1((pivot: StructureRef | undefined) => StructureComponentManager.getColorParams(this.plugin, pivot));
+    _params = memoizeLatest((pivot: StructureRef | undefined) => StructureComponentManager.getColorParams(this.plugin, pivot));
     get params() { return this._params(this.plugin.managers.structure.component.pivotStructure); }
 
     state = { values: ParamDefinition.getDefaultValues(this.params) };

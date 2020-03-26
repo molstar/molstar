@@ -12,6 +12,7 @@ import { deepClone } from './object';
 import { Script as ScriptData } from '../mol-script/script';
 import { Legend } from './legend';
 import { stringToWords } from './string';
+import { getColorListFromName, ColorListName } from './color/lists';
 
 export namespace ParamDefinition {
     export interface Info {
@@ -80,15 +81,6 @@ export namespace ParamDefinition {
         return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options, cycle: info?.cycle }, info)
     }
 
-    export interface ColorList<T extends string> extends Base<T> {
-        type: 'color-list'
-        /** array of (value, label) tuples */
-        options: [T, string][]
-    }
-    export function ColorList<T extends string>(defaultValue: T, options: [T, string][], info?: Info): ColorList<T> {
-        return setInfo<ColorList<T>>({ type: 'color-list', defaultValue, options }, info)
-    }
-
     export interface MultiSelect<E extends string, T = E[]> extends Base<T> {
         type: 'multi-select'
         /** array of (value, label) tuples */
@@ -124,6 +116,21 @@ export namespace ParamDefinition {
         const ret = setInfo<Color>({ type: 'color', defaultValue }, info);
         if (info?.isExpanded) ret.isExpanded = info.isExpanded;
         return ret;
+    }
+
+    export interface ColorList extends Base<{ kind: 'interpolate' | 'set', colors: ColorData[] }> {
+        type: 'color-list'
+        presetKind: 'all' | 'scale' | 'set'
+    }
+    export function ColorList(defaultValue: { kind: 'interpolate' | 'set', colors: ColorData[] } | ColorListName, info?: Info & { presetKind?: ColorList['presetKind'] }): ColorList {
+        let def: ColorList['defaultValue'];
+        if (typeof defaultValue === 'string') {
+            const colors = getColorListFromName(defaultValue);
+            def = { kind: colors.type !== 'qualitative' ? 'interpolate' : 'set', colors: colors.list };
+        } else {
+            def = defaultValue;
+        }
+        return setInfo<ColorList>({ type: 'color-list', presetKind: info?.presetKind || 'all', defaultValue: def }, info)
     }
 
     export interface Vec3 extends Base<Vec3Data>, Range {
@@ -284,7 +291,7 @@ export namespace ParamDefinition {
 
     export type Any =
         | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Numeric | FileParam | FileListParam | Interval | LineGraph
-        | ColorList<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList
+        | ColorList | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }

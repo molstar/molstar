@@ -237,7 +237,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         const name = repr.cell.transform.params?.colorTheme.name;
         const themes = getStructureThemeTypes(this.plugin, this.pivot.cell.obj?.data);
         return ActionMenu.createItemsFromSelectOptions(themes, {
-            value: o => () => mng.updateRepresentationsTheme(this.props.group, { color: o[0] }),
+            value: o => () => mng.updateRepresentationsTheme(this.props.group, { color: o[0] as any }),
             selected: o => o[0] === name
         }) as ActionMenu.Item[];
     }

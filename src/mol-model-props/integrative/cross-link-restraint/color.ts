@@ -8,7 +8,6 @@ import { Color, ColorScale } from '../../../mol-util/color';
 import { Location } from '../../../mol-model/location';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition'
 import { ThemeDataContext } from '../../../mol-theme/theme';
-import { ColorListName, ColorListOptionsScale } from '../../../mol-util/color/lists';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { CustomProperty } from '../../common/custom-property';
 import { CrossLinkRestraintProvider, CrossLinkRestraint } from './property';
@@ -18,7 +17,7 @@ const Description = 'Colors cross-links by the deviation of the observed distanc
 
 export const CrossLinkColorThemeParams = {
     domain: PD.Interval([0.5, 1.5], { step: 0.01 }),
-    list: PD.ColorList<ColorListName>('red-grey', ColorListOptionsScale),
+    list: PD.ColorList('red-grey', { presetKind: 'scale' }),
 }
 export type CrossLinkColorThemeParams = typeof CrossLinkColorThemeParams
 export function getCrossLinkColorThemeParams(ctx: ThemeDataContext) {
@@ -34,7 +33,7 @@ export function CrossLinkColorTheme(ctx: ThemeDataContext, props: PD.Values<Cros
     if (crossLinkRestraints) {
         scale = ColorScale.create({
             domain: props.domain,
-            listOrName: props.list
+            listOrName: props.list.colors
         })
         const scaleColor = scale.color
 
@@ -72,5 +71,5 @@ export const CrossLinkColorThemeProvider: ColorTheme.Provider<CrossLinkColorThem
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? CrossLinkRestraintProvider.attach(ctx, data.structure, void 0, true) : Promise.resolve(),
         detach: (_, data) => data.structure && data.structure.customPropertyDescriptors.reference(CrossLinkRestraintProvider.descriptor, false)
-    }    
+    }
 }

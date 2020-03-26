@@ -11,13 +11,12 @@ import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
-import { ColorListOptionsScale, ColorListName } from '../../mol-util/color/lists';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer residue a color based on its `seq_id` value.'
 
 export const SequenceIdColorThemeParams = {
-    list: PD.ColorList<ColorListName>('turbo', ColorListOptionsScale),
+    list: PD.ColorList('turbo', { presetKind: 'scale' }),
 }
 export type SequenceIdColorThemeParams = typeof SequenceIdColorThemeParams
 export function getSequenceIdColorThemeParams(ctx: ThemeDataContext) {
@@ -66,7 +65,7 @@ function getSequenceLength(unit: Unit, element: ElementIndex) {
 
 export function SequenceIdColorTheme(ctx: ThemeDataContext, props: PD.Values<SequenceIdColorThemeParams>): ColorTheme<SequenceIdColorThemeParams> {
     const scale = ColorScale.create({
-        listOrName: props.list,
+        listOrName: props.list.colors,
         minLabel: 'Start',
         maxLabel: 'End',
     })

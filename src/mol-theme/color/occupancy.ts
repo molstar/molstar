@@ -10,14 +10,13 @@ import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { ColorListName, ColorListOptionsScale } from '../../mol-util/color/lists';
 
 const DefaultOccupancyColor = Color(0xCCCCCC)
 const Description = `Assigns a color based on the occupancy of an atom.`
 
 export const OccupancyColorThemeParams = {
     domain: PD.Interval([0, 1]),
-    list: PD.ColorList<ColorListName>('purples', ColorListOptionsScale),
+    list: PD.ColorList('purples', { presetKind: 'scale' }),
 }
 export type OccupancyColorThemeParams = typeof OccupancyColorThemeParams
 export function getOccupancyColorThemeParams(ctx: ThemeDataContext) {
@@ -36,7 +35,7 @@ export function OccupancyColorTheme(ctx: ThemeDataContext, props: PD.Values<Occu
     const scale = ColorScale.create({
         reverse: false,
         domain: props.domain,
-        listOrName: props.list,
+        listOrName: props.list.colors,
     })
 
     function color(location: Location): Color {

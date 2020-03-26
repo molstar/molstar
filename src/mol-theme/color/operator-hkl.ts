@@ -14,27 +14,24 @@ import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { ScaleLegend, TableLegend } from '../../mol-util/legend';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { integerDigitCount } from '../../mol-util/number';
-import { ColorLists } from '../../mol-util/color/lists';
+import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
 
 const DefaultList = 'dark-2'
 const DefaultColor = Color(0xCCCCCC)
 const Description = `Assigns a color based on the operator HKL value of a transformed chain.`
 
 export const OperatorHklColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: DefaultList }),
+    ...getPaletteParams({ type: 'colors', colorList: DefaultList }),
 }
 export type OperatorHklColorThemeParams = typeof OperatorHklColorThemeParams
 export function getOperatorHklColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(OperatorHklColorThemeParams)
     if (ctx.structure) {
         if (getOperatorHklSerialMap(ctx.structure.root).map.size > ColorLists[DefaultList].list.length) {
-            params.palette.defaultValue.name = 'scale'
+            params.palette.defaultValue.name = 'colors'
             params.palette.defaultValue.params = {
                 ...params.palette.defaultValue.params,
-                list: {
-                    name: 'predefined',
-                    params: 'red-yellow-blue'
-                }
+                list: { kind: 'interpolate', colors: getColorListFromName(DefaultList).list }
             }
         }
     }

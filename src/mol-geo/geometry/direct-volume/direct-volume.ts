@@ -4,29 +4,28 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from '../../../mol-util'
-import { Sphere3D, Box3D } from '../../../mol-math/geometry'
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { DirectVolumeValues } from '../../../mol-gl/renderable/direct-volume';
-import { Vec3, Mat4, Vec2 } from '../../../mol-math/linear-algebra';
-import { Box } from '../../primitive/box';
-import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './transfer-function';
-import { Texture } from '../../../mol-gl/webgl/texture';
-import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { TransformData } from '../transform-data';
-import { createColors } from '../color-data';
-import { createMarkers } from '../marker-data';
-import { GeometryUtils } from '../geometry';
-import { transformPositionArray } from '../../../mol-geo/util';
-import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
-import { Theme } from '../../../mol-theme/theme';
-import { RenderableState } from '../../../mol-gl/renderable';
-import { ColorListOptions, ColorListName } from '../../../mol-util/color/lists';
-import { Color } from '../../../mol-util/color';
-import { BaseGeometry } from '../base';
-import { createEmptyOverpaint } from '../overpaint-data';
-import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
+import { transformPositionArray } from '../../../mol-geo/util';
+import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { RenderableState } from '../../../mol-gl/renderable';
+import { DirectVolumeValues } from '../../../mol-gl/renderable/direct-volume';
+import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
+import { Texture } from '../../../mol-gl/webgl/texture';
+import { Box3D, Sphere3D } from '../../../mol-math/geometry';
+import { Mat4, Vec2, Vec3 } from '../../../mol-math/linear-algebra';
+import { Theme } from '../../../mol-theme/theme';
+import { ValueCell } from '../../../mol-util';
+import { Color } from '../../../mol-util/color';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { Box } from '../../primitive/box';
+import { BaseGeometry } from '../base';
+import { createColors } from '../color-data';
+import { GeometryUtils } from '../geometry';
+import { createMarkers } from '../marker-data';
+import { createEmptyOverpaint } from '../overpaint-data';
+import { TransformData } from '../transform-data';
+import { createEmptyTransparency } from '../transparency-data';
+import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './transfer-function';
 
 const VolumeBox = Box()
 const RenderModeOptions = [['isosurface', 'Isosurface'], ['volume', 'Volume']] as [string, string][]
@@ -117,7 +116,7 @@ export namespace DirectVolume {
             Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
             Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
         ]),
-        list: PD.ColorList<ColorListName>('red-yellow-blue', ColorListOptions),
+        list: PD.ColorList('red-yellow-blue'),
     }
     export type Params = typeof Params
 
@@ -148,7 +147,7 @@ export namespace DirectVolume {
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount)
 
         const controlPoints = getControlPointsFromVec2Array(props.controlPoints)
-        const transferTex = createTransferFunctionTexture(controlPoints, props.list)
+        const transferTex = createTransferFunctionTexture(controlPoints, props.list.colors)
 
         const maxSteps = Math.ceil(Vec3.magnitude(gridDimension.ref.value)) * 2 * 5
 
@@ -193,7 +192,7 @@ export namespace DirectVolume {
         ValueCell.updateIfChanged(values.dRenderMode, props.renderMode)
 
         const controlPoints = getControlPointsFromVec2Array(props.controlPoints)
-        createTransferFunctionTexture(controlPoints, props.list, values.tTransferTex)
+        createTransferFunctionTexture(controlPoints, props.list.colors, values.tTransferTex)
     }
 
     function updateBoundingSphere(values: DirectVolumeValues, directVolume: DirectVolume) {

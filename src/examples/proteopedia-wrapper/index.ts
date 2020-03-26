@@ -31,7 +31,7 @@ import { getFormattedTime } from '../../mol-util/date';
 require('../../mol-plugin-ui/skin/light.scss')
 
 class MolStarProteopediaWrapper {
-    static VERSION_MAJOR = 4;
+    static VERSION_MAJOR = 5;
     static VERSION_MINOR = 0;
 
     private _ev = RxEventHelper.create();

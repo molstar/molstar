@@ -177,11 +177,16 @@
         }
     }
 
+    > button:first-child {
+        right: 33px;
+    }
+
     > .msp-btn-icon {
         position: absolute;
         right: 0;
         width: 32px;
         top: 0;
+        padding: 0;
     }
 }
 

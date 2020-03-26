@@ -14,7 +14,7 @@ export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
 
     render() {
         const cmd = this.props;
-        return <div className='msp-action-menu-options' style={{ marginTop: cmd.header ? void 0 : '1px' }}>
+        return <div className='msp-action-menu-options' style={{ /* marginTop: cmd.header ? void 0 : '1px', */ maxHeight: '300px', overflow: 'hidden', overflowY: 'auto' }}>
             {cmd.header && <ControlGroup header={cmd.header} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hide} topRightIcon='off'></ControlGroup>}
             <Section items={cmd.items} onSelect={cmd.onSelect} current={cmd.current} multiselect={this.props.multiselect} noOffset={this.props.noOffset} />
         </div>
@@ -29,7 +29,7 @@ export namespace ActionMenu {
 
     export type Items =  Header | Item | Items[]
     export type Header = { kind: 'header', label: string, isIndependent?: boolean, initiallyExpanded?: boolean }
-    export type Item = { kind: 'item', label: string, icon?: IconName, disabled?: boolean, selected?: boolean, value: unknown }
+    export type Item = { kind: 'item', label: string, icon?: IconName, disabled?: boolean, selected?: boolean, value: unknown, addOn?: JSX.Element }
 
     export function Header(label: string, options?: { isIndependent?: boolean, initiallyExpanded?: boolean }): Header {
         return options ? { kind: 'header', label, ...options } : { kind: 'header', label };
@@ -48,11 +48,12 @@ export namespace ActionMenu {
         value?: (t: T) => any,
         category?: (t: T) => string | undefined,
         icon?: (t: T) => IconName | undefined,
-        selected?: (t: T) => boolean | undefined
+        selected?: (t: T) => boolean | undefined,
+        addOn?: (t: T) => JSX.Element | undefined
     }
 
     export function createItems<T>(xs: ArrayLike<T>, params?: CreateItemsParams<T>) {
-        const { label, value, category, selected, icon } = params || { };
+        const { label, value, category, selected, icon, addOn } = params || { };
         let cats: Map<string, (ActionMenu.Item | ActionMenu.Header)[]> | undefined = void 0;
         const items: (ActionMenu.Item | (ActionMenu.Item | ActionMenu.Header)[] | string)[] = [];
         for (let i = 0; i < xs.length; i++) {
@@ -78,7 +79,9 @@ export namespace ActionMenu {
                 cat = items as any;
             }
 
-            cat!.push({ kind: 'item', label: l, value: v, icon: icon ? icon(x) : void 0, selected: selected ? selected(x) : void 0 });
+            const ao = addOn?.(x);
+
+            cat!.push({ kind: 'item', label: l, value: v, icon: icon ? icon(x) : void 0, selected: selected ? selected(x) : void 0, addOn: ao });
         }
         return items as ActionMenu.Items;
     }
@@ -86,7 +89,7 @@ export namespace ActionMenu {
     type Opt = ParamDefinition.Select<any>['options'][0];
     const _selectOptions = { value: (o: Opt) => o[0], label: (o: Opt) => o[1], category: (o: Opt) => o[2] };
 
-    export function createItemsFromSelectOptions(options: ParamDefinition.Select<any>['options'], params?: CreateItemsParams<ParamDefinition.Select<any>['options'][0]>) {
+    export function createItemsFromSelectOptions<O extends ParamDefinition.Select<any>['options']>(options: O, params?: CreateItemsParams<O[0]>) {
         return createItems(options, params ? { ..._selectOptions, ...params } : _selectOptions);
     }
 
@@ -219,9 +222,13 @@ const Action: React.FC<{
     multiselect: boolean | undefined,
     current: ActionMenu.Item | undefined }> = ({ item, onSelect, current, multiselect }) => {
     const isCurrent = current === item;
-    return  <button className='msp-btn msp-btn-block msp-form-control msp-action-menu-button msp-no-overflow' onClick={() => onSelect(multiselect ? [item] : item as any)} disabled={item.disabled}>
+
+    const style: React.CSSProperties | undefined = item.addOn ? { position: 'relative' } : void 0;
+
+    return <button className='msp-btn msp-btn-block msp-form-control msp-action-menu-button msp-no-overflow' onClick={() => onSelect(multiselect ? [item] : item as any)} disabled={item.disabled} style={style}>
         {item.icon && <Icon name={item.icon} />}
         {isCurrent || item.selected ? <b>{item.label}</b> : item.label}
+        {item.addOn}
     </button>;
 }
 

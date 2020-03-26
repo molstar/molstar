@@ -11,12 +11,11 @@ import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
 import { ResidueHydrophobicity } from '../../mol-model/structure/model/types';
-import { ColorListName, ColorListOptionsScale } from '../../mol-util/color/lists';
 
 const Description = 'Assigns a color to every amino acid according to the "Experimentally determined hydrophobicity scale for proteins at membrane interfaces" by Wimely and White (doi:10.1038/nsb1096-842).'
 
 export const HydrophobicityColorThemeParams = {
-    list: PD.ColorList<ColorListName>('red-yellow-green', ColorListOptionsScale),
+    list: PD.ColorList('red-yellow-green', { presetKind: 'scale' }),
     scale: PD.Select('DGwif', [['DGwif', 'DG water-membrane'], ['DGwoct', 'DG water-octanol'], ['Oct-IF', 'DG difference']] as const)
 }
 export type HydrophobicityColorThemeParams = typeof HydrophobicityColorThemeParams
@@ -58,7 +57,7 @@ export function HydrophobicityColorTheme(ctx: ThemeDataContext, props: PD.Values
     }
 
     const scale = ColorScale.create({
-        listOrName: props.list,
+        listOrName: props.list.colors,
         domain: [ max, min ],
         minLabel: 'Hydrophobic',
         maxLabel: 'Hydrophilic'

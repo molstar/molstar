@@ -12,27 +12,24 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
-import { ColorLists } from '../../mol-util/color/lists';
+import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
 
 const DefaultList = 'dark-2'
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every chain instance (single chain or collection of single elements) a unique color based on the position (index) of the chain in the list of chains in the structure.'
 
 export const UnitIndexColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: DefaultList }),
+    ...getPaletteParams({ type: 'colors', colorList: DefaultList }),
 }
 export type UnitIndexColorThemeParams = typeof UnitIndexColorThemeParams
 export function getUnitIndexColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(UnitIndexColorThemeParams)
     if (ctx.structure) {
         if (ctx.structure.root.units.length > ColorLists[DefaultList].list.length) {
-            params.palette.defaultValue.name = 'scale'
+            params.palette.defaultValue.name = 'colors'
             params.palette.defaultValue.params = {
                 ...params.palette.defaultValue.params,
-                list: {
-                    name: 'predefined',
-                    params: 'red-yellow-blue'
-                }
+                list: { kind: 'interpolate', colors: getColorListFromName(DefaultList).list }
             }
         }
     }

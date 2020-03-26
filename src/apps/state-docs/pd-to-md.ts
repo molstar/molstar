@@ -19,7 +19,7 @@ function paramInfo(param: PD.Any, offset: number): string {
         case 'conditioned': return getParams(param.conditionParams, offset);
         case 'multi-select': return `Array of ${oToS(param.options)}`;
         case 'color': return 'Color as 0xrrggbb';
-        case 'color-list': return `One of ${oToS(param.options)}`;
+        case 'color-list': return `A list of colors as 0xrrggbb`;
         case 'vec3': return `3D vector [x, y, z]`;
         case 'file': return `JavaScript File Handle`;
         case 'file-list': return `JavaScript FileList Handle`;
