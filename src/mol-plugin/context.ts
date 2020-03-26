@@ -51,6 +51,7 @@ import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { Representation } from '../mol-repr/representation';
 import { HierarchyRef } from '../mol-plugin-state/manager/structure/hierarchy-state';
+import { PluginUIComponent } from '../mol-plugin-ui/base';
 
 export class PluginContext {
     private disposed = false;
@@ -144,7 +145,9 @@ export class PluginContext {
     readonly customModelProperties = new CustomProperty.Registry<Model>();
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
-    readonly customSourceControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [HierarchyRef[], string]>();
+
+    readonly customStructureControls = new Map<string, { new (): PluginUIComponent<any, any, any> }>();
+    readonly genericRepresentationControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [HierarchyRef[], string]>();
 
     readonly helpers = {
         substructureParent: new SubstructureParentHelper(this),

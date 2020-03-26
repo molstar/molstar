@@ -264,16 +264,32 @@ export class LociLabels extends PluginUIComponent<{}, { entries: ReadonlyArray<L
     }
 }
 
+export class CustomStructureControls extends PluginUIComponent {
+    componentDidMount() {
+        this.subscribe(this.plugin.state.behaviors.events.changed, () => this.forceUpdate());
+    }
+
+    render() {
+        const controls: JSX.Element[] = []
+        this.plugin.customStructureControls.forEach((Controls, key) => {
+            controls.push(<Controls key={key} />)
+        })
+        return controls.length > 0 ? <>{controls}</> : null
+    }
+}
+
 export class DefaultStructureTools extends PluginUIComponent {
     render() {
         return <>
-            <div className='msp-section-header'><Icon name='tools' /> Structure Tools</div>
+            <div className='msp-section-header'><Icon name='tools' />Structure Tools</div>
 
             <StructureSourceControls />
             <StructureSelectionControls />
-            <StructureComponentControls />
             <StructureMeasurementsControls />
+            <StructureComponentControls />
             <VolumeStreamingControls />
+
+            <CustomStructureControls />
         </>;
     }
 }

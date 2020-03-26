@@ -13,7 +13,6 @@ import { IconButton } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { GenericEntry } from './generic';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
@@ -244,33 +243,6 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         return <ParameterControls params={params} values={s.cell.params?.values} onChangeValues={this.updateStructure} isDisabled={this.state.isBusy} />
     }
 
-    get unitcell() {
-        const { selection } = this.plugin.managers.structure.hierarchy;
-        if (selection.structures.length === 0) return null;
-
-        const refs = [];
-        for (const s of selection.structures) {
-            const model = s.model;
-            if (model?.unitcell && model.unitcell?.cell.obj) refs.push(model.unitcell);
-        }
-        if (refs.length === 0) return null;
-
-        return <GenericEntry refs={refs} labelMultiple='Unitcells' />;
-    }
-
-    get customControls(): JSX.Element[] | null {
-        const controls: JSX.Element[] = []
-        this.plugin.customSourceControls.forEach((provider, key) => {
-            const [refs, labelMultiple] = provider(this.plugin.managers.structure.hierarchy.selection)
-            if (refs.length > 0) {
-                controls.push(<div key={key}>
-                    <GenericEntry refs={refs} labelMultiple={labelMultiple} />
-                </div>)
-            }
-        })
-        return controls.length > 0 ? controls : null
-    }
-
     renderControls() {
         const disabled = this.state.isBusy || this.isEmpty;
         const presets = this.presetActions;
@@ -286,10 +258,6 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             {this.state.show === 'presets' && <ActionMenu items={presets} onSelect={this.applyPreset} />}
             {this.modelIndex}
             {this.structureType}
-            <div style={{ marginTop: '6px' }}>
-                {this.unitcell}
-                {this.customControls}
-            </div>
         </>;
     }
 }

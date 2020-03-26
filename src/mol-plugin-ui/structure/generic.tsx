@@ -13,6 +13,52 @@ import { PurePluginUIComponent } from '../base';
 import { IconButton } from '../controls/common';
 import { UpdateTransformControl } from '../state/update-transform';
 
+export class GenericEntryListControls extends PurePluginUIComponent {
+    get current() {
+        return this.plugin.managers.structure.hierarchy.behaviors.selection;
+    }
+
+    componentDidMount() {
+        this.subscribe(this.current, () => this.forceUpdate());
+    }
+
+    get unitcell() {
+        const { selection } = this.plugin.managers.structure.hierarchy;
+        if (selection.structures.length === 0) return null;
+
+        const refs = [];
+        for (const s of selection.structures) {
+            const model = s.model;
+            if (model?.unitcell && model.unitcell?.cell.obj) refs.push(model.unitcell);
+        }
+        if (refs.length === 0) return null;
+
+        return <GenericEntry refs={refs} labelMultiple='Unitcells' />;
+    }
+
+    get customControls(): JSX.Element[] | null {
+        const controls: JSX.Element[] = []
+        this.plugin.genericRepresentationControls.forEach((provider, key) => {
+            const [refs, labelMultiple] = provider(this.plugin.managers.structure.hierarchy.selection)
+            if (refs.length > 0) {
+                controls.push(<div key={key}>
+                    <GenericEntry refs={refs} labelMultiple={labelMultiple} />
+                </div>)
+            }
+        })
+        return controls.length > 0 ? controls : null
+    }
+
+    render() {
+        return <>
+            <div style={{ marginTop: '6px' }}>
+                {this.unitcell}
+                {this.customControls}
+            </div>
+        </>
+    }
+}
+
 export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<{ refs: T[], labelMultiple?: string }, { showOptions: boolean }> {
     state = { showOptions: false }
 

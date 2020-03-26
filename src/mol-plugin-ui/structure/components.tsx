@@ -19,6 +19,7 @@ import { UpdateTransformControl } from '../state/update-transform';
 import { PluginContext } from '../../mol-plugin/context';
 import { getStructureThemeTypes } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
+import { GenericEntryListControls } from './generic';
 
 interface StructureComponentControlState extends CollapsableState {
     isDisabled: boolean
@@ -39,6 +40,7 @@ export class StructureComponentControls extends CollapsableControls<{}, Structur
         return <>
             <ComponentEditorControls />
             <ComponentListControls />
+            <GenericEntryListControls />
         </>;
     }
 }
@@ -205,6 +207,8 @@ class ComponentListControls extends PurePluginUIComponent {
         </div>;
     }
 }
+
+
 
 type StructureComponentEntryActions = 'action' | 'remove'
 
