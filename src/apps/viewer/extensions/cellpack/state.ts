@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,8 +10,7 @@ import { Task } from '../../../../mol-task';
 import { CellPack as _CellPack, Cell, CellPacking } from './data';
 import { createStructureFromCellPack } from './model';
 
-// export const DefaultCellPackBaseUrl = 'https://cdn.jsdelivr.net/gh/mesoscope/cellPACK_data@master/cellPACK_database_1.1.0/'
-export const DefaultCellPackBaseUrl = 'https://mgldev.scripps.edu/projects/autoPACK/web/cellpackproject/'
+export const DefaultCellPackBaseUrl = 'https://mesoscope.scripps.edu/data/cellPACK_data/cellPACK_database_1.1.0/'
 
 export class CellPack extends PSO.Create<_CellPack>({ name: 'CellPack', typeClass: 'Object' }) { }
 
