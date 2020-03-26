@@ -103,7 +103,7 @@ const CrystalSymmetryParams = (a: PluginStateObject.Molecule.Trajectory | undefi
     ...CommonParams(a, plugin)
 });
 
-async function applyCrystalSymmetry(ijk: { ijkMin: Vec3, ijkMax: Vec3 }, trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory>, params: PD.ValuesFor<ReturnType<typeof CrystalSymmetryParams>>, plugin: PluginContext) {
+async function applyCrystalSymmetry(props: { ijkMin: Vec3, ijkMax: Vec3, theme?: string }, trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory>, params: PD.ValuesFor<ReturnType<typeof CrystalSymmetryParams>>, plugin: PluginContext) {
     const builder = plugin.builders.structure;
 
     const model = await builder.createModel(trajectory, params.model);
@@ -111,12 +111,12 @@ async function applyCrystalSymmetry(ijk: { ijkMin: Vec3, ijkMax: Vec3 }, traject
 
     const structure = await builder.createStructure(modelProperties || model, {
         name: 'symmetry',
-        params: ijk
+        params: props
     });
     const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
     const unitcell = await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: false });
-    const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto');
+    const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { globalThemeName: props.theme });
 
     return {
         model,
@@ -148,7 +148,7 @@ const supercell = TrajectoryHierarchyPresetProvider({
     },
     params: CrystalSymmetryParams,
     async apply(trajectory, params, plugin) {
-        return await applyCrystalSymmetry({ ijkMin: Vec3.create(-1, -1, -1), ijkMax: Vec3.create(1, 1, 1) }, trajectory, params, plugin);
+        return await applyCrystalSymmetry({ ijkMin: Vec3.create(-1, -1, -1), ijkMax: Vec3.create(1, 1, 1), theme: 'operator-hkl' }, trajectory, params, plugin);
     }
 });
 

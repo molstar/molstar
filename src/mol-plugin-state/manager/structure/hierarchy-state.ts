@@ -186,10 +186,6 @@ type TestCell = (cell: StateObjectCell, state: BuildState) => boolean
 type ApplyRef = (state: BuildState, cell: StateObjectCell) => boolean | void
 type LeaveRef = (state: BuildState) => any
 
-// function isTag(t: string): TestCell {
-//     return (cell) => StateObject.hasTag(cell.obj!, t);
-// }
-
 function isType(t: StateObject.Ctor): TestCell {
     return (cell) => t.is(cell.obj);
 }
