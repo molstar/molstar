@@ -232,24 +232,33 @@
     padding-left: $control-spacing;
 }
 
+.msp-accent-offset {
+    // border-left-width: $control-spacing / 2;
+    // border-left-style: solid;
+    // border-left-color: color-increase-contrast($default-background, 10%);
+    // padding-left: 1px;
+    margin-left: $control-spacing - 2;
+    border-left: 2px solid $entity-color-Group;
+}
+
 .msp-control-group-wrapper {
     //border-left-width: $control-spacing / 2;
     //border-left-style: solid;
     //border-left-color: color-increase-contrast($default-background, 10%);
 
     margin-bottom: 0px;
-    padding-top: 1px;
+    margin-top: 1px;
 }
 
 // TODO : get rid of the important
 .msp-control-group-header {
     background: $default-background;
     > button {
-        padding-left: $control-spacing / 2 !important;
+        padding-left: 4px; // $control-spacing / 2 !important;
         text-align: left;
         height: 24px !important; // 2 * $row-height / 3 !important;
         line-height: 24px !important; // 2 * $row-height / 3 !important;
-        font-size: 70% !important;
+        font-size: 85% !important;
         background: $default-background !important;
         color: color-lower-contrast($font-color, 15%);
     }

@@ -895,7 +895,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
 
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
-                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
+                <button className='msp-btn msp-form-control msp-btn-block' onClick={this.toggleExpanded}>
                     <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
                     {label}
                 </button>

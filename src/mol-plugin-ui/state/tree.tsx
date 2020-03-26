@@ -317,11 +317,13 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         }
 
         if (this.state.action === 'options') {
-            let actions = this.actions;
+            const actions = this.actions;
+            const updates = this.updates(marginStyle.marginLeft as string);
+            // TODO: fix 1px extra margin when updates are empty
             return <div style={{ marginBottom: '1px' }}>
                 {row}
-                {this.updates(marginStyle.marginLeft as string)}
-                {actions && <div style={marginStyle}>
+                {updates}
+                {actions && <div style={{ marginLeft: marginStyle.marginLeft }}>
                     <ActionMenu items={actions} onSelect={this.selectAction} />
                 </div>}
             </div>

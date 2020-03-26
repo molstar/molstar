@@ -16,7 +16,8 @@ export class ControlGroup extends React.Component<{
     hideOffset?: boolean,
     topRightIcon?: IconName,
     headerLeftMargin?: string,
-    onHeaderClick?: () => void
+    onHeaderClick?: () => void,
+    noTopMargin?: boolean
 }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initialExpanded }
 
@@ -30,9 +31,9 @@ export class ControlGroup extends React.Component<{
 
     render() {
         // TODO: customize header style (bg color, togle button etc)
-        return <div className='msp-control-group-wrapper' style={{ position: 'relative' }}>
+        return <div className='msp-control-group-wrapper' style={{ position: 'relative', marginTop: this.props.noTopMargin ? 0 : void 0 }}>
             <div className='msp-control-group-header' style={{ marginLeft: this.props.headerLeftMargin }}>
-                <button className='msp-btn msp-btn-block' onClick={this.headerClicked}>
+                <button className='msp-btn msp-form-control msp-btn-block' onClick={this.headerClicked}>
                     {!this.props.hideExpander && <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />}
                     {this.props.topRightIcon && <Icon name={this.props.topRightIcon} style={{ position: 'absolute', right: '2px', top: 0 }} />}
                     <b>{this.props.header}</b>
@@ -341,7 +342,7 @@ export class ExpandGroup extends React.PureComponent<{ header: string, headerSty
     render() {
         return <>
             <div className='msp-control-group-header' style={{ marginTop: this.props.marginTop !== void 0 ? this.props.marginTop : '1px', marginLeft: this.props.headerLeftMargin }}>
-                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded} style={this.props.headerStyle}>
+                <button className='msp-btn msp-form-control msp-btn-block' onClick={this.toggleExpanded} style={this.props.headerStyle}>
                     <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
                     {this.props.header}
                 </button>

@@ -343,13 +343,17 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
                 <IconButton onClick={this.toggleRemove} icon='remove' title='Remove' small toggleState={this.state.action === 'remove'} customClass='msp-form-control' style={{ flex: '0 0 32px' }} />
                 <IconButton onClick={this.toggleAction} icon='dot-3' title='Actions' toggleState={this.state.action === 'action'} customClass='msp-form-control' style={{ flex: '0 0 32px', padding: '0px' }} />
             </div>
-            {this.state.action === 'remove' && <ActionMenu items={this.removeActions} onSelect={this.selectRemoveAction} />}
-            {this.state.action === 'action' && <>
-                <ActionMenu items={this.actions} onSelect={this.selectAction} />
-                <div className='msp-control-offset' style={{ margin: '6px 0' }}>
+            {this.state.action === 'remove' && <div style={{ marginBottom: '6px' }}>
+                <ActionMenu items={this.removeActions} onSelect={this.selectRemoveAction} />
+            </div>}
+            {this.state.action === 'action' && <div className='msp-accent-offset'>
+                <div style={{ marginBottom: '6px' }}>
+                    <ActionMenu items={this.actions} onSelect={this.selectAction} noOffset />
+                </div>
+                <div style={{ marginBottom: '6px' }}>
                     {component.representations.map(r => <StructureRepresentationEntry group={this.props.group} key={r.cell.transform.ref} representation={r} />)}
                 </div>
-            </>}
+            </div>}
         </>;
     }
 }
