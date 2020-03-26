@@ -30,7 +30,10 @@ export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
             params.palette.defaultValue.name = 'scale'
             params.palette.defaultValue.params = {
                 ...params.palette.defaultValue.params,
-                list: 'red-yellow-blue'
+                list: {
+                    name: 'predefined',
+                    params: 'red-yellow-blue'
+                }
             }
         }
     }
