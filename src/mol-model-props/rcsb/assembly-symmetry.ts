@@ -50,7 +50,7 @@ export namespace AssemblySymmetry {
         return BiologicalAssemblyNames.has(details)
     }
 
-    export async function fetch(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryProps): Promise<AssemblySymmetryValue> {
+    export async function fetch(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<AssemblySymmetryDataValue> {
         if (!isApplicable(structure)) return []
 
         const client = new GraphQLClient(props.serverUrl, ctx.fetch)
@@ -64,23 +64,23 @@ export namespace AssemblySymmetry {
             console.error('expected `rcsb_struct_symmetry` field')
             return []
         }
-        return result.assembly.rcsb_struct_symmetry as AssemblySymmetryValue
+        return result.assembly.rcsb_struct_symmetry as AssemblySymmetryDataValue
     }
 
     export type RotationAxes = ReadonlyArray<{ order: number, start: ReadonlyVec3, end: ReadonlyVec3 }>
-    export function isRotationAxes(x: AssemblySymmetryValue[0]['rotation_axes']): x is RotationAxes {
+    export function isRotationAxes(x: AssemblySymmetryValue['rotation_axes']): x is RotationAxes {
         return !!x && x.length > 0
     }
 }
 
 export function getSymmetrySelectParam(structure?: Structure) {
-    const param = PD.Select<number>(-1, [[-1, 'No Symmetries']])
+    const param = PD.Select<number>(0, [[0, 'First Symmetry']])
     if (structure) {
-        const assemblySymmetry = AssemblySymmetryProvider.get(structure).value
-        if (assemblySymmetry) {
+        const assemblySymmetryData = AssemblySymmetryDataProvider.get(structure).value
+        if (assemblySymmetryData) {
             const options: [number, string][] = []
-            for (let i = 0, il = assemblySymmetry.length; i < il; ++i) {
-                const { symbol, kind } = assemblySymmetry[i]
+            for (let i = 0, il = assemblySymmetryData.length; i < il; ++i) {
+                const { symbol, kind } = assemblySymmetryData[i]
                 if (symbol !== 'C1') {
                     options.push([ i, `${i + 1}: ${symbol} ${kind}` ])
                 }
@@ -94,13 +94,46 @@ export function getSymmetrySelectParam(structure?: Structure) {
     return param
 }
 
-export const AssemblySymmetryParams = {
+//
+
+export const AssemblySymmetryDataParams = {
     serverUrl: PD.Text(AssemblySymmetry.DefaultServerUrl, { description: 'GraphQL endpoint URL' })
 }
+export type AssemblySymmetryDataParams = typeof AssemblySymmetryDataParams
+export type AssemblySymmetryDataProps = PD.Values<AssemblySymmetryDataParams>
+
+export type AssemblySymmetryDataValue = NonNullableArray<NonNullable<NonNullable<AssemblySymmetryQuery['assembly']>['rcsb_struct_symmetry']>>
+
+export const AssemblySymmetryDataProvider: CustomStructureProperty.Provider<AssemblySymmetryDataParams, AssemblySymmetryDataValue> = CustomStructureProperty.createProvider({
+    label: 'Assembly Symmetry Data',
+    descriptor: CustomPropertyDescriptor({
+        name: 'rcsb_struct_symmetry_data',
+        // TODO `cifExport` and `symbol`
+    }),
+    type: 'root',
+    defaultParams: AssemblySymmetryDataParams,
+    getParams: (data: Structure) => AssemblySymmetryDataParams,
+    isApplicable: (data: Structure) => AssemblySymmetry.isApplicable(data),
+    obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<AssemblySymmetryDataProps>) => {
+        const p = { ...PD.getDefaultValues(AssemblySymmetryDataParams), ...props }
+        return await AssemblySymmetry.fetch(ctx, data, p)
+    }
+})
+
+//
+
+function getAssemblySymmetryParams(data?: Structure) {
+    return {
+        ... AssemblySymmetryDataParams,
+        symmetryIndex: getSymmetrySelectParam(data)
+    }
+}
+
+export const AssemblySymmetryParams = getAssemblySymmetryParams()
 export type AssemblySymmetryParams = typeof AssemblySymmetryParams
 export type AssemblySymmetryProps = PD.Values<AssemblySymmetryParams>
 
-export type AssemblySymmetryValue = NonNullableArray<NonNullable<NonNullable<AssemblySymmetryQuery['assembly']>['rcsb_struct_symmetry']>>
+export type AssemblySymmetryValue = AssemblySymmetryDataValue[0]
 
 export const AssemblySymmetryProvider: CustomStructureProperty.Provider<AssemblySymmetryParams, AssemblySymmetryValue> = CustomStructureProperty.createProvider({
     label: 'Assembly Symmetry',
@@ -110,10 +143,14 @@ export const AssemblySymmetryProvider: CustomStructureProperty.Provider<Assembly
     }),
     type: 'root',
     defaultParams: AssemblySymmetryParams,
-    getParams: (data: Structure) => AssemblySymmetryParams,
+    getParams: getAssemblySymmetryParams,
     isApplicable: (data: Structure) => AssemblySymmetry.isApplicable(data),
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<AssemblySymmetryProps>) => {
-        const p = { ...PD.getDefaultValues(AssemblySymmetryParams), ...props }
-        return await AssemblySymmetry.fetch(ctx, data, p)
+        const p = { ...PD.getDefaultValues(getAssemblySymmetryParams(data)), ...props }
+        await AssemblySymmetryDataProvider.attach(ctx, data, p)
+        const assemblySymmetryData = AssemblySymmetryDataProvider.get(data).value
+        const assemblySymmetry = assemblySymmetryData?.[p.symmetryIndex]
+        if (!assemblySymmetry) new Error(`No assembly symmetry found for index ${p.symmetryIndex}`)
+        return assemblySymmetry
     }
 })

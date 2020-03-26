@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { AssemblySymmetryValue, getSymmetrySelectParam, AssemblySymmetryProvider, AssemblySymmetry } from '../assembly-symmetry';
+import { AssemblySymmetryValue, AssemblySymmetryProvider, AssemblySymmetry } from '../assembly-symmetry';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
@@ -51,7 +51,6 @@ function axesColorHelp(value: { name: string, params: {} }) {
 const SharedParams = {
     ...Mesh.Params,
     scale: PD.Numeric(2, { min: 0.1, max: 5, step: 0.1 }),
-    symmetryIndex: getSymmetrySelectParam(),
 }
 
 const AxesParams = {
@@ -113,9 +112,9 @@ const getOrderPrimitive = memoize1((order: number): Primitive | undefined => {
 })
 
 function getAxesMesh(data: AssemblySymmetryValue, props: PD.Values<AxesParams>, mesh?: Mesh) {
-    const { symmetryIndex, scale } = props
+    const { scale } = props
 
-    const { rotation_axes } = data[symmetryIndex]
+    const { rotation_axes } = data
     if (!AssemblySymmetry.isRotationAxes(rotation_axes)) return Mesh.createEmpty(mesh)
 
     const { start, end } = rotation_axes[0]
@@ -158,7 +157,7 @@ function getAxesShape(ctx: RuntimeContext, data: Structure, props: AssemblySymme
     const geo = getAxesMesh(assemblySymmetry, props, shape && shape.geometry);
     const getColor = (groupId: number) => {
         if (props.axesColor.name === 'byOrder') {
-            const { rotation_axes } = assemblySymmetry[props.symmetryIndex]
+            const { rotation_axes } = assemblySymmetry
             const order = rotation_axes![groupId]?.order
             if (order === 2) return OrderColors[2]
             else if (order === 3) return OrderColors[3]
@@ -168,7 +167,7 @@ function getAxesShape(ctx: RuntimeContext, data: Structure, props: AssemblySymme
         }
     }
     const getLabel = (groupId: number) => {
-        const { type, symbol, kind, rotation_axes } = assemblySymmetry[props.symmetryIndex]
+        const { type, symbol, kind, rotation_axes } = assemblySymmetry
         const order = rotation_axes![groupId]?.order
         return [
             `<small>${data.model.entryId}</small>`,
@@ -279,9 +278,9 @@ function setSymbolTransform(t: Mat4, symbol: string, axes: AssemblySymmetry.Rota
 
 function getCageMesh(data: Structure, props: PD.Values<CageParams>, mesh?: Mesh) {
     const assemblySymmetry = AssemblySymmetryProvider.get(data).value!
-    const { symmetryIndex, scale } = props
+    const { scale } = props
 
-    const { rotation_axes, symbol } = assemblySymmetry[symmetryIndex]
+    const { rotation_axes, symbol } = assemblySymmetry
     if (!AssemblySymmetry.isRotationAxes(rotation_axes)) return Mesh.createEmpty(mesh)
 
     const cage = getSymbolCage(symbol)
@@ -308,7 +307,7 @@ function getCageShape(ctx: RuntimeContext, data: Structure, props: AssemblySymme
         return props.cageColor
     }
     const getLabel = (groupId: number) => {
-        const { type, symbol, kind } = assemblySymmetry[props.symmetryIndex]
+        const { type, symbol, kind } = assemblySymmetry
         data.model.entryId
         return [
             `<small>${data.model.entryId}</small>`,

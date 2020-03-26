@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../../../../mol-util/param-definition'
-import { AssemblySymmetryProvider, AssemblySymmetry, getSymmetrySelectParam } from '../../../../../mol-model-props/rcsb/assembly-symmetry';
+import { AssemblySymmetryProvider, AssemblySymmetry } from '../../../../../mol-model-props/rcsb/assembly-symmetry';
 import { PluginBehavior } from '../../../behavior';
 import { AssemblySymmetryParams, AssemblySymmetryRepresentation } from '../../../../../mol-model-props/rcsb/representations/assembly-symmetry';
 import { AssemblySymmetryClusterColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/assembly-symmetry-cluster';
@@ -17,6 +17,7 @@ import { GenericRepresentationRef } from '../../../../../mol-plugin-state/manage
 import { TrajectoryHierarchyPresetProvider } from '../../../../../mol-plugin-state/builder/structure/hierarchy-preset';
 import { RootStructureDefinition } from '../../../../../mol-plugin-state/helpers/root-structure';
 import { StateTransforms } from '../../../../../mol-plugin-state/transforms';
+import { AssemblySymmetryControls } from './ui/assembly-symmetry';
 
 const Tag = AssemblySymmetry.Tag
 
@@ -35,7 +36,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
             this.ctx.representation.structure.themes.colorThemeRegistry.add(AssemblySymmetryClusterColorThemeProvider)
 
-            this.ctx.customSourceControls.set(Tag.Representation, selection => {
+            this.ctx.genericRepresentationControls.set(Tag.Representation, selection => {
                 const refs: GenericRepresentationRef[] = []
                 selection.structures.forEach(structure => {
                     const symmRepr = structure.genericRepresentations?.filter(r => r.cell.transform.transformer.id === AssemblySymmetry3D.id)[0]
@@ -43,6 +44,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
                 })
                 return [refs, 'Symmetries']
             })
+            this.ctx.customStructureControls.set(Tag.Representation, AssemblySymmetryControls as any)
             this.ctx.builders.structure.hierarchy.registerPreset(assemblySymmetryPreset)
         }
 
@@ -58,7 +60,8 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(AssemblySymmetryClusterColorThemeProvider)
 
-            this.ctx.customSourceControls.delete(Tag.Representation)
+            this.ctx.genericRepresentationControls.delete(Tag.Representation)
+            this.ctx.customStructureControls.delete(Tag.Representation)
             this.ctx.builders.structure.hierarchy.unregisterPreset(assemblySymmetryPreset)
         }
     },
@@ -70,7 +73,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
 
 //
 
-const InitAssemblySymmetry3D = StateAction.build({
+export const InitAssemblySymmetry3D = StateAction.build({
     display: {
         name: 'Assembly Symmetry',
         description: 'Initialize Assembly Symmetry axes and cage. Data calculated with BioJava, obtained via RCSB PDB.'
@@ -102,7 +105,6 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
     params: (a) => {
         return {
             ...AssemblySymmetryParams,
-            symmetryIndex: getSymmetrySelectParam(a?.data),
         }
     }
 })({
@@ -113,12 +115,12 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
         return Task.create('Assembly Symmetry', async ctx => {
             await AssemblySymmetryProvider.attach({ runtime: ctx, fetch: plugin.fetch }, a.data)
             const assemblySymmetry = AssemblySymmetryProvider.get(a.data).value
-            if (!assemblySymmetry || assemblySymmetry.length === 0) {
+            if (!assemblySymmetry || assemblySymmetry.symbol === 'C1') {
                 return StateObject.Null;
             }
             const repr = AssemblySymmetryRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => AssemblySymmetryParams)
             await repr.createOrUpdate(params, a.data).runInContext(ctx);
-            const { type, kind, symbol } = assemblySymmetry![params.symmetryIndex]
+            const { type, kind, symbol } = assemblySymmetry
             return new PluginStateObject.Shape.Representation3D({ repr, source: a }, { label: kind, description: `${type} (${symbol})` });
         });
     },
@@ -126,12 +128,12 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
         return Task.create('Assembly Symmetry', async ctx => {
             await AssemblySymmetryProvider.attach({ runtime: ctx, fetch: plugin.fetch }, a.data)
             const assemblySymmetry = AssemblySymmetryProvider.get(a.data).value
-            if (!assemblySymmetry || assemblySymmetry.length === 0) {
+            if (!assemblySymmetry || assemblySymmetry.symbol === 'C1') {
                 return StateTransformer.UpdateResult.Recreate
             }
             const props = { ...b.data.repr.props, ...newParams }
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
-            const { type, kind, symbol } = assemblySymmetry![newParams.symmetryIndex]
+            const { type, kind, symbol } = assemblySymmetry
             b.label = kind
             b.description = `${type} (${symbol})`
             return StateTransformer.UpdateResult.Updated;
@@ -167,13 +169,14 @@ const assemblySymmetryPreset = TrajectoryHierarchyPresetProvider({
         const structure = await builder.createStructure(modelProperties || model, params.structure);
         const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
+        const unitcell = await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: true });
         await tryCreateAssemblySymmetry(plugin, structureProperties)
-
         const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { globalThemeName: Tag.Cluster });
 
         return {
             model,
             modelProperties,
+            unitcell,
             structure,
             structureProperties,
             representation
@@ -184,7 +187,7 @@ const assemblySymmetryPreset = TrajectoryHierarchyPresetProvider({
 async function tryCreateAssemblySymmetry(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, params?: StateTransformer.Params<AssemblySymmetry3D>, initialState?: Partial<StateTransform.State>) {
     const state = plugin.state.data;
     const assemblySymmetry = state.build().to(structure)
-        .apply(AssemblySymmetry3D, { ...params, symmetryIndex: params?.symmetryIndex ?? 0 }, { state: initialState });
+        .apply(AssemblySymmetry3D, params, { state: initialState });
     await plugin.updateDataState(assemblySymmetry, { revertOnError: true });
     return assemblySymmetry.selector
 }

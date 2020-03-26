@@ -7,7 +7,7 @@
 import { ThemeDataContext } from '../../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition'
-import { AssemblySymmetryProvider, AssemblySymmetry, getSymmetrySelectParam } from '../assembly-symmetry';
+import { AssemblySymmetryProvider, AssemblySymmetry } from '../assembly-symmetry';
 import { Color } from '../../../mol-util/color';
 import { Unit, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { Location } from '../../../mol-model/location';
@@ -33,12 +33,10 @@ function clusterMemberKey(asymId: string, operList: string[]) {
 
 export const AssemblySymmetryClusterColorThemeParams = {
     ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
-    symmetryIndex: getSymmetrySelectParam(),
 }
 export type AssemblySymmetryClusterColorThemeParams = typeof AssemblySymmetryClusterColorThemeParams
 export function getAssemblySymmetryClusterColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(AssemblySymmetryClusterColorThemeParams)
-    params.symmetryIndex = getSymmetrySelectParam(ctx.structure)
     return params
 }
 
@@ -46,11 +44,10 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
     let color: LocationColor = () => DefaultColor
     let legend: ScaleLegend | TableLegend | undefined
 
-    const { symmetryIndex } = props
     const assemblySymmetry = ctx.structure && AssemblySymmetryProvider.get(ctx.structure)
     const contextHash = assemblySymmetry?.version
 
-    const clusters = assemblySymmetry?.value?.[symmetryIndex]?.clusters
+    const clusters = assemblySymmetry?.value?.clusters
 
     if (clusters?.length && ctx.structure) {
         const clusterByMember = new Map<string, number>()
