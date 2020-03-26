@@ -142,10 +142,12 @@ export class StructureHierarchyManager extends PluginComponent {
         return this.plugin.updateDataState(deletes, { canUndo: canUndo ? 'Remove' : false });
     }
 
-    toggleVisibility(refs: ReadonlyArray<HierarchyRef>) {
+    toggleVisibility(refs: ReadonlyArray<HierarchyRef>, action?: 'show' | 'hide') {
         if (refs.length === 0) return;
 
-        const isHidden = !refs[0].cell.state.isHidden;
+        const isHidden = action !== void 0
+            ? (action === 'show' ? false : true)
+            : !refs[0].cell.state.isHidden;
         for (const c of refs) {
             setSubtreeVisibility(this.dataState, c.cell.transform.ref, isHidden);
         }

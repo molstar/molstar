@@ -33,7 +33,7 @@ export class GenericEntryListControls extends PurePluginUIComponent {
         }
         if (refs.length === 0) return null;
 
-        return <GenericEntry refs={refs} labelMultiple='Unitcells' />;
+        return <GenericEntry refs={refs} labelMultiple='Unitcells' showOnFocus />;
     }
 
     get customControls(): JSX.Element[] | null {
@@ -59,7 +59,7 @@ export class GenericEntryListControls extends PurePluginUIComponent {
     }
 }
 
-export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<{ refs: T[], labelMultiple?: string }, { showOptions: boolean }> {
+export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<{ refs: T[], labelMultiple?: string, showOnFocus?: boolean }, { showOptions: boolean }> {
     state = { showOptions: false }
 
     componentDidMount() {
@@ -92,12 +92,19 @@ export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<
     focus = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
 
+        let isHidden = false;
         const loci = [];
         for (const uc of this.props.refs) {
-            if (uc.cell.state.isHidden) continue;
+            if (uc.cell.state.isHidden) {
+                if (this.props.showOnFocus) isHidden = true;
+                else continue;
+            }
 
             const l = uc.cell.obj?.data.repr.getLoci()
             if (l) loci.push(l);
+        }
+        if (isHidden) {
+            this.plugin.managers.structure.hierarchy.toggleVisibility(this.props.refs, 'show');
         }
         this.plugin.managers.camera.focusLoci(loci);
     }
