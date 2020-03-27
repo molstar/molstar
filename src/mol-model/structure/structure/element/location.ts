@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -21,9 +21,9 @@ interface Location<U = Unit> {
 }
 
 namespace Location {
-    export function create<U extends Unit>(structure: Structure | undefined, unit?: U, element?: ElementIndex): Location<U> {
+    export function create<U extends Unit>(structure?: Structure, unit?: U, element?: ElementIndex): Location<U> {
         return {
-            kind: 'element-location', 
+            kind: 'element-location',
             structure: structure as any,
             unit: unit as any,
             element: element || (0 as ElementIndex)

@@ -12,6 +12,7 @@ import { UpdateTransformControl } from '../state/update-transform';
 import { BindingsHelp } from '../viewport/help';
 import { ExpandGroup } from '../controls/common';
 import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
+import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
 
 interface VolumeStreamingControlState extends CollapsableState {
     isBusy: boolean
@@ -56,7 +57,7 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
 
     renderParams() {
         const pivot = this.pivot;
-        const bindings = pivot.volumeStreaming?.cell.transform.params?.entry.params.view.name === 'selection-box' && pivot.volumeStreaming?.cell.transform.params?.bindings;
+        const bindings = pivot.volumeStreaming?.cell.transform.params?.entry.params.view.name === 'selection-box' && this.plugin.state.behaviors.cells.get(FocusLoci.id)?.params?.values?.bindings;
         return <>
             <UpdateTransformControl state={pivot.cell.parent} transform={pivot.volumeStreaming!.cell.transform} customHeader='none' noMargin autoHideApply />
             {bindings && <ExpandGroup header='Controls Help'>

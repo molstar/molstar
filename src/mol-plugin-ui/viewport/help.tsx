@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,7 +9,7 @@ import { Binding } from '../../mol-util/binding';
 import { PluginUIComponent } from '../base';
 import { StateTransformer, StateSelection } from '../../mol-state';
 import { SelectLoci } from '../../mol-plugin/behavior/dynamic/representation';
-import { StructureRepresentationInteraction } from '../../mol-plugin/behavior/dynamic/selection/structure-representation-interaction';
+import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { Icon } from '../controls/icons';
 
 function getBindingsList(bindings: { [k: string]: Binding }) {
@@ -25,7 +25,7 @@ export class BindingsHelp extends React.PureComponent<{ bindings: { [k: string]:
                 return !Binding.isEmpty(binding)
                     ? <div key={name} style={{ marginBottom: '6px' }}>
                         <b>{binding.action}</b><br /><span dangerouslySetInnerHTML={{ __html: Binding.format(binding, name) }} />
-                    </div> 
+                    </div>
                     : null
             })}
         </>
@@ -113,8 +113,7 @@ export class HelpContent extends PluginUIComponent {
 
     render() {
         const selectToggleTriggers = this.getTriggerFor(SelectLoci, 'clickSelectToggle')
-        const structureInteractionTriggers = this.getTriggerFor(StructureRepresentationInteraction, 'clickInteractionAroundOnly')
-        // const volumeAroundTriggers = this.getTriggerFor(StructureRepresentationInteraction, 'clickInteractionAroundOnly') // TODO get from correct behavior transform
+        const focusTriggers = this.getTriggerFor(FocusLoci, 'clickFocus')
 
         // TODO: interactive help, for example for density
 
@@ -145,25 +144,11 @@ export class HelpContent extends PluginUIComponent {
             </HelpGroup>
             <HelpGroup header='Surroundings'>
                 <HelpText>
-                    To show the surroundings of a residue or ligand, click it in the 3D scene or in the sequence widget using {structureInteractionTriggers}.
+                    To show the surroundings of a residue or ligand, click it in the 3D scene or in the sequence widget using {focusTriggers}.
                 </HelpText>
             </HelpGroup>
-            {/* <HelpGroup header='Densities'>
-                <HelpText>
-                    Densities can be shown for both X-ray and cryo-EM structures. By default the density around an element/atom can be shown by clicking using {volumeAroundTriggers}. The <i>Density Controls</i> panel offers a variety of options to adjust the display of density maps. The absence of the <i>Density Controls</i> panel indicates that no density is available for the loaded entry which is the case for e.g. NMR structures or very old X-ray structures.
-                </HelpText>
-            </HelpGroup> */}
 
             <HelpSection header='How-to Guides' />
-            {/* <HelpGroup header='RCSB Molecule of the Month Style'>
-                <HelpText>
-                    <ol style={{ paddingLeft: '20px' }}>
-                        <li>First, hide everything, then show everything with the spacefill representation using the <i>Representation</i> panel.</li>
-                        <li>Change color theme of the spacefill representation to <i>illustrative</i> using the <i>Structure Settings</i> panel.</li>
-                        <li>Set render style to <i>toon</i> and activate <i>occlusion</i> in the <i>General Settings</i> panel.</li>
-                    </ol>
-                </HelpText>
-            </HelpGroup> */}
             <HelpGroup header='Create an Image'>
                 <HelpText>
                     <p>Use the <Icon name='screenshot' /> icon in the viewport to bring up the screenshot controls.</p>

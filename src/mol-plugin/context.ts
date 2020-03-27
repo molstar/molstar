@@ -52,6 +52,7 @@ import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { Representation } from '../mol-repr/representation';
 import { HierarchyRef } from '../mol-plugin-state/manager/structure/hierarchy-state';
 import { PluginUIComponent } from '../mol-plugin-ui/base';
+import { StructureFocusManager } from '../mol-plugin-state/manager/structure/focus';
 
 export class PluginContext {
     private disposed = false;
@@ -134,7 +135,8 @@ export class PluginContext {
             hierarchy: new StructureHierarchyManager(this),
             component: new StructureComponentManager(this),
             measurement: new StructureMeasurementManager(this),
-            selection: new StructureSelectionManager(this)
+            selection: new StructureSelectionManager(this),
+            focus: new StructureFocusManager(this),
         },
         interactivity: void 0 as any as InteractivityManager,
         camera: new CameraManager(this),

@@ -167,6 +167,8 @@ export const SelectLoci = PluginBehavior.create({
     display: { name: 'Select Loci on Canvas' }
 });
 
+//
+
 export const DefaultLociLabelProvider = PluginBehavior.create({
     name: 'default-loci-label-provider',
     category: 'interaction',
@@ -177,4 +179,40 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
         constructor(protected ctx: PluginContext) { }
     },
     display: { name: 'Provide Default Loci Label' }
+});
+
+//
+
+const DefaultFocusLociBindings = {
+    clickFocus: Binding([
+        Trigger(B.Flag.Secondary, M.create()),
+        Trigger(B.Flag.Primary, M.create({ control: true }))
+    ], 'Representation Focus', 'Click element using ${triggers}'),
+}
+const FocusLociParams = {
+    bindings: PD.Value(DefaultFocusLociBindings, { isHidden: true }),
+}
+type FocusLociProps = PD.Values<typeof FocusLociParams>
+
+export const FocusLoci = PluginBehavior.create<FocusLociProps>({
+    name: 'representation-focus-loci',
+    category: 'interaction',
+    ctor: class extends PluginBehavior.Handler<FocusLociProps> {
+        register(): void {
+            this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
+                const { clickFocus } = this.params.bindings
+
+                if (Binding.match(clickFocus, button, modifiers)) {
+                    const entry = this.ctx.managers.structure.focus.current
+                    if (entry && Loci.areEqual(entry.loci, current.loci)) {
+                        this.ctx.managers.structure.focus.clear()
+                    } else {
+                        this.ctx.managers.structure.focus.setFromLoci(Loci.applyGranularity(current.loci, 'residue'))
+                    }
+                }
+            });
+        }
+    },
+    params: () => FocusLociParams,
+    display: { name: 'Representation Focus Loci on Canvas' }
 });

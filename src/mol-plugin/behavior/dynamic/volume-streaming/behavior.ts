@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,16 +20,9 @@ import { CIF } from '../../../../mol-io/reader/cif';
 import { volumeFromDensityServerData } from '../../../../mol-model-formats/volume/density-server';
 import { PluginCommands } from '../../../commands';
 import { StateSelection } from '../../../../mol-state';
-import { Representation } from '../../../../mol-repr/representation';
-import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-observer';
-import { StructureElement, Bond, Structure } from '../../../../mol-model/structure';
+import { StructureElement, Structure } from '../../../../mol-model/structure';
 import { PluginContext } from '../../../context';
-import { Binding } from '../../../../mol-util/binding';
 import { EmptyLoci, Loci, isEmptyLoci } from '../../../../mol-model/loci';
-
-const B = ButtonsType
-const M = ModifiersKeys
-const Trigger = Binding.Trigger
 
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
@@ -58,19 +51,14 @@ export namespace VolumeStreaming {
         valuesInfo: [{ mean: 0, min: -1, max: 1, sigma: 0.1 }, { mean: 0, min: -1, max: 1, sigma: 0.1 }]
     };
 
-    export const DefaultBindings = {
-        clickVolumeAroundOnly: Binding([Trigger(B.Flag.Secondary, M.create()), Trigger(B.Flag.Primary, M.create({ control: true }))], 'Show Slice', 'Use ${triggers} to show volume around element.'),
-    }
-
-    export function createParams(options: { data?: VolumeServerInfo.Data, defaultView?: ViewTypes, binding?: typeof DefaultBindings, channelParams?: DefaultChannelParams } = { }) {
-        const { data, defaultView, binding, channelParams } = options;
+    export function createParams(options: { data?: VolumeServerInfo.Data, defaultView?: ViewTypes, channelParams?: DefaultChannelParams } = { }) {
+        const { data, defaultView, channelParams } = options;
         const map = new Map<string, VolumeServerInfo.EntryData>()
         if (data) data.entries.forEach(d => map.set(d.dataId, d))
         const names = data ? data.entries.map(d => [d.dataId, d.dataId] as [string, string]) : []
         const defaultKey = data ? data.entries[0].dataId : ''
         return {
             entry: PD.Mapped<EntryParams>(defaultKey, names, name => PD.Group(createEntryParams({ entryData: map.get(name)!, defaultView, structure: data && data.structure, channelParams }))),
-            bindings: PD.Value(binding || DefaultBindings, { isHidden: true }),
         }
     }
 
@@ -246,26 +234,17 @@ export namespace VolumeStreaming {
                 }
             });
 
-            this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, button, modifiers }) => {
-                if (!Binding.match((this.params.bindings && this.params.bindings.clickVolumeAroundOnly) || DefaultBindings.clickVolumeAroundOnly, button, modifiers)) return;
+            this.subscribeObservable(this.plugin.managers.structure.focus.events.changed, () => {
+                const entry = this.plugin.managers.structure.focus.current
+                console.log(entry)
+                const loci = entry ? entry.loci : EmptyLoci
+
                 if (this.params.entry.params.view.name !== 'selection-box') {
-                    this.lastLoci = this.getNormalizedLoci(current.loci);
+                    this.lastLoci = loci;
                 } else {
-                    this.updateInteraction(current);
+                    this.updateInteraction(loci)
                 }
             });
-        }
-
-        private getNormalizedLoci(loci: Loci): StructureElement.Loci | EmptyLoci {
-            if (StructureElement.Loci.is(loci)) {
-                return loci;
-            } else if (Bond.isLoci(loci)) {
-                return Bond.toStructureElementLoci(loci);
-            } else if (Structure.isLoci(loci)) {
-                return Structure.toStructureElementLoci(loci.structure);
-            } else {
-                return EmptyLoci;
-            }
         }
 
         private getBoxFromLoci(loci: StructureElement.Loci | EmptyLoci): Box3D {
@@ -286,8 +265,7 @@ export namespace VolumeStreaming {
             return box;
         }
 
-        private updateInteraction(current: Representation.Loci) {
-            const loci = this.getNormalizedLoci(current.loci)
+        private updateInteraction(loci: StructureElement.Loci | EmptyLoci) {
             if (Loci.areEqual(this.lastLoci, loci)) {
                 this.lastLoci = EmptyLoci;
                 this.updateDynamicBox(Box3D.empty());

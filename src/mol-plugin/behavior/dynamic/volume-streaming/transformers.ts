@@ -47,7 +47,6 @@ export const InitVolumeStreaming = StateAction.build({
                 serverUrl: PD.Text(plugin.config.get(PluginConfig.VolumeStreaming.DefaultServer) || 'https://ds.litemol.org'),
                 behaviorRef: PD.Text('', { isHidden: true }),
                 emContourProvider: PD.Select<'wwpdb' | 'pdbe'>('wwpdb', [['wwpdb', 'wwPDB'], ['pdbe', 'PDBe']], { isHidden: true }),
-                bindings: PD.Value(VolumeStreaming.DefaultBindings, { isHidden: true }),
                 channelParams: PD.Value<VolumeStreaming.DefaultChannelParams>({}, { isHidden: true })
             })
         };
@@ -103,7 +102,7 @@ export const InitVolumeStreaming = StateAction.build({
     const infoObj = await state.updateTree(infoTree).runInContext(taskCtx);
 
     const behTree = state.build().to(infoTree.ref).apply(CreateVolumeStreamingBehavior,
-        PD.getDefaultValues(VolumeStreaming.createParams({ data: infoObj.data, defaultView: params.defaultView, binding: params.options.bindings, channelParams: params.options.channelParams })),
+        PD.getDefaultValues(VolumeStreaming.createParams({ data: infoObj.data, defaultView: params.defaultView, channelParams: params.options.channelParams })),
         { ref: params.options.behaviorRef ? params.options.behaviorRef : void 0 });
 
     if (params.method === 'em') {

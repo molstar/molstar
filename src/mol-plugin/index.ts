@@ -13,7 +13,7 @@ import { StateTransforms } from '../mol-plugin-state/transforms';
 import { VolumeStreamingCustomControls } from '../mol-plugin-ui/custom/volume';
 import { Plugin } from '../mol-plugin-ui/plugin';
 import { PluginBehaviors } from './behavior';
-import { StructureRepresentationInteraction } from './behavior/dynamic/selection/structure-representation-interaction';
+import { StructureFocusRepresentation } from './behavior/dynamic/selection/structure-focus-representation';
 import { BoxifyVolumeStreaming, CreateVolumeStreamingBehavior, InitVolumeStreaming } from './behavior/dynamic/volume-streaming/transformers';
 import { PluginConfig } from './config';
 import { PluginContext } from './context';
@@ -65,8 +65,9 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),
         PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
         PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
+        PluginSpec.Behavior(PluginBehaviors.Representation.FocusLoci),
         PluginSpec.Behavior(PluginBehaviors.Camera.FocusLoci),
-        PluginSpec.Behavior(StructureRepresentationInteraction),
+        PluginSpec.Behavior(StructureFocusRepresentation),
 
         PluginSpec.Behavior(PluginBehaviors.CustomProps.AccessibleSurfaceArea),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.Interactions),

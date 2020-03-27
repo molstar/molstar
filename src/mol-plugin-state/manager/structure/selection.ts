@@ -173,6 +173,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         }
 
         if (entry) {
+            // move to top
             arrayRemoveAtInPlace(this.additionsHistory, idx);
             this.additionsHistory.unshift(entry);
             this.events.additionsHistoryUpdated.next();
@@ -187,23 +188,6 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
 
         this.events.additionsHistoryUpdated.next();
     }
-
-    // private removeHistory(loci: Loci) {
-    //     if (Loci.isEmpty(loci)) return;
-
-    //     let idx = 0, found = false;
-    //     for (const l of this.history) {
-    //         if (Loci.areEqual(l.loci, loci)) {
-    //             found = true;
-    //             break;
-    //         }
-    //         idx++;
-    //     }
-
-    //     if (found) {
-    //         arrayRemoveAtInPlace(this.history, idx);
-    //     }
-    // }
 
     private onRemove(ref: string) {
         if (this.entries.has(ref)) {

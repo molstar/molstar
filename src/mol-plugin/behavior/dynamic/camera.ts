@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,7 +20,7 @@ const DefaultFocusLociBindings = {
     clickCenterFocus: Binding([
         Trigger(B.Flag.Auxilary, M.create()),
         Trigger(B.Flag.Primary, M.create({ alt: true }))
-    ], 'Center and focus', 'Click element using ${triggers}'),
+    ], 'Camera center and focus', 'Click element using ${triggers}'),
 }
 const FocusLociParams = {
     minRadius: PD.Numeric(8, { min: 1, max: 50, step: 1 }),
@@ -38,22 +38,17 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
         register(): void {
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d) return;
-                const p = this.params;
                 if (Binding.match(this.params.bindings.clickCenterFocus, button, modifiers)) {
                     const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity)
                     if (Loci.isEmpty(loci)) {
                         PluginCommands.Camera.Reset(this.ctx, { })
                     } else {
-                        const sphere = Loci.getBoundingSphere(loci);
-                        if (sphere) {
-                            const radius = Math.max(sphere.radius + p.extraRadius, p.minRadius);
-                            this.ctx.canvas3d.camera.focus(sphere.center, radius, p.durationMs);
-                        }
+                        this.ctx.managers.camera.focusLoci(loci, this.params)
                     }
                 }
             });
         }
     },
     params: () => FocusLociParams,
-    display: { name: 'Focus Loci on Canvas' }
+    display: { name: 'Camera Focus Loci on Canvas' }
 });
