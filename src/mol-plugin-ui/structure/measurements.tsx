@@ -13,7 +13,7 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { angleLabel, dihedralLabel, distanceLabel, lociLabel } from '../../mol-theme/label';
 import { FiniteArray } from '../../mol-util/type-helpers';
-import { CollapsableControls, PurePluginUIComponent } from '../base';
+import { PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { ExpandGroup, IconButton, ToggleButton } from '../controls/common';
 import { Icon } from '../controls/icons';
@@ -22,19 +22,12 @@ import { UpdateTransformControl } from '../state/update-transform';
 
 // TODO details, options (e.g. change text for labels)
 
-export class StructureMeasurementsControls extends CollapsableControls {
-    defaultState() {
-        return {
-            isCollapsed: false,
-            header: 'Measurements',
-        };
-    }
-
-    renderControls() {
-        return <>
+export class StructureMeasurementsControls extends PurePluginUIComponent {
+    render() {
+        return <ExpandGroup header='Measurements' noOffset>
             <MeasurementControls />
             <MeasurementList />
-        </>
+        </ExpandGroup>
     }
 }
 

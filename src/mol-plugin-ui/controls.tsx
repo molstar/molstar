@@ -17,7 +17,6 @@ import { StateTransformer } from '../mol-state';
 import { ModelFromTrajectory } from '../mol-plugin-state/transforms/model';
 import { AnimationControls } from './state/animation';
 import { StructureSelectionControls } from './structure/selection';
-import { StructureMeasurementsControls } from './structure/measurements';
 import { Icon } from './controls/icons';
 import { StructureComponentControls } from './structure/components';
 import { StructureSourceControls } from './structure/source';
@@ -286,7 +285,6 @@ export class DefaultStructureTools extends PluginUIComponent {
 
             <StructureSourceControls />
             <StructureSelectionControls />
-            <StructureMeasurementsControls />
             <StructureComponentControls />
             <StructureFocusControls />
             <VolumeStreamingControls />

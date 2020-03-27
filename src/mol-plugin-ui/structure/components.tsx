@@ -314,6 +314,18 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
     }
 
     focus = () => {
+        let allHidden = true;
+        for (const c of this.props.group) {
+            if (!c.cell.state.isHidden) {
+                allHidden = false;
+                break;
+            }
+        }
+
+        if (allHidden) {
+            this.plugin.managers.structure.hierarchy.toggleVisibility(this.props.group, 'show');
+        }
+
         this.plugin.managers.camera.focusSpheres(this.props.group, e => {
             if (e.cell.state.isHidden) return;
             return e.cell.obj?.data.boundary.sphere;

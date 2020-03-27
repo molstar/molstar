@@ -19,6 +19,7 @@ import { ActionMenu } from '../controls/action-menu';
 import { ControlGroup, ToggleButton } from '../controls/common';
 import { Icon } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
+import { StructureMeasurementsControls } from './measurements';
 
 export const DefaultQueries = ActionMenu.createItems(StructureSelectionQueryList, {
     filter: q => q !== StructureSelectionQueries.current,
@@ -158,12 +159,13 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         return <>
             <ParameterControls params={StructureSelectionParams} values={this.values} onChangeValues={this.setProps} />
             {this.controls}
-            <div className='msp-control-row msp-row-text' style={{ marginTop: '6px' }}>
+            <div className='msp-control-row msp-row-text' style={{ margin: '6px 0' }}>
                 <button className='msp-btn msp-btn-block msp-no-overflow' onClick={this.focus} title='Click to Focus Selection' disabled={empty}>
                     <Icon name='focus-on-visual' style={{ position: 'absolute', left: '5px' }} />
                     {this.stats}
                 </button>
             </div>
+            <StructureMeasurementsControls />
         </>
     }
 }
