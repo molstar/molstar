@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -14,8 +14,8 @@ import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { ModelServerConfig as Config } from '../config';
 import Version from '../version';
-import { Job } from './jobs';
-import { createStructureWrapperFromJob, StructureWrapper, resolveStructures } from './structure-wrapper';
+import { Job, JobEntry } from './jobs';
+import { createStructureWrapperFromJobEntry, StructureWrapper, resolveStructures } from './structure-wrapper';
 import CifField = CifWriter.Field
 import { createModelPropertiesProviderFromConfig, ModelPropertiesProvider } from '../property-provider';
 
@@ -38,23 +38,46 @@ function propertyProvider() {
 export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
     ConsoleLogger.logId(job.id, 'Query', 'Starting.');
 
-    const wrappedStructure = await createStructureWrapperFromJob(job, propertyProvider());
+    const encoder = CifWriter.createEncoder({
+        binary: job.responseFormat.isBinary,
+        encoderName: `ModelServer ${Version}`,
+        binaryAutoClassifyEncoding: true
+    });
+
+    // TODO: how to handle missing entries?
+    for (const entry of job.entries) {
+        const structure = await createStructureWrapperFromJobEntry(entry, propertyProvider());
+
+        // TODO: this should be unique in case the same structure is queried twice
+        // const data = (entry.sourceId === '_local_' ? path.basename(entry.entryId) : entry.entryId).replace(/[^a-z0-9\_]/ig, '').toUpperCase();
+        encoder.startDataBlock(structure.cifFrame.header);
+        await resolveJobEntry(entry, structure, encoder);
+    }
+
+    ConsoleLogger.logId(job.id, 'Query', 'Encoding.');
+    encoder.encode();
+
+    return encoder;
+}
+
+async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, encoder: CifWriter.Encoder<any>) {
+    ConsoleLogger.logId(entry.job.id, 'Query', `Start ${entry.key}/${entry.queryDefinition.name}.`);
 
     try {
         perf.start('query');
-        const sourceStructures = await resolveStructures(wrappedStructure, job.modelNums);
+        const sourceStructures = await resolveStructures(structure, entry.modelNums);
         if (!sourceStructures.length) throw new Error('Model not available');
 
         let structures: Structure[] = sourceStructures;
 
-        if (job.queryDefinition.structureTransform) {
+        if (entry.queryDefinition.structureTransform) {
             structures = [];
             for (const s of sourceStructures) {
-                structures.push(await job.queryDefinition.structureTransform(job.normalizedParams, s));
+                structures.push(await entry.queryDefinition.structureTransform(entry.normalizedParams, s));
             }
         }
 
-        const queries = structures.map(s => job.queryDefinition.query(job.normalizedParams, s));
+        const queries = structures.map(s => entry.queryDefinition.query(entry.normalizedParams, s));
         const result: Structure[] = [];
         for (let i = 0; i < structures.length; i++) {
             const s = await StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], { timeoutMs: Config.queryTimeoutMs }))
@@ -62,39 +85,36 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
         }
         perf.end('query');
 
-        const encoder = CifWriter.createEncoder({
-            binary: job.responseFormat.isBinary,
-            encoderName: `ModelServer ${Version}`,
-            binaryEncodingPovider: getEncodingProvider(wrappedStructure),
-            binaryAutoClassifyEncoding: true
-        });
-
-        ConsoleLogger.logId(job.id, 'Query', 'Query finished.');
+        ConsoleLogger.logId(entry.job.id, 'Query', `Queried ${entry.key}/${entry.queryDefinition.name}.`);
 
         perf.start('encode');
-        encoder.startDataBlock(sourceStructures[0].models[0].entryId.toUpperCase());
-        encoder.writeCategory(_model_server_result, job);
-        encoder.writeCategory(_model_server_params, job);
 
-        if (job.queryDefinition.filter) encoder.setFilter(job.queryDefinition.filter);
+        encoder.binaryEncodingProvider = getEncodingProvider(structure);
+
+        // TODO: this actually needs to "reversible" in case of error.
+        encoder.writeCategory(_model_server_result, entry);
+        encoder.writeCategory(_model_server_params, entry);
+
+        if (entry.queryDefinition.filter) encoder.setFilter(entry.queryDefinition.filter);
         if (result.length > 0) encode_mmCIF_categories(encoder, result);
-        if (job.queryDefinition.filter) encoder.setFilter();
+        if (entry.queryDefinition.filter) encoder.setFilter();
         perf.end('encode');
 
         const stats: Stats = {
-            structure: wrappedStructure,
+            structure: structure,
             queryTimeMs: perf.time('query'),
             encodeTimeMs: perf.time('encode'),
             resultSize: result.reduce((n, s) => n + s.elementCount, 0)
         };
 
         encoder.writeCategory(_model_server_stats, stats);
-        encoder.encode();
-        ConsoleLogger.logId(job.id, 'Query', 'Encoded.');
+        ConsoleLogger.logId(entry.job.id, 'Query', `Written ${entry.key}/${entry.queryDefinition.name}.`);
         return encoder;
     } catch (e) {
-        ConsoleLogger.errorId(job.id, e);
-        return doError(job, e);
+        ConsoleLogger.errorId(entry.job.id, e);
+        doError(entry, encoder, e);
+    } finally {
+        encoder.binaryEncodingProvider = void 0;
     }
 }
 
@@ -103,13 +123,10 @@ function getEncodingProvider(structure: StructureWrapper) {
     return CifWriter.createEncodingProviderFromCifFrame(structure.cifFrame);
 }
 
-function doError(job: Job, e: any) {
-    const encoder = CifWriter.createEncoder({ binary: job.responseFormat.isBinary, encoderName: `ModelServer ${Version}` });
-    encoder.writeCategory(_model_server_result, job);
-    encoder.writeCategory(_model_server_params, job);
+function doError(entry: JobEntry, encoder: CifWriter.Encoder<any>, e: any) {
+    encoder.writeCategory(_model_server_result, entry);
+    encoder.writeCategory(_model_server_params, entry);
     encoder.writeCategory(_model_server_error, '' + e);
-    encoder.encode();
-    return encoder;
 }
 
 const maxTime = Config.queryTimeoutMs;
@@ -130,13 +147,13 @@ function int32<T>(name: string, value: (data: T) => number): CifField<number, T>
     return CifField.int(name, (i, d) => value(d));
 }
 
-const _model_server_result_fields: CifField<any, Job>[] = [
-    string<Job>('job_id', ctx => '' + ctx.id),
-    string<Job>('datetime_utc', ctx => ctx.datetime_utc),
-    string<Job>('server_version', ctx => Version),
-    string<Job>('query_name', ctx => ctx.queryDefinition.name),
-    string<Job>('source_id', ctx => ctx.sourceId),
-    string<Job>('entry_id', ctx => ctx.entryId),
+const _model_server_result_fields: CifField<any, JobEntry>[] = [
+    string<JobEntry>('job_id', ctx => '' + ctx.job.id),
+    string<JobEntry>('datetime_utc', ctx => ctx.job.datetime_utc),
+    string<JobEntry>('server_version', ctx => Version),
+    string<JobEntry>('query_name', ctx => ctx.queryDefinition.name),
+    string<JobEntry>('source_id', ctx => ctx.sourceId),
+    string<JobEntry>('entry_id', ctx => ctx.entryId),
 ];
 
 const _model_server_params_fields: CifField<number, string[]>[] = [
@@ -158,7 +175,7 @@ const _model_server_stats_fields: CifField<number, Stats>[] = [
     int32<Stats>('element_count', ctx => ctx.resultSize | 0),
 ];
 
-const _model_server_result: CifWriter.Category<Job> = {
+const _model_server_result: CifWriter.Category<JobEntry> = {
     name: 'model_server_result',
     instance: (job) => CifWriter.categoryInstance(_model_server_result_fields, { data: job, rowCount: 1 })
 };
@@ -168,7 +185,7 @@ const _model_server_error: CifWriter.Category<string> = {
     instance: (message) => CifWriter.categoryInstance(_model_server_error_fields, { data: message, rowCount: 1 })
 };
 
-const _model_server_params: CifWriter.Category<Job> = {
+const _model_server_params: CifWriter.Category<JobEntry> = {
     name: 'model_server_params',
     instance(job) {
         const params: string[][] = [];
@@ -178,7 +195,6 @@ const _model_server_params: CifWriter.Category<Job> = {
         return CifWriter.categoryInstance(_model_server_params_fields, { data: params, rowCount: params.length });
     }
 };
-
 
 const _model_server_stats: CifWriter.Category<Stats> = {
     name: 'model_server_stats',

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -12,7 +12,7 @@ import { CIF, CifFrame, CifBlock } from '../../../mol-io/reader/cif'
 import * as util from 'util'
 import * as fs from 'fs'
 import * as zlib from 'zlib'
-import { Job } from './jobs';
+import { JobEntry } from './jobs';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { ModelPropertiesProvider } from '../property-provider';
 import { trajectoryFromMmCIF } from '../../../mol-model-formats/structure/mmcif';
@@ -49,12 +49,12 @@ export interface StructureWrapper {
     cache: object
 }
 
-export async function createStructureWrapperFromJob(job: Job, propertyProvider: ModelPropertiesProvider | undefined, allowCache = true): Promise<StructureWrapper> {
+export async function createStructureWrapperFromJobEntry(entry: JobEntry, propertyProvider: ModelPropertiesProvider | undefined, allowCache = true): Promise<StructureWrapper> {
     if (allowCache && Config.cacheMaxSizeInBytes > 0) {
-        const ret = StructureCache.get(job.key);
+        const ret = StructureCache.get(entry.key);
         if (ret) return ret;
     }
-    const ret = await readStructureWrapper(job.key, job.sourceId, job.entryId, job.id, propertyProvider);
+    const ret = await readStructureWrapper(entry.key, entry.sourceId, entry.entryId, entry.job.id, propertyProvider);
     if (allowCache && Config.cacheMaxSizeInBytes > 0) {
         StructureCache.add(ret);
     }

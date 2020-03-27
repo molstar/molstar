@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -21,7 +21,10 @@ const InteractionCategories = new Set([
     'pdbx_struct_mod_residue',
     'chem_comp_bond',
     'atom_sites',
-    'atom_site'
+    'atom_site',
+    'pdbx_entity_branch',
+    'pdbx_entity_branch_link',
+    'pdbx_branch_scheme'
 ]);
 
 const AssemblyCategories = new Set([
@@ -41,7 +44,10 @@ const AssemblyCategories = new Set([
     'pdbx_struct_mod_residue',
     'chem_comp_bond',
     'atom_sites',
-    'atom_site'
+    'atom_site',
+    'pdbx_entity_branch',
+    'pdbx_entity_branch_link',
+    'pdbx_branch_scheme'
 ]);
 
 export const QuerySchemas = {

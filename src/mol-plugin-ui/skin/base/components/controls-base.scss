@@ -23,6 +23,14 @@
     padding: 0;
     text-align: center;
 
+    &:hover {
+        color: $hover-font-color;
+        background-color: color-increase-contrast($msp-form-control-background, 5%);
+        border: none;
+        outline-offset: -1px !important;
+        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
+    }
+
     &[disabled], &[disabled]:hover, &[disabled]:active {
         color: $msp-btn-link-toggle-off-font-color;
     }
@@ -36,6 +44,14 @@
     line-height: $row-height;
     padding: 0;
     text-align: center;
+
+    &:hover {
+        color: $hover-font-color;
+        background-color: color-increase-contrast($msp-form-control-background, 5%);
+        border: none;
+        outline-offset: -1px !important;
+        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
+    }
 
     &[disabled], &[disabled]:hover, &[disabled]:active {
         color: $msp-btn-link-toggle-off-font-color;

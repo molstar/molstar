@@ -6,7 +6,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { JobManager, Job } from './jobs';
+import { JobManager, Job, JobEntry } from './jobs';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { resolveJob } from './query';
 import { StructureCache } from './structure-wrapper';
@@ -33,11 +33,13 @@ export async function runLocal(input: LocalInput) {
     for (const job of input) {
         const binary = /\.bcif/.test(job.output);
         JobManager.add({
-            entryId: job.input,
-            queryName: job.query,
-            queryParams: job.params || { },
-            options: {
+            entries: [JobEntry({
+                entryId: job.input,
+                queryName: job.query,
+                queryParams: job.params || { },
                 modelNums: job.modelNums,
+            })],
+            options: {
                 outputFilename: job.output,
                 binary
             }
@@ -48,7 +50,7 @@ export async function runLocal(input: LocalInput) {
     const started = now();
 
     let job: Job | undefined = JobManager.getNext();
-    let key = job.key;
+    let key = job.entries[0].key;
     let progress = 0;
     while (job) {
         try {
@@ -60,8 +62,8 @@ export async function runLocal(input: LocalInput) {
 
             if (JobManager.hasNext()) {
                 job = JobManager.getNext();
-                if (key !== job.key) StructureCache.expire(key);
-                key = job.key;
+                if (key !== job.entries[0].key) StructureCache.expire(key);
+                key = job.entries[0].key;
             } else {
                 break;
             }

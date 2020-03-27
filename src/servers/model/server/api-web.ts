@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -11,11 +11,12 @@ import * as bodyParser from 'body-parser'
 import { ModelServerConfig as Config, ModelServerConfig, mapSourceAndIdToFilename } from '../config';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { resolveJob } from './query';
-import { JobManager } from './jobs';
+import { JobManager, JobEntry } from './jobs';
 import { UUID } from '../../../mol-util';
 import { QueryDefinition, normalizeRestQueryParams, normalizeRestCommonParams, QueryList } from './api';
 import { getApiSchema, shortcutIconLink } from './api-schema';
 import { swaggerUiAssetsHandler, swaggerUiIndexHandler } from '../../common/swagger-ui';
+import { MultipleQuerySpec } from './api-web-multiple';
 
 function makePath(p: string) {
     return Config.apiPrefix + '/' + p;
@@ -69,7 +70,9 @@ async function processNextJob() {
     const response = responseMap.get(job.id)!;
     responseMap.delete(job.id);
 
-    const filenameBase = `${job.entryId}_${job.queryDefinition.name.replace(/\s/g, '_')}`
+    const filenameBase = job.entries.length === 1
+        ? `${job.entries[0].entryId}_${job.entries[0].queryDefinition.name.replace(/\s/g, '_')}`
+        : `result`;
     const writer = wrapResponse(job.responseFormat.isBinary ? `${filenameBase}.bcif` : `${filenameBase}.cif`, response);
 
     try {
@@ -87,35 +90,31 @@ async function processNextJob() {
 }
 
 function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
-    app.get(makePath('v1/:id/' + queryName), (req, res) => {
-        // console.log({ queryName, params: req.params, query: req.query });
+    function createJob(queryParams: any, req: express.Request, res: express.Response) {
         const entryId = req.params.id;
-        const queryParams = normalizeRestQueryParams(queryDefinition, req.query);
         const commonParams = normalizeRestCommonParams(req.query);
         const jobId = JobManager.add({
-            sourceId: commonParams.data_source || ModelServerConfig.defaultSource,
-            entryId,
-            queryName: queryName as any,
-            queryParams,
-            options: { modelNums: commonParams.model_nums, binary: commonParams.encoding === 'bcif' }
+            entries: [JobEntry({
+                sourceId: commonParams.data_source || ModelServerConfig.defaultSource,
+                entryId,
+                queryName: queryName as any,
+                queryParams,
+                modelNums: commonParams.model_nums
+            })],
+            options: { binary: commonParams.encoding === 'bcif' }
         });
         responseMap.set(jobId, res);
         if (JobManager.size === 1) processNextJob();
+    }
+
+    app.get(makePath('v1/:id/' + queryName), (req, res) => {
+        const queryParams = normalizeRestQueryParams(queryDefinition, req.query);
+        createJob(queryParams, req, res);
     });
 
     app.post(makePath('v1/:id/' + queryName), (req, res) => {
-        const entryId = req.params.id;
         const queryParams = req.body;
-        const commonParams = normalizeRestCommonParams(req.query);
-        const jobId = JobManager.add({
-            sourceId: commonParams.data_source || ModelServerConfig.defaultSource,
-            entryId,
-            queryName: queryName as any,
-            queryParams,
-            options: { modelNums: commonParams.model_nums, binary: commonParams.encoding === 'bcif' }
-        });
-        responseMap.set(jobId, res);
-        if (JobManager.size === 1) processNextJob();
+        createJob(queryParams, req, res);
     });
 }
 
@@ -154,28 +153,36 @@ function serveStatic(req: express.Request, res: express.Response) {
     });
 }
 
+function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
+    const jobId = JobManager.add({
+        entries: spec.queries.map(q => JobEntry({
+            sourceId: q.data_source || ModelServerConfig.defaultSource,
+            entryId: q.entryId,
+            queryName: q.query,
+            queryParams: q.params || { },
+            modelNums: q.model_nums
+        })),
+        options: { binary: spec.encoding?.toLowerCase() === 'bcif' }
+    });
+    responseMap.set(jobId, res);
+    if (JobManager.size === 1) processNextJob();
+}
+
 export function initWebApi(app: express.Express) {
     app.use(bodyParser.json({ limit: '1mb' }));
 
     app.get(makePath('static/:source/:id'), (req, res) => serveStatic(req, res));
     app.get(makePath('v1/static/:source/:id'), (req, res) => serveStatic(req, res));
 
-    // app.get(makePath('v1/json'), (req, res) => {
-    //     const query = /\?(.*)$/.exec(req.url)![1];
-    //     const args = JSON.parse(decodeURIComponent(query));
-    //     const name = args.name;
-    //     const entryId = args.id;
-    //     const queryParams = args.params || { };
-    //     const jobId = JobManager.add({
-    //         sourceId: 'pdb',
-    //         entryId,
-    //         queryName: name,
-    //         queryParams,
-    //         options: { modelNums: args.modelNums, binary: args.binary }
-    //     });
-    //     responseMap.set(jobId, res);
-    //     if (JobManager.size === 1) processNextJob();
-    // });
+    app.get(makePath('v1/query-many'), (req, res) => {
+        const query = /\?query=(.*)$/.exec(req.url)![1];
+        const params = JSON.parse(decodeURIComponent(query));
+        createMultiJob(params, res);
+    });
+    app.post(makePath('v1/query-many'), (req, res) => {
+        const params = req.body;
+        createMultiJob(params, res);
+    });
 
     app.use(bodyParser.json({ limit: '20mb' }));
 
@@ -201,8 +208,4 @@ export function initWebApi(app: express.Express) {
         title: 'ModelServer API',
         shortcutIconLink
     }));
-
-    // app.get('*', (req, res) => {
-    //     res.send(LandingPage);
-    // });
 }

@@ -88,7 +88,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             ]);
         }
 
-        if (current.models.length > 1) {
+        if (current.models.length > 1 || current.trajectories.length > 1) {
             ret.push([
                 ActionMenu.Header('Models'),
                 ...current.models.map(this.item)

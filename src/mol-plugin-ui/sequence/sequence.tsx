@@ -13,7 +13,6 @@ import { SequenceWrapper } from './wrapper';
 import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
-import { Color } from '../../mol-util/color';
 import { OrderedSet } from '../../mol-data/int';
 import { Representation } from '../../mol-repr/representation';
 

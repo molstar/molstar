@@ -29,7 +29,7 @@ namespace UpdateTransformControl {
 }
 
 class UpdateTransformControl extends TransformControlBase<UpdateTransformControl.Props, UpdateTransformControl.ComponentState> {
-    applyAction() { 
+    applyAction() {
         if (this.props.customUpdate) return this.props.customUpdate(this.state.params);
         return this.plugin.state.updateTransform(this.props.state, this.props.transform.ref, this.state.params);
     }

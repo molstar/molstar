@@ -256,7 +256,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
             decorators!.push(<UpdateTransformControl key={`${d.transform.transformer.id}-${i}`} state={cell.parent} transform={d.transform} noMargin wrapInExpander expanderHeaderLeftMargin={margin} />);
         }
 
-        return decorators;
+        return <div className='msp-tree-updates-wrapper'>{decorators}</div>;
     }
 
     render() {
@@ -285,7 +285,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         const children = cell.parent.tree.children.get(this.ref);
         const cellState = cell.state;
 
-        const visibility = <button onClick={this.toggleVisible} className={`msp-btn msp-btn-link msp-tree-visibility${cellState.isHidden ? ' msp-tree-visibility-hidden' : ''}`}>
+        const visibility = <button onClick={this.toggleVisible} className={`msp-btn msp-btn-link msp-btn-icon msp-tree-visibility${cellState.isHidden ? ' msp-tree-visibility-hidden' : ''}`}>
             <Icon name='visual-visibility' />
         </button>;
 
@@ -300,7 +300,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
             {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
                 <Icon name={cellState.isCollapsed ? 'expand' : 'collapse'} />
             </button>}
-            {!cell.state.isLocked && <button onClick={this.remove} className='msp-btn msp-btn-link msp-tree-remove-button'>
+            {!cell.state.isLocked && <button onClick={this.remove} className='msp-btn msp-btn-link msp-btn-icon msp-tree-remove-button'>
                 <Icon name='remove' />
             </button>}{visibility}
         </div>;
@@ -319,11 +319,10 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         if (this.state.action === 'options') {
             const actions = this.actions;
             const updates = this.updates(marginStyle.marginLeft as string);
-            // TODO: fix 1px extra margin when updates are empty
             return <div style={{ marginBottom: '1px' }}>
                 {row}
                 {updates}
-                {actions && <div style={{ marginLeft: marginStyle.marginLeft }}>
+                {actions && <div style={{ marginLeft: marginStyle.marginLeft, marginTop: '-1px' }}>
                     <ActionMenu items={actions} onSelect={this.selectAction} />
                 </div>}
             </div>

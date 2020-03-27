@@ -11,7 +11,7 @@ import { guessCifVariant, DataFormatProvider, DataFormatRegistry } from './regis
 import { StateTransformer, StateObjectRef } from '../../mol-state';
 import { PluginStateObject } from '../objects';
 
-export interface TrajectoryFormatProvider<P extends { trajectoryTags?: string | string[] } = { trajectoryTags?: string | string[] }, R extends { trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory> } = { trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory> }> 
+export interface TrajectoryFormatProvider<P extends { trajectoryTags?: string | string[] } = { trajectoryTags?: string | string[] }, R extends { trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory> } = { trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory> }>
     extends DataFormatProvider<P, R> {
 }
 
@@ -32,10 +32,13 @@ export const MmcifProvider: TrajectoryFormatProvider = {
     },
     parse: async (plugin, data, params) => {
         const state = plugin.state.data;
-        const trajectory = state.build().to(data)
+        const cif = state.build().to(data)
             .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
-            .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { tags: params?.trajectoryTags })
+        const trajectory = cif.apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { tags: params?.trajectoryTags })
         await plugin.updateDataState(trajectory, { revertOnError: true });
+        if (cif.selector.cell?.obj?.data.blocks.length || 0 > 1) {
+            plugin.state.data.updateCellState(cif.ref, { isGhost: false });
+        }
         return { trajectory: trajectory.selector };
     }
 }

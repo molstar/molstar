@@ -159,9 +159,6 @@ export class StructureHierarchyManager extends PluginComponent {
                 if (t.models.length > 0) {
                     await this.clearTrajectory(t);
                 }
-
-                if (t.models.length === 0) return;
-
                 await this.plugin.builders.structure.hierarchy.applyPreset(t.cell, provider, params);
             }
         });

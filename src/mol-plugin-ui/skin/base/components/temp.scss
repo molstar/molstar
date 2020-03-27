@@ -205,6 +205,12 @@
     margin-left: $control-spacing;
 }
 
+.msp-tree-updates-wrapper {
+    .msp-control-group-header:last-child {
+        margin-bottom: 1px;
+    }
+}
+
 .msp-log-list {
     list-style: none;
 

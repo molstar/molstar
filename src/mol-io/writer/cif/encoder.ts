@@ -10,6 +10,7 @@ import { Column, Table, Database, DatabaseCollection } from '../../../mol-data/d
 import { Tensor } from '../../../mol-math/linear-algebra'
 import EncoderBase from '../encoder'
 import { ArrayEncoder, ArrayEncoding } from '../../common/binary-cif';
+import { BinaryEncodingProvider } from './encoder/binary';
 
 // TODO: support for "coordinate fields", make "coordinate precision" a parameter of the encoder
 // TODO: automatically detect "precision" of floating point arrays.
@@ -227,7 +228,9 @@ export interface Encoder<T = string | Uint8Array> extends EncoderBase {
 
     startDataBlock(header: string): void,
     writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx, options?: Encoder.WriteCategoryOptions): void,
-    getData(): T
+    getData(): T,
+
+    binaryEncodingProvider: BinaryEncodingProvider | undefined;
 }
 
 export namespace Encoder {

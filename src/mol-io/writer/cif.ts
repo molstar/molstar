@@ -6,7 +6,7 @@
  */
 
 import TextEncoder from './cif/encoder/text'
-import BinaryEncoder, { EncodingProvider } from './cif/encoder/binary'
+import BinaryEncoder, { BinaryEncodingProvider } from './cif/encoder/binary'
 import * as _Encoder from './cif/encoder'
 import { ArrayEncoding, ArrayEncoder } from '../common/binary-cif';
 import { CifFrame } from '../reader/cif';
@@ -20,7 +20,7 @@ export namespace CifWriter {
     export interface EncoderParams {
         binary?: boolean,
         encoderName?: string,
-        binaryEncodingPovider?: EncodingProvider,
+        binaryEncodingPovider?: BinaryEncodingProvider,
         binaryAutoClassifyEncoding?: boolean
     }
 
@@ -44,7 +44,7 @@ export namespace CifWriter {
         return { fields, source: [source] };
     }
 
-    export function createEncodingProviderFromCifFrame(frame: CifFrame): EncodingProvider {
+    export function createEncodingProviderFromCifFrame(frame: CifFrame): BinaryEncodingProvider {
         return {
             get(c, f) {
                 const cat = frame.categories[c];
@@ -55,7 +55,7 @@ export namespace CifWriter {
         }
     };
 
-    export function createEncodingProviderFromJsonConfig(hints: EncodingStrategyHint[]): EncodingProvider {
+    export function createEncodingProviderFromJsonConfig(hints: EncodingStrategyHint[]): BinaryEncodingProvider {
         return {
             get(c, f) {
                 for (let i = 0; i < hints.length; i++) {
