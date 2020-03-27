@@ -89,7 +89,7 @@ export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends Plugi
 
         return <div className={wrapClass}>
             <div className='msp-transform-header'>
-                <button className='msp-btn msp-form-control msp-btn-block msp-btn-collapse msp-no-overflow' onClick={this.toggleCollapsed}>
+                <button className='msp-btn msp-form-control msp-btn-block msp-no-overflow' onClick={this.toggleCollapsed}>
                     <Icon name={this.state.isCollapsed ? 'expand' : 'collapse'} />
                     {this.state.header}
                     <small style={{ margin: '0 6px' }}>{this.state.isCollapsed ? '' : this.state.description}</small>

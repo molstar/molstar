@@ -11,10 +11,6 @@
     }
 }
 
-.msp-btn-collapse {
-    padding: 0 $control-spacing / 2;
-}
-
 .msp-btn, .msp-btn:active, .msp-btn-link:focus, .msp-btn:hover {
     outline: none !important;
 }
@@ -110,7 +106,7 @@
 .msp-form-control {
     width: 100%;
     background: $msp-form-control-background;
-    color: $font-color;
+    // color: $font-color;
     border: none; // !important;
     padding: 0 $control-spacing;
     line-height: $row-height - 2px;

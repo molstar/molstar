@@ -36,8 +36,9 @@ export class StructureFocusControls extends CollapsableControls<{}, StructureCom
         this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, c => {
             this.setState({
                 description: StructureHierarchyManager.getSelectedStructuresDescription(this.plugin)
-            })
-            this.forceUpdate();
+            });
+            // if setState is called on non-pure component, forceUpdate is reduntant
+            // this.forceUpdate();
         });
     }
 

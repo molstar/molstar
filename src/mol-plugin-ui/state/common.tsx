@@ -190,12 +190,12 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         return this.props.autoHideApply && !canApply
             ? null
             : <div className='msp-transform-apply-wrap'>
-                <button className='msp-btn msp-btn-block msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params'><Icon name='cw' /></button>
-                {showBack && <button className='msp-btn msp-btn-block msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
+                <button className='msp-btn msp-btn-block msp-form-control msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params'><Icon name='cw' /></button>
+                {showBack && <button className='msp-btn msp-btn-block msp-form-control msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
                     <Icon name='back' /> Back
                 </button>}
                 <div className={`msp-transform-apply${!showBack ? ' msp-transform-apply-wider' : ''}`}>
-                    <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-${canApply ? 'on' : 'off'}`} onClick={this.apply} disabled={!canApply}>
+                    <button className={`msp-btn msp-btn-block msp-form-control msp-btn-commit msp-btn-commit-${canApply ? 'on' : 'off'}`} onClick={this.apply} disabled={!canApply}>
                         {canApply && <Icon name='ok' />}
                         {this.props.applyLabel || this.applyText()}
                     </button>
@@ -223,7 +223,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
 
         const ctrl = <div className={wrapClass} style={{ marginBottom: this.props.noMargin ? 0 : void 0 }}>
             {display !== 'none' && !this.props.wrapInExpander && <div className='msp-transform-header'>
-                <button className={`msp-btn msp-btn-block${isEmpty ? '' : ' msp-btn-collapse'}`} onClick={this.toggleExpanded} title={display.description}>
+                <button className={`msp-btn msp-btn-block msp-form-control`} onClick={this.toggleExpanded} title={display.description}>
                     {!isEmpty && <Icon name={this.state.isCollapsed ? 'expand' : 'collapse'} />}
                     {display.name}
                 </button>

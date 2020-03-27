@@ -35,6 +35,11 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
             ? ColorNames.grey
             : ColorNames.black
     }
+    residueClass(seqIdx: number) {
+        return this.missing.has(this.modelNum, this.asymId, this.seqId(seqIdx))
+            ? 'msp-sequence-missing'
+            : 'msp-sequence-present'
+    }
 
     mark(loci: Loci, action: MarkerAction): boolean {
         let changed = false

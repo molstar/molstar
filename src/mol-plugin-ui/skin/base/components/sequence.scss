@@ -97,4 +97,12 @@ $sequence-select-height: 24px;
     .msp-sequence-number-negative {
         left: 2.5em;
     }
+
+    .msp-sequence-present {
+        color: $font-color;
+    }
+
+    .msp-sequence-missing {
+        color: color-lower-contrast($font-color, 33%);
+    }
 }

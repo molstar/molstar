@@ -20,6 +20,9 @@ export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
     residueColor(seqIdx: number) {
         return ColorNames.black
     }
+    residueClass(seqIdx: number) {
+        return 'msp-sequence-present'
+    }
 
     mark(loci: Loci, action: MarkerAction) {
         let changed = false

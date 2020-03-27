@@ -17,6 +17,7 @@ export { SequenceWrapper }
 abstract class SequenceWrapper<D> {
     abstract residueLabel(seqIdx: number): string
     abstract residueColor(seqIdx: number): Color
+    abstract residueClass(seqIdx: number): string
 
     abstract getLoci(seqIdx: number): StructureElement.Loci
 

@@ -159,12 +159,12 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
     private getResidueClass(seqIdx: number, label: string) {
         return label.length > 1
-            ? (seqIdx === 0 ? 'msp-sequence-residue-long-begin' : 'msp-sequence-residue-long')
-            : void 0
+            ? this.props.sequenceWrapper.residueClass(seqIdx) + (seqIdx === 0 ? ' msp-sequence-residue-long-begin' : ' msp-sequence-residue-long')
+            : this.props.sequenceWrapper.residueClass(seqIdx);
     }
 
-    private residue(seqIdx: number, label: string, marker: number, color: Color) {
-        return <span key={seqIdx} data-seqid={seqIdx} style={{ color: Color.toStyle(color), backgroundColor: this.getBackgroundColor(marker) }} className={this.getResidueClass(seqIdx, label)}>{label}</span>;
+    private residue(seqIdx: number, label: string, marker: number) {
+        return <span key={seqIdx} data-seqid={seqIdx} style={{ backgroundColor: this.getBackgroundColor(marker) }} className={this.getResidueClass(seqIdx, label)}>{label}</span>;
     }
 
     private getSequenceNumberClass(seqIdx: number, seqNum: string, label: string) {
@@ -285,7 +285,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             if (hasNumbers && i % period === 0 && i < il) {
                 elems[elems.length] = this.getSequenceNumberSpan(i, label)
             }
-            elems[elems.length] = this.residue(i, label, sw.markerArray[i], sw.residueColor(i));
+            elems[elems.length] = this.residue(i, label, sw.markerArray[i]);
         }
 
         // calling .updateMarker here is neccesary to ensure existing

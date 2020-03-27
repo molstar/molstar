@@ -66,8 +66,9 @@
 
 .msp-transform-wrapper > .msp-transform-header > button {
     text-align: left;
-    background: color-lower-contrast($default-background, 4%);
+    background: $default-background; // color-lower-contrast($default-background, 4%);
     font-weight: bold;
+    padding-right: 5px;
 }
 
 .msp-transform-header {
@@ -84,6 +85,12 @@
     > button > small {
         font-weight: normal;
         float: right;
+    }
+    
+    > button {
+        > span:first-child {
+            margin-right: 8px;
+        }
     }
 
     > button:hover {
