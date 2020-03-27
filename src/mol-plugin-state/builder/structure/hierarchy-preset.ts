@@ -84,8 +84,8 @@ const allModels = TrajectoryHierarchyPresetProvider({
         const models = [], structures = [];
 
         for (let i = 0; i < tr.length; i++) {
-            const model = await builder.createModel(trajectory, { modelIndex: i }, { isCollapsed: true });
-            const modelProperties = await builder.insertModelProperties(model, params.modelProperties);
+            const model = await builder.createModel(trajectory, { modelIndex: i });
+            const modelProperties = await builder.insertModelProperties(model, params.modelProperties, { isCollapsed: true });
             const structure = await builder.createStructure(modelProperties || model, { name: 'deposited', params: {} });
             const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 

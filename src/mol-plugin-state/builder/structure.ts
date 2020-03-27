@@ -66,10 +66,10 @@ export class StructureBuilder {
         return model.selector;
     }
 
-    async insertModelProperties(model: StateObjectRef<SO.Molecule.Model>, params?: StateTransformer.Params<StateTransforms['Model']['CustomModelProperties']>) {
+    async insertModelProperties(model: StateObjectRef<SO.Molecule.Model>, params?: StateTransformer.Params<StateTransforms['Model']['CustomModelProperties']>, initialState?: Partial<StateTransform.State>) {
         const state = this.dataState;
         const props = state.build().to(model)
-            .apply(StateTransforms.Model.CustomModelProperties, params);
+            .apply(StateTransforms.Model.CustomModelProperties, params, { state: initialState });
         await this.plugin.updateDataState(props, { revertOnError: true });
         return props.selector;
     }

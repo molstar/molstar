@@ -36,7 +36,7 @@ export const MmcifProvider: TrajectoryFormatProvider = {
             .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
         const trajectory = cif.apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { tags: params?.trajectoryTags })
         await plugin.updateDataState(trajectory, { revertOnError: true });
-        if (cif.selector.cell?.obj?.data.blocks.length || 0 > 1) {
+        if ((cif.selector.cell?.obj?.data.blocks.length || 0) > 1) {
             plugin.state.data.updateCellState(cif.ref, { isGhost: false });
         }
         return { trajectory: trajectory.selector };

@@ -64,8 +64,6 @@ export function getPalette(count: number, props: PaletteProps) {
         const { list, minLabel, maxLabel } = props.palette.params
         const domain: [number, number] = [0, count - 1]
 
-        console.log(list.colors);
-
         let colors = list.colors;
         if (colors.length === 0) colors = getColorListFromName(DefaultGetPaletteProps.colorList).list
 
