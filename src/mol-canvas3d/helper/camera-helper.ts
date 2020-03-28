@@ -55,7 +55,7 @@ export class CameraHelper {
 
     private renderObject: GraphicsRenderObject | undefined
 
-    constructor(webgl: WebGLContext, props: Partial<CameraHelperProps> = {}) {
+    constructor(private webgl: WebGLContext, props: Partial<CameraHelperProps> = {}) {
         this.scene = Scene.create(webgl)
 
         this.camera = new Camera()
@@ -71,14 +71,15 @@ export class CameraHelper {
                 p.axes.name = props.axes.name
                 if (props.axes.name === 'on') {
                     this.scene.clear()
+                    const params = { ...props.axes.params, scale: props.axes.params.scale * this.webgl.pixelRatio }
                     this.renderObject = undefined
-                    createAxesRenderObject(props.axes.params).then(renderObject => {
+                    createAxesRenderObject(params).then(renderObject => {
                         this.renderObject = renderObject
                         this.scene.add(this.renderObject)
                         this.scene.commit()
                     })
 
-                    Vec3.set(this.camera.position, 0, 0, props.axes.params.scale * 200)
+                    Vec3.set(this.camera.position, 0, 0, params.scale * 200)
                     Mat4.lookAt(this.camera.view, this.camera.position, this.camera.target, this.camera.up)
 
                     p.axes.params = { ...props.axes.params }
