@@ -57,7 +57,7 @@ namespace StructureSymmetry {
             if (models.length !== 1) throw new Error('Can only build symmetry assemblies from structures based on 1 model.');
 
             const modelCenter = Vec3()
-            const assembler = Structure.Builder({ label: structure.label });
+            const assembler = Structure.Builder({ label: structure.label, representativeModel: models[0] });
 
             const queryCtx = new QueryContext(structure);
 

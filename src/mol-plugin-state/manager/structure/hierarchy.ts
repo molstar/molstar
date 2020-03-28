@@ -218,7 +218,14 @@ export namespace StructureHierarchyManager {
 
         if (structures.length === 1) {
             const s = structures[0];
-            const entryId = s.cell.obj?.data.models[0].entryId;
+            const data = s.cell.obj?.data;
+
+            if (!data) return s.cell.obj?.label || 'Structure';
+
+            const model = data.models[0] || data.representativeModel || data.masterModel;
+            if (!model) return s.cell.obj?.label || 'Structure';
+
+            const entryId = model.entryId;
             if (s.model?.trajectory?.models && s.model.trajectory.models.length === 1) return entryId;
             if (s.model) return `${s.model.cell.obj?.label} | ${entryId}`;
             return entryId;

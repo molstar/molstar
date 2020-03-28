@@ -50,10 +50,12 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             }
             case 'structure': {
                 const model = ref.cell.obj?.data.models[0];
-                if (model?.trajectoryInfo.size! > 1) {
-                    label = `${ref.cell.obj?.data.models[0].entryId} | ${ref.cell.obj?.label} (Model ${model?.trajectoryInfo.index! + 1} of ${model?.trajectoryInfo.size})`; break;
+                if (model && model.trajectoryInfo.size! > 1) {
+                    label = `${model.entryId} | ${ref.cell.obj?.label} (Model ${model?.trajectoryInfo.index! + 1} of ${model?.trajectoryInfo.size})`; break;
+                } else if (model) {
+                    label = `${model.entryId} | ${ref.cell.obj?.label}`; break;
                 } else {
-                    label = `${ref.cell.obj?.data.models[0].entryId} | ${ref.cell.obj?.label}`; break;
+                    label = `${ref.cell.obj?.label}`; break;
                 }
             }
             default: label = ref.cell.obj?.label; break;
