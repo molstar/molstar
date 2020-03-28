@@ -289,6 +289,6 @@ export const ClashesRepresentationProvider = StructureRepresentationProvider({
     isApplicable: (structure: Structure) => structure.elementCount > 0,
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, structure: Structure) => ClashesProvider.attach(ctx, structure, void 0, true),
-        detach: (_, data) => ClashesProvider.ref(data, false)
+        detach: (data) => ClashesProvider.ref(data, false)
     }
 })

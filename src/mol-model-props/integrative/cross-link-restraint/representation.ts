@@ -144,6 +144,6 @@ export const CrossLinkRestraintRepresentationProvider = StructureRepresentationP
     isApplicable: (structure: Structure) => CrossLinkRestraint.isApplicable(structure),
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, structure: Structure) => CrossLinkRestraintProvider.attach(ctx, structure, void 0, true),
-        detach: (_, data) => CrossLinkRestraintProvider.ref(data, false)
+        detach: (data) => CrossLinkRestraintProvider.ref(data, false)
     }
 })

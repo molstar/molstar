@@ -66,6 +66,12 @@ namespace Transformer {
         newParams: P
     }
 
+    export interface DisposeParams<B extends StateObject = StateObject, P extends {} = {}> {
+        b: B | undefined,
+        params: P | undefined,
+        cache: unknown
+    }
+
     export enum UpdateResult { Unchanged, Updated, Recreate, Null }
 
     /** Specify default control descriptors for the parameters */
@@ -96,6 +102,9 @@ namespace Transformer {
 
         /** Parameter interpolation */
         interpolate?(src: P, target: P, t: number, globalCtx: unknown): P
+
+        /** Cleanup resources */
+        dispose?(params: DisposeParams<B, P>, globalCtx: unknown): void
 
         /** Custom conversion to and from JSON */
         readonly customSerialization?: { toJSON(params: P, obj?: B): any, fromJSON(data: any): P }

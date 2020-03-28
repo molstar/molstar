@@ -105,6 +105,6 @@ export const StructureQualityReportColorThemeProvider: ColorTheme.Provider<Param
     isApplicable: (ctx: ThemeDataContext) => StructureQualityReport.isApplicable(ctx.structure?.models[0]),
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? StructureQualityReportProvider.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
-        detach: (_, data) => data.structure && data.structure.models[0].customProperties.reference(StructureQualityReportProvider.descriptor, false)
+        detach: (data) => data.structure && data.structure.models[0].customProperties.reference(StructureQualityReportProvider.descriptor, false)
     }
 }

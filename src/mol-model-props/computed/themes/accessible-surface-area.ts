@@ -73,6 +73,6 @@ export const AccessibleSurfaceAreaColorThemeProvider: ColorTheme.Provider<Access
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? AccessibleSurfaceAreaProvider.attach(ctx, data.structure, void 0, true) : Promise.resolve(),
-        detach: (_, data) => data.structure && data.structure.customPropertyDescriptors.reference(AccessibleSurfaceAreaProvider.descriptor, false)
+        detach: (data) => data.structure && data.structure.customPropertyDescriptors.reference(AccessibleSurfaceAreaProvider.descriptor, false)
     }
 }

@@ -48,6 +48,6 @@ export const InteractionsRepresentationProvider = StructureRepresentationProvide
     isApplicable: (structure: Structure) => structure.elementCount > 0,
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, structure: Structure) => InteractionsProvider.attach(ctx, structure, void 0, true),
-        detach: (_, data) => InteractionsProvider.ref(data, false)
+        detach: (data) => InteractionsProvider.ref(data, false)
     }
 })

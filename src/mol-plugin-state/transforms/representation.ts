@@ -136,18 +136,19 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
 
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
-            return new SO.Molecule.Structure.Representation3D({ repr, source: a } , { label: provider.label });
+            return new SO.Molecule.Structure.Representation3D({ repr, source: a }, { label: provider.label });
         });
     },
     update({ a, b, oldParams, newParams, cache }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
             const oldProvider = plugin.representation.structure.registry.get(oldParams.type.name);
-            const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
-            if (oldProvider.ensureCustomProperties) oldProvider.ensureCustomProperties.detach(propertyCtx, a.data);
-            Theme.releaseDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, oldParams);
+            if (oldProvider.ensureCustomProperties) oldProvider.ensureCustomProperties.detach(a.data);
+            Theme.releaseDependencies(plugin.representation.structure.themes, { structure: a.data }, oldParams);
 
             if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
+
             const provider = plugin.representation.structure.registry.get(newParams.type.name)
+            const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data)
             const props = { ...b.data.repr.props, ...newParams.type.params }
             await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, newParams)
@@ -163,6 +164,14 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             b.data.source = a
             return StateTransformer.UpdateResult.Updated;
         });
+    },
+    dispose({ b, params }, plugin: PluginContext) {
+        if (!b || !params) return;
+
+        const structure = b.data.source.data;
+        const provider = plugin.representation.structure.registry.get(params.type.name);
+        if (provider.ensureCustomProperties) provider.ensureCustomProperties.detach(structure);
+        Theme.releaseDependencies(plugin.representation.structure.themes, { structure }, params);
     },
     interpolate(src, tar, t) {
         if (src.colorTheme.name !== 'uniform' || tar.colorTheme.name !== 'uniform') {
@@ -475,7 +484,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
                 type: PD.Mapped<any>(
                     registry.default.name,
                     registry.types,
-                    name => PD.Group<any>(registry.get(name).getParams(themeCtx, VolumeData.One ))),
+                    name => PD.Group<any>(registry.get(name).getParams(themeCtx, VolumeData.One))),
                 colorTheme: PD.Mapped<any>(
                     type.defaultColorTheme.name,
                     themeCtx.colorThemeRegistry.types,
@@ -530,8 +539,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             if (newParams.type.name !== oldParams.type.name) {
                 const oldProvider = plugin.representation.volume.registry.get(oldParams.type.name);
                 if (oldProvider.ensureCustomProperties) {
-                    const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
-                    oldProvider.ensureCustomProperties.detach(propertyCtx, a.data)
+                    oldProvider.ensureCustomProperties.detach(a.data)
                 }
                 return StateTransformer.UpdateResult.Recreate;
             }

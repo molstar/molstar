@@ -116,6 +116,6 @@ export const InteractionTypeColorThemeProvider: ColorTheme.Provider<InteractionT
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? InteractionsProvider.attach(ctx, data.structure, void 0, true) : Promise.resolve(),
-        detach: (_, data) => data.structure && data.structure.customPropertyDescriptors.reference(InteractionsProvider.descriptor, false)
+        detach: (data) => data.structure && data.structure.customPropertyDescriptors.reference(InteractionsProvider.descriptor, false)
     }
 }

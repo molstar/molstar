@@ -57,9 +57,9 @@ namespace Theme {
         await theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.attach(ctx, data)
     }
 
-    export function releaseDependencies(ctx: CustomProperty.Context, theme: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
-        theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.detach(ctx, data)
-        theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.detach(ctx, data)
+    export function releaseDependencies(theme: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
+        theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.detach(data)
+        theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.detach(data)
     }
 }
 
@@ -75,7 +75,7 @@ export interface ThemeProvider<T extends ColorTheme<P> | SizeTheme<P>, P extends
     readonly isApplicable: (ctx: ThemeDataContext) => boolean
     readonly ensureCustomProperties?: {
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => Promise<void>,
-        detach: (ctx: CustomProperty.Context, data: ThemeDataContext) => void
+        detach: (data: ThemeDataContext) => void
     }
 }
 

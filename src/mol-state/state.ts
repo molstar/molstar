@@ -442,6 +442,11 @@ async function update(ctx: UpdateContext) {
             ctx.parent.setCurrent(newCurrent);
         }
 
+        for (let i = deletes.length - 1; i >= 0; i--) {
+            const cell = ctx.cells.get(deletes[i]);
+            cell?.transform.transformer.definition.dispose?.({ b: cell.obj, params: cell.transform.params, cache: cell.cache }, ctx.parent.globalContext);
+        }
+
         for (const d of deletes) {
             const cell = ctx.cells.get(d);
             if (cell) unlinkCell(cell);

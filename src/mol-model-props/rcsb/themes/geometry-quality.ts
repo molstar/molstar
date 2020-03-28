@@ -110,6 +110,6 @@ export const GeometryQualityColorThemeProvider: ColorTheme.Provider<GeometricQua
     isApplicable: (ctx: ThemeDataContext) => ValidationReport.isApplicable(ctx.structure?.models[0]),
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? ValidationReportProvider.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
-        detach: (_, data) => data.structure && data.structure.models[0].customProperties.reference(ValidationReportProvider.descriptor, false)
+        detach: (data) => data.structure && data.structure.models[0].customProperties.reference(ValidationReportProvider.descriptor, false)
     }
 }

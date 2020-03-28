@@ -67,6 +67,6 @@ export const CartoonRepresentationProvider = StructureRepresentationProvider({
     isApplicable: (structure: Structure) => structure.polymerResidueCount > 0,
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, structure: Structure) => SecondaryStructureProvider.attach(ctx, structure, void 0, true),
-        detach: (_, data) => SecondaryStructureProvider.ref(data, false)
+        detach: (data) => SecondaryStructureProvider.ref(data, false)
     }
 })

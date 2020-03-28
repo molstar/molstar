@@ -121,6 +121,6 @@ export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<Secondary
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? SecondaryStructureProvider.attach(ctx, data.structure, void 0, true) : Promise.resolve(),
-        detach: (_, data) => data.structure && data.structure.customPropertyDescriptors.reference(SecondaryStructureProvider.descriptor, false)
-    }    
+        detach: (data) => data.structure && data.structure.customPropertyDescriptors.reference(SecondaryStructureProvider.descriptor, false)
+    }
 }

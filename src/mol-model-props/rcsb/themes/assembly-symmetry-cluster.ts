@@ -99,6 +99,6 @@ export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<Asse
     isApplicable: (ctx: ThemeDataContext) => AssemblySymmetry.isApplicable(ctx.structure),
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? AssemblySymmetryProvider.attach(ctx, data.structure, void 0, true) : Promise.resolve(),
-        detach: (_, data) => data.structure && data.structure.customPropertyDescriptors.reference(AssemblySymmetryProvider.descriptor, false)
+        detach: (data) => data.structure && data.structure.customPropertyDescriptors.reference(AssemblySymmetryProvider.descriptor, false)
     }
 }

@@ -51,7 +51,7 @@ export interface RepresentationProvider<D = any, P extends PD.Params = any, S ex
     readonly isApplicable: (data: D) => boolean
     readonly ensureCustomProperties?: {
         attach: (ctx: CustomProperty.Context, data: D) => Promise<void>,
-        detach: (ctx: CustomProperty.Context, data: D) => void
+        detach: (data: D) => void
     }
 }
 
