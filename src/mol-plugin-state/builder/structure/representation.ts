@@ -54,10 +54,10 @@ export class StructureRepresentationBuilder {
     }
 
     getPresetSelect(s?: PluginStateObject.Molecule.Structure): PD.Select<string> {
-        const options: [string, string][] = [];
+        const options: [string, string, string | undefined][] = [];
         for (const p of this._providers) {
             if (s && p.isApplicable && !p.isApplicable(s, this.plugin)) continue;
-            options.push([p.id, p.display.name]);
+            options.push([p.id, p.display.name, p.display.group]);
         }
         return PD.Select('auto', options);
     }
@@ -121,16 +121,17 @@ export class StructureRepresentationBuilder {
         return selector;
     }
 
-    async buildRepresentation<P extends StructureRepresentationBuiltInProps>(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props: P, options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
-    async buildRepresentation<P extends StructureRepresentationProps>(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props: P, options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>
-    async buildRepresentation(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props: any, options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>) {
+    buildRepresentation<P extends StructureRepresentationBuiltInProps>(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props: P, options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>): StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>
+    buildRepresentation<P extends StructureRepresentationProps>(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props: P, options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>): StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>
+    buildRepresentation(builder: StateBuilder.Root, structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined, props: any, options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>) {
         if (!structure) return;
         const data = StateObjectRef.resolveAndCheck(this.dataState, structure)?.obj?.data;
         if (!data) return;
 
         const params = createStructureRepresentationParams(this.plugin, data, props);
-        return builder.to(structure)
-            .apply(StructureRepresentation3D, params, { tags: options?.tag, state: options?.initialState }).selector;
+        return options?.tag
+            ? builder.to(structure).applyOrUpdateTagged(options.tag, StructureRepresentation3D, params, { state: options?.initialState }).selector
+            : builder.to(structure).apply(StructureRepresentation3D, params, { state: options?.initialState }).selector;
     }
 
     constructor(public plugin: PluginContext) {

@@ -146,16 +146,17 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
 
 const assemblySymmetryPreset = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-rcsb-assembly-symmetry',
-    display: { name: 'Assembly Symmetry', group: 'Preset' },
+    display: { name: 'Assembly Symmetry', group: 'Annotation' },
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const model = structureCell?.obj?.data.model
+        const model = structureCell?.obj?.data.model;
         if (!structureCell || !model) return {};
 
-        await tryCreateAssemblySymmetry(plugin, structureCell)
+        const assemblySymmetry = await tryCreateAssemblySymmetry(plugin, structureCell);
+        const repr = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: Tag.Cluster as any }, plugin);
 
-        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: Tag.Cluster as any }, plugin)
+        return { components: repr.components, representations: { ...repr.components, assemblySymmetry } };
     }
 });
 

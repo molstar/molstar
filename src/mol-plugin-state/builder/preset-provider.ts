@@ -10,7 +10,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 export interface PresetProvider<O extends StateObject = StateObject, P = any, S = {}> {
     id: string,
-    display: { name: string, group: string, description?: string },
+    display: { name: string, group?: string, description?: string },
     isApplicable?(a: O, plugin: PluginContext): boolean,
     params?(a: O | undefined, plugin: PluginContext): PD.For<P>,
     apply(a: StateObjectRef<O>, params: P, plugin: PluginContext): Promise<S> | S

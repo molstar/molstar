@@ -90,13 +90,9 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
     }
 
     get presetActions() {
-        const actions = [];
         const pivot = this.plugin.managers.structure.component.pivotStructure;
-        const providers = this.plugin.builders.structure.representation.getPresets(pivot?.cell.obj)
-        for (const p of providers) {
-            actions.push(ActionMenu.Item(p.display.name, p));
-        }
-        return actions;
+        const providers = this.plugin.builders.structure.representation.getPresets(pivot?.cell.obj);
+        return ActionMenu.createItems(providers, { label: p => p.display.name, category: p => p.display.group });
     }
 
     applyPreset: ActionMenu.OnSelect = item => {

@@ -118,7 +118,7 @@ export class StructureBuilder {
     }
 
     /** returns undefined if the component is empty/null */
-    async tryCreateComponent(structure: StateObjectRef<SO.Molecule.Structure>, params: StructureComponentParams, key: string, tags?: string[]): Promise<StateObjectRef<SO.Molecule.Structure> | undefined> {
+    async tryCreateComponent(structure: StateObjectRef<SO.Molecule.Structure>, params: StructureComponentParams, key: string, tags?: string[]): Promise<StateObjectSelector<SO.Molecule.Structure> | undefined> {
         const state = this.dataState;
 
         const root = state.build().to(structure);
@@ -157,7 +157,7 @@ export class StructureBuilder {
         }, key, params?.tags);
     }
 
-    tryCreateComponentFromSelection(structure: StateObjectRef<SO.Molecule.Structure>, selection: StructureSelectionQuery, key: string, params?: { label?: string, tags?: string[] }): Promise<StateObjectRef<SO.Molecule.Structure> | undefined> {
+    tryCreateComponentFromSelection(structure: StateObjectRef<SO.Molecule.Structure>, selection: StructureSelectionQuery, key: string, params?: { label?: string, tags?: string[] }): Promise<StateObjectSelector<SO.Molecule.Structure> | undefined> {
         return this.plugin.runTask(Task.create('Query Component', async taskCtx => {
             let { label, tags } = params || { };
             label = (label || '').trim();

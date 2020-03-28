@@ -290,7 +290,7 @@ const hasClash = StructureSelectionQuery('Residues with Clashes', MS.struct.modi
 
 const validationReportPreset = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-rcsb-validation-report',
-    display: { name: 'Validation Report', group: 'Preset' },
+    display: { name: 'Validation Report', group: 'Annotation' },
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
@@ -305,17 +305,16 @@ const validationReportPreset = StructureRepresentationPresetProvider({
 
         const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin)
 
-        components.clashes = await plugin.builders.structure.tryCreateComponentFromExpression(structureCell, hasClash.expression, 'clashes', { label: 'Clashes' })
+        const clashes = await plugin.builders.structure.tryCreateComponentFromExpression(structureCell, hasClash.expression, 'clashes', { label: 'Clashes' })
 
         const { update, builder, typeParams, color } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
+        let clashesBallAndStick, clashesSnfg3d;
         if (representations) {
-            (representations as any).clashes = components.clashes && {
-                ballAndStick: builder.buildRepresentation(update, components.clashes, { type: 'ball-and-stick', typeParams, color: colorTheme }),
-                snfg3d: builder.buildRepresentation<any>(update, components.clashes, { type: ClashesRepresentationProvider.name, typeParams, color }),
-            }
+            clashesBallAndStick = builder.buildRepresentation(update, components.clashes, { type: 'ball-and-stick', typeParams, color: colorTheme }, { tag: 'clashes-ball-and-stick' });
+            clashesSnfg3d = builder.buildRepresentation<any>(update, components.clashes, { type: ClashesRepresentationProvider.name, typeParams, color }, { tag: 'clashes-snfg-3d' });
         }
 
         await plugin.updateDataState(update, { revertOnError: false });
-        return { components, representations };
+        return { components: { ...components, clashes }, representations: { ...representations, clashesBallAndStick, clashesSnfg3d } };
     }
 });

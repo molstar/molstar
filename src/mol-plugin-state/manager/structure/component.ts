@@ -25,6 +25,7 @@ import { HierarchyRef, StructureComponentRef, StructureRef, StructureRepresentat
 import { createStructureColorThemeParams, createStructureSizeThemeParams } from '../../helpers/structure-representation-params';
 import { ColorTheme } from '../../../mol-theme/color';
 import { SizeTheme } from '../../../mol-theme/size';
+import { objectForEach } from '../../../mol-util/object';
 
 export { StructureComponentManager };
 
@@ -103,13 +104,50 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         }
     }
 
-    applyPreset<P = any, S = {}>(structures: ReadonlyArray<StructureRef>, provider: StructureRepresentationPresetProvider<P, S>, params?: P): Promise<any>  {
+    applyPreset<P extends StructureRepresentationPresetProvider>(structures: ReadonlyArray<StructureRef>, provider: P, params?: StructureRepresentationPresetProvider.Params<P>): Promise<any>  {
         return this.plugin.dataTransaction(async () => {
-            await this.clearComponents(structures);
             for (const s of structures) {
-                await this.plugin.builders.structure.representation.applyPreset(s.cell, provider, params);
+                const preset = await this.plugin.builders.structure.representation.applyPreset(s.cell, provider, params);
+                await this.syncPreset(s, preset);
             }
         }, { canUndo: 'Preset' });
+    }
+
+    private async syncPreset(root: StructureRef, preset?: StructureRepresentationPresetProvider.Result) {
+        if (!preset || !preset.components) return this.clearComponents([root]);
+
+        const keptRefs = new Set<string>();
+        objectForEach(preset.components, c => {
+            if (c) keptRefs.add(c.ref);
+        });
+
+        if (preset.representations) {
+            objectForEach(preset.representations, r => {
+                if (r) keptRefs.add(r.ref);
+            });
+        }
+
+        if (keptRefs.size === 0) return this.clearComponents([root]);
+
+        let changed = false;
+        const update = this.dataState.build();
+
+        const sync = (r: HierarchyRef) => {
+            if (!keptRefs.has(r.cell.transform.ref)) {
+                changed = true;
+                update.delete(r.cell);
+            }
+        };
+
+        for (const c of root.components) {
+            sync(c);
+            for (const r of c.representations) sync(r);
+            if (c.genericRepresentations) {
+                for (const r of c.genericRepresentations) sync(r);
+            }
+        }
+
+        if (changed) return this.plugin.updateDataState(update);
     }
 
     clear(structures: ReadonlyArray<StructureRef>) {

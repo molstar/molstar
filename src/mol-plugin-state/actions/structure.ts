@@ -129,7 +129,7 @@ export const DcdProvider: DataFormatProvider<any> = {
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => PD.Group({
     type: RootStructureDefinition.getParams(void 0, 'auto').type,
     representation: PD.Select(PresetStructureRepresentations.auto.id,
-        plugin.builders.structure.representation.getPresets().map(p => [p.id, p.display.name] as any),
+        plugin.builders.structure.representation.getPresets().map(p => [p.id, p.display.name, p.display.group] as any),
         { description: 'Which representation preset to use.' }),
     asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
 }, { isExpanded: false });
