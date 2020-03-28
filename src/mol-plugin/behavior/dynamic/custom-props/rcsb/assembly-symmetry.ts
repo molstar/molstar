@@ -14,10 +14,8 @@ import { Task } from '../../../../../mol-task';
 import { PluginContext } from '../../../../context';
 import { StateTransformer, StateAction, StateObject, StateTransform, StateObjectRef } from '../../../../../mol-state';
 import { GenericRepresentationRef } from '../../../../../mol-plugin-state/manager/structure/hierarchy-state';
-import { TrajectoryHierarchyPresetProvider } from '../../../../../mol-plugin-state/builder/structure/hierarchy-preset';
-import { RootStructureDefinition } from '../../../../../mol-plugin-state/helpers/root-structure';
-import { StateTransforms } from '../../../../../mol-plugin-state/transforms';
 import { AssemblySymmetryControls } from './ui/assembly-symmetry';
+import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../../../../mol-plugin-state/builder/structure/representation-preset';
 
 const Tag = AssemblySymmetry.Tag
 
@@ -45,7 +43,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
                 return [refs, 'Symmetries']
             })
             this.ctx.customStructureControls.set(Tag.Representation, AssemblySymmetryControls as any)
-            this.ctx.builders.structure.hierarchy.registerPreset(assemblySymmetryPreset)
+            this.ctx.builders.structure.representation.registerPreset(assemblySymmetryPreset)
         }
 
         update(p: { autoAttach: boolean }) {
@@ -62,7 +60,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
 
             this.ctx.genericRepresentationControls.delete(Tag.Representation)
             this.ctx.customStructureControls.delete(Tag.Representation)
-            this.ctx.builders.structure.hierarchy.unregisterPreset(assemblySymmetryPreset)
+            this.ctx.builders.structure.representation.unregisterPreset(assemblySymmetryPreset)
         }
     },
     params: () => ({
@@ -146,41 +144,18 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
 
 //
 
-const AssemblySymmetryPresetParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) =>  ({
-    model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin))),
-    showUnitcell: PD.Optional(PD.Boolean(false)),
-    structure: PD.Optional(RootStructureDefinition.getParams(void 0, 'assembly').type),
-    ...TrajectoryHierarchyPresetProvider.CommonParams(a, plugin)
-});
-
-const assemblySymmetryPreset = TrajectoryHierarchyPresetProvider({
-    id: 'preset-trajectory-rcsb-assembly-symmetry',
+const assemblySymmetryPreset = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-rcsb-assembly-symmetry',
     display: { name: 'Assembly Symmetry', group: 'Preset' },
-    isApplicable: o => {
-        return true
-    },
-    params: AssemblySymmetryPresetParams,
-    async apply(trajectory, params, plugin) {
-        const builder = plugin.builders.structure;
+    params: () => StructureRepresentationPresetProvider.CommonParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        const model = structureCell?.obj?.data.model
+        if (!structureCell || !model) return {};
 
-        const model = await builder.createModel(trajectory, params.model);
-        const modelProperties = await builder.insertModelProperties(model, params.modelProperties);
+        await tryCreateAssemblySymmetry(plugin, structureCell)
 
-        const structure = await builder.createStructure(modelProperties || model, params.structure);
-        const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
-
-        const unitcell = await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: true });
-        await tryCreateAssemblySymmetry(plugin, structureProperties)
-        const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { globalThemeName: Tag.Cluster });
-
-        return {
-            model,
-            modelProperties,
-            unitcell,
-            structure,
-            structureProperties,
-            representation
-        };
+        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: Tag.Cluster as any }, plugin)
     }
 });
 
