@@ -202,8 +202,7 @@ function createInterUnitClashes(structure: Structure, clashes: ValidationReport[
     const builder = new InterUnitGraph.Builder<Unit.Atomic, UnitIndex, InterUnitClashesProps>()
     const { a, b, edgeProps: { id, magnitude, distance } } = clashes
 
-    const pA = Vec3()
-    const pB = Vec3()
+    const pA = Vec3(), pB = Vec3()
 
     Structure.eachUnitPair(structure, (unitA: Unit, unitB: Unit) => {
         const elementsA = unitA.elements
@@ -248,6 +247,8 @@ function createIntraUnitClashes(unit: Unit.Atomic, clashes: ValidationReport['cl
     const magnitudes: number[] = []
     const distances: number[] = []
 
+    const pA = Vec3(), pB = Vec3()
+
     const { elements } = unit
     const { a, b, edgeCount, edgeProps } = clashes
 
@@ -257,11 +258,17 @@ function createIntraUnitClashes(unit: Unit.Atomic, clashes: ValidationReport['cl
         let indexB = SortedArray.indexOf(elements, b[i])
 
         if (indexA !== -1 && indexB !== -1) {
-            aIndices.push(indexA as UnitIndex)
-            bIndices.push(indexB as UnitIndex)
-            ids.push(edgeProps.id[i])
-            magnitudes.push(edgeProps.magnitude[i])
-            distances.push(edgeProps.distance[i])
+            unit.conformation.position(a[i], pA)
+            unit.conformation.position(b[i], pB)
+
+            // check actual distance to avoid clashes between unrelated chain instances
+            if (equalEps(edgeProps.distance[i], Vec3.distance(pA, pB), 0.1)) {
+                aIndices.push(indexA as UnitIndex)
+                bIndices.push(indexB as UnitIndex)
+                ids.push(edgeProps.id[i])
+                magnitudes.push(edgeProps.magnitude[i])
+                distances.push(edgeProps.distance[i])
+            }
         }
     }
 
@@ -279,7 +286,6 @@ function createIntraUnitClashes(unit: Unit.Atomic, clashes: ValidationReport['cl
 }
 
 function createClashes(structure: Structure, clashes: ValidationReport['clashes']): Clashes {
-
     const intraUnit = IntMap.Mutable<IntraUnitClashes>()
 
     for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
