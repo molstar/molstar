@@ -233,10 +233,7 @@
 }
 
 .msp-accent-offset {
-    // border-left-width: $control-spacing / 2;
-    // border-left-style: solid;
-    // border-left-color: color-increase-contrast($default-background, 10%);
-    // padding-left: 1px;
+    padding-left: 1px;
     margin-left: $control-spacing - 2;
     border-left: 2px solid $entity-color-Group;
 }

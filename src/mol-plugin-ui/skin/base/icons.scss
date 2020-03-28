@@ -14,7 +14,7 @@
   text-transform: none;
 
   /* fix buttons height, for twitter bootstrap */
-  line-height: 1em;
+  // line-height: 1em;
 
   /* Animation center compensation - margins should be symmetric */
   /* remove if not needed */
@@ -115,7 +115,7 @@
 .msp-icon-layout:before { content: "\e810"; }
 .msp-icon-menu:before { content: "\e811"; }
 .msp-icon-check:before { content: "\e812"; }
-.msp-icon-cancel:before { content: "\e813"; }
+.msp-icon-cancel:before { content: "\e813"; margin: 0; }
 .msp-icon-cancel-circled:before { content: "\e814"; }
 .msp-icon-cancel-squared:before { content: "\e815"; }
 .msp-icon-plus-circled:before { content: "\e817"; }

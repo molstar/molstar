@@ -230,9 +230,9 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
             if (!StructureElement.Loci.isEmpty(s.selection)) selections.push(s.selection);
             s.selection = StructureElement.Loci(s.selection.structure, []);
         }
-        this.referenceLoci = undefined
+        this.referenceLoci = undefined;
         this.state.stats = void 0;
-        this.events.changed.next()
+        this.events.changed.next();
         return selections;
     }
 

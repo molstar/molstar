@@ -34,9 +34,13 @@ namespace Binding {
         return binding.triggers.some(t => Trigger.match(t, buttons, modifiers))
     }
 
+    export function formatTriggers(binding: Binding) {
+        return binding.triggers.map(Trigger.format).join(' or ');
+    }
+
     export function format(binding: Binding, name = '') {
         const help = binding.description || stringToWords(name)
-        return interpolate(help, { triggers: '<i>' + binding.triggers.map(t => Trigger.format(t)).join(' or ') + '</i>' })
+        return interpolate(help, { triggers: '<i>' + formatTriggers(binding) + '</i>' })
     }
 
     export interface Trigger {

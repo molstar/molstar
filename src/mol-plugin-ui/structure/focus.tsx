@@ -6,13 +6,16 @@
 
 import * as React from 'react';
 import { PluginUIComponent } from '../base';
-import { ToggleButton } from '../controls/common';
+import { ToggleButton, IconButton } from '../controls/common';
 import { ActionMenu } from '../controls/action-menu';
 import { StructureElement, StructureProperties, Structure } from '../../mol-model/structure';
 import { OrderedSet, SortedArray } from '../../mol-data/int';
 import { UnitIndex } from '../../mol-model/structure/structure/element/element';
 import { FocusEntry } from '../../mol-plugin-state/manager/structure/focus';
 import { lociLabel } from '../../mol-theme/label';
+import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
+import { StateTransform } from '../../mol-state';
+import { Binding } from '../../mol-util/binding';
 
 interface StructureFocusControlsState {
     isBusy: boolean
@@ -146,6 +149,8 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
         if (current) this.plugin.managers.camera.focusLoci(current.loci);
     }
 
+    clear = () => this.plugin.managers.structure.focus.clear()
+
     highlightCurrent = () => {
         const { current } = this.plugin.managers.structure.focus
         if (current) this.plugin.managers.interactivity.lociHighlights.highlightOnly({ loci: current.loci }, false);
@@ -155,16 +160,35 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
         this.plugin.managers.interactivity.lociHighlights.clearHighlights()
     }
 
+    getToggleBindingLabel() {
+        const t = this.plugin.state.behaviors.transforms.get(FocusLoci.id) as StateTransform<typeof FocusLoci>;
+        if (!t) return '';
+        const binding = t.params?.bindings.clickFocus;
+        if (!binding || Binding.isEmpty(binding)) return '';
+        return Binding.formatTriggers(binding);
+    }
+
     render() {
-        const { current } = this.plugin.managers.structure.focus
-        const label = current?.label || 'Nothing Focused'
+        const { current } = this.plugin.managers.structure.focus;
+        const label = current?.label || 'Nothing Focused';
+
+        let title = 'Click to Center Camera';
+        if (!current) {
+            title = 'Select focus using the menu';
+            const binding = this.getToggleBindingLabel();
+            if (binding) {
+                title += `\nor use '${binding}' on element`;
+            }
+        }
 
         return <>
             <div className='msp-control-row msp-select-row'>
-                <button className='msp-btn msp-btn-block msp-no-overflow' onClick={this.focus} title='Click to Center Focused' onMouseEnter={this.highlightCurrent} onMouseLeave={this.clearHighlights} disabled={this.isDisabled || !current}>
+                <button className='msp-btn msp-btn-block msp-no-overflow' onClick={this.focus} title={title} onMouseEnter={this.highlightCurrent} onMouseLeave={this.clearHighlights} disabled={this.isDisabled || !current}
+                    style={{ textAlignLast: current ? 'left' : void 0 }}>
                     {label}
                 </button>
-                <ToggleButton icon='target' title='Focus Target' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px' }} />
+                {current && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' style={{ flex: '0 0 32px' }} disabled={this.isDisabled} />}
+                <ToggleButton icon='book-open' title='Select Target' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px' }} />
             </div>
             {this.state.showAction && <ActionMenu items={this.actionItems} onSelect={this.selectAction} />}
         </>;

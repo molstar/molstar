@@ -16,7 +16,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { stripTags } from '../../mol-util/string';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { ControlGroup, ToggleButton } from '../controls/common';
+import { ControlGroup, ToggleButton, IconButton } from '../controls/common';
 import { Icon } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { StructureMeasurementsControls } from './measurements';
@@ -73,6 +73,8 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             return `${stripTags(stats.label)} Selected`
         }
     }
+
+    clear = () => this.plugin.managers.interactivity.lociSelects.deselectAll();
 
     focus = () => {
         if (this.plugin.managers.structure.selection.stats.elementCount === 0) return;
@@ -166,10 +168,12 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         return <>
             <ParameterControls params={StructureSelectionParams} values={this.values} onChangeValues={this.setProps} />
             {this.controls}
-            <div className='msp-control-row msp-row-text' style={{ margin: '6px 0' }}>
-                <button className='msp-btn msp-btn-block msp-no-overflow' onClick={this.focus} title='Click to Focus Selection' disabled={empty}>
+            <div className='msp-control-row msp-select-row' style={{ margin: '6px 0' }}>
+                <button className='msp-btn msp-btn-block msp-no-overflow' onClick={this.focus} title='Click to Focus Selection' disabled={empty}
+                    style={{ textAlignLast: !empty ? 'left' : void 0 }}>
                     {this.stats}
                 </button>
+                {!empty && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' style={{ flex: '0 0 32px' }} />}
             </div>
             <StructureMeasurementsControls />
         </>
