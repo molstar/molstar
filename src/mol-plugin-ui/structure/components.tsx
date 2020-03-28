@@ -119,8 +119,8 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
             <div className='msp-control-row msp-select-row'>
                 <ToggleButton icon='bookmarks' label='Preset' toggle={this.togglePreset} isSelected={this.state.action === 'preset'} disabled={this.isDisabled} />
                 <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
-                <ToggleButton icon='cog' label='' title='Options' style={{ flex: '0 0 40px' }} toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
-                <IconButton customClass='msp-flex-item' style={{ flex: '0 0 40px' }} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} icon='back' title={undoTitle} />
+                <ToggleButton icon='cog' label='' title='Options' style={{ flex: '0 0 40px', padding: 0 }} toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
+                <IconButton customClass='msp-flex-item' style={{ flex: '0 0 40px', padding: 0 }} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} icon='back' title={undoTitle} />
             </div>
             {this.state.action === 'preset' && this.presetControls}
             {this.state.action === 'add' && <div className='msp-control-offset'>
@@ -347,9 +347,9 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
                     {label}
                     {/* <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{reprLabel}</small> */}
                 </button>
-                <IconButton onClick={this.toggleVisible} icon='visual-visibility' toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small customClass='msp-form-control' style={{ flex: '0 0 32px' }} />
-                <IconButton onClick={this.toggleRemove} icon='remove' title='Remove' small toggleState={this.state.action === 'remove'} customClass='msp-form-control' style={{ flex: '0 0 32px' }} />
-                <IconButton onClick={this.toggleAction} icon='dot-3' title='Actions' toggleState={this.state.action === 'action'} customClass='msp-form-control' style={{ flex: '0 0 32px', padding: '0px' }} />
+                <IconButton onClick={this.toggleVisible} icon='visual-visibility' toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small customClass='msp-form-control' style={{ flex: '0 0 32px', padding: 0 }} />
+                <IconButton onClick={this.toggleRemove} icon='remove' title='Remove' small toggleState={this.state.action === 'remove'} customClass='msp-form-control' style={{ flex: '0 0 32px', padding: 0 }} />
+                <IconButton onClick={this.toggleAction} icon='dot-3' title='Actions' toggleState={this.state.action === 'action'} customClass='msp-form-control' style={{ flex: '0 0 32px', padding: 0 }} />
             </div>
             {this.state.action === 'remove' && <div style={{ marginBottom: '6px' }}>
                 <ActionMenu items={this.removeActions} onSelect={this.selectRemoveAction} />

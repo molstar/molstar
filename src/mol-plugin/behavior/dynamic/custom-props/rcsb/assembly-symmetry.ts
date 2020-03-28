@@ -154,9 +154,9 @@ const assemblySymmetryPreset = StructureRepresentationPresetProvider({
         if (!structureCell || !model) return {};
 
         const assemblySymmetry = await tryCreateAssemblySymmetry(plugin, structureCell);
-        const repr = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: Tag.Cluster as any }, plugin);
+        const preset = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: Tag.Cluster as any }, plugin);
 
-        return { components: repr.components, representations: { ...repr.components, assemblySymmetry } };
+        return { components: preset.components, representations: { ...preset.representations, assemblySymmetry } };
     }
 });
 

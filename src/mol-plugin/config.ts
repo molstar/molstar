@@ -29,6 +29,9 @@ export const PluginConfig = {
                 // the following test is to include e.g. 'updated' files from PDBe
                 || (!Model.isFromPdbArchive(s.models[0]) && s.models[0].entryId.length === 4))
         })
+    },
+    Viewport: {
+        ShowExpand: item('viewer.show-expand-button', true)
     }
 }
 

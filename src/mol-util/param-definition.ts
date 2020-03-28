@@ -441,17 +441,18 @@ export namespace ParamDefinition {
      *
      * if options is { [string]: string } and mapping is not provided, use the Value.
      */
-    export function objectToOptions<K extends string, V>(options: { [k in K]: V }, f?: null | ((k: K, v: V) => string)): [K, string][] {
-        const ret: [K, string][] = [];
+    export function objectToOptions<K extends string, V>(options: { [k in K]: V }, f?: null | ((k: K, v: V) => string | [string, string])): [K, string][] {
+        const ret: ([K, string] | [K, string, string])[] = [];
         for (const k of Object.keys(options) as K[]) {
             if (!f) {
                 if (typeof options[k as K] === 'string') ret.push([k as K, options[k as K] as any]);
                 else ret.push([k as K, f === null ? k : stringToWords(k)]);
             } else {
-                ret.push([k, f(k as K, options[k as K])])
+                const o = f(k as K, options[k as K]);
+                ret.push(typeof o === 'string' ? [k, o] : [k, o[0], o[1]]);
             }
         }
-        return ret;
+        return ret as [K, string][];
     }
 
     /**

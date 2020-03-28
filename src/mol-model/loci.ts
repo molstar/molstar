@@ -192,21 +192,6 @@ namespace Loci {
                 ? StructureElement.Loci.extendToWholeChains(loci)
                 : loci
         },
-        'elementInstances': (loci: Loci) => {
-            return StructureElement.Loci.is(loci)
-                ? StructureElement.Loci.extendToAllInstances(loci)
-                : loci
-        },
-        'residueInstances': (loci: Loci) => {
-            return StructureElement.Loci.is(loci)
-                ? StructureElement.Loci.extendToAllInstances(StructureElement.Loci.extendToWholeResidues(loci, true))
-                : loci
-        },
-        'chainInstances': (loci: Loci) => {
-            return StructureElement.Loci.is(loci)
-                ? StructureElement.Loci.extendToAllInstances(StructureElement.Loci.extendToWholeChains(loci))
-                : loci
-        },
         'entity': (loci: Loci) => {
             return StructureElement.Loci.is(loci)
                 ? StructureElement.Loci.extendToWholeEntities(loci)
@@ -224,9 +209,25 @@ namespace Loci {
                     ? Shape.Loci(loci.shape)
                     : loci
         },
+        'elementInstances': (loci: Loci) => {
+            return StructureElement.Loci.is(loci)
+                ? StructureElement.Loci.extendToAllInstances(loci)
+                : loci
+        },
+        'residueInstances': (loci: Loci) => {
+            return StructureElement.Loci.is(loci)
+                ? StructureElement.Loci.extendToAllInstances(StructureElement.Loci.extendToWholeResidues(loci, true))
+                : loci
+        },
+        'chainInstances': (loci: Loci) => {
+            return StructureElement.Loci.is(loci)
+                ? StructureElement.Loci.extendToAllInstances(StructureElement.Loci.extendToWholeChains(loci))
+                : loci
+        },
     }
     export type Granularity = keyof typeof Granularity
     export const GranularityOptions = ParamDefinition.objectToOptions(Granularity, k => {
+        if (k.indexOf('Instances') > 0) return [stringToWords(k), 'With Symmetry'];
         switch (k) {
             case 'element': return'Atom/Coarse Element'
             case 'structure': return'Structure/Shape'

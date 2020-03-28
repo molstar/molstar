@@ -249,7 +249,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
                 <Icon name={this.props.simpleApply?.icon} />
                 {this.props.simpleApply?.header}
             </button>
-            {!info.isEmpty && <ToggleButton icon='cog' label='' title='Options' toggle={this.toggleExpanded} isSelected={!this.state.isCollapsed} disabled={this.state.busy} style={{ flex: '0 0 40px' }} />}
+            {!info.isEmpty && <ToggleButton icon='cog' label='' title='Options' toggle={this.toggleExpanded} isSelected={!this.state.isCollapsed} disabled={this.state.busy} style={{ flex: '0 0 40px', padding: 0 }} />}
         </div>
 
         if (this.state.isCollapsed) return apply;

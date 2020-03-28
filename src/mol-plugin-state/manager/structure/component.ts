@@ -147,6 +147,12 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             }
         }
 
+        if (root.genericRepresentations) {
+            for (const r of root.genericRepresentations) {
+                sync(r);
+            }
+        }
+
         if (changed) return this.plugin.updateDataState(update);
     }
 

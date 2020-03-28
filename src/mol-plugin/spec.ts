@@ -25,8 +25,10 @@ interface PluginSpec {
     components?: {
         remoteState?: 'none' | 'default',
         structureTools?: React.ComponentClass,
-        viewport?: React.ComponentClass,
-        viewportControls?: React.ComponentClass
+        viewport?: {
+            view?: React.ComponentClass,
+            controls?: React.ComponentClass
+        }
     },
     config?: Map<PluginConfigItem, unknown>
 }

@@ -14,6 +14,7 @@ import { ControlGroup, IconButton } from './controls/common';
 import { SimpleSettingsControl } from './viewport/simple-settings';
 import { DownloadScreenshotControls } from './viewport/screenshot';
 import { IconName } from './controls/icons';
+import { PluginConfig } from '../mol-plugin/config';
 
 interface ViewportControlsState {
     isSettingsExpanded: boolean,
@@ -93,7 +94,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 <div>
                     <div className='msp-semi-transparent-background' />
                     {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
-                    {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
+                    {this.plugin.config.get(PluginConfig.Viewport.ShowExpand) && this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
                     {this.icon('settings', this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
                 </div>
             </div>

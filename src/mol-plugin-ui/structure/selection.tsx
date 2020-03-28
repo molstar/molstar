@@ -79,7 +79,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     focus = () => {
         if (this.plugin.managers.structure.selection.stats.elementCount === 0) return;
         const principalAxes = this.plugin.managers.structure.selection.getPrincipalAxes();
-        const { sphere } = this.plugin.managers.structure.selection.getBoundary()
+        const { sphere } = this.plugin.managers.structure.selection.getBoundary();
         this.plugin.managers.camera.focusSphere(sphere, { principalAxes });
     }
 
@@ -173,7 +173,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
                     style={{ textAlignLast: !empty ? 'left' : void 0 }}>
                     {this.stats}
                 </button>
-                {!empty && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' style={{ flex: '0 0 32px' }} />}
+                {!empty && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' style={{ flex: '0 0 32px', padding: 0 }} />}
             </div>
             <StructureMeasurementsControls />
         </>

@@ -253,7 +253,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
                 <button className='msp-btn msp-form-control msp-flex-item msp-no-overflow' onClick={this.toggleHierarchy} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} disabled={disabled} title={label}>
                     {label}
                 </button>
-                {presets.length > 0 && <IconButton customClass='msp-form-control' style={{ flex: '0 0 32px' }} onClick={this.togglePreset} icon='bookmarks' title='Presets' toggleState={this.state.show === 'presets'} disabled={disabled} />}
+                {presets.length > 0 && <IconButton customClass='msp-form-control' style={{ flex: '0 0 32px', padding: 0 }} onClick={this.togglePreset} icon='bookmarks' title='Presets' toggleState={this.state.show === 'presets'} disabled={disabled} />}
             </div>
             {this.state.show === 'hierarchy' && <ActionMenu items={this.hierarchyItems} onSelect={this.selectHierarchy} multiselect />}
             {this.state.show === 'presets' && <ActionMenu items={presets} onSelect={this.applyPreset} />}

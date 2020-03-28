@@ -15,6 +15,7 @@ import { PluginSpec } from '../../mol-plugin/spec';
 import { LoadCellPackModel } from './extensions/cellpack/model';
 import { StructureFromCellpack } from './extensions/cellpack/state';
 import { DownloadStructure } from '../../mol-plugin-state/actions/structure';
+import { PluginConfig } from '../../mol-plugin/config';
 require('mol-plugin-ui/skin/light.scss')
 
 function getParam(name: string, regex: string): string {
@@ -46,6 +47,7 @@ function init() {
         },
         config: DefaultPluginSpec.config
     };
+    spec.config?.set(PluginConfig.Viewport.ShowExpand, false);
     const plugin = createPlugin(document.getElementById('app')!, spec);
     trySetSnapshot(plugin);
     tryLoadFromUrl(plugin);

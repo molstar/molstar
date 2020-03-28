@@ -149,7 +149,10 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
         if (current) this.plugin.managers.camera.focusLoci(current.loci);
     }
 
-    clear = () => this.plugin.managers.structure.focus.clear()
+    clear = () => {
+        this.plugin.managers.structure.focus.clear();
+        this.plugin.managers.camera.reset();
+    }
 
     highlightCurrent = () => {
         const { current } = this.plugin.managers.structure.focus
@@ -187,8 +190,8 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
                     style={{ textAlignLast: current ? 'left' : void 0 }}>
                     {label}
                 </button>
-                {current && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' style={{ flex: '0 0 32px' }} disabled={this.isDisabled} />}
-                <ToggleButton icon='book-open' title='Select Target' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px' }} />
+                {current && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' style={{ flex: '0 0 32px', padding: 0 }} disabled={this.isDisabled} />}
+                <ToggleButton icon='book-open' title='Select Target' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.showAction && <ActionMenu items={this.actionItems} onSelect={this.selectAction} />}
         </>;

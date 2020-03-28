@@ -101,7 +101,7 @@ class Layout extends PluginUIComponent {
     render() {
         const layout = this.plugin.layout.state;
         const controls = this.plugin.spec.layout?.controls || { };
-        const viewport = this.plugin.spec.components?.viewport || DefaultViewport;
+        const viewport = this.plugin.spec.components?.viewport?.view || DefaultViewport;
 
         return <div className='msp-plugin'>
             <div className={this.layoutClassName}>
@@ -129,7 +129,7 @@ export class ControlsWrapper extends PluginUIComponent {
 
 export class DefaultViewport extends PluginUIComponent {
     render() {
-        const VPControls = this.plugin.spec.components?.viewportControls || ViewportControls;
+        const VPControls = this.plugin.spec.components?.viewport?.controls || ViewportControls;
 
         return <>
             <Viewport />

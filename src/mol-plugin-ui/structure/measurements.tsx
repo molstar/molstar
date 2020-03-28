@@ -143,7 +143,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
             </button>
             {history.length > 1 && <IconButton small={true} customClass='msp-form-control' onClick={() => this.moveHistory(e, 'up')} icon='up-thin' style={{ flex: '0 0 20px', maxWidth: '20px', padding: 0 }} title={'Move up'} />}
             {history.length > 1 && <IconButton small={true} customClass='msp-form-control' onClick={() => this.moveHistory(e, 'down')} icon='down-thin' style={{ flex: '0 0 20px', maxWidth: '20px', padding: 0 }} title={'Move down'} />}
-            <IconButton small={true} customClass='msp-form-control' onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')} icon='remove' style={{ flex: '0 0 32px' }} title={'Remove'} />
+            <IconButton small={true} customClass='msp-form-control' onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')} icon='remove' style={{ flex: '0 0 32px', padding: 0 }} title={'Remove'} />
         </div>;
     }
 
@@ -170,7 +170,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
         return <>
             <div className='msp-control-row msp-select-row'>
                 <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.state.isBusy} />
-                <ToggleButton icon='cog' label='' title='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px' }} />
+                <ToggleButton icon='cog' label='' title='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.action === 'add' && this.add()}
             {this.state.action === 'options' && <MeasurementsOptions />}
@@ -286,9 +286,9 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
                 <button className='msp-form-control msp-control-button-label msp-no-overflow' title='Click to focus. Hover to highlight.' onClick={this.focus} style={{ width: 'auto', textAlign: 'left' }}>
                     <span dangerouslySetInnerHTML={{ __html: this.label }} />
                 </button>
-                <IconButton small customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ flex: '0 0 32px' }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
-                <IconButton small customClass='msp-form-control' onClick={this.delete} icon='remove' style={{ flex: '0 0 32px' }} title='Delete' />
-                <IconButton customClass='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' style={{ flex: '0 0 32px', padding: '0px' }} title='Actions' toggleState={this.state.showUpdate} />
+                <IconButton small customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ flex: '0 0 32px', padding: 0 }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
+                <IconButton small customClass='msp-form-control' onClick={this.delete} icon='remove' style={{ flex: '0 0 32px', padding: 0 }} title='Delete' />
+                <IconButton customClass='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' style={{ flex: '0 0 32px', padding: 0 }} title='Actions' toggleState={this.state.showUpdate} />
             </div>
             {this.state.showUpdate && <>
                 <ActionMenu items={this.actions} onSelect={this.selectAction} />
