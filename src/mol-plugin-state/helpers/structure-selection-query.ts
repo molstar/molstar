@@ -6,8 +6,6 @@
  */
 
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
-import { AccessibleSurfaceAreaProvider, AccessibleSurfaceAreaSymbols } from '../../mol-model-props/computed/accessible-surface-area';
-import { ValidationReport, ValidationReportProvider } from '../../mol-model-props/rcsb/validation-report';
 import { QueryContext, Structure, StructureQuery, StructureSelection } from '../../mol-model/structure';
 import { BondType, NucleicBackboneAtoms, ProteinBackboneAtoms, SecondaryStructureType } from '../../mol-model/structure/model/types';
 import { PluginContext } from '../../mol-plugin/context';
@@ -382,57 +380,6 @@ const bonded = StructureSelectionQuery('Residues Bonded to Selection', MS.struct
     referencesCurrent: true
 })
 
-const hasClash = StructureSelectionQuery('Residues with Clashes', MS.struct.modifier.union([
-    MS.struct.modifier.wholeResidues([
-        MS.struct.modifier.union([
-            MS.struct.generator.atomGroups({
-                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'atom-test': ValidationReport.symbols.hasClash.symbol(),
-            })
-        ])
-    ])
-]), {
-    description: 'Select residues with clashes in the wwPDB validation report.',
-    category: StructureSelectionCategory.Residue,
-    ensureCustomProperties: (ctx, structure) => {
-        return ValidationReportProvider.attach(ctx, structure.models[0])
-    }
-})
-
-const isBuried = StructureSelectionQuery('Buried Protein Residues', MS.struct.modifier.union([
-    MS.struct.modifier.wholeResidues([
-        MS.struct.modifier.union([
-            MS.struct.generator.atomGroups({
-                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'residue-test': AccessibleSurfaceAreaSymbols.isBuried.symbol(),
-            })
-        ])
-    ])
-]), {
-    description: 'Select buried protein residues.',
-    category: StructureSelectionCategory.Residue,
-    ensureCustomProperties: (ctx, structure) => {
-        return AccessibleSurfaceAreaProvider.attach(ctx, structure)
-    }
-})
-
-const isAccessible = StructureSelectionQuery('Accessible Protein Residues', MS.struct.modifier.union([
-    MS.struct.modifier.wholeResidues([
-        MS.struct.modifier.union([
-            MS.struct.generator.atomGroups({
-                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'residue-test': AccessibleSurfaceAreaSymbols.isAccessible.symbol(),
-            })
-        ])
-    ])
-]), {
-    description: 'Select accessible protein residues.',
-    category: StructureSelectionCategory.Residue,
-    ensureCustomProperties: (ctx, structure) => {
-        return AccessibleSurfaceAreaProvider.attach(ctx, structure)
-    }
-})
-
 const StandardAminoAcids = [
     [['HIS'], 'HISTIDINE'],
     [['ARG'], 'ARGININE'],
@@ -500,19 +447,7 @@ export const StructureSelectionQueries = {
     surroundings,
     complement,
     bonded,
-
-    hasClash,
-    isBuried,
-    isAccessible
 }
-
-export const StructureSelectionQueryList = [
-    ...Object.values(StructureSelectionQueries),
-    ...StandardAminoAcids.map(v => ResidueQuery(v, StructureSelectionCategory.AminoAcid)),
-    ...StandardNucleicBases.map(v => ResidueQuery(v, StructureSelectionCategory.NucleicBase)),
-]
-
-export const StructureSelectionQueryOptions: [StructureSelectionQuery, string, string][] = StructureSelectionQueryList.map(q => [q, q.label, q.category])
 
 export function applyBuiltInSelection(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, query: keyof typeof StructureSelectionQueries, customTag?: string) {
     return to.apply(StateTransforms.Model.StructureSelectionFromExpression,
@@ -520,32 +455,33 @@ export function applyBuiltInSelection(to: StateBuilder.To<PluginStateObject.Mole
         { tags: customTag ? [query, customTag] : [query] });
 }
 
-// namespace StructureSelectionQuery {
-//     // export async function getStructure(plugin: PluginContext, runtime: RuntimeContext, selectionQuery: StructureSelectionQuery, structure: Structure) {
-//     //     const current = plugin.managers.structure.selection.getStructure(structure)
-//     //     const currentSelection = current ? StructureSelection.Singletons(structure, current) : StructureSelection.Empty(structure);
+export class StructureSelectionQueryRegistry {
+    list: StructureSelectionQuery[] = []
+    options: [StructureSelectionQuery, string, string][] = []
+    version = 1
 
-//     //     if (selectionQuery.ensureCustomProperties) {
-//     //         await selectionQuery.ensureCustomProperties({ fetch: plugin.fetch, runtime }, structure)
-//     //     }
+    add(q: StructureSelectionQuery) {
+        this.list.push(q)
+        this.options.push([q, q.label, q.category])
+        this.version += 1
+    }
 
-//     //     const result = selectionQuery.query(new QueryContext(structure, { currentSelection }))
-//     //     return StructureSelection.unionStructure(result)
-//     // }
+    remove(q: StructureSelectionQuery) {
+        const idx = this.list.indexOf(q)
+        if (idx !== -1) {
+            this.list.splice(idx, 1)
+            this.options.splice(idx, 1)
+            this.version += 1
+        }
+    }
 
-//     // export async function getSelection(plugin: PluginContext, runtime: RuntimeContext, selectionQuery: StructureSelectionQuery, structure: Structure) {
-//     //     const current = plugin.managers.structure.selection.getStructure(structure)
-//     //     const currentSelection = current ? StructureSelection.Singletons(structure, current) : StructureSelection.Empty(structure);
-
-//     //     if (selectionQuery.ensureCustomProperties) {
-//     //         await selectionQuery.ensureCustomProperties({ fetch: plugin.fetch, runtime }, structure)
-//     //     }
-
-//     //     return selectionQuery.query(new QueryContext(structure, { currentSelection }));
-//     // }
-
-//     // export async function getBundle(plugin: PluginContext, runtime: RuntimeContext, selectionQuery: StructureSelectionQuery, structure: Structure) {
-//     //     const loci = await getLoci(plugin, runtime, selectionQuery, structure);
-//     //     return StructureElement.Bundle.fromLoci(loci);
-//     // }
-// }
+    constructor() {
+        // add built-in
+        this.list.push(
+            ...Object.values(StructureSelectionQueries),
+            ...StandardAminoAcids.map(v => ResidueQuery(v, StructureSelectionCategory.AminoAcid)),
+            ...StandardNucleicBases.map(v => ResidueQuery(v, StructureSelectionCategory.NucleicBase))
+        )
+        this.options.push(...this.list.map(q => [q, q.label, q.category] as [StructureSelectionQuery, string, string]))
+    }
+}

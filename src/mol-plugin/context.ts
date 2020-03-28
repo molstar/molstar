@@ -53,6 +53,7 @@ import { Representation } from '../mol-repr/representation';
 import { HierarchyRef } from '../mol-plugin-state/manager/structure/hierarchy-state';
 import { PluginUIComponent } from '../mol-plugin-ui/base';
 import { StructureFocusManager } from '../mol-plugin-state/manager/structure/focus';
+import { StructureSelectionQueryRegistry } from '../mol-plugin-state/helpers/structure-selection-query';
 
 export class PluginContext {
     private disposed = false;
@@ -116,6 +117,12 @@ export class PluginContext {
         volume: {
             registry: new VolumeRepresentationRegistry(),
             themes: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
+        }
+    } as const;
+
+    readonly query = {
+        structure: {
+            registry: new StructureSelectionQueryRegistry()
         }
     } as const;
 

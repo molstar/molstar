@@ -6,7 +6,7 @@
  */
 
 import * as React from 'react';
-import { StructureSelectionQueries, StructureSelectionQuery, StructureSelectionQueryList } from '../../mol-plugin-state/helpers/structure-selection-query';
+import { StructureSelectionQueries, StructureSelectionQuery } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
 import { StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
@@ -20,12 +20,6 @@ import { ControlGroup, ToggleButton } from '../controls/common';
 import { Icon } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { StructureMeasurementsControls } from './measurements';
-
-export const DefaultQueries = ActionMenu.createItems(StructureSelectionQueryList, {
-    filter: q => q !== StructureSelectionQueries.current,
-    label: q => q.label,
-    category: q => q.category
-});
 
 const StructureSelectionParams = {
     granularity: InteractivityManager.Params.granularity,
@@ -112,7 +106,20 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         })
     }
 
-    queries = DefaultQueries
+    private queriesItems: ActionMenu.Items[] = []
+    private queriesVersion = -1
+    get queries () {
+        const { registry } = this.plugin.query.structure
+        if (registry.version !== this.queriesVersion) {
+            this.queriesItems = ActionMenu.createItems(registry.list, {
+                filter: q => q !== StructureSelectionQueries.current,
+                label: q => q.label,
+                category: q => q.category
+            });
+            this.queriesVersion = registry.version
+        }
+        return this.queriesItems
+    }
 
     private showAction(q: StructureSelectionControlsState['action']) {
         return () => this.setState({ action: this.state.action === q ? void 0 : q });
@@ -161,7 +168,6 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             {this.controls}
             <div className='msp-control-row msp-row-text' style={{ margin: '6px 0' }}>
                 <button className='msp-btn msp-btn-block msp-no-overflow' onClick={this.focus} title='Click to Focus Selection' disabled={empty}>
-                    <Icon name='focus-on-visual' style={{ position: 'absolute', left: '5px' }} />
                     {this.stats}
                 </button>
             </div>

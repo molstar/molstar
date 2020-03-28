@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -19,7 +19,7 @@ import { StructureRepresentationPresetProvider } from '../../builder/structure/r
 import { StatefulPluginComponent } from '../../component';
 import { StructureComponentParams } from '../../helpers/structure-component';
 import { clearStructureOverpaint, setStructureOverpaint } from '../../helpers/structure-overpaint';
-import { StructureSelectionQueries, StructureSelectionQuery, StructureSelectionQueryOptions } from '../../helpers/structure-selection-query';
+import { StructureSelectionQueries, StructureSelectionQuery } from '../../helpers/structure-selection-query';
 import { StructureRepresentation3D } from '../../transforms/representation';
 import { HierarchyRef, StructureComponentRef, StructureRef, StructureRepresentationRef } from './hierarchy-state';
 import { createStructureColorThemeParams, createStructureSizeThemeParams } from '../../helpers/structure-representation-params';
@@ -351,11 +351,10 @@ namespace StructureComponentManager {
     }
     export type Options = PD.Values<typeof OptionsParams>
 
-    const SelectionParam = PD.Select(StructureSelectionQueryOptions[1][0], StructureSelectionQueryOptions)
-
     export function getAddParams(plugin: PluginContext) {
+        const { options } = plugin.query.structure.registry
         return {
-            selection: SelectionParam,
+            selection: PD.Select(options[1][0], options),
             representation: getRepresentationTypesSelect(plugin, plugin.managers.structure.component.pivotStructure, [['none', '< Create Later >']]),
             label: PD.Text('')
         };

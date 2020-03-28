@@ -15,6 +15,8 @@ import { ClashesRepresentationProvider } from '../../../../../mol-model-props/rc
 import { DensityFitColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/density-fit';
 import { cantorPairing } from '../../../../../mol-data/util';
 import { DefaultQueryRuntimeTable } from '../../../../../mol-script/runtime/query/compiler';
+import { StructureSelectionQuery, StructureSelectionCategory } from '../../../../../mol-plugin-state/helpers/structure-selection-query';
+import { MolScriptBuilder as MS } from '../../../../../mol-script/language/builder';
 
 export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'rcsb-validation-report-prop',
@@ -47,6 +49,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
             this.ctx.representation.structure.themes.colorThemeRegistry.add(RandomCoilIndexColorThemeProvider)
 
             this.ctx.representation.structure.registry.add(ClashesRepresentationProvider)
+            this.ctx.query.structure.registry.add(hasClash)
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
@@ -70,6 +73,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(RandomCoilIndexColorThemeProvider)
 
             this.ctx.representation.structure.registry.remove(ClashesRepresentationProvider)
+            this.ctx.query.structure.registry.remove(hasClash)
         }
     },
     params: () => ({
@@ -78,6 +82,8 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
         baseUrl: PD.Text(ValidationReport.DefaultBaseUrl)
     })
 });
+
+//
 
 function geometryQualityLabel(loci: Loci): string | undefined {
     if (loci.kind === 'element-loci') {
@@ -255,3 +261,22 @@ function randomCoilIndexLabel(loci: Loci): string | undefined {
         return `Random Coil Index ${residueCount}: ${rciAvg.toFixed(2)}`
     }
 }
+
+//
+
+const hasClash = StructureSelectionQuery('Residues with Clashes', MS.struct.modifier.union([
+    MS.struct.modifier.wholeResidues([
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'atom-test': ValidationReport.symbols.hasClash.symbol(),
+            })
+        ])
+    ])
+]), {
+    description: 'Select residues with clashes in the wwPDB validation report.',
+    category: StructureSelectionCategory.Residue,
+    ensureCustomProperties: (ctx, structure) => {
+        return ValidationReportProvider.attach(ctx, structure.models[0])
+    }
+})
