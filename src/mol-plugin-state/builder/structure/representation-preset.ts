@@ -17,23 +17,41 @@ import { StaticStructureComponentType } from '../../helpers/structure-component'
 import { StructureSelectionQueries as Q } from '../../helpers/structure-selection-query';
 
 export interface StructureRepresentationPresetProvider<P = any, S = {}> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
+export function StructureRepresentationPresetProvider<P, S>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
 export namespace StructureRepresentationPresetProvider {
     export type Params<P extends StructureRepresentationPresetProvider> = P extends StructureRepresentationPresetProvider<infer T> ? T : never;
     export type State<P extends StructureRepresentationPresetProvider> = P extends StructureRepresentationPresetProvider<infer _, infer S> ? S : never;
-}
-export function StructureRepresentationPresetProvider<P, S>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
 
-export const CommonStructureRepresentationPresetParams = {
-    ignoreHydrogens: PD.Optional(PD.Boolean(false)),
-    quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
-    globalThemeName: PD.Optional(PD.Text<ColorTheme.BuiltIn>(''))
+    export const CommonParams = {
+        ignoreHydrogens: PD.Optional(PD.Boolean(false)),
+        quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
+        globalThemeName: PD.Optional(PD.Text<ColorTheme.BuiltIn>(''))
+    }
+    export type CommonParams = PD.ValuesFor<typeof CommonParams>
+
+    export function reprBuilder(plugin: PluginContext, params: CommonParams) {
+        const update = plugin.state.data.build();
+        const builder = plugin.builders.structure.representation;
+        const typeParams = {
+            quality: plugin.managers.structure.component.state.options.visualQuality,
+            ignoreHydrogens: !plugin.managers.structure.component.state.options.showHydrogens,
+        };
+        if (params.quality && params.quality !== 'auto') typeParams.quality = params.quality;
+        if (params.ignoreHydrogens !== void 0) typeParams.ignoreHydrogens = !!params.ignoreHydrogens;
+        const color: ColorTheme.BuiltIn | undefined = params.globalThemeName ? params.globalThemeName : void 0;
+
+        return { update, builder, color, typeParams };
+    }
 }
-export type CommonStructureRepresentationParams = PD.ValuesFor<typeof CommonStructureRepresentationPresetParams>
+
+const CommonParams = StructureRepresentationPresetProvider.CommonParams
+type CommonParams = StructureRepresentationPresetProvider.CommonParams
+const reprBuilder = StructureRepresentationPresetProvider.reprBuilder
 
 const auto = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-auto',
     display: { name: 'Automatic', group: 'Preset' },
-    params: () => CommonStructureRepresentationPresetParams,
+    params: () => CommonParams,
     apply(ref, params, plugin) {
         const structure = StateObjectRef.resolveAndCheck(plugin.state.data, ref)?.obj?.data;
         if (!structure) return { };
@@ -53,20 +71,6 @@ const auto = StructureRepresentationPresetProvider({
     }
 });
 
-function reprBuilder(plugin: PluginContext, params: CommonStructureRepresentationParams) {
-    const update = plugin.state.data.build();
-    const builder = plugin.builders.structure.representation;
-    const typeParams = {
-        quality: plugin.managers.structure.component.state.options.visualQuality,
-        ignoreHydrogens: !plugin.managers.structure.component.state.options.showHydrogens,
-    };
-    if (params.quality && params.quality !== 'auto') typeParams.quality = params.quality;
-    if (params.ignoreHydrogens !== void 0) typeParams.ignoreHydrogens = !!params.ignoreHydrogens;
-    const color: ColorTheme.BuiltIn | undefined = params.globalThemeName ? params.globalThemeName : void 0;
-
-    return { update, builder, color, typeParams };
-}
-
 const empty = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-empty',
     display: { name: 'Empty', group: 'Preset' },
@@ -78,7 +82,7 @@ const empty = StructureRepresentationPresetProvider({
 const polymerAndLigand = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-polymer-and-ligand',
     display: { name: 'Polymer & Ligand', group: 'Preset' },
-    params: () => CommonStructureRepresentationPresetParams,
+    params: () => CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};
@@ -113,7 +117,7 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
 const proteinAndNucleic = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-protein-and-nucleic',
     display: { name: 'Protein & Nucleic', group: 'Preset' },
-    params: () => CommonStructureRepresentationPresetParams,
+    params: () => CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};
@@ -137,7 +141,7 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
 const coarseSurface = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-coarse-surface',
     display: { name: 'Coarse Surface', group: 'Preset' },
-    params: () => CommonStructureRepresentationPresetParams,
+    params: () => CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};
@@ -178,7 +182,7 @@ const coarseSurface = StructureRepresentationPresetProvider({
 const polymerCartoon = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-polymer-cartoon',
     display: { name: 'Polymer Cartoon', group: 'Preset' },
-    params: () => CommonStructureRepresentationPresetParams,
+    params: () => CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};
@@ -200,7 +204,7 @@ const polymerCartoon = StructureRepresentationPresetProvider({
 const atomicDetail = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-atomic-detail',
     display: { name: 'Atomic Detail', group: 'Preset' },
-    params: () => CommonStructureRepresentationPresetParams,
+    params: () => CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};

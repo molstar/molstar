@@ -17,6 +17,9 @@ import { cantorPairing } from '../../../../../mol-data/util';
 import { DefaultQueryRuntimeTable } from '../../../../../mol-script/runtime/query/compiler';
 import { StructureSelectionQuery, StructureSelectionCategory } from '../../../../../mol-plugin-state/helpers/structure-selection-query';
 import { MolScriptBuilder as MS } from '../../../../../mol-script/language/builder';
+import { Task } from '../../../../../mol-task';
+import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../../../../mol-plugin-state/builder/structure/representation-preset';
+import { StateObjectRef } from '../../../../../mol-state';
 
 export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'rcsb-validation-report-prop',
@@ -50,6 +53,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.representation.structure.registry.add(ClashesRepresentationProvider)
             this.ctx.query.structure.registry.add(hasClash)
+            this.ctx.builders.structure.representation.registerPreset(validationReportPreset)
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
@@ -74,6 +78,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.representation.structure.registry.remove(ClashesRepresentationProvider)
             this.ctx.query.structure.registry.remove(hasClash)
+            this.ctx.builders.structure.representation.unregisterPreset(validationReportPreset)
         }
     },
     params: () => ({
@@ -280,3 +285,37 @@ const hasClash = StructureSelectionQuery('Residues with Clashes', MS.struct.modi
         return ValidationReportProvider.attach(ctx, structure.models[0])
     }
 })
+
+//
+
+const validationReportPreset = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-rcsb-validation-report',
+    display: { name: 'Validation Report', group: 'Preset' },
+    params: () => StructureRepresentationPresetProvider.CommonParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        const model = structureCell?.obj?.data.model
+        if (!structureCell || !model) return {};
+
+        const colorTheme = GeometryQualityColorThemeProvider.name as any
+
+        await plugin.runTask(Task.create('Validation Report', async runtime => {
+            await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model)
+        }))
+
+        const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin)
+
+        components.clashes = await plugin.builders.structure.tryCreateComponentFromExpression(structureCell, hasClash.expression, 'clashes', { label: 'Clashes' })
+
+        const { update, builder, typeParams, color } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
+        if (representations) {
+            (representations as any).clashes = components.clashes && {
+                ballAndStick: builder.buildRepresentation(update, components.clashes, { type: 'ball-and-stick', typeParams, color: colorTheme }),
+                snfg3d: builder.buildRepresentation<any>(update, components.clashes, { type: ClashesRepresentationProvider.name, typeParams, color }),
+            }
+        }
+
+        await plugin.updateDataState(update, { revertOnError: false });
+        return { components, representations };
+    }
+});
