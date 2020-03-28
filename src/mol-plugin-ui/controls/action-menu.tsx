@@ -60,10 +60,10 @@ export namespace ActionMenu {
         addOn?: (t: T) => JSX.Element | undefined
     }
 
-    export function createItems<T>(xs: ArrayLike<T>, params?: CreateItemsParams<T>) {
+    export function createItems<T>(xs: ArrayLike<T>, params?: CreateItemsParams<T>): Items[] {
         const { label, value, category, selected, icon, addOn } = params || { };
         let cats: Map<string, (ActionMenu.Item | ActionMenu.Header)[]> | undefined = void 0;
-        const items: (ActionMenu.Item | (ActionMenu.Item | ActionMenu.Header)[] | string)[] = [];
+        const items: (ActionMenu.Item | (ActionMenu.Item | ActionMenu.Header)[])[] = [];
         for (let i = 0; i < xs.length; i++) {
             const x = xs[i];
 
@@ -91,7 +91,7 @@ export namespace ActionMenu {
 
             cat!.push({ kind: 'item', label: l, value: v, icon: icon ? icon(x) : void 0, selected: selected ? selected(x) : void 0, addOn: ao });
         }
-        return items as ActionMenu.Items;
+        return items;
     }
 
     type Opt = ParamDefinition.Select<any>['options'][0];
@@ -204,7 +204,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { header, hasCurrent } = this.state;
 
         return <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
-            <button className='msp-btn msp-btn-block msp-form-control' onClick={this.toggleExpanded}>
+            <button className='msp-btn msp-btn-block msp-form-control msp-no-overflow' onClick={this.toggleExpanded}>
                 <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </button>

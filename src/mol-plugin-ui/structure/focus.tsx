@@ -5,105 +5,141 @@
  */
 
 import * as React from 'react';
-import { CollapsableState, CollapsableControls } from '../base';
+import { PluginUIComponent } from '../base';
 import { ToggleButton } from '../controls/common';
-import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
 import { ActionMenu } from '../controls/action-menu';
-import { stringToWords } from '../../mol-util/string';
-import { StructureElement, StructureProperties } from '../../mol-model/structure';
+import { StructureElement, StructureProperties, Structure } from '../../mol-model/structure';
 import { OrderedSet, SortedArray } from '../../mol-data/int';
 import { UnitIndex } from '../../mol-model/structure/structure/element/element';
 import { FocusEntry } from '../../mol-plugin-state/manager/structure/focus';
-import { Icon } from '../controls/icons';
+import { lociLabel } from '../../mol-theme/label';
 
-type FocusAction = 'presets' | 'history'
-
-interface StructureComponentControlState extends CollapsableState {
+interface StructureFocusControlsState {
     isBusy: boolean
-    action?: FocusAction
+    showAction: boolean
 }
 
-export class StructureFocusControls extends CollapsableControls<{}, StructureComponentControlState> {
-    protected defaultState(): StructureComponentControlState {
-        return {
-            header: 'Focus',
-            isCollapsed: false,
-            isBusy: false,
-        };
+function getFocusEntries(structure: Structure) {
+    const entityEntries = new Map<string, FocusEntry[]>()
+    const l = StructureElement.Location.create(structure)
+
+    for (const ug of structure.unitSymmetryGroups) {
+        l.unit = ug.units[0]
+        l.element = ug.elements[0]
+        const et = StructureProperties.entity.type(l)
+        if (et === 'non-polymer') {
+            for (const u of ug.units) {
+                l.unit = u
+                const idx = SortedArray.indexOf(u.elements, l.element) as UnitIndex
+                const loci = StructureElement.Loci.extendToWholeResidues(
+                    StructureElement.Loci(structure, [
+                        { unit: l.unit, indices: OrderedSet.ofSingleton(idx) }
+                    ])
+                )
+                let label = lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false })
+                if (ug.units.length > 1) {
+                    label += ` | ${u.conformation.operator.name}`
+                }
+                const name = StructureProperties.entity.pdbx_description(l).join(', ')
+                const item: FocusEntry = { label, category: name, loci }
+
+                if (entityEntries.has(name)) entityEntries.get(name)!.push(item)
+                else entityEntries.set(name, [item])
+            }
+        } else if (et === 'branched') {
+            // TODO split into residues
+        }
     }
+
+    const entries: FocusEntry[] = []
+    entityEntries.forEach((e, name) => {
+        if (e.length === 1) {
+            entries.push({ label: name, loci: e[0].loci })
+        } else {
+            entries.push(...e)
+        }
+    })
+
+    return entries
+}
+
+export class StructureFocusControls extends PluginUIComponent<{}, StructureFocusControlsState> {
+    state = { isBusy: false, showAction: false }
 
     componentDidMount() {
-        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, c => {
-            this.setState({
-                description: StructureHierarchyManager.getSelectedStructuresDescription(this.plugin)
-            });
-            // if setState is called on non-pure component, forceUpdate is reduntant
-            // this.forceUpdate();
+        this.subscribe(this.plugin.managers.structure.focus.events.changed, c => {
+            this.forceUpdate();
         });
+
+        this.subscribe(this.plugin.managers.structure.focus.events.historyUpdated, c => {
+            this.forceUpdate();
+        });
+
+        this.subscribe(this.plugin.behaviors.state.isBusy, v => {
+            this.setState({ isBusy: v, showAction: false })
+        })
     }
 
-    get presetsItems() {
-        const items: FocusEntry[] = []
-        const l = StructureElement.Location.create()
+    get isDisabled() {
+        return this.state.isBusy || this.actionItems.length === 0
+    }
+
+    get actionItems() {
+        const historyItems: ActionMenu.Items[] = []
+        const { history } = this.plugin.managers.structure.focus
+        if (history.length > 0) {
+            historyItems.push([
+                ActionMenu.Header('History'),
+                ...ActionMenu.createItems(history, {
+                    label: f => f.label,
+                    category: f => f.category
+                })
+            ])
+        }
+
+        const presetItems: ActionMenu.Items[] = []
         const { structures } = this.plugin.managers.structure.hierarchy.selection;
         for (const s of structures) {
             const d = s.cell.obj?.data
             if (d) {
-                l.structure = d
-                for (const ug of d.unitSymmetryGroups) {
-                    l.unit = ug.units[0]
-                    l.element = ug.elements[0]
-                    const et = StructureProperties.entity.type(l)
-                    if (et === 'non-polymer') {
-                        const idx = SortedArray.indexOf(ug.elements, l.element) as UnitIndex
-                        const loci = StructureElement.Loci(d, [{ unit: l.unit, indices: OrderedSet.ofSingleton(idx) }])
-                        items.push({
-                            label: StructureProperties.entity.pdbx_description(l).join(', '),
-                            loci: StructureElement.Loci.extendToWholeResidues(loci)
+                const entries = getFocusEntries(d)
+                if (entries.length > 0) {
+                    presetItems.push([
+                        ActionMenu.Header(d.label),
+                        ...ActionMenu.createItems(entries, {
+                            label: f => f.label,
+                            category: f => f.category
                         })
-                    }
+                    ])
                 }
             }
         }
+        if (presetItems.length === 1) {
+            const item = presetItems[0] as ActionMenu.Items[]
+            const header = item[0] as ActionMenu.Header
+            header.initiallyExpanded = true
+        }
+
+        const items: ActionMenu.Items[] = []
+        if (historyItems.length > 0) items.push(...historyItems)
+        if (presetItems.length > 0) items.push(...presetItems)
 
         return items
     }
 
-    get historyItems() {
-        return this.plugin.managers.structure.focus.history
-    }
-
-    get actionItems() {
-        let items: FocusEntry[]
-        switch (this.state.action) {
-            case 'presets': items = this.presetsItems; break
-            case 'history': items = this.historyItems; break
-            default: items = []
-        }
-        return ActionMenu.createItems(items, {
-            label: f => f.label,
-            category: f => f.category
-        })
-    }
-
     selectAction: ActionMenu.OnSelect = item => {
-        if (!item || !this.state.action) {
-            this.setState({ action: void 0 });
+        if (!item || !this.state.showAction) {
+            this.setState({ showAction: false });
             return;
         }
-        this.setState({ action: void 0 }, async () => {
+        this.setState({ showAction: false }, () => {
             const f = item.value as FocusEntry
             this.plugin.managers.structure.focus.set(f)
             this.plugin.managers.camera.focusLoci(f.loci, { durationMs: 0 })
         })
     }
 
-    private showAction(a: FocusAction) {
-        return () => this.setState({ action: this.state.action === a ? void 0 : a });
-    }
-
-    togglePresets = this.showAction('presets')
-    toggleHistory = this.showAction('history')
+    toggleAction = () => this.setState({ showAction: !this.state.showAction })
 
     focus = () => {
         const { current } = this.plugin.managers.structure.focus
@@ -119,22 +155,18 @@ export class StructureFocusControls extends CollapsableControls<{}, StructureCom
         this.plugin.managers.interactivity.lociHighlights.clearHighlights()
     }
 
-    renderControls() {
+    render() {
         const { current } = this.plugin.managers.structure.focus
         const label = current?.label || 'Nothing Focused'
 
         return <>
             <div className='msp-control-row msp-select-row'>
-                <ToggleButton icon='bookmarks' title='Preset' label='Preset' toggle={this.togglePresets} isSelected={this.state.action === 'presets'} disabled={this.state.isBusy} />
-                <ToggleButton icon='clock' title='History' label='History' toggle={this.toggleHistory} isSelected={this.state.action === 'history'} disabled={this.state.isBusy} />
-            </div>
-            {this.state.action && <ActionMenu header={stringToWords(this.state.action)} items={this.actionItems} onSelect={this.selectAction} />}
-            <div className='msp-control-row msp-row-text' style={{ marginTop: '6px' }}>
-                <button className='msp-btn msp-btn-block msp-no-overflow' onClick={this.focus} title='Click to Center Focused' disabled={!current} onMouseEnter={this.highlightCurrent} onMouseLeave={this.clearHighlights}>
-                    <Icon name='focus-on-visual' style={{ position: 'absolute', left: '5px' }} />
+                <button className='msp-btn msp-btn-block msp-no-overflow' onClick={this.focus} title='Click to Center Focused' onMouseEnter={this.highlightCurrent} onMouseLeave={this.clearHighlights} disabled={this.isDisabled || !current}>
                     {label}
                 </button>
+                <ToggleButton icon='target' title='Focus Target' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px' }} />
             </div>
+            {this.state.showAction && <ActionMenu items={this.actionItems} onSelect={this.selectAction} />}
         </>;
     }
 }

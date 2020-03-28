@@ -13,6 +13,7 @@ import { IconButton } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { StructureFocusControls } from './focus';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
@@ -258,6 +259,10 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             {this.state.show === 'presets' && <ActionMenu items={presets} onSelect={this.applyPreset} />}
             {this.modelIndex}
             {this.structureType}
+
+            <div style={{ marginTop: '6px' }}>
+                <StructureFocusControls />
+            </div>
         </>;
     }
 }
