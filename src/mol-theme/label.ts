@@ -197,7 +197,7 @@ function _elementLabel(location: StructureElement.Location, granularity: LabelGr
     }
 
     if (Unit.isAtomic(location.unit)) {
-        label.push(..._atomicElementLabel(location as StructureElement.Location<Unit.Atomic>, granularity))
+        label.push(..._atomicElementLabel(location as StructureElement.Location<Unit.Atomic>, granularity, reverse))
     } else if (Unit.isCoarse(location.unit)) {
         label.push(..._coarseElementLabel(location as StructureElement.Location<Unit.Spheres | Unit.Gaussians>, granularity))
     } else {
@@ -207,7 +207,7 @@ function _elementLabel(location: StructureElement.Location, granularity: LabelGr
     return reverse ? label.reverse() : label
 }
 
-function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, granularity: LabelGranularity): string[] {
+function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, granularity: LabelGranularity, hideOccupancy = false): string[] {
     const rI = StructureElement.Location.residueIndex(location);
 
     const label_asym_id = Props.chain.label_asym_id(location)
@@ -235,7 +235,8 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
                 label.push(`<small>Conformation</small> <b>${alt_id}</b>`)
             }
         case 'residue':
-            label.push(`<b>${compId}${has_label_seq_id ? ` ${label_seq_id}` : ''}</b>${label_seq_id !== auth_seq_id ? ` <small>[auth</small> <b>${auth_seq_id}</b><small>]</small>` : ''}<b>${ins_code ? ins_code : ''}</b>`)
+            const seq_id = label_seq_id === auth_seq_id || !has_label_seq_id ? auth_seq_id : label_seq_id
+            label.push(`<b>${compId} ${seq_id}</b>${seq_id !== auth_seq_id ? ` <small>[auth</small> <b>${auth_seq_id}</b><small>]</small>` : ''}<b>${ins_code ? ins_code : ''}</b>`)
         case 'chain':
             if (label_asym_id === auth_asym_id) {
                 label.push(`<b>${label_asym_id}</b>`)
@@ -248,7 +249,7 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
             }
     }
 
-    if (label.length > 0 && occupancy !== 1) {
+    if (label.length > 0 && occupancy !== 1 && !hideOccupancy) {
         label[0] = `${label[0]} <small>[occupancy</small> <b>${Math.round(100 * occupancy) / 100}</b><small>]</small>`;
     }
 

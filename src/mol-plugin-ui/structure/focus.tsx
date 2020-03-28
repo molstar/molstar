@@ -36,7 +36,7 @@ function getFocusEntries(structure: Structure) {
                         { unit: l.unit, indices: OrderedSet.ofSingleton(idx) }
                     ])
                 )
-                let label = lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false })
+                let label = lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false, granularity: 'residue' })
                 if (ug.units.length > 1) {
                     label += ` | ${u.conformation.operator.name}`
                 }
