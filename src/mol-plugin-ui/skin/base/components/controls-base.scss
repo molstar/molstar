@@ -1,4 +1,15 @@
 .msp-btn {
+    display: inline-block;
+    margin-bottom: 0; // For input.msp-btn
+    text-align: center;
+    vertical-align: middle;
+    touch-action: manipulation;
+    cursor: pointer;
+    background-image: none; // Reset unusual Firefox-on-Android default style; see https://github.com/necolas/normalize.css/issues/214
+    white-space: nowrap;
+    @include user-select(none);
+
+
     padding: 0 $control-spacing;
     line-height: $row-height;
     border: none;
@@ -11,8 +22,13 @@
     }
 }
 
+.msp-btn-block {
+    display: block;
+    width: 100%;
+}
+
 .msp-btn, .msp-btn:active, .msp-btn-link:focus, .msp-btn:hover {
-    outline: none !important;
+    outline: none;
 }
 
 .msp-btn-icon {
@@ -59,6 +75,37 @@
 }
 
 .msp-btn-link {
+    font-weight: normal;
+    border-radius: 0;
+
+    &,
+    &:active,
+    &.active,
+    &[disabled],
+    fieldset[disabled] & {
+        background-color: transparent;
+        -webkit-box-shadow: none; // iOS <4.3 & Android <4.1
+        box-shadow: none;
+    }
+    &,
+    &:hover,
+    &:focus,
+    &:active {
+        border-color: transparent;
+    }
+    &:hover,
+    &:focus {
+        text-decoration: none;
+        background-color: transparent;
+    }
+    &[disabled],
+    fieldset[disabled] & {
+        &:hover,
+        &:focus {
+        text-decoration: none;
+        }
+    }
+
     .msp-icon {
         font-size: 100%;
     }
@@ -119,7 +166,25 @@
     line-height: $row-height;
 }
 
+input[type="file"] {
+    display: block;
+}
+
+// Make range inputs behave like textual form controls
+input[type="range"] {
+    display: block;
+    width: 100%;
+}
+
+// Make multiple select elements height not fixed
+select[multiple],
+select[size] {
+    height: auto;
+}
+  
+
 .msp-form-control {
+    display: block;
     width: 100%;
     background: $msp-form-control-background;
     // color: $font-color;
@@ -130,7 +195,18 @@
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    box-shadow: none !important;
+    -webkit-box-shadow: none; // iOS <4.3 & Android <4.1
+    box-shadow: none;
+    // box-shadow: none !important;
+    background-image: none;
+
+    // Firefox
+    &::-moz-placeholder {
+        color: color-lower-contrast($font-color, 33%);
+        opacity: 1; // Override Firefox's unusual default opacity; see https://github.com/twbs/bootstrap/pull/11526
+    }
+    &:-ms-input-placeholder { color: color-lower-contrast($font-color, 33%); } // Internet Explorer 10+
+    &::-webkit-input-placeholder  { color: color-lower-contrast($font-color, 33%); } // Safari and Chrome
 
     &:hover {
         color: $hover-font-color;
@@ -147,6 +223,23 @@
         outline-offset: 0;
         outline: none;
     }
+
+    // Disabled and read-only inputs
+    //
+    // HTML5 says that controls under a fieldset > legend:first-child won't be
+    // disabled if the fieldset is disabled. Due to implementation difficulty, we
+    // don't honor that edge case; we style them as disabled anyway.
+    &[disabled],
+    &[readonly],
+    fieldset[disabled] & {
+        background: $default-background;
+        opacity: 0.35;
+    }
+}
+
+// Reset height for `textarea`s
+textarea.msp-form-control {
+    height: auto;
 }
 
 .msp-control-top-offset {

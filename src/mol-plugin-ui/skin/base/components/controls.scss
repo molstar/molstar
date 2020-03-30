@@ -1,5 +1,5 @@
 
-.msp-row {
+.msp-row, .msp-control-row {
     position: relative;
     height: $row-height;
     background: $default-background;
@@ -15,12 +15,7 @@
     }
 }
 
-.msp-control-row {
-    position: relative;
-    height: $row-height;
-    background: $default-background;
-    margin-top: 1px;
-
+.msp-control-row {   
     > span:first-child, > button.msp-control-button-label {
         line-height: $row-height;
         display: block;
@@ -39,15 +34,6 @@
     > button.msp-control-button-label {
         background: $default-background;
         cursor: pointer;
-    }
-
-    select, button, input[type=text] {
-        @extend .msp-form-control;
-    }
-
-    button {
-        @extend .msp-btn;
-        @extend .msp-btn-block;
     }
 
     .msp-control-current {
