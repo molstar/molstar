@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'CCD' schema file. Dictionary versions: mmCIF 5.323, IHM 1.08, CARB draft.
+ * Code-generated 'CCD' schema file. Dictionary versions: mmCIF 5.324, IHM 1.09, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -175,7 +175,7 @@ export const CCD_Schema = {
          * This data item identifies the deposition site that processed
          * this chemical component defintion.
          */
-        pdbx_processing_site: Aliased<'PDBE' | 'EBI' | 'PDBJ' | 'RCSB'>(str),
+        pdbx_processing_site: Aliased<'PDBE' | 'EBI' | 'PDBJ' | 'PDBC' | 'RCSB'>(str),
     },
     /**
      * Data items in the CHEM_COMP_ATOM category record details about

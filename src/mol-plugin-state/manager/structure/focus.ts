@@ -8,7 +8,7 @@
 import { StatefulPluginComponent } from '../../component';
 import { PluginContext } from '../../../mol-plugin/context';
 import { arrayRemoveAtInPlace } from '../../../mol-util/array';
-import { StructureElement, Bond, Structure } from '../../../mol-model/structure';
+import { StructureElement } from '../../../mol-model/structure';
 import { Loci } from '../../../mol-model/loci';
 import { lociLabel } from '../../../mol-theme/label';
 import { PluginStateObject } from '../../objects';
@@ -76,23 +76,11 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
     }
 
     setFromLoci(anyLoci: Loci) {
-        let loci: StructureElement.Loci;
-        if (StructureElement.Loci.is(anyLoci)) {
-            loci = anyLoci;
-        } else if (Bond.isLoci(anyLoci)) {
-            loci = Bond.toStructureElementLoci(anyLoci);
-        } else if (Structure.isLoci(anyLoci)) {
-            loci = Structure.toStructureElementLoci(anyLoci.structure);
-        } else {
+        const loci = Loci.normalize(anyLoci)
+        if (!StructureElement.Loci.is(loci) || StructureElement.Loci.isEmpty(loci)) {
             this.clear()
             return
         }
-
-        if (StructureElement.Loci.isEmpty(loci)) {
-            this.clear()
-            return
-        }
-        loci = StructureElement.Loci.remap(loci, loci.structure.root)
 
         this.set({ loci, label: lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false }) })
     }

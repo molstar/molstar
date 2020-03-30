@@ -39,6 +39,13 @@ export class SimpleSettingsControl extends PluginUIComponent {
     }
 }
 
+const LayoutOptions = {
+    'sequence': 'Sequence',
+    'log': 'Log',
+    'left': 'Left Panel'
+}
+type LayoutOptions = keyof typeof LayoutOptions
+
 const SimpleSettingsParams = {
     spin: PD.Group({
         spin: Canvas3DParams.trackball.params.spin,
@@ -56,17 +63,30 @@ const SimpleSettingsParams = {
         fog: Canvas3DParams.cameraFog,
     }, { pivot: 'renderStyle' }),
     clipping: Canvas3DParams.cameraClipping,
-    layout: PD.MultiSelect<'sequence' | 'log' | 'left'>([], [['sequence', 'Sequence'], ['log', 'Log'], ['left', 'Left Panel']] as const),
+    layout: PD.MultiSelect([] as LayoutOptions[], PD.objectToOptions(LayoutOptions)),
 };
 
 type SimpleSettingsParams = typeof SimpleSettingsParams
 const SimpleSettingsMapping = ParamMapping({
-    params: SimpleSettingsParams,
+    params: (ctx: PluginContext) => {
+        const params = PD.clone(SimpleSettingsParams)
+        const controls = ctx.spec.layout?.controls
+        if (controls) {
+            const options: [LayoutOptions, string][] = []
+            if (controls.top !== 'none') options.push(['sequence', LayoutOptions.sequence])
+            if (controls.bottom !== 'none') options.push(['log', LayoutOptions.log])
+            if (controls.left !== 'none') options.push(['left', LayoutOptions.left])
+            params.layout.options = options
+        }
+        return params
+    },
     target(ctx: PluginContext) {
+        const c = ctx.spec.layout?.controls
+        const r = ctx.layout.state.regionState
         const layout: SimpleSettingsParams['layout']['defaultValue'] = [];
-        if (ctx.layout.state.regionState.top !== 'hidden') layout.push('sequence');
-        if (ctx.layout.state.regionState.bottom !== 'hidden') layout.push('log');
-        if (ctx.layout.state.regionState.left !== 'hidden') layout.push('left');
+        if (r.top !== 'hidden' && (!c || c.top !== 'none')) layout.push('sequence');
+        if (r.bottom !== 'hidden' && (!c || c.bottom !== 'none')) layout.push('log');
+        if (r.left !== 'hidden' && (!c || c.left !== 'none')) layout.push('left');
         return { canvas: ctx.canvas3d?.props!, layout };
     }
 })({

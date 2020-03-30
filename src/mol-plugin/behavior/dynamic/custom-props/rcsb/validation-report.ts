@@ -310,8 +310,8 @@ const validationReportPreset = StructureRepresentationPresetProvider({
         const { update, builder, typeParams, color } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
         let clashesBallAndStick, clashesSnfg3d;
         if (representations) {
-            clashesBallAndStick = builder.buildRepresentation(update, components.clashes, { type: 'ball-and-stick', typeParams, color: colorTheme }, { tag: 'clashes-ball-and-stick' });
-            clashesSnfg3d = builder.buildRepresentation<any>(update, components.clashes, { type: ClashesRepresentationProvider.name, typeParams, color }, { tag: 'clashes-snfg-3d' });
+            clashesBallAndStick = builder.buildRepresentation(update, clashes, { type: 'ball-and-stick', typeParams, color: colorTheme }, { tag: 'clashes-ball-and-stick' });
+            clashesSnfg3d = builder.buildRepresentation<any>(update, clashes, { type: ClashesRepresentationProvider.name, typeParams, color }, { tag: 'clashes-snfg-3d' });
         }
 
         await plugin.updateDataState(update, { revertOnError: false });

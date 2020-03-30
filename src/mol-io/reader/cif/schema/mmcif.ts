@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.323, IHM 1.08, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.324, IHM 1.09, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -185,7 +185,7 @@ export const mmCIF_Schema = {
         /**
          * The fraction of the atom type present at this site.
          * The sum of the occupancies of all the atom types at this site
-         * may not significantly exceed 1.0 unless it is a dummy site.
+         * may not exceed 1.0 unless it is a dummy site.
          */
         occupancy: float,
         /**
@@ -1774,11 +1774,11 @@ export const mmCIF_Schema = {
         /**
          * The site where the file was deposited.
          */
-        deposit_site: Aliased<'NDB' | 'RCSB' | 'PDBE' | 'PDBJ' | 'BMRB' | 'BNL'>(str),
+        deposit_site: Aliased<'NDB' | 'RCSB' | 'PDBE' | 'PDBJ' | 'BMRB' | 'BNL' | 'PDBC'>(str),
         /**
          * The site where the file was deposited.
          */
-        process_site: Aliased<'NDB' | 'RCSB' | 'PDBE' | 'PDBJ' | 'BNL'>(str),
+        process_site: Aliased<'NDB' | 'RCSB' | 'PDBE' | 'PDBJ' | 'BNL' | 'PDBC'>(str),
         /**
          * Code for status of chemical shift data file.
          */
@@ -2192,7 +2192,7 @@ export const mmCIF_Schema = {
         /**
          * Defines the polymer characteristic of the entity.
          */
-        type: str,
+        type: Aliased<'polymer' | 'polymer-like' | 'non-polymer' | 'branched'>(str),
         /**
          * Additional details about this entity.
          */

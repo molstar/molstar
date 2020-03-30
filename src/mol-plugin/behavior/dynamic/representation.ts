@@ -15,7 +15,7 @@ import { StateSelection } from '../../../mol-state';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
 import { Binding } from '../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { EmptyLoci, Loci } from '../../../mol-model/loci';
+import { EmptyLoci, Loci, isEmptyLoci } from '../../../mol-model/loci';
 import { Structure } from '../../../mol-model/structure';
 import { arrayMax } from '../../../mol-util/array';
 import { Representation } from '../../../mol-repr/representation';
@@ -203,11 +203,18 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                 const { clickFocus } = this.params.bindings
 
                 if (Binding.match(clickFocus, button, modifiers)) {
+                    const loci = Loci.normalize(current.loci, 'residue')
                     const entry = this.ctx.managers.structure.focus.current
-                    if (entry && Loci.areEqual(entry.loci, current.loci)) {
+                    if (entry && Loci.areEqual(entry.loci, loci)) {
                         this.ctx.managers.structure.focus.clear()
                     } else {
-                        this.ctx.managers.structure.focus.setFromLoci(Loci.applyGranularity(current.loci, 'residue'))
+                        this.ctx.managers.structure.focus.setFromLoci(loci)
+                        if (isEmptyLoci(loci)) {
+                            this.ctx.managers.camera.reset()
+                        } else {
+                            // TODO make work with durationMs > 0
+                            this.ctx.managers.camera.focusLoci(loci, { durationMs: 0 })
+                        }
                     }
                 }
             });
