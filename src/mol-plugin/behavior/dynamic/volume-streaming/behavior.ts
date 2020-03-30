@@ -234,23 +234,15 @@ export namespace VolumeStreaming {
                 }
             });
 
-            this.subscribeObservable(this.plugin.managers.structure.focus.events.changed, () => {
-                this.updateFromFocus()
+            this.subscribeObservable(this.plugin.managers.structure.focus.behaviors.current, (entry) => {
+                const loci = entry ? entry.loci : EmptyLoci
+    
+                if (this.params.entry.params.view.name !== 'selection-box') {
+                    this.lastLoci = loci;
+                } else {
+                    this.updateInteraction(loci)
+                }
             });
-
-            // ensure current focus is shown if needed upon registering
-            this.updateFromFocus()
-        }
-
-        private updateFromFocus() {
-            const entry = this.plugin.managers.structure.focus.current
-            const loci = entry ? entry.loci : EmptyLoci
-
-            if (this.params.entry.params.view.name !== 'selection-box') {
-                this.lastLoci = loci;
-            } else {
-                this.updateInteraction(loci)
-            }
         }
 
         private getBoxFromLoci(loci: StructureElement.Loci | EmptyLoci): Box3D {

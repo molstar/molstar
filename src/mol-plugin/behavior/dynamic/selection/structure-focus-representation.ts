@@ -143,8 +143,7 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
     }
 
     register(ref: string): void {
-        this.subscribeObservable(this.plugin.managers.structure.focus.events.changed, () => {
-            const entry = this.plugin.managers.structure.focus.current
+        this.subscribeObservable(this.plugin.managers.structure.focus.behaviors.current, (entry) => {
             if (entry) this.focus(entry.loci)
             else this.clear(StateTransform.RootRef)
         });

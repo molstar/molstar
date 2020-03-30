@@ -2,6 +2,7 @@
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { StatefulPluginComponent } from '../../component';
@@ -28,9 +29,12 @@ const HISTORY_CAPACITY = 4;
 export class StructureFocusManager extends StatefulPluginComponent<StructureFocusManagerState> {
 
     readonly events = {
-        changed: this.ev<undefined>(),
         historyUpdated: this.ev<undefined>()
     }
+
+    readonly behaviors = {
+        current: this.ev.behavior<FocusEntry | undefined>(void 0)
+    };
 
     get current() { return this.state.current; }
     get history() { return this.state.history; }
@@ -67,7 +71,7 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
         this.tryAddHistory(entry)
         if (!this.state.current || !StructureElement.Loci.areEqual(this.state.current.loci, entry.loci)) {
             this.state.current = entry
-            this.events.changed.next()
+            this.behaviors.current.next(entry)
         }
     }
 
@@ -84,7 +88,7 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
     clear() {
         if (this.state.current) {
             this.state.current = undefined
-            this.events.changed.next()
+            this.behaviors.current.next(void 0)
         }
     }
 

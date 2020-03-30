@@ -70,7 +70,7 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
     state = { isBusy: false, showAction: false }
 
     componentDidMount() {
-        this.subscribe(this.plugin.managers.structure.focus.events.changed, c => {
+        this.subscribe(this.plugin.managers.structure.focus.behaviors.current, c => {
             this.forceUpdate();
         });
 
