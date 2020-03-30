@@ -191,7 +191,7 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
                     style={{ textAlignLast: current ? 'left' : void 0 }}>
                     {label}
                 </button>
-                {current && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' style={{ flex: '0 0 32px', padding: 0 }} disabled={this.isDisabled} />}
+                {current && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' flex disabled={this.isDisabled} />}
                 <ToggleButton icon='book-open' title='Select Target' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.showAction && <ActionMenu items={this.actionItems} onSelect={this.selectAction} />}

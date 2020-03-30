@@ -141,9 +141,9 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
             <button className='msp-btn msp-btn-block msp-form-control msp-no-overflow' title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={this.plugin.managers.interactivity.lociHighlights.clearHighlights}>
                 {idx}. <span dangerouslySetInnerHTML={{ __html: e.label }} />
             </button>
-            {history.length > 1 && <IconButton small={true} customClass='msp-form-control' onClick={() => this.moveHistory(e, 'up')} icon='up-thin' style={{ flex: '0 0 20px', maxWidth: '20px', padding: 0 }} title={'Move up'} />}
-            {history.length > 1 && <IconButton small={true} customClass='msp-form-control' onClick={() => this.moveHistory(e, 'down')} icon='down-thin' style={{ flex: '0 0 20px', maxWidth: '20px', padding: 0 }} title={'Move down'} />}
-            <IconButton small={true} customClass='msp-form-control' onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')} icon='remove' style={{ flex: '0 0 32px', padding: 0 }} title={'Remove'} />
+            {history.length > 1 && <IconButton small={true} customClass='msp-form-control' onClick={() => this.moveHistory(e, 'up')} icon='up-thin' flex='20px' title={'Move up'} />}
+            {history.length > 1 && <IconButton small={true} customClass='msp-form-control' onClick={() => this.moveHistory(e, 'down')} icon='down-thin' flex='20px' title={'Move down'} />}
+            <IconButton small={true} customClass='msp-form-control' onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')} icon='remove' flex title={'Remove'} />
         </div>;
     }
 
@@ -286,9 +286,9 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
                 <button className='msp-form-control msp-control-button-label msp-no-overflow' title='Click to focus. Hover to highlight.' onClick={this.focus} style={{ width: 'auto', textAlign: 'left' }}>
                     <span dangerouslySetInnerHTML={{ __html: this.label }} />
                 </button>
-                <IconButton small customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' style={{ flex: '0 0 32px', padding: 0 }} title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
-                <IconButton small customClass='msp-form-control' onClick={this.delete} icon='remove' style={{ flex: '0 0 32px', padding: 0 }} title='Delete' />
-                <IconButton customClass='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' style={{ flex: '0 0 32px', padding: 0 }} title='Actions' toggleState={this.state.showUpdate} />
+                <IconButton small customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' flex title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
+                <IconButton small customClass='msp-form-control' onClick={this.delete} icon='remove' flex title='Delete' />
+                <IconButton customClass='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' flex title='Actions' toggleState={this.state.showUpdate} />
             </div>
             {this.state.showUpdate && <>
                 <ActionMenu items={this.actions} onSelect={this.selectAction} />

@@ -1,4 +1,62 @@
+
+
+.msp-form-control {
+    display: block;
+    width: 100%;
+    background: $msp-form-control-background;
+    // color: $font-color;
+    border: none; // !important;
+    padding: 0 $control-spacing;
+    line-height: $row-height - 2px;
+    height: $row-height;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    -webkit-box-shadow: none; // iOS <4.3 & Android <4.1
+    box-shadow: none;
+    // box-shadow: none !important;
+    background-image: none;
+
+    // Firefox
+    &::-moz-placeholder {
+        color: color-lower-contrast($font-color, 33%);
+        opacity: 1; // Override Firefox's unusual default opacity; see https://github.com/twbs/bootstrap/pull/11526
+    }
+    &:-ms-input-placeholder { color: color-lower-contrast($font-color, 33%); } // Internet Explorer 10+
+    &::-webkit-input-placeholder  { color: color-lower-contrast($font-color, 33%); } // Safari and Chrome
+
+    &:hover {
+        color: $hover-font-color;
+        background-color: color-increase-contrast($msp-form-control-background, 5%);
+        border: none;
+        outline-offset: -1px !important;
+        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
+    }
+
+    &:active, &:focus {
+        color: $font-color;
+        background-color: $msp-form-control-background;
+        border: none;
+        outline-offset: 0;
+        outline: none;
+    }
+
+    // Disabled and read-only inputs
+    //
+    // HTML5 says that controls under a fieldset > legend:first-child won't be
+    // disabled if the fieldset is disabled. Due to implementation difficulty, we
+    // don't honor that edge case; we style them as disabled anyway.
+    &[disabled],
+    &[readonly],
+    fieldset[disabled] & {
+        background: $default-background;
+        opacity: 0.35;
+    }
+}
+
 .msp-btn {
+    @extend .msp-form-control;
+
     display: inline-block;
     margin-bottom: 0; // For input.msp-btn
     text-align: center;
@@ -149,7 +207,7 @@
     }
 }
 
-@include msp-btn('remove', $msp-btn-remove-font-color, $msp-btn-remove-background);
+// @include msp-btn('remove', $msp-btn-remove-font-color, $msp-btn-remove-background);
 @include msp-btn('action', $font-color, $msp-btn-action-background);
 @include msp-btn('commit-on', $msp-btn-commit-on-font-color, $msp-btn-commit-on-background);
 @include msp-btn('commit-off', $msp-btn-commit-off-font-color, $msp-btn-commit-off-background);
@@ -182,61 +240,6 @@ select[size] {
     height: auto;
 }
   
-
-.msp-form-control {
-    display: block;
-    width: 100%;
-    background: $msp-form-control-background;
-    // color: $font-color;
-    border: none; // !important;
-    padding: 0 $control-spacing;
-    line-height: $row-height - 2px;
-    height: $row-height;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    -webkit-box-shadow: none; // iOS <4.3 & Android <4.1
-    box-shadow: none;
-    // box-shadow: none !important;
-    background-image: none;
-
-    // Firefox
-    &::-moz-placeholder {
-        color: color-lower-contrast($font-color, 33%);
-        opacity: 1; // Override Firefox's unusual default opacity; see https://github.com/twbs/bootstrap/pull/11526
-    }
-    &:-ms-input-placeholder { color: color-lower-contrast($font-color, 33%); } // Internet Explorer 10+
-    &::-webkit-input-placeholder  { color: color-lower-contrast($font-color, 33%); } // Safari and Chrome
-
-    &:hover {
-        color: $hover-font-color;
-        background-color: color-increase-contrast($msp-form-control-background, 5%);
-        border: none;
-        outline-offset: -1px !important;
-        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
-    }
-
-    &:active, &:focus {
-        color: $font-color;
-        background-color: $msp-form-control-background;
-        border: none;
-        outline-offset: 0;
-        outline: none;
-    }
-
-    // Disabled and read-only inputs
-    //
-    // HTML5 says that controls under a fieldset > legend:first-child won't be
-    // disabled if the fieldset is disabled. Due to implementation difficulty, we
-    // don't honor that edge case; we style them as disabled anyway.
-    &[disabled],
-    &[readonly],
-    fieldset[disabled] & {
-        background: $default-background;
-        opacity: 0.35;
-    }
-}
-
 // Reset height for `textarea`s
 textarea.msp-form-control {
     height: auto;

@@ -173,7 +173,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
                     style={{ textAlignLast: !empty ? 'left' : void 0 }}>
                     {this.stats}
                 </button>
-                {!empty && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' style={{ flex: '0 0 32px', padding: 0 }} />}
+                {!empty && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' flex />}
             </div>
             <StructureMeasurementsControls />
         </>

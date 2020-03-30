@@ -266,13 +266,26 @@ export function IconButton(props: {
     customClass?: string,
     style?: React.CSSProperties,
     'data-id'?: string,
-    extraContent?: JSX.Element
+    extraContent?: JSX.Element,
+    flex?: boolean | string | number
 }) {
     let className = `msp-btn-link msp-btn-icon${props.small ? '-small' : ''}${props.customClass ? ' ' + props.customClass : ''}`;
     if (typeof props.toggleState !== 'undefined') {
         className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
     }
     const iconStyle = props.small ? { fontSize: '80%' } : void 0;
+
+    let style: React.CSSProperties | undefined = void 0;
+    if (props.flex) {
+        if (typeof props.flex === 'boolean') style = { flex: '0 0 32px', padding: 0 };
+        else if (typeof props.flex === 'number') style = { flex: `0 0 ${props.flex}px`, padding: 0, maxWidth: `${props.flex}px` };
+        else style = { flex: `0 0 ${props.flex}`, padding: 0, maxWidth: props.flex };
+    }
+    if (props.style) {
+        if (style) Object.assign(style, props.style);
+        else style = props.style;
+    }
+
     return <button className={className} onClick={props.onClick} title={props.title} disabled={props.disabled} data-id={props['data-id']} style={props.style}>
         <Icon name={props.icon} style={iconStyle} />
         {props.extraContent}
