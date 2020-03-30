@@ -10,6 +10,7 @@ import { PluginUIComponent } from './base';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
 import { Icon } from './controls/icons';
+import { Button, IconButton } from './controls/common';
 
 export class CameraSnapshots extends PluginUIComponent<{ }, { }> {
     render() {
@@ -42,8 +43,8 @@ class CameraSnapshotControls extends PluginUIComponent<{ }, { name: string, desc
             <ParameterControls params={CameraSnapshotControls.Params} values={this.state} onEnter={this.add} onChange={p => this.setState({ [p.name]: p.value } as any)}  />
 
             <div className='msp-btn-row-group'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}>Add</button>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.clear}>Clear</button>
+                <Button onClick={this.add}>Add</Button>
+                <Button onClick={this.clear}>Clear</Button>
             </div>
         </div>;
     }
@@ -67,10 +68,8 @@ class CameraSnapshotList extends PluginUIComponent<{ }, { }> {
     render() {
         return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
             {this.plugin.state.cameraSnapshots.state.entries.valueSeq().map(e =><li key={e!.id}>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.apply(e!.id)}>{e!.name || e!.timestamp} <small>{e!.description}</small></button>
-                <button onClick={this.remove(e!.id)} className='msp-btn msp-btn-link msp-state-list-remove-button'>
-                    <Icon name='remove' />
-                </button>
+                <Button onClick={this.apply(e!.id)}>{e!.name || e!.timestamp} <small>{e!.description}</small></Button>
+                <IconButton icon='remove' onClick={this.remove(e!.id)} className='msp-state-list-remove-button' />
             </li>)}
         </ul>;
     }

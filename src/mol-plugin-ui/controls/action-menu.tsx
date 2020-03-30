@@ -5,9 +5,9 @@
  */
 
 import * as React from 'react'
-import { Icon, IconName } from './icons';
+import { IconName } from './icons';
 import { ParamDefinition } from '../../mol-util/param-definition';
-import { ControlGroup } from './common';
+import { ControlGroup, Button } from './common';
 
 export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
     hide = () => this.props.onSelect(void 0)
@@ -185,18 +185,15 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { header, hasCurrent } = this.state;
 
         return <div className='msp-control-group-header msp-flex-row' style={{ marginTop: '1px' }}>
-            <button className='msp-btn msp-form-control msp-flex-item msp-no-overflow' onClick={this.toggleExpanded}>
-                <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
+            <Button icon={this.state.isExpanded ? 'collapse' : 'expand'} flex noOverflow onClick={this.toggleExpanded}>
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
-            </button>
-            <button className='msp-btn msp-form-control msp-flex-item' onClick={this.selectAll} style={{ flex: '0 0 50px', textAlign: 'right' }}>
-                <Icon name='check' />
+            </Button>
+            <Button icon='check' flex onClick={this.selectAll} style={{ flex: '0 0 50px', textAlign: 'right' }}>
                 All
-            </button>
-            <button className='msp-btn msp-form-control msp-flex-item' onClick={this.selectNone} style={{ flex: '0 0 50px', textAlign: 'right' }}>
-                <Icon name='cancel' />
+            </Button>
+            <Button icon='cancel' flex onClick={this.selectNone} style={{ flex: '0 0 50px', textAlign: 'right' }}>
                 None
-            </button>
+            </Button>
         </div>;
     }
 
@@ -204,10 +201,9 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { header, hasCurrent } = this.state;
 
         return <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
-            <button className='msp-btn msp-btn-block msp-form-control msp-no-overflow' onClick={this.toggleExpanded}>
-                <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
+            <Button noOverflow icon={this.state.isExpanded ? 'collapse' : 'expand'} onClick={this.toggleExpanded}>
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
-            </button>
+            </Button>
         </div>;
     }
 
@@ -240,11 +236,10 @@ const Action: React.FC<{
 
     const style: React.CSSProperties | undefined = item.addOn ? { position: 'relative' } : void 0;
 
-    return <button className='msp-btn msp-btn-block msp-form-control msp-action-menu-button msp-no-overflow' onClick={() => onSelect(multiselect ? [item] : item as any)} disabled={item.disabled} style={style}>
-        {item.icon && <Icon name={item.icon} />}
+    return <Button icon={item.icon} noOverflow className='msp-action-menu-button' onClick={() => onSelect(multiselect ? [item] : item as any)} disabled={item.disabled} style={style}>
         {isCurrent || item.selected ? <b>{item.label}</b> : item.label}
         {item.addOn}
-    </button>;
+    </Button>;
 }
 
 function isItems(x: any): x is ActionMenu.Items[] {

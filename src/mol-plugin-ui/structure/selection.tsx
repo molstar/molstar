@@ -16,8 +16,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { stripTags } from '../../mol-util/string';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { ControlGroup, ToggleButton, IconButton } from '../controls/common';
-import { Icon } from '../controls/icons';
+import { ControlGroup, ToggleButton, IconButton, Button } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 import { StructureMeasurementsControls } from './measurements';
 
@@ -169,11 +168,11 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             <ParameterControls params={StructureSelectionParams} values={this.values} onChangeValues={this.setProps} />
             {this.controls}
             <div className='msp-control-row msp-select-row' style={{ margin: '6px 0' }}>
-                <button className='msp-btn msp-btn-block msp-no-overflow' onClick={this.focus} title='Click to Focus Selection' disabled={empty}
+                <Button noOverflow onClick={this.focus} title='Click to Focus Selection' disabled={empty}
                     style={{ textAlignLast: !empty ? 'left' : void 0 }}>
                     {this.stats}
-                </button>
-                {!empty && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' flex />}
+                </Button>
+                {!empty && <IconButton onClick={this.clear} icon='cancel' title='Clear' className='msp-form-control' flex />}
             </div>
             <StructureMeasurementsControls />
         </>
@@ -204,9 +203,9 @@ class ApplyColorControls extends PurePluginUIComponent<ApplyColorControlsProps, 
     render() {
         return <>
             <ParameterControls params={this.params} values={this.state.values} onChangeValues={this.paramsChanged} />
-            <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-on`} onClick={this.apply} style={{ marginTop: '1px' }}>
-                <Icon name='brush' /> Apply Coloring
-            </button>
+            <Button icon='brush' className='msp-btn-commit msp-btn-commit-on' onClick={this.apply} style={{ marginTop: '1px' }}>
+                Apply Coloring
+            </Button>
         </>;
     }
 }

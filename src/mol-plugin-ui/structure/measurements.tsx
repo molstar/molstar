@@ -15,7 +15,7 @@ import { angleLabel, dihedralLabel, distanceLabel, lociLabel } from '../../mol-t
 import { FiniteArray } from '../../mol-util/type-helpers';
 import { PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { ExpandGroup, IconButton, ToggleButton } from '../controls/common';
+import { ExpandGroup, IconButton, ToggleButton, Button } from '../controls/common';
 import { Icon } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
@@ -138,12 +138,12 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
     historyEntry(e: StructureSelectionHistoryEntry, idx: number) {
         const history = this.plugin.managers.structure.selection.additionsHistory;
         return <div className='msp-btn-row-group' key={e.id}>
-            <button className='msp-btn msp-btn-block msp-form-control msp-no-overflow' title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={this.plugin.managers.interactivity.lociHighlights.clearHighlights}>
+            <Button noOverflow title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={this.plugin.managers.interactivity.lociHighlights.clearHighlights}>
                 {idx}. <span dangerouslySetInnerHTML={{ __html: e.label }} />
-            </button>
-            {history.length > 1 && <IconButton small={true} customClass='msp-form-control' onClick={() => this.moveHistory(e, 'up')} icon='up-thin' flex='20px' title={'Move up'} />}
-            {history.length > 1 && <IconButton small={true} customClass='msp-form-control' onClick={() => this.moveHistory(e, 'down')} icon='down-thin' flex='20px' title={'Move down'} />}
-            <IconButton small={true} customClass='msp-form-control' onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')} icon='remove' flex title={'Remove'} />
+            </Button>
+            {history.length > 1 && <IconButton small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'up')} icon='up-thin' flex='20px' title={'Move up'} />}
+            {history.length > 1 && <IconButton small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'down')} icon='down-thin' flex='20px' title={'Move down'} />}
+            <IconButton small={true} className='msp-form-control' onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')} icon='remove' flex title={'Remove'} />
         </div>;
     }
 
@@ -286,9 +286,9 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
                 <button className='msp-form-control msp-control-button-label msp-no-overflow' title='Click to focus. Hover to highlight.' onClick={this.focus} style={{ width: 'auto', textAlign: 'left' }}>
                     <span dangerouslySetInnerHTML={{ __html: this.label }} />
                 </button>
-                <IconButton small customClass='msp-form-control' onClick={this.toggleVisibility} icon='eye' flex title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
-                <IconButton small customClass='msp-form-control' onClick={this.delete} icon='remove' flex title='Delete' />
-                <IconButton customClass='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' flex title='Actions' toggleState={this.state.showUpdate} />
+                <IconButton small className='msp-form-control' onClick={this.toggleVisibility} icon='eye' flex title={cell.state.isHidden ? 'Show' : 'Hide'} toggleState={!cell.state.isHidden} />
+                <IconButton small className='msp-form-control' onClick={this.delete} icon='remove' flex title='Delete' />
+                <IconButton className='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' flex title='Actions' toggleState={this.state.showUpdate} />
             </div>
             {this.state.showUpdate && <>
                 <ActionMenu items={this.actions} onSelect={this.selectAction} />

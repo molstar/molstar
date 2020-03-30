@@ -12,8 +12,7 @@ import { State } from '../../mol-state';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { ExpandGroup, IconButton, ToggleButton } from '../controls/common';
-import { Icon } from '../controls/icons';
+import { ExpandGroup, IconButton, ToggleButton, Button } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 import { PluginContext } from '../../mol-plugin/context';
@@ -120,7 +119,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
                 <ToggleButton icon='bookmarks' label='Preset' toggle={this.togglePreset} isSelected={this.state.action === 'preset'} disabled={this.isDisabled} />
                 <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
                 <ToggleButton icon='cog' label='' title='Options' style={{ flex: '0 0 40px', padding: 0 }} toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
-                <IconButton customClass='msp-flex-item' flex='40px' onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} icon='back' title={undoTitle} />
+                <IconButton className='msp-flex-item' flex='40px' onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} icon='back' title={undoTitle} />
             </div>
             {this.state.action === 'preset' && this.presetControls}
             {this.state.action === 'add' && <div className='msp-control-offset'>
@@ -166,9 +165,9 @@ class AddComponentControls extends PurePluginUIComponent<AddComponentControlsPro
     render() {
         return <>
             <ParameterControls params={this.state.params} values={this.state.values} onChangeValues={this.paramsChanged} />
-            <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-on`} onClick={this.apply} style={{ marginTop: '1px' }}>
-                <Icon name='plus' /> Create Selection
-            </button>
+            <Button icon='plus' className='msp-btn-commit msp-btn-commit-on' onClick={this.apply} style={{ marginTop: '1px' }}>
+                Create Selection
+            </Button>
         </>;
     }
 }
@@ -347,9 +346,9 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
                     {label}
                     {/* <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{reprLabel}</small> */}
                 </button>
-                <IconButton onClick={this.toggleVisible} icon='visual-visibility' toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small customClass='msp-form-control' flex />
-                <IconButton onClick={this.toggleRemove} icon='remove' title='Remove' small toggleState={this.state.action === 'remove'} customClass='msp-form-control' flex />
-                <IconButton onClick={this.toggleAction} icon='dot-3' title='Actions' toggleState={this.state.action === 'action'} customClass='msp-form-control' flex />
+                <IconButton onClick={this.toggleVisible} icon='visual-visibility' toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small className='msp-form-control' flex />
+                <IconButton onClick={this.toggleRemove} icon='remove' title='Remove' small toggleState={this.state.action === 'remove'} className='msp-form-control' flex />
+                <IconButton onClick={this.toggleAction} icon='dot-3' title='Actions' toggleState={this.state.action === 'action'} className='msp-form-control' flex />
             </div>
             {this.state.action === 'remove' && <div style={{ marginBottom: '6px' }}>
                 <ActionMenu items={this.removeActions} onSelect={this.selectRemoveAction} />

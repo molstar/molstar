@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import { PluginUIComponent } from '../base';
-import { ToggleButton, IconButton } from '../controls/common';
+import { ToggleButton, IconButton, Button } from '../controls/common';
 import { ActionMenu } from '../controls/action-menu';
 import { StructureElement, StructureProperties, Structure } from '../../mol-model/structure';
 import { OrderedSet, SortedArray } from '../../mol-data/int';
@@ -187,11 +187,11 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
 
         return <>
             <div className='msp-control-row msp-select-row'>
-                <button className='msp-btn msp-btn-block msp-no-overflow' onClick={this.focus} title={title} onMouseEnter={this.highlightCurrent} onMouseLeave={this.clearHighlights} disabled={this.isDisabled || !current}
+                <Button noOverflow onClick={this.focus} title={title} onMouseEnter={this.highlightCurrent} onMouseLeave={this.clearHighlights} disabled={this.isDisabled || !current}
                     style={{ textAlignLast: current ? 'left' : void 0 }}>
                     {label}
-                </button>
-                {current && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' flex disabled={this.isDisabled} />}
+                </Button>
+                {current && <IconButton onClick={this.clear} icon='cancel' title='Clear' className='msp-form-control' flex disabled={this.isDisabled} />}
                 <ToggleButton icon='book-open' title='Select Target' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.showAction && <ActionMenu items={this.actionItems} onSelect={this.selectAction} />}

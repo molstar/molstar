@@ -9,10 +9,10 @@ import * as React from 'react';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParameterControls } from '../controls/parameters';
 import { PluginUIComponent } from '../base';
-import { Icon } from '../controls/icons';
 import { debounceTime } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { ViewportScreenshotHelper } from '../../mol-plugin/util/viewport-screenshot';
+import { Button } from '../controls/common';
 
 interface ImageControlsState {
     showPreview: boolean
@@ -125,8 +125,8 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                 <span>Right-click the image to Copy.</span>
             </div>
             <div className='msp-btn-row-group'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.download} disabled={this.state.isDisabled}><Icon name='download' /> Download</button>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.openTab} disabled={this.state.isDisabled}><Icon name='export' /> Open in new Tab</button>
+                <Button icon='download' onClick={this.download} disabled={this.state.isDisabled}>Download</Button>
+                <Button icon='export' onClick={this.openTab} disabled={this.state.isDisabled}>Open in new Tab</Button>
             </div>
             <ParameterControls params={this.plugin.helpers.viewportScreenshot!.params} values={this.plugin.helpers.viewportScreenshot!.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
         </div>

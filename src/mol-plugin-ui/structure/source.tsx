@@ -9,7 +9,7 @@ import * as React from 'react';
 import { HierarchyRef, ModelRef, TrajectoryRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { CollapsableControls, CollapsableState } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { IconButton } from '../controls/common';
+import { IconButton, Button } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
@@ -252,10 +252,8 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         const label = this.label;
         return <>
             <div className='msp-btn-row-group' style={{ marginTop: '1px' }}>
-                <button className='msp-btn msp-form-control msp-flex-item msp-no-overflow' onClick={this.toggleHierarchy} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} disabled={disabled} title={label}>
-                    {label}
-                </button>
-                {presets.length > 0 && <IconButton customClass='msp-form-control' flex onClick={this.togglePreset} icon='bookmarks' title='Presets' toggleState={this.state.show === 'presets'} disabled={disabled} />}
+                <Button noOverflow flex onClick={this.toggleHierarchy} disabled={disabled} title={label}>{label}</Button>
+                {presets.length > 0 && <IconButton className='msp-form-control' flex onClick={this.togglePreset} icon='bookmarks' title='Presets' toggleState={this.state.show === 'presets'} disabled={disabled} />}
             </div>
             {this.state.show === 'hierarchy' && <ActionMenu items={this.hierarchyItems} onSelect={this.selectHierarchy} multiselect />}
             {this.state.show === 'presets' && <ActionMenu items={presets} onSelect={this.applyPreset} />}

@@ -209,3 +209,11 @@
 .msp-25-lower-contrast-text {
     color: color-lower-contrast($font-color, 25%);
 }
+
+.msp-expandable-group-color-stripe {
+    position: absolute;
+    left: 0;
+    top: $row-height - 2px;
+    width: $control-label-width + $control-spacing;
+    height: 2px;
+}

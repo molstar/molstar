@@ -6,7 +6,6 @@
 
 import * as React from 'react';
 import { Color } from '../../mol-util/color';
-import { PurePluginUIComponent } from '../base';
 import { IconName, Icon } from './icons';
 
 export class ControlGroup extends React.Component<{
@@ -33,11 +32,11 @@ export class ControlGroup extends React.Component<{
         // TODO: customize header style (bg color, togle button etc)
         return <div className='msp-control-group-wrapper' style={{ position: 'relative', marginTop: this.props.noTopMargin ? 0 : void 0 }}>
             <div className='msp-control-group-header' style={{ marginLeft: this.props.headerLeftMargin }}>
-                <button className='msp-btn msp-form-control msp-btn-block' onClick={this.headerClicked}>
+                <Button onClick={this.headerClicked}>
                     {!this.props.hideExpander && <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />}
                     {this.props.topRightIcon && <Icon name={this.props.topRightIcon} style={{ position: 'absolute', right: '2px', top: 0 }} />}
                     <b>{this.props.header}</b>
-                </button>
+                </Button>
             </div>
             {this.state.isExpanded && <div className={this.props.hideOffset ? '' : 'msp-control-offset'} style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                 {this.props.children}
@@ -71,7 +70,7 @@ interface TextInputState {
 
 function _id(x: any) { return x; }
 
-export class TextInput<T = string> extends PurePluginUIComponent<TextInputProps<T>, TextInputState> {
+export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>, TextInputState> {
     private input = React.createRef<HTMLInputElement>();
     private delayHandle: any = void 0;
     private pendingValue: T | undefined = void 0;
@@ -224,7 +223,7 @@ export class NumericInput extends React.PureComponent<{
     }
 }
 
-export class ExpandableGroup extends React.Component<{
+export class ExpandableControlRow extends React.Component<{
     label: string,
     colorStripe?: Color,
     pivot: JSX.Element,
@@ -256,6 +255,54 @@ export class ExpandableGroup extends React.Component<{
     }
 }
 
+export function SectionHeader(props: { icon?: IconName, title: string | JSX.Element, desc?: string}) {
+    return <div className='msp-section-header'>
+        {props.icon && <Icon name={props.icon} />}
+        {props.title} <small>{props.desc}</small>
+    </div>
+}
+
+export type ButtonProps = {
+    style?: React.CSSProperties,
+    className?: string,
+    disabled?: boolean,
+    title?: string,
+    icon?: IconName,
+    children?: React.ReactNode,
+    onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void,
+    onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void,
+    onMouseEnter?: (e: React.MouseEvent<HTMLButtonElement>) => void,
+    onMouseLeave?: (e: React.MouseEvent<HTMLButtonElement>) => void,
+    inline?: boolean,
+    'data-id'?: string,
+    flex?: boolean | string | number,
+    noOverflow?: boolean
+}
+
+export function Button(props: ButtonProps) {
+    let className = 'msp-btn';
+    if (!props.inline) className += ' msp-btn-block';
+    if (props.noOverflow) className += ' msp-no-overflow';
+    if (props.flex) className += ' msp-flex-item';
+    if (props.className) className += ' ' + props.className;
+
+    let style: React.CSSProperties | undefined = void 0;
+    if (props.flex) {
+        if (typeof props.flex === 'number') style = { flex: `0 0 ${props.flex}px`, padding: 0, maxWidth: `${props.flex}px` };
+        else if (typeof props.flex === 'string') style = { flex: `0 0 ${props.flex}`, padding: 0, maxWidth: props.flex };
+    }
+    if (props.style) {
+        if (style) Object.assign(style, props.style);
+        else style = props.style;
+    }
+
+    return <button onClick={props.onClick} title={props.title} disabled={props.disabled} style={style} className={className} data-id={props['data-id']}
+        onContextMenu={props.onContextMenu} onMouseEnter={props.onMouseEnter} onMouseLeave={props.onMouseLeave}>
+        {props.icon && <Icon name={props.icon} />}
+        {props.children}
+    </button>;
+}
+
 export function IconButton(props: {
     icon: IconName,
     small?: boolean,
@@ -263,13 +310,13 @@ export function IconButton(props: {
     title?: string,
     toggleState?: boolean,
     disabled?: boolean,
-    customClass?: string,
+    className?: string,
     style?: React.CSSProperties,
     'data-id'?: string,
     extraContent?: JSX.Element,
     flex?: boolean | string | number
 }) {
-    let className = `msp-btn-link msp-btn-icon${props.small ? '-small' : ''}${props.customClass ? ' ' + props.customClass : ''}`;
+    let className = `msp-btn-link msp-btn-icon${props.small ? '-small' : ''}${props.className ? ' ' + props.className : ''}`;
     if (typeof props.toggleState !== 'undefined') {
         className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
     }
@@ -286,36 +333,10 @@ export function IconButton(props: {
         else style = props.style;
     }
 
-    return <button className={className} onClick={props.onClick} title={props.title} disabled={props.disabled} data-id={props['data-id']} style={props.style}>
+    return <button className={className} onClick={props.onClick} title={props.title} disabled={props.disabled} data-id={props['data-id']} style={style}>
         <Icon name={props.icon} style={iconStyle} />
         {props.extraContent}
     </button>;
-}
-
-export class ButtonSelect extends React.PureComponent<{ label: string, onChange: (value: string) => void, disabled?: boolean }> {
-    onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        e.preventDefault()
-        this.props.onChange(e.target.value)
-        e.target.value = '_'
-    }
-
-    render() {
-        return <select value='_' onChange={this.onChange} disabled={this.props.disabled}>
-            <option key='_' value='_'>{this.props.label}</option>
-            {this.props.children}
-        </select>
-    }
-}
-
-export function Options(options: [string, string][]) {
-    return options.map(([value, label]) => <option key={value} value={value}>{label}</option>)
-}
-
-export function SectionHeader(props: { icon?: IconName, title: string | JSX.Element, desc?: string}) {
-    return <div className='msp-section-header'>
-        {props.icon && <Icon name={props.icon} />}
-        {props.title} <small>{props.desc}</small>
-    </div>
 }
 
 export type ToggleButtonProps = {
