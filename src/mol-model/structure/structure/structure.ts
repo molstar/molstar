@@ -1014,14 +1014,17 @@ namespace Structure {
 
     //
 
-    const DefaultSizeThresholds = {
+    export const DefaultSizeThresholds = {
         smallResidueCount: 10,
-        mediumResidueCount: 1500,
-        largeResidueCount: 12000,
+        mediumResidueCount: 3000,
+        /** large ribosomes like 4UG0 should still be `large` */
+        largeResidueCount: 20000,
         highSymmetryUnitCount: 10,
-        fiberResidueCount: 15
+        fiberResidueCount: 15,
+
+        residueCountFactor: 1
     }
-    type SizeThresholds = typeof DefaultSizeThresholds
+    export type SizeThresholds = typeof DefaultSizeThresholds
 
     function getPolymerSymmetryGroups(structure: Structure) {
         return structure.unitSymmetryGroups.filter(ug => ug.units[0].polymerElements.length > 0)
@@ -1050,8 +1053,8 @@ namespace Structure {
     export enum Size { Small, Medium, Large, Huge, Gigantic }
 
     export function getSize(structure: Structure, thresholds: Partial<SizeThresholds> = {}): Size {
-        const t = { ...DefaultSizeThresholds, thresholds }
-        if (structure.polymerResidueCount >= t.largeResidueCount) {
+        const t = { ...DefaultSizeThresholds, ...thresholds }
+        if (structure.polymerResidueCount >= t.largeResidueCount * t.residueCountFactor) {
             if (hasHighSymmetry(structure, t)) {
                 return Size.Huge
             } else {
@@ -1059,9 +1062,9 @@ namespace Structure {
             }
         } else if (isFiberLike(structure, t)) {
             return Size.Small
-        } else if (structure.polymerResidueCount < t.smallResidueCount) {
+        } else if (structure.polymerResidueCount < t.smallResidueCount * t.residueCountFactor) {
             return Size.Small
-        } else if (structure.polymerResidueCount < t.mediumResidueCount) {
+        } else if (structure.polymerResidueCount < t.mediumResidueCount * t.residueCountFactor) {
             return Size.Medium
         } else {
             return Size.Large

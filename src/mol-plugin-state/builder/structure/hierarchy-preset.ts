@@ -15,6 +15,7 @@ import { PresetStructureRepresentations } from './representation-preset';
 import { PluginContext } from '../../../mol-plugin/context';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Model } from '../../../mol-model/structure';
+import { getStructureQuality } from '../../../mol-repr/util';
 
 export interface TrajectoryHierarchyPresetProvider<P = any, S = {}> extends PresetProvider<PluginStateObject.Molecule.Trajectory, P, S> { }
 export function TrajectoryHierarchyPresetProvider<P, S>(preset: TrajectoryHierarchyPresetProvider<P, S>) { return preset; }
@@ -91,7 +92,9 @@ const allModels = TrajectoryHierarchyPresetProvider({
 
             models.push(model);
             structures.push(structure);
-            await builder.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { globalThemeName: 'model-index', quality: 'medium' });
+
+            const quality = structure.obj ? getStructureQuality(structure.obj.data, { elementCountFactor: tr.length }) : 'medium'
+            await builder.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { globalThemeName: 'model-index', quality });
         }
 
         return { models, structures };

@@ -53,18 +53,31 @@ export interface QualityProps {
     doubleSided: boolean
 }
 
-export function getStructureQuality(structure: Structure): VisualQuality {
-    let score = structure.elementCount
-    if (structure.isCoarseGrained) score *= 10
-    if (score > 500_000) {
+export const DefaultQualityThresholds = {
+    lowestElementCount: 500_000,
+    lowerElementCount: 200_000,
+    lowElementCount: 60_000,
+    mediumElementCount: 20_000,
+    highElementCount: 2_000,
+    coarseGrainedFactor: 10,
+
+    elementCountFactor: 1
+}
+export type QualityThresholds = typeof DefaultQualityThresholds
+
+export function getStructureQuality(structure: Structure, tresholds: Partial<QualityThresholds> = {}): VisualQuality {
+    const t = { ...DefaultQualityThresholds, ...tresholds }
+    let score = structure.elementCount * t.elementCountFactor
+    if (structure.isCoarseGrained) score *= t.coarseGrainedFactor
+    if (score > t.lowestElementCount) {
         return 'lowest'
-    } else if (score > 200_000) {
+    } else if (score > t.lowerElementCount) {
         return 'lower'
-    } else if (score > 60_000) {
+    } else if (score > t.lowElementCount) {
         return 'low'
-    } else if (score > 20_000) {
+    } else if (score > t.mediumElementCount) {
         return 'medium'
-    } else if (score > 2_000) {
+    } else if (score > t.highElementCount) {
         return 'high'
     } else {
         return 'higher'
