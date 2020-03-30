@@ -44,6 +44,7 @@ export class LociLabelManager {
 
     private isDirty = false
     private entries: LociLabelEntry[] = []
+    private entriesCounts = new Map<LociLabelEntry, number>()
 
     private showLabels() {
         this.ctx.behaviors.labels.highlight.next({ entries: this.getEntries() })
@@ -51,14 +52,22 @@ export class LociLabelManager {
 
     private getEntries() {
         if (this.isDirty) {
+            this.entriesCounts.clear()
             this.entries.length = 0
             for (const provider of this.providers) {
                 for (const loci of this.locis) {
                     if (Loci.isEmpty(loci.loci)) continue
                     const entry = provider(loci.loci, loci.repr)
-                    if (entry) this.entries.push(entry)
+                    if (entry) {
+                        const count = this.entriesCounts.get(entry) || 0
+                        this.entriesCounts.set(entry, count + 1)
+                    }
                 }
             }
+            this.entries.length = 0
+            this.entriesCounts.forEach((count, entry) => {
+                this.entries.push(count === 1 ? entry : `${entry} (\u00D7 ${count})`)
+            })
             this.isDirty = false
         }
         return this.entries
