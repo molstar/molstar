@@ -323,6 +323,8 @@ namespace Canvas3D {
         function shouldResetCamera() {
             if (camera.state.radiusMax === 0) return true;
 
+            if (camera.transition.inTransition || nextCameraResetSnapshot) return false;
+
             let cameraSphereOverlapsNone = true
             Sphere3D.set(cameraSphere, camera.state.target, camera.state.radius)
 
@@ -356,7 +358,7 @@ namespace Canvas3D {
             }
             if (oldBoundingSphereVisible.radius === 0) nextCameraResetDuration = 0;
 
-            camera.setState({ radiusMax: scene.boundingSphere.radius })
+            camera.setState({ radiusMax: scene.boundingSphere.radius }, 0)
             reprCount.next(reprRenderObjects.size);
 
             return true;

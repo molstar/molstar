@@ -141,8 +141,7 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
 
         await PluginCommands.State.Update(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
 
-        // TODO make work with durationMs > 0
-        this.plugin.managers.camera.focusLoci(loci)
+        this.plugin.managers.camera.focusLoci(loci);
     }
 
     register(ref: string): void {

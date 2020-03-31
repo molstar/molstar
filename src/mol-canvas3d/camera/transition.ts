@@ -25,23 +25,29 @@ class CameraTransitionManager {
     get target(): Readonly<Camera.Snapshot> { return this._target }
 
     apply(to: Partial<Camera.Snapshot>, durationMs: number = 0, transition?: CameraTransitionManager.TransitionFunc) {
-        Camera.copySnapshot(this._source, this.camera.state);
-        Camera.copySnapshot(this._target, this.camera.state);
+        if (!this.inTransition) {
+            Camera.copySnapshot(this._source, this.camera.state);
+            Camera.copySnapshot(this._target, this.camera.state);
+        }
+
         Camera.copySnapshot(this._target, to);
 
         if (this._target.radius > this._target.radiusMax) {
             this._target.radius = this._target.radiusMax
         }
 
-        if (durationMs <= 0 || (typeof to.mode !== 'undefined' && to.mode !== this.camera.state.mode)) {
+        if (!this.inTransition && durationMs <= 0 || (typeof to.mode !== 'undefined' && to.mode !== this.camera.state.mode)) {
             this.finish(this._target);
             return;
         }
 
         this.inTransition = true;
         this.func = transition || CameraTransitionManager.defaultTransition;
-        this.start = this.t;
-        this.durationMs = durationMs;
+
+        if (!this.inTransition || durationMs > 0) {
+            this.start = this.t;
+            this.durationMs = durationMs;
+        }
     }
 
     tick(t: number) {
