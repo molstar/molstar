@@ -72,7 +72,8 @@ namespace CustomStructureProperty {
                     // this invalidates property.value
                     set(data, p, value)
                 }
-            }
+            },
+            props: (data: Structure) => get(data).props,
         }
     }
 }

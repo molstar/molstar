@@ -69,7 +69,8 @@ namespace CustomModelProperty {
                     // this invalidates property.value
                     set(data, p, undefined)
                 }
-            }
+            },
+            props: (data: Model) => get(data).props,
         }
     }
 }

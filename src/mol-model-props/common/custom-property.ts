@@ -35,6 +35,7 @@ namespace CustomProperty {
         readonly ref: (data: Data, add: boolean) => void
         readonly get: (data: Data) => ValueBox<Value | undefined>
         readonly set: (data: Data, props: PD.Values<Params>, value?: Value) => void
+        readonly props: (data: Data) => PD.Values<Params>
     }
 
     export class Registry<Data> {
