@@ -387,11 +387,11 @@ class StructureRepresentationEntry extends PurePluginUIComponent<{ group: Struct
             <ExpandGroup header={`${repr.obj?.label || ''} Representation`} noOffset>
                 <UpdateTransformControl state={repr.parent} transform={repr.transform} customHeader='none' customUpdate={this.update} noMargin />
             </ExpandGroup>
-            <IconButton onClick={this.remove} icon='remove' title='Remove' small style={{
+            <IconButton onClick={this.remove} icon='remove' title='Remove' small className='msp-default-bg' style={{
                 position: 'absolute', top: 0, right: '32px', lineHeight: '24px', height: '24px', textAlign: 'right', width: '44px', paddingRight: '6px'
             }} />
-            <IconButton onClick={this.toggleVisible} toggleState={!this.props.representation.cell.state.isHidden} icon='visual-visibility' title='Remove' small style={{
-                position: 'absolute', top: 0, right: 0, lineHeight: '24px', height: '24px', textAlign: 'right', width: '24px', paddingRight: '6px'
+            <IconButton onClick={this.toggleVisible} toggleState={!this.props.representation.cell.state.isHidden} icon='visual-visibility' title='Remove' small className='msp-default-bg' style={{
+                position: 'absolute', top: 0, right: 0, lineHeight: '24px', height: '24px', textAlign: 'right', width: '32px', paddingRight: '6px'
             }} />
         </div>;
     }

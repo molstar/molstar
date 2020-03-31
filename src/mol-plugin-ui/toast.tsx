@@ -32,7 +32,7 @@ class ToastEntry extends PluginUIComponent<{ entry: PluginToastManager.Entry }> 
             </div>
             <div className='msp-toast-clear'></div>
             <div className='msp-toast-hide'>
-                <IconButton onClick={this.hide} icon='abort' title='Hide' />
+                <IconButton onClick={this.hide} icon='abort' title='Hide' className='msp-no-hover-outline' />
             </div>
         </div>;
     }

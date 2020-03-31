@@ -72,7 +72,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     }
 
     icon(name: IconName, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
-        return <IconButton icon={name} toggleState={isOn} onClick={onClick} title={title} />;
+        return <IconButton icon={name} toggleState={isOn} onClick={onClick} title={title} style={{ background: 'transparent' }} />;
     }
 
     onMouseMove = (e: React.MouseEvent) => {

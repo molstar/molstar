@@ -282,3 +282,17 @@ select.msp-form-control:-moz-focusring {
     color: transparent;
     text-shadow: 0 0 0 $font-color;
 }
+
+.msp-default-bg {
+    background: $default-background;
+}
+
+.msp-no-hover-outline {
+    &:hover {
+        color: $hover-font-color;
+        background-color: inherit;
+        border: none;
+        outline-offset: 0 !important;
+        outline: none !important;
+    }
+}

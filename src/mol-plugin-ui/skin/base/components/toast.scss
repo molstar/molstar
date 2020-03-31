@@ -5,12 +5,12 @@
     // right: $control-spacing;
     // margin-left: $control-spacing;
     z-index: 1001;
-    
-    .msp-toast-entry {
 
+    .msp-toast-entry {
         color: $font-color;
         background: $control-background;
         position: relative;
+        float: right;
         min-height: $row-height;
         margin-top: $control-spacing;
         border: 1px solid $border-color;
@@ -67,8 +67,9 @@
             bottom: 0;
 
             .msp-btn-icon {
+                background: transparent;
                 position: absolute;
-                top: 0;
+                top: 1px;
                 right: 0;
                 left: 0;
                 bottom: 0;

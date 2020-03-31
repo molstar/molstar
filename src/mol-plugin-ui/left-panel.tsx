@@ -174,6 +174,6 @@ export class RemoveAllButton extends PluginUIComponent<{ }> {
     render() {
         const count = this.plugin.state.data.tree.children.get(StateTransform.RootRef).size;
         if (count === 0) return null;
-        return <IconButton icon='remove' onClick={this.remove} title={'Remove All'} style={{ display: 'inline-block' }} small />;
+        return <IconButton icon='remove' onClick={this.remove} title={'Remove All'} style={{ display: 'inline-block' }} small className='msp-no-hover-outline' />;
     }
 }
