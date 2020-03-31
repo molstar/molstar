@@ -21,6 +21,7 @@ import { Icon } from './controls/icons';
 import { StructureComponentControls } from './structure/components';
 import { StructureSourceControls } from './structure/source';
 import { VolumeStreamingControls } from './structure/volume';
+import { StructureMeasurementsControls } from './structure/measurements';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' }
@@ -284,6 +285,7 @@ export class DefaultStructureTools extends PluginUIComponent {
 
             <StructureSourceControls />
             <StructureSelectionControls />
+            <StructureMeasurementsControls />
             <StructureComponentControls />
             <VolumeStreamingControls />
 

@@ -18,7 +18,6 @@ import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '..
 import { ActionMenu } from '../controls/action-menu';
 import { ControlGroup, ToggleButton, IconButton, Button } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
-import { StructureMeasurementsControls } from './measurements';
 
 const StructureSelectionParams = {
     granularity: InteractivityManager.Params.granularity,
@@ -174,7 +173,6 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
                 </Button>
                 {!empty && <IconButton onClick={this.clear} icon='cancel' title='Clear' className='msp-form-control' flex />}
             </div>
-            <StructureMeasurementsControls />
         </>
     }
 }
