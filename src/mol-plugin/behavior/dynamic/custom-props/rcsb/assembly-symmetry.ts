@@ -43,7 +43,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
                 return [refs, 'Symmetries']
             })
             this.ctx.customStructureControls.set(Tag.Representation, AssemblySymmetryControls as any)
-            this.ctx.builders.structure.representation.registerPreset(assemblySymmetryPreset)
+            this.ctx.builders.structure.representation.registerPreset(AssemblySymmetryPreset)
         }
 
         update(p: { autoAttach: boolean }) {
@@ -60,7 +60,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
 
             this.ctx.genericRepresentationControls.delete(Tag.Representation)
             this.ctx.customStructureControls.delete(Tag.Representation)
-            this.ctx.builders.structure.representation.unregisterPreset(assemblySymmetryPreset)
+            this.ctx.builders.structure.representation.unregisterPreset(AssemblySymmetryPreset)
         }
     },
     params: () => ({
@@ -144,14 +144,23 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
 
 //
 
-const assemblySymmetryPreset = StructureRepresentationPresetProvider({
+const AssemblySymmetryPresetParams = {
+    ...StructureRepresentationPresetProvider.CommonParams,
+    symmetryIndex: PD.Numeric(0)
+}
+
+export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-rcsb-assembly-symmetry',
     display: { name: 'Assembly Symmetry', group: 'Annotation' },
-    params: () => StructureRepresentationPresetProvider.CommonParams,
+    params: () => AssemblySymmetryPresetParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const model = structureCell?.obj?.data.model;
-        if (!structureCell || !model) return {};
+        const structure = structureCell?.obj?.data;
+        if (!structureCell || !structure) return {};
+
+        await plugin.runTask(Task.create('Assembly Symmetry', async runtime => {
+            await AssemblySymmetryProvider.attach({ fetch: plugin.fetch, runtime }, structure, { symmetryIndex: params.symmetryIndex })
+        }))
 
         const assemblySymmetry = await tryCreateAssemblySymmetry(plugin, structureCell);
         const preset = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: Tag.Cluster as any }, plugin);

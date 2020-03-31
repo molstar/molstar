@@ -53,7 +53,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.representation.structure.registry.add(ClashesRepresentationProvider)
             this.ctx.query.structure.registry.add(hasClash)
-            this.ctx.builders.structure.representation.registerPreset(validationReportPreset)
+            this.ctx.builders.structure.representation.registerPreset(ValidationReportPreset)
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
@@ -78,7 +78,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.representation.structure.registry.remove(ClashesRepresentationProvider)
             this.ctx.query.structure.registry.remove(hasClash)
-            this.ctx.builders.structure.representation.unregisterPreset(validationReportPreset)
+            this.ctx.builders.structure.representation.unregisterPreset(ValidationReportPreset)
         }
     },
     params: () => ({
@@ -288,7 +288,7 @@ const hasClash = StructureSelectionQuery('Residues with Clashes', MS.struct.modi
 
 //
 
-const validationReportPreset = StructureRepresentationPresetProvider({
+export const ValidationReportPreset = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-rcsb-validation-report',
     display: { name: 'Validation Report', group: 'Annotation' },
     params: () => StructureRepresentationPresetProvider.CommonParams,

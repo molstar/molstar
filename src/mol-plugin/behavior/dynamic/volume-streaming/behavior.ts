@@ -236,7 +236,7 @@ export namespace VolumeStreaming {
 
             this.subscribeObservable(this.plugin.managers.structure.focus.behaviors.current, (entry) => {
                 const loci = entry ? entry.loci : EmptyLoci
-    
+
                 if (this.params.entry.params.view.name !== 'selection-box') {
                     this.lastLoci = loci;
                 } else {

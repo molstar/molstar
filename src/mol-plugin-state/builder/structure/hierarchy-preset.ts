@@ -56,7 +56,7 @@ const defaultPreset = TrajectoryHierarchyPresetProvider({
         const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
         const unitcell = params.showUnitcell === void 0 || !!params.showUnitcell ? await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: true }) : void 0;
-        const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto');
+        const representation = await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto');
 
         return {
             model,

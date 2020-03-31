@@ -15,7 +15,6 @@ import { StructureHierarchyManager } from '../../../../../../mol-plugin-state/ma
 
 interface AssemblySymmetryControlState extends CollapsableState {
     isBusy: boolean
-    options: AssemblySymmetryProps
 }
 
 export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySymmetryControlState> {
@@ -24,18 +23,18 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
             header: 'Assembly Symmetry',
             isCollapsed: false,
             isBusy: false,
-            isHidden: true,
-            options: PD.getDefaultValues(AssemblySymmetryProvider.defaultParams)
+            isHidden: true
         };
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, () => this.setState({ isHidden: !this.canEnable() }));
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, () => {
+            this.setState({
+                isHidden: !this.canEnable(),
+                description: StructureHierarchyManager.getSelectedStructuresDescription(this.plugin)
+            })
+        });
         this.subscribe(this.plugin.behaviors.state.isBusy, v => this.setState({ isBusy: v }));
-
-        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, c => this.setState({
-            description: StructureHierarchyManager.getSelectedStructuresDescription(this.plugin)
-        }));
     }
 
     get pivot() {
@@ -69,14 +68,21 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
         return params
     }
 
+    get values() {
+        const structure = this.pivot.cell.obj?.data
+        if (structure) {
+            return AssemblySymmetryProvider.props(structure)
+        } else {
+            return { ...PD.getDefaultValues(AssemblySymmetryProvider.defaultParams), symmetryIndex: -1 }
+        }
+    }
+
     async updateAssemblySymmetry(values: AssemblySymmetryProps) {
         const s = this.pivot
-        const assemblySymmetryParams = AssemblySymmetryProvider.getParams(s.cell.obj?.data!);
+        const currValues = AssemblySymmetryProvider.props(s.cell.obj!.data)
+        if (PD.areEqual(AssemblySymmetryProvider.defaultParams, currValues, values)) return;
 
         if (s.properties) {
-            const oldParams = s.properties.cell.transform.params?.properties[AssemblySymmetryProvider.descriptor.name];
-            if (PD.areEqual(assemblySymmetryParams, oldParams, values)) return;
-
             const b = this.plugin.state.data.build();
             b.to(s.properties.cell).update(old => {
                 old.properties[AssemblySymmetryProvider.descriptor.name] = values;
@@ -85,14 +91,13 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
         } else {
             const pd = this.plugin.customStructureProperties.getParams(s.cell.obj?.data);
             const params = PD.getDefaultValues(pd);
-            if (PD.areEqual(assemblySymmetryParams, params.properties[AssemblySymmetryProvider.descriptor.name], values)) return;
             params.properties[AssemblySymmetryProvider.descriptor.name] = values;
             await this.plugin.builders.structure.insertStructureProperties(s.cell, params);
         }
+        this.forceUpdate()
     }
 
     paramsOnChange = (options: AssemblySymmetryProps) => {
-        this.setState({ options })
         this.updateAssemblySymmetry(options)
     }
 
@@ -101,7 +106,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
     }
 
     get enable() {
-        return !this.hasAssemblySymmetry3D && this.state.options.symmetryIndex !== -1
+        return !this.hasAssemblySymmetry3D && this.values.symmetryIndex !== -1
     }
 
     get noSymmetries() {
@@ -112,7 +117,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
 
     renderParams() {
         return <>
-            <ParameterControls params={this.params} values={this.state.options} onChangeValues={this.paramsOnChange} />
+            <ParameterControls params={this.params} values={this.values} onChangeValues={this.paramsOnChange} />
         </>;
     }
 
