@@ -125,6 +125,22 @@ export class StructureHierarchyManager extends PluginComponent {
             }
         }
 
+        // handle orphan models and structures (e.g. from CellPack Loader)
+        if (hierarchy.trajectories.length === 0) {
+            if (hierarchy.models.length > 0) {
+                for (const m of hierarchy.models) {
+                    if (set.has(m.cell.transform.ref)) models.push(m);
+                    for (const s of m.structures) {
+                        if (set.has(s.cell.transform.ref)) structures.push(s);
+                    }
+                }
+            } else if (hierarchy.structures.length > 0) {
+                for (const s of hierarchy.structures) {
+                    if (set.has(s.cell.transform.ref)) structures.push(s);
+                }
+            }
+        }
+
         this._currentComponentGroups = void 0;
         this._currentSelectionSet = void 0;
 
