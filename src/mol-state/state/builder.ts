@@ -111,12 +111,8 @@ namespace StateBuilder {
 
         readonly ref: StateTransform.Ref;
 
-        private getApplyRoot(ref?: StateTransform.Ref): StateTransform.Ref {
-            const children = this.state.tree.children.get(ref || this.ref);
-            if (children.size !== 1) return ref || this.ref;
-            const child = this.state.tree.transforms.get(children.first());
-            if (child.transformer.definition.isDecorator) return this.getApplyRoot(child.ref);
-            return ref || this.ref;
+        private getApplyRoot(): StateTransform.Ref {
+            return StateTree.getDecoratorRoot(this.state.tree, this.ref);
         }
 
         /**

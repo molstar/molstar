@@ -7,12 +7,11 @@
 
 import * as React from 'react';
 import { HierarchyRef, ModelRef, TrajectoryRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { CollapsableControls, CollapsableState } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { IconButton, Button } from '../controls/common';
+import { Button, IconButton } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
-import { PluginCommands } from '../../mol-plugin/commands';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { StructureFocusControls } from './focus';
 
 interface StructureSourceControlState extends CollapsableState {
@@ -229,11 +228,10 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         return <ParameterControls params={params} values={m.cell.params?.values} onChangeValues={this.updateStructureModel} isDisabled={this.state.isBusy} />
     }
 
-    updateStructure = async (params: any) => {
+    updateStructure = (params: any) => {
         const { selection } = this.plugin.managers.structure.hierarchy;
         const s = selection.structures[0];
-        await this.plugin.state.updateTransform(this.plugin.state.data, s.cell.transform.ref, params, 'Structure Type');
-        PluginCommands.Camera.Reset(this.plugin);
+        this.plugin.managers.structure.hierarchy.updateStructure(s, params);
     }
 
     get structureType() {

@@ -5,13 +5,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginContext } from '../../../mol-plugin/context';
-import { StructureHierarchy, buildStructureHierarchy, ModelRef, StructureComponentRef, StructureRef, HierarchyRef, TrajectoryRef } from './hierarchy-state';
-import { PluginComponent } from '../../component';
-import { SetUtils } from '../../../mol-util/set';
-import { StateTransform } from '../../../mol-state';
-import { TrajectoryHierarchyPresetProvider } from '../../builder/structure/hierarchy-preset';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
+import { PluginCommands } from '../../../mol-plugin/commands';
+import { PluginContext } from '../../../mol-plugin/context';
+import { StateTransform, StateTransformer, StateTree } from '../../../mol-state';
+import { SetUtils } from '../../../mol-util/set';
+import { TrajectoryHierarchyPresetProvider } from '../../builder/structure/hierarchy-preset';
+import { PluginComponent } from '../../component';
+import { RootStructureDefinition } from '../../helpers/root-structure';
+import { StateTransforms } from '../../transforms';
+import { buildStructureHierarchy, HierarchyRef, ModelRef, StructureComponentRef, StructureHierarchy, StructureRef, TrajectoryRef } from './hierarchy-state';
 
 export class StructureHierarchyManager extends PluginComponent {
     private state = {
@@ -151,10 +154,10 @@ export class StructureHierarchyManager extends PluginComponent {
         this.behaviors.selection.next({ hierarchy, trajectories, models, structures });
     }
 
-    remove(refs: HierarchyRef[], canUndo?: boolean) {
+    remove(refs: (HierarchyRef | string)[], canUndo?: boolean) {
         if (refs.length === 0) return;
         const deletes = this.plugin.state.data.build();
-        for (const r of refs) deletes.delete(r.cell.transform.ref);
+        for (const r of refs) deletes.delete(typeof r === 'string' ? r : r.cell.transform.ref);
         return this.plugin.updateDataState(deletes, { canUndo: canUndo ? 'Remove' : false });
     }
 
@@ -178,6 +181,36 @@ export class StructureHierarchyManager extends PluginComponent {
                 await this.plugin.builders.structure.hierarchy.applyPreset(t.cell, provider, params);
             }
         });
+    }
+
+    private _updateStructure(s: StructureRef, params: any, recreateRepresentation: boolean) {
+        return this.plugin.dataTransaction(async () => {
+            if (recreateRepresentation) {
+                const root = StateTree.getDecoratorRoot(this.dataState.tree, s.cell.transform.ref);
+                const children = this.dataState.tree.children.get(root).toArray();
+                await this.remove(children, false);
+            }
+            await this.plugin.state.updateTransform(this.plugin.state.data, s.cell.transform.ref, params, 'Structure Type');
+            if (recreateRepresentation) {
+                await this.plugin.builders.structure.representation.applyPreset(s.cell.transform.ref, 'auto');
+            }
+        }, { canUndo: 'Structure Type'})
+    }
+
+    async updateStructure(s: StructureRef, newParams: any) {
+        if (s.cell.transform.transformer === StateTransforms.Model.StructureFromModel) {
+            const old = s.cell.transform.params! as StateTransformer.Params<StateTransforms['Model']['StructureFromModel']>;
+            const params = newParams as StateTransformer.Params<StateTransforms['Model']['StructureFromModel']>;
+
+            if (RootStructureDefinition.isSymmetryType(old.type) && RootStructureDefinition.isSymmetryType(params.type)) {
+                await this._updateStructure(s, newParams, false);
+            } else {
+                await this._updateStructure(s, newParams, true);
+            }
+        } else {
+            await this._updateStructure(s, newParams, true);
+        }
+        PluginCommands.Camera.Reset(this.plugin);
     }
 
     private clearTrajectory(trajectory: TrajectoryRef) {

@@ -7,25 +7,25 @@
 import { VisualQualityOptions } from '../../../mol-geo/geometry/base';
 import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
 import { Structure, StructureElement } from '../../../mol-model/structure';
-import { structureAreIntersecting, structureSubtract, structureUnion, structureIntersect } from '../../../mol-model/structure/query/utils/structure-set';
+import { structureAreIntersecting, structureIntersect, structureSubtract, structureUnion } from '../../../mol-model/structure/query/utils/structure-set';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateBuilder, StateTransformer } from '../../../mol-state';
 import { Task } from '../../../mol-task';
+import { ColorTheme } from '../../../mol-theme/color';
+import { SizeTheme } from '../../../mol-theme/size';
 import { UUID } from '../../../mol-util';
 import { ColorNames } from '../../../mol-util/color/names';
+import { objectForEach } from '../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StructureRepresentationPresetProvider } from '../../builder/structure/representation-preset';
 import { StatefulPluginComponent } from '../../component';
 import { StructureComponentParams } from '../../helpers/structure-component';
 import { clearStructureOverpaint, setStructureOverpaint } from '../../helpers/structure-overpaint';
+import { createStructureColorThemeParams, createStructureSizeThemeParams } from '../../helpers/structure-representation-params';
 import { StructureSelectionQueries, StructureSelectionQuery } from '../../helpers/structure-selection-query';
 import { StructureRepresentation3D } from '../../transforms/representation';
 import { HierarchyRef, StructureComponentRef, StructureRef, StructureRepresentationRef } from './hierarchy-state';
-import { createStructureColorThemeParams, createStructureSizeThemeParams } from '../../helpers/structure-representation-params';
-import { ColorTheme } from '../../../mol-theme/color';
-import { SizeTheme } from '../../../mol-theme/size';
-import { objectForEach } from '../../../mol-util/object';
 
 export { StructureComponentManager };
 

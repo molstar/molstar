@@ -94,6 +94,10 @@ export namespace RootStructureDefinition {
 
     export type Params = PD.Values<ReturnType<typeof getParams>>['type']
 
+    export function isSymmetryType(params: Params) {
+        return params.name.indexOf('symmetry') >= 0;
+    }
+
     async function buildAssembly(plugin: PluginContext, ctx: RuntimeContext, model: Model, id?: string) {
         let asm: Assembly | undefined = void 0;
 

@@ -32,7 +32,9 @@ namespace StateTree {
         readonly values: OrderedSet<Ref>['values'],
         has(ref: Ref): boolean,
         readonly forEach: OrderedSet<Ref>['forEach'],
-        readonly map: OrderedSet<Ref>['map']
+        readonly map: OrderedSet<Ref>['map'],
+        toArray(): Ref[],
+        first(): Ref
     }
 
     interface _Map<T> {
@@ -196,5 +198,13 @@ namespace StateTree {
     export function subtreeHasRef(tree: StateTree, root: StateTransform.Ref, ref: StateTransform.Ref): boolean {
         if (!tree.transforms.has(root) || !tree.transforms.has(ref)) return false;
         return _subtreeHasRef(tree, root, ref);
+    }
+
+    export function getDecoratorRoot(tree: StateTree, ref: StateTransform.Ref): StateTransform.Ref {
+        const children = tree.children.get(ref);
+        if (children.size !== 1) return ref;
+        const child = tree.transforms.get(children.first());
+        if (child.transformer.definition.isDecorator) return getDecoratorRoot(tree, child.ref);
+        return ref;
     }
 }
