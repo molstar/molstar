@@ -187,20 +187,20 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         // const showBack = this.isUpdate() && !(this.state.busy || this.state.isInitial);
         const canApply = this.canApply();
 
-        return this.props.autoHideApply && !canApply
-            ? null
-            : <div className='msp-transform-apply-wrap'>
-                <button className='msp-btn msp-btn-block msp-form-control msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params'><Icon name='cw' /></button>
-                {/* {showBack && <Button className='msp-btn msp-btn-block msp-form-control msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
-                    <Icon name='back' /> Back
-                </Button>}
-                <div className={`msp-transform-apply${!showBack ? ' msp-transform-apply-wider' : ''}`}> */}
-                <div className={`msp-transform-apply-wider`}>
-                    <Button icon={canApply ? 'ok' : void 0} className={`msp-btn-commit msp-btn-commit-${canApply ? 'on' : 'off'}`} onClick={this.apply} disabled={!canApply}>
-                        {this.props.applyLabel || this.applyText()}
-                    </Button>
-                </div>
-            </div>;
+        if (this.props.autoHideApply && (!canApply || this.canAutoApply(this.state.params))) return null;
+
+        return <div className='msp-transform-apply-wrap'>
+            <button className='msp-btn msp-btn-block msp-form-control msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params'><Icon name='cw' /></button>
+            {/* {showBack && <Button className='msp-btn msp-btn-block msp-form-control msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
+                <Icon name='back' /> Back
+            </Button>}
+            <div className={`msp-transform-apply${!showBack ? ' msp-transform-apply-wider' : ''}`}> */}
+            <div className={`msp-transform-apply-wider`}>
+                <Button icon={canApply ? 'ok' : void 0} className={`msp-btn-commit msp-btn-commit-${canApply ? 'on' : 'off'}`} onClick={this.apply} disabled={!canApply}>
+                    {this.props.applyLabel || this.applyText()}
+                </Button>
+            </div>
+        </div>;
     }
 
     renderDefault() {

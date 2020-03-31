@@ -279,6 +279,9 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure,
     params(a) { return RootStructureDefinition.getParams(a && a.data); }
 })({
+    canAutoUpdate({ newParams }) {
+        return !RootStructureDefinition.isSymmetryType(newParams.type);
+    },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Structure', async ctx => {
             return RootStructureDefinition.create(plugin, ctx, a.data, params && params.type);

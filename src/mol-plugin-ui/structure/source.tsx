@@ -13,6 +13,7 @@ import { ActionMenu } from '../controls/action-menu';
 import { Button, IconButton } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 import { StructureFocusControls } from './focus';
+import { UpdateTransformControl } from '../state/update-transform';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
@@ -231,7 +232,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
     updateStructure = (params: any) => {
         const { selection } = this.plugin.managers.structure.hierarchy;
         const s = selection.structures[0];
-        this.plugin.managers.structure.hierarchy.updateStructure(s, params);
+        return this.plugin.managers.structure.hierarchy.updateStructure(s, params);
     }
 
     get structureType() {
@@ -241,7 +242,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         const params = s.cell.params?.definition;
         if (!params) return null;
 
-        return <ParameterControls params={params} values={s.cell.params?.values} onChangeValues={this.updateStructure} isDisabled={this.state.isBusy} />
+        return <UpdateTransformControl state={s.cell.parent} transform={s.cell.transform} customHeader='none' customUpdate={this.updateStructure} noMargin autoHideApply />
     }
 
     renderControls() {

@@ -8,12 +8,10 @@
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { PluginContext } from '../../../mol-plugin/context';
-import { StateTransform, StateTransformer, StateTree } from '../../../mol-state';
+import { StateTransform, StateTree } from '../../../mol-state';
 import { SetUtils } from '../../../mol-util/set';
 import { TrajectoryHierarchyPresetProvider } from '../../builder/structure/hierarchy-preset';
 import { PluginComponent } from '../../component';
-import { RootStructureDefinition } from '../../helpers/root-structure';
-import { StateTransforms } from '../../transforms';
 import { buildStructureHierarchy, HierarchyRef, ModelRef, StructureComponentRef, StructureHierarchy, StructureRef, TrajectoryRef } from './hierarchy-state';
 
 export class StructureHierarchyManager extends PluginComponent {
@@ -167,33 +165,14 @@ export class StructureHierarchyManager extends PluginComponent {
         });
     }
 
-    private _updateStructure(s: StructureRef, params: any, recreateRepresentation: boolean) {
-        return this.plugin.dataTransaction(async () => {
-            if (recreateRepresentation) {
-                const root = StateTree.getDecoratorRoot(this.dataState.tree, s.cell.transform.ref);
-                const children = this.dataState.tree.children.get(root).toArray();
-                await this.remove(children, false);
-            }
+    async updateStructure(s: StructureRef, params: any) {
+        await this.plugin.dataTransaction(async () => {
+            const root = StateTree.getDecoratorRoot(this.dataState.tree, s.cell.transform.ref);
+            const children = this.dataState.tree.children.get(root).toArray();
+            await this.remove(children, false);
             await this.plugin.state.updateTransform(this.plugin.state.data, s.cell.transform.ref, params, 'Structure Type');
-            if (recreateRepresentation) {
-                await this.plugin.builders.structure.representation.applyPreset(s.cell.transform.ref, 'auto');
-            }
-        }, { canUndo: 'Structure Type' })
-    }
-
-    async updateStructure(s: StructureRef, newParams: any) {
-        if (s.cell.transform.transformer === StateTransforms.Model.StructureFromModel) {
-            const old = s.cell.transform.params! as StateTransformer.Params<StateTransforms['Model']['StructureFromModel']>;
-            const params = newParams as StateTransformer.Params<StateTransforms['Model']['StructureFromModel']>;
-
-            if (RootStructureDefinition.isSymmetryType(old.type) && RootStructureDefinition.isSymmetryType(params.type)) {
-                await this._updateStructure(s, newParams, false);
-            } else {
-                await this._updateStructure(s, newParams, true);
-            }
-        } else {
-            await this._updateStructure(s, newParams, true);
-        }
+            await this.plugin.builders.structure.representation.applyPreset(s.cell.transform.ref, 'auto');
+        }, { canUndo: 'Structure Type' });
         PluginCommands.Camera.Reset(this.plugin);
     }
 
