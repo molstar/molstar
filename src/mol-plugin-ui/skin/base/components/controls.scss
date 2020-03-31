@@ -1,5 +1,4 @@
-
-.msp-row, .msp-control-row {
+.msp-control-row {
     position: relative;
     height: $row-height;
     background: $default-background;
@@ -13,10 +12,8 @@
         @extend .msp-btn;
         @extend .msp-btn-block;
     }
-}
 
-.msp-control-row {   
-    > span:first-child, > button.msp-control-button-label {
+    > span.msp-control-row-label, > button.msp-control-button-label {
         line-height: $row-height;
         display: block;
         width: $control-label-width + $control-spacing;
@@ -40,7 +37,7 @@
         background: $default-background;
     }
 
-    > div:nth-child(2) {
+    > div.msp-control-row-ctrl {
         position: absolute;
         left: $control-label-width + $control-spacing;
         top: 0;
@@ -52,7 +49,7 @@
         background: $msp-form-control-background;
     }
 
-    > .msp-select-row {
+    > .msp-flex-row {
         background: $default-background;
     }
 }
@@ -269,21 +266,6 @@
     margin-top: 1px;
 }
 
-.msp-control-subgroup {
-    margin-top: 1px;
-
-    .msp-control-row {
-        margin-left: $control-spacing !important;
-        > span {
-            width: $control-label-width !important;
-        }
-
-        > div:nth-child(2) {
-            left: $control-label-width !important;
-        }
-    }
-}
-
 .msp-control-group-expander {
     display: block;
     position: absolute;
@@ -324,6 +306,11 @@
 }
 
 .msp-row-text {
+    height: $row-height;
+    position: relative;
+    background: $default-background;
+    margin-top: 1px;
+
     > div {
         line-height: $row-height;
         text-align: center;
@@ -341,7 +328,9 @@
 }
 
 .msp-help-text {
-    height: auto !important;
+    position: relative;
+    background: $default-background;
+    margin-top: 1px;
 
     > div {
         padding: ($control-spacing / 2) $control-spacing;

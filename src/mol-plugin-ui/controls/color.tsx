@@ -11,7 +11,7 @@ import { camelCaseToWords, stringToWords } from '../../mol-util/string';
 import * as React from 'react';
 import { _Props, _State } from '../base';
 import { ParamProps } from './parameters';
-import { TextInput } from './common';
+import { TextInput, Button, ControlRow } from './common';
 import { DefaultColorSwatch } from '../../mol-util/color/swatches';
 
 export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Color>, { isExpanded: boolean }> {
@@ -43,31 +43,23 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
     swatch() {
         // const def = this.props.param.defaultValue;
         return <div className='msp-combined-color-swatch'>
-            {/* <button title='Default Color' key={def} className='msp-form-control msp-btn' data-color={def} onClick={this.onClickSwatch} style={{ background: Color.toStyle(def) }}></button> */}
-            {DefaultColorSwatch.map(c => <button key={c[1]} className='msp-form-control msp-btn' data-color={c[1]} onClick={this.onClickSwatch} style={{ background: Color.toStyle(c[1]) }}></button>)}
+            {DefaultColorSwatch.map(c => <Button key={c[1]} inline data-color={c[1]} onClick={this.onClickSwatch} style={{ background: Color.toStyle(c[1]) }} />)}
         </div>;
     }
 
     render() {
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         return <>
-            <div className='msp-control-row'>
-                <span title={this.props.param.description}>{label}</span>
-                <div>
-                    <button onClick={this.toggleExpanded} className='msp-combined-color-button' style={{ background: Color.toStyle(this.props.value) }}></button>
-                </div>
-            </div>
+            <ControlRow title={this.props.param.description}
+                label={label}
+                control={<Button onClick={this.toggleExpanded} inline className='msp-combined-color-button' style={{ background: Color.toStyle(this.props.value) }} />} />
             {this.state.isExpanded && <div className='msp-control-offset'>
                 {this.swatch()}
-                <div className='msp-control-row'>
-                    <span>RGB</span>
-                    <div>
-                        <TextInput onChange={this.onChangeText} value={this.props.value}
-                            fromValue={formatColorRGB} toValue={getColorFromString} isValid={isValidColorString}
-                            className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
-                            placeholder='e.g. 127 127 127' delayMs={250} />
-                    </div>
-                </div>
+                <ControlRow label='RGB'
+                    control={<TextInput onChange={this.onChangeText} value={this.props.value}
+                        fromValue={formatColorRGB} toValue={getColorFromString} isValid={isValidColorString}
+                        className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
+                        placeholder='e.g. 127 127 127' delayMs={250} />} />
             </div>}
         </>;
     }

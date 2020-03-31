@@ -8,7 +8,7 @@ import { PluginUIComponent } from '../base';
 import { StateTransformParameters } from '../state/common';
 import * as React from 'react';
 import { VolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
-import { ExpandableGroup } from '../controls/common';
+import { ExpandableControlRow } from '../controls/common';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { Slider } from '../controls/slider';
@@ -38,12 +38,12 @@ function Channel(props: {
     const channel = props.channels[props.name]!;
 
     const { min, max, mean, sigma } = stats;
-    const value =  Math.round(100 * (channel.isoValue.kind === 'relative' ? channel.isoValue.relativeValue : channel.isoValue.absoluteValue)) / 100;
+    const value = Math.round(100 * (channel.isoValue.kind === 'relative' ? channel.isoValue.relativeValue : channel.isoValue.absoluteValue)) / 100;
     const relMin = (min - mean) / sigma;
     const relMax = (max - mean) / sigma;
     const step = toPrecision(isRelative ? Math.round(((max - min) / sigma)) / 100 : sigma / 100, 2)
 
-    return <ExpandableGroup
+    return <ExpandableControlRow
         label={props.label + (props.isRelative ? ' \u03C3' : '')}
         colorStripe={channel.color}
         pivot={<Slider value={value} min={isRelative ? relMin : min} max={isRelative ? relMax : max} step={step}
@@ -103,9 +103,11 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
     };
 
     convert(channel: any, stats: VolumeData['dataStats'], isRelative: boolean) {
-        return { ...channel, isoValue: isRelative
-            ? VolumeIsoValue.toRelative(channel.isoValue, stats)
-            : VolumeIsoValue.toAbsolute(channel.isoValue, stats) }
+        return {
+            ...channel, isoValue: isRelative
+                ? VolumeIsoValue.toRelative(channel.isoValue, stats)
+                : VolumeIsoValue.toAbsolute(channel.isoValue, stats)
+        }
     }
 
     changeOption: ParamOnChange = ({ name, value }) => {
@@ -131,8 +133,8 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                 ? old.entry.params.view.params
                 : (((this.props.info.params as VolumeStreaming.ParamDefinition)
                     .entry.map(old.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>)
-                        .params as VolumeStreaming.EntryParamDefinition)
-                            .view.map(value.name).defaultValue;
+                    .params as VolumeStreaming.EntryParamDefinition)
+                    .view.map(value.name).defaultValue;
 
             const viewParams = { ...oldView };
             if (value.name === 'selection-box') {
@@ -187,7 +189,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
         const OptionsParams = {
             entry: PD.Select(params.entry.name, b.data.entries.map(info => [info.dataId, info.dataId] as [string, string]), { isHidden: isOff, description: 'Which entry with volume data to display.' }),
             view: PD.MappedStatic(params.entry.params.view.name, {
-                'off': PD.Group({ 
+                'off': PD.Group({
                     isRelative: PD.Boolean(isRelative, { isHidden: true })
                 }, { description: 'Display off.' }),
                 'box': PD.Group({

@@ -12,7 +12,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Subject } from 'rxjs';
 import { Icon, IconName } from '../controls/icons';
-import { ExpandGroup, ToggleButton } from '../controls/common';
+import { ExpandGroup, ToggleButton, Button } from '../controls/common';
 
 export { StateTransformParameters, TransformControlBase };
 
@@ -184,21 +184,21 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     }
 
     renderApply() {
-        const showBack = this.isUpdate() && !(this.state.busy || this.state.isInitial);
+        // const showBack = this.isUpdate() && !(this.state.busy || this.state.isInitial);
         const canApply = this.canApply();
 
         return this.props.autoHideApply && !canApply
             ? null
             : <div className='msp-transform-apply-wrap'>
                 <button className='msp-btn msp-btn-block msp-form-control msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params'><Icon name='cw' /></button>
-                {showBack && <button className='msp-btn msp-btn-block msp-form-control msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
+                {/* {showBack && <Button className='msp-btn msp-btn-block msp-form-control msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
                     <Icon name='back' /> Back
-                </button>}
-                <div className={`msp-transform-apply${!showBack ? ' msp-transform-apply-wider' : ''}`}>
-                    <button className={`msp-btn msp-btn-block msp-form-control msp-btn-commit msp-btn-commit-${canApply ? 'on' : 'off'}`} onClick={this.apply} disabled={!canApply}>
-                        {canApply && <Icon name='ok' />}
+                </Button>}
+                <div className={`msp-transform-apply${!showBack ? ' msp-transform-apply-wider' : ''}`}> */}
+                <div className={`msp-transform-apply-wider`}>
+                    <Button icon={canApply ? 'ok' : void 0} className={`msp-btn-commit msp-btn-commit-${canApply ? 'on' : 'off'}`} onClick={this.apply} disabled={!canApply}>
                         {this.props.applyLabel || this.applyText()}
-                    </button>
+                    </Button>
                 </div>
             </div>;
     }
@@ -223,10 +223,10 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
 
         const ctrl = <div className={wrapClass} style={{ marginBottom: this.props.noMargin ? 0 : void 0 }}>
             {display !== 'none' && !this.props.wrapInExpander && <div className='msp-transform-header'>
-                <button className={`msp-btn msp-btn-block msp-form-control`} onClick={this.toggleExpanded} title={display.description}>
+                <Button onClick={this.toggleExpanded} title={display.description}>
                     {!isEmpty && <Icon name={this.state.isCollapsed ? 'expand' : 'collapse'} />}
                     {display.name}
-                </button>
+                </Button>
             </div>}
             {!isEmpty && !this.state.isCollapsed && <>
                 <ParamEditor info={info} a={a} b={b} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
@@ -244,11 +244,10 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     renderSimple() {
         const info = this.getInfo();
         const canApply = this.canApply();
-        const apply = <div className='msp-control-row msp-select-row'>
-            <button disabled={this.state.busy || !canApply} onClick={this.apply}>
-                <Icon name={this.props.simpleApply?.icon} />
+        const apply = <div className='msp-flex-row'>
+            <Button icon={this.props.simpleApply?.icon} disabled={this.state.busy || !canApply} onClick={this.apply}>
                 {this.props.simpleApply?.header}
-            </button>
+            </Button>
             {!info.isEmpty && <ToggleButton icon='cog' label='' title='Options' toggle={this.toggleExpanded} isSelected={!this.state.isCollapsed} disabled={this.state.busy} style={{ flex: '0 0 40px', padding: 0 }} />}
         </div>
 

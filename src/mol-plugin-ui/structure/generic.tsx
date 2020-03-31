@@ -139,8 +139,8 @@ export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<
                 <button className='msp-form-control msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {label} <small>{description}</small>
                 </button>
-                <IconButton customClass='msp-form-control' onClick={this.toggleVisibility} icon='visual-visibility' toggleState={!pivot.cell.state.isHidden} title={`${pivot.cell.state.isHidden ? 'Show' : 'Hide'}`} small style={{ flex: '0 0 32px', padding: 0 }} />
-                {refs.length === 1 && <IconButton customClass='msp-form-control' onClick={this.toggleOptions} icon='dot-3' title='Options' toggleState={this.state.showOptions} style={{ flex: '0 0 32px', padding: 0 }} />}
+                <IconButton className='msp-form-control' onClick={this.toggleVisibility} icon='visual-visibility' toggleState={!pivot.cell.state.isHidden} title={`${pivot.cell.state.isHidden ? 'Show' : 'Hide'}`} small flex />
+                {refs.length === 1 && <IconButton className='msp-form-control' onClick={this.toggleOptions} icon='dot-3' title='Options' toggleState={this.state.showOptions} flex />}
             </div>
             {(refs.length === 1 && this.state.showOptions) && <>
                 <div className='msp-control-offset'>

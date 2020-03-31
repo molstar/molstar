@@ -56,12 +56,56 @@
     }
 }
 
-.msp-select-row {
+// .msp-select-row {
+//     display:flex;
+//     flex-direction:row;
+//     height: $row-height;
+//     width: inherit;
+//     background: $default-background;
+
+//     > select, > button {
+//         margin: 0;
+//         flex: 1 1 auto;
+//         margin-right: 1px;
+//         height: $row-height;
+
+//         text-align-last: center;
+//         // padding: 0 $control-spacing;
+//         overflow: hidden;
+//     }
+
+//     > select {
+//         background: none;
+
+//         > option[value = _] {
+//             display: none;
+//         }
+//     }
+
+//     > select:last-child, > button:last-child {
+//         margin-right: 0;
+//     }
+// }
+
+.msp-flex-row {
+    margin-top: 1px;
+    background: $default-background;
+
     display:flex;
     flex-direction:row;
-    height: $row-height;
     width: inherit;
-    background: $default-background;
+    height: $row-height;
+
+    > .msp-flex-item {
+        margin: 0;
+        flex: 1 1 auto;
+        margin-right: 1px;
+        overflow: hidden;
+    }
+
+    > .msp-flex-item:last-child {
+        margin-right: 0;
+    }
 
     > select, > button {
         margin: 0;
@@ -70,7 +114,7 @@
         height: $row-height;
 
         text-align-last: center;
-        padding: 0 $control-spacing;
+        // padding: 0 $control-spacing;
         overflow: hidden;
     }
 
@@ -83,23 +127,6 @@
     }
 
     > select:last-child, > button:last-child {
-        margin-right: 0;
-    }
-}
-
-.msp-flex-row {
-    display:flex;
-    flex-direction:row;
-    width: inherit;
-
-    > .msp-flex-item {
-        margin: 0;
-        flex: 1 1 auto;
-        margin-right: 1px;
-        overflow: hidden;
-    }
-
-    > .msp-flex-item:last-child {
         margin-right: 0;
     }
 }

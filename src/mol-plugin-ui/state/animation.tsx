@@ -8,6 +8,7 @@ import * as React from 'react';
 import { PluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { Icon } from '../controls/icons';
+import { Button } from '../controls/common';
 
 export class AnimationControlsWrapper extends PluginUIComponent<{ }> {
     render() {
@@ -53,10 +54,9 @@ export class AnimationControls extends PluginUIComponent<{ onStart?: () => void 
             <ParameterControls params={anim.current.params} values={anim.current.paramValues} onChange={this.updateCurrentParams} isDisabled={isDisabled} />
 
             <div className='msp-btn-row-group'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.startOrStop}>
-                    {anim.state.animationState !== 'playing' && <Icon name='play' />}
+                <Button icon={anim.state.animationState !== 'playing' ? void 0 : 'play'} onClick={this.startOrStop}>
                     {anim.state.animationState === 'playing' ? 'Stop' : 'Start'}
-                </button>
+                </Button>
             </div>
         </>;
     }

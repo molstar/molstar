@@ -16,8 +16,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { stripTags } from '../../mol-util/string';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { ControlGroup, ToggleButton, IconButton } from '../controls/common';
-import { Icon } from '../controls/icons';
+import { ControlGroup, ToggleButton, IconButton, Button } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 import { StructureMeasurementsControls } from './measurements';
 
@@ -135,7 +134,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     get controls() {
         return <>
-            <div className='msp-control-row msp-select-row'>
+            <div className='msp-flex-row'>
                 <ToggleButton icon='union' title={ActionHeader.get('add')} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
                 <ToggleButton icon='subtract' title={ActionHeader.get('remove')} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
                 <ToggleButton icon='intersect' title={ActionHeader.get('intersect')} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
@@ -168,12 +167,12 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         return <>
             <ParameterControls params={StructureSelectionParams} values={this.values} onChangeValues={this.setProps} />
             {this.controls}
-            <div className='msp-control-row msp-select-row' style={{ margin: '6px 0' }}>
-                <button className='msp-btn msp-btn-block msp-no-overflow' onClick={this.focus} title='Click to Focus Selection' disabled={empty}
+            <div className='msp-flex-row' style={{ margin: '6px 0' }}>
+                <Button noOverflow onClick={this.focus} title='Click to Focus Selection' disabled={empty}
                     style={{ textAlignLast: !empty ? 'left' : void 0 }}>
                     {this.stats}
-                </button>
-                {!empty && <IconButton onClick={this.clear} icon='cancel' title='Clear' customClass='msp-form-control' style={{ flex: '0 0 32px', padding: 0 }} />}
+                </Button>
+                {!empty && <IconButton onClick={this.clear} icon='cancel' title='Clear' className='msp-form-control' flex />}
             </div>
             <StructureMeasurementsControls />
         </>
@@ -204,9 +203,9 @@ class ApplyColorControls extends PurePluginUIComponent<ApplyColorControlsProps, 
     render() {
         return <>
             <ParameterControls params={this.params} values={this.state.values} onChangeValues={this.paramsChanged} />
-            <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-on`} onClick={this.apply} style={{ marginTop: '1px' }}>
-                <Icon name='brush' /> Apply Coloring
-            </button>
+            <Button icon='brush' className='msp-btn-commit msp-btn-commit-on' onClick={this.apply} style={{ marginTop: '1px' }}>
+                Apply Coloring
+            </Button>
         </>;
     }
 }

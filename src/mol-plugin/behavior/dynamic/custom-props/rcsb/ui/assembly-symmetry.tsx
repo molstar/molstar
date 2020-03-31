@@ -55,7 +55,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
     }
 
     renderNoSymmetries() {
-        return <div className='msp-control-row msp-row-text'>
+        return <div className='msp-row-text'>
             <div>No Symmetries for Assembly</div>
         </div>;
     }

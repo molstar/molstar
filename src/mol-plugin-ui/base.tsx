@@ -8,7 +8,7 @@
 import * as React from 'react';
 import { Observable, Subscription } from 'rxjs';
 import { PluginContext } from '../mol-plugin/context';
-import { Icon } from './controls/icons';
+import { Button } from './controls/common';
 
 export const PluginReactContext = React.createContext(void 0 as any as PluginContext);
 
@@ -89,11 +89,10 @@ export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends Plugi
 
         return <div className={wrapClass}>
             <div className='msp-transform-header'>
-                <button className='msp-btn msp-form-control msp-btn-block msp-no-overflow' onClick={this.toggleCollapsed}>
-                    <Icon name={this.state.isCollapsed ? 'expand' : 'collapse'} />
+                <Button icon={this.state.isCollapsed ? 'expand' : 'collapse'} noOverflow onClick={this.toggleCollapsed}>
                     {this.state.header}
                     <small style={{ margin: '0 6px' }}>{this.state.isCollapsed ? '' : this.state.description}</small>
-                </button>
+                </Button>
             </div>
             {!this.state.isCollapsed && this.renderControls()}
         </div>

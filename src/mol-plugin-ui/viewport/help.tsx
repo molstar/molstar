@@ -11,6 +11,7 @@ import { StateTransformer, StateSelection } from '../../mol-state';
 import { SelectLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { Icon } from '../controls/icons';
+import { Button } from '../controls/common';
 
 function getBindingsList(bindings: { [k: string]: Binding }) {
     return Object.keys(bindings).map(k => [k, bindings[k]] as [string, Binding])
@@ -38,7 +39,7 @@ export class BindingsHelp extends React.PureComponent<{ bindings: { [k: string]:
 
 class HelpText extends React.PureComponent {
     render() {
-        return <div className='msp-control-row msp-help-text'>
+        return <div className='msp-help-text'>
             <div>{this.props.children}</div>
         </div>
     }
@@ -55,10 +56,10 @@ class HelpGroup extends React.PureComponent<{ header: string, initiallyExpanded?
     render() {
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
-                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
+                <Button onClick={this.toggleExpanded}>
                     <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
                     {this.props.header}
-                </button>
+                </Button>
             </div>
             {this.state.isExpanded && <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                 {this.props.children}
