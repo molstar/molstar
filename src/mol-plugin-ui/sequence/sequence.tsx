@@ -163,7 +163,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     private residue(seqIdx: number, label: string, marker: number) {
-        return <span key={seqIdx} data-seqid={seqIdx} style={{ backgroundColor: this.getBackgroundColor(marker) }} className={this.getResidueClass(seqIdx, label)}>{label}</span>;
+        return <span key={seqIdx} data-seqid={seqIdx} style={{ backgroundColor: this.getBackgroundColor(marker) }} className={this.getResidueClass(seqIdx, label)}>{label.length > 1 ? `\u200b${label}\u200b` : label}</span>;
     }
 
     private getSequenceNumberClass(seqIdx: number, seqNum: string, label: string) {

@@ -39,7 +39,7 @@ $sequence-select-height: 24px;
 }
 
 .msp-sequence-wrapper {
-    word-break: break-all;
+    word-break: break-word;
     // use $control-spacing for top to have space for sequence numebrs
     padding: $control-spacing $control-spacing $info-vertical-padding $control-spacing;
     user-select: none;
@@ -53,7 +53,7 @@ $sequence-select-height: 24px;
     right: 0;
 }
 
-.msp-sequence-wrapper-non-empty {    
+.msp-sequence-wrapper-non-empty {
     font-size: 85%;
     line-height: 180%;
     font-family: "Courier New", monospace;
