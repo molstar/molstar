@@ -135,7 +135,7 @@ export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<
         }
 
         return <>
-            <div className='msp-btn-row-group'>
+            <div className='msp-flex-row'>
                 <button className='msp-form-control msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {label} <small>{description}</small>
                 </button>

@@ -341,7 +341,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         const label = cell.obj?.label;
         // const reprLabel = this.reprLabel;
         return <>
-            <div className='msp-btn-row-group'>
+            <div className='msp-flex-row'>
                 <Button noOverflow className='msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {label}
                     {/* <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{reprLabel}</small> */}

@@ -31,7 +31,9 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
     componentDidMount() {
         // TODO: do not hide this but instead show some help text??
         this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, () => this.setState({ isHidden: !this.canEnable() }));
-        this.subscribe(this.plugin.behaviors.state.isBusy, v => this.setState({ isBusy: v }));
+        this.subscribe(this.plugin.behaviors.state.isBusy, v => {
+            this.setState({ isBusy: v })
+        });
 
         this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, c => this.setState({
             description: StructureHierarchyManager.getSelectedStructuresDescription(this.plugin)

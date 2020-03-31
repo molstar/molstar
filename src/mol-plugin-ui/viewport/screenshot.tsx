@@ -124,7 +124,7 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                 <img ref={this.imgRef} /><br />
                 <span>Right-click the image to Copy.</span>
             </div>
-            <div className='msp-btn-row-group'>
+            <div className='msp-flex-row'>
                 <Button icon='download' onClick={this.download} disabled={this.state.isDisabled}>Download</Button>
                 <Button icon='export' onClick={this.openTab} disabled={this.state.isDisabled}>Open in new Tab</Button>
             </div>

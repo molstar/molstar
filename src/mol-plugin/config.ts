@@ -20,8 +20,7 @@ export const PluginConfig = {
     item,
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
-        CurrentServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
-        IsBusyTimeoutMs: item('plugin-state.is-busy-timeout', 750)
+        CurrentServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state')
     },
     VolumeStreaming: {
         DefaultServer: item('volume-streaming.server', 'https://ds.litemol.org'),

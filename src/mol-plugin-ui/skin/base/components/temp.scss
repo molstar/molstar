@@ -32,61 +32,6 @@
     background: $default-background;
 }
 
-.msp-btn-row-group {
-    display:flex;
-    flex-direction:row;
-    height: $row-height;
-    margin-top: 1px;
-    width: 100%;
-    background: $default-background;
-
-    > button {
-        margin: 0;
-        flex: 1 1 auto;
-        margin-right: 1px;
-        height: $row-height;
-    }
-
-    > button:last-child {
-        margin-right: 0;
-    }
-
-    > button.msp-control-button-label {
-        background: $default-background;
-    }
-}
-
-// .msp-select-row {
-//     display:flex;
-//     flex-direction:row;
-//     height: $row-height;
-//     width: inherit;
-//     background: $default-background;
-
-//     > select, > button {
-//         margin: 0;
-//         flex: 1 1 auto;
-//         margin-right: 1px;
-//         height: $row-height;
-
-//         text-align-last: center;
-//         // padding: 0 $control-spacing;
-//         overflow: hidden;
-//     }
-
-//     > select {
-//         background: none;
-
-//         > option[value = _] {
-//             display: none;
-//         }
-//     }
-
-//     > select:last-child, > button:last-child {
-//         margin-right: 0;
-//     }
-// }
-
 .msp-flex-row {
     margin-top: 1px;
     background: $default-background;
@@ -113,7 +58,7 @@
         margin-right: 1px;
         height: $row-height;
 
-        text-align-last: center;
+        // text-align-last: center;
         // padding: 0 $control-spacing;
         overflow: hidden;
     }
@@ -134,17 +79,22 @@
     > select:last-child, > button:last-child {
         margin-right: 0;
     }
+
+    > button.msp-control-button-label {
+        background: $default-background;
+    }
 }
 
 .msp-state-list {
     list-style: none;
-    margin-top: $control-spacing;
+    // margin-top: $control-spacing;
 
     > li {
         position: relative;
         overflow: hidden;
 
         > button:first-child {
+            text-align: left;
             border-left: $control-spacing solid color-increase-contrast($default-background, 12%) !important;
         }
 
@@ -155,10 +105,10 @@
         }
     }
 
-    button {
-        margin-bottom: 1px;
-        text-align: left;
-    }
+    // button {
+    //     margin-bottom: 1px;
+    //     text-align: left;
+    // }
 }
 
 .msp-tree-row {

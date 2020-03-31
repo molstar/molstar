@@ -53,7 +53,7 @@ export class AnimationControls extends PluginUIComponent<{ onStart?: () => void 
             <ParameterControls params={anim.getParams()} values={anim.state.params} onChange={this.updateParams} isDisabled={isDisabled} />
             <ParameterControls params={anim.current.params} values={anim.current.paramValues} onChange={this.updateCurrentParams} isDisabled={isDisabled} />
 
-            <div className='msp-btn-row-group'>
+            <div className='msp-flex-row'>
                 <Button icon={anim.state.animationState !== 'playing' ? void 0 : 'play'} onClick={this.startOrStop}>
                     {anim.state.animationState === 'playing' ? 'Stop' : 'Start'}
                 </Button>

@@ -165,8 +165,12 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.behaviors.state.isBusy, b => this.busy.next(b));
-        this.subscribe(this.busy, busy => this.setState({ busy }));
+        this.subscribe(this.plugin.behaviors.state.isBusy, b => {
+            if (this.state.busy !== b) this.busy.next(b);
+        });
+        this.subscribe(this.busy, busy => {
+            if (this.state.busy !== busy) this.setState({ busy })
+        });
     }
 
     refresh = () => {
@@ -218,8 +222,15 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
             ? 'msp-transform-wrapper msp-transform-wrapper-collapsed'
             : 'msp-transform-wrapper';
 
-        const { a, b } = this.getSourceAndTarget();
-        const applyControl = this.renderApply();
+        let params = null;
+        if (!isEmpty && !this.state.isCollapsed) {
+            const { a, b } = this.getSourceAndTarget();
+            const applyControl = this.renderApply();
+            params = <>
+                <ParamEditor info={info} a={a} b={b} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
+                {applyControl}
+            </>
+        }
 
         const ctrl = <div className={wrapClass} style={{ marginBottom: this.props.noMargin ? 0 : void 0 }}>
             {display !== 'none' && !this.props.wrapInExpander && <div className='msp-transform-header'>
@@ -228,10 +239,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
                     {display.name}
                 </Button>
             </div>}
-            {!isEmpty && !this.state.isCollapsed && <>
-                <ParamEditor info={info} a={a} b={b} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
-                {applyControl}
-            </>}
+            {params}
         </div>;
 
         if (isEmpty || !this.props.wrapInExpander) return ctrl;
@@ -266,6 +274,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     }
 
     render() {
+        // console.log('rendering', ((this.props as any)?.transform?.transformer || (this.props as any)?.action)?.definition.display.name, +new Date)
         return this.props.simpleApply ? this.renderSimple() : this.renderDefault();
     }
 }

@@ -144,7 +144,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
 
     historyEntry(e: StructureSelectionHistoryEntry, idx: number) {
         const history = this.plugin.managers.structure.selection.additionsHistory;
-        return <div className='msp-btn-row-group' key={e.id}>
+        return <div className='msp-flex-row' key={e.id}>
             <Button noOverflow title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={this.plugin.managers.interactivity.lociHighlights.clearHighlights}>
                 {idx}. <span dangerouslySetInnerHTML={{ __html: e.label }} />
             </Button>
@@ -194,6 +194,7 @@ class MeasurementsOptions extends PurePluginUIComponent<{}, { isDisabled: boolea
         });
 
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
+            console.log('isBusy', 'measurement opt', v)
             this.setState({ isDisabled: v })
         });
     }
@@ -289,7 +290,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         if (!obj) return null;
 
         return <>
-            <div className='msp-btn-row-group' key={obj.id} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
+            <div className='msp-flex-row' key={obj.id} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
                 <button className='msp-form-control msp-control-button-label msp-no-overflow' title='Click to focus. Hover to highlight.' onClick={this.focus} style={{ width: 'auto', textAlign: 'left' }}>
                     <span dangerouslySetInnerHTML={{ __html: this.label }} />
                 </button>

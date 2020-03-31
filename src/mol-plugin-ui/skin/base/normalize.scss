@@ -5,6 +5,9 @@
 // 2. Prevent iOS and IE text size adjust after device orientation change,
 //    without disabling user zoom.
 //
+* {
+  box-sizing: border-box; // 1
+}
 
   //
   // Address `[hidden]` styling not present in IE 8/9/10.

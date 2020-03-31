@@ -8,7 +8,6 @@
 import { setAutoFreeze } from 'immer';
 import { List } from 'immutable';
 import { merge } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
 import { Canvas3D } from '../mol-canvas3d/canvas3d';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { Model, Structure } from '../mol-model/structure';
@@ -46,7 +45,7 @@ import { BuiltInPluginBehaviors } from './behavior';
 import { PluginBehavior } from './behavior/behavior';
 import { PluginCommandManager } from './command';
 import { PluginCommands } from './commands';
-import { PluginConfigManager, PluginConfig } from './config';
+import { PluginConfigManager } from './config';
 import { LeftPanelTabName, PluginLayout } from './layout';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
@@ -156,7 +155,7 @@ export class PluginContext {
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
-    readonly customStructureControls = new Map<string, { new (): PluginUIComponent<any, any, any> }>();
+    readonly customStructureControls = new Map<string, { new(): PluginUIComponent<any, any, any> }>();
     readonly genericRepresentationControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [HierarchyRef[], string]>();
 
     readonly helpers = {
@@ -242,8 +241,7 @@ export class PluginContext {
             this.behaviors.state.isUpdating.next(u);
         });
 
-        const timeout = this.config.get(PluginConfig.State.IsBusyTimeoutMs) || 500;
-        merge(debounceTime(timeout)(this.behaviors.state.isUpdating), debounceTime(timeout)(this.behaviors.state.isAnimating)).subscribe(() => {
+        merge(this.behaviors.state.isUpdating, this.behaviors.state.isAnimating).subscribe(v => {
             const isUpdating = this.behaviors.state.isUpdating.value;
             const isAnimating = this.behaviors.state.isAnimating.value;
             const isBusy = this.behaviors.state.isBusy;

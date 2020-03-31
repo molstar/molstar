@@ -42,7 +42,7 @@ class CameraSnapshotControls extends PluginUIComponent<{ }, { name: string, desc
         return <div>
             <ParameterControls params={CameraSnapshotControls.Params} values={this.state} onEnter={this.add} onChange={p => this.setState({ [p.name]: p.value } as any)}  />
 
-            <div className='msp-btn-row-group'>
+            <div className='msp-flex-row'>
                 <Button onClick={this.add}>Add</Button>
                 <Button onClick={this.clear}>Clear</Button>
             </div>
