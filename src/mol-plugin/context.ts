@@ -45,7 +45,7 @@ import { BuiltInPluginBehaviors } from './behavior';
 import { PluginBehavior } from './behavior/behavior';
 import { PluginCommandManager } from './command';
 import { PluginCommands } from './commands';
-import { PluginConfigManager } from './config';
+import { PluginConfigManager, PluginConfig } from './config';
 import { LeftPanelTabName, PluginLayout } from './layout';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
@@ -237,18 +237,35 @@ export class PluginContext {
     }
 
     private initBehaviorEvents() {
-        merge(this.state.data.events.isUpdating, this.state.behaviors.events.isUpdating).subscribe(u => {
-            this.behaviors.state.isUpdating.next(u);
+        merge(this.state.data.behaviors.isUpdating, this.state.behaviors.behaviors.isUpdating).subscribe(u => {
+            if (this.behaviors.state.isUpdating.value !== u) this.behaviors.state.isUpdating.next(u);
         });
+
+        const timeoutMs = this.config.get(PluginConfig.General.IsBusyTimeoutMs) || 750;
+        const isBusy = this.behaviors.state.isBusy;
+
+        let timeout: any = void 0;
+        const setBusy = () => {
+            isBusy.next(true);
+        }
 
         merge(this.behaviors.state.isUpdating, this.behaviors.state.isAnimating).subscribe(v => {
             const isUpdating = this.behaviors.state.isUpdating.value;
             const isAnimating = this.behaviors.state.isAnimating.value;
-            const isBusy = this.behaviors.state.isBusy;
 
-            if ((isUpdating || isAnimating) && !isBusy.value) isBusy.next(true);
-            else if (isBusy.value) isBusy.next(false);
-        })
+            if ((isUpdating || isAnimating) && !isBusy.value) {
+                if (timeout !== void 0) clearTimeout(timeout);
+                timeout = setTimeout(setBusy, timeoutMs);
+                // isBusy.next(true);
+            } else {
+                if (timeout !== void 0) clearTimeout(timeout);
+                timeout = void 0;
+                if (isBusy.value) {
+                    // console.log('busy false')
+                    isBusy.next(false);
+                }
+            }
+        });
     }
 
     private initBuiltInBehavior() {

@@ -17,6 +17,7 @@ import { buildStructureHierarchy, HierarchyRef, ModelRef, StructureComponentRef,
 export class StructureHierarchyManager extends PluginComponent {
     private state = {
         syncedTree: this.dataState.tree,
+        notified: false,
 
         hierarchy: StructureHierarchy(),
         selection: {
@@ -58,12 +59,12 @@ export class StructureHierarchyManager extends PluginComponent {
     }
 
     get current() {
-        this.sync();
+        this.sync(false);
         return this.state.hierarchy;
     }
 
     get selection() {
-        this.sync();
+        this.sync(false);
         return this.state.selection;
     }
 
@@ -80,8 +81,17 @@ export class StructureHierarchyManager extends PluginComponent {
         return newCurrent;
     }
 
-    private sync() {
-        if (this.state.syncedTree === this.dataState.tree) return;
+    private sync(notify: boolean) {
+        if (!notify && this.dataState.behaviors.isUpdating.value) return;
+
+        if (this.state.syncedTree === this.dataState.tree) {
+            if (notify && !this.state.notified) {
+                this.state.notified = true;
+                this.behaviors.selection.next({ hierarchy: this.state.hierarchy, ...this.state.selection });
+            }
+
+            return;
+        }
 
         this.state.syncedTree = this.dataState.tree;
 
@@ -103,7 +113,12 @@ export class StructureHierarchyManager extends PluginComponent {
         this.state.selection.models = models;
         this.state.selection.structures = structures;
 
-        this.behaviors.selection.next({ hierarchy, trajectories, models, structures });
+        if (notify) {
+            this.state.notified = true;
+            this.behaviors.selection.next({ hierarchy, trajectories, models, structures });
+        } else {
+            this.state.notified = false;
+        }
     }
 
     updateCurrent(refs: HierarchyRef[], action: 'add' | 'remove') {
@@ -189,11 +204,11 @@ export class StructureHierarchyManager extends PluginComponent {
 
         this.subscribe(plugin.state.data.events.changed, e => {
             if (e.inTransaction || plugin.behaviors.state.isAnimating.value) return;
-            this.sync();
+            this.sync(true);
         });
 
         this.subscribe(plugin.behaviors.state.isAnimating, isAnimating => {
-            if (!isAnimating && !plugin.behaviors.state.isUpdating.value) this.sync();
+            if (!isAnimating && !plugin.behaviors.state.isUpdating.value) this.sync(true);
         });
     }
 }

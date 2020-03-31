@@ -18,6 +18,9 @@ function item<T>(key: string, defaultValue?: T) { return new PluginConfigItem(ke
 
 export const PluginConfig = {
     item,
+    General: {
+        IsBusyTimeoutMs: item('plugin-config.is-busy-timeout', 750)
+    },
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
         CurrentServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state')

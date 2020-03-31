@@ -93,7 +93,7 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
             this.updateQueue.next();
         })
 
-        this.subscribe(this.plugin.state.data.events.isUpdating, v => {
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
             this.setState({ isDisabled: v })
             if (!v) this.updateQueue.next();
         })

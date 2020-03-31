@@ -185,12 +185,10 @@ class ComponentOptionsControls extends PurePluginUIComponent<{ isDisabled: boole
 }
 
 class ComponentListControls extends PurePluginUIComponent {
-    get current() {
-        return this.plugin.managers.structure.hierarchy.behaviors.selection;
-    }
-
     componentDidMount() {
-        this.subscribe(this.current, () => this.forceUpdate());
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, () => {
+            this.forceUpdate()
+        });
     }
 
     render() {

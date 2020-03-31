@@ -48,12 +48,12 @@ class State {
         },
         log: this.ev<LogEntry>(),
         changed: this.ev<{ state: State, inTransaction: boolean }>(),
-        isUpdating: this.ev<boolean>(),
         historyUpdated: this.ev<{ state: State }>()
     };
 
     readonly behaviors = {
-        currentObject: this.ev.behavior<State.ObjectEvent>({ state: this, ref: StateTransform.RootRef })
+        currentObject: this.ev.behavior<State.ObjectEvent>({ state: this, ref: StateTransform.RootRef }),
+        isUpdating: this.ev.behavior<boolean>(false),
     };
 
     readonly actions = new StateActionManager();
@@ -182,7 +182,7 @@ class State {
             const snapshot = this._tree.asImmutable();
             let restored = false;
             try {
-                if (!isNested) this.events.isUpdating.next(true);
+                if (!isNested) this.behaviors.isUpdating.next(true);
                 this.inTransaction = true;
                 await edits();
 
@@ -203,7 +203,7 @@ class State {
                 if (!isNested) {
                     this.inTransaction = false;
                     this.events.changed.next({ state: this, inTransaction: false });
-                    this.events.isUpdating.next(false);
+                    this.behaviors.isUpdating.next(false);
 
                     if (!restored) {
                         if (options?.canUndo) this.addHistory(snapshot, typeof options.canUndo === 'string' ? options.canUndo : void 0);
@@ -232,7 +232,7 @@ class State {
             const snapshot = options?.canUndo ? this._tree.asImmutable() : void 0;
             let reverted = false;
 
-            if (!this.inTransaction) this.events.isUpdating.next(true);
+            if (!this.inTransaction) this.behaviors.isUpdating.next(true);
             try {
                 this.reverted = false;
                 const ret = options && (options.revertIfAborted || options.revertOnError)
@@ -244,7 +244,7 @@ class State {
             } finally {
                 this.updateQueue.handled(params);
                 if (!this.inTransaction) {
-                    this.events.isUpdating.next(false);
+                    this.behaviors.isUpdating.next(false);
                     if (!options?.canUndo) {
                         if (!this.undoingHistory) this.clearHistory();
                     } else if (!reverted) {
