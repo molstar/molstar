@@ -121,7 +121,7 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
         return PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
     }
 
-    private focus(loci: StructureElement.Loci) {
+    private async focus(loci: StructureElement.Loci) {
         const parent = this.plugin.helpers.substructureParent.get(loci.structure);
         if (!parent || !parent.obj) return;
 
@@ -139,7 +139,10 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
         builder.to(refs[StructureFocusRepresentationTags.TargetSel]!).update(StateTransforms.Model.StructureSelectionFromBundle, old => ({ ...old, bundle: residueBundle }));
         builder.to(refs[StructureFocusRepresentationTags.SurrSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: surroundings, label: this.surrLabel }));
 
-        PluginCommands.State.Update(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
+        await PluginCommands.State.Update(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
+
+        // TODO make work with durationMs > 0
+        this.plugin.managers.camera.focusLoci(loci)
     }
 
     register(ref: string): void {

@@ -211,9 +211,6 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                         this.ctx.managers.structure.focus.setFromLoci(loci)
                         if (isEmptyLoci(loci)) {
                             this.ctx.managers.camera.reset()
-                        } else {
-                            // TODO make work with durationMs > 0
-                            this.ctx.managers.camera.focusLoci(loci, { durationMs: 0 })
                         }
                     }
                 }

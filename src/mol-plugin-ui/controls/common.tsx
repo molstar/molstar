@@ -314,7 +314,7 @@ export function IconButton(props: {
     extraContent?: JSX.Element,
     flex?: boolean | string | number
 }) {
-    let className = `msp-btn-link msp-btn-icon${props.small ? '-small' : ''}${props.className ? ' ' + props.className : ''}`;
+    let className = `msp-btn msp-btn-icon${props.small ? '-small' : ''}${props.className ? ' ' + props.className : ''}`;
     if (typeof props.toggleState !== 'undefined') {
         className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
     }
