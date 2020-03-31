@@ -24,7 +24,7 @@ export class StructureHierarchyManager extends PluginComponent {
         selection: {
             trajectories: [] as ReadonlyArray<TrajectoryRef>,
             models: [] as ReadonlyArray<ModelRef>,
-            structures: []  as ReadonlyArray<StructureRef>
+            structures: [] as ReadonlyArray<StructureRef>
         }
     }
 
@@ -120,28 +120,12 @@ export class StructureHierarchyManager extends PluginComponent {
 
         for (const t of hierarchy.trajectories) {
             if (set.has(t.cell.transform.ref)) trajectories.push(t);
-            for (const m of t.models) {
-                if (set.has(m.cell.transform.ref)) models.push(m);
-                for (const s of m.structures) {
-                    if (set.has(s.cell.transform.ref)) structures.push(s);
-                }
-            }
         }
-
-        // handle orphan models and structures (e.g. from CellPack Loader)
-        if (hierarchy.trajectories.length === 0) {
-            if (hierarchy.models.length > 0) {
-                for (const m of hierarchy.models) {
-                    if (set.has(m.cell.transform.ref)) models.push(m);
-                    for (const s of m.structures) {
-                        if (set.has(s.cell.transform.ref)) structures.push(s);
-                    }
-                }
-            } else if (hierarchy.structures.length > 0) {
-                for (const s of hierarchy.structures) {
-                    if (set.has(s.cell.transform.ref)) structures.push(s);
-                }
-            }
+        for (const m of hierarchy.models) {
+            if (set.has(m.cell.transform.ref)) models.push(m);
+        }
+        for (const s of hierarchy.structures) {
+            if (set.has(s.cell.transform.ref)) structures.push(s);
         }
 
         this._currentComponentGroups = void 0;
@@ -172,7 +156,7 @@ export class StructureHierarchyManager extends PluginComponent {
         }
     }
 
-    applyPreset<P = any, S = {}>(trajectories: ReadonlyArray<TrajectoryRef>, provider: TrajectoryHierarchyPresetProvider<P, S>, params?: P): Promise<any>  {
+    applyPreset<P = any, S = {}>(trajectories: ReadonlyArray<TrajectoryRef>, provider: TrajectoryHierarchyPresetProvider<P, S>, params?: P): Promise<any> {
         return this.plugin.dataTransaction(async () => {
             for (const t of trajectories) {
                 if (t.models.length > 0) {
@@ -194,7 +178,7 @@ export class StructureHierarchyManager extends PluginComponent {
             if (recreateRepresentation) {
                 await this.plugin.builders.structure.representation.applyPreset(s.cell.transform.ref, 'auto');
             }
-        }, { canUndo: 'Structure Type'})
+        }, { canUndo: 'Structure Type' })
     }
 
     async updateStructure(s: StructureRef, newParams: any) {
