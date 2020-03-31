@@ -4586,6 +4586,21 @@ export const mmCIF_Schema = {
          */
         num: int,
         /**
+         * This data item is a pointer to _atom_site.auth_asym_id in the
+         * ATOM_SITE category.
+         */
+        pdb_asym_id: str,
+        /**
+         * This data item is a pointer to _atom_site.auth_seq_id in the
+         * ATOM_SITE category.
+         */
+        pdb_seq_num: str,
+        /**
+         * This data item is a pointer to _atom_site.auth_comp_id in the
+         * ATOM_SITE category.
+         */
+        pdb_mon_id: str,
+        /**
          * This data item is a pointer to _atom_site.pdbx_auth_asym_id in the
          * ATOM_SITE category.
          */
