@@ -235,7 +235,7 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
         return <div className='msp-animation-viewport-controls'>
             <div>
                 <div className='msp-semi-transparent-background' />
-                <IconButton icon={isAnimating || isPlaying ? 'stop' : 'tape'} title={isAnimating ? 'Stop' : 'Select Animation'}
+                <IconButton icon={isAnimating || isPlaying ? 'stop' : 'tape'} transparent title={isAnimating ? 'Stop' : 'Select Animation'}
                     onClick={isAnimating || isPlaying ? this.stop : this.toggleExpanded}
                     disabled={isAnimating|| isPlaying ? false : this.state.isBusy || this.state.isPlaying || this.state.isEmpty} />
             </div>

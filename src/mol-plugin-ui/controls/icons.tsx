@@ -80,8 +80,8 @@ function getSvg(name: SvgIconName) {
     }
 }
 
-const circleLeft = <circle r="6px" id="circle-left" cy="16px" cx="12px" strokeWidth="1"/>
-const circleRight = <circle r="6px" id="circle-right" cy="16px" cx="20px" strokeWidth="1"/>
+const circleLeft = <circle r="6px" id="circle-left" cy="16px" cx="12px" strokeWidth="0.5"/>
+const circleRight = <circle r="6px" id="circle-right" cy="16px" cx="20px" strokeWidth="0.5"/>
 
 function Union() {
     return <svg width="32px" height="32px" viewBox="0 0 32 32">
@@ -92,6 +92,7 @@ function Union() {
         <g>
             <use href="#circle-left" className="msp-shape-filled"/>
             <use href="#circle-right" className="msp-shape-filled"/>
+            <use href="#circle-left" className="msp-shape-empty"/>
         </g>
     </svg>;
 }

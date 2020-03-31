@@ -313,11 +313,15 @@ export function IconButton(props: {
     style?: React.CSSProperties,
     'data-id'?: string,
     extraContent?: JSX.Element,
-    flex?: boolean | string | number
+    flex?: boolean | string | number,
+    transparent?: boolean
 }) {
     let className = `msp-btn msp-btn-icon${props.small ? '-small' : ''}${props.className ? ' ' + props.className : ''}`;
     if (typeof props.toggleState !== 'undefined') {
         className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
+    }
+    if (props.transparent) {
+        className+= ' msp-transparent-bg'
     }
     const iconStyle = props.small ? { fontSize: '80%' } : void 0;
 

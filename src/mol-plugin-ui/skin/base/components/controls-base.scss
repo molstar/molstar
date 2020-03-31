@@ -287,6 +287,10 @@ select.msp-form-control:-moz-focusring {
     background: $default-background;
 }
 
+.msp-transparent-bg {
+    background: transparent;
+}
+
 .msp-no-hover-outline {
     &:hover {
         color: $hover-font-color;
