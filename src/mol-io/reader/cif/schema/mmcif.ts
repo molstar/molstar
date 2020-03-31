@@ -2576,6 +2576,48 @@ export const mmCIF_Schema = {
         ordinal: int,
     },
     /**
+     * Data items in the pdbx_entity_instance_feature category records
+     * special features of selected entity instances.
+     */
+    pdbx_entity_instance_feature: {
+        /**
+         * Special structural details about this entity instance.
+         */
+        details: str,
+        /**
+         * A feature type associated with entity instance.
+         */
+        feature_type: Aliased<'SUBJECT OF INVESTIGATION' | 'NO FUNCTIONAL ROLE' | 'OTHER'>(str),
+        /**
+         * Author instance identifier (formerly PDB Chain ID)
+         */
+        auth_asym_id: str,
+        /**
+         * Instance identifier for this entity.
+         */
+        asym_id: str,
+        /**
+         * Author provided residue number.
+         */
+        auth_seq_num: str,
+        /**
+         * Position in the sequence.
+         */
+        seq_num: int,
+        /**
+         * Chemical component identifier
+         */
+        comp_id: str,
+        /**
+         * The author provided chemical component identifier
+         */
+        auth_comp_id: str,
+        /**
+         * An ordinal index for this category
+         */
+        ordinal: int,
+    },
+    /**
      * Data items in the IHM_STARTING_MODEL_DETAILS category records the
      * details about structural models used as starting inputs in
      * the integrative model building process.
@@ -4585,6 +4627,21 @@ export const mmCIF_Schema = {
          * PDBX_ENTITY_BRANCH_LIST category.
          */
         num: int,
+        /**
+         * This data item is a pointer to _atom_site.auth_asym_id in the
+         * ATOM_SITE category.
+         */
+        pdb_asym_id: str,
+        /**
+         * This data item is a pointer to _atom_site.auth_seq_id in the
+         * ATOM_SITE category.
+         */
+        pdb_seq_num: str,
+        /**
+         * This data item is a pointer to _atom_site.auth_comp_id in the
+         * ATOM_SITE category.
+         */
+        pdb_mon_id: str,
         /**
          * This data item is a pointer to _atom_site.pdbx_auth_asym_id in the
          * ATOM_SITE category.
