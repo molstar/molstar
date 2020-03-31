@@ -884,6 +884,8 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
 export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>>, { isExpanded: boolean }> {
     state = { isExpanded: false }
 
+    // TODO: this could lead to a rare bug where the component is reused with different mapped control.
+    // I think there are currently no cases where this could happen in the UI, but still need to watch out..
     private valuesCache: { [name: string]: PD.Values<any> } = {}
     private setValues(name: string, values: PD.Values<any>) {
         this.valuesCache[name] = values

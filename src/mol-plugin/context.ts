@@ -8,6 +8,7 @@
 import { setAutoFreeze } from 'immer';
 import { List } from 'immutable';
 import { merge } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { Canvas3D } from '../mol-canvas3d/canvas3d';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { Model, Structure } from '../mol-model/structure';
@@ -15,14 +16,19 @@ import { DataFormatRegistry } from '../mol-plugin-state/actions/data-format';
 import { DataBuilder } from '../mol-plugin-state/builder/data';
 import { StructureBuilder } from '../mol-plugin-state/builder/structure';
 import { TrajectoryFormatRegistry } from '../mol-plugin-state/formats/trajectory';
+import { StructureSelectionQueryRegistry } from '../mol-plugin-state/helpers/structure-selection-query';
 import { CameraManager } from '../mol-plugin-state/manager/camera';
 import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
 import { LociLabelEntry, LociLabelManager } from '../mol-plugin-state/manager/loci-label';
 import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
+import { StructureFocusManager } from '../mol-plugin-state/manager/structure/focus';
 import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure/hierarchy';
+import { HierarchyRef } from '../mol-plugin-state/manager/structure/hierarchy-state';
 import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
+import { PluginUIComponent } from '../mol-plugin-ui/base';
 import { StateTransformParameters } from '../mol-plugin-ui/state/common';
+import { Representation } from '../mol-repr/representation';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
 import { State, StateBuilder, StateTree } from '../mol-state';
@@ -40,7 +46,7 @@ import { BuiltInPluginBehaviors } from './behavior';
 import { PluginBehavior } from './behavior/behavior';
 import { PluginCommandManager } from './command';
 import { PluginCommands } from './commands';
-import { PluginConfigManager } from './config';
+import { PluginConfigManager, PluginConfig } from './config';
 import { LeftPanelTabName, PluginLayout } from './layout';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
@@ -49,11 +55,6 @@ import { TaskManager } from './util/task-manager';
 import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
-import { Representation } from '../mol-repr/representation';
-import { HierarchyRef } from '../mol-plugin-state/manager/structure/hierarchy-state';
-import { PluginUIComponent } from '../mol-plugin-ui/base';
-import { StructureFocusManager } from '../mol-plugin-state/manager/structure/focus';
-import { StructureSelectionQueryRegistry } from '../mol-plugin-state/helpers/structure-selection-query';
 
 export class PluginContext {
     private disposed = false;
@@ -241,7 +242,8 @@ export class PluginContext {
             this.behaviors.state.isUpdating.next(u);
         });
 
-        merge(this.behaviors.state.isUpdating, this.behaviors.state.isAnimating).subscribe(() => {
+        const timeout = this.config.get(PluginConfig.State.IsBusyTimeoutMs) || 500;
+        merge(debounceTime(timeout)(this.behaviors.state.isUpdating), debounceTime(timeout)(this.behaviors.state.isAnimating)).subscribe(() => {
             const isUpdating = this.behaviors.state.isUpdating.value;
             const isAnimating = this.behaviors.state.isAnimating.value;
             const isBusy = this.behaviors.state.isBusy;

@@ -116,7 +116,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
     componentDidMount() {
         // TODO: this needs to be diabled when the state is updating!
         this.subscribe(this.plugin.state.snapshots.events.changed, () => this.forceUpdate());
-        this.subscribe(this.plugin.behaviors.state.isUpdating, isBusy => this.setState({ isBusy }));
+        this.subscribe(this.plugin.behaviors.state.isBusy, isBusy => this.setState({ isBusy }));
         this.subscribe(this.plugin.behaviors.state.isAnimating, isBusy => this.setState({ isBusy }))
 
         window.addEventListener('keyup', this.keyUp, false);
@@ -202,17 +202,17 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
     }
 }
 
-export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: boolean, isExpanded: boolean, isUpdating: boolean, isAnimating: boolean, isPlaying: boolean }> {
-    state = { isEmpty: true, isExpanded: false, isUpdating: false, isAnimating: false, isPlaying: false };
+export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: boolean, isExpanded: boolean, isBusy: boolean, isAnimating: boolean, isPlaying: boolean }> {
+    state = { isEmpty: true, isExpanded: false, isBusy: false, isAnimating: false, isPlaying: false };
 
     componentDidMount() {
         this.subscribe(this.plugin.state.snapshots.events.changed, () => {
             if (this.plugin.state.snapshots.state.isPlaying) this.setState({ isPlaying: true, isExpanded: false });
             else this.setState({ isPlaying: false });
         });
-        this.subscribe(this.plugin.behaviors.state.isUpdating, isUpdating => {
-            if (isUpdating) this.setState({ isUpdating: true, isExpanded: false, isEmpty: this.plugin.state.data.tree.transforms.size < 2 });
-            else this.setState({ isUpdating: false, isEmpty: this.plugin.state.data.tree.transforms.size < 2 });
+        this.subscribe(this.plugin.behaviors.state.isBusy, isBusy => {
+            if (isBusy) this.setState({ isBusy: true, isExpanded: false, isEmpty: this.plugin.state.data.tree.transforms.size < 2 });
+            else this.setState({ isBusy: false, isEmpty: this.plugin.state.data.tree.transforms.size < 2 });
         });
         this.subscribe(this.plugin.behaviors.state.isAnimating, isAnimating => {
             if (isAnimating) this.setState({ isAnimating: true, isExpanded: false });
@@ -237,9 +237,9 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
                 <div className='msp-semi-transparent-background' />
                 <IconButton icon={isAnimating || isPlaying ? 'stop' : 'tape'} title={isAnimating ? 'Stop' : 'Select Animation'}
                     onClick={isAnimating || isPlaying ? this.stop : this.toggleExpanded}
-                    disabled={isAnimating|| isPlaying ? false : this.state.isUpdating || this.state.isPlaying || this.state.isEmpty} />
+                    disabled={isAnimating|| isPlaying ? false : this.state.isBusy || this.state.isPlaying || this.state.isEmpty} />
             </div>
-            {(this.state.isExpanded && !this.state.isUpdating) && <div className='msp-animation-viewport-controls-select'>
+            {(this.state.isExpanded && !this.state.isBusy) && <div className='msp-animation-viewport-controls-select'>
                 <AnimationControls onStart={this.toggleExpanded} />
             </div>}
         </div>;
