@@ -152,35 +152,29 @@ const coarseSurface = StructureRepresentationPresetProvider({
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};
 
+        const components = {
+            polymer: await presetStaticComponent(plugin, structureCell, 'polymer')
+        }
+
         const structure = structureCell.obj!.data;
         const size = Structure.getSize(structure)
-
         const gaussianProps = Object.create(null);
-        const components = Object.create(null);
-
-        let selectionType = 'polymer'
-
         if (size === Structure.Size.Gigantic) {
             Object.assign(gaussianProps, {
+                traceOnly: true,
                 radiusOffset: 1,
                 smoothness: 0.5,
                 visuals: ['structure-gaussian-surface-mesh']
             })
-            selectionType = 'trace'
-            components.trace = await presetSelectionComponent(plugin, structureCell, 'trace')
         } else if(size === Structure.Size.Huge) {
             Object.assign(gaussianProps, {
                 smoothness: 0.5,
             })
-            components.trace = await presetStaticComponent(plugin, structureCell, 'polymer')
-        } else {
-            components.trace = await presetStaticComponent(plugin, structureCell, 'polymer')
         }
-
 
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);
         const representations = {
-            trace: builder.buildRepresentation(update, components.trace, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color }, { tag: selectionType })
+            polymer: builder.buildRepresentation(update, components.polymer, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color }, { tag: 'polymer' })
         };
 
         await plugin.updateDataState(update, { revertOnError: true });

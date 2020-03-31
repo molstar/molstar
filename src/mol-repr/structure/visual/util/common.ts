@@ -109,6 +109,7 @@ export function getConformation(unit: Unit) {
 
 export const CommonSurfaceParams = {
     ignoreHydrogens: PD.Boolean(false, { description: 'Whether or not to include hydrogen atoms in the surface calculation.' }),
+    traceOnly: PD.Boolean(false, { description: 'Whether or not to only use trace atoms in the surface calculation.' }),
     includeParent: PD.Boolean(false, { description: 'Include elements of the parent structure in surface calculation to get a surface patch of the current structure.' }),
 }
 export const DefaultCommonSurfaceProps = PD.getDefaultValues(CommonSurfaceParams)
@@ -135,7 +136,7 @@ function filterId(id: AssignableArrayLike<number>, elements: SortedArray, indice
 }
 
 export function getUnitConformationAndRadius(structure: Structure, unit: Unit, props: CommonSurfaceProps) {
-    const { ignoreHydrogens, includeParent } = props
+    const { ignoreHydrogens, traceOnly, includeParent } = props
     const rootUnit = includeParent ? structure.root.unitMap.get(unit.id) : unit
 
     const { x, y, z } = getConformation(rootUnit)
@@ -153,6 +154,7 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, p
         for (let i = 0, il = elements.length; i < il; ++i) {
             const eI = elements[i]
             if (ignoreHydrogens && isHydrogen(rootUnit, eI)) continue
+            if (traceOnly && !isTrace(rootUnit, eI)) continue
             if (includeParent && squaredDistance(x[eI], y[eI], z[eI], center) > radiusSq) continue
 
             _indices.push(eI)
@@ -182,7 +184,7 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, p
     return { position, boundary, radius }
 }
 
-export function getStructureConformationAndRadius(structure: Structure, ignoreHydrogens: boolean) {
+export function getStructureConformationAndRadius(structure: Structure, ignoreHydrogens: boolean, traceOnly: boolean) {
     const l = StructureElement.Location.create(structure)
     const sizeTheme = PhysicalSizeTheme({}, {})
 
@@ -192,7 +194,7 @@ export function getStructureConformationAndRadius(structure: Structure, ignoreHy
     let rs: ArrayLike<number>
     let id: ArrayLike<number>
 
-    if (ignoreHydrogens) {
+    if (ignoreHydrogens || traceOnly) {
         const _xs: number[] = []
         const _ys: number[] = []
         const _zs: number[] = []
@@ -206,7 +208,8 @@ export function getStructureConformationAndRadius(structure: Structure, ignoreHy
             l.unit = unit
             for (let j = 0, jl = elements.length; j < jl; ++j) {
                 const eI = elements[j]
-                if (isHydrogen(unit, eI)) continue
+                if (ignoreHydrogens && isHydrogen(unit, eI)) continue
+                if (traceOnly && !isTrace(unit, eI)) continue
 
                 _xs.push(x(eI))
                 _ys.push(y(eI))
@@ -256,5 +259,12 @@ const _H = AtomicNumbers['H']
 export function isHydrogen(unit: Unit, element: ElementIndex) {
     if (Unit.isCoarse(unit)) return false
     if (AtomNumber(unit.model.atomicHierarchy.atoms.type_symbol.value(element)) === _H) return true
+    return false
+}
+
+function isTrace(unit: Unit, element: ElementIndex) {
+    if (Unit.isCoarse(unit)) return true
+    const atomId = unit.model.atomicHierarchy.atoms.label_atom_id.value(element)
+    if (atomId === 'CA' || atomId === 'P') return true
     return false
 }

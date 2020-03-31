@@ -57,6 +57,7 @@ export function GaussianWireframeVisual(materialId: number): UnitsVisual<Gaussia
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
             if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true
+            if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true
         }
     }, materialId)

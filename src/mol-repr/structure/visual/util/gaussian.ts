@@ -60,14 +60,14 @@ export function computeUnitGaussianDensityTexture2d(structure: Structure, unit: 
 //
 
 export function computeStructureGaussianDensity(structure: Structure, props: GaussianDensityProps, webgl?: WebGLContext) {
-    const { position, radius } = getStructureConformationAndRadius(structure, props.ignoreHydrogens)
+    const { position, radius } = getStructureConformationAndRadius(structure, props.ignoreHydrogens, props.traceOnly)
     return Task.create('Gaussian Density', async ctx => {
         return await GaussianDensity(ctx, position, structure.lookup3d.boundary.box, radius, props, webgl);
     });
 }
 
 export function computeStructureGaussianDensityTexture(structure: Structure, props: GaussianDensityTextureProps, webgl: WebGLContext, texture?: Texture) {
-    const { position, radius } = getStructureConformationAndRadius(structure, props.ignoreHydrogens)
+    const { position, radius } = getStructureConformationAndRadius(structure, props.ignoreHydrogens, props.traceOnly)
     return Task.create('Gaussian Density', async ctx => {
         return GaussianDensityTexture(webgl, position, structure.lookup3d.boundary.box, radius, props, texture);
     });
