@@ -264,7 +264,7 @@ export class LociLabels extends PluginUIComponent<{}, { entries: ReadonlyArray<L
     }
 }
 
-export class CustomStructureControls extends PluginUIComponent {
+export class CustomStructureControls extends PluginUIComponent<{ initiallyCollapsed?: boolean }> {
     componentDidMount() {
         this.subscribe(this.plugin.state.behaviors.events.changed, () => this.forceUpdate());
     }
@@ -272,7 +272,7 @@ export class CustomStructureControls extends PluginUIComponent {
     render() {
         const controls: JSX.Element[] = []
         this.plugin.customStructureControls.forEach((Controls, key) => {
-            controls.push(<Controls key={key} />)
+            controls.push(<Controls initiallyCollapsed={this.props.initiallyCollapsed} key={key} />)
         })
         return controls.length > 0 ? <>{controls}</> : null
     }
