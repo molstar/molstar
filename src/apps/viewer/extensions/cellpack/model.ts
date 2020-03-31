@@ -8,7 +8,7 @@ import { StateAction } from '../../../../mol-state';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { PluginStateObject as PSO } from '../../../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { Ingredient, CellPacking, Cell } from './data';
+import { Ingredient, CellPacking, Cell, CellPack } from './data';
 import { getFromPdb, getFromCellPackDB } from './util';
 import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit } from '../../../../mol-model/structure';
 import { trajectoryFromMmCIF, MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
@@ -18,18 +18,16 @@ import { SymmetryOperator } from '../../../../mol-math/geometry';
 import { Task } from '../../../../mol-task';
 import { StateTransforms } from '../../../../mol-plugin-state/transforms';
 import { distinctColors } from '../../../../mol-util/color/distinct';
-import { ModelIndexColorThemeProvider } from '../../../../mol-theme/color/model-index';
 import { Hcl } from '../../../../mol-util/color/spaces/hcl';
 import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl } from './state';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
 import { compile } from '../../../../mol-script/runtime/query/compiler';
-import { UniformColorThemeProvider } from '../../../../mol-theme/color/uniform';
 import { CifCategory, CifField } from '../../../../mol-io/reader/cif';
 import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { Column } from '../../../../mol-data/db';
 import { createModels } from '../../../../mol-model-formats/structure/basic/parser';
-import { createStructureRepresentationParams } from '../../../../mol-plugin-state/helpers/structure-representation-params';
+import { CellpackPackingsPreset } from './preset';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`
@@ -270,17 +268,19 @@ export function createStructureFromCellPack(packing: CellPacking, baseUrl: strin
                 if (u.invariantId > maxInvariantId) maxInvariantId = u.invariantId
                 builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, Unit.Trait.None, invariantId)
             }
-            offsetInvariantId += maxInvariantId
+            offsetInvariantId += maxInvariantId + 1
         }
 
         if (ctx.shouldUpdate) await ctx.update(`${name} - structure`)
         const s = builder.getStructure()
+        for( let i = 0, il = s.models.length; i < il; ++i) {
+            const { trajectoryInfo } = s.models[i]
+            trajectoryInfo.size = il
+            trajectoryInfo.index = i
+        }
         return s
     })
 }
-
-const RepresentationOptions = PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'ellipsoid'] as const)
-type RepresentationName = (typeof RepresentationOptions)[0][0]
 
 export const LoadCellPackModel = StateAction.build({
     display: { name: 'Load CellPack Model' },
@@ -296,7 +296,7 @@ export const LoadCellPackModel = StateAction.build({
         baseUrl: PD.Text(DefaultCellPackBaseUrl),
         preset: PD.Group({
             traceOnly: PD.Boolean(false),
-            representation: PD.Select('spacefill', RepresentationOptions)
+            representation: PD.Select('spacefill', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'ellipsoid']))
         }, { isExpanded: true })
     },
     from: PSO.Root
@@ -342,40 +342,37 @@ export const LoadCellPackModel = StateAction.build({
             .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.id }, { state: { isGhost: true } })
             .apply(StateTransforms.Data.ParseJson, undefined, { state: { isGhost: true } })
             .apply(ParseCellPack)
-
-
     }
 
     const cellPackObject = await state.updateTree(cellPackBuilder).runInContext(taskCtx)
-    const { packings } = cellPackObject.data
-    const tree = state.build().to(cellPackBuilder.ref);
+    const { packings } = cellPackObject.data as CellPack
 
-    const isHiv = (
-        params.id === 'BloodHIV1.0_mixed_fixed_nc1.cpr' ||
-        params.id === 'HIV-1_0.1.6-8_mixed_radii_pdb.cpr'
-    )
+    // const isHiv = (
+    //     params.id === 'BloodHIV1.0_mixed_fixed_nc1.cpr' ||
+    //     params.id === 'HIV-1_0.1.6-8_mixed_radii_pdb.cpr'
+    // )
 
-    if (isHiv) {
-        for (let i = 0, il = packings.length; i < il; ++i) {
-            if (packings[i].name === 'HIV1_capsid_3j3q_PackInner_0_1_0') {
-                const url = `${params.baseUrl}/extras/rna_allpoints.json`
-                const data = await ctx.fetch({ url, type: 'string' }).runInContext(taskCtx);
-                const { points } = await (new Response(data)).json() as { points: number[] }
+    // if (isHiv) {
+    //     for (let i = 0, il = packings.length; i < il; ++i) {
+    //         if (packings[i].name === 'HIV1_capsid_3j3q_PackInner_0_1_0') {
+    //             const url = `${params.baseUrl}/extras/rna_allpoints.json`
+    //             const data = await ctx.fetch({ url, type: 'string' }).runInContext(taskCtx);
+    //             const { points } = await (new Response(data)).json() as { points: number[] }
 
-                const curve0: Vec3[] = []
-                for (let j = 0, jl = points.length; j < jl; j += 3) {
-                    curve0.push(Vec3.fromArray(Vec3(), points, j))
-                }
-                packings[i].ingredients['RNA'] = {
-                    source: { pdb: 'RNA_U_Base.pdb', transform: { center: false } },
-                    results: [],
-                    name: 'RNA',
-                    nbCurve: 1,
-                    curve0
-                }
-            }
-        }
-    }
+    //             const curve0: Vec3[] = []
+    //             for (let j = 0, jl = points.length; j < jl; j += 3) {
+    //                 curve0.push(Vec3.fromArray(Vec3(), points, j))
+    //             }
+    //             packings[i].ingredients['RNA'] = {
+    //                 source: { pdb: 'RNA_U_Base.pdb', transform: { center: false } },
+    //                 results: [],
+    //                 name: 'RNA',
+    //                 nbCurve: 1,
+    //                 curve0
+    //             }
+    //         }
+    //     }
+    // }
 
     const colors = distinctColors(packings.length)
 
@@ -384,86 +381,30 @@ export const LoadCellPackModel = StateAction.build({
         const hue = [Math.max(0, hcl[0] - 35), Math.min(360, hcl[0] + 35)] as [number, number]
         const p = { packing: i, baseUrl: params.baseUrl }
 
-        let cellpackTree = tree.apply(StructureFromCellpack, p)
-        if (params.preset.traceOnly) {
-            const expression = MS.struct.generator.atomGroups({
-                'atom-test': MS.core.logic.or([
-                    MS.core.rel.eq([MS.ammp('label_atom_id'), 'CA']),
-                    MS.core.rel.eq([MS.ammp('label_atom_id'), 'P'])
-                ])
-            })
-            cellpackTree = cellpackTree.apply(StateTransforms.Model.StructureSelectionFromExpression, { expression }, { state: { isGhost: true } }) as any
+        const packing = state.build().to(cellPackBuilder.ref).apply(StructureFromCellpack, p)
+        await ctx.updateDataState(packing, { revertOnError: true });
+
+        const packingParams = {
+            traceOnly: params.preset.traceOnly,
+            representation: params.preset.representation,
+            hue
         }
-        cellpackTree
-            .apply(StateTransforms.Representation.StructureRepresentation3D,
-                createStructureRepresentationParams(ctx, Structure.Empty, {
-                    ...getReprParams(ctx, params.preset),
-                    ...getColorParams(hue)
-                })
-            )
+        await CellpackPackingsPreset.apply(packing.selector, packingParams, ctx)
     }
 
-    if (isHiv) {
-        const url = `${params.baseUrl}/membranes/hiv_lipids.bcif`
-        tree.apply(StateTransforms.Data.Download, { label: 'hiv_lipids', url, isBinary: true }, { state: { isGhost: true } })
-            .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
-            .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
-            .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
-            .apply(StateTransforms.Model.StructureFromModel, undefined, { state: { isGhost: true } })
-            .apply(StateTransforms.Misc.CreateGroup, { label: 'HIV1_envelope_Membrane' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D,
-                createStructureRepresentationParams(ctx, Structure.Empty, {
-                    ...getReprParams(ctx, params.preset),
-                    color: UniformColorThemeProvider
-                })
-            )
-    }
-
-    console.time('cellpack')
-    await state.updateTree(tree).runInContext(taskCtx);
-    console.timeEnd('cellpack')
+    // if (isHiv) {
+    //     const url = `${params.baseUrl}/membranes/hiv_lipids.bcif`
+    //     tree.apply(StateTransforms.Data.Download, { label: 'hiv_lipids', url, isBinary: true }, { state: { isGhost: true } })
+    //         .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
+    //         .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
+    //         .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
+    //         .apply(StateTransforms.Model.StructureFromModel, undefined, { state: { isGhost: true } })
+    //         .apply(StateTransforms.Misc.CreateGroup, { label: 'HIV1_envelope_Membrane' })
+    //         .apply(StateTransforms.Representation.StructureRepresentation3D,
+    //             createStructureRepresentationParams(ctx, Structure.Empty, {
+    //                 ...getReprParams(ctx, params.preset),
+    //                 color: UniformColorThemeProvider
+    //             })
+    //         )
+    // }
 }));
-
-function getReprParams(ctx: PluginContext, params: { representation: RepresentationName, traceOnly: boolean }) {
-    const { representation, traceOnly } = params
-    switch (representation) {
-        case 'spacefill':
-            return traceOnly
-                ? {
-                    type: ctx.representation.structure.registry.get('spacefill'),
-                    typeParams: { sizeFactor: 2, ignoreHydrogens: true }
-                } : {
-                    type: ctx.representation.structure.registry.get('spacefill'),
-                    typeParams: { ignoreHydrogens: true }
-                }
-        case 'gaussian-surface':
-            return {
-                type: ctx.representation.structure.registry.get('gaussian-surface'),
-                typeParams: {
-                    quality: 'custom', resolution: 10, radiusOffset: 2,
-                    alpha: 1.0, flatShaded: false, doubleSided: false,
-                    ignoreHydrogens: true
-                }
-            }
-        case 'point':
-            return { type: ctx.representation.structure.registry.get('point') }
-        case 'ellipsoid':
-            return { type: ctx.representation.structure.registry.get('orientation') }
-    }
-}
-
-function getColorParams(hue: [number, number]): any {
-    return {
-        color: ModelIndexColorThemeProvider,
-        colorParams: {
-            palette: {
-                name: 'generate',
-                params: {
-                    hue, chroma: [30, 80], luminance: [15, 85],
-                    clusteringStepCount: 50, minSampleCount: 800,
-                    maxCount: 75
-                }
-            }
-        }
-    }
-}
