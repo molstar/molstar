@@ -273,6 +273,7 @@ export type ButtonProps = {
     onMouseLeave?: (e: React.MouseEvent<HTMLButtonElement>) => void,
     inline?: boolean,
     'data-id'?: string,
+    'data-color'?: Color,
     flex?: boolean | string | number,
     noOverflow?: boolean
 }
@@ -294,7 +295,7 @@ export function Button(props: ButtonProps) {
         else style = props.style;
     }
 
-    return <button onClick={props.onClick} title={props.title} disabled={props.disabled} style={style} className={className} data-id={props['data-id']}
+    return <button onClick={props.onClick} title={props.title} disabled={props.disabled} style={style} className={className} data-id={props['data-id']} data-color={props['data-color']}
         onContextMenu={props.onContextMenu} onMouseEnter={props.onMouseEnter} onMouseLeave={props.onMouseLeave}>
         {props.icon && <Icon name={props.icon} />}
         {props.children}
