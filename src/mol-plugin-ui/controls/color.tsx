@@ -11,7 +11,7 @@ import { camelCaseToWords, stringToWords } from '../../mol-util/string';
 import * as React from 'react';
 import { _Props, _State } from '../base';
 import { ParamProps } from './parameters';
-import { TextInput, Button } from './common';
+import { TextInput, Button, ControlRow } from './common';
 import { DefaultColorSwatch } from '../../mol-util/color/swatches';
 
 export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Color>, { isExpanded: boolean }> {
@@ -50,23 +50,16 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
     render() {
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         return <>
-            <div className='msp-control-row'>
-                <span title={this.props.param.description}>{label}</span>
-                <div>
-                    <Button onClick={this.toggleExpanded} inline className='msp-combined-color-button' style={{ background: Color.toStyle(this.props.value) }} />
-                </div>
-            </div>
+            <ControlRow title={this.props.param.description}
+                label={label}
+                control={<Button onClick={this.toggleExpanded} inline className='msp-combined-color-button' style={{ background: Color.toStyle(this.props.value) }} />} />
             {this.state.isExpanded && <div className='msp-control-offset'>
                 {this.swatch()}
-                <div className='msp-control-row'>
-                    <span>RGB</span>
-                    <div>
-                        <TextInput onChange={this.onChangeText} value={this.props.value}
-                            fromValue={formatColorRGB} toValue={getColorFromString} isValid={isValidColorString}
-                            className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
-                            placeholder='e.g. 127 127 127' delayMs={250} />
-                    </div>
-                </div>
+                <ControlRow label='RGB'
+                    control={<TextInput onChange={this.onChangeText} value={this.props.value}
+                        fromValue={formatColorRGB} toValue={getColorFromString} isValid={isValidColorString}
+                        className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
+                        placeholder='e.g. 127 127 127' delayMs={250} />} />
             </div>}
         </>;
     }

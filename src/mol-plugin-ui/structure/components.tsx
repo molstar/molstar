@@ -115,7 +115,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
             ? `Undo ${this.plugin.state.data.latestUndoLabel}`
             : 'Some mistakes of the past can be undone.';
         return <>
-            <div className='msp-control-row msp-select-row'>
+            <div className='msp-flex-row'>
                 <ToggleButton icon='bookmarks' label='Preset' toggle={this.togglePreset} isSelected={this.state.action === 'preset'} disabled={this.isDisabled} />
                 <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
                 <ToggleButton icon='cog' label='' title='Options' style={{ flex: '0 0 40px', padding: 0 }} toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />

@@ -186,7 +186,7 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
         }
 
         return <>
-            <div className='msp-control-row msp-select-row'>
+            <div className='msp-flex-row'>
                 <Button noOverflow onClick={this.focus} title={title} onMouseEnter={this.highlightCurrent} onMouseLeave={this.clearHighlights} disabled={this.isDisabled || !current}
                     style={{ textAlignLast: current ? 'left' : void 0 }}>
                     {label}

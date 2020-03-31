@@ -123,7 +123,7 @@ export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>
         this.setState({ value: formatted }, () => this.triggerChanged(formatted, converted));
     }
 
-    onKeyUp  = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    onKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.charCode === 27 || e.keyCode === 27 /* esc */) {
             if (this.props.blurOnEscape && this.input.current) {
                 this.input.current.blur();
@@ -237,17 +237,15 @@ export class ExpandableControlRow extends React.Component<{
         const { label, pivot, controls } = this.props;
         // TODO: fix the inline CSS
         return <>
-            <div className='msp-control-row'>
-                <span>
-                    {label}
-                    <button className='msp-btn-link msp-btn-icon msp-control-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Less' : 'More'} options`}
-                        style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                        <Icon name={this.state.isExpanded ? 'minus' : 'plus'} style={{ display: 'inline-block' }} />
-                    </button>
-                </span>
-                <div>{pivot}</div>
-                {this.props.colorStripe && <div className='msp-expandable-group-color-stripe' style={{ backgroundColor: Color.toStyle(this.props.colorStripe) }} /> }
-            </div>
+            <ControlRow label={<>
+                {label}
+                <button className='msp-btn-link msp-btn-icon msp-control-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Less' : 'More'} options`}
+                    style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
+                    <Icon name={this.state.isExpanded ? 'minus' : 'plus'} style={{ display: 'inline-block' }} />
+                </button>
+            </>} control={pivot}>
+                {this.props.colorStripe && <div className='msp-expandable-group-color-stripe' style={{ backgroundColor: Color.toStyle(this.props.colorStripe) }} />}
+            </ControlRow>
             {this.state.isExpanded && <div className='msp-control-offset'>
                 {controls}
             </div>}
@@ -255,7 +253,7 @@ export class ExpandableControlRow extends React.Component<{
     }
 }
 
-export function SectionHeader(props: { icon?: IconName, title: string | JSX.Element, desc?: string}) {
+export function SectionHeader(props: { icon?: IconName, title: string | JSX.Element, desc?: string }) {
     return <div className='msp-section-header'>
         {props.icon && <Icon name={props.icon} />}
         {props.title} <small>{props.desc}</small>
@@ -360,11 +358,10 @@ export class ToggleButton extends React.PureComponent<ToggleButtonProps> {
         const props = this.props;
         const label = props.label;
         const className = props.isSelected ? `${props.className || ''} msp-control-current` : props.className;
-        return <button onClick={this.onClick} title={this.props.title}
+        return <Button icon={this.props.icon} onClick={this.onClick} title={this.props.title}
             disabled={props.disabled} style={props.style} className={className}>
-            <Icon name={this.props.icon} />
             {label && this.props.isSelected ? <b>{label}</b> : label}
-        </button>;
+        </Button>;
     }
 }
 
@@ -389,4 +386,22 @@ export class ExpandGroup extends React.PureComponent<{ header: string, headerSty
                     </div>)}
         </>;
     }
+}
+
+export type ControlRowProps = {
+    title?: string,
+    label?: React.ReactNode,
+    control?: React.ReactNode,
+    className?: string,
+    children?: React.ReactNode
+}
+
+export function ControlRow(props: ControlRowProps) {
+    let className = 'msp-control-row';
+    if (props.className) className += ' ' + props.className;
+    return <div className={className}>
+        <span className='msp-control-row-label' title={props.title}>{props.label}</span>
+        <div className='msp-control-row-ctrl'>{props.control}</div>
+        {props.children}
+    </div>;
 }

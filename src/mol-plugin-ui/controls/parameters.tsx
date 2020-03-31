@@ -19,7 +19,7 @@ import { camelCaseToWords } from '../../mol-util/string';
 import { PluginUIComponent, _Props, _State } from '../base';
 import { ActionMenu } from './action-menu';
 import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
-import { ControlGroup, ExpandGroup, IconButton, NumericInput, ToggleButton } from './common';
+import { ControlGroup, ExpandGroup, IconButton, NumericInput, ToggleButton, Button, ControlRow } from './common';
 import { Icon } from './icons';
 import { legendFor } from './legend';
 import LineGraphComponent from './line-graph/line-graph-component';
@@ -201,7 +201,7 @@ export class ParamHelp<L extends LegendData> extends React.PureComponent<{ legen
         const { legend, description } = this.props
         const Legend = legend && legendFor(legend)
 
-        return <div className='msp-control-row msp-help-text'>
+        return <div className='msp-help-text'>
             <div>
                 <div className='msp-help-description'><Icon name='help-circle' />{description}</div>
                 {Legend && <div className='msp-help-legend'><Legend legend={legend} /></div>}
@@ -225,7 +225,7 @@ export type ParamControl = React.ComponentClass<ParamProps<any>>
 function renderSimple(options: { props: ParamProps<any>, state: { showHelp: boolean }, control: JSX.Element, addOn: JSX.Element | null, toggleHelp: () => void }) {
     const { props, state, control, toggleHelp, addOn } = options;
 
-    const _className = ['msp-control-row'];
+    let _className = [];
     if (props.param.shortLabel) _className.push('msp-control-label-short')
     if (props.param.twoColumns) _className.push('msp-control-col-2')
     const className = _className.join(' ');
@@ -237,8 +237,10 @@ function renderSimple(options: { props: ParamProps<any>, state: { showHelp: bool
     const desc = props.param.description;
     const hasHelp = help.description || help.legend
     return <>
-        <div className={className}>
-            <span title={desc}>
+        <ControlRow
+            className={className}
+            title={desc}
+            label={<>
                 {label}
                 {hasHelp &&
                     <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={toggleHelp}
@@ -247,11 +249,9 @@ function renderSimple(options: { props: ParamProps<any>, state: { showHelp: bool
                         <Icon name={state.showHelp ? 'help-circle-collapse' : 'help-circle-expand'} />
                     </button>
                 }
-            </span>
-            <div>
-                {control}
-            </div>
-        </div>
+            </>}
+            control={control}
+        />
         {hasHelp && state.showHelp && <div className='msp-control-offset'>
             <ParamHelp legend={help.legend} description={help.description} />
         </div>}
@@ -324,14 +324,7 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
     render() {
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         return <>
-            <div className='msp-control-row'>
-                <span>{label}</span>
-                <div>
-                    <button onClick={this.toggleExpanded}>
-                        {`${this.state.message}`}
-                    </button>
-                </div>
-            </div>
+            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{`${this.state.message}`}</button>} />
             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                 <LineGraphComponent
                     data={this.props.param.defaultValue}
@@ -356,14 +349,12 @@ export class NumberInputControl extends React.PureComponent<ParamProps<PD.Numeri
         const placeholder = this.props.param.label || camelCaseToWords(this.props.name);
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         const p = getPrecision(this.props.param.step || 0.01)
-        return <div className='msp-control-row'>
-            <span title={this.props.param.description}>{label}</span>
-            <div>
-                <NumericInput
-                    value={parseFloat(this.props.value.toFixed(p))} onEnter={this.props.onEnter} placeholder={placeholder}
-                    isDisabled={this.props.isDisabled} onChange={this.update} />
-            </div>
-        </div>;
+        return <ControlRow
+            title={this.props.param.description}
+            label={label}
+            control={<NumericInput
+                value={parseFloat(this.props.value.toFixed(p))} onEnter={this.props.onEnter} placeholder={placeholder}
+                isDisabled={this.props.isDisabled} onChange={this.update} />} />;
     }
 }
 
@@ -520,15 +511,10 @@ export class IntervalControl extends React.PureComponent<ParamProps<PD.Interval>
         const p = getPrecision(this.props.param.step || 0.01)
         const value = `[${v[0].toFixed(p)}, ${v[1].toFixed(p)}]`;
         return <>
-            <div className='msp-control-row'>
-                <span>{label}</span>
-                <div>
-                    <button onClick={this.toggleExpanded}>{value}</button>
-                </div>
-            </div>
-            <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
+            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{value}</button>} />
+            {this.state.isExpanded && <div className='msp-control-offset'>
                 <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} />
-            </div>
+            </div>}
         </>;
     }
 }
@@ -725,15 +711,10 @@ export class Vec3Control extends React.PureComponent<ParamProps<PD.Vec3>, { isEx
         const p = getPrecision(this.props.param.step || 0.01)
         const value = `[${v[0].toFixed(p)}, ${v[1].toFixed(p)}, ${v[2].toFixed(p)}]`;
         return <>
-            <div className='msp-control-row'>
-                <span>{label}</span>
-                <div>
-                    <button onClick={this.toggleExpanded}>{value}</button>
-                </div>
-            </div>
-            <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
+            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{value}</button>} />
+            {this.state.isExpanded && <div className='msp-control-offset'>
                 <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} />
-            </div>
+            </div>}
         </>;
     }
 }
@@ -809,24 +790,17 @@ export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiS
         const emptyLabel = this.props.param.emptyValue;
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         return <>
-            <div className='msp-control-row'>
-                <span>{label}</span>
-                <div>
-                    <button onClick={this.toggleExpanded}>
-                        {current.length === 0 && emptyLabel ? emptyLabel : `${current.length} of ${this.props.param.options.length}`}
-                    </button>
-                </div>
-            </div>
-            <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
+            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>
+                {current.length === 0 && emptyLabel ? emptyLabel : `${current.length} of ${this.props.param.options.length}`}
+            </button>} />
+            {this.state.isExpanded && <div className='msp-control-offset'>
                 {this.props.param.options.map(([value, label]) => {
                     const sel = current.indexOf(value) >= 0;
-                    return <div key={value} className='msp-row'>
-                        <button onClick={this.toggle(value)} disabled={this.props.isDisabled}>
-                            <span style={{ float: sel ? 'left' : 'right' }}>{sel ? `✓ ${label}` : `${label} ✗`}</span>
-                        </button>
-                    </div>
+                    return <Button key={value} onClick={this.toggle(value)} disabled={this.props.isDisabled} style={{ marginTop: '1px' }}>
+                        <span style={{ float: sel ? 'left' : 'right' }}>{sel ? `✓ ${label}` : `${label} ✗`}</span>
+                    </Button>
                 })}
-            </div>
+            </div>}
         </>;
     }
 }
@@ -1120,13 +1094,7 @@ export class ObjectListControl extends React.PureComponent<ParamProps<PD.ObjectL
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         const value = `${v.length} item${v.length !== 1 ? 's' : ''}`;
         return <>
-            <div className='msp-control-row'>
-                <span>{label}</span>
-                <div>
-                    <button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{value}</button>
-                </div>
-            </div>
-
+            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{value}</button>} />
             {this.state.isExpanded && <div className='msp-control-offset'>
                 {this.props.value.map((v, i) => <ObjectListItem key={i} param={this.props.param} value={v} index={i} actions={this.actions} isDisabled={this.props.isDisabled} />)}
                 <ControlGroup header='New Item'>

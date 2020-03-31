@@ -134,7 +134,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     get controls() {
         return <>
-            <div className='msp-control-row msp-select-row'>
+            <div className='msp-flex-row'>
                 <ToggleButton icon='union' title={ActionHeader.get('add')} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
                 <ToggleButton icon='subtract' title={ActionHeader.get('remove')} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
                 <ToggleButton icon='intersect' title={ActionHeader.get('intersect')} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
@@ -167,7 +167,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         return <>
             <ParameterControls params={StructureSelectionParams} values={this.values} onChangeValues={this.setProps} />
             {this.controls}
-            <div className='msp-control-row msp-select-row' style={{ margin: '6px 0' }}>
+            <div className='msp-flex-row' style={{ margin: '6px 0' }}>
                 <Button noOverflow onClick={this.focus} title='Click to Focus Selection' disabled={empty}
                     style={{ textAlignLast: !empty ? 'left' : void 0 }}>
                     {this.stats}

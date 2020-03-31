@@ -184,7 +184,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
     get multiselectHeader() {
         const { header, hasCurrent } = this.state;
 
-        return <div className='msp-control-group-header msp-flex-row' style={{ marginTop: '1px' }}>
+        return <div className='msp-flex-row msp-control-group-header'>
             <Button icon={this.state.isExpanded ? 'collapse' : 'expand'} flex noOverflow onClick={this.toggleExpanded}>
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </Button>

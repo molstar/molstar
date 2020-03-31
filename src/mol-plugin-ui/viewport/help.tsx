@@ -39,7 +39,7 @@ export class BindingsHelp extends React.PureComponent<{ bindings: { [k: string]:
 
 class HelpText extends React.PureComponent {
     render() {
-        return <div className='msp-control-row msp-help-text'>
+        return <div className='msp-help-text'>
             <div>{this.props.children}</div>
         </div>
     }
