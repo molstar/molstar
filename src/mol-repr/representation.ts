@@ -281,12 +281,12 @@ namespace Representation {
             get state() { return currentState },
             get theme() { return currentTheme },
             getLoci: (pickingId?: PickingId) => {
-                if (pickingId === undefined) {
-                    return reprList.length > 0 ? reprList[0].getLoci() : EmptyLoci
-                }
+                const { visuals } = currentProps
                 for (let i = 0, il = reprList.length; i < il; ++i) {
-                    const loci = reprList[i].getLoci(pickingId)
-                    if (!isEmptyLoci(loci)) return loci
+                    if (!visuals || visuals.includes(reprMap[i])) {
+                        const loci = reprList[i].getLoci(pickingId)
+                        if (!isEmptyLoci(loci)) return loci
+                    }
                 }
                 return EmptyLoci
             },
