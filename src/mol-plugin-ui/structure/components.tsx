@@ -342,10 +342,10 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         // const reprLabel = this.reprLabel;
         return <>
             <div className='msp-btn-row-group'>
-                <button className='msp-form-control msp-control-button-label msp-no-overflow' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
+                <Button noOverflow className='msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {label}
                     {/* <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{reprLabel}</small> */}
-                </button>
+                </Button>
                 <IconButton onClick={this.toggleVisible} icon='visual-visibility' toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small className='msp-form-control' flex />
                 <IconButton onClick={this.toggleRemove} icon='remove' title='Remove' small toggleState={this.state.action === 'remove'} className='msp-form-control' flex />
                 <IconButton onClick={this.toggleAction} icon='dot-3' title='Actions' toggleState={this.state.action === 'action'} className='msp-form-control' flex />

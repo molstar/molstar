@@ -25,6 +25,19 @@ class CameraTransitionManager {
     get target(): Readonly<Camera.Snapshot> { return this._target }
 
     apply(to: Partial<Camera.Snapshot>, durationMs: number = 0, transition?: CameraTransitionManager.TransitionFunc) {
+        if (this.inTransition) {
+            if (durationMs <= 0) {
+                this.finish({ ...this._target, ...to });
+                return;
+            }
+
+            this.func = transition || CameraTransitionManager.defaultTransition;
+            this.start = this.t;
+            this.durationMs = durationMs;
+            Camera.copySnapshot(this._target, { ...this._target, ...to });
+            return;
+        }
+
         Camera.copySnapshot(this._source, this.camera.state);
         Camera.copySnapshot(this._target, this.camera.state);
         Camera.copySnapshot(this._target, to);

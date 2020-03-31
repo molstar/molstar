@@ -303,6 +303,7 @@ namespace Canvas3D {
 
         function resolveCameraReset() {
             if (!cameraResetRequested) return;
+
             const { center, radius } = scene.boundingSphereVisible;
             if (radius > 0) {
                 const duration = nextCameraResetDuration === undefined ? p.cameraResetDurationMs : nextCameraResetDuration
@@ -350,7 +351,9 @@ namespace Canvas3D {
             if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) return false;
 
             if (debugHelper.isEnabled) debugHelper.update();
-            if (reprCount.value === 0 || shouldResetCamera()) cameraResetRequested = true;
+            if (reprCount.value === 0 || shouldResetCamera()) {
+                cameraResetRequested = true;
+            }
             if (oldBoundingSphereVisible.radius === 0) nextCameraResetDuration = 0;
 
             camera.setState({ radiusMax: scene.boundingSphere.radius })

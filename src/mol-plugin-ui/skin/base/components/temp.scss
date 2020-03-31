@@ -118,6 +118,11 @@
         overflow: hidden;
     }
 
+    .msp-btn-icon, .msp-btn-icon-small {
+        flex: 0 0 32px;
+        max-width: 32px;
+    }
+
     > select {
         background: none;
 

@@ -88,15 +88,20 @@ export class CameraManager {
 
         if (options?.principalAxes) {
             const { origin, dirA, dirC } = options?.principalAxes.boxAxes;
-            this.plugin.canvas3d?.camera.focus(origin, radius, durationMs, dirA, dirC);
+            const snapshot = this.plugin.canvas3d?.camera.getFocus(origin, radius, dirA, dirC);
+            this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot })
+            // this.plugin.canvas3d?.camera.focus(origin, radius, durationMs, dirA, dirC);
         } else {
-            this.plugin.canvas3d?.camera.focus(sphere.center, radius, durationMs);
+            const snapshot = this.plugin.canvas3d?.camera.getFocus(sphere.center, radius);
+            this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot })
+
+            // this.plugin.canvas3d?.camera.focus(sphere.center, radius, durationMs);
         }
     }
 
     setSnapshot(snapshot: Partial<Camera.Snapshot>, durationMs?: number) {
         // TODO: setState and requestCameraReset are very similar now: unify them?
-        this.plugin.canvas3d?.camera.setState(snapshot, durationMs);
+        this.plugin.canvas3d?.requestCameraReset({ snapshot, durationMs });
     }
 
     reset(snapshot?: Partial<Camera.Snapshot>, durationMs?: number) {

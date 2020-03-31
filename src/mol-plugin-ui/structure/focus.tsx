@@ -138,8 +138,6 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
         this.setState({ showAction: false }, () => {
             const f = item.value as FocusEntry
             this.plugin.managers.structure.focus.set(f)
-            // TODO make work with durationMs > 0
-            this.plugin.managers.camera.focusLoci(f.loci, { durationMs: 0 })
         })
     }
 
