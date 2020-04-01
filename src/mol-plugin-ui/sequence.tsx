@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -312,14 +312,11 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
                     title='This shows a single sequence. Use the controls to show a different sequence.' />
 
                 <span>Sequence of</span>
-                <PureSelectControl param={params.structure} name='structure' value={values.structure} onChange={this.setParamProps} />
-                {/* <span>Entity</span> */}
-                <PureSelectControl title='Entity' param={params.entity} name='entity' value={values.entity} onChange={this.setParamProps} />
-                {/* <span>Chain</span> */}
-                <PureSelectControl title='Chain' param={params.chain} name='chain' value={values.chain} onChange={this.setParamProps} />
+                <PureSelectControl title={`[Structure] ${PD.optionLabel(params.structure, values.structure)}`} param={params.structure} name='structure' value={values.structure} onChange={this.setParamProps} />
+                <PureSelectControl title={`[Entity] ${PD.optionLabel(params.entity, values.entity)}`} param={params.entity} name='entity' value={values.entity} onChange={this.setParamProps} />
+                <PureSelectControl title={`[Chain] ${PD.optionLabel(params.chain, values.chain)}`} param={params.chain} name='chain' value={values.chain} onChange={this.setParamProps} />
                 {params.operator.options.length > 1 && <>
-                    {/* <span>Instance</span> */}
-                    <PureSelectControl title='Instance' param={params.operator} name='operator' value={values.operator} onChange={this.setParamProps} />
+                    <PureSelectControl title={`[Instance] ${PD.optionLabel(params.operator, values.operator)}`} param={params.operator} name='operator' value={values.operator} onChange={this.setParamProps} />
                 </>}
             </div>
 

@@ -470,6 +470,13 @@ export namespace ParamDefinition {
         return ret;
     }
 
+    export function optionLabel<T>(param: Select<T>, value: T) {
+        for (const o of param.options) {
+            if (o[0] === value) return o[1]
+        }
+        return ''
+    }
+
     function checkDefaultKey<T>(k: T, options: readonly (readonly [T, string] | readonly [T, string, string | undefined])[]) {
         for (const o of options) {
             if (o[0] === k) return k;
