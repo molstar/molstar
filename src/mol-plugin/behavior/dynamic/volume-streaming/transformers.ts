@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -46,7 +46,7 @@ export const InitVolumeStreaming = StateAction.build({
             options: PD.Group({
                 serverUrl: PD.Text(plugin.config.get(PluginConfig.VolumeStreaming.DefaultServer) || 'https://ds.litemol.org'),
                 behaviorRef: PD.Text('', { isHidden: true }),
-                emContourProvider: PD.Select<'wwpdb' | 'pdbe'>('wwpdb', [['wwpdb', 'wwPDB'], ['pdbe', 'PDBe']], { isHidden: true }),
+                emContourProvider: PD.Select<'emdb' | 'pdbe'>('emdb', [['emdb', 'EMDB'], ['pdbe', 'PDBe']], { isHidden: true }),
                 channelParams: PD.Value<VolumeStreaming.DefaultChannelParams>({}, { isHidden: true })
             })
         };

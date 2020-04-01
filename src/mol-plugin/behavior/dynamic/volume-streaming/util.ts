@@ -10,6 +10,7 @@ import { VolumeServerInfo } from './model';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { RuntimeContext } from '../../../../mol-task';
 import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
+import { PluginConfig } from '../../../config';
 
 export function getStreamingMethod(s?: Structure, defaultKind: VolumeServerInfo.Kind = 'x-ray'): VolumeServerInfo.Kind {
     if (!s) return defaultKind;
@@ -58,16 +59,16 @@ export function getIds(method: VolumeServerInfo.Kind, s?: Structure): string[] {
     }
 }
 
-export async function getContourLevel(provider: 'wwpdb' | 'pdbe', plugin: PluginContext, taskCtx: RuntimeContext, emdbId: string) {
+export async function getContourLevel(provider: 'emdb' | 'pdbe', plugin: PluginContext, taskCtx: RuntimeContext, emdbId: string) {
     switch (provider) {
-        case 'wwpdb': return getContourLevelWwpdb(plugin, taskCtx, emdbId)
+        case 'emdb': return getContourLevelEmdb(plugin, taskCtx, emdbId)
         case 'pdbe': return getContourLevelPdbe(plugin, taskCtx, emdbId)
     }
 }
 
-export async function getContourLevelWwpdb(plugin: PluginContext, taskCtx: RuntimeContext, emdbId: string) {
-    // TODO: parametrize to a differnt URL? in plugin settings perhaps
-    const header = await plugin.fetch({ url: `https://ftp.wwpdb.org/pub/emdb/structures/${emdbId.toUpperCase()}/header/${emdbId.toLowerCase()}.xml`, type: 'xml' }).runInContext(taskCtx);
+export async function getContourLevelEmdb(plugin: PluginContext, taskCtx: RuntimeContext, emdbId: string) {
+    const emdbHeaderServer = plugin.config.get(PluginConfig.VolumeStreaming.EmdbHeaderServer);
+    const header = await plugin.fetch({ url: `${emdbHeaderServer}/${emdbId.toUpperCase()}/header/${emdbId.toLowerCase()}.xml`, type: 'xml' }).runInContext(taskCtx);
     const map = header.getElementsByTagName('map')[0]
     const contourLevel = parseFloat(map.getElementsByTagName('contourLevel')[0].textContent!)
 

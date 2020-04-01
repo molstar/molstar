@@ -31,7 +31,8 @@ export const PluginConfig = {
             return s.models.length === 1 && (Model.hasDensityMap(s.models[0])
                 // the following test is to include e.g. 'updated' files from PDBe
                 || (!Model.isFromPdbArchive(s.models[0]) && s.models[0].entryId.length === 4))
-        })
+        }),
+        EmdbHeaderServer: item('volume-streaming.emdb-header-server', 'https://ftp.wwpdb.org/pub/emdb/structures'),
     },
     Viewport: {
         ShowExpand: item('viewer.show-expand-button', true)
