@@ -10,6 +10,7 @@ import { LinkedList } from '../../../mol-data/generic';
 import { ResultWriter } from '../utils/writer';
 
 export interface ResponseFormat {
+    tarball: boolean,
     isBinary: boolean
 }
 
@@ -23,6 +24,12 @@ export interface Job {
     outputFilename?: string,
 
     writer: ResultWriter
+}
+
+export interface JobDefinition {
+    entries: JobEntry[],
+    writer: ResultWriter,
+    options?: { outputFilename?: string, binary?: boolean, tarball?: boolean }
 }
 
 export interface JobEntry {
@@ -62,19 +69,13 @@ export function JobEntry<Name extends QueryName>(definition: JobEntryDefinition<
     }
 }
 
-export interface JobDefinition {
-    entries: JobEntry[],
-    writer: ResultWriter,
-    options?: { outputFilename?: string, binary?: boolean }
-}
-
 export function createJob(definition: JobDefinition): Job {
     const job: Job = {
         id: UUID.create22(),
         datetime_utc: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')}`,
         entries: definition.entries,
         writer: definition.writer,
-        responseFormat: { isBinary: !!(definition.options && definition.options.binary) },
+        responseFormat: { isBinary: !!(definition.options && definition.options.binary), tarball: !!definition?.options?.tarball },
         outputFilename: definition.options && definition.options.outputFilename
     };
     definition.entries.forEach(e => e.job = job);

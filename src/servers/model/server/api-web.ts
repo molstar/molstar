@@ -16,8 +16,8 @@ import { UUID } from '../../../mol-util';
 import { QueryDefinition, normalizeRestQueryParams, normalizeRestCommonParams, QueryList } from './api';
 import { getApiSchema, shortcutIconLink } from './api-schema';
 import { swaggerUiAssetsHandler, swaggerUiIndexHandler } from '../../common/swagger-ui';
-import { MultipleQuerySpec } from './api-web-multiple';
-import { SimpleResponseResultWriter, WebResutlWriter } from '../utils/writer';
+import { MultipleQuerySpec, getMultiQuerySpecFilename } from './api-web-multiple';
+import { SimpleResponseResultWriter, WebResutlWriter, TarballResponseResultWriter } from '../utils/writer';
 
 function makePath(p: string) {
     return Config.apiPrefix + '/' + p;
@@ -33,9 +33,8 @@ async function processNextJob() {
     const writer = job.writer as WebResutlWriter;
 
     try {
-        const encoder = await resolveJob(job);
         writer.writeHeader();
-        encoder.writeTo(writer);
+        await resolveJob(job);
     } catch (e) {
         ConsoleLogger.errorId(job.id, '' + e);
         writer.doError(404, '' + e);
@@ -119,6 +118,10 @@ function serveStatic(req: express.Request, res: express.Response) {
 }
 
 function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
+    const writer = spec.asTarGz
+        ? new TarballResponseResultWriter(getMultiQuerySpecFilename(), res)
+        : createResultWriter(res, spec.encoding?.toLowerCase() === 'bcif')
+
     const jobId = JobManager.add({
         entries: spec.queries.map(q => JobEntry({
             sourceId: q.data_source || ModelServerConfig.defaultSource,
@@ -127,8 +130,8 @@ function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
             queryParams: q.params || { },
             modelNums: q.model_nums
         })),
-        writer: createResultWriter(res, spec.encoding?.toLowerCase() === 'bcif'),
-        options: { binary: spec.encoding?.toLowerCase() === 'bcif' }
+        writer,
+        options: { binary: spec.encoding?.toLowerCase() === 'bcif', tarball: spec.asTarGz }
     });
     responseMap.set(jobId, res);
     if (JobManager.size === 1) processNextJob();

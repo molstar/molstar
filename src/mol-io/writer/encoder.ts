@@ -8,7 +8,8 @@ import Writer from './writer'
 
 interface Encoder {
     encode(): void,
-    writeTo(writer: Writer): void
+    writeTo(writer: Writer): void,
+    getSize(): number
 }
 
 export default Encoder

@@ -53,10 +53,8 @@ export async function runLocal(input: LocalInput) {
     let progress = 0;
     while (job) {
         try {
-            const encoder = await resolveJob(job);
-            const writer = job.writer;
-            encoder.writeTo(writer);
-            writer.end();
+            await resolveJob(job);
+            job.writer.end();
             ConsoleLogger.logId(job.id, 'Query', 'Written.');
 
             if (JobManager.hasNext()) {
