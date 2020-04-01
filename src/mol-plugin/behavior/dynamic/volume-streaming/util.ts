@@ -17,29 +17,14 @@ export function getStreamingMethod(s?: Structure, defaultKind: VolumeServerInfo.
     const model = s.models[0];
     if (!MmcifFormat.is(model.sourceData)) return defaultKind;
 
-    const { db } = model.sourceData.data;
-    const { db_name, content_type } = db.pdbx_database_related
-
     // Prefer EMDB entries over structure-factors (SF) e.g. for 'ELECTRON CRYSTALLOGRAPHY' entries
     // like 6AXZ or 6KJ3 for which EMDB entries are available but map calculation from SF is hard.
-    // Also check for `content_type` of 'associated EM volume' to exclude cases like 6TEK which
-    // are solved with 'X-RAY DIFFRACTION' but have an related EMDB entry of type 'other EM volume'.
-    for (let i = 0, il = db.pdbx_database_related._rowCount; i < il; ++i) {
-        if (db_name.value(i).toUpperCase() === 'EMDB' && content_type.value(i) === 'associated EM volume') {
-            return 'em'
-        }
-    }
+    if (Model.hasEmMap(model)) return 'em'
+    if (Model.hasXrayMap(model)) return 'x-ray'
 
-    const { status_code_sf } = db.pdbx_database_status
-    if (status_code_sf.isDefined && status_code_sf.value(0) === 'REL') {
-        return 'x-ray'
-    }
-
-    // fallbacks
-    for (let i = 0; i < db.exptl.method.rowCount; i++) {
-        const v = db.exptl.method.value(i).toUpperCase();
-        if (v.indexOf('MICROSCOPY') >= 0) return 'em';
-    }
+    // Fallbacks based on experimental method
+    if (Model.isFromEm(model)) return 'em'
+    if (Model.isFromXray(model)) return 'x-ray'
     return defaultKind;
 }
 

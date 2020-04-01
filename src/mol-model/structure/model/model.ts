@@ -185,6 +185,16 @@ export namespace Model {
         return false
     }
 
+    export function isFromEm(model: Model) {
+        if (!MmcifFormat.is(model.sourceData)) return false
+        const { db } = model.sourceData.data
+        for (let i = 0; i < db.exptl.method.rowCount; i++) {
+            const v = db.exptl.method.value(i).toUpperCase()
+            if (v.indexOf('MICROSCOPY') >= 0) return true
+        }
+        return false
+    }
+
     export function isFromNmr(model: Model) {
         if (!MmcifFormat.is(model.sourceData)) return false
         const { db } = model.sourceData.data
@@ -197,21 +207,29 @@ export namespace Model {
 
     export function hasXrayMap(model: Model) {
         if (!MmcifFormat.is(model.sourceData)) return false
+        // Check exprimental method to exclude models solved with
+        // 'ELECTRON CRYSTALLOGRAPHY' which also have structure factors
+        if (!isFromXray(model)) return false
         const { db } = model.sourceData.data
-        return db.pdbx_database_status.status_code_sf.value(0) === 'REL'
+        const { status_code_sf } = db.pdbx_database_status
+        return status_code_sf.isDefined && status_code_sf.value(0) === 'REL'
     }
 
+    /**
+     * Also checks for `content_type` of 'associated EM volume' to exclude cases
+     * like 6TEK which are solved with 'X-RAY DIFFRACTION' but have an related
+     * EMDB entry of type 'other EM volume'.
+     */
     export function hasEmMap(model: Model) {
         if (!MmcifFormat.is(model.sourceData)) return false
         const { db } = model.sourceData.data
-        let hasEmMap = false
+        const { db_name, content_type } = db.pdbx_database_related
         for (let i = 0, il = db.pdbx_database_related._rowCount; i < il; ++i) {
-            if (db.pdbx_database_related.db_name.value(i).toUpperCase() === 'EMDB') {
-                hasEmMap = true
-                break
+            if (db_name.value(i).toUpperCase() === 'EMDB' && content_type.value(i) === 'associated EM volume') {
+                return true
             }
         }
-        return hasEmMap
+        return false
     }
 
     export function hasDensityMap(model: Model) {
