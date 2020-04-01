@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,17 +10,17 @@ import Renderer from '../../mol-gl/renderer';
 import Scene from '../../mol-gl/scene';
 import { BoundingSphereHelper } from '../helper/bounding-sphere-helper';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { DrawPass } from './draw'
+import { DrawPass, DrawPassParams } from './draw'
 import { PostprocessingPass, PostprocessingParams } from './postprocessing'
 import { MultiSamplePass, MultiSampleParams } from './multi-sample'
 import { Camera } from '../camera';
 import { Viewport } from '../camera/util';
-import { CameraHelper } from '../helper/camera-helper';
 
 export const ImageParams = {
     transparentBackground: PD.Boolean(false),
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
+    drawPass: PD.Group(DrawPassParams),
 }
 export type ImageProps = PD.Values<typeof ImageParams>
 
@@ -40,12 +40,12 @@ export class ImagePass {
     get width() { return this._width }
     get height() { return this._height }
 
-    constructor(webgl: WebGLContext, private renderer: Renderer, scene: Scene, private camera: Camera, debugHelper: BoundingSphereHelper, cameraHelper: CameraHelper, props: Partial<ImageProps>) {
+    constructor(webgl: WebGLContext, private renderer: Renderer, scene: Scene, private camera: Camera, debugHelper: BoundingSphereHelper, props: Partial<ImageProps>) {
         const p = { ...PD.getDefaultValues(ImageParams), ...props }
 
         this._transparentBackground = p.transparentBackground
 
-        this.drawPass = new DrawPass(webgl, renderer, scene, this._camera, debugHelper, cameraHelper)
+        this.drawPass = new DrawPass(webgl, renderer, scene, this._camera, debugHelper, p.drawPass)
         this.postprocessing = new PostprocessingPass(webgl, this._camera, this.drawPass, p.postprocessing)
         this.multiSample = new MultiSamplePass(webgl, this._camera, this.drawPass, this.postprocessing, p.multiSample)
 
@@ -67,6 +67,16 @@ export class ImagePass {
         if (props.transparentBackground !== undefined) this._transparentBackground = props.transparentBackground
         if (props.postprocessing) this.postprocessing.setProps(props.postprocessing)
         if (props.multiSample) this.multiSample.setProps(props.multiSample)
+        if (props.drawPass) this.drawPass.setProps(props.drawPass)
+    }
+
+    get props(): ImageProps {
+        return {
+            transparentBackground: this._transparentBackground,
+            postprocessing: this.postprocessing.props,
+            multiSample: this.multiSample.props,
+            drawPass: this.drawPass.props
+        }
     }
 
     render() {

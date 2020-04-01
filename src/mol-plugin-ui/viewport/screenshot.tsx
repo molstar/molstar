@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -13,21 +13,24 @@ import { debounceTime } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { ViewportScreenshotHelper } from '../../mol-plugin/util/viewport-screenshot';
 import { Button } from '../controls/common';
+import { CameraHelperProps } from '../../mol-canvas3d/helper/camera-helper';
 
 interface ImageControlsState {
     showPreview: boolean
+    isDisabled: boolean
 
     resolution?: ViewportScreenshotHelper.ResolutionSettings,
     transparent?: boolean,
-    isDisabled: boolean
+    axes?: CameraHelperProps['axes']
 }
 
 export class DownloadScreenshotControls extends PluginUIComponent<{ close: () => void }, ImageControlsState> {
     state: ImageControlsState = {
         showPreview: true,
+        isDisabled: false,
         resolution: this.plugin.helpers.viewportScreenshot?.currentResolution,
         transparent: this.plugin.helpers.viewportScreenshot?.transparent,
-        isDisabled: false
+        axes: this.plugin.helpers.viewportScreenshot?.axes
     } as ImageControlsState
 
     private imgRef = React.createRef<HTMLImageElement>()
@@ -103,18 +106,14 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
 
     private setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
         if (p.name === 'resolution') {
-            const resolution = p.value as ViewportScreenshotHelper.ResolutionSettings
-            if (resolution.name === 'custom') {
-                this.plugin.helpers.viewportScreenshot!.currentResolution.type = 'custom';
-                this.plugin.helpers.viewportScreenshot!.currentResolution.width = resolution.params.width;
-                this.plugin.helpers.viewportScreenshot!.currentResolution.height = resolution.params.height;
-            } else {
-                this.plugin.helpers.viewportScreenshot!.currentResolution.type = resolution.name;
-            }
-            this.setState({ resolution });
+            this.plugin.helpers.viewportScreenshot!.currentResolution = p.value;
+            this.setState({ resolution: p.value });
         } else if (p.name === 'transparent') {
             this.plugin.helpers.viewportScreenshot!.transparent = p.value;
             this.setState({ transparent: p.value });
+        } else if (p.name === 'axes') {
+            this.plugin.helpers.viewportScreenshot!.axes = p.value;
+            this.setState({ axes: p.value });
         }
     }
 
