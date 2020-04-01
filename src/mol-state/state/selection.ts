@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -116,6 +116,14 @@ namespace StateSelection {
             });
         }
 
+        export function ofTransformerWithError<T extends StateTransformer<any, A, any>, A extends StateObject>(t: T, root: StateTransform.Ref = StateTransform.RootRef) {
+            return build(() => state => {
+                const ctx = { ret: [] as StateObjectCell<A, StateTransform<T>>[], cells: state.cells, t };
+                StateTree.doPreOrder(state.tree, state.tree.transforms.get(root), ctx, _findOfTransformerWithError);
+                return ctx.ret;
+            });
+        }
+
         function _findRootsOfType(n: StateTransform, _: any, s: { type: StateObject.Type, roots: StateObjectCell[], cells: State.Cells }) {
             const cell = s.cells.get(n.ref);
             if (cell && cell.obj && cell.obj.type === s.type) {
@@ -136,6 +144,14 @@ namespace StateSelection {
         function _findOfTransformer(n: StateTransform, _: any, s: { t: StateTransformer, ret: StateObjectCell[], cells: State.Cells }) {
             const cell = s.cells.get(n.ref);
             if (cell && cell.obj && cell.transform.transformer === s.t) {
+                s.ret.push(cell);
+            }
+            return true;
+        }
+
+        function _findOfTransformerWithError(n: StateTransform, _: any, s: { t: StateTransformer, ret: StateObjectCell[], cells: State.Cells }) {
+            const cell = s.cells.get(n.ref);
+            if (cell && cell.status === 'error' && cell.transform.transformer === s.t) {
                 s.ret.push(cell);
             }
             return true;

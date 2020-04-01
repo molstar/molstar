@@ -20,7 +20,7 @@ namespace ApplyActionControl {
         hideHeader?: boolean,
         initiallyCollapsed?: boolean
     }
-    
+
     export interface ComponentState {
         plugin: PluginContext,
         ref: StateTransform.Ref,
