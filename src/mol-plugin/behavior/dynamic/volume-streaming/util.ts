@@ -18,16 +18,20 @@ export function getStreamingMethod(s?: Structure, defaultKind: VolumeServerInfo.
     if (!MmcifFormat.is(model.sourceData)) return defaultKind;
 
     const { db } = model.sourceData.data;
+    const { db_name, content_type } = db.pdbx_database_related
 
-    // prefer EMDB entries over structure-factors (SF) e.g. for 'ELECTRON CRYSTALLOGRAPHY' entries
-    // like 6axz or 6kj3 for which EMDB entries are available but map calculation from SF is hard
+    // Prefer EMDB entries over structure-factors (SF) e.g. for 'ELECTRON CRYSTALLOGRAPHY' entries
+    // like 6AXZ or 6KJ3 for which EMDB entries are available but map calculation from SF is hard.
+    // Also check for `content_type` of 'associated EM volume' to exclude cases like 6TEK which
+    // are solved with 'X-RAY DIFFRACTION' but have an related EMDB entry of type 'other EM volume'.
     for (let i = 0, il = db.pdbx_database_related._rowCount; i < il; ++i) {
-        if (db.pdbx_database_related.db_name.value(i).toUpperCase() === 'EMDB') {
+        if (db_name.value(i).toUpperCase() === 'EMDB' && content_type.value(i) === 'associated EM volume') {
             return 'em'
         }
     }
 
-    if (db.pdbx_database_status.status_code_sf.isDefined && db.pdbx_database_status.status_code_sf.value(0) === 'REL') {
+    const { status_code_sf } = db.pdbx_database_status
+    if (status_code_sf.isDefined && status_code_sf.value(0) === 'REL') {
         return 'x-ray'
     }
 
