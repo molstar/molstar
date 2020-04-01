@@ -8,7 +8,7 @@ import * as React from 'react';
 import { PluginUIComponent } from '../base';
 import { ToggleButton, IconButton, Button } from '../controls/common';
 import { ActionMenu } from '../controls/action-menu';
-import { StructureElement, StructureProperties, Structure } from '../../mol-model/structure';
+import { StructureElement, StructureProperties, Structure, Unit } from '../../mol-model/structure';
 import { OrderedSet, SortedArray } from '../../mol-data/int';
 import { UnitIndex } from '../../mol-model/structure/structure/element/element';
 import { FocusEntry } from '../../mol-plugin-state/manager/structure/focus';
@@ -22,6 +22,31 @@ interface StructureFocusControlsState {
     showAction: boolean
 }
 
+function addSymmetryGroupEntries(entries: Map<string, FocusEntry[]>, location: StructureElement.Location, unitSymmetryGroup: Unit.SymmetryGroup) {
+    const idx = SortedArray.indexOf(location.unit.elements, location.element) as UnitIndex
+    const base = StructureElement.Loci.extendToWholeResidues(
+        StructureElement.Loci(location.structure, [
+            { unit: location.unit, indices: OrderedSet.ofSingleton(idx) }
+        ])
+    )
+    const name = StructureProperties.entity.pdbx_description(location).join(', ')
+
+    for (const u of unitSymmetryGroup.units) {
+        const loci = StructureElement.Loci(base.structure, [
+            { unit: u, indices: base.elements[0].indices }
+        ])
+
+        let label = lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false, granularity: 'residue' })
+        if (unitSymmetryGroup.units.length > 1) {
+            label += ` | ${loci.elements[0].unit.conformation.operator.name}`
+        }
+        const item: FocusEntry = { label, category: name, loci }
+
+        if (entries.has(name)) entries.get(name)!.push(item)
+        else entries.set(name, [item])
+    }
+}
+
 function getFocusEntries(structure: Structure) {
     const entityEntries = new Map<string, FocusEntry[]>()
     const l = StructureElement.Location.create(structure)
@@ -29,28 +54,26 @@ function getFocusEntries(structure: Structure) {
     for (const ug of structure.unitSymmetryGroups) {
         l.unit = ug.units[0]
         l.element = ug.elements[0]
-        const et = StructureProperties.entity.type(l)
-        if (et === 'non-polymer') {
-            for (const u of ug.units) {
-                l.unit = u
-                const idx = SortedArray.indexOf(u.elements, l.element) as UnitIndex
-                const loci = StructureElement.Loci.extendToWholeResidues(
-                    StructureElement.Loci(structure, [
-                        { unit: l.unit, indices: OrderedSet.ofSingleton(idx) }
-                    ])
-                )
-                let label = lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false, granularity: 'residue' })
-                if (ug.units.length > 1) {
-                    label += ` | ${u.conformation.operator.name}`
-                }
-                const name = StructureProperties.entity.pdbx_description(l).join(', ')
-                const item: FocusEntry = { label, category: name, loci }
+        const entityType = StructureProperties.entity.type(l)
+        const isMultiChain = Unit.Traits.is(l.unit.traits, Unit.Trait.MultiChain)
+        const isPolymer = entityType === 'non-polymer'
+        const isBranched = entityType === 'branched'
 
-                if (entityEntries.has(name)) entityEntries.get(name)!.push(item)
-                else entityEntries.set(name, [item])
+        if (isPolymer && !isMultiChain) {
+            addSymmetryGroupEntries(entityEntries, l, ug)
+        } else if (isBranched || (isPolymer && isMultiChain)) {
+            const u = l.unit
+            const { index: residueIndex } = u.model.atomicHierarchy.residueAtomSegments
+            let prev = -1
+            for (let i = 0, il = u.elements.length; i < il; ++i) {
+                const eI = u.elements[i]
+                const rI = residueIndex[eI]
+                if(rI !== prev) {
+                    l.element = eI
+                    addSymmetryGroupEntries(entityEntries, l, ug)
+                    prev = rI
+                }
             }
-        } else if (et === 'branched') {
-            // TODO split into residues
         }
     }
 
