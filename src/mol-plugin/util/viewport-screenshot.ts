@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -14,6 +14,8 @@ import { canvasToBlob } from '../../mol-canvas3d/util';
 import { download } from '../../mol-util/download';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
+import { CameraHelperParams, CameraHelperProps } from '../../mol-canvas3d/helper/camera-helper';
+import { SetUtils } from '../../mol-util/set';
 
 export { ViewportScreenshotHelper }
 
@@ -26,8 +28,7 @@ class ViewportScreenshotHelper {
     private createParams() {
         const max = Math.min(this.plugin.canvas3d ? this.plugin.canvas3d.webgl.maxRenderbufferSize : 4096, 4096)
         return {
-            transparent: PD.Boolean(false),
-            resolution: PD.MappedStatic('full-hd', {
+            resolution: PD.MappedStatic('viewport', {
                 viewport: PD.Group({}),
                 hd: PD.Group({}),
                 'full-hd': PD.Group({}),
@@ -44,7 +45,9 @@ class ViewportScreenshotHelper {
                     ['ultra-hd', 'Ultra HD (3840 x 2160)'],
                     ['custom', 'Custom']
                 ]
-            })
+            }),
+            transparent: PD.Boolean(false),
+            axes: CameraHelperParams.axes,
         }
     }
     private _params: ReturnType<ViewportScreenshotHelper['createParams']> = void 0 as any;
@@ -54,9 +57,11 @@ class ViewportScreenshotHelper {
     }
 
     get values() {
-        return this.currentResolution.type === 'custom'
-            ? { transparent: this.transparent, resolution: { name: 'custom', params: { width: this.currentResolution.width, height: this.currentResolution.height } } }
-            : { transparent: this.transparent, resolution: { name: this.currentResolution.type, params: { } } };
+        return {
+            transparent: this.transparent,
+            axes: this.axes,
+            resolution: this.currentResolution
+        };
     }
 
     private getCanvasSize() {
@@ -66,21 +71,17 @@ class ViewportScreenshotHelper {
         };
     }
 
-    transparent = false
-
-    currentResolution = {
-        type: 'full-hd' as ViewportScreenshotHelper.ResolutionTypes,
-        width: 1920,
-        height: 1080
-    };
+    transparent = this.params.transparent.defaultValue
+    axes: CameraHelperProps['axes'] = { name: 'off', params: {} }
+    currentResolution = this.params.resolution.defaultValue
 
     private getSize() {
-        switch (this.currentResolution.type ) {
+        switch (this.currentResolution.name ) {
             case 'viewport': return this.getCanvasSize();
             case 'hd': return { width: 1280, height: 720 };
             case 'full-hd': return { width: 1920, height: 1080 };
             case 'ultra-hd': return { width: 3840, height: 2160 };
-            default: return { width: this.currentResolution.width, height: this.currentResolution.height }
+            default: return { width: this.currentResolution.params.width, height: this.currentResolution.params.height }
         }
     }
 
@@ -89,12 +90,12 @@ class ViewportScreenshotHelper {
     get imagePass() {
         if (this._imagePass) return this._imagePass;
 
-        this._imagePass = this.plugin.canvas3d!.getImagePass()
-        this._imagePass.setProps({
+        this._imagePass = this.plugin.canvas3d!.getImagePass({
             transparentBackground: this.transparent,
+            drawPass: { cameraHelper: { axes: this.axes } },
             multiSample: { mode: 'on', sampleLevel: 2 },
             postprocessing: this.plugin.canvas3d!.props.postprocessing
-        });
+        })
         return this._imagePass;
     }
 
@@ -102,7 +103,7 @@ class ViewportScreenshotHelper {
         const models = this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model)).map(s => s.obj!.data)
         const uniqueIds = new Set<string>()
         models.forEach(m => uniqueIds.add(m.entryId.toUpperCase()))
-        const idString = Array.from(uniqueIds.values()).join('-')
+        const idString = SetUtils.toArray(uniqueIds).join('-')
         return `${idString || 'molstar-image'}.png`
     }
 
@@ -139,6 +140,7 @@ class ViewportScreenshotHelper {
 
         await ctx.update('Rendering image...')
         this.imagePass.setProps({
+            drawPass: { cameraHelper: { axes: this.axes } },
             transparentBackground: this.transparent,
             postprocessing: this.plugin.canvas3d!.props.postprocessing // TODO this line should not be required, updating should work by listening to this.plugin.events.canvas3d.settingsUpdated
         });

@@ -20,8 +20,6 @@ import { Sphere3D } from '../../mol-math/geometry';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import produce from 'immer';
 import { Shape } from '../../mol-model/shape';
-import { ShapeRepresentation } from '../../mol-repr/shape/representation';
-import { RuntimeContext } from '../../mol-task';
 
 // TODO add scale line/grid
 
@@ -72,12 +70,9 @@ export class CameraHelper {
                 if (props.axes.name === 'on') {
                     this.scene.clear()
                     const params = { ...props.axes.params, scale: props.axes.params.scale * this.webgl.pixelRatio }
-                    this.renderObject = undefined
-                    createAxesRenderObject(params).then(renderObject => {
-                        this.renderObject = renderObject
-                        this.scene.add(this.renderObject)
-                        this.scene.commit()
-                    })
+                    this.renderObject = createAxesRenderObject(params)
+                    this.scene.add(this.renderObject)
+                    this.scene.commit()
 
                     Vec3.set(this.camera.position, 0, 0, params.scale * 200)
                     Mat4.lookAt(this.camera.view, this.camera.position, this.camera.target, this.camera.up)
@@ -159,7 +154,7 @@ function createAxesMesh(scale: number, mesh?: Mesh) {
     return MeshBuilder.getMesh(state)
 }
 
-function getAxesShape(ctx: RuntimeContext, data: {}, props: AxesProps, shape?: Shape<Mesh>) {
+function getAxesShape(props: AxesProps, shape?: Shape<Mesh>) {
     const scale = 100 * props.scale
     const mesh = createAxesMesh(scale, shape?.geometry)
     mesh.setBoundingSphere(Sphere3D.create(Vec3.create(scale / 2, scale / 2, scale / 2), scale + scale / 4))
@@ -174,8 +169,7 @@ function getAxesShape(ctx: RuntimeContext, data: {}, props: AxesProps, shape?: S
     return Shape.create('axes', {}, mesh, getColor, () => 1, () => '')
 }
 
-async function createAxesRenderObject(props: AxesProps) {
-    const repr = ShapeRepresentation(getAxesShape, Mesh.Utils)
-    await repr.createOrUpdate(props, {}).run()
-    return repr.renderObjects[0]
+function createAxesRenderObject(props: AxesProps) {
+    const shape = getAxesShape(props)
+    return Shape.createRenderObject(shape, props)
 }

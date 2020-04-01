@@ -12,6 +12,13 @@ import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { Sphere3D } from '../../mol-math/geometry';
 import { CentroidHelper } from '../../mol-math/geometry/centroid-helper';
 import { GroupMapping } from '../../mol-geo/util';
+import { ShapeGroupSizeTheme } from '../../mol-theme/size/shape-group';
+import { ShapeGroupColorTheme } from '../../mol-theme/color/shape-group';
+import { Theme } from '../../mol-theme/theme';
+import { TransformData, createTransform as _createTransform } from '../../mol-geo/geometry/transform-data';
+import { createRenderObject as _createRenderObject, getNextMaterialId } from '../../mol-gl/render-object';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { LocationIterator } from '../../mol-geo/util/location-iterator';
 
 export interface Shape<G extends Geometry = Geometry> {
     /** A uuid to identify a shape object */
@@ -47,6 +54,46 @@ export namespace Shape {
             getSize,
             getLabel
         }
+    }
+
+    export function getTheme(shape: Shape): Theme {
+        return {
+            color: ShapeGroupColorTheme({ shape }, {}),
+            size: ShapeGroupSizeTheme({ shape }, {})
+        }
+    }
+
+    export function groupIterator(shape: Shape): LocationIterator {
+        const instanceCount = shape.transforms.length
+        const location = ShapeGroup.Location(shape)
+        const getLocation = (groupIndex: number, instanceIndex: number) => {
+            location.group = groupIndex
+            location.instance = instanceIndex
+            return location
+        }
+        return LocationIterator(shape.groupCount, instanceCount, getLocation)
+    }
+
+    export function createTransform(transforms: Mat4[], transformData?: TransformData) {
+        const transformArray = transformData && transformData.aTransform.ref.value.length >= transforms.length * 16 ? transformData.aTransform.ref.value : new Float32Array(transforms.length * 16)
+        for (let i = 0, il = transforms.length; i < il; ++i) {
+            Mat4.toArray(transforms[i], transformArray, i * 16)
+        }
+        return _createTransform(transformArray, transforms.length, transformData)
+    }
+
+    export function createRenderObject<G extends Geometry>(shape: Shape<G>, props: PD.Values<Geometry.Params<G>>) {
+        props
+        const theme = Shape.getTheme(shape)
+        const utils = Geometry.getUtils(shape.geometry)
+
+        const materialId = getNextMaterialId()
+        const locationIt = groupIterator(shape)
+        const transform = Shape.createTransform(shape.transforms)
+        const values = utils.createValues(shape.geometry, transform, locationIt, theme, props)
+        const state = utils.createRenderableState(props)
+
+        return _createRenderObject(shape.geometry.kind, values, state, materialId)
     }
 
     export interface Loci { readonly kind: 'shape-loci', readonly shape: Shape }

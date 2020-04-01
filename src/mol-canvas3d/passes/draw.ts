@@ -11,16 +11,25 @@ import Scene from '../../mol-gl/scene';
 import { BoundingSphereHelper } from '../helper/bounding-sphere-helper';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { Camera } from '../camera';
-import { CameraHelper } from '../helper/camera-helper';
+import { CameraHelper, CameraHelperParams } from '../helper/camera-helper';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+
+export const DrawPassParams = {
+    cameraHelper: PD.Group(CameraHelperParams)
+}
+export const DefaultDrawPassProps = PD.getDefaultValues(DrawPassParams);
+export type DrawPassProps = PD.Values<typeof DrawPassParams>
 
 export class DrawPass {
     colorTarget: RenderTarget
     depthTexture: Texture
     packedDepth: boolean
 
+    cameraHelper: CameraHelper
+
     private depthTarget: RenderTarget | null
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private debugHelper: BoundingSphereHelper, private cameraHelper: CameraHelper) {
+    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private debugHelper: BoundingSphereHelper, props: Partial<DrawPassProps> = {}) {
         const { gl, extensions, resources } = webgl
         const width = gl.drawingBufferWidth
         const height = gl.drawingBufferHeight
@@ -32,6 +41,9 @@ export class DrawPass {
             this.depthTexture.define(width, height)
             this.depthTexture.attachFramebuffer(this.colorTarget.framebuffer, 'depth')
         }
+
+        const p = { ...DefaultDrawPassProps, ...props }
+        this.cameraHelper = new CameraHelper(webgl, p.cameraHelper);
     }
 
     setSize(width: number, height: number) {
@@ -40,6 +52,16 @@ export class DrawPass {
             this.depthTarget.setSize(width, height)
         } else {
             this.depthTexture.define(width, height)
+        }
+    }
+
+    setProps(props: Partial<DrawPassProps>) {
+        if (props.cameraHelper) this.cameraHelper.setProps(props.cameraHelper)
+    }
+
+    get props(): DrawPassProps {
+        return {
+            cameraHelper: { ...this.cameraHelper.props }
         }
     }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,8 +12,6 @@ import { getNextMaterialId, createRenderObject, RenderObjectValues, GraphicsRend
 import { Theme } from '../../mol-theme/theme';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { VisualUpdateState } from '../util';
-import { ShapeGroupColorTheme } from '../../mol-theme/color/shape-group';
-import { ShapeGroupSizeTheme } from '../../mol-theme/size/shape-group';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { ValueCell } from '../../mol-util';
@@ -23,8 +21,6 @@ import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval, OrderedSet } from '../../mol-data/int';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Visual } from '../visual';
-import { Mat4 } from '../../mol-math/linear-algebra';
-import { TransformData, createTransform } from '../../mol-geo/geometry/transform-data';
 import { RuntimeContext, Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
@@ -101,14 +97,13 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
             if (shape) {
                 _shape = shape
-                _theme.color = ShapeGroupColorTheme({ shape: _shape }, {})
-                _theme.size = ShapeGroupSizeTheme({ shape: _shape }, {})
+                Object.assign(_theme, Shape.getTheme(_shape))
             }
 
             if (updateState.createNew) {
                 renderObjects.length = 0 // clear list o renderObjects
-                locationIt = ShapeGroupIterator.fromShape(_shape)
-                const transform = createShapeTransform(_shape.transforms)
+                locationIt = Shape.groupIterator(_shape)
+                const transform = Shape.createTransform(_shape.transforms)
                 const values = geometryUtils.createValues(_shape.geometry, transform, locationIt, _theme, newProps)
                 const state = geometryUtils.createRenderableState(newProps)
                 if (builder.modifyState) Object.assign(state, builder.modifyState(state))
@@ -123,8 +118,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
                 if (updateState.updateTransform) {
                     // console.log('update transform')
-                    createShapeTransform(_shape.transforms, _renderObject.values)
-                    locationIt = ShapeGroupIterator.fromShape(_shape)
+                    Shape.createTransform(_shape.transforms, _renderObject.values)
+                    locationIt = Shape.groupIterator(_shape)
                     const { instanceCount, groupCount } = locationIt
                     createMarkers(instanceCount * groupCount, _renderObject.values)
                 }
@@ -226,14 +221,6 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     }
 }
 
-function createShapeTransform(transforms: Mat4[], transformData?: TransformData) {
-    const transformArray = transformData && transformData.aTransform.ref.value.length >= transforms.length * 16 ? transformData.aTransform.ref.value : new Float32Array(transforms.length * 16)
-    for (let i = 0, il = transforms.length; i < il; ++i) {
-        Mat4.toArray(transforms[i], transformArray, i * 16)
-    }
-    return createTransform(transformArray, transforms.length, transformData)
-}
-
 function eachShapeGroup(loci: Loci, shape: Shape, apply: (interval: Interval) => boolean) {
     if (!ShapeGroup.isLoci(loci)) return false
     if (loci.shape !== shape) return false
@@ -253,17 +240,4 @@ function eachShapeGroup(loci: Loci, shape: Shape, apply: (interval: Interval) =>
         }
     }
     return changed
-}
-
-export namespace ShapeGroupIterator {
-    export function fromShape(shape: Shape): LocationIterator {
-        const instanceCount = shape.transforms.length
-        const location = ShapeGroup.Location(shape)
-        const getLocation = (groupIndex: number, instanceIndex: number) => {
-            location.group = groupIndex
-            location.instance = instanceIndex
-            return location
-        }
-        return LocationIterator(shape.groupCount, instanceCount, getLocation)
-    }
 }

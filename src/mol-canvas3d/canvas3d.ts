@@ -34,7 +34,7 @@ import { PickPass } from './passes/pick';
 import { ImagePass, ImageProps } from './passes/image';
 import { Sphere3D } from '../mol-math/geometry';
 import { isDebugMode } from '../mol-util/debug';
-import { CameraHelper, CameraHelperParams } from './helper/camera-helper';
+import { CameraHelperParams } from './helper/camera-helper';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -96,7 +96,7 @@ interface Canvas3D {
     downloadScreenshot(): void
     getPixelData(variant: GraphicsRenderVariant): PixelData
     setProps(props: Partial<Canvas3DProps>): void
-    getImagePass(): ImagePass
+    getImagePass(props: Partial<ImageProps>): ImagePass
 
     /** Returns a copy of the current Canvas3D instance props */
     readonly props: Readonly<Canvas3DProps>
@@ -189,9 +189,10 @@ namespace Canvas3D {
         const renderer = Renderer.create(webgl, p.renderer)
         const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
-        const cameraHelper = new CameraHelper(webgl, p.camera.helper);
 
-        const drawPass = new DrawPass(webgl, renderer, scene, camera, debugHelper, cameraHelper)
+        const drawPass = new DrawPass(webgl, renderer, scene, camera, debugHelper, {
+            cameraHelper: p.camera.helper
+        })
         const pickPass = new PickPass(webgl, renderer, scene, camera, 0.5)
         const postprocessing = new PostprocessingPass(webgl, camera, drawPass, p.postprocessing)
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample)
@@ -499,7 +500,7 @@ namespace Canvas3D {
                 }
                 if (Object.keys(cameraState).length > 0) camera.setState(cameraState)
 
-                if (props.camera?.helper) cameraHelper.setProps(props.camera.helper)
+                if (props.camera?.helper) drawPass.setProps({ cameraHelper: props.camera.helper })
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground
 
@@ -512,7 +513,7 @@ namespace Canvas3D {
                 requestDraw(true)
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
-                return new ImagePass(webgl, renderer, scene, camera, debugHelper, cameraHelper, props)
+                return new ImagePass(webgl, renderer, scene, camera, debugHelper, props)
             },
 
             get props() {
@@ -523,7 +524,7 @@ namespace Canvas3D {
                 return {
                     camera: {
                         mode: camera.state.mode,
-                        helper: { ...cameraHelper.props }
+                        helper: { ...drawPass.props.cameraHelper }
                     },
                     cameraFog: camera.state.fog > 0
                         ? { name: 'on' as const, params: { intensity: camera.state.fog } }
