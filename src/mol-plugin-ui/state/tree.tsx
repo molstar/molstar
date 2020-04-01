@@ -12,7 +12,7 @@ import { PluginUIComponent, _Props, _State } from '../base';
 import { Icon } from '../controls/icons';
 import { ActionMenu } from '../controls/action-menu';
 import { ApplyActionControl } from './apply-action';
-import { ControlGroup } from '../controls/common';
+import { ControlGroup, IconButton, Button } from '../controls/common';
 import { UpdateTransformControl } from './update-transform';
 import { StateTreeSpine } from '../../mol-state/tree/spine';
 
@@ -266,43 +266,38 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
 
         const isCurrent = this.is(cell.parent.behaviors.currentObject.value);
 
-        let label: any;
-        if (cell.status === 'pending' || cell.status === 'processing') {
-            const name = n.transformer.definition.display.name;
-            label = <><b>[{cell.status}]</b> <span title={name}>{name}</span></>;
-        } else if (cell.status !== 'ok' || !cell.obj) {
-            const name = n.transformer.definition.display.name;
-            const title = `${cell.errorText}`;
+        const disabled = cell.status !== 'error' && cell.status !== 'ok';
 
-            // {this.state.isCurrent ? this.setCurrentRoot : this.setCurrent
-            label = <><button className='msp-btn-link msp-btn-tree-label' title={title} onClick={this.state.isCurrent ? this.setCurrentRoot : this.setCurrent}><b>[{cell.status}]</b> {name}: <i><span>{cell.errorText}</span></i> </button></>;
+        let label: React.ReactNode;
+        if (cell.status === 'error' || !cell.obj) {
+            const name = cell.status === 'error' ? cell.errorText : n.transformer.definition.display.name;
+            label = <Button className='msp-btn-tree-label msp-no-hover-outline' noOverflow title={name} onClick={this.state.isCurrent ? this.setCurrentRoot : this.setCurrent} disabled={disabled}>
+                {cell.status === 'error' && <b>[{cell.status}]</b>} <span>{name}</span>
+            </Button>;
         } else {
             const obj = cell.obj as PluginStateObject.Any;
             const title = `${obj.label} ${obj.description ? obj.description : ''}`;
-            label = <><button className='msp-btn-link msp-btn-tree-label' title={title} onClick={this.state.isCurrent ? this.setCurrentRoot : this.setCurrent}><span>{obj.label}</span> {obj.description ? <small>{obj.description}</small> : void 0}</button></>;
+            label = <Button className={`msp-btn-tree-label msp-no-hover-outline msp-type-class-${obj.type.typeClass}`} noOverflow disabled={disabled} title={title} onClick={this.state.isCurrent ? this.setCurrentRoot : this.setCurrent}>
+                <span>{obj.label}</span> {obj.description ? <small>{obj.description}</small> : void 0}
+            </Button>;
         }
 
         const children = cell.parent.tree.children.get(this.ref);
         const cellState = cell.state;
 
-        const visibility = <button onClick={this.toggleVisible} className={`msp-btn msp-btn-link msp-btn-icon msp-tree-visibility${cellState.isHidden ? ' msp-tree-visibility-hidden' : ''}`}>
-            <Icon name='visual-visibility' />
-        </button>;
+        const expand = <IconButton icon={cellState.isCollapsed ? 'expand' : 'collapse'} flex='20px' disabled={disabled} onClick={this.toggleExpanded} transparent className='msp-no-hover-outline' style={{ visibility: children.size > 0 ? 'visible' : 'hidden' }} />
+        const remove = !cell.state.isLocked ? <IconButton icon='remove' onClick={this.remove} disabled={disabled} small toggleState={false} /> : void 0;
+        const visibility = <IconButton icon='visual-visibility' toggleState={!cellState.isHidden} disabled={disabled} small onClick={this.toggleVisible} />;
 
         const marginStyle: React.CSSProperties = {
-            marginLeft: /* this.state.isCurrent ? void 0 :*/ `${this.props.depth * 8}px`,
-            // paddingLeft: !this.state.isCurrent ? void 0 : `${this.props.depth * 10}px`,
-            borderLeft: /* isCurrent || */ this.props.depth === 0 ? 'none' : void 0
+            marginLeft: `${this.props.depth * 8}px`
         }
 
-        const row = <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={marginStyle}>
+        const row = <div className={`msp-flex-row msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={marginStyle}>
+            {expand}
             {label}
-            {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
-                <Icon name={cellState.isCollapsed ? 'expand' : 'collapse'} />
-            </button>}
-            {!cell.state.isLocked && <button onClick={this.remove} className='msp-btn msp-btn-link msp-btn-icon msp-tree-remove-button'>
-                <Icon name='remove' />
-            </button>}{visibility}
+            {remove}
+            {visibility}
         </div>;
 
         if (!isCurrent) return row;
@@ -310,7 +305,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         if (this.state.action === 'apply' && this.state.currentAction) {
             return <div style={{ marginBottom: '1px' }}>
                 {row}
-                <ControlGroup header={`Apply ${this.state.currentAction.definition.display.name}`} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hideApply} topRightIcon='off' headerLeftMargin={marginStyle.marginLeft as string}>
+                <ControlGroup header={`Apply ${this.state.currentAction.definition.display.name}`} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hideApply} topRightIcon='off' headerLeftMargin={`${this.props.depth * 8 + 21}px`}>
                     <ApplyActionControl onApply={this.hideApply} state={this.props.cell.parent} action={this.state.currentAction} nodeRef={this.props.cell.transform.ref} hideHeader noMargin />
                 </ControlGroup>
             </div>
@@ -318,11 +313,11 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
 
         if (this.state.action === 'options') {
             const actions = this.actions;
-            const updates = this.updates(marginStyle.marginLeft as string);
+            const updates = this.updates(`${this.props.depth * 8 + 21}px`);
             return <div style={{ marginBottom: '1px' }}>
                 {row}
                 {updates}
-                {actions && <div style={{ marginLeft: marginStyle.marginLeft, marginTop: '-1px' }}>
+                {actions && <div style={{ marginLeft: `${this.props.depth * 8 + 21}px`, marginTop: '-1px' }}>
                     <ActionMenu items={actions} onSelect={this.selectAction} />
                 </div>}
             </div>

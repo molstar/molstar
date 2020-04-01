@@ -156,7 +156,7 @@
     position: absolute;
     width: 6px;
     height: 6px;
-    background: $entity-color-Group;
+    background: $color-accent-orange;
     border-radius: 3px;
     right: 6px;
     bottom: 6px;
@@ -217,3 +217,318 @@
     width: $control-label-width + $control-spacing;
     height: 2px;
 }
+
+.msp-section-header {
+    height: $row-height;
+    line-height: $row-height;
+    margin-top: $control-spacing;
+    margin-bottom: $control-spacing;
+    text-align: right;
+    padding: 0 $control-spacing;
+    font-weight: bold;
+    background: $default-background;
+    overflow: hidden;
+    border-bottom: 1px solid $color-accent-orange; // TODO separate color
+    cursor: default;
+
+    > .msp-icon {
+        display: block;
+        float: left;
+    }
+
+    > small {
+        font-weight: normal;
+    }
+}
+
+.msp-current-header {
+    height: $row-height;
+    line-height: $row-height;
+    margin-bottom: $control-spacing;
+    text-align: center;
+    font-weight: bold;
+    background: $default-background;
+}
+
+.msp-flex-row {
+    margin-top: 1px;
+    background: $default-background;
+
+    display:flex;
+    flex-direction:row;
+    width: inherit;
+    height: $row-height;
+
+    > .msp-flex-item {
+        margin: 0;
+        flex: 1 1 auto;
+        margin-right: 1px;
+        overflow: hidden;
+    }
+
+    > .msp-flex-item:last-child {
+        margin-right: 0;
+    }
+
+    > select, > button {
+        margin: 0;
+        flex: 1 1 auto;
+        margin-right: 1px;
+        height: $row-height;
+
+        // text-align-last: center;
+        // padding: 0 $control-spacing;
+        overflow: hidden;
+    }
+
+    .msp-btn-icon, .msp-btn-icon-small {
+        flex: 0 0 32px;
+        max-width: 32px;
+    }
+
+    > select {
+        background: none;
+
+        > option[value = _] {
+            display: none;
+        }
+    }
+
+    > select:last-child, > button:last-child {
+        margin-right: 0;
+    }
+
+    > button.msp-control-button-label {
+        background: $default-background;
+    }
+}
+
+.msp-state-list {
+    list-style: none;
+    // margin-top: $control-spacing;
+
+    > li {
+        position: relative;
+        overflow: hidden;
+
+        > button:first-child {
+            text-align: left;
+            border-left: $control-spacing solid color-increase-contrast($default-background, 12%) !important;
+        }
+
+        > div {
+            position: absolute;
+            right: 0;
+            top: 0;
+        }
+    }
+}
+
+.msp-tree-row {
+    position: relative;
+    margin-top: 0;
+    margin-bottom: 1px;
+    background: transparent;
+
+    &-current {
+        .msp-btn-tree-label {
+            > span {
+                font-weight: bold;
+            }
+
+            border-radius: 0 !important;
+        }
+
+        .msp-btn-tree-label:hover {
+            color: $font-color;
+        }
+    }
+
+    .msp-btn-tree-label {
+        text-align: left;
+        border-radius: 0 0 0 8px;
+        border-left-width: 4px;
+        border-left-style: solid;
+    }
+
+    .msp-btn-tree-label > small {
+        color: color-lower-contrast($font-color, 20%);
+    }
+}
+
+.msp-tree-updates-wrapper {
+    .msp-control-group-header:last-child {
+        margin-bottom: 1px;
+    }
+}
+
+.msp-viewport-top-left-controls {
+    position: absolute;
+    left: $control-spacing;
+    top: $control-spacing;
+
+    .msp-traj-controls {
+        line-height: $row-height;
+        float: left;
+        margin-right: $control-spacing;
+        background-color: $msp-form-control-background;
+
+        > span {
+            color: $font-color;
+            margin-left: $control-spacing;
+            margin-right: $control-spacing;
+            font-size: 85%;
+            display: inline-block;
+        }
+    }
+
+    .msp-state-snapshot-viewport-controls {
+        line-height: $row-height;
+        float: left;
+        margin-right: $control-spacing;
+
+        > button {
+            background-color: $msp-form-control-background;
+        }
+
+        > select {
+            display: inline-block;
+            width: 200px;
+            margin-right: $control-spacing;
+        }
+    }
+
+    .msp-animation-viewport-controls {
+        line-height: $row-height;
+        float: left;
+        margin-right: $control-spacing;
+        position: relative;
+
+        > div:first-child {
+            position: relative;
+            display: inline-block;
+
+            > button {
+                position: relative;
+            }
+        }
+
+        .msp-animation-viewport-controls-select {
+            width: 290px;
+            position: absolute;
+            left: 0;
+            margin-top: $control-spacing;
+            background: $control-background;
+
+            .msp-control-row:first-child {
+                margin-top: 0;
+            }
+        }
+    }
+}
+
+.msp-param-object-list-item {
+    margin-top: 1px;
+    position: relative;
+    > button {
+        text-align: left;
+        > span {
+            font-weight: bold;
+        }
+    }
+    > div {
+        position: absolute;
+        right: 0;
+        top: 0
+    }
+}
+
+.msp-state-actions {
+    .msp-transform-wrapper:last-child {
+        margin-bottom: 10px;
+    }
+}
+
+.msp-button-row {
+    display:flex;
+    flex-direction:row;
+    height: $row-height;
+    width: inherit;
+
+    > button {
+        margin: 0;
+        flex: 1 1 auto;
+        margin-right: 1px;
+        height: $row-height;
+
+        text-align-last: center;
+        background: none;
+        padding: 0 $control-spacing;
+        overflow: hidden;
+    }
+}
+
+.msp-action-menu-options {
+    .msp-control-row, button, .msp-icon {
+        height: 24px;
+        line-height: 24px;
+    }
+
+    button {
+        text-align: left;
+    }
+
+
+    .msp-action-menu-button {
+        margin-top: 1px;
+        display: flex;
+        .msp-icon {
+            font-size: 80%;
+            margin-right: 6px;
+        }
+    }
+}
+
+.msp-representation-entry {
+    position: relative;
+    > .msp-control-group-header {
+        > .msp-btn {
+            font-weight: bold;
+        }
+        > .msp-icon, > .msp-btn-link {
+            line-height: 24px;
+            height: 24px;
+        }
+    }
+}
+
+@mixin type-class-border($name, $color) {    
+    .msp-type-class-#{$name} {
+        border-left-color: $color;
+    } 
+}
+
+// TypeClass = 'Root' | 'Group' | 'Data' | 'Object' | 'Representation3D' | 'Behavior'
+@include type-class-border('Root', $type-class-Root);
+@include type-class-border('Group', $type-class-Group);
+@include type-class-border('Data', $type-class-Data);
+@include type-class-border('Object', $type-class-Object);
+@include type-class-border('Representation3D', $type-class-Representation3D);
+@include type-class-border('Behavior', $type-class-Behavior);
+
+@mixin accent($name, $color) {    
+    .msp-accent-color-#{$name} {
+        color: $color;
+    } 
+    .msp-accent-bg-#{$name} {
+        background: $color;
+    } 
+}
+
+@include accent('cyan', $color-accent-cyan);
+@include accent('red', $color-accent-red);
+@include accent('gray', $color-accent-gray);
+@include accent('green', $color-accent-green);
+@include accent('purple', $color-accent-purple);
+@include accent('blue', $color-accent-blue);
+@include accent('orange', $color-accent-orange);
