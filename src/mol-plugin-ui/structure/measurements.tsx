@@ -27,6 +27,7 @@ export class StructureMeasurementsControls extends CollapsableControls {
         return {
             isCollapsed: false,
             header: 'Measurements',
+            brand: { name: 'Msr', accent: 'gray' as const }
         }
     }
 

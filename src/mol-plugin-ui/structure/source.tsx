@@ -25,7 +25,8 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         return {
             header: 'Structure',
             isCollapsed: false,
-            isBusy: false
+            isBusy: false,
+            brand: { name: 'Str', accent: 'purple' }
         };
     }
 

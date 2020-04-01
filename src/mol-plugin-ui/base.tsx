@@ -70,7 +70,13 @@ export type _State<C extends React.Component> = C extends React.Component<any, i
 //
 
 export type CollapsableProps = { initiallyCollapsed?: boolean, header?: string }
-export type CollapsableState = { isCollapsed: boolean, header: string, description?: string, isHidden?: boolean }
+export type CollapsableState = {
+    isCollapsed: boolean,
+    header: string,
+    description?: string,
+    isHidden?: boolean,
+    brand?: { name: string, accent: 'cyan' | 'red' | 'gray' | 'green' | 'purple' | 'blue' | 'orange' }
+}
 
 export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends PluginUIComponent<P & CollapsableProps, S & CollapsableState, SS> {
     toggleCollapsed = () => {
@@ -89,7 +95,9 @@ export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends Plugi
 
         return <div className={wrapClass}>
             <div className='msp-transform-header'>
-                <Button icon={this.state.isCollapsed ? 'expand' : 'collapse'} noOverflow onClick={this.toggleCollapsed}>
+                <Button icon={this.state.brand ? void 0 : this.state.isCollapsed ? 'expand' : 'collapse'} noOverflow onClick={this.toggleCollapsed}
+                    className={this.state.brand ? `msp-transform-header-brand msp-transform-header-brand-${this.state.brand.accent}` : void 0}>
+                    {this.state.brand && <div className={`msp-accent-bg-${this.state.brand.accent}`}>{this.state.brand.name}</div>}
                     {this.state.header}
                     <small style={{ margin: '0 6px' }}>{this.state.isCollapsed ? '' : this.state.description}</small>
                 </Button>

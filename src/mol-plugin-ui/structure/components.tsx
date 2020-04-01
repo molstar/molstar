@@ -26,7 +26,7 @@ interface StructureComponentControlState extends CollapsableState {
 
 export class StructureComponentControls extends CollapsableControls<{}, StructureComponentControlState> {
     protected defaultState(): StructureComponentControlState {
-        return { header: 'Representation', isCollapsed: false, isDisabled: false };
+        return { header: 'Representation', isCollapsed: false, isDisabled: false, brand: { name: 'Rpr', accent: 'blue' } };
     }
 
     componentDidMount() {

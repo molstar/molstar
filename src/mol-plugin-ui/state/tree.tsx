@@ -277,7 +277,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         } else {
             const obj = cell.obj as PluginStateObject.Any;
             const title = `${obj.label} ${obj.description ? obj.description : ''}`;
-            label = <Button className={`msp-btn-tree-label msp-no-hover-outline msp-type-class-${obj.type.typeClass}`} noOverflow disabled={disabled} title={title} onClick={this.state.isCurrent ? this.setCurrentRoot : this.setCurrent}>
+            label = <Button className={`msp-btn-tree-label msp-type-class-${obj.type.typeClass}`} noOverflow disabled={disabled} title={title} onClick={this.state.isCurrent ? this.setCurrentRoot : this.setCurrent}>
                 <span>{obj.label}</span> {obj.description ? <small>{obj.description}</small> : void 0}
             </Button>;
         }

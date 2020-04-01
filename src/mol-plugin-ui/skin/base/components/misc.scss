@@ -338,10 +338,6 @@
 
             border-radius: 0 !important;
         }
-
-        .msp-btn-tree-label:hover {
-            color: $font-color;
-        }
     }
 
     .msp-btn-tree-label {
@@ -522,7 +518,13 @@
     } 
     .msp-accent-bg-#{$name} {
         background: $color;
-    } 
+    }
+    .msp-transform-header-brand-#{$name} {
+        border-bottom: 1px solid $color;
+        &:active, &:focus {
+            border-bottom: 1px solid $color;
+        }
+    }
 }
 
 @include accent('cyan', $color-accent-cyan);

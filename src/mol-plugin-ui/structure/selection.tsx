@@ -155,7 +155,9 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             action: void 0,
 
             isEmpty: true,
-            isBusy: false
+            isBusy: false,
+
+            brand: { name: 'Sel', accent: 'red' }
         } as S
     }
 

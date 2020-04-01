@@ -23,7 +23,8 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
             header: 'Assembly Symmetry',
             isCollapsed: false,
             isBusy: false,
-            isHidden: true
+            isHidden: true,
+            brand: { name: 'Sym', accent: 'cyan' }
         };
     }
 

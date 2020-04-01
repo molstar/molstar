@@ -24,7 +24,8 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
             header: 'Volume Streaming',
             isCollapsed: false,
             isBusy: false,
-            isHidden: true
+            isHidden: true,
+            brand: { name: 'Vol', accent: 'cyan' }
         };
     }
 

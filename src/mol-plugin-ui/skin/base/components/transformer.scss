@@ -98,6 +98,22 @@
     }
 }
 
+.msp-transform-header-brand {
+    padding-left: 42px;
+    margin-bottom: -1px;
+    > div {
+        position: absolute;
+        height: 32px;
+        line-height: 32px;
+        width: 32px;
+        top: 0;
+        left: 0;
+        text-align: center;
+        color: #eceff3;
+        font-size: 85%;
+    }
+}
+
 .msp-transform-default-params {
     background: $default-background;
     position: absolute;
