@@ -7,6 +7,7 @@
 import { UUID } from '../../../mol-util';
 import { getQueryByName, QueryDefinition, QueryName, QueryParams } from './api';
 import { LinkedList } from '../../../mol-data/generic';
+import { ResultWriter } from '../utils/writer';
 
 export interface ResponseFormat {
     isBinary: boolean
@@ -19,7 +20,9 @@ export interface Job {
     entries: JobEntry[],
 
     responseFormat: ResponseFormat,
-    outputFilename?: string
+    outputFilename?: string,
+
+    writer: ResultWriter
 }
 
 export interface JobEntry {
@@ -61,6 +64,7 @@ export function JobEntry<Name extends QueryName>(definition: JobEntryDefinition<
 
 export interface JobDefinition {
     entries: JobEntry[],
+    writer: ResultWriter,
     options?: { outputFilename?: string, binary?: boolean }
 }
 
@@ -69,6 +73,7 @@ export function createJob(definition: JobDefinition): Job {
         id: UUID.create22(),
         datetime_utc: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')}`,
         entries: definition.entries,
+        writer: definition.writer,
         responseFormat: { isBinary: !!(definition.options && definition.options.binary) },
         outputFilename: definition.options && definition.options.outputFilename
     };

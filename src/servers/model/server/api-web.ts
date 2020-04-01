@@ -17,48 +17,10 @@ import { QueryDefinition, normalizeRestQueryParams, normalizeRestCommonParams, Q
 import { getApiSchema, shortcutIconLink } from './api-schema';
 import { swaggerUiAssetsHandler, swaggerUiIndexHandler } from '../../common/swagger-ui';
 import { MultipleQuerySpec } from './api-web-multiple';
+import { SimpleResponseResultWriter, WebResutlWriter } from '../utils/writer';
 
 function makePath(p: string) {
     return Config.apiPrefix + '/' + p;
-}
-
-function wrapResponse(fn: string, res: express.Response) {
-    const w = {
-        doError(this: any, code = 404, message = 'Not Found.') {
-            if (!this.headerWritten) {
-                res.status(code).send(message);
-                this.headerWritten = true;
-            }
-            this.end();
-        },
-        writeHeader(this: any, binary: boolean) {
-            if (this.headerWritten) return;
-            res.writeHead(200, {
-                'Content-Type': binary ? 'application/octet-stream' : 'text/plain; charset=utf-8',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'X-Requested-With',
-                'Content-Disposition': `inline; filename="${fn}"`
-            });
-            this.headerWritten = true;
-        },
-        writeBinary(this: any, data: Uint8Array) {
-            if (!this.headerWritten) this.writeHeader(true);
-            return res.write(Buffer.from(data.buffer));
-        },
-        writeString(this: any, data: string) {
-            if (!this.headerWritten) this.writeHeader(false);
-            return res.write(data);
-        },
-        end(this: any) {
-            if (this.ended) return;
-            res.end();
-            this.ended = true;
-        },
-        ended: false,
-        headerWritten: false
-    };
-
-    return w;
 }
 
 const responseMap = new Map<UUID, express.Response>();
@@ -67,17 +29,12 @@ async function processNextJob() {
     if (!JobManager.hasNext()) return;
 
     const job = JobManager.getNext();
-    const response = responseMap.get(job.id)!;
     responseMap.delete(job.id);
-
-    const filenameBase = job.entries.length === 1
-        ? `${job.entries[0].entryId}_${job.entries[0].queryDefinition.name.replace(/\s/g, '_')}`
-        : `result`;
-    const writer = wrapResponse(job.responseFormat.isBinary ? `${filenameBase}.bcif` : `${filenameBase}.cif`, response);
+    const writer = job.writer as WebResutlWriter;
 
     try {
         const encoder = await resolveJob(job);
-        writer.writeHeader(job.responseFormat.isBinary);
+        writer.writeHeader();
         encoder.writeTo(writer);
     } catch (e) {
         ConsoleLogger.errorId(job.id, '' + e);
@@ -87,6 +44,13 @@ async function processNextJob() {
         ConsoleLogger.logId(job.id, 'Query', 'Finished.');
         setImmediate(processNextJob);
     }
+}
+
+export function createResultWriter(response: express.Response, isBinary: boolean, entryId?: string, queryName?: string) {
+    const filenameBase = entryId && queryName
+        ? `${entryId}_${queryName.replace(/\s/g, '_')}`
+        : `result`;
+    return new SimpleResponseResultWriter(isBinary ? `${filenameBase}.bcif` : `${filenameBase}.cif`, response, isBinary);
 }
 
 function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
@@ -101,6 +65,7 @@ function mapQuery(app: express.Express, queryName: string, queryDefinition: Quer
                 queryParams,
                 modelNums: commonParams.model_nums
             })],
+            writer: createResultWriter(res, commonParams.encoding === 'bcif', entryId, queryName),
             options: { binary: commonParams.encoding === 'bcif' }
         });
         responseMap.set(jobId, res);
@@ -162,6 +127,7 @@ function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
             queryParams: q.params || { },
             modelNums: q.model_nums
         })),
+        writer: createResultWriter(res, spec.encoding?.toLowerCase() === 'bcif'),
         options: { binary: spec.encoding?.toLowerCase() === 'bcif' }
     });
     responseMap.set(jobId, res);
