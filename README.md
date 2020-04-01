@@ -5,7 +5,7 @@
 
 # Mol*
 
-The goal of **Mol\*** (*/'mol-star/*) is to provide a technology stack that will serve as basis for the next-generation data delivery and analysis tools for macromolecular structure data. This is a collaboration between PDBe and RCSB PDB teams and the development will be open source and available to anyone who wants to use it for developing visualisation tools for macromolecular structure data available from [PDB](https://www.wwpdb.org/) and other institutions.
+The goal of **Mol\*** (*/'mol-star/*) is to provide a technology stack that will serve as a basis for the next-generation data delivery and analysis tools for macromolecular structure data. This is a collaboration between PDBe and RCSB PDB teams and the development will be open-source and available to anyone who wants to use it for developing visualization tools for macromolecular structure data available from [PDB](https://www.wwpdb.org/) and other institutions.
 
 This particular project is the implementation of this technology (still under development).
 
@@ -16,26 +16,26 @@ This particular project is the implementation of this technology (still under de
 The core of Mol* currently consists of these modules (see under `src/`):
 
 - `mol-task` Computation abstraction with progress tracking and cancellation support.
-- `mol-data` Collections (integer based sets, interface to columns/tables, etc.)
+- `mol-data` Collections (integer-based sets, interface to columns/tables, etc.)
 - `mol-math` Math related (loosely) algorithms and data structures.
 - `mol-io` Parsing library. Each format is parsed into an interface that corresponds to the data stored by it. Support for common coordinate, experimental/map, and annotation data formats.
 - `mol-model` Data structures and algorithms (such as querying) for representing molecular data (including coordinate, experimental/map, and annotation data).
 - `mol-model-formats` Data format parsers for `mol-model`.
 - `mol-model-props` Common "custom properties".
-- `mol-script` A scriting language for creating representations/scenes and querying (includes the [MolQL query language](https://molql.github.io)).
+- `mol-script` A scripting language for creating representations/scenes and querying (includes the [MolQL query language](https://molql.github.io)).
 - `mol-geo` Creating (molecular) geometries.
 - `mol-theme` Theming for structure, volume and shape representations.
 - `mol-repr` Molecular representations for structures, volumes and shapes.
 - `mol-gl` A wrapper around WebGL.
-- `mol-canvas3d` A low level 3d view component. Uses `mol-geo` to generate geometries.
+- `mol-canvas3d` A low-level 3d view component. Uses `mol-geo` to generate geometries.
 - `mol-state` State representation tree with state saving and automatic updates.
-- `mol-app` Components for builduing UIs.
+- `mol-app` Components for building UIs.
 - `mol-plugin` Allow to define modular Mol* plugin instances utilizing `mol-state` and `mol-canvas3d`.
 - `mol-plugin-state` State transformations, builders, and managers.
-- `mol-plugin-ui` React based user interface for the Mol* plugin. Some components of the UI are usable outside the main plugin and can be integrated to 3rd party solutions.
+- `mol-plugin-ui` React-based user interface for the Mol* plugin. Some components of the UI are usable outside the main plugin and can be integrated into 3rd party solutions.
 - `mol-util` Useful things that do not fit elsewhere.
 
-Moreover, the project contains the imlementation of `servers`, including
+Moreover, the project contains the implementation of `servers`, including
 
 - `servers/model` A tool for accessing coordinate and annotation data of molecular structures.
 - `servers/volume` A tool for accessing volumetric experimental data related to molecular structures.
@@ -121,16 +121,16 @@ To see all available commands, use ``node build/model-server/preprocess -h``.
 
 ## Development
 
-### Intallation
+### Installation
 
-If node complains about a missine acorn peer dependency, run the following commands
+If node complains about a missing acorn peer dependency, run the following commands
 
     npm update acorn --depth 20
     npm dedupe
 
 ### Editor
 
-To get syntax highlighting for shader and graphql files add the following to Visual Code's settings files and make sure relevant extanesions are installed in the editor.
+To get syntax highlighting for shader and graphql files add the following to Visual Code's settings files and make sure relevant extensions are installed in the editor.
 
     "files.associations": {
         "*.glsl.ts": "glsl",
@@ -142,7 +142,7 @@ To get syntax highlighting for shader and graphql files add the following to Vis
 ## Publish
 
 ### Prerelease
-    npm version prerelease # asumes the current version ends with '-dev.X'
+    npm version prerelease # assumes the current version ends with '-dev.X'
     npm publish --tag next
 
 ### Release
