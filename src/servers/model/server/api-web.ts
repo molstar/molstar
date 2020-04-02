@@ -120,7 +120,12 @@ function serveStatic(req: express.Request, res: express.Response) {
 function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
     const writer = spec.asTarGz
         ? new TarballResponseResultWriter(getMultiQuerySpecFilename(), res)
-        : createResultWriter(res, spec.encoding?.toLowerCase() === 'bcif')
+        : createResultWriter(res, spec.encoding?.toLowerCase() === 'bcif');
+
+    if (spec.queries.length > ModelServerConfig.maxQueryManyQueries) {
+        writer.doError(403, `query-many queries limit (${ModelServerConfig.maxQueryManyQueries}) exceeded.`);
+        return;
+    }
 
     const jobId = JobManager.add({
         entries: spec.queries.map(q => JobEntry({

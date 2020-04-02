@@ -46,6 +46,9 @@ const DefaultModelServerConfig = {
     /** Maximum number of requests before "server busy" */
     maxQueueLength: 30,
 
+    /** The maximum number of queries allowed by the query-many at a time */
+    maxQueryManyQueries: 50,
+
     /**
      * Provide a property config or a path a JSON file with the config.
      */
@@ -148,6 +151,12 @@ function addServerArgs(parser: argparse.ArgumentParser) {
         metavar: 'VARIANCE',
         type: 'int',
         help: `modifies the shutdown timer by +/- timeoutVarianceMinutes (to avoid multiple instances shutting at the same time)`
+    });
+    parser.addArgument([ '--maxQueryManyQueries' ], {
+        defaultValue: DefaultModelServerConfig.maxQueryManyQueries,
+        metavar: 'QUERY_MANY_LIMIT',
+        type: 'int',
+        help: `maximum number of queries allowed by the query-many at a time`
     });
     parser.addArgument([ '--defaultSource' ], {
         defaultValue: DefaultModelServerConfig.defaultSource,
