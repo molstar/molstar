@@ -35,7 +35,15 @@ function propertyProvider() {
     return _propertyProvider;
 }
 
-export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
+export async function resolveJob(job: Job) {
+    if (job.responseFormat.tarball) {
+        return resolveMultiFile(job);
+    } else {
+        return resolveSingleFile(job);
+    }
+}
+
+async function resolveSingleFile(job: Job) {
     ConsoleLogger.logId(job.id, 'Query', 'Starting.');
 
     const encoder = CifWriter.createEncoder({
@@ -44,20 +52,71 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
         binaryAutoClassifyEncoding: true
     });
 
-    // TODO: how to handle missing entries?
-    for (const entry of job.entries) {
-        const structure = await createStructureWrapperFromJobEntry(entry, propertyProvider());
+    const headerMap = new Map<string, number>();
 
-        // TODO: this should be unique in case the same structure is queried twice
-        // const data = (entry.sourceId === '_local_' ? path.basename(entry.entryId) : entry.entryId).replace(/[^a-z0-9\_]/ig, '').toUpperCase();
-        encoder.startDataBlock(structure.cifFrame.header);
-        await resolveJobEntry(entry, structure, encoder);
+    for (const entry of job.entries) {
+        try {
+            const structure = await createStructureWrapperFromJobEntry(entry, propertyProvider());
+
+            let header = structure.cifFrame.header.toUpperCase();
+            if (headerMap.has(header)) {
+                const i = headerMap.get(header)! + 1;
+                headerMap.set(header, i);
+                header += ' ' + i;
+            } else {
+                headerMap.set(header, 0)
+            }
+
+            encoder.startDataBlock(header);
+            await resolveJobEntry(entry, structure, encoder);
+        } catch (e) {
+            if (job.entries.length === 1) {
+                throw e;
+            } else {
+                doError(entry, encoder, e);
+            }
+        }
     }
 
     ConsoleLogger.logId(job.id, 'Query', 'Encoding.');
     encoder.encode();
+    encoder.writeTo(job.writer);
+}
 
-    return encoder;
+function getFilename(i: number, entry: JobEntry, isBinary: boolean) {
+    return `${i}_${entry.entryId}_${entry.queryDefinition.name.replace(/\s/g, '_')}.${isBinary ? 'bcif' : 'cif'}`;
+}
+
+async function resolveMultiFile(job: Job) {
+    ConsoleLogger.logId(job.id, 'Query', 'Starting.');
+
+    let i = 0;
+    for (const entry of job.entries) {
+
+        const encoder = CifWriter.createEncoder({
+            binary: job.responseFormat.isBinary,
+            encoderName: `ModelServer ${Version}`,
+            binaryAutoClassifyEncoding: true
+        });
+
+        try {
+            const structure = await createStructureWrapperFromJobEntry(entry, propertyProvider());
+            encoder.startDataBlock(structure.cifFrame.header);
+            await resolveJobEntry(entry, structure, encoder);
+        } catch(e) {
+            doError(entry, encoder, e);
+        }
+
+        ConsoleLogger.logId(job.id, 'Query', `Encoding ${entry.key}/${entry.queryDefinition.name}`);
+        encoder.encode();
+
+        job.writer.beginEntry(getFilename(++i, entry, job.responseFormat.isBinary), encoder.getSize());
+        encoder.writeTo(job.writer);
+        job.writer.endEntry();
+        ConsoleLogger.logId(job.id, 'Query', `Written ${entry.key}/${entry.queryDefinition.name}`);
+
+        // await fileEntry;
+    }
 }
 
 async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, encoder: CifWriter.Encoder<any>) {

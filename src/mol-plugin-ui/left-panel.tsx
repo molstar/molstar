@@ -82,13 +82,13 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
         // TODO: show "changed dot" next to the 'data' tab icon indicating the state has changed.
         return <div className='msp-left-panel-controls'>
             <div className='msp-left-panel-controls-buttons'>
-                <IconButton icon='home' toggleState={tab === 'root'} onClick={() => this.set('root')} title='Home' />
+                <IconButton icon='home' toggleState={tab === 'root'} transparent onClick={() => this.set('root')} title='Home' />
                 {/* <IconButton icon='flow-tree' toggleState={tab === 'data'} onClick={() => this.set('data')} title='State Tree' /> */}
                 <DataIcon set={this.set} />
-                <IconButton icon='floppy' toggleState={tab === 'states'} onClick={() => this.set('states')} title='Plugin State' />
-                <IconButton icon='help-circle' toggleState={tab === 'help'} onClick={() => this.set('help')} title='Help' />
+                <IconButton icon='floppy' toggleState={tab === 'states'} transparent onClick={() => this.set('states')} title='Plugin State' />
+                <IconButton icon='help-circle' toggleState={tab === 'help'} transparent onClick={() => this.set('help')} title='Help' />
                 <div className='msp-left-panel-controls-buttons-bottom'>
-                    <IconButton icon='settings' toggleState={tab === 'settings'} onClick={() => this.set('settings')} title='Settings' />
+                    <IconButton icon='settings' toggleState={tab === 'settings'} transparent onClick={() => this.set('settings')} title='Settings' />
                 </div>
             </div>
             <div className='msp-scrollable-container'>
@@ -118,7 +118,7 @@ class DataIcon extends PluginUIComponent<{ set: (tab: LeftPanelTabName) => void 
 
     render() {
         return <IconButton
-            icon='flow-tree' toggleState={this.tab === 'data'} onClick={() => this.props.set('data')} title='State Tree'
+            icon='flow-tree' toggleState={this.tab === 'data'} transparent onClick={() => this.props.set('data')} title='State Tree'
             style={{ position: 'relative' }} extraContent={this.state.changed ? <div className='msp-left-panel-controls-button-data-dirty' /> : void 0} />;
     }
 }

@@ -54,7 +54,8 @@ function getPaths() {
             { entryId: '1cbs', query: 'residueInteraction', params: { atom_site: [{ label_comp_id: 'REA' }], radius: 5 } },
             { entryId: '1tqn', query: 'full' }
         ],
-        encoding: 'cif'
+        encoding: 'cif',
+        asTarGz: false
     };
     ret[`${ServerConfig.apiPrefix}/v1/query-many`] = {
         get: {

@@ -16,5 +16,11 @@ export interface MultipleQueryEntry<Name extends QueryName = QueryName> {
 
 export interface MultipleQuerySpec {
     queries: MultipleQueryEntry[],
-    encoding?: 'cif' | 'bcif'
+    encoding?: 'cif' | 'bcif',
+    asTarGz?: boolean
+}
+
+export function getMultiQuerySpecFilename() {
+    const date = new Date();
+    return `result_${date.getMonth() + 1}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}.tar.gz`;
 }

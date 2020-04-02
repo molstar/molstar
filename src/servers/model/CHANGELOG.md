@@ -1,3 +1,7 @@
+# 0.9.1
+* query-many
+* Config overhaul
+
 # 0.9.0
 * REST API support.
 * Swagger UI support.

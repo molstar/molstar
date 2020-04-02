@@ -94,6 +94,10 @@ export default class BinaryEncoder implements Encoder<Uint8Array> {
         return this.encodedData;
     }
 
+    getSize() {
+        return this.encodedData.length;
+    }
+
     constructor(encoder: string, encodingProvider: BinaryEncodingProvider | undefined, private autoClassify: boolean) {
         this.binaryEncodingProvider = encodingProvider;
         this.data = {

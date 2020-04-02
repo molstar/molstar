@@ -69,6 +69,10 @@ export default class TextEncoder implements Encoder<string> {
         }
     }
 
+    getSize() {
+        return StringBuilder.getSize(this.builder);
+    }
+
     getData() {
         return StringBuilder.getString(this.builder);
     }
