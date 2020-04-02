@@ -171,6 +171,7 @@ class State {
     }
 
     private inTransaction = false;
+    private inTransactionError = false;
 
     /** Apply series of updates to the state. If any of them fail, revert to the original state. */
     transaction(edits: () => Promise<void> | void, options?: { canUndo?: string | boolean }) {
@@ -183,12 +184,12 @@ class State {
             let restored = false;
             try {
                 if (!isNested) this.behaviors.isUpdating.next(true);
+
                 this.inTransaction = true;
+                this.inTransactionError = false;
                 await edits();
 
-                let hasError = false;
-                this.cells.forEach(c => hasError = hasError || c.state === 'error');
-                if (hasError) {
+                if (this.inTransactionError) {
                     restored = true;
                     await this.updateTree(snapshot).runInContext(ctx);
                 }
@@ -198,7 +199,10 @@ class State {
                     await this.updateTree(snapshot).runInContext(ctx);
                     this.events.log.error(e);
                 }
-                if (isNested) throw e;
+                if (isNested) {
+                    this.inTransactionError = true;
+                    throw e;
+                }
             } finally {
                 if (!isNested) {
                     this.inTransaction = false;
@@ -239,6 +243,8 @@ class State {
                     ? await this._revertibleTreeUpdate(taskCtx, params, options)
                     : await this._updateTree(taskCtx, params);
                 reverted = this.reverted;
+
+                if (ret.ctx.hadError) this.inTransactionError = true;
 
                 return ret.cell;
             } finally {
@@ -537,7 +543,7 @@ function findUpdateRoots(cells: Map<StateTransform.Ref, StateObjectCell>, tree: 
 function findUpdateRootsVisitor(n: StateTransform, _: any, s: { roots: Ref[], cells: Map<Ref, StateObjectCell> }) {
     const cell = s.cells.get(n.ref);
     if (!cell || cell.transform.version !== n.version || cell.status === 'error') {
-        s.roots.push(n.ref);
+        if (cell?.status !== 'error') s.roots.push(n.ref);
         return false;
     }
     // nothing below a Null object can be an update root

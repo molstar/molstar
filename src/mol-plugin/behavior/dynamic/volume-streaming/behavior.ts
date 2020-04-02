@@ -27,6 +27,7 @@ import { EmptyLoci, Loci, isEmptyLoci } from '../../../../mol-model/loci';
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
 export namespace VolumeStreaming {
+    export const RootTag = 'volume-streaming-info'
 
     export interface ChannelParams {
         isoValue: VolumeIsoValue,

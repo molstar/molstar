@@ -6,7 +6,7 @@
  */
 
 import * as React from 'react';
-import { InitVolumeStreaming, CreateVolumeStreamingInfo } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
+import { InitVolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
 import { CollapsableControls, CollapsableState } from '../base';
 import { ApplyActionControl } from '../state/apply-action';
 import { UpdateTransformControl } from '../state/update-transform';
@@ -14,7 +14,8 @@ import { BindingsHelp } from '../viewport/help';
 import { ExpandGroup } from '../controls/common';
 import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
 import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
-import { StateSelection } from '../../mol-state';
+import { StateSelection, StateTransform } from '../../mol-state';
+import { VolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
 
 interface VolumeStreamingControlState extends CollapsableState {
     isBusy: boolean
@@ -39,6 +40,9 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
                 description: StructureHierarchyManager.getSelectedStructuresDescription(this.plugin)
             })
         });
+        this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
+            if (StateTransform.hasTag(e.cell.transform, VolumeStreaming.RootTag)) this.forceUpdate();
+        });
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
             this.setState({ isBusy: v })
         });
@@ -58,9 +62,11 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
 
     renderEnable() {
         const pivot = this.pivot;
-        const errored = this.plugin.state.data.select(StateSelection.Generators.ofTransformerWithError(CreateVolumeStreamingInfo, pivot.cell.transform.ref))[0];
-        const simpleApply = errored
-            ? { header: 'Error enabling', icon: 'alert' as const, title: errored.errorText }
+        const root = StateSelection.findTagInSubtree(this.pivot.cell.parent.tree, this.pivot.cell.transform.ref, VolumeStreaming.RootTag);
+        const rootCell = root && this.pivot.cell.parent.cells.get(root);
+
+        const simpleApply = rootCell && rootCell.status === 'error'
+            ? { header: 'Error enabling', icon: 'alert' as const, title: rootCell.errorText }
             : { header: 'Enable', icon: 'check' as const, title: 'Enable' }
 
         return <ApplyActionControl state={pivot.cell.parent} action={InitVolumeStreaming} initiallyCollapsed={true} nodeRef={pivot.cell.transform.ref} simpleApply={simpleApply} />;

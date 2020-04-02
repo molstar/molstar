@@ -94,12 +94,21 @@ export const InitVolumeStreaming = StateAction.build({
     }
 
     const infoTree = state.build().to(ref)
-        .apply(CreateVolumeStreamingInfo, {
+        .applyOrUpdateTagged(VolumeStreaming.RootTag, CreateVolumeStreamingInfo, {
             serverUrl: params.options.serverUrl,
             entries
         });
 
-    const infoObj = await state.updateTree(infoTree).runInContext(taskCtx);
+    await plugin.updateDataState(infoTree);
+
+    const info = infoTree.selector;
+    if (!info.isOk) return;
+
+    // clear the children in case there were errors
+    const children = state.tree.children.get(info.ref);
+    if (children?.size > 0) await plugin.managers.structure.hierarchy.remove(children?.toArray());
+
+    const infoObj = info.cell!.obj!;
 
     const behTree = state.build().to(infoTree.ref).apply(CreateVolumeStreamingBehavior,
         PD.getDefaultValues(VolumeStreaming.createParams({ data: infoObj.data, defaultView: params.defaultView, channelParams: params.options.channelParams })),
