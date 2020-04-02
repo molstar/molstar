@@ -32,7 +32,7 @@ export class SimpleResponseResultWriter implements WebResutlWriter {
         throw new Error('Not supported');
     }
 
-    async endEntry() {
+    endEntry() {
         throw new Error('Not supported');
     }
 
@@ -57,7 +57,7 @@ export class SimpleResponseResultWriter implements WebResutlWriter {
     }
 
     writeBinary(data: Uint8Array) {
-        return this.res.write(Buffer.from(data.buffer));
+        return this.res.write(Buffer.from(data.buffer, data.byteOffset, data.byteLength));
     }
 
     writeString(this: any, data: string) {
@@ -105,7 +105,7 @@ export class TarballResponseResultWriter implements WebResutlWriter {
     writeHeader() {
         if (this.headerWritten) return;
 
-        this.stream.pipe(this.res);
+        this.stream.pipe(this.res, { end: true });
         this.stream.on('end', () => this.res.end());
 
         this.headerWritten = true;
@@ -119,7 +119,7 @@ export class TarballResponseResultWriter implements WebResutlWriter {
 
     writeBinary(data: Uint8Array) {
         this.writeHeader();
-        return !!this.stream.write(Buffer.from(data.buffer));
+        return !!this.stream.write(Buffer.from(data.buffer, data.byteOffset, data.byteLength));
     }
 
     writeString(data: string) {
@@ -144,44 +144,95 @@ export class TarballResponseResultWriter implements WebResutlWriter {
 }
 
 export class FileResultWriter implements ResultWriter {
-    private file = 0;
+    private file: fs.WriteStream | undefined = void 0;
     private ended = false;
     private opened = false;
 
-    async beginEntry(name: string) {
+    beginEntry(name: string) {
         throw new Error('Not supported');
     }
 
-    async endEntry() {
+    endEntry() {
         throw new Error('Not supported');
     }
 
     open() {
         if (this.opened) return;
         makeDir(path.dirname(this.fn));
-        this.file = fs.openSync(this.fn, 'w');
+        this.file = fs.createWriteStream(this.fn);
         this.opened = true;
     }
 
     writeBinary(data: Uint8Array) {
         this.open();
-        fs.writeSync(this.file, Buffer.from(data.buffer));
+        this.file?.write(Buffer.from(data.buffer, data.byteOffset, data.byteLength));
         return true;
     }
 
     writeString(data: string) {
         this.open();
-        fs.writeSync(this.file, data);
+        this.file?.write(data);
         return true;
     }
 
     end() {
         if (!this.opened || this.ended) return;
-        fs.close(this.file, function () { });
+        this.file?.end();
         this.ended = true;
     }
 
     constructor(private fn: string) {
+
+    }
+}
+
+export class TarballFileResultWriter implements ResultWriter {
+    private file: fs.WriteStream | undefined = void 0;
+    private ended = false;
+    private opened = false;
+    private stream = zlib.createGzip({ level: this.gzipLevel, memLevel: 9, chunkSize: 16 * 16384 });
+    private entrySize = 0;
+
+    beginEntry(name: string, size: number) {
+        const header = encodeTarHeader({ name, size });
+        this.entrySize = size;
+        this.stream.write(header);
+    }
+
+    endEntry() {
+        const size = this.entrySize & 511;
+        if (size) this.stream.write(END_OF_TAR.slice(0, 512 - size));
+    }
+
+    open() {
+        if (this.opened) return;
+        makeDir(path.dirname(this.fn));
+        this.file = fs.createWriteStream(this.fn);
+        this.stream.pipe(this.file, { end: true });
+
+        this.opened = true;
+    }
+
+    writeBinary(data: Uint8Array) {
+        this.open();
+        this.stream.write(Buffer.from(data.buffer, data.byteOffset, data.byteLength));
+        return true;
+    }
+
+    writeString(data: string) {
+        this.open();
+        this.stream.write(data);
+        return true;
+    }
+
+    end() {
+        if (!this.opened || this.ended) return;
+        this.stream.write(END_OF_TAR);
+        this.stream.end();
+        this.ended = true;
+    }
+
+    constructor(private fn: string, private gzipLevel: number = 6) {
 
     }
 }

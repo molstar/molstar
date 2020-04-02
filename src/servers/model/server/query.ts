@@ -4,20 +4,22 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import * as path from 'path';
 import { Column } from '../../../mol-data/db';
 import { CifWriter } from '../../../mol-io/writer/cif';
-import { StructureQuery, StructureSelection, Structure } from '../../../mol-model/structure';
+import { Structure, StructureQuery, StructureSelection } from '../../../mol-model/structure';
 import { encode_mmCIF_categories } from '../../../mol-model/structure/export/mmcif';
 import { Progress } from '../../../mol-task';
-import { now } from '../../../mol-util/now';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
+import { now } from '../../../mol-util/now';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { ModelServerConfig as Config } from '../config';
+import { createModelPropertiesProviderFromConfig, ModelPropertiesProvider } from '../property-provider';
 import Version from '../version';
 import { Job, JobEntry } from './jobs';
-import { createStructureWrapperFromJobEntry, StructureWrapper, resolveStructures } from './structure-wrapper';
+import { createStructureWrapperFromJobEntry, resolveStructures, StructureWrapper } from './structure-wrapper';
 import CifField = CifWriter.Field
-import { createModelPropertiesProviderFromConfig, ModelPropertiesProvider } from '../property-provider';
+import { splitCamelCase } from '../../../mol-util/string';
 
 export interface Stats {
     structure: StructureWrapper,
@@ -55,6 +57,7 @@ async function resolveSingleFile(job: Job) {
     const headerMap = new Map<string, number>();
 
     for (const entry of job.entries) {
+        let hasDataBlock = false;
         try {
             const structure = await createStructureWrapperFromJobEntry(entry, propertyProvider());
 
@@ -68,12 +71,17 @@ async function resolveSingleFile(job: Job) {
             }
 
             encoder.startDataBlock(header);
+            hasDataBlock = true;
             await resolveJobEntry(entry, structure, encoder);
         } catch (e) {
             if (job.entries.length === 1) {
                 throw e;
             } else {
+                if (!hasDataBlock) {
+                    createErrorDataBlock(entry, encoder);
+                }
                 doError(entry, encoder, e);
+                ConsoleLogger.errorId(entry.job.id, '' + e);
             }
         }
     }
@@ -83,8 +91,8 @@ async function resolveSingleFile(job: Job) {
     encoder.writeTo(job.writer);
 }
 
-function getFilename(i: number, entry: JobEntry, isBinary: boolean) {
-    return `${i}_${entry.entryId}_${entry.queryDefinition.name.replace(/\s/g, '_')}.${isBinary ? 'bcif' : 'cif'}`;
+function getFilename(i: number, entry: JobEntry, header: string, isBinary: boolean) {
+    return `${i}_${header.toLowerCase()}_${splitCamelCase(entry.queryDefinition.name.replace(/\s/g, '_'), '-').toLowerCase()}.${isBinary ? 'bcif' : 'cif'}`;
 }
 
 async function resolveMultiFile(job: Job) {
@@ -99,24 +107,40 @@ async function resolveMultiFile(job: Job) {
             binaryAutoClassifyEncoding: true
         });
 
+        let hasDataBlock = false;
+        let header = '';
         try {
             const structure = await createStructureWrapperFromJobEntry(entry, propertyProvider());
+            header = structure.cifFrame.header;
             encoder.startDataBlock(structure.cifFrame.header);
+            hasDataBlock = true;
             await resolveJobEntry(entry, structure, encoder);
         } catch(e) {
+            if (!hasDataBlock) {
+                header = createErrorDataBlock(entry, encoder);
+            }
+            ConsoleLogger.errorId(entry.job.id, '' + e);
             doError(entry, encoder, e);
         }
 
         ConsoleLogger.logId(job.id, 'Query', `Encoding ${entry.key}/${entry.queryDefinition.name}`);
         encoder.encode();
 
-        job.writer.beginEntry(getFilename(++i, entry, job.responseFormat.isBinary), encoder.getSize());
+        job.writer.beginEntry(getFilename(++i, entry, header, job.responseFormat.isBinary), encoder.getSize());
         encoder.writeTo(job.writer);
         job.writer.endEntry();
         ConsoleLogger.logId(job.id, 'Query', `Written ${entry.key}/${entry.queryDefinition.name}`);
 
         // await fileEntry;
     }
+}
+
+function createErrorDataBlock(job: JobEntry, encoder: CifWriter.Encoder<any>) {
+    let header;
+    if (job.sourceId === '_local_') header = path.basename(job.entryId).replace(/[^a-z0-9\-]/gi, '').toUpperCase();
+    else header = job.entryId.replace(/[^a-z0-9\-]/gi, '').toUpperCase();
+    encoder.startDataBlock(header);
+    return header;
 }
 
 async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, encoder: CifWriter.Encoder<any>) {

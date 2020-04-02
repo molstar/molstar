@@ -171,10 +171,10 @@ const QueryMap = {
                     ? ctx => test.entityTest!(ctx) && ctx.element.unit.conformation.operator.isIdentity
                     : ctx => ctx.element.unit.conformation.operator.isIdentity
             })));
-            return Queries.modifiers.includeSurroundings(center, { radius: p.radius, wholeResidues: true });
+            return Queries.modifiers.includeSurroundings(center, { radius: p.radius !== void 0 ? p.radius : 5, wholeResidues: true });
         },
         structureTransform(p, s) {
-            return StructureSymmetry.builderSymmetryMates(s, p.radius).run();
+            return StructureSymmetry.builderSymmetryMates(s, p.radius !== void 0 ? p.radius : 5).run();
         },
         jsonParams: [ AtomSiteTestJsonParam, RadiusParam ],
         restParams: [ ...AtomSiteTestRestParams, RadiusParam ],

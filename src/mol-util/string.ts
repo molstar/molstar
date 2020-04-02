@@ -11,8 +11,8 @@ export function indentString(str: string, count: number, indent: string) {
 }
 
 /** Add space between camelCase text. */
-export function splitCamelCase(str: string) {
-    return str.replace(/([a-z\xE0-\xFF])([A-Z\xC0\xDF])/g, '$1 $2')
+export function splitCamelCase(str: string, separator = ' ') {
+    return str.replace(/([a-z\xE0-\xFF])([A-Z\xC0\xDF])/g, `$1${separator}$2`)
 }
 
 /** Split camelCase text and capitalize. */

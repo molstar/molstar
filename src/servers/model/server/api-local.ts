@@ -7,19 +7,26 @@
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { now } from '../../../mol-util/now';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
-import { FileResultWriter } from '../utils/writer';
-import { QueryName } from './api';
+import { FileResultWriter, TarballFileResultWriter } from '../utils/writer';
+import { QueryName, QueryParams } from './api';
 import { Job, JobEntry, JobManager } from './jobs';
 import { resolveJob } from './query';
 import { StructureCache } from './structure-wrapper';
 
-export type LocalInput = {
+
+export type Entry<Q extends QueryName = QueryName> = {
     input: string,
-    output: string,
-    query: QueryName,
+    query: Q,
     modelNums?: number[],
-    params?: any,
-    binary?: boolean
+    params?: QueryParams<Q>,
+}
+
+export type LocalInput = {
+    queries: Entry[],
+    output: string,
+    binary?: boolean,
+    asTarGz?: boolean,
+    gzipLevel?: number
 }[];
 
 export async function runLocal(input: LocalInput) {
@@ -31,16 +38,19 @@ export async function runLocal(input: LocalInput) {
     for (const job of input) {
         const binary = /\.bcif/.test(job.output);
         JobManager.add({
-            entries: [JobEntry({
-                entryId: job.input,
-                queryName: job.query,
-                queryParams: job.params || { },
-                modelNums: job.modelNums,
-            })],
-            writer: new FileResultWriter(job.output),
+            entries: job.queries.map(q => JobEntry({
+                entryId: q.input,
+                queryName: q.query,
+                queryParams: q.params || { },
+                modelNums: q.modelNums,
+            })),
+            writer: job.asTarGz
+                ? new TarballFileResultWriter(job.output, job.gzipLevel)
+                : new FileResultWriter(job.output),
             options: {
                 outputFilename: job.output,
-                binary
+                binary,
+                tarball: job.asTarGz
             }
         });
     }
@@ -57,6 +67,8 @@ export async function runLocal(input: LocalInput) {
             job.writer.end();
             ConsoleLogger.logId(job.id, 'Query', 'Written.');
 
+            if (job.entries.length > 0) StructureCache.expireAll();
+
             if (JobManager.hasNext()) {
                 job = JobManager.getNext();
                 if (key !== job.entries[0].key) StructureCache.expire(key);
@@ -66,6 +78,14 @@ export async function runLocal(input: LocalInput) {
             }
         } catch (e) {
             ConsoleLogger.errorId(job.id, e);
+
+            if (JobManager.hasNext()) {
+                job = JobManager.getNext();
+                if (key !== job.entries[0].key) StructureCache.expire(key);
+                key = job.entries[0].key;
+            } else {
+                break;
+            }
         }
         ConsoleLogger.log('Progress', `[${++progress}/${input.length}] after ${PerformanceMonitor.format(now() - started)}.`);
     }

@@ -18,6 +18,7 @@ import { getApiSchema, shortcutIconLink } from './api-schema';
 import { swaggerUiAssetsHandler, swaggerUiIndexHandler } from '../../common/swagger-ui';
 import { MultipleQuerySpec, getMultiQuerySpecFilename } from './api-web-multiple';
 import { SimpleResponseResultWriter, WebResutlWriter, TarballResponseResultWriter } from '../utils/writer';
+import { splitCamelCase } from '../../../mol-util/string';
 
 function makePath(p: string) {
     return Config.apiPrefix + '/' + p;
@@ -47,7 +48,7 @@ async function processNextJob() {
 
 export function createResultWriter(response: express.Response, isBinary: boolean, entryId?: string, queryName?: string) {
     const filenameBase = entryId && queryName
-        ? `${entryId}_${queryName.replace(/\s/g, '_')}`
+        ? `${entryId}_${splitCamelCase(queryName.replace(/\s/g, '_'), '-').toLowerCase()}`
         : `result`;
     return new SimpleResponseResultWriter(isBinary ? `${filenameBase}.bcif` : `${filenameBase}.cif`, response, isBinary);
 }
