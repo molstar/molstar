@@ -35,6 +35,9 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
                 description: StructureHierarchyManager.getSelectedStructuresDescription(this.plugin)
             })
         });
+        this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
+            if (e.cell.transform.transformer === AssemblySymmetry3D) this.forceUpdate();
+        });
         this.subscribe(this.plugin.behaviors.state.isBusy, v => this.setState({ isBusy: v }));
     }
 
