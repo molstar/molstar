@@ -202,13 +202,13 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
                     detailLevel,
                     isRelative: isRelativeParam
-                }, { description: 'Box around last-interacted element.' }),
+                }, { description: 'Box around focused element.' }),
                 'cell': PD.Group({
                     detailLevel,
                     isRelative: isRelativeParam
                 }, { description: 'Box around the structure\'s bounding box.' }),
                 // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.
-            }, { options: VolumeStreaming.ViewTypeOptions, description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Around Interaction" shows the volume around the element/atom last interacted with. "Whole Structure" shows the volume for the whole structure.' })
+            }, { options: VolumeStreaming.ViewTypeOptions, description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Around Focus" shows the volume around the element/atom last interacted with. "Whole Structure" shows the volume for the whole structure.' })
         };
         const options = {
             entry: params.entry.name,
