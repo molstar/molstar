@@ -276,7 +276,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
 
     get actions(): ActionMenu.Items {
         this.props.cell.sourceRef
-        return [ActionMenu.Item('Select This', 'flash', () => this.plugin.managers.structure.selection.fromSelections(this.props.cell.sourceRef!))];
+        return [ActionMenu.Item('Select This', () => this.plugin.managers.structure.selection.fromSelections(this.props.cell.sourceRef!), { icon: 'set' })];
     }
 
     selectAction: ActionMenu.OnSelect = item => {
@@ -300,8 +300,8 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
                 <IconButton className='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' flex title='Actions' toggleState={this.state.showUpdate} />
             </div>
             {this.state.showUpdate && <>
-                <ActionMenu items={this.actions} onSelect={this.selectAction} />
-                <div className='msp-control-offset'>
+                <div className='msp-accent-offset'>
+                    <ActionMenu items={this.actions} onSelect={this.selectAction} noOffset />
                     <ExpandGroup header='Options' noOffset>
                         <UpdateTransformControl state={cell.parent} transform={cell.transform} customHeader='none' autoHideApply />
                     </ExpandGroup>

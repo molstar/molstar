@@ -2,6 +2,7 @@
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as React from 'react'
@@ -36,18 +37,15 @@ export namespace ActionMenu {
     export type OnSelectMany = (itemOrItems: Item[] | undefined) => void
 
     export type Items =  Header | Item | Items[]
-    export type Header = { kind: 'header', label: string, isIndependent?: boolean, initiallyExpanded?: boolean }
-    export type Item = { kind: 'item', label: string, icon?: IconName, disabled?: boolean, selected?: boolean, value: unknown, addOn?: JSX.Element }
+    export type Header = { kind: 'header', label: string, isIndependent?: boolean, initiallyExpanded?: boolean, description?: string }
+    export type Item = { kind: 'item', label: string, icon?: IconName, disabled?: boolean, selected?: boolean, value: unknown, addOn?: JSX.Element, description?: string }
 
-    export function Header(label: string, options?: { isIndependent?: boolean, initiallyExpanded?: boolean }): Header {
+    export function Header(label: string, options?: { isIndependent?: boolean, initiallyExpanded?: boolean, description?: string }): Header {
         return options ? { kind: 'header', label, ...options } : { kind: 'header', label };
     }
 
-    export function Item(label: string, value: unknown): Item
-    export function Item(label: string, icon: IconName, value: unknown): Item
-    export function Item(label: string, iconOrValue: any, value?: unknown): Item {
-        if (value) return { kind: 'item', label, icon: iconOrValue, value };
-        return { kind: 'item', label, value: iconOrValue };
+    export function Item(label: string, value: unknown, options?: { icon?: IconName, description?: string }): Item {
+        return { kind: 'item', label, value, ...options };
     }
 
     export interface CreateItemsParams<T> {
@@ -58,10 +56,11 @@ export namespace ActionMenu {
         icon?: (t: T) => IconName | undefined,
         selected?: (t: T) => boolean | undefined,
         addOn?: (t: T) => JSX.Element | undefined
+        description?: (t: T) => string | undefined,
     }
 
     export function createItems<T>(xs: ArrayLike<T>, params?: CreateItemsParams<T>): Items[] {
-        const { label, value, category, selected, icon, addOn } = params || { };
+        const { label, value, category, selected, icon, addOn, description } = params || { };
         let cats: Map<string, (ActionMenu.Item | ActionMenu.Header)[]> | undefined = void 0;
         const items: (ActionMenu.Item | (ActionMenu.Item | ActionMenu.Header)[])[] = [];
         for (let i = 0; i < xs.length; i++) {
@@ -72,6 +71,7 @@ export namespace ActionMenu {
             const catName = category?.(x);
             const l = label ? label(x) : '' + x;
             const v = value ? value(x) : x;
+            const d = description ? description(x) : '' + x;
 
             let cat: (ActionMenu.Item | ActionMenu.Header)[] | undefined;
             if (!!catName) {
@@ -89,7 +89,7 @@ export namespace ActionMenu {
 
             const ao = addOn?.(x);
 
-            cat!.push({ kind: 'item', label: l, value: v, icon: icon ? icon(x) : void 0, selected: selected ? selected(x) : void 0, addOn: ao });
+            cat!.push({ kind: 'item', label: l, value: v, icon: icon ? icon(x) : void 0, selected: selected ? selected(x) : void 0, addOn: ao, description: d });
         }
         return items;
     }
@@ -185,7 +185,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { header, hasCurrent } = this.state;
 
         return <div className='msp-flex-row msp-control-group-header'>
-            <Button icon={this.state.isExpanded ? 'collapse' : 'expand'} flex noOverflow onClick={this.toggleExpanded}>
+            <Button icon={this.state.isExpanded ? 'collapse' : 'expand'} flex noOverflow onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}.${header?.description ? header?.description : ''}`}>
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </Button>
             <Button icon='check' flex onClick={this.selectAll} style={{ flex: '0 0 50px', textAlign: 'right' }}>
@@ -201,7 +201,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { header, hasCurrent } = this.state;
 
         return <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
-            <Button noOverflow icon={this.state.isExpanded ? 'collapse' : 'expand'} onClick={this.toggleExpanded}>
+            <Button noOverflow icon={this.state.isExpanded ? 'collapse' : 'expand'} onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}.${header?.description ? header?.description : ''}`}>
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </Button>
         </div>;
@@ -236,7 +236,7 @@ const Action: React.FC<{
 
     const style: React.CSSProperties | undefined = item.addOn ? { position: 'relative' } : void 0;
 
-    return <Button icon={item.icon} noOverflow className='msp-action-menu-button' onClick={() => onSelect(multiselect ? [item] : item as any)} disabled={item.disabled} style={style}>
+    return <Button icon={item.icon} noOverflow className='msp-action-menu-button' onClick={() => onSelect(multiselect ? [item] : item as any)} disabled={item.disabled} style={style} title={item.description}>
         {isCurrent || item.selected ? <b>{item.label}</b> : item.label}
         {item.addOn}
     </Button>;

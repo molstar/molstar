@@ -151,7 +151,10 @@ const AssemblySymmetryPresetParams = {
 
 export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-rcsb-assembly-symmetry',
-    display: { name: 'Assembly Symmetry', group: 'Annotation' },
+    display: {
+        name: 'Assembly Symmetry', group: 'Annotation',
+        description: 'Shows Assembly Symmetry axes and cage; colors structure according to assembly symmetry cluster membership. Data calculated with BioJava, obtained via RCSB PDB.'
+    },
     params: () => AssemblySymmetryPresetParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);

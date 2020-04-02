@@ -56,7 +56,10 @@ const reprBuilder = StructureRepresentationPresetProvider.reprBuilder
 
 const auto = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-auto',
-    display: { name: 'Automatic' },
+    display: {
+        name: 'Automatic',
+        description: 'Show representations based on the size of the structure. Smaller structures are shown with more detail than larger ones, ranging from atomistic display to coarse surfaces.'
+    },
     params: () => CommonParams,
     apply(ref, params, plugin) {
         const structure = StateObjectRef.resolveAndCheck(plugin.state.data, ref)?.obj?.data;
@@ -79,7 +82,7 @@ const auto = StructureRepresentationPresetProvider({
 
 const empty = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-empty',
-    display: { name: 'Empty' },
+    display: { name: 'Empty', description: 'Removes all existing representations.' },
     async apply(ref, params, plugin) {
         return {  };
     }
@@ -89,7 +92,10 @@ const BuiltInPresetGroupName = 'Basic'
 
 const polymerAndLigand = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-polymer-and-ligand',
-    display: { name: 'Polymer & Ligand', group: BuiltInPresetGroupName },
+    display: {
+        name: 'Polymer & Ligand', group: BuiltInPresetGroupName,
+        description: 'Shows polymers as Cartoon, ligands as Ball & Stick, carbohydrates as 3D-SNFG and water molecules semi-transparent.'
+    },
     params: () => CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
@@ -122,7 +128,10 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
 
 const proteinAndNucleic = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-protein-and-nucleic',
-    display: { name: 'Protein & Nucleic', group: BuiltInPresetGroupName },
+    display: {
+        name: 'Protein & Nucleic', group: BuiltInPresetGroupName,
+        description: 'Shows proteins as Cartoon and RNA/DNA as Gaussian Surface.'
+    },
     params: () => CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
@@ -146,7 +155,10 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
 
 const coarseSurface = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-coarse-surface',
-    display: { name: 'Coarse Surface', group: BuiltInPresetGroupName },
+    display: {
+        name: 'Coarse Surface', group: BuiltInPresetGroupName,
+        description: 'Shows polymers as coarse Gaussian Surface.'
+    },
     params: () => CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
@@ -184,7 +196,10 @@ const coarseSurface = StructureRepresentationPresetProvider({
 
 const polymerCartoon = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-polymer-cartoon',
-    display: { name: 'Polymer Cartoon', group: BuiltInPresetGroupName },
+    display: {
+        name: 'Polymer Cartoon', group: BuiltInPresetGroupName,
+        description: 'Shows polymers as Cartoon.'
+    },
     params: () => CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
@@ -206,7 +221,10 @@ const polymerCartoon = StructureRepresentationPresetProvider({
 
 const atomicDetail = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-atomic-detail',
-    display: { name: 'Atomic Detail', group: BuiltInPresetGroupName },
+    display: {
+        name: 'Atomic Detail', group: BuiltInPresetGroupName,
+        description: 'Shows everything in atomic detail with Ball & Stick.'
+    },
     params: () => CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);

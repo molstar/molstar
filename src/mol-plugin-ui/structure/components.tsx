@@ -91,7 +91,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
     get presetActions() {
         const pivot = this.plugin.managers.structure.component.pivotStructure;
         const providers = this.plugin.builders.structure.representation.getPresets(pivot?.cell.obj);
-        return ActionMenu.createItems(providers, { label: p => p.display.name, category: p => p.display.group });
+        return ActionMenu.createItems(providers, { label: p => p.display.name, category: p => p.display.group, description: p => p.display.description });
     }
 
     applyPreset: ActionMenu.OnSelect = item => {
@@ -116,9 +116,9 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
             : 'Some mistakes of the past can be undone.';
         return <>
             <div className='msp-flex-row'>
-                <ToggleButton icon='bookmarks' label='Preset' toggle={this.togglePreset} isSelected={this.state.action === 'preset'} disabled={this.isDisabled} />
-                <ToggleButton icon='plus' label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
-                <ToggleButton icon='cog' label='' title='Options' style={{ flex: '0 0 40px', padding: 0 }} toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
+                <ToggleButton icon='bookmarks' label='Preset' title='Apply a representation preset for the current structure(s).' toggle={this.togglePreset} isSelected={this.state.action === 'preset'} disabled={this.isDisabled} />
+                <ToggleButton icon='plus' label='Add' title='Add a new representation component for a selection.' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
+                <ToggleButton icon='cog' label='' title='Options that are applied to all representations.' style={{ flex: '0 0 40px', padding: 0 }} toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
                 <IconButton className='msp-flex-item' flex='40px' onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} icon='back' title={undoTitle} />
             </div>
             {this.state.action === 'preset' && this.presetControls}
@@ -255,13 +255,13 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         if (mng.canBeModified(this.props.group[0])) {
             ret.push([
                 ActionMenu.Header('Modify by Selection'),
-                ActionMenu.Item('Include', 'union', () => mng.modifyByCurrentSelection(this.props.group, 'union')),
-                ActionMenu.Item('Subtract', 'subtract', () => mng.modifyByCurrentSelection(this.props.group, 'subtract')),
-                ActionMenu.Item('Intersect', 'intersect', () => mng.modifyByCurrentSelection(this.props.group, 'intersect'))
+                ActionMenu.Item('Include', () => mng.modifyByCurrentSelection(this.props.group, 'union'), { icon: 'union' }),
+                ActionMenu.Item('Subtract', () => mng.modifyByCurrentSelection(this.props.group, 'subtract'), { icon: 'subtract' }),
+                ActionMenu.Item('Intersect', () => mng.modifyByCurrentSelection(this.props.group, 'intersect'), { icon: 'intersect' })
             ]);
         }
 
-        ret.push(ActionMenu.Item('Select This', 'set', () => mng.selectThis(this.props.group)));
+        ret.push(ActionMenu.Item('Select This', () => mng.selectThis(this.props.group), { icon: 'set' }));
 
         return ret;
     }
@@ -274,7 +274,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     get removeActions(): ActionMenu.Items {
         const ret = [
-            ActionMenu.Item('Remove', 'remove', () => this.plugin.managers.structure.hierarchy.remove(this.props.group, true))
+            ActionMenu.Item('Remove', () => this.plugin.managers.structure.hierarchy.remove(this.props.group, true), { icon: 'remove' })
         ];
 
         const reprs = this.pivot.representations;
@@ -282,7 +282,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
             return ret;
         }
 
-        ret.push(ActionMenu.Item(`Remove Representation${reprs.length > 1 ? 's' : ''}`, 'remove', () => this.plugin.managers.structure.component.removeRepresentations(this.props.group)));
+        ret.push(ActionMenu.Item(`Remove Representation${reprs.length > 1 ? 's' : ''}`, () => this.plugin.managers.structure.component.removeRepresentations(this.props.group), { icon: 'remove' }));
 
         return ret;
     }

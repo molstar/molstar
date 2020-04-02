@@ -41,7 +41,10 @@ const DefaultParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plu
 
 const defaultPreset = TrajectoryHierarchyPresetProvider({
     id: 'preset-trajectory-default',
-    display: { name: 'Default (Assembly)', group: 'Preset' },
+    display: {
+        name: 'Default (Assembly)', group: 'Preset',
+        description: 'Shows the first assembly or, if that is unavailable, the first deposited model.'
+    },
     isApplicable: o => {
         return true
     },
@@ -71,7 +74,10 @@ const defaultPreset = TrajectoryHierarchyPresetProvider({
 
 const allModels = TrajectoryHierarchyPresetProvider({
     id: 'preset-trajectory-all-models',
-    display: { name: 'All Models', group: 'Preset' },
+    display: {
+        name: 'All Models', group: 'Preset',
+        description: 'Shows all models; colored by model-index.'
+    },
     isApplicable: o => {
         return o.data.length > 1
     },
@@ -133,7 +139,10 @@ async function applyCrystalSymmetry(props: { ijkMin: Vec3, ijkMax: Vec3, theme?:
 
 const unitcell = TrajectoryHierarchyPresetProvider({
     id: 'preset-trajectory-unitcell',
-    display: { name: 'Unitcell', group: 'Preset' },
+    display: {
+        name: 'Unitcell', group: 'Preset',
+        description: 'Shows the fully populated unitcell.'
+    },
     isApplicable: o => {
         return Model.hasCrystalSymmetry(o.data[0])
     },
@@ -145,7 +154,10 @@ const unitcell = TrajectoryHierarchyPresetProvider({
 
 const supercell = TrajectoryHierarchyPresetProvider({
     id: 'preset-trajectory-supercell',
-    display: { name: 'Supercell', group: 'Preset' },
+    display: {
+        name: 'Supercell', group: 'Preset',
+        description: 'Shows the supercell, i.e. the central unitcell and all adjacent unitcells.'
+    },
     isApplicable: o => {
         return Model.hasCrystalSymmetry(o.data[0])
     },

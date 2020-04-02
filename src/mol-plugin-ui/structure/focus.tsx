@@ -213,7 +213,7 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
                     {label}
                 </Button>
                 {current && <IconButton onClick={this.clear} icon='cancel' title='Clear' className='msp-form-control' flex disabled={this.isDisabled} />}
-                <ToggleButton icon='book-open' title='Select Target' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
+                <ToggleButton icon='book-open' title='Select a focus target to center on an show its surroundings.' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.showAction && <ActionMenu items={this.actionItems} onSelect={this.selectAction} />}
         </>;

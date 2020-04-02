@@ -290,7 +290,10 @@ const hasClash = StructureSelectionQuery('Residues with Clashes', MS.struct.modi
 
 export const ValidationReportPreset = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-rcsb-validation-report',
-    display: { name: 'Validation Report', group: 'Annotation' },
+    display: {
+        name: 'Validation Report', group: 'Annotation',
+        description: 'Color structure based on geometry quality; show geometry clashes. Data from wwPDB Validation Report, obtained via RCSB PDB.'
+    },
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);

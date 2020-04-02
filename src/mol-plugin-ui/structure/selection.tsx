@@ -114,7 +114,8 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             this.queriesItems = ActionMenu.createItems(registry.list, {
                 filter: q => q !== StructureSelectionQueries.current,
                 label: q => q.label,
-                category: q => q.category
+                category: q => q.category,
+                description: q => q.description
             });
             this.queriesVersion = registry.version
         }
