@@ -142,7 +142,7 @@ function getCircle(state: AngleState, segmentLength?: number) {
 const tmpState = getAngleState()
 
 function getAngleName(data: AngleData) {
-    return data.triples.length === 1 ? angleLabel(data.triples[0], { measureOnly: true }) : `${data.triples.length} Angles`
+    return data.triples.length === 1 ? `Angle ${angleLabel(data.triples[0], { measureOnly: true })}` : `${data.triples.length} Angles`
 }
 
 //

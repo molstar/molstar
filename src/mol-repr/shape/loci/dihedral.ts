@@ -185,7 +185,7 @@ function getCircle(state: DihedralState, segmentLength?: number) {
 const tmpState = getDihedralState()
 
 function getDihedralName(data: DihedralData) {
-    return data.quads.length === 1 ? dihedralLabel(data.quads[0], { measureOnly: true }) : `${data.quads.length} Dihedrals`
+    return data.quads.length === 1 ? `Dihedral ${dihedralLabel(data.quads[0], { measureOnly: true })}` : `${data.quads.length} Dihedrals`
 }
 
 //
