@@ -80,7 +80,9 @@ function _structureElementStatsLabel(stats: StructureElement.Stats, countsOnly =
         return elementLabel(stats.firstResidueLoc, { hidePrefix, condensed, granularity: 'residue', reverse })
     } else if (!countsOnly && elementCount === 0 && residueCount === 0 && chainCount === 1) {
         const { unit } = stats.firstChainLoc
-        const granularity = (Unit.isAtomic(unit) && getResidueCount(unit) === 1) ? 'residue' : 'chain'
+        const granularity = (Unit.isAtomic(unit) && getResidueCount(unit) === 1)
+            ? 'residue' : Unit.Traits.is(unit.traits, Unit.Trait.MultiChain)
+                ? 'residue' : 'chain'
         return elementLabel(stats.firstChainLoc, { hidePrefix, condensed, granularity, reverse })
     } else if (!countsOnly) {
         const label: string[] = []

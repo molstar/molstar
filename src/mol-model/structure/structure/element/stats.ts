@@ -71,9 +71,13 @@ export namespace Stats {
                 Location.set(stats.firstUnitLoc, structure, unit, elements[OrderedSet.start(indices)])
             }
         } else if (size === 1) {
-            stats.elementCount += 1
-            if (stats.elementCount === 1) {
-                Location.set(stats.firstElementLoc, structure, unit, elements[OrderedSet.start(indices)])
+            if (Unit.Traits.is(unit.traits, Unit.Trait.MultiChain)) {
+                return
+            } else {
+                stats.elementCount += 1
+                if (stats.elementCount === 1) {
+                    Location.set(stats.firstElementLoc, structure, unit, elements[OrderedSet.start(indices)])
+                }
             }
         } else {
             if (Unit.isAtomic(unit)) {
