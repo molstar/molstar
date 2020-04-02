@@ -455,7 +455,10 @@ async function update(ctx: UpdateContext) {
 
         for (const d of deletes) {
             const cell = ctx.cells.get(d);
-            if (cell) unlinkCell(cell);
+            if (cell) {
+                cell.parent = void 0;
+                unlinkCell(cell);
+            }
             const obj = cell && cell.obj;
             ctx.cells.delete(d);
             deletedObjects.push(obj);

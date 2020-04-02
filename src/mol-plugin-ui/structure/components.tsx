@@ -298,7 +298,8 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.Interactivity.Object.Highlight(this.plugin, { state: this.props.group[0].cell.parent, ref: this.props.group.map(c => c.cell.transform.ref) });
+        if (this.props.group[0].cell.parent) return;
+        PluginCommands.Interactivity.Object.Highlight(this.plugin, { state: this.props.group[0].cell.parent!, ref: this.props.group.map(c => c.cell.transform.ref) });
     }
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
@@ -382,9 +383,9 @@ class StructureRepresentationEntry extends PurePluginUIComponent<{ group: Struct
     render() {
         const repr = this.props.representation.cell;
         return <div className='msp-representation-entry'>
-            <ExpandGroup header={`${repr.obj?.label || ''} Representation`} noOffset>
+            {repr.parent && <ExpandGroup header={`${repr.obj?.label || ''} Representation`} noOffset>
                 <UpdateTransformControl state={repr.parent} transform={repr.transform} customHeader='none' customUpdate={this.update} noMargin />
-            </ExpandGroup>
+            </ExpandGroup>}
             <IconButton onClick={this.remove} icon='remove' title='Remove' small className='msp-default-bg' style={{
                 position: 'absolute', top: 0, right: '32px', lineHeight: '24px', height: '24px', textAlign: 'right', width: '44px', paddingRight: '6px'
             }} />

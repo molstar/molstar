@@ -279,7 +279,7 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
 ]
 
 function isValidCell(cell?: StateObjectCell): cell is StateObjectCell {
-    if (!cell || !cell.parent.cells.has(cell.transform.ref)) return false;
+    if (!cell || !cell?.parent || !cell.parent.cells.has(cell.transform.ref)) return false;
     const { obj } = cell;
     if (!obj || obj === StateObject.Null || (cell.status !== 'ok' && cell.status !== 'error')) return false;
     return true;

@@ -227,12 +227,12 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
     }
 
     delete = () => {
-        PluginCommands.State.RemoveObject(this.plugin, { state: this.props.cell.parent, ref: this.props.cell.transform.parent, removeParentGhosts: true });
+        PluginCommands.State.RemoveObject(this.plugin, { state: this.props.cell.parent!, ref: this.props.cell.transform.parent, removeParentGhosts: true });
     };
 
     toggleVisibility = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.ToggleVisibility(this.plugin, { state: this.props.cell.parent, ref: this.props.cell.transform.parent });
+        PluginCommands.State.ToggleVisibility(this.plugin, { state: this.props.cell.parent!, ref: this.props.cell.transform.parent });
         e.currentTarget.blur();
     }
 
@@ -299,7 +299,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
                 <IconButton small className='msp-form-control' onClick={this.delete} icon='remove' flex title='Delete' />
                 <IconButton className='msp-form-control' onClick={this.toggleUpdate} icon='dot-3' flex title='Actions' toggleState={this.state.showUpdate} />
             </div>
-            {this.state.showUpdate && <>
+            {this.state.showUpdate && cell.parent && <>
                 <div className='msp-accent-offset'>
                     <ActionMenu items={this.actions} onSelect={this.selectAction} noOffset />
                     <ExpandGroup header='Options' noOffset>

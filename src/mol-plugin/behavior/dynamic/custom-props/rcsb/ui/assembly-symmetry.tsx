@@ -55,6 +55,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
 
     renderEnable() {
         const pivot = this.pivot;
+        if (!pivot.cell.parent) return null;
         return <ApplyActionControl state={pivot.cell.parent} action={InitAssemblySymmetry3D} initiallyCollapsed={true} nodeRef={pivot.cell.transform.ref} simpleApply={{ header: 'Enable', icon: 'check' }} />;
     }
 

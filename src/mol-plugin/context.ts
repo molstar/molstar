@@ -261,7 +261,6 @@ export class PluginContext {
                 if (timeout !== void 0) clearTimeout(timeout);
                 timeout = void 0;
                 if (isBusy.value) {
-                    // console.log('busy false')
                     isBusy.next(false);
                 }
             }

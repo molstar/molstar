@@ -65,7 +65,7 @@ namespace StateObject {
 }
 
 interface StateObjectCell<T extends StateObject = StateObject, F extends StateTransform = StateTransform> {
-    parent: State,
+    parent?: State,
 
     transform: F,
 

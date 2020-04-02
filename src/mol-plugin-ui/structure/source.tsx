@@ -241,7 +241,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         if (selection.structures.length !== 1) return null;
         const s = selection.structures[0];
         const params = s.cell.params?.definition;
-        if (!params) return null;
+        if (!params || !s.cell.parent) return null;
 
         return <UpdateTransformControl state={s.cell.parent} transform={s.cell.transform} customHeader='none' customUpdate={this.updateStructure} noMargin autoHideApply />
     }

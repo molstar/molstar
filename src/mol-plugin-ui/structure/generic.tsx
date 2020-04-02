@@ -78,6 +78,7 @@ export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
+        if (!this.pivot.cell.parent) return;
         PluginCommands.Interactivity.Object.Highlight(this.plugin, {
             state: this.pivot.cell.parent,
             ref: this.props.refs.map(c => c.cell.transform.ref)
@@ -142,7 +143,7 @@ export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<
                 <IconButton className='msp-form-control' onClick={this.toggleVisibility} icon='visual-visibility' toggleState={!pivot.cell.state.isHidden} title={`${pivot.cell.state.isHidden ? 'Show' : 'Hide'}`} small flex />
                 {refs.length === 1 && <IconButton className='msp-form-control' onClick={this.toggleOptions} icon='dot-3' title='Options' toggleState={this.state.showOptions} flex />}
             </div>
-            {(refs.length === 1 && this.state.showOptions) && <>
+            {(refs.length === 1 && this.state.showOptions && pivot.cell.parent) && <>
                 <div className='msp-control-offset'>
                     <UpdateTransformControl state={pivot.cell.parent} transform={pivot.cell.transform} customHeader='none' autoHideApply />
                 </div>
