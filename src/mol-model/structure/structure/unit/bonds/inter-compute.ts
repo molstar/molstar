@@ -125,24 +125,14 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             }
 
             const beI = getElementIdx(type_symbolB.value(bI)!);
-            const isMetal = metalA || MetalsSet.has(beI);
 
             const isHb = isHydrogen(beI);
             if (isHa && isHb) continue;
 
+            const isMetal = (metalA || MetalsSet.has(beI)) && !(isHa || isHb);
+
             const dist = Math.sqrt(squaredDistances[ni]);
             if (dist === 0) continue;
-
-            if (isHa || isHb) {
-                if (dist < props.maxCovalentHydrogenBondingLength) {
-                    // covalent bonds involving a hydrogen are always of order 1
-                    builder.add(_aI, _bI, {
-                        order: 1,
-                        flag: BondType.Flag.Covalent | BondType.Flag.Computed
-                    });
-                }
-                continue;
-            }
 
             const thresholdAB = getElementPairThreshold(aeI, beI);
             const pairingThreshold = thresholdAB > 0

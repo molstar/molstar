@@ -127,7 +127,11 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
             if (altA && altB && altA !== altB) continue;
 
             const beI = getElementIdx(type_symbol.value(bI)!);
-            const isMetal = metalA || MetalsSet.has(beI);
+
+            const isHb = isHydrogen(beI);
+            if (isHa && isHb) continue;
+
+            const isMetal = (metalA || MetalsSet.has(beI)) && !(isHa || isHb);
 
             const rbI = residueIndex[bI];
             // handle "component dictionary" bonds.
@@ -147,21 +151,8 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
                 continue;
             }
 
-            const isHb = isHydrogen(beI);
-            if (isHa && isHb) continue;
-
             const dist = Math.sqrt(squaredDistances[ni]);
             if (dist === 0) continue;
-
-            if (isHa || isHb) {
-                if (dist < props.maxCovalentHydrogenBondingLength) {
-                    atomA[atomA.length] = _aI;
-                    atomB[atomB.length] = _bI;
-                    order[order.length] = 1; // covalent bonds involving hydrogen are always of order 1
-                    flags[flags.length] = BondType.Flag.Covalent | BondType.Flag.Computed;
-                }
-                continue;
-            }
 
             const thresholdAB = getElementPairThreshold(aeI, beI);
             const pairingThreshold = thresholdAB > 0
