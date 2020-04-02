@@ -29,12 +29,13 @@ const Download = PluginStateTransform.BuiltIn({
     params: {
         url: PD.Text('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', { description: 'Resource URL. Must be the same domain or support CORS.' }),
         label: PD.Optional(PD.Text('')),
-        isBinary: PD.Optional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' }))
+        isBinary: PD.Optional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' })),
+        body: PD.Optional(PD.Text(''))
     }
 })({
     apply({ params: p }, globalCtx: PluginContext) {
         return Task.create('Download', async ctx => {
-            const data = await globalCtx.fetch({ url: p.url, type: p.isBinary ? 'binary' : 'string' }).runInContext(ctx);
+            const data = await globalCtx.fetch({ url: p.url, type: p.isBinary ? 'binary' : 'string', body: p.body }).runInContext(ctx);
             return p.isBinary
                 ? new SO.Data.Binary(data as Uint8Array, { label: p.label ? p.label : p.url })
                 : new SO.Data.String(data as string, { label: p.label ? p.label : p.url });
@@ -62,6 +63,7 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
             id: PD.Text('', { label: 'Unique ID' }),
             url: PD.Text('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', { description: 'Resource URL. Must be the same domain or support CORS.' }),
             isBinary: PD.Optional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' })),
+            body: PD.Optional(PD.Text('')),
             canFail: PD.Optional(PD.Boolean(false, { description: 'Indicate whether the download can fail and not be included in the blob as a result.' }))
         }, e => `${e.id}: ${e.url}`),
         maxConcurrency: PD.Optional(PD.Numeric(4, { min: 1, max: 12, step: 1 }, { description: 'The maximum number of concurrent downloads.' }))
