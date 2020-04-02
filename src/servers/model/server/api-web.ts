@@ -156,6 +156,7 @@ export function initWebApi(app: express.Express) {
     });
     app.post(makePath('v1/query-many'), (req, res) => {
         const params = req.body;
+        req.setTimeout
         createMultiJob(params, res);
     });
 

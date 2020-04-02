@@ -56,7 +56,7 @@ function startServer() {
     initWebApi(app);
 
     const port = process.env.port || ServerConfig.defaultPort;
-    app.listen(port);
+    app.listen(port).setTimeout(ServerConfig.requestTimeoutMs);
 
     console.log(`Mol* ModelServer ${Version}`);
     console.log(``);

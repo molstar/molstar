@@ -43,6 +43,11 @@ const DefaultModelServerConfig = {
      */
     queryTimeoutMs: 5 * 1000,
 
+    /**
+     * The maximum number of ms the server spends on a request
+     */
+    requestTimeoutMs: 60 * 1000,
+
     /** Maximum number of requests before "server busy" */
     maxQueueLength: 30,
 
@@ -133,6 +138,12 @@ function addServerArgs(parser: argparse.ArgumentParser) {
         metavar: 'CACHE_TIMEOUT',
         type: 'int',
         help: `Specify in ms how long to keep entries in cache.`
+    });
+    parser.addArgument([ '--requestTimeoutMs' ], {
+        defaultValue: DefaultModelServerConfig.requestTimeoutMs,
+        metavar: 'REQUEST_TIMEOUT',
+        type: 'int',
+        help: `The maximum number of ms the server spends on a request.`
     });
     parser.addArgument([ '--queryTimeoutMs' ], {
         defaultValue: DefaultModelServerConfig.queryTimeoutMs,
