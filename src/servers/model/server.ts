@@ -44,7 +44,14 @@ configureServer();
 
 function startServer() {
     let app = express();
-    app.use(compression(<any>{ level: 6, memLevel: 9, chunkSize: 16 * 16384, filter: () => true }));
+    app.use(compression({
+        level: 6, memLevel: 9, chunkSize: 16 * 16384,
+        filter: (req, res) => {
+            const ct = res.getHeader('Content-Type');
+            if (typeof ct === 'string' && ct.indexOf('tar+gzip') > 0) return false;
+            return true;
+        }
+    }));
 
     initWebApi(app);
 
