@@ -122,7 +122,8 @@ export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere
 
     const { center, radius, extrema } = invariantBoundingSphere
 
-    if (extrema) {
+    // only use extrema if there are not too many transforms
+    if (extrema && transformCount < 50) {
         for (let i = 0, _i = transformCount; i < _i; ++i) {
             for (const e of extrema) {
                 Vec3.transformMat4Offset(v, e, transform, 0, 0, i * 16)
