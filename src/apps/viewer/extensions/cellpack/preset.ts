@@ -65,13 +65,12 @@ export const CellpackMembranePreset = StructureRepresentationPresetProvider({
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};
-        console.log(ref, structureCell)
 
         const reprProps = {
             ignoreHydrogens: true,
         };
         const components = {
-            membrane: await presetStaticComponent(plugin, structureCell, 'all')
+            membrane: await presetStaticComponent(plugin, structureCell, 'all', { label: 'Membrane' })
         };
 
         if (params.representation === 'gaussian-surface') {

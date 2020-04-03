@@ -313,8 +313,7 @@ async function loadHivMembrane(plugin: PluginContext, runtime: RuntimeContext, s
         .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.StructureFromModel)
-    const membraneObj = await state.updateTree(membraneBuilder).runInContext(runtime)
-    console.log(membraneObj.data)
+    await state.updateTree(membraneBuilder).runInContext(runtime)
 
     const membraneParams = {
         representation: params.preset.representation,
