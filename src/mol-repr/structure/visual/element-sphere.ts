@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -17,6 +17,7 @@ export const ElementSphereParams = {
     sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
     ignoreHydrogens: PD.Boolean(false),
+    traceOnly: PD.Boolean(false),
 }
 export type ElementSphereParams = typeof ElementSphereParams
 
@@ -33,7 +34,8 @@ export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<Ele
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementSphereParams>, currentProps: PD.Values<ElementSphereParams>) => {
             state.createGeometry = (
-                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.traceOnly !== currentProps.traceOnly
             )
         }
     }, materialId)
@@ -50,7 +52,8 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.detail !== currentProps.detail ||
-                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.traceOnly !== currentProps.traceOnly
             )
         }
     }, materialId)

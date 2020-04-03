@@ -262,7 +262,7 @@ export function isHydrogen(unit: Unit, element: ElementIndex) {
     return false
 }
 
-function isTrace(unit: Unit, element: ElementIndex) {
+export function isTrace(unit: Unit, element: ElementIndex) {
     if (Unit.isCoarse(unit)) return true
     const atomId = unit.model.atomicHierarchy.atoms.label_atom_id.value(element)
     if (atomId === 'CA' || atomId === 'P') return true

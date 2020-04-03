@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -20,17 +20,18 @@ import { Theme } from '../../../../mol-theme/theme';
 import { StructureGroup } from '../../../../mol-repr/structure/units-visual';
 import { Spheres } from '../../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../../mol-geo/geometry/spheres/spheres-builder';
-import { isHydrogen } from './common';
+import { isHydrogen, isTrace } from './common';
 import { Sphere3D } from '../../../../mol-math/geometry';
 
 export interface ElementSphereMeshProps {
     detail: number,
     sizeFactor: number,
     ignoreHydrogens: boolean,
+    traceOnly: boolean,
 }
 
 export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereMeshProps, mesh?: Mesh): Mesh {
-    const { detail, sizeFactor } = props
+    const { detail, sizeFactor, ignoreHydrogens, traceOnly } = props
 
     const { elements } = unit;
     const elementCount = elements.length;
@@ -43,7 +44,8 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     l.unit = unit
 
     for (let i = 0; i < elementCount; i++) {
-        if (props.ignoreHydrogens && isHydrogen(unit, elements[i])) continue
+        if (ignoreHydrogens && isHydrogen(unit, elements[i])) continue
+        if (traceOnly && !isTrace(unit, elements[i])) continue
 
         l.element = elements[i]
         pos(elements[i], v)
@@ -62,9 +64,11 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
 
 export interface ElementSphereImpostorProps {
     ignoreHydrogens: boolean,
+    traceOnly: boolean
 }
 
 export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereImpostorProps, spheres?: Spheres): Spheres {
+    const { ignoreHydrogens, traceOnly } = props
 
     const { elements } = unit;
     const elementCount = elements.length;
@@ -74,7 +78,8 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     const pos = unit.conformation.invariantPosition
 
     for (let i = 0; i < elementCount; i++) {
-        if (props.ignoreHydrogens && isHydrogen(unit, elements[i])) continue
+        if (ignoreHydrogens && isHydrogen(unit, elements[i])) continue
+        if (traceOnly && !isTrace(unit, elements[i])) continue
 
         pos(elements[i], v)
         builder.add(v[0], v[1], v[2], i)
