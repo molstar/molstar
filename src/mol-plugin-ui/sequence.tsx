@@ -67,14 +67,16 @@ function getSequenceWrapper(state: SequenceViewState, structureSelection: Struct
             if (entitySeq && entitySeq.sequence.length <= MaxDisplaySequenceLength) {
                 sw = new PolymerSequenceWrapper(data)
             } else {
-                if (Unit.isAtomic(unit) || unit.polymerElements.length > MaxDisplaySequenceLength) {
+                const polymerElementCount = units.reduce((a, v) => a + v.polymerElements.length, 0)
+                if (Unit.isAtomic(unit) || polymerElementCount > MaxDisplaySequenceLength) {
                     sw = new ChainSequenceWrapper(data)
                 } else {
                     sw = new ElementSequenceWrapper(data)
                 }
             }
         } else if (Unit.isAtomic(unit)) {
-            if (unit.residueCount > MaxDisplaySequenceLength) {
+            const residueCount = units.reduce((a, v) => a + (v as Unit.Atomic).residueCount, 0)
+            if (residueCount > MaxDisplaySequenceLength) {
                 sw = new ChainSequenceWrapper(data)
             } else {
                 sw = new HeteroSequenceWrapper(data)
