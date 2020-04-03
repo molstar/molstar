@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StateAction, StateBuilder, StateTransformer } from '../../../../mol-state';
+import { StateAction, StateBuilder, StateTransformer, State } from '../../../../mol-state';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { PluginStateObject as PSO } from '../../../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
@@ -305,40 +305,62 @@ async function handleHivRna(ctx: { runtime: RuntimeContext, fetch: AjaxTask }, p
     }
 }
 
+async function loadHivMembrane(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
+    const url = `${params.baseUrl}/membranes/hiv_lipids.bcif`
+    const membraneBuilder = state.build().toRoot()
+        .apply(StateTransforms.Data.Download, { label: 'hiv_lipids', url, isBinary: true }, { state: { isGhost: true } })
+        .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
+        .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
+        .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
+        .apply(StateTransforms.Model.StructureFromModel)
+    await state.updateTree(membraneBuilder).runInContext(runtime)
+
+    const packingParams = {
+        traceOnly: params.preset.traceOnly,
+        polymerOnly: false,
+        representation: params.preset.representation,
+        hue: [0, 0] as [number, number]
+    }
+    const membrane = state.build().to(membraneBuilder.ref)
+    await plugin.updateDataState(membrane, { revertOnError: true });
+    await CellpackPackingsPreset.apply(membrane.selector, packingParams, plugin)
+}
+
+const LoadCellPackModelParams = {
+    source: PD.MappedStatic('id', {
+        'id': PD.Select('influenza_model1.json', [
+            ['blood_hiv_immature_inside.json', 'blood_hiv_immature_inside'],
+            ['BloodHIV1.0_mixed_fixed_nc1.cpr', 'BloodHIV1.0_mixed_fixed_nc1'],
+            ['HIV-1_0.1.6-8_mixed_radii_pdb.cpr', 'HIV-1_0.1.6-8_mixed_radii_pdb'],
+            ['hiv_lipids.bcif', 'hiv_lipids'],
+            ['influenza_model1.json', 'influenza_model1'],
+            ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma1.5_mixed_pdb_fixed'],
+        ] as const),
+        'file': PD.File({ accept: 'id' }),
+    }, { options: [['id', 'Id'], ['file', 'File']] }),
+    baseUrl: PD.Text(DefaultCellPackBaseUrl),
+    preset: PD.Group({
+        traceOnly: PD.Boolean(false),
+        representation: PD.Select('spacefill', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'ellipsoid']))
+    }, { isExpanded: true })
+}
+type LoadCellPackModelParams = PD.Values<typeof LoadCellPackModelParams>
+
 export const LoadCellPackModel = StateAction.build({
-    display: { name: 'Load CellPack Model' },
-    params: {
-        source: PD.MappedStatic('id', {
-            'id': PD.Select('influenza_model1.json', [
-                ['blood_hiv_immature_inside.json', 'blood_hiv_immature_inside'],
-                ['BloodHIV1.0_mixed_fixed_nc1.cpr', 'BloodHIV1.0_mixed_fixed_nc1'],
-                ['HIV-1_0.1.6-8_mixed_radii_pdb.cpr', 'HIV-1_0.1.6-8_mixed_radii_pdb'],
-                ['influenza_model1.json', 'influenza_model1'],
-                ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma1.5_mixed_pdb_fixed'],
-            ] as const),
-            'file': PD.File({ accept: 'id' }),
-        }, { options: [['id', 'Id'], ['file', 'File']] }),
-        // id: PD.Select('influenza_model1.json', [
-        //     ['blood_hiv_immature_inside.json', 'blood_hiv_immature_inside'],
-        //     ['BloodHIV1.0_mixed_fixed_nc1.cpr', 'BloodHIV1.0_mixed_fixed_nc1'],
-        //     ['HIV-1_0.1.6-8_mixed_radii_pdb.cpr', 'HIV-1_0.1.6-8_mixed_radii_pdb'],
-        //     ['influenza_model1.json', 'influenza_model1'],
-        //     ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma1.5_mixed_pdb_fixed'],
-        //     ['curveTest', 'Curve Test'],
-        // ] as const),
-        baseUrl: PD.Text(DefaultCellPackBaseUrl),
-        preset: PD.Group({
-            traceOnly: PD.Boolean(false),
-            representation: PD.Select('spacefill', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'ellipsoid']))
-        }, { isExpanded: true })
-    },
+    display: { name: 'Load CellPack', description: 'Open or download a model' },
+    params: LoadCellPackModelParams,
     from: PSO.Root
 })(({ state, params }, ctx: PluginContext) => Task.create('CellPack Loader', async taskCtx => {
     let cellPackJson: StateBuilder.To<PSO.Format.Json, StateTransformer<PSO.Data.String, PSO.Format.Json>>
     if (params.source.name === 'id') {
-        const url = getCellPackModelUrl(params.source.params, params.baseUrl)
-        cellPackJson = state.build().toRoot()
-            .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.source.params }, { state: { isGhost: true } })
+        if (params.source.params === 'hiv_lipids.bcif') {
+            await loadHivMembrane(ctx, taskCtx, state, params)
+            return
+        } else {
+            const url = getCellPackModelUrl(params.source.params, params.baseUrl)
+            cellPackJson = state.build().toRoot()
+                .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.source.params }, { state: { isGhost: true } })
+        }
     } else {
         const file = params.source.params
         cellPackJson = state.build().toRoot()
@@ -352,16 +374,7 @@ export const LoadCellPackModel = StateAction.build({
     const cellPackObject = await state.updateTree(cellPackBuilder).runInContext(taskCtx)
     const { packings } = cellPackObject.data
 
-    // TODO make configurable
-    // const isHiv = params.source.name === 'id' && (
-    //     params.source.params === 'BloodHIV1.0_mixed_fixed_nc1.cpr' ||
-    //     params.source.params === 'HIV-1_0.1.6-8_mixed_radii_pdb.cpr'
-    // )
-    const isHiv = false
-
-    if (isHiv) {
-        await handleHivRna({ runtime: taskCtx, fetch: ctx.fetch }, packings, params.baseUrl)
-    }
+    await handleHivRna({ runtime: taskCtx, fetch: ctx.fetch }, packings, params.baseUrl)
 
     const colors = distinctColors(packings.length)
     for (let i = 0, il = packings.length; i < il; ++i) {
@@ -374,26 +387,10 @@ export const LoadCellPackModel = StateAction.build({
 
         const packingParams = {
             traceOnly: params.preset.traceOnly,
+            polymerOnly: true,
             representation: params.preset.representation,
             hue
         }
         await CellpackPackingsPreset.apply(packing.selector, packingParams, ctx)
     }
-
-    // TODO
-    // if (isHiv) {
-    //     const url = `${params.baseUrl}/membranes/hiv_lipids.bcif`
-    //     tree.apply(StateTransforms.Data.Download, { label: 'hiv_lipids', url, isBinary: true }, { state: { isGhost: true } })
-    //         .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
-    //         .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
-    //         .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
-    //         .apply(StateTransforms.Model.StructureFromModel, undefined, { state: { isGhost: true } })
-    //         .apply(StateTransforms.Misc.CreateGroup, { label: 'HIV1_envelope_Membrane' })
-    //         .apply(StateTransforms.Representation.StructureRepresentation3D,
-    //             createStructureRepresentationParams(ctx, Structure.Empty, {
-    //                 ...getReprParams(ctx, params.preset),
-    //                 color: UniformColorThemeProvider
-    //             })
-    //         )
-    // }
 }));

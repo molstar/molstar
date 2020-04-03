@@ -29,7 +29,7 @@ export interface TextureVolume<T extends Uint8Array | Float32Array> {
     readonly depth: number
 }
 
-export function createTextureImage<T extends Uint8Array | Float32Array>(n: number, itemSize: number, arrayCtor: new (length: number)=> T, array?: T): TextureImage<T> {
+export function createTextureImage<T extends Uint8Array | Float32Array>(n: number, itemSize: number, arrayCtor: new (length: number) => T, array?: T): TextureImage<T> {
     const { length, width, height } = calculateTextureInfo(n, itemSize)
     array = array && array.length >= length ? array : new arrayCtor(length)
     return { array, width, height }

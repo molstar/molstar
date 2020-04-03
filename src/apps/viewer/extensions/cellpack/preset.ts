@@ -5,11 +5,12 @@
  */
 
 import { StateObjectRef } from '../../../../mol-state';
-import { StructureRepresentationPresetProvider, presetStaticComponent, presetSelectionComponent } from '../../../../mol-plugin-state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider, presetStaticComponent } from '../../../../mol-plugin-state/builder/structure/representation-preset';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 
 export const CellpackPackingsPresetParams = {
     traceOnly: PD.Boolean(true),
+    polymerOnly: PD.Boolean(true),
     representation: PD.Select('gaussian-surface', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'])),
     hue: PD.Interval([0, 360])
 }
@@ -23,30 +24,23 @@ export const CellpackPackingsPreset = StructureRepresentationPresetProvider({
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};
 
-        const reprProps = Object.create(null);
-        const components = Object.create(null);
-
-        let selectionType = 'polymer'
-
-        if (params.traceOnly) {
-            selectionType = 'trace'
-            components.polymer = await presetSelectionComponent(plugin, structureCell, 'trace')
-        } else {
-            components.polymer = await presetStaticComponent(plugin, structureCell, 'polymer')
-        }
+        const reprProps = {
+            ignoreHydrogens: true,
+            traceOnly: params.traceOnly
+        };
+        const components = {
+            structure: params.polymerOnly
+                ? await presetStaticComponent(plugin, structureCell, 'polymer')
+                : await presetStaticComponent(plugin, structureCell, 'all')
+        };
+        const selectionType = params.polymerOnly ? 'polymer' : 'all'
 
         if (params.representation === 'gaussian-surface') {
             Object.assign(reprProps, {
-                quality: 'custom', resolution: 10, radiusOffset: 2,
-                alpha: 1.0, flatShaded: false, doubleSided: false,
-                ignoreHydrogens: true
+                quality: 'custom', resolution: 10, radiusOffset: 2, doubleSided: false
             })
-        } else if (params.representation === 'spacefill') {
-            if (params.traceOnly) {
-                Object.assign(reprProps, { sizeFactor: 2, ignoreHydrogens: true })
-            } else {
-                Object.assign(reprProps, { ignoreHydrogens: true })
-            }
+        } else if (params.representation === 'spacefill' && params.traceOnly) {
+            Object.assign(reprProps, { sizeFactor: 2 })
         }
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
@@ -62,7 +56,7 @@ export const CellpackPackingsPreset = StructureRepresentationPresetProvider({
             }
         }
         const representations = {
-            polymer: builder.buildRepresentation<any>(update, components.polymer, { type: params.representation, typeParams: { ...typeParams, ...reprProps }, color, colorParams }, { tag: selectionType })
+            structure: builder.buildRepresentation<any>(update, components.structure, { type: params.representation, typeParams: { ...typeParams, ...reprProps }, color, colorParams }, { tag: selectionType })
         };
 
         await plugin.updateDataState(update, { revertOnError: true });
