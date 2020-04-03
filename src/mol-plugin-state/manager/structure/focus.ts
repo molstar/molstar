@@ -24,7 +24,7 @@ interface StructureFocusManagerState {
     history: FocusEntry[]
 }
 
-const HISTORY_CAPACITY = 4;
+const HISTORY_CAPACITY = 8;
 
 export class StructureFocusManager extends StatefulPluginComponent<StructureFocusManagerState> {
 
@@ -39,14 +39,12 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
     get current() { return this.state.current; }
     get history() { return this.state.history; }
 
-    /** Adds to history without `.category` */
     private tryAddHistory(entry: FocusEntry) {
-        const { label, loci } = entry
-        if (StructureElement.Loci.isEmpty(loci)) return;
+        if (StructureElement.Loci.isEmpty(entry.loci)) return;
 
         let idx = 0, existingEntry: FocusEntry | undefined = void 0;
         for (const e of this.state.history) {
-            if (StructureElement.Loci.areEqual(e.loci, loci)) {
+            if (StructureElement.Loci.areEqual(e.loci, entry.loci)) {
                 existingEntry = e;
                 break;
             }
@@ -56,12 +54,12 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
         if (existingEntry) {
             // move to top, use new
             arrayRemoveAtInPlace(this.state.history, idx);
-            this.state.history.unshift({ label, loci });
+            this.state.history.unshift(entry);
             this.events.historyUpdated.next();
             return;
         }
 
-        this.state.history.unshift({ label, loci });
+        this.state.history.unshift(entry);
         if (this.state.history.length > HISTORY_CAPACITY) this.state.history.pop();
 
         this.events.historyUpdated.next();

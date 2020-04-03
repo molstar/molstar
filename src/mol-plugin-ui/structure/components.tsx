@@ -118,7 +118,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
             <div className='msp-flex-row'>
                 <ToggleButton icon='bookmarks' label='Preset' title='Apply a representation preset for the current structure(s).' toggle={this.togglePreset} isSelected={this.state.action === 'preset'} disabled={this.isDisabled} />
                 <ToggleButton icon='plus' label='Add' title='Add a new representation component for a selection.' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
-                <ToggleButton icon='cog' label='' title='Options that are applied to all representations.' style={{ flex: '0 0 40px', padding: 0 }} toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
+                <ToggleButton icon='cog' label='' title='Options that are applied to all applicable representations.' style={{ flex: '0 0 40px', padding: 0 }} toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
                 <IconButton className='msp-flex-item' flex='40px' onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} icon='back' title={undoTitle} />
             </div>
             {this.state.action === 'preset' && this.presetControls}

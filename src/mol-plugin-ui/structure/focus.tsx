@@ -115,10 +115,12 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
         const { history } = this.plugin.managers.structure.focus
         if (history.length > 0) {
             historyItems.push([
-                ActionMenu.Header('History'),
+                ActionMenu.Header('History', { description: 'Previously focused on items.' }),
                 ...ActionMenu.createItems(history, {
                     label: f => f.label,
-                    category: f => f.category
+                    description: f => {
+                        return f.label !== f.category ? `${f.category} | ${f.label}` : f.label
+                    }
                 })
             ])
         }
@@ -131,10 +133,11 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
                 const entries = getFocusEntries(d)
                 if (entries.length > 0) {
                     presetItems.push([
-                        ActionMenu.Header(d.label),
+                        ActionMenu.Header(d.label, { description: d.label }),
                         ...ActionMenu.createItems(entries, {
                             label: f => f.label,
-                            category: f => f.category
+                            category: f => f.category,
+                            description: f => f.label
                         })
                     ])
                 }

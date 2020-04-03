@@ -16,7 +16,7 @@ import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observ
 import { Binding } from '../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { EmptyLoci, Loci, isEmptyLoci } from '../../../mol-model/loci';
-import { Structure } from '../../../mol-model/structure';
+import { Structure, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { arrayMax } from '../../../mol-util/array';
 import { Representation } from '../../../mol-repr/representation';
 import { LociLabel } from '../../../mol-plugin-state/manager/loci-label';
@@ -175,7 +175,17 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
     category: 'interaction',
     ctor: class implements PluginBehavior<undefined> {
         private f = {
-            label: (loci: Loci) => lociLabel(loci),
+            label: (loci: Loci) => {
+                const label: string[] = []
+                if (StructureElement.Loci.is(loci) && loci.elements.length === 1) {
+                    const { unit: u } = loci.elements[0]
+                    const l = StructureElement.Location.create(loci.structure, u, u.elements[0])
+                    const name = StructureProperties.entity.pdbx_description(l).join(', ')
+                    label.push(name)
+                }
+                label.push(lociLabel(loci))
+                return label.join('</br>')
+            },
             group: (label: LociLabel) => label.toString().replace(/Model [0-9]+/g, 'Models')
         };
         register() { this.ctx.managers.lociLabels.addProvider(this.f); }

@@ -71,7 +71,8 @@ export namespace ActionMenu {
             const catName = category?.(x);
             const l = label ? label(x) : '' + x;
             const v = value ? value(x) : x;
-            const d = description ? description(x) : '' + x;
+            const d = description ? description(x) :
+                typeof x === 'string' ? x : undefined;
 
             let cat: (ActionMenu.Item | ActionMenu.Header)[] | undefined;
             if (!!catName) {
@@ -79,7 +80,7 @@ export namespace ActionMenu {
 
                 cat = cats.get(catName);
                 if (!cat) {
-                    cat = [ActionMenu.Header(catName)];
+                    cat = [ActionMenu.Header(catName, { description: catName })];
                     cats.set(catName, cat);
                     items.push(cat);
                 }
@@ -185,7 +186,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { header, hasCurrent } = this.state;
 
         return <div className='msp-flex-row msp-control-group-header'>
-            <Button icon={this.state.isExpanded ? 'collapse' : 'expand'} flex noOverflow onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}.${header?.description ? header?.description : ''}`}>
+            <Button icon={this.state.isExpanded ? 'collapse' : 'expand'} flex noOverflow onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}.${header?.description ? ` ${header?.description}` : ''}`}>
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </Button>
             <Button icon='check' flex onClick={this.selectAll} style={{ flex: '0 0 50px', textAlign: 'right' }}>
