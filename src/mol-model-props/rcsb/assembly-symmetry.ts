@@ -8,7 +8,7 @@ import { AssemblySymmetryQuery, AssemblySymmetryQueryVariables } from './graphql
 import query from './graphql/symmetry.gql';
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
-import { CustomPropertyDescriptor, Structure } from '../../mol-model/structure';
+import { CustomPropertyDescriptor, Structure, Model } from '../../mol-model/structure';
 import { Database as _Database, Column } from '../../mol-data/db'
 import { GraphQLClient } from '../../mol-util/graphql-client';
 import { CustomProperty } from '../common/custom-property';
@@ -26,6 +26,18 @@ const BiologicalAssemblyNames = new Set([
     'software_defined_assembly'
 ])
 
+export function isBiologicalAssembly(structure: Structure): boolean {
+    if (!MmcifFormat.is(structure.models[0].sourceData)) return false
+    const mmcif = structure.models[0].sourceData.data.db
+    if (!mmcif.pdbx_struct_assembly.details.isDefined) return false
+    const id = structure.units[0].conformation.operator.assembly?.id || ''
+    if (id === '' || id === 'deposited') return true
+    const indices = Column.indicesOf(mmcif.pdbx_struct_assembly.id, e => e === id)
+    if (indices.length !== 1) return false
+    const details = mmcif.pdbx_struct_assembly.details.value(indices[0])
+    return BiologicalAssemblyNames.has(details)
+}
+
 export namespace AssemblySymmetry {
     export enum Tag {
         Cluster = 'rcsb-assembly-symmetry-cluster',
@@ -35,19 +47,11 @@ export namespace AssemblySymmetry {
     export const DefaultServerUrl = 'https://data-beta.rcsb.org/graphql'
 
     export function isApplicable(structure?: Structure): boolean {
-        // check if structure is from pdb entry
-        if (!structure || structure.models.length !== 1 || !MmcifFormat.is(structure.models[0].sourceData) || (!structure.models[0].sourceData.data.db.database_2.database_id.isDefined &&
-        structure.models[0].entryId.length !== 4)) return false
-
-        // check if assembly is 'biological'
-        const mmcif = structure.models[0].sourceData.data.db
-        if (!mmcif.pdbx_struct_assembly.details.isDefined) return false
-        const id = structure.units[0].conformation.operator.assembly?.id || ''
-        if (id === '' || id === 'deposited') return true
-        const indices = Column.indicesOf(mmcif.pdbx_struct_assembly.id, e => e === id)
-        if (indices.length !== 1) return false
-        const details = mmcif.pdbx_struct_assembly.details.value(indices[0])
-        return BiologicalAssemblyNames.has(details)
+        return (
+            !!structure && structure.models.length === 1 &&
+            Model.isFromPdbArchive(structure.models[0]) &&
+            isBiologicalAssembly(structure)
+        )
     }
 
     export async function fetch(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<AssemblySymmetryDataValue> {

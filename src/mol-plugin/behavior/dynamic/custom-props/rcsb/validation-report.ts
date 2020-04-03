@@ -20,6 +20,7 @@ import { MolScriptBuilder as MS } from '../../../../../mol-script/language/build
 import { Task } from '../../../../../mol-task';
 import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../../../../mol-plugin-state/builder/structure/representation-preset';
 import { StateObjectRef } from '../../../../../mol-state';
+import { Model } from '../../../../../mol-model/structure';
 
 export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'rcsb-validation-report-prop',
@@ -53,7 +54,10 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.representation.structure.registry.add(ClashesRepresentationProvider)
             this.ctx.query.structure.registry.add(hasClash)
-            this.ctx.builders.structure.representation.registerPreset(ValidationReportPreset)
+
+            this.ctx.builders.structure.representation.registerPreset(ValidationReportGeometryQualityPreset)
+            this.ctx.builders.structure.representation.registerPreset(ValidationReportDensityFitPreset)
+            this.ctx.builders.structure.representation.registerPreset(ValidationReportRandomCoilIndexPreset)
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
@@ -78,7 +82,10 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.representation.structure.registry.remove(ClashesRepresentationProvider)
             this.ctx.query.structure.registry.remove(hasClash)
-            this.ctx.builders.structure.representation.unregisterPreset(ValidationReportPreset)
+
+            this.ctx.builders.structure.representation.unregisterPreset(ValidationReportGeometryQualityPreset)
+            this.ctx.builders.structure.representation.unregisterPreset(ValidationReportDensityFitPreset)
+            this.ctx.builders.structure.representation.unregisterPreset(ValidationReportRandomCoilIndexPreset)
         }
     },
     params: () => ({
@@ -99,7 +106,7 @@ function geometryQualityLabel(loci: Loci): string | undefined {
 
             const validationReport = ValidationReportProvider.get(unit.model).value
             if (!validationReport) return
-            if (unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) return
+            if (!unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) return
 
             const { bondOutliers, angleOutliers } = validationReport
             const eI = unit.elements[OrderedSet.start(indices)]
@@ -127,6 +134,7 @@ function geometryQualityLabel(loci: Loci): string | undefined {
         for (const { indices, unit } of loci.elements) {
             const validationReport = ValidationReportProvider.get(unit.model).value
             if (!validationReport) continue
+            if (!unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue
             hasValidationReport = true
 
             const { geometryIssues } = validationReport
@@ -180,7 +188,7 @@ function densityFitLabel(loci: Loci): string | undefined {
         for (const { indices, unit } of loci.elements) {
             const validationReport = ValidationReportProvider.get(unit.model).value
             if (!validationReport) continue
-            if (unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue
+            if (!unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue
 
             const { rsrz, rscc } = validationReport
             const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index
@@ -237,7 +245,7 @@ function randomCoilIndexLabel(loci: Loci): string | undefined {
         for (const { indices, unit } of loci.elements) {
             const validationReport = ValidationReportProvider.get(unit.model).value
             if (!validationReport) continue
-            if (unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue
+            if (!unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue
 
             const { rci } = validationReport
             const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index
@@ -288,11 +296,14 @@ const hasClash = StructureSelectionQuery('Residues with Clashes', MS.struct.modi
 
 //
 
-export const ValidationReportPreset = StructureRepresentationPresetProvider({
-    id: 'preset-structure-representation-rcsb-validation-report',
+export const ValidationReportGeometryQualityPreset = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-rcsb-validation-report-geometry-uality',
     display: {
-        name: 'Validation Report', group: 'Annotation',
+        name: 'Validation Report (Geometry Quality)', group: 'Annotation',
         description: 'Color structure based on geometry quality; show geometry clashes. Data from wwPDB Validation Report, obtained via RCSB PDB.'
+    },
+    isApplicable(a) {
+        return a.data.models.length === 1 && ValidationReport.isApplicable(a.data.models[0])
     },
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
@@ -300,12 +311,11 @@ export const ValidationReportPreset = StructureRepresentationPresetProvider({
         const model = structureCell?.obj?.data.model
         if (!structureCell || !model) return {};
 
-        const colorTheme = GeometryQualityColorThemeProvider.name as any
-
         await plugin.runTask(Task.create('Validation Report', async runtime => {
             await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model)
         }))
 
+        const colorTheme = GeometryQualityColorThemeProvider.name as any
         const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin)
 
         const clashes = await plugin.builders.structure.tryCreateComponentFromExpression(structureCell, hasClash.expression, 'clashes', { label: 'Clashes' })
@@ -319,5 +329,53 @@ export const ValidationReportPreset = StructureRepresentationPresetProvider({
 
         await plugin.updateDataState(update, { revertOnError: false });
         return { components: { ...components, clashes }, representations: { ...representations, clashesBallAndStick, clashesSnfg3d } };
+    }
+});
+
+export const ValidationReportDensityFitPreset = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-rcsb-validation-report-density-fit',
+    display: {
+        name: 'Validation Report (Density Fit)', group: 'Annotation',
+        description: 'Color structure based on density fit. Data from wwPDB Validation Report, obtained via RCSB PDB.'
+    },
+    isApplicable(a) {
+        return a.data.models.length === 1 && ValidationReport.isApplicable(a.data.models[0]) && Model.hasXrayMap(a.data.models[0])
+    },
+    params: () => StructureRepresentationPresetProvider.CommonParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        const model = structureCell?.obj?.data.model
+        if (!structureCell || !model) return {};
+
+        await plugin.runTask(Task.create('Validation Report', async runtime => {
+            await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model)
+        }))
+
+        const colorTheme = DensityFitColorThemeProvider.name as any
+        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin)
+    }
+});
+
+export const ValidationReportRandomCoilIndexPreset = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-rcsb-validation-report-random-coil-index',
+    display: {
+        name: 'Validation Report (Random Coil Index)', group: 'Annotation',
+        description: 'Color structure based on Random Coil Index. Data from wwPDB Validation Report, obtained via RCSB PDB.'
+    },
+    isApplicable(a) {
+        return a.data.models.length === 1 && ValidationReport.isApplicable(a.data.models[0]) && Model.isFromNmr(a.data.models[0])
+    },
+    params: () => StructureRepresentationPresetProvider.CommonParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        const model = structureCell?.obj?.data.model
+        if (!structureCell || !model) return {};
+
+        await plugin.runTask(Task.create('Validation Report', async runtime => {
+            await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model)
+        }))
+
+        const colorTheme = RandomCoilIndexColorThemeProvider.name as any
+        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin)
     }
 });
