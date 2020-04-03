@@ -121,12 +121,16 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
     }
 
     remove(provider: ThemeProvider<T, any>) {
-        this._list.splice(this._list.findIndex(e => e.name === name), 1)
-        const p = this._map.get(name);
+        this._list.splice(this._list.findIndex(e => e.name === provider.name), 1)
+        const p = this._map.get(provider.name);
         if (p) {
-            this._map.delete(name);
+            this._map.delete(provider.name);
             this._name.delete(p);
         }
+    }
+
+    has(provider: ThemeProvider<T, any>): boolean {
+        return this._map.has(provider.name)
     }
 
     get<P extends PD.Params>(name: string): ThemeProvider<T, P> {
@@ -134,7 +138,7 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
     }
 
     getName(provider: ThemeProvider<T, any>): string {
-        if (!this._name.has(provider)) throw new Error(`'${provider.label}' is not a registered represenatation provider.`);
+        if (!this._name.has(provider)) throw new Error(`'${provider.label}' is not a registered theme provider.`);
         return this._name.get(provider)!;
     }
 

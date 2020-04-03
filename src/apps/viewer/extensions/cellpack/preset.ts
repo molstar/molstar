@@ -7,19 +7,19 @@
 import { StateObjectRef } from '../../../../mol-state';
 import { StructureRepresentationPresetProvider, presetStaticComponent } from '../../../../mol-plugin-state/builder/structure/representation-preset';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { ColorNames } from '../../../../mol-util/color/names';
+import { CellPackColorThemeProvider } from './color';
 
-export const CellpackPackingsPresetParams = {
+export const CellpackPackingPresetParams = {
     traceOnly: PD.Boolean(true),
-    polymerOnly: PD.Boolean(true),
     representation: PD.Select('gaussian-surface', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'])),
-    hue: PD.Interval([0, 360])
 }
-export type CellpackPackingsPresetParams = PD.ValuesFor<typeof CellpackPackingsPresetParams>
+export type CellpackPackingPresetParams = PD.ValuesFor<typeof CellpackPackingPresetParams>
 
-export const CellpackPackingsPreset = StructureRepresentationPresetProvider({
-    id: 'preset-structure-representation-cellpack',
-    display: { name: 'CellPack' },
-    params: () => CellpackPackingsPresetParams,
+export const CellpackPackingPreset = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-cellpack-packing',
+    display: { name: 'CellPack Packing' },
+    params: () => CellpackPackingPresetParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};
@@ -29,11 +29,8 @@ export const CellpackPackingsPreset = StructureRepresentationPresetProvider({
             traceOnly: params.traceOnly
         };
         const components = {
-            structure: params.polymerOnly
-                ? await presetStaticComponent(plugin, structureCell, 'polymer')
-                : await presetStaticComponent(plugin, structureCell, 'all')
+            polymer: await presetStaticComponent(plugin, structureCell, 'polymer')
         };
-        const selectionType = params.polymerOnly ? 'polymer' : 'all'
 
         if (params.representation === 'gaussian-surface') {
             Object.assign(reprProps, {
@@ -44,19 +41,48 @@ export const CellpackPackingsPreset = StructureRepresentationPresetProvider({
         }
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
-        const color = 'model-index'
-        const colorParams = {
-            palette: {
-                name: 'generate',
-                params: {
-                    hue: params.hue, chroma: [30, 80], luminance: [15, 85],
-                    clusteringStepCount: 50, minSampleCount: 800,
-                    maxCount: 75
-                }
-            }
-        }
+        const color = CellPackColorThemeProvider.name
         const representations = {
-            structure: builder.buildRepresentation<any>(update, components.structure, { type: params.representation, typeParams: { ...typeParams, ...reprProps }, color, colorParams }, { tag: selectionType })
+            polymer: builder.buildRepresentation<any>(update, components.polymer, { type: params.representation, typeParams: { ...typeParams, ...reprProps }, color }, { tag: 'polymer' })
+        };
+
+        await plugin.updateDataState(update, { revertOnError: true });
+        return { components, representations };
+    }
+});
+
+//
+
+export const CellpackMembranePresetParams = {
+    representation: PD.Select('gaussian-surface', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'])),
+}
+export type CellpackMembranePresetParams = PD.ValuesFor<typeof CellpackMembranePresetParams>
+
+export const CellpackMembranePreset = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-cellpack-membrane',
+    display: { name: 'CellPack Membrane' },
+    params: () => CellpackMembranePresetParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        if (!structureCell) return {};
+        console.log(ref, structureCell)
+
+        const reprProps = {
+            ignoreHydrogens: true,
+        };
+        const components = {
+            membrane: await presetStaticComponent(plugin, structureCell, 'all')
+        };
+
+        if (params.representation === 'gaussian-surface') {
+            Object.assign(reprProps, {
+                quality: 'custom', resolution: 10, radiusOffset: 2, doubleSided: false
+            })
+        }
+
+        const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
+        const representations = {
+            membrane: builder.buildRepresentation(update, components.membrane, { type: 'gaussian-surface', typeParams: { ...typeParams, ...reprProps }, color: 'uniform', colorParams: { value: ColorNames.lightgrey } }, { tag: 'all' })
         };
 
         await plugin.updateDataState(update, { revertOnError: true });

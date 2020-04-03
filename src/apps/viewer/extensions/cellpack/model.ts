@@ -17,8 +17,6 @@ import { Mat4, Vec3, Quat } from '../../../../mol-math/linear-algebra';
 import { SymmetryOperator } from '../../../../mol-math/geometry';
 import { Task, RuntimeContext } from '../../../../mol-task';
 import { StateTransforms } from '../../../../mol-plugin-state/transforms';
-import { distinctColors } from '../../../../mol-util/color/distinct';
-import { Hcl } from '../../../../mol-util/color/spaces/hcl';
 import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl } from './state';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
@@ -27,8 +25,10 @@ import { CifCategory, CifField } from '../../../../mol-io/reader/cif';
 import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { Column } from '../../../../mol-data/db';
 import { createModels } from '../../../../mol-model-formats/structure/basic/parser';
-import { CellpackPackingsPreset } from './preset';
+import { CellpackPackingPreset, CellpackMembranePreset } from './preset';
 import { AjaxTask } from '../../../../mol-util/data-source';
+import { CellPackInfoProvider } from './property';
+import { CellPackColorThemeProvider } from './color';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`
@@ -313,17 +313,57 @@ async function loadHivMembrane(plugin: PluginContext, runtime: RuntimeContext, s
         .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.StructureFromModel)
-    await state.updateTree(membraneBuilder).runInContext(runtime)
+    const membraneObj = await state.updateTree(membraneBuilder).runInContext(runtime)
+    console.log(membraneObj.data)
 
-    const packingParams = {
-        traceOnly: params.preset.traceOnly,
-        polymerOnly: false,
+    const membraneParams = {
         representation: params.preset.representation,
-        hue: [0, 0] as [number, number]
     }
     const membrane = state.build().to(membraneBuilder.ref)
     await plugin.updateDataState(membrane, { revertOnError: true });
-    await CellpackPackingsPreset.apply(membrane.selector, packingParams, plugin)
+    await CellpackMembranePreset.apply(membrane.selector, membraneParams, plugin)
+}
+
+async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
+    let cellPackJson: StateBuilder.To<PSO.Format.Json, StateTransformer<PSO.Data.String, PSO.Format.Json>>
+    if (params.source.name === 'id') {
+        const url = getCellPackModelUrl(params.source.params, params.baseUrl)
+        cellPackJson = state.build().toRoot()
+            .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.source.params }, { state: { isGhost: true } })
+    } else {
+        const file = params.source.params
+        cellPackJson = state.build().toRoot()
+            .apply(StateTransforms.Data.ReadFile, { file, isBinary: false, label: file.name }, { state: { isGhost: true } })
+    }
+
+    const cellPackBuilder = cellPackJson
+        .apply(StateTransforms.Data.ParseJson, undefined, { state: { isGhost: true } })
+        .apply(ParseCellPack)
+
+    const cellPackObject = await state.updateTree(cellPackBuilder).runInContext(runtime)
+    const { packings } = cellPackObject.data
+
+    await handleHivRna({ runtime, fetch: plugin.fetch }, packings, params.baseUrl)
+
+    for (let i = 0, il = packings.length; i < il; ++i) {
+        const p = { packing: i, baseUrl: params.baseUrl }
+
+        const packing = state.build().to(cellPackBuilder.ref).apply(StructureFromCellpack, p)
+        await plugin.updateDataState(packing, { revertOnError: true });
+
+        const structure = packing.selector.obj?.data
+        if (structure) {
+            await CellPackInfoProvider.attach({ fetch: plugin.fetch, runtime }, structure, {
+                info: { packingsCount: packings.length, packingIndex: i }
+            })
+        }
+
+        const packingParams = {
+            traceOnly: params.preset.traceOnly,
+            representation: params.preset.representation,
+        }
+        await CellpackPackingPreset.apply(packing.selector, packingParams, plugin)
+    }
 }
 
 const LoadCellPackModelParams = {
@@ -341,7 +381,7 @@ const LoadCellPackModelParams = {
     baseUrl: PD.Text(DefaultCellPackBaseUrl),
     preset: PD.Group({
         traceOnly: PD.Boolean(false),
-        representation: PD.Select('spacefill', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'ellipsoid']))
+        representation: PD.Select('gaussian-surface', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'ellipsoid']))
     }, { isExpanded: true })
 }
 type LoadCellPackModelParams = PD.Values<typeof LoadCellPackModelParams>
@@ -351,46 +391,13 @@ export const LoadCellPackModel = StateAction.build({
     params: LoadCellPackModelParams,
     from: PSO.Root
 })(({ state, params }, ctx: PluginContext) => Task.create('CellPack Loader', async taskCtx => {
-    let cellPackJson: StateBuilder.To<PSO.Format.Json, StateTransformer<PSO.Data.String, PSO.Format.Json>>
-    if (params.source.name === 'id') {
-        if (params.source.params === 'hiv_lipids.bcif') {
-            await loadHivMembrane(ctx, taskCtx, state, params)
-            return
-        } else {
-            const url = getCellPackModelUrl(params.source.params, params.baseUrl)
-            cellPackJson = state.build().toRoot()
-                .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.source.params }, { state: { isGhost: true } })
-        }
-    } else {
-        const file = params.source.params
-        cellPackJson = state.build().toRoot()
-            .apply(StateTransforms.Data.ReadFile, { file, isBinary: false, label: file.name }, { state: { isGhost: true } })
+    if (!ctx.representation.structure.themes.colorThemeRegistry.has(CellPackColorThemeProvider)) {
+        ctx.representation.structure.themes.colorThemeRegistry.add(CellPackColorThemeProvider)
     }
 
-    const cellPackBuilder = cellPackJson
-        .apply(StateTransforms.Data.ParseJson, undefined, { state: { isGhost: true } })
-        .apply(ParseCellPack)
-
-    const cellPackObject = await state.updateTree(cellPackBuilder).runInContext(taskCtx)
-    const { packings } = cellPackObject.data
-
-    await handleHivRna({ runtime: taskCtx, fetch: ctx.fetch }, packings, params.baseUrl)
-
-    const colors = distinctColors(packings.length)
-    for (let i = 0, il = packings.length; i < il; ++i) {
-        const hcl = Hcl.fromColor(Hcl(), colors[i])
-        const hue = [Math.max(0, hcl[0] - 35), Math.min(360, hcl[0] + 35)] as [number, number]
-        const p = { packing: i, baseUrl: params.baseUrl }
-
-        const packing = state.build().to(cellPackBuilder.ref).apply(StructureFromCellpack, p)
-        await ctx.updateDataState(packing, { revertOnError: true });
-
-        const packingParams = {
-            traceOnly: params.preset.traceOnly,
-            polymerOnly: true,
-            representation: params.preset.representation,
-            hue
-        }
-        await CellpackPackingsPreset.apply(packing.selector, packingParams, ctx)
+    if (params.source.name === 'id' && params.source.params === 'hiv_lipids.bcif') {
+        await loadHivMembrane(ctx, taskCtx, state, params)
+    } else {
+        await loadPackings(ctx, taskCtx, state, params)
     }
 }));
