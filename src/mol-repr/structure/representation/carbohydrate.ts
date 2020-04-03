@@ -45,5 +45,7 @@ export const CarbohydrateRepresentationProvider = StructureRepresentationProvide
     defaultValues: PD.getDefaultValues(CarbohydrateParams),
     defaultColorTheme: { name: 'carbohydrate-symbol' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (structure: Structure) => structure.carbohydrates.elements.length > 0
+    isApplicable: (structure: Structure) => {
+        return structure.models.reduce((a, v) => a + v.properties.saccharideComponentMap.size, 0) > 0
+    }
 })

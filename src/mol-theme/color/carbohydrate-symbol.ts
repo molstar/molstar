@@ -67,5 +67,7 @@ export const CarbohydrateSymbolColorThemeProvider: ColorTheme.Provider<Carbohydr
     factory: CarbohydrateSymbolColorTheme,
     getParams: getCarbohydrateSymbolColorThemeParams,
     defaultValues: PD.getDefaultValues(CarbohydrateSymbolColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.carbohydrates.elements.length > 0
+    isApplicable: (ctx: ThemeDataContext) => {
+        return !!ctx.structure && ctx.structure.models.reduce((a, v) => a + v.properties.saccharideComponentMap.size, 0) > 0
+    }
 }
