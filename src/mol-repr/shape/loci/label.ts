@@ -44,8 +44,8 @@ export type LabelProps = PD.Values<LabelParams>
 
 const tmpSphere = Sphere3D()
 
-function label(info: { loci: Loci, label?: string }) {
-    return info.label || lociLabel(info.loci, { hidePrefix: true, htmlStyling: false })
+function label(info: { loci: Loci, label?: string }, condensed = false) {
+    return info.label || lociLabel(info.loci, { hidePrefix: true, htmlStyling: false, condensed })
 }
 
 function getLabelName(data: LabelData) {
@@ -61,8 +61,8 @@ function buildText(data: LabelData, props: LabelProps, text?: Text): Text {
         const sphere = Loci.getBoundingSphere(info.loci, tmpSphere)
         if (!sphere) continue
         const { center, radius } = sphere
-        const text = label(info)
-        builder.add(text, center[0], center[1], center[2], radius, 1, i)
+        const text = label(info, true)
+        builder.add(text, center[0], center[1], center[2], radius / 0.9, Math.max(1, radius), i)
     }
     return builder.getText()
 }

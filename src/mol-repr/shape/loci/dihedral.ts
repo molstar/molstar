@@ -24,6 +24,7 @@ import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
 import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
 import { dihedralLabel } from '../../../mol-theme/label';
 import { MeasurementRepresentationCommonTextParams } from './common';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 export interface DihedralData {
     quads: Loci.Bundle<4>[]
@@ -95,10 +96,10 @@ export type DihedralProps = PD.Values<DihedralParams>
 
 function getDihedralState() {
     return {
-        pointA: Vec3(),
-        pointB: Vec3(),
-        pointC: Vec3(),
-        pointD: Vec3(),
+        sphereA: Sphere3D(),
+        sphereB: Sphere3D(),
+        sphereC: Sphere3D(),
+        sphereD: Sphere3D(),
 
         dirBA: Vec3(),
         dirCD: Vec3(),
@@ -124,24 +125,24 @@ const tmpMat = Mat4()
 
 // TODO improper dihedrals are not handled correctly
 function setDihedralState(quad: Loci.Bundle<4>, state: DihedralState, arcScale: number) {
-    const { pointA, pointB, pointC, pointD, dirBA, dirCD, projA, projD } = state
+    const { sphereA, sphereB, sphereC, sphereD, dirBA, dirCD, projA, projD } = state
     const { arcPointA, arcPointD, arcDirA, arcDirD, arcCenter, arcNormal } = state
 
     const [lociA, lociB, lociC, lociD] = quad.loci
-    Loci.getCenter(lociA, pointA)
-    Loci.getCenter(lociB, pointB)
-    Loci.getCenter(lociC, pointC)
-    Loci.getCenter(lociD, pointD)
+    Loci.getBoundingSphere(lociA, sphereA)
+    Loci.getBoundingSphere(lociB, sphereB)
+    Loci.getBoundingSphere(lociC, sphereC)
+    Loci.getBoundingSphere(lociD, sphereD)
 
-    Vec3.add(arcCenter, pointB, pointC)
+    Vec3.add(arcCenter, sphereB.center, sphereC.center)
     Vec3.scale(arcCenter, arcCenter, 0.5)
 
-    Vec3.sub(dirBA, pointA, pointB)
-    Vec3.sub(dirCD, pointD, pointC)
+    Vec3.sub(dirBA, sphereA.center, sphereB.center)
+    Vec3.sub(dirCD, sphereD.center, sphereC.center)
     Vec3.add(arcPointA, arcCenter, dirBA)
     Vec3.add(arcPointD, arcCenter, dirCD)
 
-    Vec3.sub(arcNormal, pointC, pointB)
+    Vec3.sub(arcNormal, sphereC.center, sphereB.center)
     Vec3.orthogonalize(arcDirA, arcNormal, dirBA)
     Vec3.orthogonalize(arcDirD, arcNormal, dirCD)
 
@@ -157,15 +158,15 @@ function setDihedralState(quad: Loci.Bundle<4>, state: DihedralState, arcScale: 
     state.radius = radius
     state.angle = Vec3.angle(arcDirA, arcDirD)
 
-    Vec3.matchDirection(tmpVec, arcNormal, Vec3.sub(tmpVec, arcPointA, pointA))
+    Vec3.matchDirection(tmpVec, arcNormal, Vec3.sub(tmpVec, arcPointA, sphereA.center))
     const angleA = Vec3.angle(dirBA, tmpVec)
     const lenA = radius / Math.cos(angleA > halfPI ? angleA - halfPI : angleA)
-    Vec3.add(projA, pointB, Vec3.setMagnitude(tmpVec, dirBA, lenA))
+    Vec3.add(projA, sphereB.center, Vec3.setMagnitude(tmpVec, dirBA, lenA))
 
-    Vec3.matchDirection(tmpVec, arcNormal, Vec3.sub(tmpVec, arcPointD, pointD))
+    Vec3.matchDirection(tmpVec, arcNormal, Vec3.sub(tmpVec, arcPointD, sphereD.center))
     const angleD = Vec3.angle(dirCD, tmpVec)
     const lenD = radius / Math.cos(angleD > halfPI ? angleD - halfPI : angleD)
-    Vec3.add(projD, pointC, Vec3.setMagnitude(tmpVec, dirCD, lenD))
+    Vec3.add(projD, sphereC.center, Vec3.setMagnitude(tmpVec, dirCD, lenD))
 
     return state
 }
@@ -288,7 +289,9 @@ function buildText(data: DihedralData, props: DihedralProps, text?: Text): Text 
 
         const angle = radToDeg(tmpState.angle).toFixed(2)
         const label = `${angle}\u00B0`
-        builder.add(label, tmpVec[0], tmpVec[1], tmpVec[2], 0.1, 1, i)
+        const radius = Math.max(2, tmpState.sphereA.radius, tmpState.sphereB.radius, tmpState.sphereC.radius, tmpState.sphereD.radius)
+        const scale = radius / 2
+        builder.add(label, tmpVec[0], tmpVec[1], tmpVec[2], 0.1, scale, i)
     }
     return builder.getText()
 }

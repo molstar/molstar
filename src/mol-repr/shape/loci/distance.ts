@@ -19,6 +19,7 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
 import { distanceLabel } from '../../../mol-theme/label';
 import { MeasurementRepresentationCommonTextParams } from './common';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 export interface DistanceData {
     pairs: Loci.Bundle<2>[]
@@ -63,8 +64,8 @@ export type DistanceProps = PD.Values<DistanceParams>
 
 function getDistanceState() {
     return {
-        pointA: Vec3(),
-        pointB: Vec3(),
+        sphereA: Sphere3D(),
+        sphereB: Sphere3D(),
 
         center: Vec3(),
         distance: 0,
@@ -73,15 +74,15 @@ function getDistanceState() {
 type DistanceState = ReturnType<typeof getDistanceState>
 
 function setDistanceState(pair: Loci.Bundle<2>, state: DistanceState) {
-    const { pointA, pointB, center } = state
+    const { sphereA, sphereB, center } = state
 
     const [lociA, lociB] = pair.loci
-    Loci.getCenter(lociA, pointA)
-    Loci.getCenter(lociB, pointB)
+    Loci.getBoundingSphere(lociA, sphereA)
+    Loci.getBoundingSphere(lociB, sphereB)
 
-    Vec3.add(center, pointA, pointB)
+    Vec3.add(center, sphereA.center, sphereB.center)
     Vec3.scale(center, center, 0.5)
-    state.distance = Vec3.distance(pointA, pointB)
+    state.distance = Vec3.distance(sphereA.center, sphereB.center)
 
     return state
 }
@@ -98,7 +99,7 @@ function buildLines(data: DistanceData, props: DistanceProps, lines?: Lines): Li
     const builder = LinesBuilder.create(128, 64, lines)
     for (let i = 0, il = data.pairs.length; i < il; ++i) {
         setDistanceState(data.pairs[i], tmpState)
-        builder.addFixedLengthDashes(tmpState.pointA, tmpState.pointB, props.dashLength, i)
+        builder.addFixedLengthDashes(tmpState.sphereA.center, tmpState.sphereB.center, props.dashLength, i)
     }
     return builder.getLines()
 }
@@ -116,9 +117,11 @@ function buildText(data: DistanceData, props: DistanceProps, text?: Text): Text 
     const builder = TextBuilder.create(props, 128, 64, text)
     for (let i = 0, il = data.pairs.length; i < il; ++i) {
         setDistanceState(data.pairs[i], tmpState)
-        const { center, distance } = tmpState
+        const { center, distance, sphereA, sphereB } = tmpState
         const label = `${distance.toFixed(2)} ${props.unitLabel}`
-        builder.add(label, center[0], center[1], center[2], 1, 1, i)
+        const radius = Math.max(2, sphereA.radius, sphereB.radius)
+        const scale = radius / 2
+        builder.add(label, center[0], center[1], center[2], 1, scale, i)
     }
     return builder.getText()
 }

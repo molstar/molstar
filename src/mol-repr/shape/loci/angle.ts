@@ -23,6 +23,7 @@ import { Circle } from '../../../mol-geo/primitive/circle';
 import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
 import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
 import { angleLabel } from '../../../mol-theme/label';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 export interface AngleData {
     triples: Loci.Bundle<3>[]
@@ -88,9 +89,9 @@ export type AngleProps = PD.Values<AngleParams>
 
 function getAngleState() {
     return {
-        pointA: Vec3(),
-        pointB: Vec3(),
-        pointC: Vec3(),
+        sphereA: Sphere3D(),
+        sphereB: Sphere3D(),
+        sphereC: Sphere3D(),
 
         arcDirA: Vec3(),
         arcDirC: Vec3(),
@@ -106,16 +107,16 @@ const tmpVec = Vec3()
 const tmpMat = Mat4()
 
 function setAngleState(triple: Loci.Bundle<3>, state: AngleState, arcScale: number) {
-    const { pointA, pointB, pointC } = state
+    const { sphereA, sphereB, sphereC } = state
     const { arcDirA, arcDirC, arcNormal } = state
 
     const [lociA, lociB, lociC] = triple.loci
-    Loci.getCenter(lociA, pointA)
-    Loci.getCenter(lociB, pointB)
-    Loci.getCenter(lociC, pointC)
+    Loci.getBoundingSphere(lociA, sphereA)
+    Loci.getBoundingSphere(lociB, sphereB)
+    Loci.getBoundingSphere(lociC, sphereC)
 
-    Vec3.sub(arcDirA, pointA, pointB)
-    Vec3.sub(arcDirC, pointC, pointB)
+    Vec3.sub(arcDirA, sphereA.center, sphereB.center)
+    Vec3.sub(arcDirC, sphereC.center, sphereB.center)
     Vec3.cross(arcNormal, arcDirA, arcDirC)
 
     const len = Math.min(Vec3.magnitude(arcDirA), Vec3.magnitude(arcDirC))
@@ -131,8 +132,8 @@ function getCircle(state: AngleState, segmentLength?: number) {
     const { radius, angle } = state
     const segments = segmentLength ? arcLength(angle, radius) / segmentLength : 32
 
-    Mat4.targetTo(tmpMat, state.pointB, state.pointA, state.arcNormal)
-    Mat4.setTranslation(tmpMat, state.pointB)
+    Mat4.targetTo(tmpMat, state.sphereB.center, state.sphereA.center, state.arcNormal)
+    Mat4.setTranslation(tmpMat, state.sphereB.center)
     Mat4.mul(tmpMat, tmpMat, Mat4.rotY180)
 
     const circle = Circle({ radius, thetaLength: angle, segments })
@@ -151,8 +152,8 @@ function buildVectorsLines(data: AngleData, props: AngleProps, lines?: Lines): L
     const builder = LinesBuilder.create(128, 64, lines)
     for (let i = 0, il = data.triples.length; i < il; ++i) {
         setAngleState(data.triples[i], tmpState, props.arcScale)
-        builder.addFixedLengthDashes(tmpState.pointB, tmpState.pointA, props.dashLength, i)
-        builder.addFixedLengthDashes(tmpState.pointB, tmpState.pointC, props.dashLength, i)
+        builder.addFixedLengthDashes(tmpState.sphereB.center, tmpState.sphereA.center, props.dashLength, i)
+        builder.addFixedLengthDashes(tmpState.sphereB.center, tmpState.sphereC.center, props.dashLength, i)
     }
     return builder.getLines()
 }
@@ -223,11 +224,13 @@ function buildText(data: AngleData, props: AngleProps, text?: Text): Text {
 
         Vec3.add(tmpVec, tmpState.arcDirA, tmpState.arcDirC)
         Vec3.setMagnitude(tmpVec, tmpVec, tmpState.radius)
-        Vec3.add(tmpVec, tmpState.pointB, tmpVec)
+        Vec3.add(tmpVec, tmpState.sphereB.center, tmpVec)
 
         const angle = radToDeg(tmpState.angle).toFixed(2)
         const label = `${angle}\u00B0`
-        builder.add(label, tmpVec[0], tmpVec[1], tmpVec[2], 0.1, 1, i)
+        const radius = Math.max(2, tmpState.sphereA.radius, tmpState.sphereB.radius, tmpState.sphereC.radius)
+        const scale = radius / 2
+        builder.add(label, tmpVec[0], tmpVec[1], tmpVec[2], 0.1, scale, i)
     }
     return builder.getText()
 }
