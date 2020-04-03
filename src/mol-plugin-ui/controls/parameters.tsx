@@ -6,7 +6,7 @@
  */
 
 import * as React from 'react';
-import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
+import { Vec2, Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { PluginContext } from '../../mol-plugin/context';
 import { Color } from '../../mol-util/color';
 import { ColorListOptions, ColorListOptionsScale, ColorListOptionsSet, getColorListFromName, ColorListName } from '../../mol-util/color/lists';
@@ -178,6 +178,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'color': return CombinedColorControl;
         case 'color-list': return ColorListControl;
         case 'vec3': return Vec3Control;
+        case 'mat4': return Mat4Control;
         case 'file': return FileControl;
         case 'file-list': return FileListControl;
         case 'select': return SelectControl;
@@ -712,6 +713,55 @@ export class Vec3Control extends React.PureComponent<ParamProps<PD.Vec3>, { isEx
         const value = `[${v[0].toFixed(p)}, ${v[1].toFixed(p)}, ${v[2].toFixed(p)}]`;
         return <>
             <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{value}</button>} />
+            {this.state.isExpanded && <div className='msp-control-offset'>
+                <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} />
+            </div>}
+        </>;
+    }
+}
+
+export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isExpanded: boolean }> {
+    state = { isExpanded: false }
+
+    components = {
+        0: PD.Numeric(0),
+        1: PD.Numeric(0),
+        2: PD.Numeric(0),
+        3: PD.Numeric(0),
+        4: PD.Numeric(0),
+        5: PD.Numeric(0),
+        6: PD.Numeric(0),
+        7: PD.Numeric(0),
+        8: PD.Numeric(0),
+        9: PD.Numeric(0),
+        10: PD.Numeric(0),
+        11: PD.Numeric(0),
+        12: PD.Numeric(0),
+        13: PD.Numeric(0),
+        14: PD.Numeric(0),
+        15: PD.Numeric(0),
+    }
+
+    change(value: PD.MultiSelect<any>['defaultValue']) {
+        this.props.onChange({ name: this.props.name, param: this.props.param, value });
+    }
+
+    componentChange: ParamOnChange = ({ name, value }) => {
+        const v = Mat4.copy(Mat4.zero(), this.props.value);
+        v[+name] = value;
+        this.change(v);
+    }
+
+    toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
+        this.setState({ isExpanded: !this.state.isExpanded });
+        e.currentTarget.blur();
+    }
+
+    render() {
+        const v = this.props.value;
+        const label = this.props.param.label || camelCaseToWords(this.props.name);
+        return <>
+            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{'4\u00D74 Matrix'}</button>} />
             {this.state.isExpanded && <div className='msp-control-offset'>
                 <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} />
             </div>}

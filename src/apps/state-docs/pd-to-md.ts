@@ -21,6 +21,7 @@ function paramInfo(param: PD.Any, offset: number): string {
         case 'color': return 'Color as 0xrrggbb';
         case 'color-list': return `A list of colors as 0xrrggbb`;
         case 'vec3': return `3D vector [x, y, z]`;
+        case 'mat4': return `4x4 transformation matrix`;
         case 'file': return `JavaScript File Handle`;
         case 'file-list': return `JavaScript FileList Handle`;
         case 'select': return `One of ${oToS(param.options)}`;

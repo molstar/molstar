@@ -310,7 +310,7 @@ const StructureCoordinateSystem = PluginStateTransform.BuiltIn({
                 angle: PD.Numeric(0, { min: -180, max: 180, step: 0.1 }),
                 translation: PD.Vec3(Vec3.create(0, 0, 0)),
             }, { isFlat: true }),
-            matrix: PD.Value(Mat4.identity(), { isHidden: true })
+            matrix: PD.Mat4(Mat4.identity())
         }, { label: 'Kind' })
     }
 })({
@@ -353,7 +353,7 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
                 angle: PD.Numeric(0, { min: -180, max: 180, step: 0.1 }),
                 translation: PD.Vec3(Vec3.create(0, 0, 0)),
             }, { isFlat: true }),
-            matrix: PD.Value(Mat4.identity(), { isHidden: true })
+            matrix: PD.Mat4(Mat4.identity())
         }, { label: 'Kind' })
     }
 })({

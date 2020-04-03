@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,7 +7,7 @@
 
 import { Color as ColorData } from './color';
 import { shallowEqualObjects } from './index';
-import { Vec2 as Vec2Data, Vec3 as Vec3Data } from '../mol-math/linear-algebra';
+import { Vec2 as Vec2Data, Vec3 as Vec3Data, Mat4 as Mat4Data, EPSILON } from '../mol-math/linear-algebra';
 import { deepClone } from './object';
 import { Script as ScriptData } from '../mol-script/script';
 import { Legend } from './legend';
@@ -138,6 +138,13 @@ export namespace ParamDefinition {
     }
     export function Vec3(defaultValue: Vec3Data, range?: { min?: number, max?: number, step?: number }, info?: Info): Vec3 {
         return setInfo<Vec3>(setRange({ type: 'vec3', defaultValue }, range), info)
+    }
+
+    export interface Mat4 extends Base<Mat4Data> {
+        type: 'mat4'
+    }
+    export function Mat4(defaultValue: Mat4Data, info?: Info): Mat4 {
+        return setInfo<Mat4>({ type: 'mat4', defaultValue }, info)
     }
 
     export interface FileParam extends Base<File> {
@@ -290,7 +297,7 @@ export namespace ParamDefinition {
     }
 
     export type Any =
-        | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Numeric | FileParam | FileListParam | Interval | LineGraph
+        | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Mat4 | Numeric | FileParam | FileListParam | Interval | LineGraph
         | ColorList | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList
 
     export type Params = { [k: string]: Any }
@@ -385,6 +392,8 @@ export namespace ParamDefinition {
             return true;
         } else if (p.type === 'vec3') {
             return Vec3Data.equals(a, b);
+        } else if (p.type === 'mat4') {
+            return Mat4Data.areEqual(a, b, EPSILON);
         } else if (p.type === 'script') {
             const u = a as Script['defaultValue'], v = b as Script['defaultValue'];
             return u.language === v.language && u.expression === v.expression;
