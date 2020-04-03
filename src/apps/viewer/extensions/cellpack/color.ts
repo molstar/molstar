@@ -31,7 +31,6 @@ export function CellPackColorTheme(ctx: ThemeDataContext, props: PD.Values<CellP
     let legend: ScaleLegend | TableLegend | undefined
 
     const info = ctx.structure && CellPackInfoProvider.get(ctx.structure).value
-    console.log(info)
 
     if (ctx.structure && info) {
         const colors = distinctColors(info.packingsCount)
