@@ -165,8 +165,8 @@ class AddComponentControls extends PurePluginUIComponent<AddComponentControlsPro
     render() {
         return <>
             <ParameterControls params={this.state.params} values={this.state.values} onChangeValues={this.paramsChanged} />
-            <Button icon='plus' className='msp-btn-commit msp-btn-commit-on' onClick={this.apply} style={{ marginTop: '1px' }}>
-                Create Selection
+            <Button icon='plus' title='Use Selection and optional Representation to create a new Component.' className='msp-btn-commit msp-btn-commit-on' onClick={this.apply} style={{ marginTop: '1px' }}>
+                Create Component
             </Button>
         </>;
     }
@@ -298,7 +298,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        if (this.props.group[0].cell.parent) return;
+        if (!this.props.group[0].cell.parent) return;
         PluginCommands.Interactivity.Object.Highlight(this.plugin, { state: this.props.group[0].cell.parent!, ref: this.props.group.map(c => c.cell.transform.ref) });
     }
 
@@ -326,24 +326,24 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         });
     }
 
-    // get reprLabel() {
-    //     // TODO: handle generic reprs.
-    //     const pivot = this.pivot;
-    //     if (pivot.representations.length === 0) return 'No repr.';
-    //     if (pivot.representations.length === 1) return pivot.representations[0].cell.obj?.label;
-    //     return `${pivot.representations.length} reprs`;
-    // }
+    get reprLabel() {
+        // TODO: handle generic reprs.
+        const pivot = this.pivot;
+        if (pivot.representations.length === 0) return 'No repr.';
+        if (pivot.representations.length === 1) return pivot.representations[0].cell.obj?.label;
+        return `${pivot.representations.length} reprs`;
+    }
 
     render() {
         const component = this.pivot;
         const cell = component.cell;
         const label = cell.obj?.label;
-        // const reprLabel = this.reprLabel;
+        const reprLabel = this.reprLabel;
         return <>
             <div className='msp-flex-row'>
                 <Button noOverflow className='msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {label}
-                    {/* <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{reprLabel}</small> */}
+                    <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{reprLabel}</small>
                 </Button>
                 <IconButton onClick={this.toggleVisible} icon='visual-visibility' toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small className='msp-form-control' flex />
                 <IconButton onClick={this.toggleRemove} icon='remove' title='Remove' small toggleState={this.state.action === 'remove'} className='msp-form-control' flex />

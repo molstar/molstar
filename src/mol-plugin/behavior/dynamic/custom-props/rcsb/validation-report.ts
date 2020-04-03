@@ -32,13 +32,15 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
         private provider = ValidationReportProvider
 
-        private label = (loci: Loci): string | undefined => {
-            if (!this.params.showTooltip) return
-            return [
-                geometryQualityLabel(loci),
-                densityFitLabel(loci),
-                randomCoilIndexLabel(loci)
-            ].filter(l => !!l).join('</br>')
+        private labelProvider = {
+            label: (loci: Loci): string | undefined => {
+                if (!this.params.showTooltip) return
+                return [
+                    geometryQualityLabel(loci),
+                    densityFitLabel(loci),
+                    randomCoilIndexLabel(loci)
+                ].filter(l => !!l).join('</br>')
+            }
         }
 
         register(): void {
@@ -46,7 +48,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
 
-            this.ctx.managers.lociLabels.addProvider(this.label);
+            this.ctx.managers.lociLabels.addProvider(this.labelProvider);
 
             this.ctx.representation.structure.themes.colorThemeRegistry.add(DensityFitColorThemeProvider)
             this.ctx.representation.structure.themes.colorThemeRegistry.add(GeometryQualityColorThemeProvider)
@@ -74,7 +76,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
 
-            this.ctx.managers.lociLabels.removeProvider(this.label);
+            this.ctx.managers.lociLabels.removeProvider(this.labelProvider);
 
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(DensityFitColorThemeProvider)
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(GeometryQualityColorThemeProvider)

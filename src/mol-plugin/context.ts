@@ -18,7 +18,7 @@ import { TrajectoryFormatRegistry } from '../mol-plugin-state/formats/trajectory
 import { StructureSelectionQueryRegistry } from '../mol-plugin-state/helpers/structure-selection-query';
 import { CameraManager } from '../mol-plugin-state/manager/camera';
 import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
-import { LociLabelEntry, LociLabelManager } from '../mol-plugin-state/manager/loci-label';
+import { LociLabel, LociLabelManager } from '../mol-plugin-state/manager/loci-label';
 import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
 import { StructureFocusManager } from '../mol-plugin-state/manager/structure/focus';
 import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure/hierarchy';
@@ -99,7 +99,7 @@ export class PluginContext {
             click: this.ev.behavior<InteractivityManager.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 })
         },
         labels: {
-            highlight: this.ev.behavior<{ entries: ReadonlyArray<LociLabelEntry> }>({ entries: [] })
+            highlight: this.ev.behavior<{ labels: ReadonlyArray<LociLabel> }>({ labels: [] })
         },
         layout: {
             leftPanelTabName: this.ev.behavior<LeftPanelTabName>('root')

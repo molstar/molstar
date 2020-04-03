@@ -19,6 +19,7 @@ import { EmptyLoci, Loci, isEmptyLoci } from '../../../mol-model/loci';
 import { Structure } from '../../../mol-model/structure';
 import { arrayMax } from '../../../mol-util/array';
 import { Representation } from '../../../mol-repr/representation';
+import { LociLabel } from '../../../mol-plugin-state/manager/loci-label';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -173,7 +174,10 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
     name: 'default-loci-label-provider',
     category: 'interaction',
     ctor: class implements PluginBehavior<undefined> {
-        private f = (loci: Loci) => lociLabel(loci);
+        private f = {
+            label: (loci: Loci) => lociLabel(loci),
+            group: (label: LociLabel) => label.toString().replace(/Model [0-9]+/g, 'Models')
+        };
         register() { this.ctx.managers.lociLabels.addProvider(this.f); }
         unregister() { this.ctx.managers.lociLabels.removeProvider(this.f); }
         constructor(protected ctx: PluginContext) { }

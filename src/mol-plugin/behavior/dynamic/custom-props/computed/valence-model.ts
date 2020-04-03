@@ -35,41 +35,43 @@ export const ValenceModel = PluginBehavior.create<{ autoAttach: boolean, showToo
             return structures
         }
 
-        private label = (loci: Loci): string | undefined => {
-            if (!this.params.showTooltip) return void 0;
+        private labelProvider = {
+            label: (loci: Loci): string | undefined => {
+                if (!this.params.showTooltip) return void 0;
 
-            switch (loci.kind) {
-                case 'element-loci':
-                    if (loci.elements.length === 0) return void 0;
+                switch (loci.kind) {
+                    case 'element-loci':
+                        if (loci.elements.length === 0) return void 0;
 
-                    const labels: string[] = []
-                    const structures = this.getStructures(loci.structure)
+                        const labels: string[] = []
+                        const structures = this.getStructures(loci.structure)
 
-                    for (const s of structures) {
-                        const valenceModel = this.provider.get(s).value
-                        if (!valenceModel) continue;
+                        for (const s of structures) {
+                            const valenceModel = this.provider.get(s).value
+                            if (!valenceModel) continue;
 
-                        const l = StructureElement.Loci.remap(loci, s)
-                        if (l.elements.length !== 1) continue
+                            const l = StructureElement.Loci.remap(loci, s)
+                            if (l.elements.length !== 1) continue
 
-                        const e = l.elements[0]
-                        if (OrderedSet.size(e.indices) !== 1) continue
+                            const e = l.elements[0]
+                            if (OrderedSet.size(e.indices) !== 1) continue
 
-                        const vm = valenceModel.get(e.unit.id)
-                        if (!vm) continue;
+                            const vm = valenceModel.get(e.unit.id)
+                            if (!vm) continue;
 
-                        const idx = OrderedSet.start(e.indices)
-                        const charge = vm.charge[idx]
-                        const idealGeometry = vm.idealGeometry[idx]
-                        const implicitH = vm.implicitH[idx]
-                        const totalH = vm.totalH[idx]
+                            const idx = OrderedSet.start(e.indices)
+                            const charge = vm.charge[idx]
+                            const idealGeometry = vm.idealGeometry[idx]
+                            const implicitH = vm.implicitH[idx]
+                            const totalH = vm.totalH[idx]
 
-                        labels.push(`Valence Model: <small>Charge</small> ${charge} | <small>Ideal Geometry</small> ${geometryLabel(idealGeometry)} | <small>Implicit H</small> ${implicitH} | <small>Total H</small> ${totalH}`)
-                    }
+                            labels.push(`Valence Model: <small>Charge</small> ${charge} | <small>Ideal Geometry</small> ${geometryLabel(idealGeometry)} | <small>Implicit H</small> ${implicitH} | <small>Total H</small> ${totalH}`)
+                        }
 
-                    return labels.length ? labels.join('<br/>') : undefined;
+                        return labels.length ? labels.join('<br/>') : undefined;
 
-                default: return void 0;
+                    default: return void 0;
+                }
             }
         }
 
@@ -86,12 +88,12 @@ export const ValenceModel = PluginBehavior.create<{ autoAttach: boolean, showToo
 
         register(): void {
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
-            this.ctx.managers.lociLabels.addProvider(this.label);
+            this.ctx.managers.lociLabels.addProvider(this.labelProvider);
         }
 
         unregister() {
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
-            this.ctx.managers.lociLabels.removeProvider(this.label);
+            this.ctx.managers.lociLabels.removeProvider(this.labelProvider);
         }
     },
     params: () => ({

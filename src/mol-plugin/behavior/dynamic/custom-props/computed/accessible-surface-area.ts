@@ -22,9 +22,11 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
         private provider = AccessibleSurfaceAreaProvider
 
-        private label = (loci: Loci): string | undefined => {
-            if (!this.params.showTooltip) return
-            return accessibleSurfaceAreaLabel(loci)
+        private labelProvider = {
+            label: (loci: Loci): string | undefined => {
+                if (!this.params.showTooltip) return
+                return accessibleSurfaceAreaLabel(loci)
+            }
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
@@ -43,7 +45,7 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
 
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
             this.ctx.representation.structure.themes.colorThemeRegistry.add(AccessibleSurfaceAreaColorThemeProvider)
-            this.ctx.managers.lociLabels.addProvider(this.label);
+            this.ctx.managers.lociLabels.addProvider(this.labelProvider);
             this.ctx.query.structure.registry.add(isBuried)
             this.ctx.query.structure.registry.add(isAccessible)
         }
@@ -54,7 +56,7 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
 
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(AccessibleSurfaceAreaColorThemeProvider)
-            this.ctx.managers.lociLabels.removeProvider(this.label);
+            this.ctx.managers.lociLabels.removeProvider(this.labelProvider);
             this.ctx.query.structure.registry.remove(isBuried)
             this.ctx.query.structure.registry.remove(isAccessible)
         }

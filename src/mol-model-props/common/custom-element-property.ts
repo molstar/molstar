@@ -112,18 +112,20 @@ namespace CustomElementProperty {
         }
     }
 
-    function createLabelProvider<T>(modelProperty: CustomModelProperty.Provider<{}, Value<T>>, getLabel: (p: T) => string | undefined) {
-        return function(loci: Loci): string | undefined {
-            if (loci.kind === 'element-loci') {
-                const e = loci.elements[0];
-                if (!e || !e.unit.model.customProperties.hasReference(modelProperty.descriptor)) return
-                const data = modelProperty.get(e.unit.model).value
-                const element = e.unit.elements[OrderedSet.start(e.indices)]
-                const value = data?.get(element)
-                if (value === undefined) return
-                return getLabel(value);
+    function createLabelProvider<T>(modelProperty: CustomModelProperty.Provider<{}, Value<T>>, getLabel: (p: T) => string | undefined): LociLabelProvider {
+        return {
+            label: (loci: Loci) => {
+                if (loci.kind === 'element-loci') {
+                    const e = loci.elements[0];
+                    if (!e || !e.unit.model.customProperties.hasReference(modelProperty.descriptor)) return
+                    const data = modelProperty.get(e.unit.model).value
+                    const element = e.unit.elements[OrderedSet.start(e.indices)]
+                    const value = data?.get(element)
+                    if (value === undefined) return
+                    return getLabel(value);
+                }
+                return
             }
-            return
         }
     }
 }

@@ -11,8 +11,11 @@ import { Representation } from '../../mol-repr/representation';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { arrayRemoveAtInPlace } from '../../mol-util/array';
 
-export type LociLabelEntry = JSX.Element | string
-export type LociLabelProvider = (info: Loci, repr?: Representation<any>) => LociLabelEntry | undefined
+export type LociLabel = JSX.Element | string
+export type LociLabelProvider = {
+    label: (loci: Loci, repr?: Representation<any>) => LociLabel | undefined
+    group?: (entry: LociLabel) => string
+}
 
 export class LociLabelManager {
     providers: LociLabelProvider[] = [];
@@ -43,34 +46,40 @@ export class LociLabelManager {
     }
 
     private isDirty = false
-    private entries: LociLabelEntry[] = []
-    private entriesCounts = new Map<LociLabelEntry, number>()
+    private labels: LociLabel[] = []
+    private groupedLabels = new Map<string, LociLabel[]>()
 
     private showLabels() {
-        this.ctx.behaviors.labels.highlight.next({ entries: this.getEntries() })
+        this.ctx.behaviors.labels.highlight.next({ labels: this.getLabels() })
     }
 
-    private getEntries() {
+    private getLabels() {
         if (this.isDirty) {
-            this.entriesCounts.clear()
-            this.entries.length = 0
+            this.groupedLabels.clear()
+            this.labels.length = 0
             for (const provider of this.providers) {
                 for (const loci of this.locis) {
                     if (Loci.isEmpty(loci.loci)) continue
-                    const entry = provider(loci.loci, loci.repr)
-                    if (entry) {
-                        const count = this.entriesCounts.get(entry) || 0
-                        this.entriesCounts.set(entry, count + 1)
+                    const label = provider.label(loci.loci, loci.repr)
+                    if (label) {
+                        const hash = provider.group ? provider.group(label) : label.toString()
+                        const group = this.groupedLabels.get(hash)
+                        if (group) group.push(label)
+                        else this.groupedLabels.set(hash, [label])
                     }
                 }
             }
-            this.entries.length = 0
-            this.entriesCounts.forEach((count, entry) => {
-                this.entries.push(count === 1 ? entry : `${entry} (\u00D7 ${count})`)
+            this.labels.length = 0
+            this.groupedLabels.forEach((group, hash) => {
+                const count = group.length
+                const entry = count > 1 && group[0] !== group[1]
+                    ? hash : group[0]
+
+                this.labels.push(count === 1 ? entry : `${entry} <small>|| \u00D7 ${count}</small>`)
             })
             this.isDirty = false
         }
-        return this.entries
+        return this.labels
     }
 
     constructor(public ctx: PluginContext) {

@@ -23,22 +23,24 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
 
         private provider = StructureQualityReportProvider
 
-        private labelPDBeValidation = (loci: Loci): string | undefined => {
-            if (!this.params.showTooltip) return void 0;
+        private labelPDBeValidation = {
+            label: (loci: Loci): string | undefined => {
+                if (!this.params.showTooltip) return void 0;
 
-            switch (loci.kind) {
-                case 'element-loci':
-                    if (loci.elements.length === 0) return void 0;
-                    const e = loci.elements[0];
-                    const u = e.unit;
-                    if (!u.model.customProperties.hasReference(StructureQualityReportProvider.descriptor)) return void 0;
+                switch (loci.kind) {
+                    case 'element-loci':
+                        if (loci.elements.length === 0) return void 0;
+                        const e = loci.elements[0];
+                        const u = e.unit;
+                        if (!u.model.customProperties.hasReference(StructureQualityReportProvider.descriptor)) return void 0;
 
-                    const se = StructureElement.Location.create(loci.structure, u, u.elements[OrderedSet.getAt(e.indices, 0)]);
-                    const issues = StructureQualityReport.getIssues(se);
-                    if (issues.length === 0) return 'Validation: No Issues';
-                    return `Validation: ${issues.join(', ')}`;
+                        const se = StructureElement.Location.create(loci.structure, u, u.elements[OrderedSet.getAt(e.indices, 0)]);
+                        const issues = StructureQualityReport.getIssues(se);
+                        if (issues.length === 0) return 'Validation: No Issues';
+                        return `Validation: ${issues.join(', ')}`;
 
-                default: return void 0;
+                    default: return void 0;
+                }
             }
         }
 

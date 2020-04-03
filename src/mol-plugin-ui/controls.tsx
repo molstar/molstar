@@ -9,7 +9,7 @@ import * as React from 'react';
 import { PluginCommands } from '../mol-plugin/commands';
 import { UpdateTrajectory } from '../mol-plugin-state/actions/structure';
 import { PluginUIComponent } from './base';
-import { LociLabelEntry } from '../mol-plugin-state/manager/loci-label';
+import { LociLabel } from '../mol-plugin-state/manager/loci-label';
 import { IconButton } from './controls/common';
 import { PluginStateObject } from '../mol-plugin-state/objects';
 import { StateTransforms } from '../mol-plugin-state/transforms';
@@ -246,20 +246,20 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
     }
 }
 
-export class LociLabels extends PluginUIComponent<{}, { entries: ReadonlyArray<LociLabelEntry> }> {
-    state = { entries: [] }
+export class LociLabels extends PluginUIComponent<{}, { labels: ReadonlyArray<LociLabel> }> {
+    state = { labels: [] }
 
     componentDidMount() {
-        this.subscribe(this.plugin.behaviors.labels.highlight, e => this.setState({ entries: e.entries }));
+        this.subscribe(this.plugin.behaviors.labels.highlight, e => this.setState({ labels: e.labels }));
     }
 
     render() {
-        if (this.state.entries.length === 0) {
+        if (this.state.labels.length === 0) {
             return null;
         }
 
         return <div className='msp-highlight-info'>
-            {this.state.entries.map((e, i) => <div key={'' + i} dangerouslySetInnerHTML={{ __html: e }} />)}
+            {this.state.labels.map((e, i) => <div key={'' + i} dangerouslySetInnerHTML={{ __html: e }} />)}
         </div>;
     }
 }

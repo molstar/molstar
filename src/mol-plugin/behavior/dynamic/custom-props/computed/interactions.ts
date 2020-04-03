@@ -38,51 +38,53 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
             return structures
         }
 
-        private label = (loci: Loci): string | undefined => {
-            if (!this.params.showTooltip) return void 0;
+        private labelProvider = {
+            label: (loci: Loci): string | undefined => {
+                if (!this.params.showTooltip) return void 0;
 
-            switch (loci.kind) {
-                case 'element-loci':
-                    if (loci.elements.length === 0) return void 0;
+                switch (loci.kind) {
+                    case 'element-loci':
+                        if (loci.elements.length === 0) return void 0;
 
-                    const labels: string[] = []
-                    const structures = this.getStructures(loci.structure)
+                        const labels: string[] = []
+                        const structures = this.getStructures(loci.structure)
 
-                    for (const s of structures) {
-                        const interactions = this.provider.get(s).value
-                        if (!interactions) continue;
+                        for (const s of structures) {
+                            const interactions = this.provider.get(s).value
+                            if (!interactions) continue;
 
-                        const l = StructureElement.Loci.remap(loci, s)
-                        if (l.elements.length !== 1) continue
+                            const l = StructureElement.Loci.remap(loci, s)
+                            if (l.elements.length !== 1) continue
 
-                        const e = l.elements[0]
-                        if (OrderedSet.size(e.indices) !== 1) continue
+                            const e = l.elements[0]
+                            if (OrderedSet.size(e.indices) !== 1) continue
 
-                        const features = interactions.unitsFeatures.get(e.unit.id)
-                        if (!features) continue;
+                            const features = interactions.unitsFeatures.get(e.unit.id)
+                            if (!features) continue;
 
-                        const typeLabels: string[] = []
-                        const groupLabels: string[] = []
-                        const label: string[] = []
+                            const typeLabels: string[] = []
+                            const groupLabels: string[] = []
+                            const label: string[] = []
 
-                        const idx = OrderedSet.start(e.indices)
-                        const { types, groups, elementsIndex: { indices, offsets } } = features
-                        for (let i = offsets[idx], il = offsets[idx + 1]; i < il; ++i) {
-                            const f = indices[i]
-                            const type = types[f]
-                            const group = groups[f]
-                            if (type) typeLabels.push(featureTypeLabel(type))
-                            if (group) groupLabels.push(featureGroupLabel(group))
+                            const idx = OrderedSet.start(e.indices)
+                            const { types, groups, elementsIndex: { indices, offsets } } = features
+                            for (let i = offsets[idx], il = offsets[idx + 1]; i < il; ++i) {
+                                const f = indices[i]
+                                const type = types[f]
+                                const group = groups[f]
+                                if (type) typeLabels.push(featureTypeLabel(type))
+                                if (group) groupLabels.push(featureGroupLabel(group))
+                            }
+
+                            if (typeLabels.length) label.push(`<small>Types</small> ${typeLabels.join(', ')}`)
+                            if (groupLabels.length) label.push(`<small>Groups</small> ${groupLabels.join(', ')}`)
+                            if (label.length) labels.push(`Interaction Feature: ${label.join(' | ')}`)
                         }
 
-                        if (typeLabels.length) label.push(`<small>Types</small> ${typeLabels.join(', ')}`)
-                        if (groupLabels.length) label.push(`<small>Groups</small> ${groupLabels.join(', ')}`)
-                        if (label.length) labels.push(`Interaction Feature: ${label.join(' | ')}`)
-                    }
+                        return labels.length ? labels.join('<br/>') : undefined;
 
-                    return labels.length ? labels.join('<br/>') : undefined;
-
-                default: return void 0;
+                    default: return void 0;
+                }
             }
         }
 
@@ -100,14 +102,14 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
         register(): void {
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
             this.ctx.representation.structure.themes.colorThemeRegistry.add(InteractionTypeColorThemeProvider)
-            this.ctx.managers.lociLabels.addProvider(this.label);
+            this.ctx.managers.lociLabels.addProvider(this.labelProvider);
             this.ctx.representation.structure.registry.add(InteractionsRepresentationProvider)
         }
 
         unregister() {
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(InteractionTypeColorThemeProvider)
-            this.ctx.managers.lociLabels.removeProvider(this.label);
+            this.ctx.managers.lociLabels.removeProvider(this.labelProvider);
             this.ctx.representation.structure.registry.remove(InteractionsRepresentationProvider)
         }
     },
