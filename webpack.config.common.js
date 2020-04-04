@@ -36,7 +36,7 @@ const sharedConfig = {
             ],
         }),
         new webpack.DefinePlugin({
-            __VERSION__: JSON.stringify(require('./package.json').version),
+            __VERSION__: webpack.DefinePlugin.runtimeValue(() => JSON.stringify(require('./package.json').version), true),
             __VERSION_TIMESTAMP__: webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true),
             'process.env.DEBUG': JSON.stringify(process.env.DEBUG)
         }),
