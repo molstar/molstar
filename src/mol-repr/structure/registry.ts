@@ -45,7 +45,7 @@ export namespace StructureRepresentationRegistry {
         'putty': PuttyRepresentationProvider,
         'spacefill': SpacefillRepresentationProvider,
     }
-    
+
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn
     export type BuiltInParams<T extends BuiltIn> = Partial<RepresentationProvider.ParamValues<_BuiltIn[T]>>

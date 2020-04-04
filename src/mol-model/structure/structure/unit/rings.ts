@@ -157,11 +157,11 @@ namespace UnitRings {
     /** Creates a mapping ResidueIndex -> list or rings that are on that residue and have one of the specified fingerprints. */
     export function byFingerprintAndResidue(rings: UnitRings, fingerprints: ReadonlyArray<UnitRing.Fingerprint>) {
         const map = new Map<ResidueIndex, Index[]>();
-    
+
         for (let fI = 0, _fI = fingerprints.length; fI < _fI; fI++) {
             const fp = fingerprints[fI];
             addSingleResidueRings(rings, fp, map);
-        }        
+        }
         return map;
     }
 }

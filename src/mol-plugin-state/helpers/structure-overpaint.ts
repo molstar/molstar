@@ -56,7 +56,7 @@ export async function clearStructureOverpaint(plugin: PluginContext, components:
 }
 
 async function eachRepr(plugin: PluginContext, components: StructureComponentRef[], callback: OverpaintEachReprCallback) {
-    const state = plugin.state.data;    
+    const state = plugin.state.data;
     const update = state.build();
     for (const c of components) {
         for (const r of c.representations) {

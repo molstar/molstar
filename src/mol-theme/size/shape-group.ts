@@ -37,7 +37,7 @@ export function ShapeGroupSizeTheme(ctx: ThemeDataContext, props: PD.Values<Shap
 export const ShapeGroupSizeThemeProvider: SizeTheme.Provider<ShapeGroupSizeThemeParams, 'shape-group'> = {
     name: 'shape-group',
     label: 'Shape Group',
-    category: '',    
+    category: '',
     factory: ShapeGroupSizeTheme,
     getParams: getShapeGroupSizeThemeParams,
     defaultValues: PD.getDefaultValues(ShapeGroupSizeThemeParams),

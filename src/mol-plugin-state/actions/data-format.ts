@@ -137,12 +137,12 @@ export const OpenFiles = StateAction.build({
                 const info = getFileInfo(file)
                 const isBinary = plugin.dataFormat.registry.binaryExtensions.has(info.ext)
                 const { data } = await plugin.builders.data.readFile({ file, isBinary });
-                //const data = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file, isBinary });
+                // const data = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file, isBinary });
                 // const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
                 const provider = params.format === 'auto'
                     ? plugin.dataFormat.registry.auto(info, data.cell?.obj!)
                     : plugin.dataFormat.registry.get(params.format)
-                
+
                 // need to await so that the enclosing Task finishes after the update is done.
                 await provider.getDefaultBuilder(plugin, data, { visuals: params.visuals }, state).runInContext(taskCtx)
             } catch (e) {

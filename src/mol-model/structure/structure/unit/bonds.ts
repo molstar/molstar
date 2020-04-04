@@ -19,7 +19,7 @@ export * from './bonds/inter-compute'
 namespace Bond {
     export interface Location<U extends Unit = Unit> {
         readonly kind: 'bond-location',
-        
+
         aStructure: Structure,
         aUnit: U,
         /** Index into aUnit.elements */

@@ -84,12 +84,12 @@ function addServerArgs(parser: argparse.ArgumentParser) {
 }
 
 function addJsonConfigArgs(parser: argparse.ArgumentParser) {
-    parser.addArgument(['--cfg'], { 
+    parser.addArgument(['--cfg'], {
         help: [
             'JSON config file path',
             'If a property is not specified, cmd line param/OS variable/default value are used.'
         ].join('\n'),
-        required: false 
+        required: false
     });
     parser.addArgument(['--printCfg'], { help: 'Print current config for validation and exit.', required: false, nargs: 0 });
     parser.addArgument(['--cfgTemplate'], { help: 'Prints default JSON config template to be modified and exits.', required: false, nargs: 0 });
@@ -169,25 +169,25 @@ export function configureServer() {
         console.log(JSON.stringify(ServerConfigTemplate, null, 2));
         process.exit(0);
     }
-    
+
     try {
         setConfig(config) // sets the config for global use
-    
+
         if (config.cfg) {
             const cfg = JSON.parse(fs.readFileSync(config.cfg, 'utf8')) as FullServerConfig;
             setConfig(cfg);
         }
-    
+
         if (config.printCfg !== null) {
             console.log(JSON.stringify({ ...ServerConfig, ...LimitsConfig }, null, 2));
             process.exit(0);
         }
-    
+
         validateServerConfig();
     } catch (e) {
         console.error('' + e);
         process.exit(1);
-    }    
+    }
 }
 
 export function configureLocal() {
@@ -207,23 +207,23 @@ export function configureLocal() {
         console.log(JSON.stringify(DefaultLimitsConfig, null, 2));
         process.exit(0);
     }
-    
+
     try {
         setLimitsConfig(config) // sets the config for global use
-    
+
         if (config.cfg) {
             const cfg = JSON.parse(fs.readFileSync(config.cfg, 'utf8')) as FullServerConfig;
             setLimitsConfig(cfg);
         }
-    
+
         if (config.printCfg !== null) {
             console.log(JSON.stringify(LimitsConfig, null, 2));
             process.exit(0);
         }
-    
+
         return config as LimitsConfig & { jobs: string, jobsTemplate: any };
     } catch (e) {
         console.error('' + e);
         process.exit(1);
-    }    
+    }
 }

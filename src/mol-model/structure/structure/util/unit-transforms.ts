@@ -18,9 +18,9 @@ export class StructureUnitTransforms {
     private unitOffsetMap = IntMap.Mutable<number>();
     private groupIndexMap = IntMap.Mutable<number>();
     private size: number;
-    
+
     private _isIdentity: boolean | undefined = undefined;
-    
+
     version = 0;
 
     constructor(readonly structure: Structure) {

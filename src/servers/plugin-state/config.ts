@@ -21,8 +21,8 @@ export function getConfig() {
     cmdParser.addArgument(['--port'], { help: 'Server port. Altenatively use ENV variable PORT.', type: 'int', required: false });
     cmdParser.addArgument(['--api-prefix'], { help: 'Server API prefix.', defaultValue: '', required: false });
     cmdParser.addArgument(['--max-states'], { help: 'Maxinum number of states that could be saved.', defaultValue: 40, type: 'int', required: false });
-    
-    const config = cmdParser.parseArgs() as Config;    
+
+    const config = cmdParser.parseArgs() as Config;
     if (!config.port) config.port = process.env.port || 1339;
     return config;
 }

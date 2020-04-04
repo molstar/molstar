@@ -116,7 +116,7 @@ function processResidue(state: State, start: number, end: number) {
         arraySetAdd(altLocs, altLoc);
     }
     arraySetRemove(altLocs, '');
-    
+
     if (altLocs.length === 0) {
         resetState(state);
         for (let i = 0; i < state.count; i++) {

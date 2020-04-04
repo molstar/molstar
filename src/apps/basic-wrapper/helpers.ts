@@ -63,7 +63,7 @@ export namespace StateHelper {
     }
 
     export function transform(b: StateBuilder.To<PSO.Molecule.Structure>, matrix: Mat4) {
-        return b.apply(StateTransforms.Model.TransformStructureConformation, { 
+        return b.apply(StateTransforms.Model.TransformStructureConformation, {
             transform: { name: 'matrix', params: matrix }
         }, { tags: 'transform' });
     }

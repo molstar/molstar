@@ -35,11 +35,11 @@ class StateActionManager {
     }
 
     remove(actionOrTransformer: StateAction | StateTransformer | UUID) {
-        const id = StateTransformer.is(actionOrTransformer) 
-            ? actionOrTransformer.toAction().id 
+        const id = StateTransformer.is(actionOrTransformer)
+            ? actionOrTransformer.toAction().id
             : UUID.is(actionOrTransformer)
-            ? actionOrTransformer
-            : actionOrTransformer.id;
+                ? actionOrTransformer
+                : actionOrTransformer.id;
 
         const action = this.actions.get(id);
         if (!action) return this;

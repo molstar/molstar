@@ -47,8 +47,8 @@ function readIndex() {
 function validateIndex(index: Index) {
     if (index.length > Config.max_states) {
         const deletes: Index = [], newIndex: Index = [];
-        const toDelete = index.length - Config.max_states; 
-        
+        const toDelete = index.length - Config.max_states;
+
         for (const e of index) {
             if (!e.isSticky && deletes.length < toDelete) {
                 deletes.push(e);
@@ -71,7 +71,7 @@ function remove(id: string) {
     let index = readIndex();
     let i = 0;
     for (const e of index) {
-        if (e.id !== id) {            
+        if (e.id !== id) {
             i++;
             continue;
         }
