@@ -76,9 +76,8 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     focus = () => {
         if (this.plugin.managers.structure.selection.stats.elementCount === 0) return;
-        const principalAxes = this.plugin.managers.structure.selection.getPrincipalAxes();
         const { sphere } = this.plugin.managers.structure.selection.getBoundary();
-        this.plugin.managers.camera.focusSphere(sphere, { principalAxes });
+        this.plugin.managers.camera.focusSphere(sphere);
     }
 
     setProps = (props: any) => {
@@ -132,6 +131,17 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     toggleSet = this.showAction('set')
     toggleColor = this.showAction('color')
 
+    highlight = (e: React.MouseEvent<HTMLElement>) => {
+        this.plugin.managers.interactivity.lociHighlights.clearHighlights();
+        this.plugin.managers.structure.selection.entries.forEach(e => {
+            this.plugin.managers.interactivity.lociHighlights.highlight({ loci: e.selection }, false);
+        })
+    }
+
+    clearHighlight = () => {
+        this.plugin.managers.interactivity.lociHighlights.clearHighlights();
+    }
+
     get controls() {
         return <>
             <div className='msp-flex-row'>
@@ -170,7 +180,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             <ParameterControls params={StructureSelectionParams} values={this.values} onChangeValues={this.setProps} />
             {this.controls}
             <div className='msp-flex-row' style={{ margin: '6px 0' }}>
-                <Button noOverflow onClick={this.focus} title='Click to Focus Selection' disabled={empty}
+                <Button noOverflow onClick={this.focus} title='Click to Focus Selection' disabled={empty} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}
                     style={{ textAlignLast: !empty ? 'left' : void 0 }}>
                     {this.stats}
                 </Button>

@@ -119,7 +119,9 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
                 ...ActionMenu.createItems(history, {
                     label: f => f.label,
                     description: f => {
-                        return f.label !== f.category ? `${f.category} | ${f.label}` : f.label
+                        return f.category && f.label !== f.category
+                            ? `${f.category} | ${f.label}`
+                            : f.label
                     }
                 })
             ])
