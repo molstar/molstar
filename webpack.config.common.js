@@ -36,7 +36,8 @@ const sharedConfig = {
             ],
         }),
         new webpack.DefinePlugin({
-            __PLUGIN_VERSION_TIMESTAMP__: webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true),
+            __VERSION__: JSON.stringify(require('./package.json').version),
+            __VERSION_TIMESTAMP__: webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true),
             'process.env.DEBUG': JSON.stringify(process.env.DEBUG)
         }),
         new MiniCssExtractPlugin({ filename: 'app.css' })
