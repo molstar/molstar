@@ -18,7 +18,9 @@ const sharedConfig = {
                 test: /\.(s*)css$/,
                 use: [
                     MiniCssExtractPlugin.loader,
-                    'css-loader', 'resolve-url-loader', 'sass-loader'
+                    { loader: 'css-loader', options: { sourceMap: false } },
+                    { loader: 'resolve-url-loader', options: { sourceMap: false } },
+                    { loader: 'sass-loader', options: { sourceMap: false } },
                 ]
             }
         ]
@@ -53,7 +55,6 @@ const sharedConfig = {
     },
     devtool: ''
 }
-
 
 function createEntry(src, outFolder, outFilename, isNode) {
     return {
