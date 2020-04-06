@@ -1011,8 +1011,9 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
     }
 }
 
-class ObjectListEditor extends React.PureComponent<{ params: PD.Params, value: object, isUpdate?: boolean, apply: (value: any) => void, isDisabled?: boolean }, { params: PD.Params, value: object, current: object }> {
-    state = { params: {}, value: void 0 as any, current: void 0 as any };
+type ObjectListEditorProps = { params: PD.Params, value: object, isUpdate?: boolean, apply: (value: any) => void, isDisabled?: boolean }
+class ObjectListEditor extends React.PureComponent<ObjectListEditorProps, { current: object }> {
+    state = { current: void 0 as any };
 
     onChangeParam: ParamOnChange = e => {
         this.setState({ current: { ...this.state.current, [e.name]: e.value } });
@@ -1022,13 +1023,10 @@ class ObjectListEditor extends React.PureComponent<{ params: PD.Params, value: o
         this.props.apply(this.state.current);
     }
 
-    static getDerivedStateFromProps(props: _Props<ObjectListEditor>, state: _State<ObjectListEditor>): _State<ObjectListEditor> | null {
-        if (props.params === state.params && props.value === state.value) return null;
-        return {
-            params: props.params,
-            value: props.value,
-            current: props.value
-        };
+    componentDidUpdate(prevProps: ObjectListEditorProps) {
+        if (this.props.params !== prevProps.params || this.props.value !== prevProps.value) {
+            this.setState({ current: this.props.value });
+        }
     }
 
     render() {
@@ -1041,7 +1039,8 @@ class ObjectListEditor extends React.PureComponent<{ params: PD.Params, value: o
     }
 }
 
-class ObjectListItem extends React.PureComponent<{ param: PD.ObjectList, value: object, index: number, actions: ObjectListControl['actions'], isDisabled?: boolean }, { isExpanded: boolean }> {
+type ObjectListItemProps = { param: PD.ObjectList, value: object, index: number, actions: ObjectListControl['actions'], isDisabled?: boolean }
+class ObjectListItem extends React.PureComponent<ObjectListItemProps, { isExpanded: boolean }> {
     state = { isExpanded: false };
 
     update = (v: object) => {
@@ -1066,15 +1065,6 @@ class ObjectListItem extends React.PureComponent<{ param: PD.ObjectList, value: 
         this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
     };
-
-    static getDerivedStateFromProps(props: _Props<ObjectListEditor>, state: _State<ObjectListEditor>): _State<ObjectListEditor> | null {
-        if (props.params === state.params && props.value === state.value) return null;
-        return {
-            params: props.params,
-            value: props.value,
-            current: props.value
-        };
-    }
 
     render() {
         return <>

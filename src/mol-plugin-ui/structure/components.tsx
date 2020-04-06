@@ -15,7 +15,6 @@ import { ActionMenu } from '../controls/action-menu';
 import { ExpandGroup, IconButton, ToggleButton, Button } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
-import { PluginContext } from '../../mol-plugin/context';
 import { getStructureThemeTypes } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
 import { GenericEntryListControls } from './generic';
@@ -131,8 +130,6 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
 }
 
 interface AddComponentControlsState {
-    plugin: PluginContext,
-    structures: ReadonlyArray<StructureRef>,
     params: ParamDefinition.Params,
     values: StructureComponentManager.AddParams
 }
@@ -143,23 +140,24 @@ interface AddComponentControlsProps {
 }
 
 class AddComponentControls extends PurePluginUIComponent<AddComponentControlsProps, AddComponentControlsState> {
-    static createState(plugin: PluginContext, structures: ReadonlyArray<StructureRef>): AddComponentControlsState {
-        const params = StructureComponentManager.getAddParams(plugin);
-        return { plugin, structures, params, values: ParamDefinition.getDefaultValues(params) };
+    createState(): AddComponentControlsState {
+        const params = StructureComponentManager.getAddParams(this.plugin);
+        return { params, values: ParamDefinition.getDefaultValues(params) };
     }
 
-    state = AddComponentControls.createState(this.plugin, this.props.structures);
+    state = this.createState();
 
     apply = () => {
-        this.plugin.managers.structure.component.add(this.state.values, this.state.structures);
+        this.plugin.managers.structure.component.add(this.state.values, this.props.structures);
         this.props.onApply();
     }
 
     paramsChanged = (values: any) => this.setState({ values })
 
-    static getDerivedStateFromProps(props: AddComponentControlsProps, state: AddComponentControlsState) {
-        if (props.structures === state.structures) return null;
-        return AddComponentControls.createState(state.plugin, props.structures)
+    componentDidUpdate(prevProps: AddComponentControlsProps) {
+        if (this.props.structures !== prevProps.structures) {
+            this.setState(this.createState());
+        }
     }
 
     render() {

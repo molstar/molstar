@@ -139,7 +139,7 @@ type SectionProps = {
     noOffset?: boolean,
     noAccent?: boolean
 }
-type SectionState = { items: ActionMenu.Items, current: ActionMenu.Item | undefined, isExpanded: boolean, hasCurrent: boolean, header?: ActionMenu.Header }
+type SectionState = { isExpanded: boolean, hasCurrent: boolean, header?: ActionMenu.Header }
 
 class Section extends React.PureComponent<SectionProps, SectionState> {
     static createState(props: SectionProps): SectionState {
@@ -152,8 +152,6 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
                 : (!!props.current && !!ActionMenu.findItem(props.items, props.current.value)) || ActionMenu.hasSelectedItem(props.items);
 
         return {
-            items: props.items,
-            current: props.current,
             header,
             hasCurrent,
             isExpanded: hasCurrent || !!header?.initiallyExpanded
@@ -167,9 +165,10 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         e.currentTarget.blur();
     }
 
-    static getDerivedStateFromProps(props: SectionProps, state: SectionState) {
-        if (props.items === state.items && props.current === state.current) return null;
-        return Section.createState(props);
+    componentDidUpdate(prevProps: SectionProps) {
+        if (this.props.items !== prevProps.items || this.props.current !== prevProps.current) {
+            this.setState(Section.createState(this.props));
+        }
     }
 
     selectAll = () => {

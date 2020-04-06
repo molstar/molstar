@@ -24,7 +24,6 @@ namespace UpdateTransformControl {
     }
 
     export interface ComponentState extends TransformControlBase.ComponentState {
-        transform: StateTransform
     }
 }
 
@@ -84,19 +83,18 @@ class UpdateTransformControl extends TransformControlBase<UpdateTransformControl
 
     private _getInfo = memoizeLatest((t: StateTransform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, t));
 
-    state: UpdateTransformControl.ComponentState = { transform: this.props.transform, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false, isCollapsed: this.props.initiallyCollapsed };
+    state: UpdateTransformControl.ComponentState = { error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false, isCollapsed: this.props.initiallyCollapsed };
 
-    static getDerivedStateFromProps(props: UpdateTransformControl.Props, state: UpdateTransformControl.ComponentState) {
-        if (props.transform === state.transform) return null;
-        const cell = props.state.cells.get(props.transform.ref)!;
-        const newState: Partial<UpdateTransformControl.ComponentState> = {
-            transform: props.transform,
-            params: (cell.params && cell.params.values) || { },
-            isInitial: true,
-            error: void 0,
-            simpleOnly: state.simpleOnly
-        };
-        return newState;
+    componentDidUpdate(prevProps: UpdateTransformControl.Props) {
+        if (this.props.transform !== prevProps.transform) {
+            const cell = this.props.state.cells.get(this.props.transform.ref)!;
+            this.setState({
+                params: cell.params?.values || { },
+                isInitial: true,
+                error: void 0,
+                simpleOnly: this.state.simpleOnly
+            });
+        }
     }
 }
 
