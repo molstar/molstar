@@ -16,7 +16,8 @@ export class ControlGroup extends React.Component<{
     topRightIcon?: IconName,
     headerLeftMargin?: string,
     onHeaderClick?: () => void,
-    noTopMargin?: boolean
+    noTopMargin?: boolean,
+    childrenClassName?: string
 }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initialExpanded }
 
@@ -29,6 +30,9 @@ export class ControlGroup extends React.Component<{
     }
 
     render() {
+        let groupClassName = this.props.hideOffset ? 'msp-control-group-children' : 'msp-control-group-children msp-control-offset';
+        if (this.props.childrenClassName) groupClassName += ' ' + this.props.childrenClassName;
+
         // TODO: customize header style (bg color, togle button etc)
         return <div className='msp-control-group-wrapper' style={{ position: 'relative', marginTop: this.props.noTopMargin ? 0 : void 0 }}>
             <div className='msp-control-group-header' style={{ marginLeft: this.props.headerLeftMargin }}>
@@ -38,7 +42,7 @@ export class ControlGroup extends React.Component<{
                     <b>{this.props.header}</b>
                 </Button>
             </div>
-            {this.state.isExpanded && <div className={this.props.hideOffset ? '' : 'msp-control-offset'} style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
+            {this.state.isExpanded && <div className={groupClassName} style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                 {this.props.children}
             </div>}
         </div>

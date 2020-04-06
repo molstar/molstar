@@ -16,7 +16,7 @@ import { StateTransforms } from '../mol-plugin-state/transforms';
 import { StateTransformer } from '../mol-state';
 import { ModelFromTrajectory } from '../mol-plugin-state/transforms/model';
 import { AnimationControls } from './state/animation';
-import { StructureSelectionControls, StructureSelectionActionsControls } from './structure/selection';
+import { StructureSelectionActionsControls } from './structure/selection';
 import { Icon } from './controls/icons';
 import { StructureComponentControls } from './structure/components';
 import { StructureSourceControls } from './structure/source';
@@ -246,14 +246,13 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
     }
 }
 
-export class SelectionViewportControls extends PluginUIComponent<{}, { isEmpty: boolean, isExpanded: boolean, isBusy: boolean, isAnimating: boolean, isPlaying: boolean }> {
-    state = { isEmpty: true, isExpanded: false, isBusy: false, isAnimating: false, isPlaying: false };
-
+export class SelectionViewportControls extends PluginUIComponent {
     componentDidMount() {
-
+        this.subscribe(this.plugin.behaviors.interaction.selectionMode, () => this.forceUpdate());
     }
 
     render() {
+        if (!this.plugin.selectionMode) return null;
         return <div className='msp-selection-viewport-controls'>
             <StructureSelectionActionsControls />
         </div>;
@@ -298,7 +297,6 @@ export class DefaultStructureTools extends PluginUIComponent {
             <div className='msp-section-header'><Icon name='tools' />Structure Tools</div>
 
             <StructureSourceControls />
-            <StructureSelectionControls />
             <StructureMeasurementsControls />
             <StructureComponentControls />
             <VolumeStreamingControls />

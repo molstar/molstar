@@ -96,7 +96,8 @@ export class PluginContext {
         },
         interaction: {
             hover: this.ev.behavior<InteractivityManager.HoverEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
-            click: this.ev.behavior<InteractivityManager.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 })
+            click: this.ev.behavior<InteractivityManager.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
+            selectionMode: this.ev.behavior<boolean>(false)
         },
         labels: {
             highlight: this.ev.behavior<{ labels: ReadonlyArray<LociLabel> }>({ labels: [] })
@@ -209,6 +210,14 @@ export class PluginContext {
         return this.behaviors.state.isAnimating.value || this.behaviors.state.isUpdating.value;
     }
 
+    get selectionMode() {
+        return this.behaviors.interaction.selectionMode.value;
+    }
+
+    set selectionMode(mode: boolean) {
+        this.behaviors.interaction.selectionMode.next(mode);
+    }
+
     runTask<T>(task: Task<T>) {
         return this.tasks.run(task);
     }
@@ -265,6 +274,12 @@ export class PluginContext {
                 }
             }
         });
+
+        this.behaviors.interaction.selectionMode.subscribe(v => {
+            if (!v) {
+                this.managers.interactivity?.lociSelects.deselectAll();
+            }
+        })
     }
 
     private initBuiltInBehavior() {

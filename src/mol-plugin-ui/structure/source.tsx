@@ -14,6 +14,7 @@ import { Button, IconButton } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 import { StructureFocusControls } from './focus';
 import { UpdateTransformControl } from '../state/update-transform';
+import { StructureSelectionStatsControls } from './selection';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
@@ -262,6 +263,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
 
             <div style={{ marginTop: '6px' }}>
                 <StructureFocusControls />
+                <StructureSelectionStatsControls hideOnEmpty />
             </div>
         </>;
     }

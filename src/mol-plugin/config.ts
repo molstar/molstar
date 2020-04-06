@@ -35,7 +35,8 @@ export const PluginConfig = {
         EmdbHeaderServer: item('volume-streaming.emdb-header-server', 'https://ftp.wwpdb.org/pub/emdb/structures'),
     },
     Viewport: {
-        ShowExpand: item('viewer.show-expand-button', true)
+        ShowExpand: item('viewer.show-expand-button', true),
+        ShowSelectionMode: item('viewer.show-selection-model-button', true)
     }
 }
 

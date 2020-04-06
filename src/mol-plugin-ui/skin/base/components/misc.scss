@@ -425,12 +425,29 @@
 
 .msp-selection-viewport-controls {
     position: relative;
-    justify-content: center;
-    display: flex;
-    margin-top: $control-spacing;
-
+    // display: inline-block;
+    margin: $control-spacing auto 0 auto;
+    width: 332px;
     line-height: $row-height;
-    margin-right: $control-spacing;
+
+    &-actions {
+        position: absolute;
+        width: 100%;
+        top: $row-height;
+        background: $control-background;
+    }
+
+    > .msp-flex-row .msp-btn {
+        padding: 0 5px;
+    }
+
+    select.msp-form-control {
+        padding: 0 5px;
+        text-align: center;
+        background: none;
+        flex: 0 0 80px;
+        text-overflow: ellipsis;
+    }
 }
 
 .msp-param-object-list-item {
@@ -474,8 +491,14 @@
     }
 }
 
-.msp-action-menu-options {
-    .msp-control-row, button, .msp-icon {
+.msp-action-menu-options {   
+    &-no-header, .msp-control-group-children {
+        max-height: 300px;
+        overflow: hidden;
+        overflow-y: auto;
+    }
+
+    .msp-control-row, button, .msp-icon, .msp-flex-row {
         height: 24px;
         line-height: 24px;
     }

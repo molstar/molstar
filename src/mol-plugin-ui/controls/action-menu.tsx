@@ -5,19 +5,22 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as React from 'react'
-import { IconName } from './icons';
+import * as React from 'react';
 import { ParamDefinition } from '../../mol-util/param-definition';
-import { ControlGroup, Button } from './common';
+import { Button, ControlGroup } from './common';
+import { IconName } from './icons';
 
 export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
     hide = () => this.props.onSelect(void 0)
 
     render() {
         const cmd = this.props;
-        return <div className='msp-action-menu-options' style={{ /* marginTop: cmd.header ? void 0 : '1px', */ maxHeight: '300px', overflow: 'hidden', overflowY: 'auto' }}>
-            {cmd.header && <ControlGroup header={cmd.header} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hide} topRightIcon='off'></ControlGroup>}
-            <Section items={cmd.items} onSelect={cmd.onSelect} current={cmd.current} multiselect={this.props.multiselect} noOffset={this.props.noOffset} noAccent={this.props.noAccent} />
+        const section = <Section items={cmd.items} onSelect={cmd.onSelect} current={cmd.current} multiselect={this.props.multiselect} noOffset={this.props.noOffset} noAccent={this.props.noAccent} />;
+        return <div className={`msp-action-menu-options${cmd.header ? '' : ' msp-action-menu-options-no-header'}`}>
+            {cmd.header && <ControlGroup header={cmd.header} initialExpanded={true} hideExpander={true} hideOffset onHeaderClick={this.hide} topRightIcon='off'>
+                {section}
+            </ControlGroup>}
+            {!cmd.header && section}
         </div>
     }
 }
@@ -129,6 +132,37 @@ export namespace ActionMenu {
             if (found) return found;
         }
     }
+
+    // export type SelectProps<T> = {
+    //     items: Items,
+    //     onSelect: (item: Item) => void,
+    //     disabled?: boolean,
+    //     label?: string,
+    //     current?: Item,
+    //     style?: React.CSSProperties
+    // }
+
+    // export class Select<T> extends React.PureComponent<SelectProps<T>, { isExpanded: boolean }> {
+    //     state = { isExpanded: false };
+
+    //     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded })
+    //     onSelect: OnSelect = (item) => {
+    //         this.setState({ isExpanded: false });
+    //         if (!item) return;
+    //         this.onSelect(item);
+    //     }
+
+    //     render() {
+    //         const current = this.props.current;
+    //         const label = this.props.label || current?.label || '';
+
+    //         return <div className='msp-action-menu-select' style={this.props.style}>
+    //             <ToggleButton disabled={this.props.disabled} style={{ textAlign: 'left' }} className='msp-no-overflow'
+    //                 label={label} title={label as string} toggle={this.toggleExpanded} isSelected={this.state.isExpanded} />
+    //             {this.state.isExpanded && <ActionMenu items={this.props.items} current={this.props.current} onSelect={this.onSelect} />}
+    //         </div>
+    //     }
+    // }
 }
 
 type SectionProps = {

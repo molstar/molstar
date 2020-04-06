@@ -54,6 +54,10 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         PluginCommands.Layout.Update(this.plugin, { state: { isExpanded: !this.plugin.layout.state.isExpanded } });
     }
 
+    toggleSelectionMode = () => {
+        this.plugin.selectionMode = !this.plugin.selectionMode;
+    }
+
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
         PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { [p.name]: p.value } });
     }
@@ -69,6 +73,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
+        this.subscribe(this.plugin.behaviors.interaction.selectionMode, () => this.forceUpdate());
     }
 
     icon(name: IconName, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
@@ -97,14 +102,20 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                     {this.plugin.config.get(PluginConfig.Viewport.ShowExpand) && this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
                     {this.icon('settings', this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
                 </div>
+                {this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode) && <div>
+                    <div className='msp-semi-transparent-background' />
+                    {this.icon('check', this.toggleSelectionMode, 'Toggle Selection Mode', this.plugin.behaviors.interaction.selectionMode.value)}
+                </div>}
             </div>
             {this.state.isScreenshotExpanded && <div className='msp-viewport-controls-panel'>
-                <ControlGroup header='Screenshot' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleScreenshotExpanded} topRightIcon='off' noTopMargin>
+                <ControlGroup header='Screenshot' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleScreenshotExpanded}
+                    topRightIcon='off' noTopMargin>
                     <DownloadScreenshotControls close={this.toggleScreenshotExpanded} />
                 </ControlGroup>
             </div>}
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-panel'>
-                <ControlGroup header='Settings / Controls Info' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded} topRightIcon='off' noTopMargin>
+                <ControlGroup header='Settings / Controls Info' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded}
+                    topRightIcon='off' noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <SimpleSettingsControl />
                 </ControlGroup>
             </div>}

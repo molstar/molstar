@@ -133,7 +133,7 @@ export const SelectLoci = PluginBehavior.create({
             })
 
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
-                if (!this.ctx.canvas3d || this.ctx.isBusy) return;
+                if (!this.ctx.canvas3d || this.ctx.isBusy || !this.ctx.selectionMode) return;
 
                 // only trigger the 1st action that matches
                 for (const [binding, action, condition] of actions) {
@@ -199,6 +199,9 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
 
 const DefaultFocusLociBindings = {
     clickFocus: Binding([
+        Trigger(B.Flag.Primary, M.create()),
+    ], 'Representation Focus', 'Click element using ${triggers}'),
+    clickFocusSelectMode: Binding([
         Trigger(B.Flag.Secondary, M.create()),
         Trigger(B.Flag.Primary, M.create({ control: true }))
     ], 'Representation Focus', 'Click element using ${triggers}'),
@@ -214,9 +217,13 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
     ctor: class extends PluginBehavior.Handler<FocusLociProps> {
         register(): void {
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
-                const { clickFocus } = this.params.bindings
+                const { clickFocus, clickFocusSelectMode } = this.params.bindings;
 
-                if (Binding.match(clickFocus, button, modifiers)) {
+                const binding = this.ctx.selectionMode
+                    ? clickFocusSelectMode
+                    : clickFocus;
+
+                if (Binding.match(binding, button, modifiers)) {
                     const loci = Loci.normalize(current.loci, 'residue')
                     const entry = this.ctx.managers.structure.focus.current
                     if (entry && Loci.areEqual(entry.loci, loci)) {

@@ -18,6 +18,9 @@ const Trigger = Binding.Trigger
 
 const DefaultFocusLociBindings = {
     clickCenterFocus: Binding([
+        Trigger(B.Flag.Primary, M.create())
+    ], 'Camera center and focus', 'Click element using ${triggers}'),
+    clickCenterFocusSelectMode: Binding([
         Trigger(B.Flag.Auxilary, M.create()),
         Trigger(B.Flag.Primary, M.create({ alt: true }))
     ], 'Camera center and focus', 'Click element using ${triggers}'),
@@ -38,7 +41,12 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
         register(): void {
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d) return;
-                if (Binding.match(this.params.bindings.clickCenterFocus, button, modifiers)) {
+
+                const binding = this.ctx.selectionMode
+                    ? this.params.bindings.clickCenterFocusSelectMode
+                    : this.params.bindings.clickCenterFocus;
+
+                if (Binding.match(binding, button, modifiers)) {
                     const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity)
                     if (Loci.isEmpty(loci)) {
                         PluginCommands.Camera.Reset(this.ctx, { })

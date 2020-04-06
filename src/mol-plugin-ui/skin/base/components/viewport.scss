@@ -82,8 +82,6 @@
 }
 
 .msp-viewport-controls-panel {
-    overflow-y: auto;
-    max-height: 400px;
     width: 290px;
     top: 0;
     right: $row-height + 4px;
@@ -92,6 +90,11 @@
 
     .msp-control-group-wrapper:first-child {
         padding-top: 0;
+    }
+
+    .msp-viewport-controls-panel-controls {
+        overflow-y: auto;
+        max-height: 400px;    
     }
 }
 
