@@ -111,7 +111,7 @@ export class Canvas3dInteractionHelper {
         this.ev.dispose();
     }
 
-    constructor(private canvasIdentify: Canvas3D['identify'], private getLoci: Canvas3D['getLoci'], input: InputObserver, private maxFps: number = 15) {
+    constructor(private canvasIdentify: Canvas3D['identify'], private getLoci: Canvas3D['getLoci'], input: InputObserver, private maxFps: number = 30) {
         input.move.subscribe(({x, y, inside, buttons, button, modifiers }) => {
             if (!inside) return;
             this.move(x, y, buttons, button, modifiers);
