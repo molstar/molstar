@@ -43,11 +43,6 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
             return;
         }
 
-        switch (tab) {
-            case 'data': this.plugin.state.setKind('data'); break;
-            case 'settings': this.plugin.state.setKind('behavior'); break;
-        }
-
         this.setState({ tab }, () => this.plugin.behaviors.layout.leftPanelTabName.next(tab));
         if (this.plugin.layout.state.regionState.left !== 'full') {
             PluginCommands.Layout.Update(this.plugin, { state: { regionState: { ...this.plugin.layout.state.regionState, left: 'full' } } });

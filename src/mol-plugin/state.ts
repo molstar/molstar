@@ -28,21 +28,6 @@ class PluginState {
     readonly cameraSnapshots = new CameraSnapshotManager();
     readonly snapshots: PluginStateSnapshotManager;
 
-    readonly behavior = {
-        kind: this.ev.behavior<PluginState.Kind>('data'),
-        currentObject: this.ev.behavior<State.ObjectEvent>({} as any)
-    }
-
-    setKind(kind: PluginState.Kind) {
-        const current = this.behavior.kind.value;
-        if (kind !== current) {
-            this.behavior.kind.next(kind);
-            this.behavior.currentObject.next(kind === 'data'
-                ? this.data.behaviors.currentObject.value
-                : this.behaviors.behaviors.currentObject.value)
-        }
-    }
-
     getSnapshot(params?: PluginState.GetSnapshotParams): PluginState.Snapshot {
         const p = { ...PluginState.DefaultGetSnapshotParams, ...params };
         return {
@@ -113,15 +98,6 @@ class PluginState {
         this.snapshots = new PluginStateSnapshotManager(plugin);
         this.data = State.create(new SO.Root({ }), { globalContext: plugin });
         this.behaviors = State.create(new PluginBehavior.Root({ }), { globalContext: plugin, rootState: { isLocked: true } });
-
-        this.data.behaviors.currentObject.subscribe(o => {
-            if (this.behavior.kind.value === 'data') this.behavior.currentObject.next(o);
-        });
-        this.behaviors.behaviors.currentObject.subscribe(o => {
-            if (this.behavior.kind.value === 'behavior') this.behavior.currentObject.next(o);
-        });
-
-        this.behavior.currentObject.next(this.data.behaviors.currentObject.value);
 
         this.animation = new PluginAnimationManager(plugin);
     }

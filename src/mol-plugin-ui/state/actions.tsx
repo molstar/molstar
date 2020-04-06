@@ -12,7 +12,7 @@ import { ApplyActionControl } from './apply-action';
 
 export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRef: string, hideHeader?: boolean, initiallyCollapsed?: boolean, alwaysExpandFirst?: boolean }> {
     get current() {
-        return this.plugin.state.behavior.currentObject.value;
+        return this.props.state.behaviors.currentObject.value;
     }
 
     componentDidMount() {

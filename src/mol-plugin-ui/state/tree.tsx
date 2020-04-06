@@ -50,7 +50,7 @@ export class StateTree extends PluginUIComponent<{ state: State }, { showActions
     }
 }
 
-class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: number }, { isCollapsed: boolean, isNull: boolean }> {
+class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: number }, { isCollapsed: boolean, isNull: boolean, showLabel: boolean }> {
     is(e: State.ObjectEvent) {
         return e.ref === this.ref && e.state === this.props.cell.parent;
     }
@@ -62,7 +62,9 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
     componentDidMount() {
         this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
             if (this.props.cell === e.cell && this.is(e) && e.state.cells.has(this.ref)) {
-                if (this.state.isCollapsed !== !!e.cell.state.isCollapsed || this.state.isNull !== StateTreeNode.isNull(e.cell)) {
+                if (this.state.isCollapsed !== !!e.cell.state.isCollapsed
+                    || this.state.isNull !== StateTreeNode.isNull(e.cell)
+                    || this.state.showLabel !== StateTreeNode.showLabel(e.cell)) {
                     this.forceUpdate();
                 }
             }
@@ -83,23 +85,29 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
 
     state = {
         isCollapsed: !!this.props.cell.state.isCollapsed,
-        isNull: StateTreeNode.isNull(this.props.cell)
+        isNull: StateTreeNode.isNull(this.props.cell),
+        showLabel: StateTreeNode.showLabel(this.props.cell)
     }
 
     static getDerivedStateFromProps(props: _Props<StateTreeNode>, state: _State<StateTreeNode>): _State<StateTreeNode> | null {
         const isNull = StateTreeNode.isNull(props.cell);
-        if (!!props.cell.state.isCollapsed === state.isCollapsed && state.isNull === isNull) return null;
-        return { isCollapsed: !!props.cell.state.isCollapsed, isNull };
+        const showLabel = StateTreeNode.showLabel(props.cell);
+        if (!!props.cell.state.isCollapsed === state.isCollapsed && state.isNull === isNull && state.showLabel === showLabel) return null;
+        return { isCollapsed: !!props.cell.state.isCollapsed, isNull, showLabel };
     }
 
-    hasDecorator(children: _StateTree.ChildSet) {
+    private static hasDecorator(cell: StateObjectCell) {
+        const children = cell.parent!.tree.children.get(cell.transform.ref);
         if (children.size !== 1) return false;
-        const ref = children.values().next().value;
-        return !!this.props.cell.parent?.tree.transforms.get(ref).transformer.definition.isDecorator;
+        return !!cell.parent?.tree.transforms.get(children.first()).transformer.definition.isDecorator;
     }
 
     private static isNull(cell?: StateObjectCell) {
         return !cell || !cell.parent || cell.obj === StateObject.Null || !cell.parent.tree.transforms.has(cell.transform.ref);
+    }
+
+    private static showLabel(cell: StateObjectCell) {
+        return (cell.transform.ref !== StateTransform.RootRef) && (cell.status !== 'ok' || (!cell.state.isGhost && !StateTreeNode.hasDecorator(cell)));
     }
 
     render() {
@@ -109,11 +117,9 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
         }
 
         const cell = this.props.cell!;
-        const cellState = cell.state;
         const children = cell.parent!.tree.children.get(this.ref);
-        const showLabel = (cell.transform.ref !== StateTransform.RootRef) && (cell.status !== 'ok' || (!cell.state.isGhost && !this.hasDecorator(children)));
 
-        if (!showLabel) {
+        if (!this.state.showLabel) {
             if (children.size === 0) return null;
             return <>
                 {children.map(c => <StateTreeNode cell={cell.parent!.cells.get(c!)!} key={c} depth={this.props.depth} />)}
@@ -125,7 +131,7 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
             <StateTreeNodeLabel cell={cell} depth={this.props.depth} />
             {children.size === 0
                 ? void 0
-                : <div style={{ display: cellState.isCollapsed ? 'none' : 'block' }}>
+                : <div style={{ display: this.state.isCollapsed ? 'none' : 'block' }}>
                     {children.map(c => <StateTreeNode cell={cell.parent!.cells.get(c!)!} key={c} depth={newDepth} />)}
                 </div>
             }
@@ -155,7 +161,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
             this.forceUpdate();
         });
 
-        this.subscribe(this.plugin.state.behavior.currentObject, e => {
+        this.subscribe(this.props.cell.parent!.behaviors.currentObject, e => {
             if (!this.is(e)) {
                 if (this.state.isCurrent && e.state.transforms.has(this.ref)) {
                     this._setCurrent(this.props.cell.parent!.current === this.ref, this.state.isCollapsed);
