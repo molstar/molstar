@@ -45,7 +45,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
         }
 
         register(): void {
-            this.ctx.customModelProperties.register(this.provider, false);
+            this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
             this.ctx.managers.lociLabels.addProvider(this.labelPDBeValidation);
 
             this.ctx.representation.structure.themes.colorThemeRegistry.add(StructureQualityReportColorThemeProvider)
