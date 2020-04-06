@@ -82,6 +82,13 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
         this.set({ loci, label: lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false }) })
     }
 
+    addFromLoci(anyLoci: Loci) {
+        const union = this.state.current && StructureElement.Loci.is(anyLoci)
+            ? StructureElement.Loci.union(anyLoci, this.state.current.loci)
+            : anyLoci
+        this.setFromLoci(union)
+    }
+
     clear() {
         if (this.state.current) {
             this.state.current = undefined

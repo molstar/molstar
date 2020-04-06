@@ -61,8 +61,8 @@ function getResidueCount(unit: Unit.Atomic) {
     const { elements, model } = unit
     const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy
     const elementStart = chainAtomSegments.offsets[chainAtomSegments.index[elements[0]]]
-    const elementEnd = chainAtomSegments.offsets[chainAtomSegments.index[elements[elements.length - 1]] + 1]
-    return residueAtomSegments.index[elementEnd] - residueAtomSegments.index[elementStart]
+    const elementEnd = chainAtomSegments.offsets[chainAtomSegments.index[elements[elements.length - 1]] + 1] - 1
+    return residueAtomSegments.index[elementEnd] - residueAtomSegments.index[elementStart] + 1
 }
 
 export function structureElementStatsLabel(stats: StructureElement.Stats, options: Partial<LabelOptions> = {}): string {

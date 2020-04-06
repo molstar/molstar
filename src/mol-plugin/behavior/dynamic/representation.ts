@@ -226,42 +226,25 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 const { clickFocus, clickFocusAdd, clickFocusSelectMode, clickFocusAddSelectMode } = this.params.bindings;
 
-                const binding = this.ctx.selectionMode
-                    ? clickFocusSelectMode
-                    : clickFocus;
+                const binding = this.ctx.selectionMode ? clickFocusSelectMode : clickFocus;
+                const matched = Binding.match(binding, button, modifiers)
 
-                if (Binding.match(binding, button, modifiers)) {
+                const bindingAdd = this.ctx.selectionMode ? clickFocusAddSelectMode : clickFocusAdd;
+                const matchedAdd = Binding.match(bindingAdd, button, modifiers)
+
+                if (matched || matchedAdd) {
                     const loci = Loci.normalize(current.loci, 'residue')
                     const entry = this.ctx.managers.structure.focus.current
                     if (entry && Loci.areEqual(entry.loci, loci)) {
                         this.ctx.managers.structure.focus.clear()
                     } else {
-                        this.ctx.managers.structure.focus.setFromLoci(loci)
+                        if (matched) {
+                            this.ctx.managers.structure.focus.setFromLoci(loci)
+                        } else {
+                            this.ctx.managers.structure.focus.addFromLoci(loci)
+                        }
                         if (isEmptyLoci(loci)) {
                             this.ctx.managers.camera.reset()
-                        }
-                    }
-                    return
-                }
-
-                const bindingAdd = this.ctx.selectionMode
-                    ? clickFocusAddSelectMode
-                    : clickFocusAdd;
-
-                if (Binding.match(bindingAdd, button, modifiers)) {
-                    const loci = Loci.normalize(current.loci, 'residue')
-                    if (StructureElement.Loci.is(loci)) {
-                        const entry = this.ctx.managers.structure.focus.current
-                        if (entry && Loci.areEqual(entry.loci, loci)) {
-                            this.ctx.managers.structure.focus.clear()
-                        } else {
-                            const union = entry
-                                ? StructureElement.Loci.union(entry.loci, loci)
-                                : loci
-                            this.ctx.managers.structure.focus.setFromLoci(union)
-                            if (isEmptyLoci(union)) {
-                                this.ctx.managers.camera.reset()
-                            }
                         }
                     }
                     return

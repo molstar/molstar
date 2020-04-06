@@ -80,7 +80,7 @@ function getFocusEntries(structure: Structure) {
     const entries: FocusEntry[] = []
     entityEntries.forEach((e, name) => {
         if (e.length === 1) {
-            entries.push({ label: name, loci: e[0].loci })
+            entries.push({ label: `${name}: ${e[0].label}`, loci: e[0].loci })
         } else {
             entries.push(...e)
         }
@@ -152,21 +152,23 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
         }
 
         const items: ActionMenu.Items[] = []
-        if (historyItems.length > 0) items.push(...historyItems)
         if (presetItems.length > 0) items.push(...presetItems)
+        if (historyItems.length > 0) items.push(...historyItems)
 
         return items
     }
 
-    selectAction: ActionMenu.OnSelect = item => {
+    selectAction: ActionMenu.OnSelect = (item, e) => {
         if (!item || !this.state.showAction) {
             this.setState({ showAction: false });
             return;
         }
-        this.setState({ showAction: false }, () => {
-            const f = item.value as FocusEntry
+        const f = item.value as FocusEntry
+        if (e?.shiftKey) {
+            this.plugin.managers.structure.focus.addFromLoci(f.loci)
+        } else {
             this.plugin.managers.structure.focus.set(f)
-        })
+        }
     }
 
     toggleAction = () => this.setState({ showAction: !this.state.showAction })
@@ -218,7 +220,7 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
                     {label}
                 </Button>
                 {current && <IconButton onClick={this.clear} icon='cancel' title='Clear' className='msp-form-control' flex disabled={this.isDisabled} />}
-                <ToggleButton icon='book-open' title='Select a focus target to center on an show its surroundings.' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
+                <ToggleButton icon='book-open' title='Select a focus target to center on an show its surroundings. Hold shift to focus on multiple targets.' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.showAction && <ActionMenu items={this.actionItems} onSelect={this.selectAction} />}
         </>;
