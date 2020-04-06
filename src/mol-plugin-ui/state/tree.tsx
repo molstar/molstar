@@ -112,7 +112,6 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
 
     render() {
         if (this.state.isNull) {
-            console.log('null');
             return null;
         }
 

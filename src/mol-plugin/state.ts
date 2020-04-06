@@ -17,6 +17,7 @@ import { PluginAnimationManager } from '../mol-plugin-state/animation/manager';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { UUID } from '../mol-util';
 import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
+import { produce } from 'immer';
 export { PluginState }
 
 class PluginState {
@@ -84,6 +85,17 @@ class PluginState {
     updateTransform(state: State, a: StateTransform.Ref, params: any, canUndo?: string | boolean) {
         const tree = state.build().to(a).update(params);
         return PluginCommands.State.Update(this.plugin, { state, tree, options: { canUndo } });
+    }
+
+    updateBehavior<T extends StateTransformer>(behavior: T, params: (old: StateTransformer.Params<T>) => (void | StateTransformer.Params<T>)) {
+        const tree = this.behaviors.build()
+        if (!this.behaviors.tree.transforms.has(behavior.id)) {
+            const defaultParams = behavior.createDefaultParams(void 0 as any, this.plugin);
+            tree.to(PluginBehavior.getCategoryId(behavior)).apply(behavior, produce(defaultParams, params) as any, { ref: behavior.id });
+        } else {
+            tree.to(behavior.id).update(params);
+        }
+        return this.plugin.runTask(this.behaviors.updateTree(tree));
     }
 
     dispose() {
