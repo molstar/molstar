@@ -15,6 +15,7 @@ import { ApplyActionControl } from './apply-action';
 import { ControlGroup, IconButton, Button } from '../controls/common';
 import { UpdateTransformControl } from './update-transform';
 import { StateTreeSpine } from '../../mol-state/tree/spine';
+import { debounceTime, filter } from 'rxjs/operators';
 
 export class StateTree extends PluginUIComponent<{ state: State }, { showActions: boolean }> {
     state = { showActions: true };
@@ -49,7 +50,7 @@ export class StateTree extends PluginUIComponent<{ state: State }, { showActions
     }
 }
 
-class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: number }, { isCollapsed: boolean }> {
+class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: number }, { isCollapsed: boolean, isNull: boolean }> {
     is(e: State.ObjectEvent) {
         return e.ref === this.ref && e.state === this.props.cell.parent;
     }
@@ -61,10 +62,9 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
     componentDidMount() {
         this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
             if (this.props.cell === e.cell && this.is(e) && e.state.cells.has(this.ref)) {
-                this.forceUpdate();
-                // if (!!this.props.cell.state.isCollapsed !== this.state.isCollapsed) {
-                //     this.setState({ isCollapsed: !!e.cell.state.isCollapsed });
-                // }
+                if (this.state.isCollapsed !== !!e.cell.state.isCollapsed || this.state.isNull !== StateTreeNode.isNull(e.cell)) {
+                    this.forceUpdate();
+                }
             }
         });
 
@@ -82,12 +82,14 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
     }
 
     state = {
-        isCollapsed: !!this.props.cell.state.isCollapsed
+        isCollapsed: !!this.props.cell.state.isCollapsed,
+        isNull: StateTreeNode.isNull(this.props.cell)
     }
 
     static getDerivedStateFromProps(props: _Props<StateTreeNode>, state: _State<StateTreeNode>): _State<StateTreeNode> | null {
-        if (!!props.cell.state.isCollapsed === state.isCollapsed) return null;
-        return { isCollapsed: !!props.cell.state.isCollapsed };
+        const isNull = StateTreeNode.isNull(props.cell);
+        if (!!props.cell.state.isCollapsed === state.isCollapsed && state.isNull === isNull) return null;
+        return { isCollapsed: !!props.cell.state.isCollapsed, isNull };
     }
 
     hasDecorator(children: _StateTree.ChildSet) {
@@ -96,14 +98,19 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
         return !!this.props.cell.parent?.tree.transforms.get(ref).transformer.definition.isDecorator;
     }
 
+    private static isNull(cell?: StateObjectCell) {
+        return !cell || !cell.parent || cell.obj === StateObject.Null || !cell.parent.tree.transforms.has(cell.transform.ref);
+    }
+
     render() {
-        const cell = this.props.cell;
-        if (!cell || !cell.parent || cell.obj === StateObject.Null || !cell.parent.tree.transforms.has(cell.transform.ref)) {
+        if (this.state.isNull) {
+            console.log('null');
             return null;
         }
 
+        const cell = this.props.cell!;
         const cellState = cell.state;
-        const children = cell.parent.tree.children.get(this.ref);
+        const children = cell.parent!.tree.children.get(this.ref);
         const showLabel = (cell.transform.ref !== StateTransform.RootRef) && (cell.status !== 'ok' || (!cell.state.isGhost && !this.hasDecorator(children)));
 
         if (!showLabel) {
@@ -144,8 +151,8 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
-            if (this.is(e)) this.forceUpdate();
+        this.subscribe(this.plugin.events.state.cell.stateUpdated.pipe(filter(e => this.is(e)), debounceTime(33)), e => {
+            this.forceUpdate();
         });
 
         this.subscribe(this.plugin.state.behavior.currentObject, e => {
