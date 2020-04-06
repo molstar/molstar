@@ -201,10 +201,17 @@ const DefaultFocusLociBindings = {
     clickFocus: Binding([
         Trigger(B.Flag.Primary, M.create()),
     ], 'Representation Focus', 'Click element using ${triggers}'),
+    clickFocusAdd: Binding([
+        Trigger(B.Flag.Primary, M.create({ shift: true })),
+    ], 'Representation Focus Add', 'Click element using ${triggers}'),
     clickFocusSelectMode: Binding([
         Trigger(B.Flag.Secondary, M.create()),
         Trigger(B.Flag.Primary, M.create({ control: true }))
     ], 'Representation Focus', 'Click element using ${triggers}'),
+    clickFocusAddSelectMode: Binding([
+        Trigger(B.Flag.Secondary, M.create({ shift: true })),
+        Trigger(B.Flag.Primary, M.create({ control: true, shift: true }))
+    ], 'Representation Focus Add', 'Click element using ${triggers}'),
 }
 const FocusLociParams = {
     bindings: PD.Value(DefaultFocusLociBindings, { isHidden: true }),
@@ -217,7 +224,7 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
     ctor: class extends PluginBehavior.Handler<FocusLociProps> {
         register(): void {
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
-                const { clickFocus, clickFocusSelectMode } = this.params.bindings;
+                const { clickFocus, clickFocusAdd, clickFocusSelectMode, clickFocusAddSelectMode } = this.params.bindings;
 
                 const binding = this.ctx.selectionMode
                     ? clickFocusSelectMode
@@ -234,6 +241,30 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                             this.ctx.managers.camera.reset()
                         }
                     }
+                    return
+                }
+
+                const bindingAdd = this.ctx.selectionMode
+                    ? clickFocusAddSelectMode
+                    : clickFocusAdd;
+
+                if (Binding.match(bindingAdd, button, modifiers)) {
+                    const loci = Loci.normalize(current.loci, 'residue')
+                    if (StructureElement.Loci.is(loci)) {
+                        const entry = this.ctx.managers.structure.focus.current
+                        if (entry && Loci.areEqual(entry.loci, loci)) {
+                            this.ctx.managers.structure.focus.clear()
+                        } else {
+                            const union = entry
+                                ? StructureElement.Loci.union(entry.loci, loci)
+                                : loci
+                            this.ctx.managers.structure.focus.setFromLoci(union)
+                            if (isEmptyLoci(union)) {
+                                this.ctx.managers.camera.reset()
+                            }
+                        }
+                    }
+                    return
                 }
             });
         }

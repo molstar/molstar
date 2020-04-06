@@ -53,7 +53,7 @@ function countLabel(count: number, label: string) {
 }
 
 function otherLabel(count: number, location: StructureElement.Location, granularity: LabelGranularity, hidePrefix: boolean, reverse: boolean, condensed: boolean) {
-    return `${elementLabel(location, { granularity, hidePrefix, reverse })} <small>[+ ${countLabel(count - 1, `other ${capitalize(granularity)}`)}]</small>`
+    return `${elementLabel(location, { granularity, hidePrefix, reverse, condensed })} <small>[+ ${countLabel(count - 1, `other ${capitalize(granularity)}`)}]</small>`
 }
 
 /** Gets residue count of the model chain segments the unit is a subset of */
@@ -87,10 +87,10 @@ function _structureElementStatsLabel(stats: StructureElement.Stats, countsOnly =
     } else if (!countsOnly) {
         const label: string[] = []
         if (structureCount > 0) {
-            label.push(structureCount === 1 ? elementLabel(stats.firstStructureLoc, { hidePrefix, condensed, granularity: 'structure', reverse }) : otherLabel(structureCount, stats.firstStructureLoc, 'structure', false, reverse, condensed))
+            label.push(structureCount === 1 ? elementLabel(stats.firstStructureLoc, { hidePrefix, condensed, granularity: 'structure', reverse }) : otherLabel(structureCount, stats.firstStructureLoc, 'structure', hidePrefix, reverse, condensed))
         }
         if (chainCount > 0) {
-            label.push(chainCount === 1 ? elementLabel(stats.firstChainLoc, { condensed, granularity: 'chain', reverse }) : otherLabel(chainCount, stats.firstChainLoc, 'chain', false, reverse, condensed))
+            label.push(chainCount === 1 ? elementLabel(stats.firstChainLoc, { condensed, granularity: 'chain', hidePrefix, reverse }) : otherLabel(chainCount, stats.firstChainLoc, 'chain', hidePrefix, reverse, condensed))
             hidePrefix = true;
         }
         if (residueCount > 0) {
