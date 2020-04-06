@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -81,6 +81,12 @@ export type CollapsableState = {
 export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends PluginUIComponent<P & CollapsableProps, S & CollapsableState, SS> {
     toggleCollapsed = () => {
         this.setState({ isCollapsed: !this.state.isCollapsed } as (S & CollapsableState))
+    }
+
+    componentDidUpdate(prevProps: P & CollapsableProps) {
+        if(this.props.initiallyCollapsed !== undefined && prevProps.initiallyCollapsed !== this.props.initiallyCollapsed) {
+            this.setState({ isCollapsed: this.props.initiallyCollapsed as any });
+        }
     }
 
     protected abstract defaultState(): (S & CollapsableState)
