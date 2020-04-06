@@ -48,7 +48,7 @@ type FontIconName =
     | 'moon' | 'flight' | 'paper-plane' | 'leaf' | 'lifebuoy' | 'mouse' | 'briefcase' | 'suitcase' | 'dot' | 'dot-2' | 'dot-3' | 'brush' | 'infinity'
     | 'erase' | 'chart-pie' | 'chart-line' | 'chart-bar' | 'chart-area' | 'graduation-cap' | 'language' | 'ticket' | 'water' | 'droplet' | 'air'
     | 'credit-card' | 'clipboard' | 'megaphone' | 'drive' | 'bucket' | 'thermometer' | 'key' | 'flow-branch' | 'flow-line' | 'flow-parallel' | 'rocket'
-    | 'gauge' | 'help-circle-collapse' | 'help-circle-expand'
+    | 'gauge' | 'help-circle-collapse' | 'help-circle-expand' | 'mouse-plus'
 
 function FontIcon(props: {
     name: FontIconName,

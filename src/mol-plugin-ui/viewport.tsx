@@ -104,7 +104,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </div>
                 {this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode) && <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon('check', this.toggleSelectionMode, 'Toggle Selection Mode', this.plugin.behaviors.interaction.selectionMode.value)}
+                    {this.icon('mouse-plus', this.toggleSelectionMode, 'Toggle Selection Mode', this.plugin.behaviors.interaction.selectionMode.value)}
                 </div>}
             </div>
             {this.state.isScreenshotExpanded && <div className='msp-viewport-controls-panel'>
