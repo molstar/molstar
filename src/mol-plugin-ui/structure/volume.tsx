@@ -70,7 +70,9 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
 
         const simpleApply = rootCell && rootCell.status === 'error'
             ? { header: 'Error enabling', icon: 'alert' as const, title: rootCell.errorText }
-            : { header: 'Enable', icon: 'check' as const, title: 'Enable' }
+            : rootCell && rootCell.obj?.data.entries.length === 0
+                ? { header: 'Error enabling', icon: 'alert' as const, title: 'No entry for streaming found' }
+                : { header: 'Enable', icon: 'check' as const, title: 'Enable' }
 
         return <ApplyActionControl state={pivot.cell.parent} action={InitVolumeStreaming} initiallyCollapsed={true} nodeRef={pivot.cell.transform.ref} simpleApply={simpleApply} />;
     }
