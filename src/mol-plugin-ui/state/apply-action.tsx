@@ -54,9 +54,10 @@ class ApplyActionControl extends TransformControlBase<ApplyActionControl.Props, 
     state = { plugin: this.plugin, ref: this.props.nodeRef, version: this.props.state.transforms.get(this.props.nodeRef).version, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false, isCollapsed: this.props.initiallyCollapsed };
 
     static getDerivedStateFromProps(props: ApplyActionControl.Props, state: ApplyActionControl.ComponentState) {
-        if (props.nodeRef === state.ref) return null;
         const version = props.state.transforms.get(props.nodeRef).version;
-        if (version === state.version) return null;
+        if (props.nodeRef === state.ref && version === state.version) {
+            return null;
+        }
 
         const source = props.state.cells.get(props.nodeRef)!.obj!;
         const params = props.action.definition.params
