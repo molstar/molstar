@@ -11,7 +11,7 @@ import { PluginContext } from '../mol-plugin/context';
 import { formatTime } from '../mol-util';
 import { LogEntry } from '../mol-util/log-entry';
 import { PluginReactContext, PluginUIComponent } from './base';
-import { AnimationViewportControls, DefaultStructureTools, LociLabels, StateSnapshotViewportControls, TrajectoryViewportControls } from './controls';
+import { AnimationViewportControls, DefaultStructureTools, LociLabels, StateSnapshotViewportControls, TrajectoryViewportControls, SelectionViewportControls } from './controls';
 import { LeftPanelControls } from './left-panel';
 import { SequenceView } from './sequence';
 import { BackgroundTaskProgress } from './task';
@@ -138,6 +138,7 @@ export class DefaultViewport extends PluginUIComponent {
                 <TrajectoryViewportControls />
                 <StateSnapshotViewportControls />
             </div>
+            <SelectionViewportControls />
             <VPControls />
             <BackgroundTaskProgress />
             <div className='msp-highlight-toast-wrapper'>

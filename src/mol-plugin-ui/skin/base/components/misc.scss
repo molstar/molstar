@@ -423,6 +423,16 @@
     }
 }
 
+.msp-selection-viewport-controls {
+    position: relative;
+    justify-content: center;
+    display: flex;
+    margin-top: $control-spacing;
+
+    line-height: $row-height;
+    margin-right: $control-spacing;
+}
+
 .msp-param-object-list-item {
     margin-top: 1px;
     position: relative;
@@ -498,10 +508,10 @@
     }
 }
 
-@mixin type-class-border($name, $color) {    
+@mixin type-class-border($name, $color) {
     .msp-type-class-#{$name} {
         border-left-color: $color;
-    } 
+    }
 }
 
 // TypeClass = 'Root' | 'Group' | 'Data' | 'Object' | 'Representation3D' | 'Behavior'
@@ -512,10 +522,10 @@
 @include type-class-border('Representation3D', $type-class-Representation3D);
 @include type-class-border('Behavior', $type-class-Behavior);
 
-@mixin accent($name, $color) {    
+@mixin accent($name, $color) {
     .msp-accent-color-#{$name} {
         color: $color;
-    } 
+    }
     .msp-accent-bg-#{$name} {
         background: $color;
     }

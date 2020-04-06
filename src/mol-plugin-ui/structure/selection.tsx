@@ -14,7 +14,7 @@ import { StructureSelectionModifier } from '../../mol-plugin-state/manager/struc
 import { memoizeLatest } from '../../mol-util/memoize';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { stripTags } from '../../mol-util/string';
-import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
+import { CollapsableControls, CollapsableState, PurePluginUIComponent, PluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { ControlGroup, ToggleButton, IconButton, Button } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
@@ -26,16 +26,7 @@ const StructureSelectionParams = {
 interface StructureSelectionControlsState extends CollapsableState {
     isEmpty: boolean,
     isBusy: boolean,
-
-    action?: StructureSelectionModifier | 'color'
 }
-
-const ActionHeader = new Map<StructureSelectionModifier, string>([
-    ['add', 'Add/Union'],
-    ['remove', 'Remove/Subtract'],
-    ['intersect', 'Intersect'],
-    ['set', 'Set']
-] as const);
 
 export class StructureSelectionControls<P, S extends StructureSelectionControlsState> extends CollapsableControls<P, S> {
     componentDidMount() {
@@ -53,31 +44,10 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
                 this.setState({ isEmpty });
             }
         });
-
-        this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isBusy: v, action: void 0 })
-        })
     }
 
     get isDisabled() {
         return this.state.isBusy || this.state.isEmpty
-    }
-
-    get stats() {
-        const stats = this.plugin.managers.structure.selection.stats
-        if (stats.structureCount === 0 || stats.elementCount === 0) {
-            return 'Nothing Selected'
-        } else {
-            return `${stripTags(stats.label)} Selected`
-        }
-    }
-
-    clear = () => this.plugin.managers.interactivity.lociSelects.deselectAll();
-
-    focus = () => {
-        if (this.plugin.managers.structure.selection.stats.elementCount === 0) return;
-        const { sphere } = this.plugin.managers.structure.selection.getBoundary();
-        this.plugin.managers.camera.focusSphere(sphere);
     }
 
     setProps = (props: any) => {
@@ -88,6 +58,68 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         return {
             granularity: this.plugin.managers.interactivity.props.granularity,
         }
+    }
+
+    defaultState() {
+        return {
+            isCollapsed: false,
+            header: 'Selection',
+
+            isEmpty: true,
+            isBusy: false,
+
+            brand: { name: 'Sel', accent: 'red' }
+        } as S
+    }
+
+    renderControls() {
+        return <>
+            <ParameterControls params={StructureSelectionParams} values={this.values} onChangeValues={this.setProps} />
+            <StructureSelectionActionsControls />
+            <div style={{ margin: '6px 0' }}>
+                <StructureSelectionStatsControls />
+            </div>
+        </>
+    }
+}
+
+interface StructureSelectionActionsControlsState {
+    isEmpty: boolean,
+    isBusy: boolean,
+
+    action?: StructureSelectionModifier | 'color'
+}
+
+const ActionHeader = new Map<StructureSelectionModifier, string>([
+    ['add', 'Add/Union'],
+    ['remove', 'Remove/Subtract'],
+    ['intersect', 'Intersect'],
+    ['set', 'Set']
+] as const);
+
+export class StructureSelectionActionsControls extends PluginUIComponent<{}, StructureSelectionActionsControlsState> {
+    state = {
+        action: void 0 as StructureSelectionActionsControlsState['action'],
+
+        isEmpty: true,
+        isBusy: false,
+    }
+
+    componentDidMount() {
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, c => {
+            const isEmpty = c.structures.length === 0;
+            if (this.state.isEmpty !== isEmpty) {
+                this.setState({ isEmpty });
+            }
+        });
+
+        this.subscribe(this.plugin.behaviors.state.isBusy, v => {
+            this.setState({ isBusy: v, action: void 0 })
+        })
+    }
+
+    get isDisabled() {
+        return this.state.isBusy || this.state.isEmpty
     }
 
     set = (modifier: StructureSelectionModifier, selectionQuery: StructureSelectionQuery) => {
@@ -121,7 +153,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         return this.queriesItems
     }
 
-    private showAction(q: StructureSelectionControlsState['action']) {
+    private showAction(q: StructureSelectionActionsControlsState['action']) {
         return () => this.setState({ action: this.state.action === q ? void 0 : q });
     }
 
@@ -131,18 +163,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     toggleSet = this.showAction('set')
     toggleColor = this.showAction('color')
 
-    highlight = (e: React.MouseEvent<HTMLElement>) => {
-        this.plugin.managers.interactivity.lociHighlights.clearHighlights();
-        this.plugin.managers.structure.selection.entries.forEach(e => {
-            this.plugin.managers.interactivity.lociHighlights.highlight({ loci: e.selection }, false);
-        })
-    }
-
-    clearHighlight = () => {
-        this.plugin.managers.interactivity.lociHighlights.clearHighlights();
-    }
-
-    get controls() {
+    render() {
         return <>
             <div className='msp-flex-row'>
                 <ToggleButton icon='union' title={ActionHeader.get('add')} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
@@ -157,29 +178,69 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             </ControlGroup>}
         </>
     }
+}
 
-    defaultState() {
-        return {
-            isCollapsed: false,
-            header: 'Selection',
-
-            action: void 0,
-
-            isEmpty: true,
-            isBusy: false,
-
-            brand: { name: 'Sel', accent: 'red' }
-        } as S
+export class StructureSelectionStatsControls extends PluginUIComponent<{}, { isEmpty: boolean, isBusy: boolean }> {
+    state = {
+        isEmpty: true,
+        isBusy: false
     }
 
-    renderControls() {
+    componentDidMount() {
+        this.subscribe(this.plugin.managers.structure.selection.events.changed, () => {
+            this.forceUpdate()
+        });
+
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, c => {
+            const isEmpty = c.structures.length === 0;
+            if (this.state.isEmpty !== isEmpty) {
+                this.setState({ isEmpty });
+            }
+        });
+
+        this.subscribe(this.plugin.behaviors.state.isBusy, v => {
+            this.setState({ isBusy: v })
+        })
+    }
+
+    get isDisabled() {
+        return this.state.isBusy || this.state.isEmpty
+    }
+
+    get stats() {
+        const stats = this.plugin.managers.structure.selection.stats
+        if (stats.structureCount === 0 || stats.elementCount === 0) {
+            return 'Nothing Selected'
+        } else {
+            return `${stripTags(stats.label)} Selected`
+        }
+    }
+
+    clear = () => this.plugin.managers.interactivity.lociSelects.deselectAll();
+
+    focus = () => {
+        if (this.plugin.managers.structure.selection.stats.elementCount === 0) return;
+        const { sphere } = this.plugin.managers.structure.selection.getBoundary();
+        this.plugin.managers.camera.focusSphere(sphere);
+    }
+
+    highlight = (e: React.MouseEvent<HTMLElement>) => {
+        this.plugin.managers.interactivity.lociHighlights.clearHighlights();
+        this.plugin.managers.structure.selection.entries.forEach(e => {
+            this.plugin.managers.interactivity.lociHighlights.highlight({ loci: e.selection }, false);
+        })
+    }
+
+    clearHighlight = () => {
+        this.plugin.managers.interactivity.lociHighlights.clearHighlights();
+    }
+
+    render() {
         const stats = this.plugin.managers.structure.selection.stats
         const empty = stats.structureCount === 0 || stats.elementCount === 0;
 
         return <>
-            <ParameterControls params={StructureSelectionParams} values={this.values} onChangeValues={this.setProps} />
-            {this.controls}
-            <div className='msp-flex-row' style={{ margin: '6px 0' }}>
+            <div className='msp-flex-row'>
                 <Button noOverflow onClick={this.focus} title='Click to Focus Selection' disabled={empty} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}
                     style={{ textAlignLast: !empty ? 'left' : void 0 }}>
                     {this.stats}
