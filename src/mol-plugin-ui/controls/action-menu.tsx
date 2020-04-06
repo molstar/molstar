@@ -36,8 +36,8 @@ export namespace ActionMenu {
         noAccent?: boolean
     }
 
-    export type OnSelect = (item: Item | undefined) => void
-    export type OnSelectMany = (itemOrItems: Item[] | undefined) => void
+    export type OnSelect = (item: Item | undefined, e?: React.MouseEvent<HTMLButtonElement>) => void
+    export type OnSelectMany = (itemOrItems: Item[] | undefined, e?: React.MouseEvent<HTMLButtonElement>) => void
 
     export type Items =  Header | Item | Items[]
     export type Header = { kind: 'header', label: string, isIndependent?: boolean, initiallyExpanded?: boolean, description?: string }
@@ -176,7 +176,7 @@ type SectionProps = {
 type SectionState = { isExpanded: boolean, hasCurrent: boolean, header?: ActionMenu.Header }
 
 class Section extends React.PureComponent<SectionProps, SectionState> {
-    static createState(props: SectionProps): SectionState {
+    static createState(props: SectionProps, isExpanded?: boolean): SectionState {
         const header = isItems(props.items) && isHeader(props.items[0]) ? props.items[0] : void 0;
 
         const hasCurrent = header?.isIndependent
@@ -188,7 +188,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         return {
             header,
             hasCurrent,
-            isExpanded: hasCurrent || !!header?.initiallyExpanded
+            isExpanded: hasCurrent || (isExpanded ?? !!header?.initiallyExpanded)
         };
     }
 
@@ -201,7 +201,13 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
 
     componentDidUpdate(prevProps: SectionProps) {
         if (this.props.items !== prevProps.items || this.props.current !== prevProps.current) {
-            this.setState(Section.createState(this.props));
+            // keep previously expanded section if the header label is the same
+            const isExpanded = (
+                isItems(this.props.items) && isItems(prevProps.items) &&
+                isHeader(this.props.items[0]) && isHeader(prevProps.items[0]) &&
+                this.props.items[0].label === prevProps.items[0].label
+            ) ? this.state.isExpanded : undefined
+            this.setState(Section.createState(this.props, isExpanded));
         }
     }
 
@@ -235,7 +241,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { header, hasCurrent } = this.state;
 
         return <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
-            <Button noOverflow icon={this.state.isExpanded ? 'collapse' : 'expand'} onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}.${header?.description ? header?.description : ''}`}>
+            <Button noOverflow icon={this.state.isExpanded ? 'collapse' : 'expand'} onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}. ${header?.description ? header?.description : ''}`}>
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </Button>
         </div>;
@@ -270,7 +276,7 @@ const Action: React.FC<{
 
     const style: React.CSSProperties | undefined = item.addOn ? { position: 'relative' } : void 0;
 
-    return <Button icon={item.icon} noOverflow className='msp-action-menu-button' onClick={() => onSelect(multiselect ? [item] : item as any)} disabled={item.disabled} style={style} title={item.description}>
+    return <Button icon={item.icon} noOverflow className='msp-action-menu-button' onClick={e => onSelect(multiselect ? [item] : item as any, e)} disabled={item.disabled} style={style} title={item.description}>
         {isCurrent || item.selected ? <b>{item.label}</b> : item.label}
         {item.addOn}
     </Button>;
