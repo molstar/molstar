@@ -8,7 +8,7 @@ import { AssemblySymmetryQuery, AssemblySymmetryQueryVariables } from './graphql
 import query from './graphql/symmetry.gql';
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
-import { CustomPropertyDescriptor, Structure, Model } from '../../mol-model/structure';
+import { CustomPropertyDescriptor, Structure, Model, StructureSelection, QueryContext } from '../../mol-model/structure';
 import { Database as _Database, Column } from '../../mol-data/db'
 import { GraphQLClient } from '../../mol-util/graphql-client';
 import { CustomProperty } from '../common/custom-property';
@@ -16,6 +16,9 @@ import { NonNullableArray } from '../../mol-util/type-helpers';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 import { ReadonlyVec3 } from '../../mol-math/linear-algebra/3d/vec3';
+import { SetUtils } from '../../mol-util/set';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
+import { compile } from '../../mol-script/runtime/query/compiler';
 
 const BiologicalAssemblyNames = new Set([
     'author_and_software_defined_assembly',
@@ -82,6 +85,34 @@ export namespace AssemblySymmetry {
     export type RotationAxes = ReadonlyArray<{ order: number, start: ReadonlyVec3, end: ReadonlyVec3 }>
     export function isRotationAxes(x: AssemblySymmetryValue['rotation_axes']): x is RotationAxes {
         return !!x && x.length > 0
+    }
+
+    export function getAsymIds(assemblySymmetry: AssemblySymmetryValue) {
+        const asymIds = new Set<string>()
+        for (const c of assemblySymmetry.clusters) {
+            if (!c?.members) continue
+            for (const m of c.members) {
+                if (m?.asym_id) asymIds.add(m.asym_id)
+            }
+        }
+        return SetUtils.toArray(asymIds)
+    }
+
+    function getAsymIdsStructure(structure: Structure, asymIds: string[]) {
+        const query = MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'chain-test': MS.core.set.has([MS.set(...asymIds), MS.ammp('label_asym_id')])
+            })
+        ])
+        const compiled = compile<StructureSelection>(query)
+        const result = compiled(new QueryContext(structure))
+        return StructureSelection.unionStructure(result)
+    }
+
+    /** Returns structure limited to all cluster member chains */
+    export function getStructure(structure: Structure, assemblySymmetry: AssemblySymmetryValue) {
+        const asymIds = AssemblySymmetry.getAsymIds(assemblySymmetry)
+        return asymIds.length > 0 ? getAsymIdsStructure(structure, asymIds) : structure
     }
 }
 

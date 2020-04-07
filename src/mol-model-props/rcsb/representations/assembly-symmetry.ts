@@ -7,7 +7,7 @@
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { AssemblySymmetryValue, AssemblySymmetryProvider, AssemblySymmetry } from '../assembly-symmetry';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
-import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
+import { Vec3, Mat4, Mat3 } from '../../../mol-math/linear-algebra';
 import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { RuntimeContext } from '../../../mol-task';
@@ -32,6 +32,7 @@ import { Mutable } from '../../../mol-util/type-helpers';
 import { equalEps } from '../../../mol-math/linear-algebra/3d/common';
 import { Structure } from '../../../mol-model/structure';
 import { isInteger } from '../../../mol-util/number';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 const OrderColors = ColorMap({
     '2': ColorNames.deepskyblue,
@@ -71,8 +72,9 @@ const CageParams = {
 type CageParams = typeof CageParams
 
 const AssemblySymmetryVisuals = {
-    'axes': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, AxesParams>) => ShapeRepresentation(getAxesShape, Mesh.Utils, { modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
+    // cage should come before 'axes' so that the representative loci uses the cage shape
     'cage': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CageParams>) => ShapeRepresentation(getCageShape, Mesh.Utils, { modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
+    'axes': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, AxesParams>) => ShapeRepresentation(getAxesShape, Mesh.Utils, { modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
 }
 
 export const AssemblySymmetryParams = {
@@ -271,11 +273,41 @@ function setSymbolTransform(t: Mat4, symbol: string, axes: AssemblySymmetry.Rota
             } else {
                 Vec3.copy(up, Vec3.unitX)
             }
-            const sizeXY = (structure.lookup3d.boundary.sphere.radius * 2) * 0.8
             Mat4.targetTo(t, eye, target, up)
-            Mat4.scale(t, t, Vec3.create(sizeXY, sizeXY, size))
+
+            const { sphere } = structure.lookup3d.boundary
+            let sizeXY = (sphere.radius * 2) * 0.8 // fallback for missing extrema
+            if (Sphere3D.hasExtrema(sphere)) {
+                const n = Mat3.directionTransform(Mat3(), t)
+                const dirs = unitCircleDirections.map(d => Vec3.transformMat3(Vec3(), d, n))
+                sizeXY = getMaxProjectedDistance(sphere.extrema, dirs, sphere.center)
+            }
+
+            Mat4.scale(t, t, Vec3.create(sizeXY, sizeXY, size * 0.9))
         }
     }
+}
+
+const unitCircleDirections = (function() {
+    const dirs: Vec3[] = []
+    const circle = polygon(12, false, 1)
+    for (let i = 0, il = circle.length; i < il; i += 3) {
+        dirs.push(Vec3.fromArray(Vec3(), circle, i))
+    }
+    return dirs
+})()
+const tmpProj = Vec3()
+
+function getMaxProjectedDistance(points: Vec3[], directions: Vec3[], center: Vec3) {
+    let maxDist = 0
+    for (const p of points) {
+        for (const d of directions) {
+            Vec3.projectPointOnVector(tmpProj, p, d, center)
+            const dist = Vec3.distance(tmpProj, center)
+            if (dist > maxDist) maxDist = dist
+        }
+    }
+    return maxDist
 }
 
 function getCageMesh(data: Structure, props: PD.Values<CageParams>, mesh?: Mesh) {
@@ -284,6 +316,8 @@ function getCageMesh(data: Structure, props: PD.Values<CageParams>, mesh?: Mesh)
 
     const { rotation_axes, symbol } = assemblySymmetry
     if (!AssemblySymmetry.isRotationAxes(rotation_axes)) return Mesh.createEmpty(mesh)
+
+    const structure = AssemblySymmetry.getStructure(data, assemblySymmetry)
 
     const cage = getSymbolCage(symbol)
     if (!cage) return Mesh.createEmpty(mesh)
@@ -294,7 +328,7 @@ function getCageMesh(data: Structure, props: PD.Values<CageParams>, mesh?: Mesh)
 
     const builderState = MeshBuilder.createState(256, 128, mesh)
     builderState.currentGroup = 0
-    setSymbolTransform(t, symbol, rotation_axes, size, data)
+    setSymbolTransform(t, symbol, rotation_axes, size, structure)
     Vec3.scale(tmpCenter, Vec3.add(tmpCenter, start, end), 0.5)
     Mat4.setTranslation(t, tmpCenter)
     MeshBuilder.addCage(builderState, t, cage, radius, 1, 8)

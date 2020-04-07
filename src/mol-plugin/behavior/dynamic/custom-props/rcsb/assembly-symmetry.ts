@@ -148,9 +148,8 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
 
 //
 
-const AssemblySymmetryPresetParams = {
+export const AssemblySymmetryPresetParams = {
     ...StructureRepresentationPresetProvider.CommonParams,
-    symmetryIndex: PD.Numeric(0)
 }
 
 export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({

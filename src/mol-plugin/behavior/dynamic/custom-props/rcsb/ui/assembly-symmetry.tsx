@@ -7,11 +7,16 @@
 import * as React from 'react';
 import { CollapsableState, CollapsableControls } from '../../../../../../mol-plugin-ui/base';
 import { ApplyActionControl } from '../../../../../../mol-plugin-ui/state/apply-action';
-import { InitAssemblySymmetry3D, AssemblySymmetry3D } from '../assembly-symmetry';
+import { InitAssemblySymmetry3D, AssemblySymmetry3D, AssemblySymmetryPreset } from '../assembly-symmetry';
 import { AssemblySymmetryProvider,  AssemblySymmetryProps, AssemblySymmetryDataProvider } from '../../../../../../mol-model-props/rcsb/assembly-symmetry';
 import { ParameterControls } from '../../../../../../mol-plugin-ui/controls/parameters';
 import { ParamDefinition as PD } from '../../../../../../mol-util/param-definition';
 import { StructureHierarchyManager } from '../../../../../../mol-plugin-state/manager/structure/hierarchy';
+import { StateAction } from '../../../../../../mol-state';
+import { PluginStateObject } from '../../../../../../mol-plugin-state/objects';
+import { PluginContext } from '../../../../../context';
+import { Task } from '../../../../../../mol-task';
+import { PluginCommands } from '../../../../../commands';
 
 interface AssemblySymmetryControlState extends CollapsableState {
     isBusy: boolean
@@ -56,7 +61,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
     renderEnable() {
         const pivot = this.pivot;
         if (!pivot.cell.parent) return null;
-        return <ApplyActionControl state={pivot.cell.parent} action={InitAssemblySymmetry3D} initiallyCollapsed={true} nodeRef={pivot.cell.transform.ref} simpleApply={{ header: 'Enable', icon: 'check' }} />;
+        return <ApplyActionControl state={pivot.cell.parent} action={EnableAssemblySymmetry3D} initiallyCollapsed={true} nodeRef={pivot.cell.transform.ref} simpleApply={{ header: 'Enable', icon: 'check' }} />;
     }
 
     renderNoSymmetries() {
@@ -133,3 +138,11 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
         return this.renderParams();
     }
 }
+
+const EnableAssemblySymmetry3D = StateAction.build({
+    from: PluginStateObject.Molecule.Structure,
+})(({ a, ref, state }, plugin: PluginContext) => Task.create('Enable Assembly Symmetry', async ctx => {
+    const action = InitAssemblySymmetry3D.create({})
+    await PluginCommands.State.ApplyAction(plugin, { state, action, ref })
+    await AssemblySymmetryPreset.apply(ref, Object.create(null), plugin)
+}));
