@@ -245,7 +245,7 @@ function setSymbolTransform(t: Mat4, symbol: string, axes: AssemblySymmetry.Rota
         pair = [a5]
         for (const a of axes.filter(a => a.order === 3)) {
             let d = radToDeg(Vec3.angle(Vec3.sub(up, a.end, a.start), a5dir))
-            if (equalEps(d, 100.81, 0.1)) {
+            if (equalEps(d, 100.81, 0.1) || equalEps(d, 79.19, 0.1)) {
                 pair[1] = a
                 break
             }
@@ -261,6 +261,8 @@ function setSymbolTransform(t: Mat4, symbol: string, axes: AssemblySymmetry.Rota
         Vec3.copy(target, aA.end)
         if (aB) {
             Vec3.sub(up, aB.end, aB.start)
+            const d = Vec3.dot(eye, up)
+            if (d < 0) Vec3.negate(up, up)
             Mat4.targetTo(t, eye, target, up)
             Mat4.scaleUniformly(t, t, size * getSymbolScale(symbol))
         } else {
