@@ -5,25 +5,22 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { File3DG } from '../mol-io/reader/3dg/parser';
+import { Ccp4File } from '../mol-io/reader/ccp4/schema';
 import { CifFile } from '../mol-io/reader/cif';
+import { DcdFile } from '../mol-io/reader/dcd/parser';
+import { Dsn6File } from '../mol-io/reader/dsn6/schema';
 import { PlyFile } from '../mol-io/reader/ply/schema';
-import { Coordinates as _Coordinates } from '../mol-model/structure';
-import { Topology as _Topology } from '../mol-model/structure';
-import { Model as _Model, Structure as _Structure, StructureElement } from '../mol-model/structure';
+import { PsfFile } from '../mol-io/reader/psf/parser';
+import { ShapeProvider } from '../mol-model/shape/provider';
+import { Coordinates as _Coordinates, Model as _Model, Structure as _Structure, StructureElement, Topology as _Topology } from '../mol-model/structure';
 import { VolumeData } from '../mol-model/volume';
 import { PluginBehavior } from '../mol-plugin/behavior/behavior';
 import { Representation } from '../mol-repr/representation';
+import { ShapeRepresentation } from '../mol-repr/shape/representation';
 import { StructureRepresentation, StructureRepresentationState } from '../mol-repr/structure/representation';
 import { VolumeRepresentation } from '../mol-repr/volume/representation';
 import { StateObject, StateTransformer } from '../mol-state';
-import { Ccp4File } from '../mol-io/reader/ccp4/schema';
-import { Dsn6File } from '../mol-io/reader/dsn6/schema';
-import { ShapeRepresentation } from '../mol-repr/shape/representation';
-import { Shape as _Shape } from '../mol-model/shape';
-import { ShapeProvider } from '../mol-model/shape/provider';
-import { File3DG } from '../mol-io/reader/3dg/parser';
-import { DcdFile } from '../mol-io/reader/dcd/parser';
-import { PsfFile } from '../mol-io/reader/psf/parser';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 
@@ -70,11 +67,7 @@ export namespace PluginStateObject {
     export namespace Format {
         export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
         export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
-        export class Pdb extends Create<CifFile>({ name: 'PDB File', typeClass: 'Data' }) { }
-        export class Gro extends Create<CifFile>({ name: 'GRO File', typeClass: 'Data' }) { }
-        export class _3dg extends Create<CifFile>({ name: '3DG File', typeClass: 'Data' }) { }
         export class Psf extends Create<PsfFile>({ name: 'PSF File', typeClass: 'Data' }) { }
-        export class Dcd extends Create<CifFile>({ name: 'DCD File', typeClass: 'Data' }) { }
         export class Ply extends Create<PlyFile>({ name: 'PLY File', typeClass: 'Data' }) { }
         export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC/MAP File', typeClass: 'Data' }) { }
         export class Dsn6 extends Create<Dsn6File>({ name: 'DSN6/BRIX File', typeClass: 'Data' }) { }

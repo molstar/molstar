@@ -75,6 +75,23 @@ export const GroProvider: DataFormatProvider<any> = {
     }
 }
 
+export const MolProvider: DataFormatProvider<any> = {
+    label: 'MOL',
+    description: 'MOL',
+    stringExtensions: ['mol', 'sdf'],
+    binaryExtensions: [],
+    isApplicable: (info: FileInfo, data: string) => {
+        return info.ext === 'mol' || info.ext === 'sdf'
+    },
+    getDefaultBuilder: (ctx: PluginContext, data, options) => {
+        return Task.create('MOL default builder', async () => {
+            const trajectory = await ctx.builders.structure.parseTrajectory(data, 'mol');
+            const representationPreset = options.visuals ? 'atomic-detail' : 'empty';
+            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'default', { showUnitcell: options.visuals, representationPreset });
+        })
+    }
+}
+
 export const Provider3dg: DataFormatProvider<any> = {
     label: '3DG',
     description: '3DG',

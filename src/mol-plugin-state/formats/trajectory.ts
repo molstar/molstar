@@ -86,11 +86,24 @@ export const Provider3dg: TrajectoryFormatProvider = {
     parse: directTrajectory(StateTransforms.Model.TrajectoryFrom3DG)
 }
 
+export const MolProvider: TrajectoryFormatProvider = {
+    label: 'MOL',
+    description: 'MOL',
+    stringExtensions: ['mol', 'sdf'],
+    binaryExtensions: [],
+    isApplicable: (info: FileInfo, data: string) => {
+        return info.ext === 'mol' || info.ext === 'sdf'
+    },
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromMOL)
+}
+
+
 export const BuildInTrajectoryFormats = [
     ['mmcif', MmcifProvider] as const,
     ['pdb', PdbProvider] as const,
     ['gro', GroProvider] as const,
     ['3dg', Provider3dg] as const,
+    ['mol', MolProvider] as const
 ] as const
 
 export type BuiltInTrajectoryFormat = (typeof BuildInTrajectoryFormats)[number][0]
