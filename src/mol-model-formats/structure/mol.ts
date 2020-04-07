@@ -47,8 +47,11 @@ async function getModels(mol: MolFile, ctx: RuntimeContext): Promise<Model[]> {
     }, atoms.count);
 
     const entityBuilder = new EntityBuilder()
+    entityBuilder.setNames([['UNK', 'Unknown Entity']])
     entityBuilder.getEntityId('UNK', MoleculeType.Unknown, 'A');
+
     const componentBuilder = new ComponentBuilder(seq_id, type_symbol);
+    componentBuilder.setNames([['UNK', 'Unknown Residue']])
     componentBuilder.add('UNK', 0);
 
     const basics = createBasic({

@@ -109,7 +109,7 @@ function parseInternal(data: string): Result<MolFile> {
 }
 
 export function parseMol(data: string) {
-    return Task.create<Result<MolFile>>('Parse PSF', async () => {
+    return Task.create<Result<MolFile>>('Parse Mol', async () => {
         return parseInternal(data)
     });
 }

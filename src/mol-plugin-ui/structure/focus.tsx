@@ -37,6 +37,7 @@ function addSymmetryGroupEntries(entries: Map<string, FocusEntry[]>, location: S
         ])
 
         let label = lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false, granularity: 'residue' })
+        if (!label) label = lociLabel(loci, { hidePrefix: false, htmlStyling: false })
         if (unitSymmetryGroup.units.length > 1) {
             label += ` | ${loci.elements[0].unit.conformation.operator.name}`
         }
