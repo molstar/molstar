@@ -10,7 +10,7 @@ import { StateAction, StateSelection, StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { FileInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { BuiltInTrajectoryFormat } from '../formats/trajectory';
+import { BuiltInTrajectoryFormat, BuildInTrajectoryFormats } from '../formats/trajectory';
 import { RootStructureDefinition } from '../helpers/root-structure';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
@@ -186,9 +186,13 @@ const DownloadStructure = StateAction.build({
                     id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma separated ACs.' }),
                     options
                 }, { isFlat: true, label: 'SWISS-MODEL', description: 'Loads the best homology model or experimental structure' }),
+                'pubchem': PD.Group({
+                    id: PD.Text('2244,2245', { label: 'PubChem ID', description: 'One or more comma separated IDs.' }),
+                    options
+                }, { isFlat: true, label: 'PubChem', description: 'Loads 3D conformer from PubChem.' }),
                 'url': PD.Group({
                     url: PD.Text(''),
-                    format: PD.Select('mmcif', [['mmcif', 'CIF'], ['pdb', 'PDB']] as ['mmcif' | 'pdb', string][]),
+                    format: PD.Select<BuiltInTrajectoryFormat>('mmcif', PD.arrayToOptions(BuildInTrajectoryFormats.map(f => f[0]), f => f)),
                     isBinary: PD.Boolean(false),
                     options
                 }, { isFlat: true, label: 'URL' })
@@ -236,6 +240,11 @@ const DownloadStructure = StateAction.build({
             downloadParams = getDownloadParams(src.params.id, id => `https://swissmodel.expasy.org/repository/uniprot/${id.toUpperCase()}.pdb`, id => `SWISS-MODEL: ${id}`, false);
             asTrajectory = !!src.params.options.asTrajectory;
             format = 'pdb'
+            break;
+        case 'pubchem':
+            downloadParams = getDownloadParams(src.params.id, id => `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/CID/${id.trim()}/record/SDF/?record_type=3d`, id => `PubChem: ${id}`, false);
+            asTrajectory = !!src.params.options.asTrajectory;
+            format = 'mol'
             break;
         default: throw new Error(`${(src as any).name} not supported.`);
     }
