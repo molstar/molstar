@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../../../../mol-util/param-definition'
-import { AssemblySymmetryProvider, AssemblySymmetry } from '../../../../../mol-model-props/rcsb/assembly-symmetry';
+import { AssemblySymmetryProvider, AssemblySymmetry, AssemblySymmetryDataProvider } from '../../../../../mol-model-props/rcsb/assembly-symmetry';
 import { PluginBehavior } from '../../../behavior';
 import { AssemblySymmetryParams, AssemblySymmetryRepresentation } from '../../../../../mol-model-props/rcsb/representations/assembly-symmetry';
 import { AssemblySymmetryClusterColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/assembly-symmetry-cluster';
@@ -80,7 +80,11 @@ export const InitAssemblySymmetry3D = StateAction.build({
     isApplicable: (a) => AssemblySymmetry.isApplicable(a.data)
 })(({ a, ref, state }, plugin: PluginContext) => Task.create('Init Assembly Symmetry', async ctx => {
     try {
-        await AssemblySymmetryProvider.attach({ runtime: ctx, fetch: plugin.fetch }, a.data)
+        const propCtx = { runtime: ctx, fetch: plugin.fetch }
+        await AssemblySymmetryDataProvider.attach(propCtx, a.data)
+        const assemblySymmetryData = AssemblySymmetryDataProvider.get(a.data).value
+        const symmetryIndex = assemblySymmetryData ? AssemblySymmetry.firstNonC1(assemblySymmetryData) : -1
+        await AssemblySymmetryProvider.attach(propCtx, a.data, { symmetryIndex })
     } catch(e) {
         plugin.log.error(`Assembly Symmetry: ${e}`)
         return
@@ -127,7 +131,7 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
             await AssemblySymmetryProvider.attach({ runtime: ctx, fetch: plugin.fetch }, a.data)
             const assemblySymmetry = AssemblySymmetryProvider.get(a.data).value
             if (!assemblySymmetry || assemblySymmetry.symbol === 'C1') {
-                return StateTransformer.UpdateResult.Recreate
+                return StateTransformer.UpdateResult.Null
             }
             const props = { ...b.data.repr.props, ...newParams }
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
@@ -164,9 +168,15 @@ export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({
         const structure = structureCell?.obj?.data;
         if (!structureCell || !structure) return {};
 
-        await plugin.runTask(Task.create('Assembly Symmetry', async runtime => {
-            await AssemblySymmetryProvider.attach({ fetch: plugin.fetch, runtime }, structure, { symmetryIndex: params.symmetryIndex })
-        }))
+        if (!AssemblySymmetryDataProvider.get(structure).value) {
+            await plugin.runTask(Task.create('Assembly Symmetry', async runtime => {
+                const propCtx = { runtime, fetch: plugin.fetch }
+                await AssemblySymmetryDataProvider.attach(propCtx, structure)
+                const assemblySymmetryData = AssemblySymmetryDataProvider.get(structure).value
+                const symmetryIndex = assemblySymmetryData ? AssemblySymmetry.firstNonC1(assemblySymmetryData) : -1
+                await AssemblySymmetryProvider.attach(propCtx, structure, { symmetryIndex })
+            }))
+        }
 
         const assemblySymmetry = await tryCreateAssemblySymmetry(plugin, structureCell);
         const preset = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: Tag.Cluster as any }, plugin);

@@ -71,6 +71,14 @@ export namespace AssemblySymmetry {
         return result.assembly.rcsb_struct_symmetry as AssemblySymmetryDataValue
     }
 
+    /** Returns the index of the first non C1 symmetry or -1 */
+    export function firstNonC1(assemblySymmetryData: AssemblySymmetryDataValue) {
+        for (let i = 0, il = assemblySymmetryData.length; i < il; ++i) {
+            if (assemblySymmetryData[i].symbol !== 'C1') return i
+        }
+        return -1
+    }
+
     export type RotationAxes = ReadonlyArray<{ order: number, start: ReadonlyVec3, end: ReadonlyVec3 }>
     export function isRotationAxes(x: AssemblySymmetryValue['rotation_axes']): x is RotationAxes {
         return !!x && x.length > 0
