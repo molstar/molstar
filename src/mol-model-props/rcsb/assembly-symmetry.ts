@@ -47,7 +47,7 @@ export namespace AssemblySymmetry {
         Representation = 'rcsb-assembly-symmetry-3d'
     }
 
-    export const DefaultServerUrl = 'https://data-beta.rcsb.org/graphql'
+    export const DefaultServerUrl = 'https://data.rcsb.org/graphql'
 
     export function isApplicable(structure?: Structure): boolean {
         return (
