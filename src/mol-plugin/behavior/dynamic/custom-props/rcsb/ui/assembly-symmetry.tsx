@@ -7,16 +7,15 @@
 import * as React from 'react';
 import { CollapsableState, CollapsableControls } from '../../../../../../mol-plugin-ui/base';
 import { ApplyActionControl } from '../../../../../../mol-plugin-ui/state/apply-action';
-import { InitAssemblySymmetry3D, AssemblySymmetry3D, AssemblySymmetryPreset } from '../assembly-symmetry';
-import { AssemblySymmetryProvider,  AssemblySymmetryProps, AssemblySymmetryDataProvider } from '../../../../../../mol-model-props/rcsb/assembly-symmetry';
+import { InitAssemblySymmetry3D, AssemblySymmetry3D, AssemblySymmetryPreset, tryCreateAssemblySymmetry } from '../assembly-symmetry';
+import { AssemblySymmetryProvider,  AssemblySymmetryProps, AssemblySymmetryDataProvider, AssemblySymmetry } from '../../../../../../mol-model-props/rcsb/assembly-symmetry';
 import { ParameterControls } from '../../../../../../mol-plugin-ui/controls/parameters';
 import { ParamDefinition as PD } from '../../../../../../mol-util/param-definition';
 import { StructureHierarchyManager } from '../../../../../../mol-plugin-state/manager/structure/hierarchy';
-import { StateAction } from '../../../../../../mol-state';
+import { StateAction, StateSelection } from '../../../../../../mol-state';
 import { PluginStateObject } from '../../../../../../mol-plugin-state/objects';
 import { PluginContext } from '../../../../../context';
 import { Task } from '../../../../../../mol-task';
-import { PluginCommands } from '../../../../../commands';
 
 interface AssemblySymmetryControlState extends CollapsableState {
     isBusy: boolean
@@ -104,7 +103,17 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
             params.properties[AssemblySymmetryProvider.descriptor.name] = values;
             await this.plugin.builders.structure.insertStructureProperties(s.cell, params);
         }
-        this.forceUpdate()
+
+        const components = this.plugin.managers.structure.hierarchy.currentComponentGroups[0];
+        if (values.symmetryIndex === -1) {
+            const name = components[0]?.representations[0]?.cell.transform.params?.colorTheme.name;
+            if (name === AssemblySymmetry.Tag.Cluster) {
+                await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: 'default' })
+            }
+        } else {
+            tryCreateAssemblySymmetry(this.plugin, s.cell)
+            await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: AssemblySymmetry.Tag.Cluster as any })
+        }
     }
 
     paramsOnChange = (options: AssemblySymmetryProps) => {
@@ -112,7 +121,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
     }
 
     get hasAssemblySymmetry3D() {
-        return !!this.pivot.genericRepresentations?.filter(r => r.cell.transform.transformer.id === AssemblySymmetry3D.id)[0]
+        return !this.pivot.cell.parent || !!StateSelection.findTagInSubtree(this.pivot.cell.parent.tree, this.pivot.cell.transform.ref, AssemblySymmetry.Tag.Representation);
     }
 
     get enable() {
@@ -142,7 +151,5 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
 const EnableAssemblySymmetry3D = StateAction.build({
     from: PluginStateObject.Molecule.Structure,
 })(({ a, ref, state }, plugin: PluginContext) => Task.create('Enable Assembly Symmetry', async ctx => {
-    const action = InitAssemblySymmetry3D.create({})
-    await PluginCommands.State.ApplyAction(plugin, { state, action, ref })
     await AssemblySymmetryPreset.apply(ref, Object.create(null), plugin)
 }));

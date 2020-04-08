@@ -89,7 +89,8 @@ export const InitAssemblySymmetry3D = StateAction.build({
         plugin.log.error(`Assembly Symmetry: ${e}`)
         return
     }
-    const tree = state.build().to(ref).apply(AssemblySymmetry3D);
+    const tree = state.build().to(ref)
+        .applyOrUpdateTagged(AssemblySymmetry.Tag.Representation, AssemblySymmetry3D);
     await state.updateTree(tree).runInContext(ctx);
 }));
 
@@ -131,7 +132,9 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
             await AssemblySymmetryProvider.attach({ runtime: ctx, fetch: plugin.fetch }, a.data)
             const assemblySymmetry = AssemblySymmetryProvider.get(a.data).value
             if (!assemblySymmetry || assemblySymmetry.symbol === 'C1') {
-                return StateTransformer.UpdateResult.Null
+                // this should NOT be StateTransformer.UpdateResult.Null
+                // because that keeps the old object
+                return StateTransformer.UpdateResult.Recreate
             }
             const props = { ...b.data.repr.props, ...newParams }
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
@@ -184,10 +187,10 @@ export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({
     }
 });
 
-async function tryCreateAssemblySymmetry(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, params?: StateTransformer.Params<AssemblySymmetry3D>, initialState?: Partial<StateTransform.State>) {
+export async function tryCreateAssemblySymmetry(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, params?: StateTransformer.Params<AssemblySymmetry3D>, initialState?: Partial<StateTransform.State>) {
     const state = plugin.state.data;
     const assemblySymmetry = state.build().to(structure)
-        .apply(AssemblySymmetry3D, params, { state: initialState });
+        .applyOrUpdateTagged(AssemblySymmetry.Tag.Representation, AssemblySymmetry3D, params, { state: initialState });
     await plugin.updateDataState(assemblySymmetry, { revertOnError: true });
     return assemblySymmetry.selector
 }
