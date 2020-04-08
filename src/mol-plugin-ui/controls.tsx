@@ -251,9 +251,14 @@ export class SelectionViewportControls extends PluginUIComponent {
         this.subscribe(this.plugin.behaviors.interaction.selectionMode, () => this.forceUpdate());
     }
 
+    onMouseMove = (e: React.MouseEvent) => {
+        // ignore mouse moves when no button is held
+        if (e.buttons === 0) e.stopPropagation()
+    }
+
     render() {
         if (!this.plugin.selectionMode) return null;
-        return <div className='msp-selection-viewport-controls'>
+        return <div className='msp-selection-viewport-controls' onMouseMove={this.onMouseMove}>
             <StructureSelectionActionsControls />
         </div>;
     }
