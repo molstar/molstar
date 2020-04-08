@@ -23,7 +23,7 @@ export const InteractionsParams = {
     ...InteractionsIntraUnitParams,
     ...InteractionsInterUnitParams,
     unitKinds: getUnitKindsParam(['atomic']),
-    sizeFactor: PD.Numeric(0.15, { min: 0.01, max: 1, step: 0.01 }),
+    sizeFactor: PD.Numeric(0.2, { min: 0.01, max: 1, step: 0.01 }),
     visuals: PD.MultiSelect(['intra-unit', 'inter-unit'], PD.objectToOptions(InteractionsVisuals)),
 }
 export type InteractionsParams = typeof InteractionsParams
