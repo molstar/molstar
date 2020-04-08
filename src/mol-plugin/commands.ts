@@ -70,6 +70,7 @@ export const PluginCommands = {
         }
     },
     Canvas3D: {
-        SetSettings: PluginCommand<{ settings: Partial<Canvas3DProps> }>()
+        SetSettings: PluginCommand<{ settings: Partial<Canvas3DProps> | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void) }>(),
+        ResetSettings: PluginCommand<{ }>()
     }
 }

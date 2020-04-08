@@ -218,6 +218,13 @@ class State {
         });
     }
 
+    private _inUpdate = false;
+    /**
+     * Determines whether the state is currently "inside" updateTree function.
+     * This is different from "isUpdating" which wraps entire transactions.
+     */
+    get inUpdate() { return this._inUpdate; }
+
     /**
      * Queues up a reconciliation of the existing state tree.
      *
@@ -232,6 +239,8 @@ class State {
         return Task.create('Update Tree', async taskCtx => {
             const removed = await this.updateQueue.enqueue(params);
             if (!removed) return;
+
+            this._inUpdate = true;
 
             const snapshot = options?.canUndo ? this._tree.asImmutable() : void 0;
             let reverted = false;
@@ -248,6 +257,7 @@ class State {
 
                 return ret.cell;
             } finally {
+                this._inUpdate = false;
                 this.updateQueue.handled(params);
                 if (!this.inTransaction) {
                     this.behaviors.isUpdating.next(false);

@@ -1,20 +1,15 @@
-const common = require('./webpack.config.common.js');
-const createApp = common.createApp; 
-const createEntry = common.createEntry;
-const createBrowserTest = common.createBrowserTest;
+const { createApp, createExample, createBrowserTest } = require('./webpack.config.common.js');
+
+const apps = ['viewer'];
+const examples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting'];
+const tests = [
+    'font-atlas',
+    'marching-cubes',
+    'render-lines', 'render-mesh', 'render-shape', 'render-spheres', 'render-structure', 'render-text'
+];
 
 module.exports = [
-    createApp('viewer'),
-    createApp('basic-wrapper'),
-    createEntry('examples/proteopedia-wrapper/index', 'examples/proteopedia-wrapper', 'index'),
-    createEntry('apps/demos/lighting/index', 'demos/lighting', 'index'),
-
-    createBrowserTest('font-atlas'),
-    createBrowserTest('marching-cubes'),
-    createBrowserTest('render-lines'),
-    createBrowserTest('render-mesh'),
-    createBrowserTest('render-shape'),
-    createBrowserTest('render-spheres'),
-    createBrowserTest('render-structure'),
-    createBrowserTest('render-text'),
+    ...apps.map(createApp),
+    ...examples.map(createExample),
+    ...tests.map(createBrowserTest)
 ]

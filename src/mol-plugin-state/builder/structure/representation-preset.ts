@@ -245,7 +245,7 @@ const atomicDetail = StructureRepresentationPresetProvider({
 });
 
 export function presetStaticComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, type: StaticStructureComponentType, params?: { label?: string, tags?: string[] }) {
-    return plugin.builders.structure.tryCreateComponentStatic(structure, type, `static-${type}`, params);
+    return plugin.builders.structure.tryCreateComponentStatic(structure, type, params);
 }
 
 export function presetSelectionComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, query: keyof typeof Q, params?: { label?: string, tags?: string[] }) {

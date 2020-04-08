@@ -149,12 +149,12 @@ export class StructureBuilder {
         }, key, params?.tags);
     }
 
-    tryCreateComponentStatic(structure: StateObjectRef<SO.Molecule.Structure>, type: StaticStructureComponentType, key: string, params?: { label?: string, tags?: string[] }) {
+    tryCreateComponentStatic(structure: StateObjectRef<SO.Molecule.Structure>, type: StaticStructureComponentType, params?: { label?: string, tags?: string[] }) {
         return this.tryCreateComponent(structure, {
             type: { name: 'static', params: type },
             nullIfEmpty: true,
             label: (params?.label || '').trim()
-        }, key, params?.tags);
+        },  `static-${type}`, params?.tags);
     }
 
     tryCreateComponentFromSelection(structure: StateObjectRef<SO.Molecule.Structure>, selection: StructureSelectionQuery, key: string, params?: { label?: string, tags?: string[] }): Promise<StateObjectSelector<SO.Molecule.Structure> | undefined> {

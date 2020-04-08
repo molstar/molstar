@@ -8,7 +8,7 @@
 import { setAutoFreeze } from 'immer';
 import { List } from 'immutable';
 import { merge } from 'rxjs';
-import { Canvas3D } from '../mol-canvas3d/canvas3d';
+import { Canvas3D, DefaultCanvas3DParams } from '../mol-canvas3d/canvas3d';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { Model, Structure } from '../mol-model/structure';
 import { DataFormatRegistry } from '../mol-plugin-state/actions/data-format';
@@ -30,7 +30,7 @@ import { StateTransformParameters } from '../mol-plugin-ui/state/common';
 import { Representation } from '../mol-repr/representation';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
-import { State, StateBuilder, StateTree } from '../mol-state';
+import { State, StateBuilder, StateTree, StateTransform } from '../mol-state';
 import { Progress, Task } from '../mol-task';
 import { ColorTheme } from '../mol-theme/color';
 import { SizeTheme } from '../mol-theme/size';
@@ -232,6 +232,11 @@ export class PluginContext {
 
     requestTaskAbort(progress: Progress, reason?: string) {
         this.tasks.requestAbort(progress, reason);
+    }
+
+    clear(resetViewportSettings = false) {
+        if (resetViewportSettings) this.canvas3d?.setProps(DefaultCanvas3DParams);
+        return PluginCommands.State.RemoveObject(this, { state: this.state.data, ref: StateTransform.RootRef });
     }
 
     dispose() {

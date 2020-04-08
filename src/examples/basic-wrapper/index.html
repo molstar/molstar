@@ -50,7 +50,7 @@
             <input type='text' id='url' placeholder='url' />
             <input type='text' id='assemblyId' placeholder='assembly id' />
             <select id='format'>
-                <option value='cif' selected>CIF</option>
+                <option value='mmcif' selected>mmCIF</option>
                 <option value='pdb'>PDB</option>
             </select>
         </div>
@@ -60,7 +60,7 @@
         
             var pdbId = '1grm', assemblyId= '1';
             var url = 'https://www.ebi.ac.uk/pdbe/static/entry/' + pdbId + '_updated.cif';
-            var format = 'cif';
+            var format = 'mmcif';
             
             $('url').value = url;
             $('url').onchange = function (e) { url = e.target.value; }
@@ -104,6 +104,7 @@
             addHeader('Misc');
 
             addControl('Apply Stripes', () => BasicMolStarWrapper.coloring.applyStripes());
+            addControl('Default Coloring', () => BasicMolStarWrapper.coloring.applyDefault());
 
             addHeader('Interactivity');
             addControl('Highlight seq_id=7', () => BasicMolStarWrapper.interactivity.highlightOn());

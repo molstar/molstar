@@ -35,6 +35,7 @@ import { ImagePass, ImageProps } from './passes/image';
 import { Sphere3D } from '../mol-math/geometry';
 import { isDebugMode } from '../mol-util/debug';
 import { CameraHelperParams } from './helper/camera-helper';
+import { produce } from 'immer';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -93,9 +94,8 @@ interface Canvas3D {
     requestCameraReset(options?: { durationMs?: number, snapshot?: Partial<Camera.Snapshot> }): void
     readonly camera: Camera
     readonly boundingSphere: Readonly<Sphere3D>
-    downloadScreenshot(): void
     getPixelData(variant: GraphicsRenderVariant): PixelData
-    setProps(props: Partial<Canvas3DProps>): void
+    setProps(props: Partial<Canvas3DProps> | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void)): void
     getImagePass(props: Partial<ImageProps>): ImagePass
 
     /** Returns a copy of the current Canvas3D instance props */
@@ -412,6 +412,31 @@ namespace Canvas3D {
             }
         }
 
+        function getProps(): Canvas3DProps {
+            const radius = scene.boundingSphere.radius > 0
+                ? 100 - Math.round((camera.transition.target.radius / scene.boundingSphere.radius) * 100)
+                : 0
+
+            return {
+                camera: {
+                    mode: camera.state.mode,
+                    helper: { ...drawPass.props.cameraHelper }
+                },
+                cameraFog: camera.state.fog > 0
+                    ? { name: 'on' as const, params: { intensity: camera.state.fog } }
+                    : { name: 'off' as const, params: {} },
+                cameraClipping: { far: camera.state.clipFar, radius },
+                cameraResetDurationMs: p.cameraResetDurationMs,
+                transparentBackground: p.transparentBackground,
+
+                postprocessing: { ...postprocessing.props },
+                multiSample: { ...multiSample.props },
+                renderer: { ...renderer.props },
+                trackball: { ...controls.props },
+                debug: { ...debugHelper.props }
+            }
+        }
+
         handleResize()
 
         return {
@@ -463,9 +488,6 @@ namespace Canvas3D {
             },
             camera,
             boundingSphere: scene.boundingSphere,
-            downloadScreenshot: () => {
-                // TODO
-            },
             getPixelData: (variant: GraphicsRenderVariant) => {
                 switch (variant) {
                     case 'color': return webgl.getDrawingBufferPixelData()
@@ -477,7 +499,11 @@ namespace Canvas3D {
             },
             didDraw,
             reprCount,
-            setProps: (props: Partial<Canvas3DProps>) => {
+            setProps: (properties) => {
+                const props: Partial<Canvas3DProps> = typeof properties === 'function'
+                    ? produce(getProps(), properties)
+                    : properties;
+
                 const cameraState: Partial<Camera.Snapshot> = Object.create(null)
                 if (props.camera && props.camera.mode !== undefined && props.camera.mode !== camera.state.mode) {
                     cameraState.mode = props.camera.mode
