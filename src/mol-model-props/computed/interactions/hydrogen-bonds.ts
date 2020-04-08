@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
@@ -32,7 +32,7 @@ type GeometryProps = PD.Values<GeometryParams>
 
 const HydrogenBondsParams = {
     ...GeometryParams,
-    water: PD.Boolean(true, { description: 'Include water-to-water hydrogen bonds' }),
+    water: PD.Boolean(false, { description: 'Include water-to-water hydrogen bonds' }),
     sulfurDistanceMax: PD.Numeric(4.1, { min: 1, max: 5, step: 0.1 }),
 }
 type HydrogenBondsParams = typeof HydrogenBondsParams
@@ -174,9 +174,8 @@ function addUnitHydrogenAcceptors(structure: Structure, unit: Unit.Atomic, build
     }
 }
 
-
 function isWater(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    return unit.model.atomicHierarchy.derived.residue.moleculeType[unit.elements[index]] === MoleculeType.Water
+    return unit.model.atomicHierarchy.derived.residue.moleculeType[unit.residueIndex[unit.elements[index]]] === MoleculeType.Water
 }
 
 function isBackbone(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
