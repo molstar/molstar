@@ -57,7 +57,9 @@ async function getStructure(model: Model, source:IngredientSource, props: { asse
         structure = await StructureSymmetry.buildAssembly(structure, assembly).run()
     }
     if (source.selection){
-        const asymIds:string[] = source.selection.split(":")
+        //use NGL selection string or :A or :B etc...
+        const asymIds:string[] = source.selection.replace(" :","").split(" or")
+        console.log(asymIds)
         const query = MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'chain-test': MS.core.set.has([MS.set(...asymIds), MS.ammp('label_asym_id')])

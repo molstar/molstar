@@ -54,8 +54,8 @@ export interface Ingredient {
     source: IngredientSource;
     results: [Vec3, Quat][];
     name: string;
-    positions?: [Positions];//Vec3[]];
-    radii?: [Radii];//number[]];
+    positions?: [Positions];//Vec3[]];CoarseGraind Beads coordinates LOD
+    radii?: [Radii];//number[]];CoarseGraind Beads radii LOD
     /** Number of `curveX` properties in the object where `X` is a 0-indexed number */
     nbCurve?: number;
     /** Curve properties are Vec3[] but that is not expressable in TypeScript */
