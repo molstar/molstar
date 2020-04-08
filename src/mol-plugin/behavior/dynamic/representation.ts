@@ -186,7 +186,8 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
                 label.push(lociLabel(loci))
                 return label.join('</br>')
             },
-            group: (label: LociLabel) => label.toString().replace(/Model [0-9]+/g, 'Models')
+            group: (label: LociLabel) => label.toString().replace(/Model [0-9]+/g, 'Models'),
+            priority: 100
         };
         register() { this.ctx.managers.lociLabels.addProvider(this.f); }
         unregister() { this.ctx.managers.lociLabels.removeProvider(this.f); }

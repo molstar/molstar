@@ -15,6 +15,8 @@ export type LociLabel = JSX.Element | string
 export type LociLabelProvider = {
     label: (loci: Loci, repr?: Representation<any>) => LociLabel | undefined
     group?: (entry: LociLabel) => string
+    /** Labels from providers with higher priority are shown first */
+    priority?: number
 }
 
 export class LociLabelManager {
@@ -22,6 +24,7 @@ export class LociLabelManager {
 
     addProvider(provider: LociLabelProvider) {
         this.providers.push(provider);
+        this.providers.sort((a, b) => (b.priority || 0) - (a.priority || 0))
         this.isDirty = true
         this.showLabels()
     }
