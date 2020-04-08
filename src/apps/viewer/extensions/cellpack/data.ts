@@ -27,8 +27,7 @@ export interface Cell {
 
 export interface Recipe {
     setupfile: string
-    /** First entry is name, secound is path: [name: string, path: string][] */
-    paths: [string, string][]
+    paths: [string, string][] // [name: string, path: string][]
     version: string
     name: string
 }
@@ -42,21 +41,37 @@ export interface Packing {
     ingredients: { [key: string]: Ingredient }
 }
 
-export interface Ingredient {
-    source: IngredientSource
-    results: [Vec3, Quat][]
-    name: string
-    positions?: [Vec3[]] // why wrapped in an extra array?
-    radii?: [number[]] // why wrapped in an extra array?
+export interface Positions
+{
+    coords?: Vec3[];
+}
+export interface Radii
+{
+    radii?: number[];
+}
 
+export interface Ingredient {
+    source: IngredientSource;
+    results: [Vec3, Quat][];
+    name: string;
+    positions?: [Positions];//Vec3[]];
+    radii?: [Radii];//number[]];
     /** Number of `curveX` properties in the object where `X` is a 0-indexed number */
-    nbCurve?: number
+    nbCurve?: number;
     /** Curve properties are Vec3[] but that is not expressable in TypeScript */
-    [curveX: string]: unknown
+    [curveX: string]: unknown;
+    principalAxis?: Vec3; /** the orientation in the membrane */
+    offset?: Vec3;  /**offset along membrane */
 }
 
 export interface IngredientSource {
-    pdb: string
-    transform: { center: boolean, translate?: Vec3 }
-    biomt?: boolean
+    pdb: string;
+    bu?:string;  /** biological unit e.g AU,BU1,etc.. */
+    selection?:string; /** NGL selection or :A or :B etc.. */
+    model?:string;     /** model number e.g 0,1,2... */
+    transform: {
+        center: boolean;
+        translate?: Vec3;
+    };
+    biomt?: boolean;
 }
