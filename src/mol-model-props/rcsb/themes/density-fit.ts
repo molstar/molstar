@@ -8,7 +8,7 @@ import { ThemeDataContext } from '../../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition'
 import { Color, ColorScale } from '../../../mol-util/color';
-import { StructureElement } from '../../../mol-model/structure';
+import { StructureElement, Model } from '../../../mol-model/structure';
 import { Location } from '../../../mol-model/location';
 import { CustomProperty } from '../../common/custom-property';
 import { ValidationReportProvider, ValidationReport } from '../validation-report';
@@ -67,7 +67,7 @@ export const DensityFitColorThemeProvider: ColorTheme.Provider<{}, ValidationRep
     factory: DensityFitColorTheme,
     getParams: () => ({}),
     defaultValues: PD.getDefaultValues({}),
-    isApplicable: (ctx: ThemeDataContext) => ValidationReport.isApplicable(ctx.structure?.models[0]),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ValidationReport.isApplicable(ctx.structure.models[0]) && Model.hasXrayMap(ctx.structure.models[0]),
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? ValidationReportProvider.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
         detach: (data) => data.structure && data.structure.models[0].customProperties.reference(ValidationReportProvider.descriptor, false)
