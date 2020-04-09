@@ -6,7 +6,7 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState, StructureParams } from './representation';
+import { StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState } from './representation';
 import { Visual } from '../visual';
 import { StructureGroup } from './units-visual';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
@@ -22,6 +22,7 @@ import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
 import { Mat4, EPSILON } from '../../mol-math/linear-algebra';
 import { Interval } from '../../mol-data/int';
+import { StructureParams } from './params';
 
 export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
 

@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as express from 'express'
-import * as compression from 'compression'
-import * as cors from 'cors'
+import express from 'express'
+import compression from 'compression'
+import cors from 'cors'
 import * as bodyParser from 'body-parser'
 import * as fs from 'fs'
 import * as path from 'path'

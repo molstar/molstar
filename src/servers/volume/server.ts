@@ -8,8 +8,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as compression from 'compression'
-import * as express from 'express'
+import compression from 'compression'
+import express from 'express'
 import { ConsoleLogger } from '../../mol-util/console-logger'
 import { configureServer, ServerConfig } from './config'
 import { State } from './server/state'

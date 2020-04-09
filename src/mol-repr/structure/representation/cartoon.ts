@@ -35,6 +35,7 @@ export const CartoonParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
     visuals: PD.MultiSelect(['polymer-trace', 'polymer-gap', 'nucleotide-block'], PD.objectToOptions(CartoonVisuals)),
 }
+
 export type CartoonParams = typeof CartoonParams
 export function getCartoonParams(ctx: ThemeRegistryContext, structure: Structure) {
     const params = PD.clone(CartoonParams)

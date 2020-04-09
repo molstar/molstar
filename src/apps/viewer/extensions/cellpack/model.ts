@@ -9,7 +9,7 @@ import { PluginContext } from '../../../../mol-plugin/context';
 import { PluginStateObject as PSO } from '../../../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { Ingredient, CellPacking } from './data';
-import { getFromPdb, getFromCellPackDB } from './util';
+import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile } from './util';
 import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit } from '../../../../mol-model/structure';
 import { trajectoryFromMmCIF, MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../../../mol-model-formats/structure/pdb';
@@ -34,9 +34,21 @@ function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`
 }
 
-async function getModel(id: string, baseUrl: string) {
+async function getModel(id: string, baseUrl: string, file?: File) {
     let model: Model;
-    if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
+    if (file) {
+        const text = await file.text()
+        if (file.name.endsWith('.cif')) {
+            const cif = (await parseCif(text)).blocks[0]
+            model = (await trajectoryFromMmCIF(cif).run())[0]
+        } else if (file.name.endsWith('.pdb')) {
+            const pdb = await parsePDBfile(text, id)
+
+            model = (await trajectoryFromPDB(pdb).run())[0]
+        } else {
+            throw new Error(`unsupported file type '${file.name}'`)
+        }
+    } else if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
         // return
         const cif = await getFromPdb(id)
         model = (await trajectoryFromMmCIF(cif).run())[0]
@@ -225,19 +237,21 @@ async function getCurve(name: string, transforms: Mat4[], model: Model) {
     return getStructure(curveModel)
 }
 
-async function getIngredientStructure(ingredient: Ingredient, baseUrl: string) {
+async function getIngredientStructure(ingredient: Ingredient, baseUrl: string, ingredientFiles: IngredientFiles) {
     const { name, source, results, nbCurve } = ingredient
-
-    // TODO can these be added to the library?
-    if (name === 'HIV1_CAhex_0_1_0') return
-    if (name === 'HIV1_CAhexCyclophilA_0_1_0') return
-    if (name === 'iLDL') return
-    if (name === 'peptides') return
-    if (name === 'lypoglycane') return
-
     if (source.pdb === 'None') return
 
-    const model = await getModel(source.pdb || name, baseUrl)
+    const file = ingredientFiles[source.pdb]
+    if (!file) {
+        // TODO can these be added to the library?
+        if (name === 'HIV1_CAhex_0_1_0') return
+        if (name === 'HIV1_CAhexCyclophilA_0_1_0') return
+        if (name === 'iLDL') return
+        if (name === 'peptides') return
+        if (name === 'lypoglycane') return
+    }
+
+    const model = await getModel(source.pdb || name, baseUrl, file)
     if (!model) return
 
     if (nbCurve) {
@@ -248,13 +262,13 @@ async function getIngredientStructure(ingredient: Ingredient, baseUrl: string) {
     }
 }
 
-export function createStructureFromCellPack(packing: CellPacking, baseUrl: string) {
+export function createStructureFromCellPack(packing: CellPacking, baseUrl: string, ingredientFiles: IngredientFiles) {
     return Task.create('Create Packing Structure', async ctx => {
         const { ingredients, name } = packing
         const structures: Structure[] = []
         for (const iName in ingredients) {
             if (ctx.shouldUpdate) await ctx.update(iName)
-            const s = await getIngredientStructure(ingredients[iName], baseUrl)
+            const s = await getIngredientStructure(ingredients[iName], baseUrl, ingredientFiles)
             if (s) structures.push(s)
         }
 
@@ -345,7 +359,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
     await handleHivRna({ runtime, fetch: plugin.fetch }, packings, params.baseUrl)
 
     for (let i = 0, il = packings.length; i < il; ++i) {
-        const p = { packing: i, baseUrl: params.baseUrl }
+        const p = { packing: i, baseUrl: params.baseUrl, ingredientFiles: params.ingredients.files }
 
         const packing = state.build().to(cellPackBuilder.ref).apply(StructureFromCellpack, p)
         await plugin.updateDataState(packing, { revertOnError: true });
@@ -378,6 +392,9 @@ const LoadCellPackModelParams = {
         'file': PD.File({ accept: 'id' }),
     }, { options: [['id', 'Id'], ['file', 'File']] }),
     baseUrl: PD.Text(DefaultCellPackBaseUrl),
+    ingredients : PD.Group({
+        files: PD.FileList({ accept: '.cif,.pdb' })
+    }, { isExpanded: true }),
     preset: PD.Group({
         traceOnly: PD.Boolean(false),
         representation: PD.Select('gaussian-surface', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'ellipsoid']))

@@ -91,12 +91,14 @@ function createNodeEntryPoint(name, dir, out) {
 }
 
 function createApp(name) { return createEntryPoint('index', `apps/${name}`, name) }
+function createExample(name) { return createEntry(`examples/${name}/index`, `examples/${name}`, 'index') }
 function createBrowserTest(name) { return createEntryPoint(name, 'tests/browser', 'tests') }
 function createNodeApp(name) { return createNodeEntryPoint('index', `apps/${name}`, name) }
 
 module.exports = {
     createApp,
     createEntry,
+    createExample,
     createBrowserTest,
     createNodeEntryPoint,
     createNodeApp

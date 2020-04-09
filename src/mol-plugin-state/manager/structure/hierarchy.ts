@@ -82,7 +82,7 @@ export class StructureHierarchyManager extends PluginComponent {
     }
 
     private sync(notify: boolean) {
-        if (!notify && this.dataState.behaviors.isUpdating.value) return;
+        if (!notify && this.dataState.inUpdate) return;
 
         if (this.state.syncedTree === this.dataState.tree) {
             if (notify && !this.state.notified) {

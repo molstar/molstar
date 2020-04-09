@@ -104,15 +104,16 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
             await this.plugin.builders.structure.insertStructureProperties(s.cell, params);
         }
 
-        const components = this.plugin.managers.structure.hierarchy.currentComponentGroups[0];
-        if (values.symmetryIndex === -1) {
-            const name = components[0]?.representations[0]?.cell.transform.params?.colorTheme.name;
-            if (name === AssemblySymmetry.Tag.Cluster) {
-                await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: 'default' })
+        for (const components of this.plugin.managers.structure.hierarchy.currentComponentGroups) {
+            if (values.symmetryIndex === -1) {
+                const name = components[0]?.representations[0]?.cell.transform.params?.colorTheme.name;
+                if (name === AssemblySymmetry.Tag.Cluster) {
+                    await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: 'default' })
+                }
+            } else {
+                tryCreateAssemblySymmetry(this.plugin, s.cell)
+                await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: AssemblySymmetry.Tag.Cluster as any })
             }
-        } else {
-            tryCreateAssemblySymmetry(this.plugin, s.cell)
-            await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: AssemblySymmetry.Tag.Cluster as any })
         }
     }
 
