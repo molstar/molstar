@@ -7,14 +7,14 @@
 import { CIF } from '../../../../mol-io/reader/cif'
 import { parsePDB } from '../../../../mol-io/reader/pdb/parser';
 
-async function parseCif(data: string|Uint8Array) {
+export async function parseCif(data: string|Uint8Array) {
     const comp = CIF.parse(data);
     const parsed = await comp.run();
     if (parsed.isError) throw parsed;
     return parsed.result;
 }
 
-async function parsePDBfile(data: string, id: string) {
+export async function parsePDBfile(data: string, id: string) {
     const comp = parsePDB(data, id);
     const parsed = await comp.run();
     if (parsed.isError) throw parsed;
@@ -46,3 +46,5 @@ export async function getFromCellPackDB(id: string, baseUrl: string) {
     const parsed = await downloadPDB(getCellPackDataUrl(id, baseUrl), name);
     return parsed;
 }
+
+export type IngredientFiles = { [name: string]: File }
