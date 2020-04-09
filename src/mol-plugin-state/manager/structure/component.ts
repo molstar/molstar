@@ -313,6 +313,10 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             const xs = structures || this.currentStructures;
             if (xs.length === 0) return;
 
+            const { showHydrogens, visualQuality: quality } = this.state.options;
+            const ignoreHydrogens = !showHydrogens;
+            const typeParams = { ignoreHydrogens, quality };
+
             const componentKey = UUID.create22();
             for (const s of xs) {
                 const component = await this.plugin.builders.structure.tryCreateComponentFromSelection(s.cell, params.selection, componentKey, {
@@ -320,7 +324,8 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                 });
                 if (params.representation === 'none' || !component) continue;
                 await this.plugin.builders.structure.representation.addRepresentation(component, {
-                    type: this.plugin.representation.structure.registry.get(params.representation)
+                    type: this.plugin.representation.structure.registry.get(params.representation),
+                    typeParams
                 });
             }
         }, { canUndo: 'Add Selection' });
