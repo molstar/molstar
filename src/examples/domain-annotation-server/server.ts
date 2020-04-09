@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as express from 'express'
+import express from 'express'
 import fetch from 'node-fetch'
 import createMapping from './mapping'
 

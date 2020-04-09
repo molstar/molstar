@@ -6,16 +6,17 @@
  */
 
 import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
-import { DefaultQueryRuntimeTable, QuerySymbolRuntime, QueryRuntimeArguments } from './compiler';
+import { DefaultQueryRuntimeTable, QuerySymbolRuntime, QueryRuntimeArguments } from './base';
 import { Queries, StructureProperties, StructureElement, QueryContext, UnitRing } from '../../../mol-model/structure';
 import { ElementSymbol, BondType, SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { SetUtils } from '../../../mol-util/set';
 import { upperCaseAny } from '../../../mol-util/string';
 import { VdwRadius, AtomWeight, AtomNumber } from '../../../mol-model/structure/model/properties/atomic';
 import { cantorPairing } from '../../../mol-data/util';
-import C = QuerySymbolRuntime.Const
-import D = QuerySymbolRuntime.Dynamic
 import { bundleElementImpl, bundleGenerator } from '../../../mol-model/structure/query/queries/internal';
+
+const C = QuerySymbolRuntime.Const
+const D = QuerySymbolRuntime.Dynamic
 
 const symbols = [
     // ============= TYPES =============

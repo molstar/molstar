@@ -197,11 +197,6 @@ namespace Canvas3D {
         const postprocessing = new PostprocessingPass(webgl, camera, drawPass, p.postprocessing)
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample)
 
-        const contextRestoredSub = contextRestored.subscribe(() => {
-            pickPass.pickDirty = true
-            draw(true)
-        })
-
         let drawPending = false
         let cameraResetRequested = false
         let nextCameraResetDuration: number | undefined = void 0
@@ -438,6 +433,11 @@ namespace Canvas3D {
         }
 
         handleResize()
+
+        const contextRestoredSub = contextRestored.subscribe(() => {
+            pickPass.pickDirty = true
+            draw(true)
+        })
 
         return {
             webgl,

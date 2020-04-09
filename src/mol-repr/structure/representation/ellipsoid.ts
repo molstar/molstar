@@ -8,11 +8,12 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { RepresentationParamsGetter, RepresentationContext, Representation } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
-import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation, getUnitKindsParam } from '../../../mol-repr/structure/representation';
+import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
 import { EllipsoidMeshParams, EllipsoidMeshVisual } from '../visual/ellipsoid-mesh';
 import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/property/anisotropic';
 import { IntraUnitBondParams, IntraUnitBondVisual } from '../visual/bond-intra-unit-cylinder';
 import { InterUnitBondParams, InterUnitBondVisual } from '../visual/bond-inter-unit-cylinder';
+import { getUnitKindsParam } from '../params';
 
 const EllipsoidVisuals = {
     'ellipsoid-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, EllipsoidMeshParams>) => UnitsRepresentation('Ellipsoid Mesh', ctx, getParams, EllipsoidMeshVisual),

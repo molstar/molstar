@@ -13,7 +13,7 @@ import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci, DataLoci } from '../../../mol-model/loci';
 import { Interval } from '../../../mol-data/int';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../../../mol-repr/representation';
-import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation, getUnitKindsParam } from '../../../mol-repr/structure/representation';
+import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
 import { VisualContext } from '../../../mol-repr/visual';
 import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from '../../../mol-repr/structure/visual/util/link';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../../../mol-repr/structure/units-visual';
@@ -27,6 +27,7 @@ import { MarkerActions } from '../../../mol-util/marker-action';
 import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { bondLabel } from '../../../mol-theme/label';
+import { getUnitKindsParam } from '../../../mol-repr/structure/params';
 
 //
 
