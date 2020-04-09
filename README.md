@@ -89,12 +89,11 @@ and navigate to `build/viewer`
 
 ### Code generation
 **CIF schemas**
-Install CIFTools `npm install ciftools -g`
 
-    cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/mmcif.ts -p mmCIF
-    cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/ccd.ts -p CCD
-    cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/bird.ts -p BIRD
-    cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/cif-core.ts -p CifCore -aa
+    node ./lib/apps/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/mmcif.ts -p mmCIF
+    node ./lib/apps/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/ccd.ts -p CCD
+    node ./lib/apps/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/bird.ts -p BIRD
+    node ./lib/apps/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/cif-core.ts -p CifCore -aa
 
 **GraphQL schemas**
 
@@ -103,7 +102,7 @@ Install CIFTools `npm install ciftools -g`
 ### Other scripts
 **Create chem comp bond table**
 
-    export NODE_PATH="lib"; node --max-old-space-size=4096 lib/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
+    node --max-old-space-size=4096 lib/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
 
 **Test model server**
 
@@ -118,6 +117,10 @@ Install CIFTools `npm install ciftools -g`
     node build/model-server/preprocess -i file.cif -ob file.bcif
 
 To see all available commands, use ``node build/model-server/preprocess -h``.
+
+Or
+
+    node ./lib/apps/cif2bcif
 
 ## Development
 

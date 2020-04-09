@@ -38,6 +38,8 @@
     "lib/"
   ],
   "bin": {
+    "cif2bcif": "lib/apps/cif2bcif/index.js",
+    "cifschema": "lib/apps/cifschema/index.js",
     "model-server": "lib/servers/model/server.js",
     "model-server-query": "lib/servers/model/local.js",
     "model-server-preprocess": "lib/servers/model/preprocess.js",
