@@ -8,9 +8,8 @@ import { StateAction, StateBuilder, StateTransformer, State } from '../../../../
 import { PluginContext } from '../../../../mol-plugin/context';
 import { PluginStateObject as PSO } from '../../../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { Ingredient,IngredientSource, CellPacking } from './data';
-import { getFromPdb, getFromCellPackDB } from './util';
-import { computeStructureBoundary } from '../../../../mol-model/structure/structure/util/boundary';
+import { Ingredient, CellPacking } from './data';
+import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile } from './util';
 import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit } from '../../../../mol-model/structure';
 import { trajectoryFromMmCIF, MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../../../mol-model-formats/structure/pdb';
@@ -35,54 +34,52 @@ function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`
 }
 
-async function getModel(id: string, source:IngredientSource, baseUrl: string) {
+async function getModel(id: string, baseUrl: string, file?: File) {
     let model: Model;
-    const mid = source.model? parseInt(source.model) : 0;
-    if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
+    if (file) {
+        const text = await file.text()
+        if (file.name.endsWith('.cif')) {
+            const cif = (await parseCif(text)).blocks[0]
+            model = (await trajectoryFromMmCIF(cif).run())[0]
+        } else if (file.name.endsWith('.pdb')) {
+            const pdb = await parsePDBfile(text, id)
+
+            model = (await trajectoryFromPDB(pdb).run())[0]
+        } else {
+            throw new Error(`unsupported file type '${file.name}'`)
+        }
+    } else if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
         // return
         const cif = await getFromPdb(id)
-        model = (await trajectoryFromMmCIF(cif).run())[mid]
+        model = (await trajectoryFromMmCIF(cif).run())[0]
     } else {
         const pdb = await getFromCellPackDB(id, baseUrl)
-        model = (await trajectoryFromPDB(pdb).run())[mid]
+        model = (await trajectoryFromPDB(pdb).run())[0]
     }
     return model
 }
 
-async function getStructure(model: Model, source:IngredientSource, props: { assembly?: string } = {}) {
+async function getStructure(model: Model, props: { assembly?: string } = {}) {
     let structure = Structure.ofModel(model)
     const { assembly } = props
 
     if (assembly) {
         structure = await StructureSymmetry.buildAssembly(structure, assembly).run()
     }
-    if (source.selection){
-        //use NGL selection string or :A or :B etc...
-        const asymIds:string[] = source.selection.replace(" :","").split(" or")
-        console.log(asymIds)
-        const query = MS.struct.modifier.union([
-            MS.struct.generator.atomGroups({
-                'chain-test': MS.core.set.has([MS.set(...asymIds), MS.ammp('label_asym_id')])
-            })
-        ])
-        const compiled = compile<StructureSelection>(query)
-        const result = compiled(new QueryContext(structure))
-        structure = StructureSelection.unionStructure(result)
-    }
-    else {
-        const query = MS.struct.modifier.union([
-            MS.struct.generator.atomGroups({
-                'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer'])
-            })
-        ])
-        const compiled = compile<StructureSelection>(query)
-        const result = compiled(new QueryContext(structure))
-        structure = StructureSelection.unionStructure(result)
-    }
+
+    const query = MS.struct.modifier.union([
+        MS.struct.generator.atomGroups({
+            'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer'])
+        })
+    ])
+    const compiled = compile<StructureSelection>(query)
+    const result = compiled(new QueryContext(structure))
+    structure = StructureSelection.unionStructure(result)
+
     return structure
 }
 
-function getTransformLegacy(trans: Vec3, rot: Quat) {
+function getTransform(trans: Vec3, rot: Quat) {
     const q: Quat = Quat.create(-rot[3], rot[0], rot[1], rot[2])
     const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q)
     Mat4.transpose(m, m)
@@ -91,25 +88,13 @@ function getTransformLegacy(trans: Vec3, rot: Quat) {
     return m
 }
 
-function getTransform(trans: Vec3, rot: Quat) {
-    const q: Quat = Quat.create(rot[0], rot[1], rot[2], rot[3])
-    const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q)
-    const p: Vec3 = Vec3.create(trans[0],trans[1],trans[2])
-    Mat4.setTranslation(m, p)
-    return m
-}
-
-function getResultTransforms(results: Ingredient['results'],legacy:boolean) {
-    if (legacy) return results.map((r: Ingredient['results'][0]) => getTransformLegacy(r[0], r[1]))
-    else return results.map((r: Ingredient['results'][0]) => getTransform(r[0], r[1]))
+function getResultTransforms(results: Ingredient['results']) {
+    return results.map((r: Ingredient['results'][0]) => getTransform(r[0], r[1]))
 }
 
 function getCurveTransforms(ingredient: Ingredient) {
     const n = ingredient.nbCurve || 0
     const instances: Mat4[] = []
-    const segmentLength = (ingredient.radii)? ((ingredient.radii[0].radii)?ingredient.radii[0].radii[0]*2.0:3.4):3.4;
-    console.log(ingredient.radii);
-    console.log(segmentLength);
 
     for (let i = 0; i < n; ++i) {
         const cname = `curve${i}`
@@ -124,7 +109,7 @@ function getCurveTransforms(ingredient: Ingredient) {
         }
         const points = new Float32Array(_points.length * 3)
         for (let i = 0, il = _points.length; i < il; ++i) Vec3.toArray(_points[i], points, i * 3)
-        const newInstances = getMatFromResamplePoints(points,segmentLength)
+        const newInstances = getMatFromResamplePoints(points)
         instances.push(...newInstances)
     }
 
@@ -239,7 +224,7 @@ function getCifCurve(name: string, transforms: Mat4[], model: Model) {
     };
 }
 
-async function getCurve(name: string, ingredient:Ingredient, transforms: Mat4[], model: Model) {
+async function getCurve(name: string, transforms: Mat4[], model: Model) {
     const cif = getCifCurve(name, transforms, model)
 
     const curveModelTask = Task.create('Curve Model', async ctx => {
@@ -249,78 +234,41 @@ async function getCurve(name: string, ingredient:Ingredient, transforms: Mat4[],
     })
 
     const curveModel = await curveModelTask.run()
-    return getStructure(curveModel,ingredient.source)
+    return getStructure(curveModel)
 }
 
-async function getIngredientStructure(ingredient: Ingredient, baseUrl: string) {
+async function getIngredientStructure(ingredient: Ingredient, baseUrl: string, ingredientFiles: IngredientFiles) {
     const { name, source, results, nbCurve } = ingredient
-
-    // TODO can these be added to the library?
-    if (name === 'HIV1_CAhex_0_1_0') return
-    if (name === 'HIV1_CAhexCyclophilA_0_1_0') return
-    if (name === 'iLDL') return
-    if (name === 'peptides') return
-    if (name === 'lypoglycane') return
-
     if (source.pdb === 'None') return
 
-    const model = await getModel(source.pdb || name,source, baseUrl)
+    const file = ingredientFiles[source.pdb]
+    if (!file) {
+        // TODO can these be added to the library?
+        if (name === 'HIV1_CAhex_0_1_0') return
+        if (name === 'HIV1_CAhexCyclophilA_0_1_0') return
+        if (name === 'iLDL') return
+        if (name === 'peptides') return
+        if (name === 'lypoglycane') return
+    }
+
+    const model = await getModel(source.pdb || name, baseUrl, file)
     if (!model) return
 
     if (nbCurve) {
-        return getCurve(name,ingredient, getCurveTransforms(ingredient), model)
+        return getCurve(name, getCurveTransforms(ingredient), model)
     } else {
-        let bu:string|undefined = source.bu ? source.bu : undefined;
-        if (bu){
-            if (bu=="AU") {bu = undefined;}
-            else {
-                bu=bu.slice(2)
-            }
-        }
-        let structure = await getStructure(model,source, { assembly: bu })
-        //transform with offset and pcp
-        let legacy:boolean = true
-        if (ingredient.offset || ingredient.principalAxis)
-        //center the structure
-        {
-            legacy=false
-            const boundary = computeStructureBoundary(structure)
-            let modelCenter:Vec3 = Vec3.zero()
-            Vec3.scale(modelCenter,boundary.sphere.center,-1.0);//Model.getCenter(structure.models[0])
-            const m1: Mat4 = Mat4.identity()
-            Mat4.setTranslation(m1, modelCenter)
-            structure = Structure.transform(structure,m1)
-            if (ingredient.offset)
-            {
-                if (!Vec3.exactEquals(ingredient.offset,Vec3.zero()))
-                { 
-                    const m: Mat4 = Mat4.identity();
-                    Mat4.setTranslation(m, ingredient.offset)
-                    structure = Structure.transform(structure,m);
-                }
-            }
-            if (ingredient.principalAxis)
-            {
-                if (!Vec3.exactEquals(ingredient.principalAxis,Vec3.create(0, 0, 1)))
-                {            
-                    const q: Quat = Quat.identity();
-                    Quat.rotationTo(q,ingredient.principalAxis,Vec3.create(0, 0, 1))
-                    const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q)
-                    structure = Structure.transform(structure,m);
-                }
-            }
-        }
-        return getAssembly(getResultTransforms(results,legacy), structure)
+        const structure = await getStructure(model, { assembly: source.biomt ? '1' : undefined })
+        return getAssembly(getResultTransforms(results), structure)
     }
 }
 
-export function createStructureFromCellPack(packing: CellPacking, baseUrl: string) {
+export function createStructureFromCellPack(packing: CellPacking, baseUrl: string, ingredientFiles: IngredientFiles) {
     return Task.create('Create Packing Structure', async ctx => {
         const { ingredients, name } = packing
         const structures: Structure[] = []
         for (const iName in ingredients) {
             if (ctx.shouldUpdate) await ctx.update(iName)
-            const s = await getIngredientStructure(ingredients[iName], baseUrl)
+            const s = await getIngredientStructure(ingredients[iName], baseUrl, ingredientFiles)
             if (s) structures.push(s)
         }
 
@@ -411,7 +359,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
     await handleHivRna({ runtime, fetch: plugin.fetch }, packings, params.baseUrl)
 
     for (let i = 0, il = packings.length; i < il; ++i) {
-        const p = { packing: i, baseUrl: params.baseUrl }
+        const p = { packing: i, baseUrl: params.baseUrl, ingredientFiles: params.ingredients.files }
 
         const packing = state.build().to(cellPackBuilder.ref).apply(StructureFromCellpack, p)
         await plugin.updateDataState(packing, { revertOnError: true });
@@ -439,12 +387,14 @@ const LoadCellPackModelParams = {
             ['HIV-1_0.1.6-8_mixed_radii_pdb.cpr', 'HIV-1_0.1.6-8_mixed_radii_pdb'],
             ['hiv_lipids.bcif', 'hiv_lipids'],
             ['influenza_model1.json', 'influenza_model1'],
-            ['ExosomeModel.json', 'ExosomeModel'],
             ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma1.5_mixed_pdb_fixed'],
         ] as const),
         'file': PD.File({ accept: 'id' }),
     }, { options: [['id', 'Id'], ['file', 'File']] }),
     baseUrl: PD.Text(DefaultCellPackBaseUrl),
+    ingredients : PD.Group({
+        files: PD.FileList({ accept: '.cif,.pdb' })
+    }, { isExpanded: true }),
     preset: PD.Group({
         traceOnly: PD.Boolean(false),
         representation: PD.Select('gaussian-surface', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'ellipsoid']))

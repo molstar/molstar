@@ -8,11 +8,12 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
-import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation, getUnitKindsParam } from '../../../mol-repr/structure/representation';
+import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
 import { InteractionsIntraUnitParams, InteractionsIntraUnitVisual } from './interactions-intra-unit-cylinder';
 import { InteractionsProvider } from '../interactions';
 import { InteractionsInterUnitParams, InteractionsInterUnitVisual } from './interactions-inter-unit-cylinder';
 import { CustomProperty } from '../../common/custom-property';
+import { getUnitKindsParam } from '../../../mol-repr/structure/params';
 
 const InteractionsVisuals = {
     'intra-unit': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InteractionsIntraUnitParams>) => UnitsRepresentation('Intra-unit interactions cylinder', ctx, getParams, InteractionsIntraUnitVisual),
@@ -23,7 +24,7 @@ export const InteractionsParams = {
     ...InteractionsIntraUnitParams,
     ...InteractionsInterUnitParams,
     unitKinds: getUnitKindsParam(['atomic']),
-    sizeFactor: PD.Numeric(0.15, { min: 0.01, max: 1, step: 0.01 }),
+    sizeFactor: PD.Numeric(0.2, { min: 0.01, max: 1, step: 0.01 }),
     visuals: PD.MultiSelect(['intra-unit', 'inter-unit'], PD.objectToOptions(InteractionsVisuals)),
 }
 export type InteractionsParams = typeof InteractionsParams

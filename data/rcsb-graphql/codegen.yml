@@ -1,4 +1,4 @@
-schema: https://data-beta.rcsb.org/graphql
+schema: https://data.rcsb.org/graphql
 documents: './src/mol-model-props/rcsb/graphql/symmetry.gql.ts'
 generates:
   './src/mol-model-props/rcsb/graphql/types.ts':

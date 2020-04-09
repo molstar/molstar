@@ -26,7 +26,6 @@ import { createColors } from '../../mol-geo/geometry/color-data';
 import { Mat4 } from '../../mol-math/linear-algebra';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
-import { StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureTextureMeshParams, StructureTextParams, StructureParams } from './representation';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { SizeTheme } from '../../mol-theme/size';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
@@ -36,6 +35,7 @@ import { Text } from '../../mol-geo/geometry/text/text';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { SizeValues } from '../../mol-gl/renderable/schema';
+import { StructureParams, StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureTextParams, StructureDirectVolumeParams, StructureTextureMeshParams } from './params';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 

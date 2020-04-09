@@ -94,7 +94,7 @@ function addMetalBinding(structure: Structure, unit: Unit.Atomic, builder: Featu
                     dative = true
                     ionic = true
                 }
-            } else if (element === Elements.S && 'CYS' === resname) {
+            } else if (element === Elements.S && (resname === 'CYS' || resname === 'MET')) {
                 dative = true
                 ionic = true
             } else if (element === Elements.N) {

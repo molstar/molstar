@@ -9,6 +9,7 @@ import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { Task } from '../../../../mol-task';
 import { CellPack as _CellPack, Cell, CellPacking } from './data';
 import { createStructureFromCellPack } from './model';
+import { IngredientFiles } from './util';
 
 export const DefaultCellPackBaseUrl = 'https://mesoscope.scripps.edu/data/cellPACK_data/cellPACK_database_1.1.0/'
 
@@ -53,20 +54,27 @@ const StructureFromCellpack = PluginStateTransform.BuiltIn({
         if (!a) {
             return {
                 packing: PD.Numeric(0, {}, { description: 'Packing Index' }),
-                baseUrl: PD.Text(DefaultCellPackBaseUrl)
+                baseUrl: PD.Text(DefaultCellPackBaseUrl),
+                ingredientFiles: PD.FileList({ accept: '.cif,.pdb' })
             };
         }
         const options = a.data.packings.map((d, i) => [i, d.name] as [number, string])
         return {
             packing: PD.Select(0, options),
-            baseUrl: PD.Text(DefaultCellPackBaseUrl)
+            baseUrl: PD.Text(DefaultCellPackBaseUrl),
+            ingredientFiles: PD.FileList({ accept: '.cif,.pdb' })
         }
     }
 })({
     apply({ a, params }) {
         return Task.create('Structure from CellPack', async ctx => {
             const packing = a.data.packings[params.packing]
-            const structure = await createStructureFromCellPack(packing, params.baseUrl).runInContext(ctx)
+            const ingredientFiles: IngredientFiles = {}
+            for (let i = 0, il = params.ingredientFiles.length; i < il; ++i) {
+                const file = params.ingredientFiles.item(i)
+                if (file) ingredientFiles[file.name] = file
+            }
+            const structure = await createStructureFromCellPack(packing, params.baseUrl, ingredientFiles).runInContext(ctx)
             return new PSO.Molecule.Structure(structure, { label: packing.name })
         });
     }

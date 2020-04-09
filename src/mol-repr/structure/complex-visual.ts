@@ -5,7 +5,6 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StructureMeshParams, StructureDirectVolumeParams, StructureTextParams, StructureParams } from './representation';
 import { Visual, VisualContext } from '../visual';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
@@ -30,6 +29,7 @@ import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
+import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams } from './params';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 

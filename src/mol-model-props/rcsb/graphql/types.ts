@@ -1,7 +1,7 @@
 /* eslint-disable */
 export type Maybe<T> = T | null;
 
-// Generated in 2020-03-30T11:30:30-07:00
+// Generated in 2020-04-08T16:22:40-07:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -800,6 +800,8 @@ export type PdbxAuditRevisionCategory = {
 
 export type PdbxAuditRevisionDetails = {
   readonly data_content_type: Scalars['String'];
+  readonly description?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']>;
   readonly ordinal: Scalars['Int'];
   readonly provider?: Maybe<Scalars['String']>;
   readonly revision_ordinal: Scalars['Int'];
