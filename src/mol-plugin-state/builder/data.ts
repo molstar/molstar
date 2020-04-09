@@ -34,7 +34,7 @@ export class DataBuilder {
 
     async readFile(params: StateTransformer.Params<ReadFile>, options?: Partial<StateTransform.Options>) {
         const data = this.dataState.build().toRoot().apply(ReadFile, params, options);
-        const fileInfo = getFileInfo(params.file);
+        const fileInfo = getFileInfo(params.file || '');
         await this.plugin.updateDataState(data, { revertOnError: true });
         return { data: data.selector, fileInfo };
     }

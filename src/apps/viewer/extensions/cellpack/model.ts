@@ -345,6 +345,10 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.source.params }, { state: { isGhost: true } })
     } else {
         const file = params.source.params
+        if (file === null) {
+            plugin.log.error('No file selected')
+            return
+        }
         cellPackJson = state.build().toRoot()
             .apply(StateTransforms.Data.ReadFile, { file, isBinary: false, label: file.name }, { state: { isGhost: true } })
     }

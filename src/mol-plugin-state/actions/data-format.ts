@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -132,14 +132,16 @@ export const OpenFiles = StateAction.build({
     }
 })(({ params, state }, plugin: PluginContext) => Task.create('Open Files', async taskCtx => {
     await state.transaction(async () => {
+        if (params.files === null) {
+            plugin.log.error('No file(s) selected')
+            return
+        }
         for (let i = 0, il = params.files.length; i < il; ++i) {
             try {
                 const file = params.files[i]
                 const info = getFileInfo(file)
                 const isBinary = plugin.dataFormat.registry.binaryExtensions.has(info.ext)
                 const { data } = await plugin.builders.data.readFile({ file, isBinary });
-                // const data = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file, isBinary });
-                // const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
                 const provider = params.format === 'auto'
                     ? plugin.dataFormat.registry.auto(info, data.cell?.obj!)
                     : plugin.dataFormat.registry.get(params.format)
