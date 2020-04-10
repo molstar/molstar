@@ -188,10 +188,9 @@ export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({
     }
 });
 
-export async function tryCreateAssemblySymmetry(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, params?: StateTransformer.Params<AssemblySymmetry3D>, initialState?: Partial<StateTransform.State>) {
+export function tryCreateAssemblySymmetry(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, params?: StateTransformer.Params<AssemblySymmetry3D>, initialState?: Partial<StateTransform.State>) {
     const state = plugin.state.data;
     const assemblySymmetry = state.build().to(structure)
         .applyOrUpdateTagged(AssemblySymmetry.Tag.Representation, AssemblySymmetry3D, params, { state: initialState });
-    await plugin.updateDataState(assemblySymmetry, { revertOnError: true });
-    return assemblySymmetry.selector
+    return assemblySymmetry.commit({ revertOnError: true });
 }

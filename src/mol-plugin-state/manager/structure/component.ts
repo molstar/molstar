@@ -60,7 +60,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         }
 
         return this.plugin.dataTransaction(async () => {
-            await this.plugin.updateDataState(update);
+            await update.commit();
             if (interactionChanged) await this.updateInterationProps();
         });
     }
@@ -89,11 +89,11 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                 const oldParams = s.properties.cell.transform.params?.properties[InteractionsProvider.descriptor.name];
                 if (PD.areEqual(interactionParams, oldParams, this.state.options.interactions)) continue;
 
-                const b = this.dataState.build();
-                b.to(s.properties.cell).update(old => {
-                    old.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
-                });
-                await this.plugin.updateDataState(b);
+                await this.dataState.build().to(s.properties.cell)
+                    .update(old => {
+                        old.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
+                    })
+                    .commit();
             } else {
                 const pd = this.plugin.customStructureProperties.getParams(s.cell.obj?.data);
                 const params = PD.getDefaultValues(pd);
@@ -113,7 +113,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         }, { canUndo: 'Preset' });
     }
 
-    private async syncPreset(root: StructureRef, preset?: StructureRepresentationPresetProvider.Result) {
+    private syncPreset(root: StructureRef, preset?: StructureRepresentationPresetProvider.Result) {
         if (!preset || !preset.components) return this.clearComponents([root]);
 
         const keptRefs = new Set<string>();
@@ -153,7 +153,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             }
         }
 
-        if (changed) return this.plugin.updateDataState(update);
+        if (changed) return update.commit();
     }
 
     clear(structures: ReadonlyArray<StructureRef>) {
@@ -247,7 +247,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             update.to(repr.cell).update(params);
         }
 
-        return this.plugin.updateDataState(update, { canUndo: 'Update Representation' });
+        return update.commit({ canUndo: 'Update Representation' });
     }
 
     /**
@@ -288,7 +288,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             }
         }
 
-        return this.plugin.updateDataState(update, { canUndo: 'Update Theme' });
+        return update.commit({ canUndo: 'Update Theme' });
     }
 
     addRepresentation(components: ReadonlyArray<StructureComponentRef>, type: string) {
@@ -384,7 +384,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                 deletes.delete(c.cell.transform.ref);
             }
         }
-        return this.plugin.updateDataState(deletes, { canUndo: 'Clear Selections' });
+        return deletes.commit({ canUndo: 'Clear Selections' });
     }
 
     constructor(public plugin: PluginContext) {

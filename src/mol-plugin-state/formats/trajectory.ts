@@ -37,12 +37,15 @@ export const MmcifProvider: TrajectoryFormatProvider = {
         const state = plugin.state.data;
         const cif = state.build().to(data)
             .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
-        const trajectory = cif.apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { tags: params?.trajectoryTags })
-        await plugin.updateDataState(trajectory, { revertOnError: true });
+        const trajectory = await cif
+            .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { tags: params?.trajectoryTags })
+            .commit({ revertOnError: true });
+
         if ((cif.selector.cell?.obj?.data.blocks.length || 0) > 1) {
             plugin.state.data.updateCellState(cif.ref, { isGhost: false });
         }
-        return { trajectory: trajectory.selector };
+
+        return { trajectory };
     },
     visuals: defaultVisuals
 }
@@ -60,12 +63,14 @@ export const CifCoreProvider: TrajectoryFormatProvider = {
         const state = plugin.state.data;
         const cif = state.build().to(data)
             .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
-        const trajectory = cif.apply(StateTransforms.Model.TrajectoryFromCifCore, void 0, { tags: params?.trajectoryTags })
-        await plugin.updateDataState(trajectory, { revertOnError: true });
+        const trajectory = await cif
+            .apply(StateTransforms.Model.TrajectoryFromCifCore, void 0, { tags: params?.trajectoryTags })
+            .commit({ revertOnError: true });
+
         if ((cif.selector.cell?.obj?.data.blocks.length || 0) > 1) {
             plugin.state.data.updateCellState(cif.ref, { isGhost: false });
         }
-        return { trajectory: trajectory.selector };
+        return { trajectory };
     },
     visuals: defaultVisuals
 }
@@ -73,10 +78,10 @@ export const CifCoreProvider: TrajectoryFormatProvider = {
 function directTrajectory(transformer: StateTransformer<PluginStateObject.Data.String | PluginStateObject.Data.Binary, PluginStateObject.Molecule.Trajectory>): TrajectoryFormatProvider['parse'] {
     return async (plugin, data, params) => {
         const state = plugin.state.data;
-        const trajectory = state.build().to(data)
+        const trajectory = await state.build().to(data)
             .apply(transformer, void 0, { tags: params?.trajectoryTags })
-        await plugin.updateDataState(trajectory, { revertOnError: true });
-        return { trajectory: trajectory.selector };
+            .commit({ revertOnError: true });
+        return { trajectory };
     }
 }
 

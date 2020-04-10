@@ -99,7 +99,7 @@ export const InitVolumeStreaming = StateAction.build({
             entries
         });
 
-    await plugin.updateDataState(infoTree);
+    await infoTree.commit();
 
     const info = infoTree.selector;
     if (!info.isOk) return;

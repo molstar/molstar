@@ -18,8 +18,7 @@ const Category = 'Volume';
 
 async function defaultVisuals(plugin: PluginContext, data: { volume: StateObjectSelector<PluginStateObject.Volume.Data> }) {
     const visual = plugin.build().to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D);
-    await visual.commit();
-    return [visual];
+    return [await visual.commit()];
 }
 
 export const Ccp4Provider = DataFormatProvider({

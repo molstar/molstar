@@ -22,7 +22,7 @@ export const PlyProvider = DataFormatProvider({
 
         const shape = format.apply(StateTransforms.Model.ShapeFromPly);
 
-        await plugin.updateDataState(format);
+        await format.commit();
 
         return { format: format.selector, shape: shape.selector };
     }

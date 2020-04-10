@@ -32,21 +32,20 @@ export class StructureBuilder {
         return trajectory;
     }
 
-    private async parseTrajectoryBlob(data: StateObjectRef<SO.Data.Blob>, params: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>) {
+    private parseTrajectoryBlob(data: StateObjectRef<SO.Data.Blob>, params: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>) {
         const state = this.dataState;
         const trajectory = state.build().to(data)
             .apply(StateTransforms.Data.ParseBlob, params, { state: { isGhost: true } })
             .apply(StateTransforms.Model.TrajectoryFromBlob, void 0);
-        await this.plugin.updateDataState(trajectory, { revertOnError: true });
-        return trajectory.selector;
+        return trajectory.commit({ revertOnError: true });
     }
 
     readonly hierarchy = new TrajectoryHierarchyBuilder(this.plugin);
     readonly representation = new StructureRepresentationBuilder(this.plugin);
 
-    async parseTrajectory(data: StateObjectRef<SO.Data.Binary | SO.Data.String>, format: BuiltInTrajectoryFormat | TrajectoryFormatProvider): Promise<StateObjectSelector<SO.Molecule.Trajectory>>
-    async parseTrajectory(blob: StateObjectRef<SO.Data.Blob>, params: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>): Promise<StateObjectSelector<SO.Molecule.Trajectory>>
-    async parseTrajectory(data: StateObjectRef, params: any) {
+    parseTrajectory(data: StateObjectRef<SO.Data.Binary | SO.Data.String>, format: BuiltInTrajectoryFormat | TrajectoryFormatProvider): Promise<StateObjectSelector<SO.Molecule.Trajectory>>
+    parseTrajectory(blob: StateObjectRef<SO.Data.Blob>, params: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>): Promise<StateObjectSelector<SO.Molecule.Trajectory>>
+    parseTrajectory(data: StateObjectRef, params: any) {
         const cell = StateObjectRef.resolveAndCheck(this.dataState, data as StateObjectRef);
         if (!cell) throw new Error('Invalid data cell.');
 
@@ -57,24 +56,22 @@ export class StructureBuilder {
         }
     }
 
-    async createModel(trajectory: StateObjectRef<SO.Molecule.Trajectory>, params?: StateTransformer.Params<StateTransforms['Model']['ModelFromTrajectory']>, initialState?: Partial<StateTransform.State>) {
+    createModel(trajectory: StateObjectRef<SO.Molecule.Trajectory>, params?: StateTransformer.Params<StateTransforms['Model']['ModelFromTrajectory']>, initialState?: Partial<StateTransform.State>) {
         const state = this.dataState;
         const model = state.build().to(trajectory)
             .apply(StateTransforms.Model.ModelFromTrajectory, params || { modelIndex: 0 }, { state: initialState });
 
-        await this.plugin.updateDataState(model, { revertOnError: true });
-        return model.selector;
+        return model.commit({ revertOnError: true });
     }
 
-    async insertModelProperties(model: StateObjectRef<SO.Molecule.Model>, params?: StateTransformer.Params<StateTransforms['Model']['CustomModelProperties']>, initialState?: Partial<StateTransform.State>) {
+    insertModelProperties(model: StateObjectRef<SO.Molecule.Model>, params?: StateTransformer.Params<StateTransforms['Model']['CustomModelProperties']>, initialState?: Partial<StateTransform.State>) {
         const state = this.dataState;
         const props = state.build().to(model)
             .apply(StateTransforms.Model.CustomModelProperties, params, { state: initialState });
-        await this.plugin.updateDataState(props, { revertOnError: true });
-        return props.selector;
+        return props.commit({ revertOnError: true });
     }
 
-    async tryCreateUnitcell(model: StateObjectRef<SO.Molecule.Model>, params?: StateTransformer.Params<StateTransforms['Representation']['ModelUnitcell3D']>, initialState?: Partial<StateTransform.State>) {
+    tryCreateUnitcell(model: StateObjectRef<SO.Molecule.Model>, params?: StateTransformer.Params<StateTransforms['Representation']['ModelUnitcell3D']>, initialState?: Partial<StateTransform.State>) {
         const state = this.dataState;
         const m = StateObjectRef.resolveAndCheck(state, model)?.obj?.data;
         if (!m) return;
@@ -83,11 +80,10 @@ export class StructureBuilder {
 
         const unitcell = state.build().to(model)
             .apply(StateTransforms.Representation.ModelUnitcell3D, params, { state: initialState });
-        await this.plugin.updateDataState(unitcell, { revertOnError: true });
-        return unitcell.selector;
+        return unitcell.commit({ revertOnError: true });
     }
 
-    async createStructure(modelRef: StateObjectRef<SO.Molecule.Model>, params?: RootStructureDefinition.Params, initialState?: Partial<StateTransform.State>) {
+    createStructure(modelRef: StateObjectRef<SO.Molecule.Model>, params?: RootStructureDefinition.Params, initialState?: Partial<StateTransform.State>) {
         const state = this.dataState;
 
         if (!params) {
@@ -101,16 +97,14 @@ export class StructureBuilder {
         const structure = state.build().to(modelRef)
             .apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } }, { state: initialState });
 
-        await this.plugin.updateDataState(structure, { revertOnError: true });
-        return structure.selector;
+        return structure.commit({ revertOnError: true });
     }
 
-    async insertStructureProperties(structure: StateObjectRef<SO.Molecule.Structure>, params?: StateTransformer.Params<StateTransforms['Model']['CustomStructureProperties']>) {
+    insertStructureProperties(structure: StateObjectRef<SO.Molecule.Structure>, params?: StateTransformer.Params<StateTransforms['Model']['CustomStructureProperties']>) {
         const state = this.dataState;
         const props = state.build().to(structure)
             .apply(StateTransforms.Model.CustomStructureProperties, params);
-        await this.plugin.updateDataState(props, { revertOnError: true });
-        return props.selector;
+        return props.commit({ revertOnError: true });
     }
 
     isComponentTransform(cell: StateObjectCell) {
@@ -128,13 +122,12 @@ export class StructureBuilder {
             tags: tags ? [...tags, keyTag] : [keyTag]
         });
 
-        await this.plugin.updateDataState(component);
+        await component.commit();
 
         const selector = component.selector;
 
         if (!selector.isOk || selector.cell?.obj?.data.elementCount === 0) {
-            const del = state.build().delete(selector.ref);
-            await this.plugin.updateDataState(del);
+            await state.build().delete(selector.ref).commit();
             return;
         }
 

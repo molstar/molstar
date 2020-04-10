@@ -21,7 +21,7 @@ export const PsfProvider = DataFormatProvider({
             .apply(StateTransforms.Data.ParsePsf, {}, { state: { isGhost: true } });
         const topology = format.apply(StateTransforms.Model.TopologyFromPsf);
 
-        await plugin.updateDataState(format);
+        await format.commit();
 
         return { format: format.selector, topology: topology.selector };
     }
@@ -32,14 +32,12 @@ export const DcdProvider = DataFormatProvider({
     description: 'DCD',
     category: Category,
     binaryExtensions: ['dcd'],
-    parse: async (plugin, data) => {
+    parse: (plugin, data) => {
         const coordinates = plugin.state.data.build()
             .to(data)
             .apply(StateTransforms.Model.CoordinatesFromDcd);
 
-        await plugin.updateDataState(coordinates);
-
-        return { coordinates: coordinates.selector };
+        return coordinates.commit();
     }
 });
 

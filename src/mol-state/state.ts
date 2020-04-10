@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject, StateObjectCell } from './object';
+import { StateObject, StateObjectCell, StateObjectSelector } from './object';
 import { StateTree } from './tree';
 import { StateTransform } from './transform';
 import { StateTransformer } from './transformer';
@@ -234,7 +234,7 @@ class State {
      * @param tree Tree instance or a tree builder instance
      * @param doNotReportTiming Indicates whether to log timing of the individual transforms
      */
-    updateTree<T extends StateObject>(tree: StateBuilder.To<T, any>, options?: Partial<State.UpdateOptions>): Task<StateObjectCell<T>>
+    updateTree<T extends StateObject>(tree: StateBuilder.To<T, any>, options?: Partial<State.UpdateOptions>): Task<StateObjectSelector<T>>
     updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<void>
     updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<any> {
         const params: UpdateParams = { tree, options };
@@ -257,7 +257,9 @@ class State {
 
                 if (ret.ctx.hadError) this.inTransactionError = true;
 
-                return ret.cell;
+                if (!ret.cell) return;
+
+                return new StateObjectSelector(ret.cell.transform.ref, this);
             } finally {
                 this._inUpdate = false;
                 this.updateQueue.handled(params);

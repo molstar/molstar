@@ -13,6 +13,7 @@ import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { Model, Structure } from '../mol-model/structure';
 import { DataBuilder } from '../mol-plugin-state/builder/data';
 import { StructureBuilder } from '../mol-plugin-state/builder/structure';
+import { DataFormatRegistry } from '../mol-plugin-state/formats/registry';
 import { StructureSelectionQueryRegistry } from '../mol-plugin-state/helpers/structure-selection-query';
 import { CameraManager } from '../mol-plugin-state/manager/camera';
 import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
@@ -28,7 +29,7 @@ import { StateTransformParameters } from '../mol-plugin-ui/state/common';
 import { Representation } from '../mol-repr/representation';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
-import { State, StateBuilder, StateTree, StateTransform } from '../mol-state';
+import { StateTransform } from '../mol-state';
 import { Progress, Task } from '../mol-task';
 import { ColorTheme } from '../mol-theme/color';
 import { SizeTheme } from '../mol-theme/size';
@@ -43,7 +44,7 @@ import { BuiltInPluginBehaviors } from './behavior';
 import { PluginBehavior } from './behavior/behavior';
 import { PluginCommandManager } from './command';
 import { PluginCommands } from './commands';
-import { PluginConfigManager, PluginConfig } from './config';
+import { PluginConfig, PluginConfigManager } from './config';
 import { LeftPanelTabName, PluginLayout } from './layout';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
@@ -52,7 +53,6 @@ import { TaskManager } from './util/task-manager';
 import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
-import { DataFormatRegistry } from '../mol-plugin-state/formats/registry';
 
 export class PluginContext {
     runTask = <T>(task: Task<T>) => this.tasks.run(task);
@@ -221,10 +221,6 @@ export class PluginContext {
 
     dataTransaction(f: () => Promise<void> | void, options?: { canUndo?: string | boolean }) {
         return this.runTask(this.state.data.transaction(f, options));
-    }
-
-    updateDataState(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>) {
-        return this.runTask(this.state.data.updateTree(tree, options));
     }
 
     requestTaskAbort(progress: Progress, reason?: string) {

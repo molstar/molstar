@@ -321,19 +321,19 @@ async function handleHivRna(ctx: { runtime: RuntimeContext, fetch: AjaxTask }, p
 
 async function loadHivMembrane(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
     const url = `${params.baseUrl}/membranes/hiv_lipids.bcif`
-    const membrane = state.build().toRoot()
+    const membrane = await state.build().toRoot()
         .apply(StateTransforms.Data.Download, { label: 'hiv_lipids', url, isBinary: true }, { state: { isGhost: true } })
         .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.StructureFromModel)
-    await membrane.commit()
+        .commit()
 
     const membraneParams = {
         representation: params.preset.representation,
     }
 
-    await CellpackMembranePreset.apply(membrane.selector, membraneParams, plugin)
+    await CellpackMembranePreset.apply(membrane, membraneParams, plugin)
 }
 
 async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
@@ -364,10 +364,12 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
     for (let i = 0, il = packings.length; i < il; ++i) {
         const p = { packing: i, baseUrl: params.baseUrl, ingredientFiles: params.ingredients.files }
 
-        const packing = state.build().to(cellPackBuilder.ref).apply(StructureFromCellpack, p)
-        await plugin.updateDataState(packing, { revertOnError: true });
+        const packing = await state.build()
+            .to(cellPackBuilder.ref)
+            .apply(StructureFromCellpack, p)
+            .commit({ revertOnError: true })
 
-        const structure = packing.selector.obj?.data
+        const structure = packing.obj?.data
         if (structure) {
             await CellPackInfoProvider.attach({ fetch: plugin.fetch, runtime }, structure, {
                 info: { packingsCount: packings.length, packingIndex: i }
@@ -378,7 +380,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             traceOnly: params.preset.traceOnly,
             representation: params.preset.representation,
         }
-        await CellpackPackingPreset.apply(packing.selector, packingParams, plugin)
+        await CellpackPackingPreset.apply(packing, packingParams, plugin)
     }
 }
 

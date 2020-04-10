@@ -258,7 +258,8 @@ namespace StateBuilder {
 
         getTree(): StateTree { return buildTree(this.state); }
 
-        commit(options?: Partial<State.UpdateOptions>): Promise<StateObjectCell<A>> {
+        /** Returns selector to this node. */
+        commit(options?: Partial<State.UpdateOptions>): Promise<StateObjectSelector<A>> {
             if (!this.state.state) throw new Error('Cannot commit template tree');
             return this.state.state.runTask(this.state.state.updateTree(this, options));
         }
