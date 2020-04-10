@@ -1,6 +1,8 @@
 audit.block_doi
 
 database_code.depnum_ccdc_archive
+database_code.NBS
+database_code.CSD
 
 chemical.name_systematic
 chemical.name_common
@@ -19,6 +21,7 @@ atom_type_scat.source
 
 space_group.crystal_system
 space_group.name_H-M_full
+space_group.IT_number
 space_group_symop.operation_xyz
 
 cell.length_a

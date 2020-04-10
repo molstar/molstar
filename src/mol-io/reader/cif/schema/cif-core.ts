@@ -182,6 +182,14 @@ export const CifCore_Schema = {
          */
         crystal_system: str,
         /**
+         * The number as assigned in International Tables for Crystallography
+         * Vol A, specifying the proper affine class (i.e. the orientation
+         * preserving affine class) of space groups (crystallographic space
+         * group type) to which the space group belongs. This number defines
+         * the space group type but not the coordinate system expressed.
+         */
+        IT_number: int,
+        /**
          * The full international Hermann-Mauguin space-group symbol as
          * defined in Section 2.2.3 and given as the second item of the
          * second line of each of the space-group tables of Part 7 of
@@ -330,11 +338,19 @@ export const CifCore_Schema = {
      */
     database_code: {
         /**
+         * Code assigned by the Cambridge Structural Database.
+         */
+        CSD: str,
+        /**
          * Deposition numbers assigned by the Cambridge Crystallographic
          * Data Centre (CCDC) to files containing structural information
          * archived by the CCDC.
          */
         depnum_ccdc_archive: str,
+        /**
+         * Code assigned by the NBS (NIST) Crystal Data Database.
+         */
+        NBS: str,
     },
     /**
      * The CATEGORY of data items used to describe atom site information
@@ -586,6 +602,9 @@ export const CifCore_Schema = {
 }
 
 export const CifCore_Aliases = {
+    'space_group.IT_number': [
+        'symmetry_Int_Tables_number',
+    ],
     'space_group.name_H-M_full': [
         'symmetry_space_group_name_H-M',
     ],
