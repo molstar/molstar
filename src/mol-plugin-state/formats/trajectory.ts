@@ -5,26 +5,29 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { FileInfo } from '../../mol-util/file-info';
 import { StateTransforms } from '../transforms';
-import { guessCifVariant, DataFormatProvider, DataFormatRegistry } from './registry';
+import { guessCifVariant, DataFormatProvider } from './provider';
 import { StateTransformer, StateObjectRef } from '../../mol-state';
 import { PluginStateObject } from '../objects';
+import { PluginContext } from '../../mol-plugin/context';
 
 export interface TrajectoryFormatProvider<P extends { trajectoryTags?: string | string[] } = { trajectoryTags?: string | string[] }, R extends { trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory> } = { trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory> }>
     extends DataFormatProvider<P, R> {
 }
 
-export function TrajectoryFormatRegistry() {
-    return new DataFormatRegistry<TrajectoryFormatProvider>(BuildInTrajectoryFormats);
+const Category = 'Trajectory';
+
+function defaultVisuals(plugin: PluginContext, data: { trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory> }) {
+    return plugin.builders.structure.hierarchy.applyPreset(data.trajectory, 'default');
 }
 
 export const MmcifProvider: TrajectoryFormatProvider = {
     label: 'mmCIF',
     description: 'mmCIF',
+    category: Category,
     stringExtensions: ['cif', 'mmcif', 'mcif'],
     binaryExtensions: ['bcif'],
-    isApplicable: (info: FileInfo, data: Uint8Array | string) => {
+    isApplicable: (info, data) => {
         if (info.ext === 'mmcif' || info.ext === 'mcif') return true
         // assume undetermined cif/bcif files are mmCIF
         if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) === -1
@@ -40,15 +43,16 @@ export const MmcifProvider: TrajectoryFormatProvider = {
             plugin.state.data.updateCellState(cif.ref, { isGhost: false });
         }
         return { trajectory: trajectory.selector };
-    }
+    },
+    visuals: defaultVisuals
 }
 
 export const CifCoreProvider: TrajectoryFormatProvider = {
     label: 'cifCore',
     description: 'CIF Core',
+    category: Category,
     stringExtensions: ['cif'],
-    binaryExtensions: [],
-    isApplicable: (info: FileInfo, data: Uint8Array | string) => {
+    isApplicable: (info, data) => {
         if (info.ext === 'cif') return guessCifVariant(info, data) === 'coreCif'
         return false
     },
@@ -62,7 +66,8 @@ export const CifCoreProvider: TrajectoryFormatProvider = {
             plugin.state.data.updateCellState(cif.ref, { isGhost: false });
         }
         return { trajectory: trajectory.selector };
-    }
+    },
+    visuals: defaultVisuals
 }
 
 function directTrajectory(transformer: StateTransformer<PluginStateObject.Data.String | PluginStateObject.Data.Binary, PluginStateObject.Molecule.Trajectory>): TrajectoryFormatProvider['parse'] {
@@ -78,49 +83,42 @@ function directTrajectory(transformer: StateTransformer<PluginStateObject.Data.S
 export const PdbProvider: TrajectoryFormatProvider = {
     label: 'PDB',
     description: 'PDB',
+    category: Category,
     stringExtensions: ['pdb', 'ent'],
-    binaryExtensions: [],
-    isApplicable: (info: FileInfo, data: string) => {
-        return info.ext === 'pdb' || info.ext === 'ent'
-    },
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB)
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB),
+    visuals: defaultVisuals
 }
 
 export const GroProvider: TrajectoryFormatProvider = {
     label: 'GRO',
     description: 'GRO',
+    category: Category,
     stringExtensions: ['gro'],
     binaryExtensions: [],
-    isApplicable: (info: FileInfo, data: string) => {
-        return info.ext === 'gro'
-    },
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromGRO)
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromGRO),
+    visuals: defaultVisuals
 }
 
 export const Provider3dg: TrajectoryFormatProvider = {
     label: '3DG',
     description: '3DG',
+    category: Category,
     stringExtensions: ['3dg'],
-    binaryExtensions: [],
-    isApplicable: (info: FileInfo, data: string) => {
-        return info.ext === '3dg'
-    },
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFrom3DG)
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFrom3DG),
+    visuals: defaultVisuals
 }
 
 export const MolProvider: TrajectoryFormatProvider = {
     label: 'MOL',
     description: 'MOL',
+    category: Category,
     stringExtensions: ['mol', 'sdf'],
-    binaryExtensions: [],
-    isApplicable: (info: FileInfo, data: string) => {
-        return info.ext === 'mol' || info.ext === 'sdf'
-    },
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromMOL)
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromMOL),
+    visuals: defaultVisuals
 }
 
 
-export const BuildInTrajectoryFormats = [
+export const BuiltInTrajectoryFormats = [
     ['mmcif', MmcifProvider] as const,
     ['cifCore', CifCoreProvider] as const,
     ['pdb', PdbProvider] as const,
@@ -129,4 +127,4 @@ export const BuildInTrajectoryFormats = [
     ['mol', MolProvider] as const
 ] as const
 
-export type BuiltInTrajectoryFormat = (typeof BuildInTrajectoryFormats)[number][0]
+export type BuiltInTrajectoryFormat = (typeof BuiltInTrajectoryFormats)[number][0]

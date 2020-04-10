@@ -121,7 +121,8 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             coarse: builder.buildRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'polymer-id' }, { tag: 'coarse' })
         };
 
-        await plugin.updateDataState(update, { revertOnError: false });
+        await update.commit({ revertOnError: false });
+
         return { components, representations };
     }
 });

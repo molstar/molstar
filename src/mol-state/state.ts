@@ -58,6 +58,8 @@ class State {
 
     readonly actions = new StateActionManager();
 
+    readonly runTask: <T>(task: Task<T>) => Promise<T>;
+
     get tree(): StateTree { return this._tree; }
     get transforms() { return (this._tree as StateTree).transforms; }
     get current() { return this.behaviors.currentObject.value.ref; }
@@ -232,7 +234,7 @@ class State {
      * @param tree Tree instance or a tree builder instance
      * @param doNotReportTiming Indicates whether to log timing of the individual transforms
      */
-    updateTree<T extends StateObject>(tree: StateBuilder.To<T, any>, options?: Partial<State.UpdateOptions>): Task<T>
+    updateTree<T extends StateObject>(tree: StateBuilder.To<T, any>, options?: Partial<State.UpdateOptions>): Task<StateObjectCell<T>>
     updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<void>
     updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<any> {
         const params: UpdateParams = { tree, options };
@@ -294,7 +296,7 @@ class State {
             updated = await update(ctx);
             if (StateBuilder.isTo(params.tree)) {
                 const cell = this.select(params.tree.ref)[0];
-                return { ctx, cell: cell && cell.obj };
+                return { ctx, cell };
             }
             return { ctx };
         } finally {
@@ -335,10 +337,11 @@ class State {
         return ctx;
     }
 
-    constructor(rootObject: StateObject, params?: { globalContext?: unknown, rootState?: StateTransform.State, historyCapacity?: number }) {
+    constructor(rootObject: StateObject, params: State.Params) {
         this._tree = StateTree.createEmpty(StateTransform.createRoot(params && params.rootState)).asTransient();
         const tree = this._tree;
         const root = tree.root;
+        this.runTask = params.runTask;
 
         if (params?.historyCapacity !== void 0) this.historyCapacity = params.historyCapacity;
 
@@ -363,6 +366,17 @@ class State {
 }
 
 namespace State {
+    export interface Params {
+        runTask<T>(task: Task<T>): Promise<T>,
+        globalContext?: unknown,
+        rootState?: StateTransform.State,
+        historyCapacity?: number
+    }
+
+    export function create(rootObject: StateObject, params: Params) {
+        return new State(rootObject, params);
+    }
+
     export type Cells = ReadonlyMap<StateTransform.Ref, StateObjectCell>
 
     export type Tree = StateTree
@@ -389,10 +403,6 @@ namespace State {
         revertIfAborted: boolean,
         revertOnError: boolean,
         canUndo: boolean | string
-    }
-
-    export function create(rootObject: StateObject, params?: { globalContext?: unknown, rootState?: StateTransform.State }) {
-        return new State(rootObject, params);
     }
 }
 
@@ -885,12 +895,7 @@ function runTask<T>(t: T | Task<T>, ctx: RuntimeContext) {
     return t as T;
 }
 
-function createObject(ctx: UpdateContext, cell: StateObjectCell, transformer: StateTransformer, a: StateObject, params: any) {
-    if (!cell.cache) cell.cache = Object.create(null);
-    return runTask(transformer.definition.apply({ a, params, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(ctx, cell) }, ctx.parent.globalContext), ctx.taskCtx);
-}
-
-function resolveDependencies(ctx: UpdateContext, cell: StateObjectCell) {
+function resolveDependencies(cell: StateObjectCell) {
     if (cell.dependencies.dependsOn.length === 0) return void 0;
 
     const deps = Object.create(null);
@@ -905,10 +910,15 @@ function resolveDependencies(ctx: UpdateContext, cell: StateObjectCell) {
     return deps;
 }
 
+function createObject(ctx: UpdateContext, cell: StateObjectCell, transformer: StateTransformer, a: StateObject, params: any) {
+    if (!cell.cache) cell.cache = Object.create(null);
+    return runTask(transformer.definition.apply({ a, params, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(cell) }, ctx.parent.globalContext), ctx.taskCtx);
+}
+
 async function updateObject(ctx: UpdateContext, cell: StateObjectCell,  transformer: StateTransformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
     if (!transformer.definition.update) {
         return StateTransformer.UpdateResult.Recreate;
     }
     if (!cell.cache) cell.cache = Object.create(null);
-    return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(ctx, cell) }, ctx.parent.globalContext), ctx.taskCtx);
+    return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(cell) }, ctx.parent.globalContext), ctx.taskCtx);
 }

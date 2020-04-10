@@ -358,7 +358,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
         .apply(ParseCellPack)
 
     const cellPackObject = await state.updateTree(cellPackBuilder).runInContext(runtime)
-    const { packings } = cellPackObject.data
+    const { packings } = cellPackObject.obj!.data
 
     await handleHivRna({ runtime, fetch: plugin.fetch }, packings, params.baseUrl)
 

@@ -26,7 +26,7 @@ export class StructureBuilder {
     }
 
     private async parseTrajectoryData(data: StateObjectRef<SO.Data.Binary | SO.Data.String>, format: BuiltInTrajectoryFormat | TrajectoryFormatProvider) {
-        const provider = typeof format === 'string' ? this.plugin.dataFormat.trajectory.get(format) : format;
+        const provider = typeof format === 'string' ? this.plugin.dataFormats.get(format) as TrajectoryFormatProvider : format;
         if (!provider) throw new Error(`'${format}' is not a supported data format.`);
         const { trajectory } = await provider.parse(this.plugin, data);
         return trajectory;

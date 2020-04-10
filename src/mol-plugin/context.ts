@@ -11,10 +11,8 @@ import { merge } from 'rxjs';
 import { Canvas3D, DefaultCanvas3DParams } from '../mol-canvas3d/canvas3d';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { Model, Structure } from '../mol-model/structure';
-import { DataFormatRegistry } from '../mol-plugin-state/actions/data-format';
 import { DataBuilder } from '../mol-plugin-state/builder/data';
 import { StructureBuilder } from '../mol-plugin-state/builder/structure';
-import { TrajectoryFormatRegistry } from '../mol-plugin-state/formats/trajectory';
 import { StructureSelectionQueryRegistry } from '../mol-plugin-state/helpers/structure-selection-query';
 import { CameraManager } from '../mol-plugin-state/manager/camera';
 import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
@@ -54,8 +52,11 @@ import { TaskManager } from './util/task-manager';
 import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
+import { DataFormatRegistry } from '../mol-plugin-state/formats/registry';
 
 export class PluginContext {
+    runTask = <T>(task: Task<T>) => this.tasks.run(task);
+
     private disposed = false;
     private ev = RxEventHelper.create();
     private tasks = new TaskManager();
@@ -127,16 +128,16 @@ export class PluginContext {
         }
     } as const;
 
-    readonly dataFormat = {
-        trajectory: TrajectoryFormatRegistry(),
-        // TODO: separate registries for format catgories
-        registry: new DataFormatRegistry()
-    } as const
+    readonly dataFormats = new DataFormatRegistry();
 
     readonly builders = {
         data: new DataBuilder(this),
         structure: void 0 as any as StructureBuilder
     };
+
+    build() {
+        return this.state.data.build();
+    }
 
     readonly managers = {
         structure: {
@@ -216,10 +217,6 @@ export class PluginContext {
 
     set selectionMode(mode: boolean) {
         this.behaviors.interaction.selectionMode.next(mode);
-    }
-
-    runTask<T>(task: Task<T>) {
-        return this.tasks.run(task);
     }
 
     dataTransaction(f: () => Promise<void> | void, options?: { canUndo?: string | boolean }) {

@@ -102,6 +102,12 @@ namespace StateBuilder {
             return this;
         }
         getTree(): StateTree { return buildTree(this.state); }
+
+        commit(options?: Partial<State.UpdateOptions>) {
+            if (!this.state.state) throw new Error('Cannot commit template tree');
+            return this.state.state.runTask(this.state.state.updateTree(this, options));
+        }
+
         constructor(tree: StateTree, state?: State) { this.state = { state, tree: tree.asTransient(), actions: [], editInfo: { sourceTree: tree, count: 0, lastUpdate: void 0 } } }
     }
 
@@ -251,6 +257,11 @@ namespace StateBuilder {
         delete(ref: StateObjectRef) { return this.root.delete(ref); }
 
         getTree(): StateTree { return buildTree(this.state); }
+
+        commit(options?: Partial<State.UpdateOptions>): Promise<StateObjectCell<A>> {
+            if (!this.state.state) throw new Error('Cannot commit template tree');
+            return this.state.state.runTask(this.state.state.updateTree(this, options));
+        }
 
         constructor(private state: BuildState, ref: StateTransform.Ref, private root: Root) {
             this.ref = ref;
