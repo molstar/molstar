@@ -155,11 +155,6 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
             if (dist === 0) continue;
 
             const thresholdAB = getElementPairThreshold(aeI, beI);
-            console.log({
-                thresholdAB,
-                atomIdA,
-                atomIdB: label_atom_id.value(bI)
-            })
             const pairingThreshold = thresholdAB > 0
                 ? thresholdAB
                 : beI < 0
