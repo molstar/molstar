@@ -26,8 +26,8 @@ export const MmcifProvider: TrajectoryFormatProvider = {
     binaryExtensions: ['bcif'],
     isApplicable: (info: FileInfo, data: Uint8Array | string) => {
         if (info.ext === 'mmcif' || info.ext === 'mcif') return true
-        // assume cif/bcif files that are not DensityServer CIF are mmCIF
-        if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) !== 'dscif'
+        // assume undetermined cif/bcif files are mmCIF
+        if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) === -1
         return false
     },
     parse: async (plugin, data, params) => {
@@ -35,6 +35,28 @@ export const MmcifProvider: TrajectoryFormatProvider = {
         const cif = state.build().to(data)
             .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
         const trajectory = cif.apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { tags: params?.trajectoryTags })
+        await plugin.updateDataState(trajectory, { revertOnError: true });
+        if ((cif.selector.cell?.obj?.data.blocks.length || 0) > 1) {
+            plugin.state.data.updateCellState(cif.ref, { isGhost: false });
+        }
+        return { trajectory: trajectory.selector };
+    }
+}
+
+export const CifCoreProvider: TrajectoryFormatProvider = {
+    label: 'cifCore',
+    description: 'CIF Core',
+    stringExtensions: ['cif'],
+    binaryExtensions: [],
+    isApplicable: (info: FileInfo, data: Uint8Array | string) => {
+        if (info.ext === 'cif') return guessCifVariant(info, data) === 'coreCif'
+        return false
+    },
+    parse: async (plugin, data, params) => {
+        const state = plugin.state.data;
+        const cif = state.build().to(data)
+            .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
+        const trajectory = cif.apply(StateTransforms.Model.TrajectoryFromCifCore, void 0, { tags: params?.trajectoryTags })
         await plugin.updateDataState(trajectory, { revertOnError: true });
         if ((cif.selector.cell?.obj?.data.blocks.length || 0) > 1) {
             plugin.state.data.updateCellState(cif.ref, { isGhost: false });
@@ -100,6 +122,7 @@ export const MolProvider: TrajectoryFormatProvider = {
 
 export const BuildInTrajectoryFormats = [
     ['mmcif', MmcifProvider] as const,
+    ['cifCore', CifCoreProvider] as const,
     ['pdb', PdbProvider] as const,
     ['gro', GroProvider] as const,
     ['3dg', Provider3dg] as const,

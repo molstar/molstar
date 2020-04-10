@@ -59,5 +59,7 @@ atom_site_aniso.U_12
 geom_bond.atom_site_label_1
 geom_bond.atom_site_label_2
 geom_bond.distance
+geom_bond.site_symmetry_1
 geom_bond.site_symmetry_2
 geom_bond.publ_flag
+geom_bond.valence

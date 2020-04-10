@@ -12,7 +12,7 @@ import { FileInfo, getFileInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { PlyProvider } from './shape';
-import { DcdProvider, GroProvider, MmcifProvider, PdbProvider, Provider3dg, PsfProvider, MolProvider } from './structure';
+import { DcdProvider, GroProvider, MmcifProvider, PdbProvider, Provider3dg, PsfProvider, MolProvider, CifCoreProvider } from './structure';
 import { Ccp4Provider, DscifProvider, Dsn6Provider } from './volume';
 
 export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String> {
@@ -56,6 +56,7 @@ export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | Plugin
     constructor() {
         this.add('3dg', Provider3dg)
         this.add('ccp4', Ccp4Provider)
+        this.add('cifCore', CifCoreProvider)
         this.add('dcd', DcdProvider)
         this.add('dscif', DscifProvider)
         this.add('dsn6', Dsn6Provider)
@@ -157,7 +158,7 @@ export const OpenFiles = StateAction.build({
 
 //
 
-type cifVariants = 'dscif' | -1
+type cifVariants = 'dscif' | 'coreCif' | -1
 export function guessCifVariant(info: FileInfo, data: Uint8Array | string): cifVariants {
     if (info.ext === 'bcif') {
         try {
@@ -166,7 +167,9 @@ export function guessCifVariant(info: FileInfo, data: Uint8Array | string): cifV
             if (msgpackDecode(data as Uint8Array).encoder.startsWith('VolumeServer')) return 'dscif'
         } catch { }
     } else if (info.ext === 'cif') {
-        if ((data as string).startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif'
+        const str = data as string
+        if (str.startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif'
+        if (str.includes('atom_site_fract_x') || str.includes('atom_site.fract_x')) return 'coreCif'
     }
     return -1
 }

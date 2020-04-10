@@ -28,13 +28,31 @@ export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | P
     binaryExtensions: ['bcif'],
     isApplicable: (info: FileInfo, data: Uint8Array | string) => {
         if (info.ext === 'mmcif' || info.ext === 'mcif') return true
-        // assume cif/bcif files that are not DensityServer CIF are mmCIF
-        if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) !== 'dscif'
+        // assume undetermined cif/bcif files are mmCIF
+        if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) === -1
         return false
     },
     getDefaultBuilder: (ctx: PluginContext, data, options) => {
         return Task.create('mmCIF default builder', async () => {
             const trajectory = await ctx.builders.structure.parseTrajectory(data, 'mmcif');
+            const representationPreset = options.visuals ? 'auto' : 'empty';
+            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'default', { showUnitcell: options.visuals, representationPreset });
+        })
+    }
+}
+
+export const CifCoreProvider: DataFormatProvider<any> = {
+    label: 'cifCore',
+    description: 'CIF Core',
+    stringExtensions: ['cif'],
+    binaryExtensions: [],
+    isApplicable: (info: FileInfo, data: Uint8Array | string) => {
+        if (info.ext === 'cif') return guessCifVariant(info, data) === 'coreCif'
+        return false
+    },
+    getDefaultBuilder: (ctx: PluginContext, data, options) => {
+        return Task.create('mmCIF default builder', async () => {
+            const trajectory = await ctx.builders.structure.parseTrajectory(data, 'cifCore');
             const representationPreset = options.visuals ? 'auto' : 'empty';
             await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'default', { showUnitcell: options.visuals, representationPreset });
         })

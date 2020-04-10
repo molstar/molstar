@@ -101,7 +101,7 @@ export interface DataFormatProvider<P = any, R = any> {
     parse(plugin: PluginContext, data: StateObjectRef<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, params?: P): Promise<R>
 }
 
-type cifVariants = 'dscif' | -1
+type cifVariants = 'dscif' | 'coreCif' | -1
 export function guessCifVariant(info: FileInfo, data: Uint8Array | string): cifVariants {
     if (info.ext === 'bcif') {
         try {
@@ -110,7 +110,9 @@ export function guessCifVariant(info: FileInfo, data: Uint8Array | string): cifV
             if (msgpackDecode(data as Uint8Array).encoder.startsWith('VolumeServer')) return 'dscif'
         } catch { }
     } else if (info.ext === 'cif') {
-        if ((data as string).startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif'
+        const str = data as string
+        if (str.startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif'
+        if (str.includes('atom_site_fract_x') || str.includes('atom_site.fract_x')) return 'coreCif'
     }
     return -1
 }
