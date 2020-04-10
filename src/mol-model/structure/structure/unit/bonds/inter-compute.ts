@@ -137,7 +137,9 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             const thresholdAB = getElementPairThreshold(aeI, beI);
             const pairingThreshold = thresholdAB > 0
                 ? thresholdAB
-                : beI < 0 ? thresholdA : Math.max(thresholdA, getElementThreshold(beI));
+                : beI < 0
+                    ? thresholdA
+                    : (thresholdA + getElementThreshold(beI)) / 2; // not sure if avg or min but max is too big
 
             if (dist <= pairingThreshold) {
                 const atomIdB = label_atom_idB.value(bI);
