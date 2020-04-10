@@ -59,6 +59,8 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const testDistanceSq = (bRadius + MAX_RADIUS) * (bRadius + MAX_RADIUS);
 
     builder.startUnitPair(unitA, unitB)
+    const symmUnitA = unitA.conformation.operator.name
+    const symmUnitB = unitB.conformation.operator.name
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atomsA[_aI];
@@ -67,10 +69,14 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
         if (Vec3.squaredDistance(imageA, bCenter) > testDistanceSq) continue;
 
         if (!props.forceCompute && indexPairs) {
+            const { order, symmetryA, symmetryB } = indexPairs.edgeProps
             for (let i = indexPairs.offset[aI], il = indexPairs.offset[aI + 1]; i < il; ++i) {
                 const _bI = SortedArray.indexOf(unitA.elements, indexPairs.b[i]) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
-                builder.add(_aI, _bI, { order: indexPairs.edgeProps.order[i], flag: BondType.Flag.Covalent });
+                if (symmetryA[i] === symmetryB[i]) continue;
+                if (symmUnitA === symmetryA[i] && symmUnitB === symmetryB[i]) {
+                    builder.add(_aI, _bI, { order: order[i], flag: BondType.Flag.Covalent });
+                }
             }
             continue // assume `indexPairs` supplies all bonds
         }

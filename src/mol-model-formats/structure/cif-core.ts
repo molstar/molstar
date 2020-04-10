@@ -118,22 +118,25 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
             const indexA: number[] = []
             const indexB: number[] = []
             const order: number[] = []
+            const symmetryA: string[] = []
+            const symmetryB: string[] = []
 
             const { atom_site_label_1, atom_site_label_2, valence, site_symmetry_1, site_symmetry_2 } = db.geom_bond
             for (let i = 0; i < bondCount; ++i) {
-                if (site_symmetry_1.value(i) === site_symmetry_2.value(i)) {
-                    indexA[i] = labelIndexMap[atom_site_label_1.value(i)]
-                    indexB[i] = labelIndexMap[atom_site_label_2.value(i)]
-                    // TODO derive from bond length if undefined
-                    order[i] = valence.isDefined ? valence.value(i) : 1
-                }
+                indexA[i] = labelIndexMap[atom_site_label_1.value(i)]
+                indexB[i] = labelIndexMap[atom_site_label_2.value(i)]
+                // TODO derive order from bond length if undefined
+                order[i] = valence.isDefined ? valence.value(i) : 1
+                symmetryA[i] = site_symmetry_1.value(i) || '1_555'
+                symmetryB[i] = site_symmetry_2.value(i) || '1_555'
             }
 
-            // TODO support symmetry
             IndexPairBonds.Provider.set(models[0], IndexPairBonds.fromData({ pairs: {
                 indexA: Column.ofIntArray(indexA),
                 indexB: Column.ofIntArray(indexB),
-                order: Column.ofIntArray(order)
+                order: Column.ofIntArray(order),
+                symmetryA: Column.ofStringArray(symmetryA),
+                symmetryB: Column.ofStringArray(symmetryB)
             }, count: indexA.length }));
         }
     }
