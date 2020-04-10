@@ -321,19 +321,18 @@ async function handleHivRna(ctx: { runtime: RuntimeContext, fetch: AjaxTask }, p
 
 async function loadHivMembrane(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
     const url = `${params.baseUrl}/membranes/hiv_lipids.bcif`
-    const membraneBuilder = state.build().toRoot()
+    const membrane = state.build().toRoot()
         .apply(StateTransforms.Data.Download, { label: 'hiv_lipids', url, isBinary: true }, { state: { isGhost: true } })
         .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.StructureFromModel)
-    await state.updateTree(membraneBuilder).runInContext(runtime)
+    await membrane.commit()
 
     const membraneParams = {
         representation: params.preset.representation,
     }
-    const membrane = state.build().to(membraneBuilder.ref)
-    await plugin.updateDataState(membrane, { revertOnError: true });
+
     await CellpackMembranePreset.apply(membrane.selector, membraneParams, plugin)
 }
 
