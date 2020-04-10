@@ -159,7 +159,7 @@ async function ensureDicAvailable(dicPath: string, dicUrl: string) {
     }
 }
 
-const DIC_DIR = path.resolve(__dirname, '../dics/')
+const DIC_DIR = path.resolve(__dirname, '../../../build/dics/')
 const MMCIF_DIC_PATH = `${DIC_DIR}/mmcif_pdbx_v50.dic`
 const MMCIF_DIC_URL = 'http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_pdbx_v50.dic'
 const IHM_DIC_PATH = `${DIC_DIR}/ihm-extension.dic`
