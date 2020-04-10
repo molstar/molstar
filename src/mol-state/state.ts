@@ -249,6 +249,11 @@ class State {
 
             if (!this.inTransaction) this.behaviors.isUpdating.next(true);
             try {
+                if (StateBuilder.is(tree)) {
+                    if (tree.editInfo.applied) throw new Error('This builder has already been applied. Create a new builder for further state updates');
+                    tree.editInfo.applied = true;
+                }
+
                 this.reverted = false;
                 const ret = options && (options.revertIfAborted || options.revertOnError)
                     ? await this._revertibleTreeUpdate(taskCtx, params, options)

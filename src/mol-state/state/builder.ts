@@ -21,6 +21,7 @@ interface StateBuilder {
 
 namespace StateBuilder {
     export interface EditInfo {
+        applied: boolean,
         sourceTree: StateTree,
         count: number,
         lastUpdate?: StateTransform.Ref
@@ -108,7 +109,7 @@ namespace StateBuilder {
             return this.state.state.runTask(this.state.state.updateTree(this, options));
         }
 
-        constructor(tree: StateTree, state?: State) { this.state = { state, tree: tree.asTransient(), actions: [], editInfo: { sourceTree: tree, count: 0, lastUpdate: void 0 } } }
+        constructor(tree: StateTree, state?: State) { this.state = { state, tree: tree.asTransient(), actions: [], editInfo: { applied: false, sourceTree: tree, count: 0, lastUpdate: void 0 } } }
     }
 
     export class To<A extends StateObject, T extends StateTransformer = StateTransformer> implements StateBuilder {
