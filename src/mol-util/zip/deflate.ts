@@ -96,8 +96,9 @@ export function _deflateRaw(data: Uint8Array, out: Uint8Array, opos: number, lvl
                 const dgi = _goodIndex(dst, U.df0);  U.dhst[    dgi]++;  ebits += U.exb[lgi] + U.dxb[dgi];
                 lits[li] = (len<<23)|(i-cvrd);  lits[li+1] = (dst<<16)|(lgi<<8)|dgi;  li+=2;
                 cvrd = i + len;
+            } else {
+                U.lhst[data[i]]++;
             }
-            else {	U.lhst[data[i]]++;  }
             lc++;
         }
     }
@@ -302,8 +303,9 @@ function _lenCodes(tree: number[], set: number[]) {
             const zc = Math.min((lz+1-i)>>>1, 6);
             set.push(16, zc-3);
             i += zc*2-2;
+        } else {
+            set.push(l, 0);
         }
-        else set.push(l, 0);
     }
     return len>>>1;
 }

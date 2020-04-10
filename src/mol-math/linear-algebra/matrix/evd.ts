@@ -77,8 +77,7 @@ function symmetricTridiagonalize(a: number[], d: number[], e: number[], order: n
                 a[(j * order) + i] = 0.0;
                 a[(i * order) + j] = 0.0;
             }
-        }
-        else {
+        } else {
             // Generate Householder vector.
             for (let k = 0; k < i; k++) {
                 d[k] /= scale;

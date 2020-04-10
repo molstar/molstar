@@ -91,11 +91,17 @@ export function sizeUTF8(str: string) {
     let i = 0;
     for(let ci = 0; ci < strl; ci++) {
         const code = str.charCodeAt(ci);
-        if     ((code&(0xffffffff-(1<< 7)+1)) === 0) {  i++ ;  }
-        else if((code&(0xffffffff-(1<<11)+1)) === 0) {  i+=2;  }
-        else if((code&(0xffffffff-(1<<16)+1)) === 0) {  i+=3;  }
-        else if((code&(0xffffffff-(1<<21)+1)) === 0) {  i+=4;  }
-        else throw 'e';
+        if ((code&(0xffffffff-(1<< 7)+1)) === 0) {
+            i++ ;
+        } else if((code&(0xffffffff-(1<<11)+1)) === 0) {
+            i+=2;
+        } else if((code&(0xffffffff-(1<<16)+1)) === 0) {
+            i+=3;
+        } else if((code&(0xffffffff-(1<<21)+1)) === 0) {
+            i+=4;
+        } else {
+            throw 'e';
+        }
     }
     return i;
 }

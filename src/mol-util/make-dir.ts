@@ -12,8 +12,9 @@ export function makeDir(path: string, root?: string): boolean {
 
     root = (root || '') + dir + '/';
 
-    try { fs.mkdirSync(root); }
-    catch (e) {
+    try {
+        fs.mkdirSync(root);
+    } catch (e) {
         if (!fs.statSync(root).isDirectory()) throw new Error(e);
     }
 

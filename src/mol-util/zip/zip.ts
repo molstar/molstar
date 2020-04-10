@@ -105,8 +105,9 @@ async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, 
         const buf = new Uint8Array(usize);
         await inflateRaw(runtime, file, buf);
         out[name] = buf;
+    } else {
+        throw `unknown compression method: ${cmpr}`;
     }
-    else throw `unknown compression method: ${cmpr}`;
 }
 
 export async function inflateRaw(runtime: RuntimeContext, file: Uint8Array, buf?: Uint8Array) {
