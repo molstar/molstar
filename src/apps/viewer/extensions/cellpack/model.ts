@@ -389,26 +389,24 @@ async function loadMembrane(name: string, plugin: PluginContext, runtime: Runtim
     const url = `${params.baseUrl}/membranes/${name}.bcif`
     //
     const file = (ingredientFiles)?ingredientFiles[fname]:null;
+    // can we check if url exist
     let membrane
-    if (!file)
-    //can we check if url exist
-   { 
-       membrane = await state.build().toRoot()
-        .apply(StateTransforms.Data.Download, { label: name, url, isBinary: true }, { state: { isGhost: true } })
-        .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.StructureFromModel)
-        .commit()
-    }
-    else {
+    if (!file) {
         membrane = await state.build().toRoot()
-        .apply(StateTransforms.Data.ReadFile, { file, isBinary: true, label: file.name }, { state: { isGhost: true } })
-        .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.StructureFromModel)
-        .commit()        
+            .apply(StateTransforms.Data.Download, { label: name, url, isBinary: true }, { state: { isGhost: true } })
+            .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.StructureFromModel)
+            .commit()
+    } else {
+        membrane = await state.build().toRoot()
+            .apply(StateTransforms.Data.ReadFile, { file, isBinary: true, label: file.name }, { state: { isGhost: true } })
+            .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.StructureFromModel)
+            .commit()
     }
 
     const membraneParams = {

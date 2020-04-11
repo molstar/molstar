@@ -41,12 +41,11 @@ export interface Packing {
     ingredients: { [key: string]: Ingredient }
 }
 
-export interface Positions
-{
+export interface Positions {
     coords?: Vec3[];
 }
-export interface Radii
-{
+
+export interface Radii {
     radii?: number[];
 }
 
@@ -54,21 +53,25 @@ export interface Ingredient {
     source: IngredientSource;
     results: [Vec3, Quat][];
     name: string;
-    positions?: [Positions];//Vec3[]];CoarseGraind Beads coordinates LOD
-    radii?: [Radii];//number[]];CoarseGraind Beads radii LOD
+    /** Vec3[]];CoarseGraind Beads coordinates LOD */
+    positions?: [Positions];
+    /** number[]];CoarseGraind Beads radii LOD */
+    radii?: [Radii];
     /** Number of `curveX` properties in the object where `X` is a 0-indexed number */
     nbCurve?: number;
     /** Curve properties are Vec3[] but that is not expressable in TypeScript */
     [curveX: string]: unknown;
-    principalAxis?: Vec3; /** the orientation in the membrane */
-    offset?: Vec3;  /**offset along membrane */
+    /** the orientation in the membrane */
+    principalAxis?: Vec3;
+    /** offset along membrane */
+    offset?: Vec3;
 }
 
 export interface IngredientSource {
     pdb: string;
-    bu?:string;  /** biological unit e.g AU,BU1,etc.. */
-    selection?:string; /** NGL selection or :A or :B etc.. */
-    model?:string;     /** model number e.g 0,1,2... */
+    bu?: string;  /** biological unit e.g AU,BU1,etc.. */
+    selection?: string; /** NGL selection or :A or :B etc.. */
+    model?: string;     /** model number e.g 0,1,2... */
     transform: {
         center: boolean;
         translate?: Vec3;
