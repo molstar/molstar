@@ -34,7 +34,7 @@ function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`
 }
 
-async function getModel(id: string, model_id:number, baseUrl: string, file?: File) {
+async function getModel(id: string, model_id: number, baseUrl: string, file?: File) {
     let model: Model;
     if (file) {
         const text = await file.text()
@@ -59,7 +59,7 @@ async function getModel(id: string, model_id:number, baseUrl: string, file?: Fil
     return model
 }
 
-async function getStructure(model: Model, source:IngredientSource,props: { assembly?: string } = {}) {
+async function getStructure(model: Model, source: IngredientSource, props: { assembly?: string } = {}) {
     let structure = Structure.ofModel(model)
     const { assembly } = props
 
