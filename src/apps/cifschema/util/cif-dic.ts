@@ -232,6 +232,32 @@ const FORCE_INT_FIELDS = [
     '_struct_sheet_range.end_auth_seq_id',
 ];
 
+const FORCE_MATRIX_FIELDS_MAP: { [k: string]: string } = {
+    'atom_site_aniso.U_11': 'U',
+    'atom_site_aniso.U_22': 'U',
+    'atom_site_aniso.U_33': 'U',
+    'atom_site_aniso.U_23': 'U',
+    'atom_site_aniso.U_13': 'U',
+    'atom_site_aniso.U_12': 'U',
+    'atom_site_aniso.U_11_su': 'U_su',
+    'atom_site_aniso.U_22_su': 'U_su',
+    'atom_site_aniso.U_33_su': 'U_su',
+    'atom_site_aniso.U_23_su': 'U_su',
+    'atom_site_aniso.U_13_su': 'U_su',
+    'atom_site_aniso.U_12_su': 'U_su',
+}
+const FORCE_MATRIX_FIELDS = Object.keys(FORCE_MATRIX_FIELDS_MAP)
+
+const EXTRA_ALIASES: Database['aliases'] = {
+    'atom_site_aniso.U': [
+        'atom_site_anisotrop_U'
+    ],
+    'atom_site_aniso.U_su': [
+        'atom_site_aniso_U_esd',
+        'atom_site_anisotrop_U_esd',
+    ],
+}
+
 const COMMA_SEPARATED_LIST_FIELDS = [
     '_atom_site.pdbx_struct_group_id',
     '_chem_comp.mon_nstd_parent_comp_id',
@@ -280,9 +306,8 @@ const EXTRA_ENUM_VALUES: { [k: string]: string[] } = {
 }
 
 export function generateSchema(frames: CifFrame[], imports: Imports = new Map()): Database {
-
     const tables: Database['tables'] = {}
-    const aliases: Database['aliases'] = {}
+    const aliases: Database['aliases'] = { ...EXTRA_ALIASES }
 
     const categories: FrameCategories = {}
     const links: FrameLinks = {}
@@ -291,7 +316,7 @@ export function generateSchema(frames: CifFrame[], imports: Imports = new Map())
     // get category metadata
     frames.forEach(d => {
         // category definitions in mmCIF start with '_' and don't include a '.'
-        // category definitions in cif don't include a '.'
+        // category definitions in cifCore don't include a '.'
         if (d.header[0] === '_'  || d.header.includes('.')) return
         const categoryName = d.header.toLowerCase()
         // console.log(d.header, d.categoryNames, d.categories)
@@ -399,6 +424,10 @@ export function generateSchema(frames: CifFrame[], imports: Imports = new Map())
         } else if (FORCE_INT_FIELDS.includes(d.header)) {
             fields[itemName] = IntCol(description)
             console.log(`forcing int: ${d.header}`)
+        } else if (FORCE_MATRIX_FIELDS.includes(d.header)) {
+            fields[itemName] = FloatCol(description)
+            fields[FORCE_MATRIX_FIELDS_MAP[d.header]] = MatrixCol(3, 3, description)
+            console.log(`forcing matrix: ${d.header}`)
         } else if (subCategory === 'matrix') {
             fields[itemName.replace(reMatrixField, '')] = MatrixCol(3, 3, description)
         } else if (subCategory === 'vector') {

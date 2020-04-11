@@ -184,7 +184,7 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
                     label.push(name)
                 }
                 label.push(lociLabel(loci))
-                return label.join('</br>')
+                return label.filter(l => !!l).join('</br>')
             },
             group: (label: LociLabel) => label.toString().replace(/Model [0-9]+/g, 'Models'),
             priority: 100

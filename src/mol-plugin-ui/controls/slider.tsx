@@ -733,7 +733,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
             ref: this.handleElements[i]
         }));
         if (!range) { handles.shift(); }
- 
+
         const sliderClassName = classNames({
             [prefixCls!]: true,
             [`${prefixCls}-with-marks`]: Object.keys(marks).length,
@@ -743,8 +743,8 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         });
 
         return (
-            <div ref={this.sliderElement} className={sliderClassName} 
-                onTouchStart={disabled ? noop : this.onTouchStart as any} 
+            <div ref={this.sliderElement} className={sliderClassName}
+                onTouchStart={disabled ? noop : this.onTouchStart as any}
                 onMouseDown={disabled ? noop : this.onMouseDown as any}
             >
                 <div className={`${prefixCls}-rail`} />

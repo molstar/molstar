@@ -34,6 +34,7 @@ import { StructureSelectionQueries } from '../helpers/structure-selection-query'
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { parseMol } from '../../mol-io/reader/mol/parser';
 import { trajectoryFromMol } from '../../mol-model-formats/structure/mol';
+import { trajectoryFromCifCore } from '../../mol-model-formats/structure/cif-core';
 
 export { CoordinatesFromDcd };
 export { TopologyFromPsf };
@@ -43,6 +44,7 @@ export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
 export { TrajectoryFromGRO };
 export { TrajectoryFromMOL };
+export { TrajectoryFromCifCore };
 export { TrajectoryFrom3DG };
 export { ModelFromTrajectory };
 export { StructureFromTrajectory };
@@ -227,6 +229,37 @@ const TrajectoryFromMOL = PluginStateTransform.BuiltIn({
             const parsed = await parseMol(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromMol(parsed.result).runInContext(ctx);
+            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
+
+type TrajectoryFromCifCore = typeof TrajectoryFromCifCore
+const TrajectoryFromCifCore = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-cif-core',
+    display: { name: 'Parse CIF Core', description: 'Identify and create all separate models in the specified CIF data block' },
+    from: SO.Format.Cif,
+    to: SO.Molecule.Trajectory,
+    params(a) {
+        if (!a) {
+            return {
+                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' }))
+            };
+        }
+        const { blocks } = a.data;
+        return {
+            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
+        };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Parse CIF Core', async ctx => {
+            const header = params.blockHeader || a.data.blocks[0].header;
+            const block = a.data.blocks.find(b => b.header === header);
+            if (!block) throw new Error(`Data block '${[header]}' not found.`);
+            const models = await trajectoryFromCifCore(block).runInContext(ctx);
+            if (models.length === 0) throw new Error('No models found.');
             const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(models, props);
         });

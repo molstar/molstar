@@ -14,29 +14,25 @@ export class DataBuilder {
         return this.plugin.state.data;
     }
 
-    async rawData(params: StateTransformer.Params<RawData>, options?: Partial<StateTransform.Options>) {
+    rawData(params: StateTransformer.Params<RawData>, options?: Partial<StateTransform.Options>) {
         const data = this.dataState.build().toRoot().apply(RawData, params, options);
-        await this.plugin.updateDataState(data, { revertOnError: true });
-        return data.selector;
+        return data.commit({ revertOnError: true });
     }
 
-    async download(params: StateTransformer.Params<Download>, options?: Partial<StateTransform.Options>) {
+    download(params: StateTransformer.Params<Download>, options?: Partial<StateTransform.Options>) {
         const data = this.dataState.build().toRoot().apply(Download, params, options);
-        await this.plugin.updateDataState(data, { revertOnError: true });
-        return data.selector;
+        return data.commit({ revertOnError: true });
     }
 
-    async downloadBlob(params: StateTransformer.Params<DownloadBlob>, options?: Partial<StateTransform.Options>) {
+    downloadBlob(params: StateTransformer.Params<DownloadBlob>, options?: Partial<StateTransform.Options>) {
         const data = this.dataState.build().toRoot().apply(DownloadBlob, params, options);
-        await this.plugin.updateDataState(data, { revertOnError: true });
-        return data.selector;
+        return data.commit({ revertOnError: true });
     }
 
     async readFile(params: StateTransformer.Params<ReadFile>, options?: Partial<StateTransform.Options>) {
-        const data = this.dataState.build().toRoot().apply(ReadFile, params, options);
-        const fileInfo = getFileInfo(params.file);
-        await this.plugin.updateDataState(data, { revertOnError: true });
-        return { data: data.selector, fileInfo };
+        const data = await this.dataState.build().toRoot().apply(ReadFile, params, options).commit({ revertOnError: true });
+        const fileInfo = getFileInfo(params.file || '');
+        return { data: data, fileInfo };
     }
 
     constructor(public plugin: PluginContext) {

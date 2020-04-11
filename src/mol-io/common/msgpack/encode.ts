@@ -88,8 +88,7 @@ function encodedSize(value: any) {
             for (let i = 0; i < length; i++) {
                 size += encodedSize(value[i]);
             }
-        }
-        else {
+        } else {
             let keys = Object.keys(value);
             length = keys.length;
             for (let i = 0; i < length; i++) {
@@ -257,8 +256,7 @@ function encodeInternal(value: any, view: DataView, bytes: Uint8Array, offset: n
 
         if (isArray) {
             length = value.length;
-        }
-        else {
+        } else {
             keys = Object.keys(value);
             length = keys.length;
         }
@@ -266,13 +264,11 @@ function encodeInternal(value: any, view: DataView, bytes: Uint8Array, offset: n
         if (length < 0x10) {
             view.setUint8(offset, length | (isArray ? 0x90 : 0x80));
             size = 1;
-        }
-        else if (length < 0x10000) {
+        } else if (length < 0x10000) {
             view.setUint8(offset, isArray ? 0xdc : 0xde);
             view.setUint16(offset + 1, length);
             size = 3;
-        }
-        else if (length < 0x100000000) {
+        } else if (length < 0x100000000) {
             view.setUint8(offset, isArray ? 0xdd : 0xdf);
             view.setUint32(offset + 1, length);
             size = 5;
@@ -282,8 +278,7 @@ function encodeInternal(value: any, view: DataView, bytes: Uint8Array, offset: n
             for (let i = 0; i < length; i++) {
                 size += encodeInternal(value[i], view, bytes, offset + size);
             }
-        }
-        else {
+        } else {
             for (let i = 0, _i = keys!.length; i < _i; i++) {
                 const key = keys![i];
                 size += encodeInternal(key, view, bytes, offset + size);

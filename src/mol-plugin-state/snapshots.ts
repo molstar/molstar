@@ -210,8 +210,9 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         if (this.state.isPlaying) {
             this.stop();
             this.plugin.state.animation.stop();
+        } else {
+            this.play();
         }
-        else this.play();
     }
 
     constructor(private plugin: PluginContext) {

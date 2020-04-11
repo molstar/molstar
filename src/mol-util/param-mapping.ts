@@ -23,8 +23,7 @@ export function ParamMapping<S, T, Ctx>(def: {
         values(t: T, ctx: Ctx): S,
         update(s: S, t: Mutable<T>, ctx: Ctx): void,
         apply?(t: T, ctx: Ctx): void | Promise<void>
-    }) => ParamMapping<S, T, Ctx>
-{
+    }) => ParamMapping<S, T, Ctx> {
     return ({ values, update, apply }) => ({
         params: typeof def.params === 'function' ? def.params as any : ctx => def.params,
         getTarget: def.target,

@@ -9,7 +9,7 @@ import { Model } from '../../mol-model/structure/model/model';
 import { Task } from '../../mol-task';
 import { ModelFormat } from './format';
 import { CifFrame, CIF } from '../../mol-io/reader/cif';
-import { mmCIF_Database, mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
+import { mmCIF_Database } from '../../mol-io/reader/cif/schema/mmcif';
 import { createModels } from './basic/parser';
 import { ModelSymmetry } from './property/symmetry';
 import { ModelSecondaryStructure } from './property/secondary-structure';
@@ -34,11 +34,15 @@ ModelSecondaryStructure.Provider.formatRegistry.add('mmCIF', secondaryStructureF
 function atomSiteAnisotropFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
     const { atom_site_anisotrop } = model.sourceData.data.db
-    const data = Table.ofColumns(mmCIF_Schema['atom_site_anisotrop'], atom_site_anisotrop);
-    const elementToAnsiotrop = AtomSiteAnisotrop.getElementToAnsiotrop(model, data)
+    const data = Table.ofColumns(AtomSiteAnisotrop.Schema, atom_site_anisotrop);
+    const elementToAnsiotrop = AtomSiteAnisotrop.getElementToAnsiotrop(model.atomicConformation.atomId, atom_site_anisotrop.id)
     return { data, elementToAnsiotrop }
 }
-AtomSiteAnisotrop.Provider.formatRegistry.add('mmCIF', atomSiteAnisotropFromMmcif)
+function atomSiteAnisotropApplicableMmcif(model: Model) {
+    if (!MmcifFormat.is(model.sourceData)) return false;
+    return model.sourceData.data.db.atom_site_anisotrop.U.isDefined
+}
+AtomSiteAnisotrop.Provider.formatRegistry.add('mmCIF', atomSiteAnisotropFromMmcif, atomSiteAnisotropApplicableMmcif)
 
 function componentBondFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;

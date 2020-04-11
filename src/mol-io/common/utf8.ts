@@ -59,24 +59,21 @@ function _utf8Read(data: Uint8Array, offset: number, length: number) {
 
     for (let i = offset, end = offset + length; i < end; i++) {
         let byte = data[i];
-        // One byte character
         if ((byte & 0x80) === 0x00) {
+            // One byte character
             chunk[chunkOffset++] = chars[byte];
-        }
-        // Two byte character
-        else if ((byte & 0xe0) === 0xc0) {
+        } else if ((byte & 0xe0) === 0xc0) {
+            // Two byte character
             chunk[chunkOffset++] = chars[((byte & 0x0f) << 6) | (data[++i] & 0x3f)];
-        }
-        // Three byte character
-        else if ((byte & 0xf0) === 0xe0) {
+        } else if ((byte & 0xf0) === 0xe0) {
+            // Three byte character
             chunk[chunkOffset++] = String.fromCharCode(
                 ((byte & 0x0f) << 12) |
                 ((data[++i] & 0x3f) << 6) |
                 ((data[++i] & 0x3f) << 0)
             );
-        }
-        // Four byte character
-        else if ((byte & 0xf8) === 0xf0) {
+        } else if ((byte & 0xf8) === 0xf0) {
+            // Four byte character
             chunk[chunkOffset++] = String.fromCharCode(
                 ((byte & 0x07) << 18) |
                 ((data[++i] & 0x3f) << 12) |

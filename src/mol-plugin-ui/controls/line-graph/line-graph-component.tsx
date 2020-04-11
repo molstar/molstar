@@ -15,7 +15,7 @@ interface LineGraphComponentState {
 }
 
 export default class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
-    private myRef:any;
+    private myRef: any;
     private height: number;
     private width: number;
     private padding: number;
@@ -123,11 +123,11 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         // TODO: SET canSelectMultiple = fasle
     }
 
-    private handleClick = (id:number) => (event:any) => {
+    private handleClick = (id: number) => (event: any) => {
         // TODO: add point to selected array
     }
 
-    private handleMouseDown = (id:number) => (event: any) => {
+    private handleMouseDown = (id: number) => (event: any) => {
         if(id === 0 || id === this.state.points.length-1){
             return;
         }
@@ -164,17 +164,13 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
 
         if ((svgP.x < (padding) || svgP.x > (this.width+(padding))) && (svgP.y > (this.height+(padding)) || svgP.y < (padding))) {
             updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
-        }
-        else if (svgP.x < padding) {
+        } else if (svgP.x < padding) {
             updatedCopyPoint = Vec2.create(padding, svgP.y);
-        }
-        else if( svgP.x > (this.width+(padding))) {
+        } else if( svgP.x > (this.width+(padding))) {
             updatedCopyPoint = Vec2.create(this.width+padding, svgP.y);
-        }
-        else if (svgP.y > (this.height+(padding))) {
+        } else if (svgP.y > (this.height+(padding))) {
             updatedCopyPoint = Vec2.create(svgP.x, this.height+padding);
-        }
-        else if (svgP.y < (padding)) {
+        } else if (svgP.y < (padding)) {
             updatedCopyPoint = Vec2.create(svgP.x, padding);
         } else {
             updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
@@ -230,8 +226,8 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.change(points);
         this.gElement.innerHTML = '';
         this.ghostPoints = [];
-        document.removeEventListener("mousemove", this.handleDrag, true);
-        document.removeEventListener("mouseup", this.handlePointUpdate, true);
+        document.removeEventListener('mousemove', this.handleDrag, true);
+        document.removeEventListener('mouseup', this.handlePointUpdate, true);
     }
 
     private handleDoubleClick(event: any) {
@@ -267,8 +263,8 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.change(points);
     }
 
-    private deletePoint = (i:number) => (event: any) => {
-    if(i===0 || i===this.state.points.length-1){ return; }
+    private deletePoint = (i: number) => (event: any) => {
+        if(i===0 || i===this.state.points.length-1){ return; }
         const points = this.state.points.filter((_,j) => j !== i);
         points.sort((a, b) => {
             if(a[0] === b[0]){
@@ -334,21 +330,21 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         const points: any[] = [];
         let point: Vec2;
         for (let i = 0; i < this.state.points.length; i++){
-            if(i != 0 && i != this.state.points.length-1){
+            if(i !== 0 && i !== this.state.points.length-1){
                 point = this.normalizePoint(this.state.points[i]);
                 points.push(<PointComponent
-                        key={i}
-                        id={i}
-                        x={point[0]}
-                        y={point[1]}
-                        nX={this.state.points[i][0]}
-                        nY={this.state.points[i][1]}
-                        selected={false}
-                        delete={this.deletePoint}
-                        onmouseover={this.props.onHover}
-                        onmousedown={this.handleMouseDown(i)}
-                        onclick={this.handleClick(i)}
-                    />);
+                    key={i}
+                    id={i}
+                    x={point[0]}
+                    y={point[1]}
+                    nX={this.state.points[i][0]}
+                    nY={this.state.points[i][1]}
+                    selected={false}
+                    delete={this.deletePoint}
+                    onmouseover={this.props.onHover}
+                    onmousedown={this.handleMouseDown(i)}
+                    onclick={this.handleClick(i)}
+                />);
             }
         }
         return points;
@@ -357,8 +353,8 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     private renderLines() {
         const points: Vec2[] = [];
         let lines = [];
-        let min:number;
-        let maxX:number;
+        let min: number;
+        let maxX: number;
         let maxY: number;
         let normalizedX: number;
         let normalizedY: number;

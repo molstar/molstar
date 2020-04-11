@@ -147,22 +147,22 @@ export namespace ParamDefinition {
         return setInfo<Mat4>({ type: 'mat4', defaultValue }, info)
     }
 
-    export interface FileParam extends Base<File> {
+    export interface FileParam extends Base<File | null> {
         type: 'file'
         accept?: string
     }
     export function File(info?: Info & { accept?: string, multiple?: boolean }): FileParam {
-        const ret = setInfo<FileParam>({ type: 'file', defaultValue: void 0 as any }, info);
+        const ret = setInfo<FileParam>({ type: 'file', defaultValue: null }, info);
         if (info?.accept) ret.accept = info.accept;
         return ret;
     }
 
-    export interface FileListParam extends Base<FileList> {
+    export interface FileListParam extends Base<FileList | null> {
         type: 'file-list'
         accept?: string
     }
     export function FileList(info?: Info & { accept?: string, multiple?: boolean }): FileListParam {
-        const ret = setInfo<FileListParam>({ type: 'file-list', defaultValue: void 0 as any }, info);
+        const ret = setInfo<FileListParam>({ type: 'file-list', defaultValue: null }, info);
         if (info?.accept) ret.accept = info.accept;
         return ret;
     }

@@ -329,7 +329,7 @@ export const ValidationReportGeometryQualityPreset = StructureRepresentationPres
             clashesSnfg3d = builder.buildRepresentation<any>(update, clashes, { type: ClashesRepresentationProvider.name, typeParams, color }, { tag: 'clashes-snfg-3d' });
         }
 
-        await plugin.updateDataState(update, { revertOnError: false });
+        await update.commit({ revertOnError: true });
         return { components: { ...components, clashes }, representations: { ...representations, clashesBallAndStick, clashesSnfg3d } };
     }
 });

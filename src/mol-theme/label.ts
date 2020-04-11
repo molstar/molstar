@@ -28,7 +28,7 @@ export type LabelOptions = typeof DefaultLabelOptions
 export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): string {
     switch (loci.kind) {
         case 'structure-loci':
-            return loci.structure.models.map(m => m.entry).join(', ')
+            return loci.structure.models.map(m => m.entry).filter(l => !!l).join(', ')
         case 'element-loci':
             return structureElementStatsLabel(StructureElement.Stats.ofLoci(loci), options)
         case 'bond-loci':
@@ -148,7 +148,7 @@ export function _bundleLabel(bundle: Loci.Bundle<any>, options: LabelOptions) {
         const labels = locations.map(l => _elementLabel(l, granularity, hidePrefix, reverse || condensed))
 
         if (condensed) {
-            return labels.map(l => l[0].replace(/\[.*\]/g, '').trim()).join(' \u2014 ')
+            return labels.map(l => l[0].replace(/\[.*\]/g, '').trim()).filter(l => !!l).join(' \u2014 ')
         }
 
         let offset = 0
@@ -167,22 +167,22 @@ export function _bundleLabel(bundle: Loci.Bundle<any>, options: LabelOptions) {
         if (offset > 0) {
             const offsetLabels = [labels[0].join(' | ')]
             for (let j = 1, jl = labels.length; j < jl; ++j) {
-                offsetLabels.push(labels[j].slice(offset).join(' | '))
+                offsetLabels.push(labels[j].slice(offset).filter(l => !!l).join(' | '))
             }
             return offsetLabels.join(' \u2014 ')
         } else {
-            return labels.map(l => l.join(' | ')).join('</br>')
+            return labels.map(l => l.filter(l => !!l).join(' | ')).filter(l => !!l).join('</br>')
         }
     } else {
         const labels = bundle.loci.map(l => lociLabel(l, options))
-        return labels.join(condensed ? ' \u2014 ' : '</br>')
+        return labels.filter(l => !!l).join(condensed ? ' \u2014 ' : '</br>')
     }
 }
 
 export function elementLabel(location: StructureElement.Location, options: Partial<LabelOptions> = {}): string {
     const o = { ...DefaultLabelOptions, ...options }
     const _label = _elementLabel(location, o.granularity, o.hidePrefix, o.reverse || o.condensed)
-    const label = o.condensed ? _label[0].replace(/\[.*\]/g, '').trim() : _label.join(' | ')
+    const label = o.condensed ? _label[0].replace(/\[.*\]/g, '').trim() : _label.filter(l => !!l).join(' | ')
     return o.htmlStyling ? label : stripTags(label)
 }
 

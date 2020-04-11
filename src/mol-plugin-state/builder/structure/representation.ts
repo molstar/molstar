@@ -117,7 +117,7 @@ export class StructureRepresentationBuilder {
         const selector = this.buildRepresentation(repr, structure, props, options);
         if (!selector) return;
 
-        await this.plugin.updateDataState(repr);
+        await repr.commit();
         return selector;
     }
 

@@ -46,7 +46,7 @@ export const CellpackPackingPreset = StructureRepresentationPresetProvider({
             polymer: builder.buildRepresentation<any>(update, components.polymer, { type: params.representation, typeParams: { ...typeParams, ...reprProps }, color }, { tag: 'polymer' })
         };
 
-        await plugin.updateDataState(update, { revertOnError: true });
+        await update.commit({ revertOnError: true })
         return { components, representations };
     }
 });
@@ -84,7 +84,7 @@ export const CellpackMembranePreset = StructureRepresentationPresetProvider({
             membrane: builder.buildRepresentation(update, components.membrane, { type: 'gaussian-surface', typeParams: { ...typeParams, ...reprProps }, color: 'uniform', colorParams: { value: ColorNames.lightgrey } }, { tag: 'all' })
         };
 
-        await plugin.updateDataState(update, { revertOnError: true });
+        await update.commit({ revertOnError: true })
         return { components, representations };
     }
 });

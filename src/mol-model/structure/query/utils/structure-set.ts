@@ -44,8 +44,11 @@ export function structureAreIntersecting(sA: Structure, sB: Structure): boolean 
     if (sA === sB) return true;
 
     let a, b;
-    if (sA.units.length < sB.units.length) { a = sA; b = sB; }
-    else { a = sB; b = sA; }
+    if (sA.units.length < sB.units.length) {
+        a = sA; b = sB;
+    } else {
+        a = sB; b = sA;
+    }
 
     const aU = a.units, bU = b.unitMap;
 
@@ -64,8 +67,11 @@ export function structureIntersect(sA: Structure, sB: Structure): Structure {
     if (!structureAreIntersecting(sA, sB)) return Structure.Empty;
 
     let a, b;
-    if (sA.units.length < sB.units.length) { a = sA; b = sB; }
-    else { a = sB; b = sA; }
+    if (sA.units.length < sB.units.length) {
+        a = sA; b = sB;
+    } else {
+        a = sB; b = sA;
+    }
 
     const aU = a.units, bU = b.unitMap;
     const units: Unit[] = [];

@@ -121,7 +121,8 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             coarse: builder.buildRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'polymer-id' }, { tag: 'coarse' })
         };
 
-        await plugin.updateDataState(update, { revertOnError: false });
+        await update.commit({ revertOnError: false });
+
         return { components, representations };
     }
 });
@@ -148,7 +149,7 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
             nucleic: builder.buildRepresentation(update, components.nucleic, { type: 'gaussian-surface', typeParams, color }, { tag: 'nucleic' })
         };
 
-        await plugin.updateDataState(update, { revertOnError: true });
+        await update.commit({ revertOnError: true });
         return { components, representations };
     }
 });
@@ -189,7 +190,7 @@ const coarseSurface = StructureRepresentationPresetProvider({
             polymer: builder.buildRepresentation(update, components.polymer, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color }, { tag: 'polymer' })
         };
 
-        await plugin.updateDataState(update, { revertOnError: true });
+        await update.commit({ revertOnError: true });
         return { components, representations };
     }
 });
@@ -214,7 +215,7 @@ const polymerCartoon = StructureRepresentationPresetProvider({
             polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams, color }, { tag: 'polymer' })
         };
 
-        await plugin.updateDataState(update, { revertOnError: true });
+        await update.commit({ revertOnError: true });
         return { components, representations };
     }
 });
@@ -239,7 +240,7 @@ const atomicDetail = StructureRepresentationPresetProvider({
             all: builder.buildRepresentation(update, components.all, { type: 'ball-and-stick', typeParams, color }, { tag: 'all' })
         };
 
-        await plugin.updateDataState(update, { revertOnError: true });
+        await update.commit({ revertOnError: true });
         return { components, representations };
     }
 });

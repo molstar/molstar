@@ -13,7 +13,6 @@ import { StateElements } from '../helpers';
 
 export function volumeStreamingControls(plugin: PluginContext, parent: Element) {
     ReactDOM.render(<PluginContextContainer plugin={plugin}>
-            <TransformUpdaterControl nodeRef={StateElements.VolumeStreaming} />
-        </PluginContextContainer>,
-        parent);
+        <TransformUpdaterControl nodeRef={StateElements.VolumeStreaming} />
+    </PluginContextContainer>, parent);
 }

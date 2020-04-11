@@ -28,7 +28,7 @@ export const EllipsoidParams = {
     unitKinds: getUnitKindsParam(['atomic']),
     sizeFactor: PD.Numeric(1, { min: 0.01, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(0.1, { min: 0.01, max: 3, step: 0.01 }),
-    bondCap: PD.Boolean(true),
+    linkCap: PD.Boolean(true),
     visuals: PD.MultiSelect(['ellipsoid-mesh', 'intra-bond', 'inter-bond'], PD.objectToOptions(EllipsoidVisuals)),
 }
 export type EllipsoidParams = typeof EllipsoidParams
@@ -50,5 +50,5 @@ export const EllipsoidRepresentationProvider = StructureRepresentationProvider({
     defaultValues: PD.getDefaultValues(EllipsoidParams),
     defaultColorTheme: { name: 'element-symbol' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (structure: Structure) => structure.elementCount > 0 && structure.models.some(m => m.customProperties.has(AtomSiteAnisotrop.Descriptor))
+    isApplicable: (structure: Structure) => structure.elementCount > 0 && structure.models.some(m => AtomSiteAnisotrop.Provider.isApplicable(m))
 })

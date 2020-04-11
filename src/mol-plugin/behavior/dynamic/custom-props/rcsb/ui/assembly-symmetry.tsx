@@ -96,7 +96,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
             b.to(s.properties.cell).update(old => {
                 old.properties[AssemblySymmetryProvider.descriptor.name] = values;
             });
-            await this.plugin.updateDataState(b);
+            await b.commit();
         } else {
             const pd = this.plugin.customStructureProperties.getParams(s.cell.obj?.data);
             const params = PD.getDefaultValues(pd);

@@ -1,6 +1,12 @@
 audit.block_doi
 
 database_code.depnum_ccdc_archive
+database_code.depnum_ccdc_fiz
+database_code.ICSD
+database_code.MDF
+database_code.NBS
+database_code.CSD
+database_code.COD
 
 chemical.name_systematic
 chemical.name_common
@@ -19,6 +25,7 @@ atom_type_scat.source
 
 space_group.crystal_system
 space_group.name_H-M_full
+space_group.IT_number
 space_group_symop.operation_xyz
 
 cell.length_a
@@ -42,19 +49,28 @@ atom_site.calc_flag
 atom_site.refinement_flags
 atom_site.disorder_assembly
 atom_site.disorder_group
-
 atom_site.site_symmetry_multiplicity
 
 atom_site_aniso.label
+atom_site_aniso.U
 atom_site_aniso.U_11
 atom_site_aniso.U_22
 atom_site_aniso.U_33
 atom_site_aniso.U_23
 atom_site_aniso.U_13
 atom_site_aniso.U_12
+atom_site_aniso.U_su
+atom_site_aniso.U_11_su
+atom_site_aniso.U_22_su
+atom_site_aniso.U_33_su
+atom_site_aniso.U_23_su
+atom_site_aniso.U_13_su
+atom_site_aniso.U_12_su
 
 geom_bond.atom_site_label_1
 geom_bond.atom_site_label_2
 geom_bond.distance
+geom_bond.site_symmetry_1
 geom_bond.site_symmetry_2
 geom_bond.publ_flag
+geom_bond.valence

@@ -8,140 +8,14 @@
 import { PluginContext } from '../../mol-plugin/context';
 import { StateAction, StateSelection, StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
-import { FileInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { BuiltInTrajectoryFormat, BuildInTrajectoryFormats } from '../formats/trajectory';
+import { PresetStructureRepresentations } from '../builder/structure/representation-preset';
+import { BuiltInTrajectoryFormat, BuiltInTrajectoryFormats } from '../formats/trajectory';
 import { RootStructureDefinition } from '../helpers/root-structure';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
-import { Download, ParsePsf } from '../transforms/data';
-import { CoordinatesFromDcd, CustomModelProperties, CustomStructureProperties, TopologyFromPsf, TrajectoryFromModelAndCoordinates } from '../transforms/model';
-import { DataFormatProvider, guessCifVariant } from './data-format';
-import { PresetStructureRepresentations } from '../builder/structure/representation-preset';
-
-// TODO make unitcell creation part of preset
-
-export const MmcifProvider: DataFormatProvider<PluginStateObject.Data.String | PluginStateObject.Data.Binary> = {
-    label: 'mmCIF',
-    description: 'mmCIF',
-    stringExtensions: ['cif', 'mmcif', 'mcif'],
-    binaryExtensions: ['bcif'],
-    isApplicable: (info: FileInfo, data: Uint8Array | string) => {
-        if (info.ext === 'mmcif' || info.ext === 'mcif') return true
-        // assume cif/bcif files that are not DensityServer CIF are mmCIF
-        if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) !== 'dscif'
-        return false
-    },
-    getDefaultBuilder: (ctx: PluginContext, data, options) => {
-        return Task.create('mmCIF default builder', async () => {
-            const trajectory = await ctx.builders.structure.parseTrajectory(data, 'mmcif');
-            const representationPreset = options.visuals ? 'auto' : 'empty';
-            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'default', { showUnitcell: options.visuals, representationPreset });
-        })
-    }
-}
-
-export const PdbProvider: DataFormatProvider<any> = {
-    label: 'PDB',
-    description: 'PDB',
-    stringExtensions: ['pdb', 'ent'],
-    binaryExtensions: [],
-    isApplicable: (info: FileInfo, data: string) => {
-        return info.ext === 'pdb' || info.ext === 'ent'
-    },
-    getDefaultBuilder: (ctx: PluginContext, data, options) => {
-        return Task.create('PDB default builder', async () => {
-            const trajectory = await ctx.builders.structure.parseTrajectory(data, 'pdb');
-            const representationPreset = options.visuals ? 'auto' : 'empty';
-            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'default', { showUnitcell: options.visuals, representationPreset });
-        })
-    }
-}
-
-export const GroProvider: DataFormatProvider<any> = {
-    label: 'GRO',
-    description: 'GRO',
-    stringExtensions: ['gro'],
-    binaryExtensions: [],
-    isApplicable: (info: FileInfo, data: string) => {
-        return info.ext === 'gro'
-    },
-    getDefaultBuilder: (ctx: PluginContext, data, options) => {
-        return Task.create('GRO default builder', async () => {
-            const trajectory = await ctx.builders.structure.parseTrajectory(data, 'gro');
-            const representationPreset = options.visuals ? 'auto' : 'empty';
-            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'default', { showUnitcell: options.visuals, representationPreset });
-        })
-    }
-}
-
-export const MolProvider: DataFormatProvider<any> = {
-    label: 'MOL',
-    description: 'MOL',
-    stringExtensions: ['mol', 'sdf'],
-    binaryExtensions: [],
-    isApplicable: (info: FileInfo, data: string) => {
-        return info.ext === 'mol' || info.ext === 'sdf'
-    },
-    getDefaultBuilder: (ctx: PluginContext, data, options) => {
-        return Task.create('MOL default builder', async () => {
-            const trajectory = await ctx.builders.structure.parseTrajectory(data, 'mol');
-            const representationPreset = options.visuals ? 'atomic-detail' : 'empty';
-            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'default', { showUnitcell: options.visuals, representationPreset });
-        })
-    }
-}
-
-export const Provider3dg: DataFormatProvider<any> = {
-    label: '3DG',
-    description: '3DG',
-    stringExtensions: ['3dg'],
-    binaryExtensions: [],
-    isApplicable: (info: FileInfo, data: string) => {
-        return info.ext === '3dg'
-    },
-    getDefaultBuilder: (ctx: PluginContext, data, options) => {
-        return Task.create('3DG default builder', async () => {
-            const trajectory = await ctx.builders.structure.parseTrajectory(data, '3dg');
-            const representationPreset = options.visuals ? 'auto' : 'empty';
-            await ctx.builders.structure.hierarchy.applyPreset(trajectory, 'default', { showUnitcell: options.visuals, representationPreset });
-        })
-    }
-}
-
-export const PsfProvider: DataFormatProvider<any> = {
-    label: 'PSF',
-    description: 'PSF',
-    stringExtensions: ['psf'],
-    binaryExtensions: [],
-    isApplicable: (info: FileInfo, data: string) => {
-        return info.ext === 'psf'
-    },
-    getDefaultBuilder: (ctx: PluginContext, data, options, state) => {
-        return Task.create('PSF default builder', async taskCtx => {
-            const build = state.build().to(data).apply(ParsePsf, {}, { state: { isGhost: true } }).apply(TopologyFromPsf)
-            await state.updateTree(build).runInContext(taskCtx)
-        })
-    }
-}
-
-export const DcdProvider: DataFormatProvider<any> = {
-    label: 'DCD',
-    description: 'DCD',
-    stringExtensions: [],
-    binaryExtensions: ['dcd'],
-    isApplicable: (info: FileInfo, data: string) => {
-        return info.ext === 'dcd'
-    },
-    getDefaultBuilder: (ctx: PluginContext, data, options, state) => {
-        return Task.create('DCD default builder', async taskCtx => {
-            const build = state.build().to(data).apply(CoordinatesFromDcd);
-            await state.updateTree(build).runInContext(taskCtx)
-        })
-    }
-}
-
-//
+import { Download } from '../transforms/data';
+import { CustomModelProperties, CustomStructureProperties, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => PD.Group({
     type: RootStructureDefinition.getParams(void 0, 'auto').type,
@@ -192,7 +66,7 @@ const DownloadStructure = StateAction.build({
                 }, { isFlat: true, label: 'PubChem', description: 'Loads 3D conformer from PubChem.' }),
                 'url': PD.Group({
                     url: PD.Text(''),
-                    format: PD.Select<BuiltInTrajectoryFormat>('mmcif', PD.arrayToOptions(BuildInTrajectoryFormats.map(f => f[0]), f => f)),
+                    format: PD.Select<BuiltInTrajectoryFormat>('mmcif', PD.arrayToOptions(BuiltInTrajectoryFormats.map(f => f[0]), f => f)),
                     isBinary: PD.Boolean(false),
                     options
                 }, { isFlat: true, label: 'URL' })

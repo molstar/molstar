@@ -8,18 +8,26 @@ import { CustomPropertyDescriptor, Model } from '../../../mol-model/structure';
 import { ModelFormat } from '../format';
 
 class FormatRegistry<T> {
-    map = new Map<ModelFormat['kind'], (model: Model) => T | undefined>()
+    private map = new Map<ModelFormat['kind'], (model: Model) => T | undefined>()
+    private applicable = new Map<ModelFormat['kind'], (model: Model) => boolean>()
 
-    add(kind: ModelFormat['kind'], obtain: (model: Model) => T | undefined) {
+    add(kind: ModelFormat['kind'], obtain: (model: Model) => T | undefined, applicable?: (model: Model) => boolean) {
         this.map.set(kind, obtain)
+        if (applicable) this.applicable.set(kind, applicable)
     }
 
     remove(kind: ModelFormat['kind']) {
         this.map.delete(kind)
+        this.applicable.delete(kind)
     }
 
     get(kind: ModelFormat['kind']) {
         return this.map.get(kind)
+    }
+
+    isApplicable(model: Model) {
+        const isApplicable = this.applicable.get(model.sourceData.kind)
+        return isApplicable ? isApplicable(model) : true
     }
 }
 
@@ -28,6 +36,7 @@ export { FormatPropertyProvider as FormatPropertyProvider }
 interface FormatPropertyProvider<T> {
     readonly descriptor: CustomPropertyDescriptor
     readonly formatRegistry: FormatRegistry<T>
+    isApplicable(model: Model): boolean
     get(model: Model): T | undefined
     set(model: Model, value: T): void
 }
@@ -40,6 +49,9 @@ namespace FormatPropertyProvider {
         return {
             descriptor,
             formatRegistry,
+            isApplicable(model: Model) {
+                return formatRegistry.isApplicable(model)
+            },
             get(model: Model): T | undefined {
                 if (model._staticPropertyData[name]) return model._staticPropertyData[name]
                 if (model.customProperties.has(descriptor)) return

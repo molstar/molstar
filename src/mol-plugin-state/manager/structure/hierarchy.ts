@@ -155,7 +155,7 @@ export class StructureHierarchyManager extends PluginComponent {
         if (refs.length === 0) return;
         const deletes = this.plugin.state.data.build();
         for (const r of refs) deletes.delete(typeof r === 'string' ? r : r.cell.transform.ref);
-        return this.plugin.updateDataState(deletes, { canUndo: canUndo ? 'Remove' : false });
+        return deletes.commit({ canUndo: canUndo ? 'Remove' : false });
     }
 
     toggleVisibility(refs: ReadonlyArray<HierarchyRef>, action?: 'show' | 'hide') {
@@ -196,7 +196,7 @@ export class StructureHierarchyManager extends PluginComponent {
         for (const m of trajectory.models) {
             builder.delete(m.cell);
         }
-        return this.plugin.updateDataState(builder);
+        return builder.commit();
     }
 
     constructor(private plugin: PluginContext) {

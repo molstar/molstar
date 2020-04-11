@@ -24,8 +24,7 @@ export class StructureUniqueSubsetBuilder {
         const unit = this.unitMap.get(parentId);
         if (!!unit) {
             if (UniqueArray.add(unit, e, e)) this.elementCount++;
-        }
-        else {
+        } else {
             const arr: UArray = UniqueArray.create();
             UniqueArray.add(arr, e, e);
             this.unitMap.set(parentId, arr);

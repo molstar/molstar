@@ -108,8 +108,8 @@ class PluginState {
 
     constructor(private plugin: import('./context').PluginContext) {
         this.snapshots = new PluginStateSnapshotManager(plugin);
-        this.data = State.create(new SO.Root({ }), { globalContext: plugin });
-        this.behaviors = State.create(new PluginBehavior.Root({ }), { globalContext: plugin, rootState: { isLocked: true } });
+        this.data = State.create(new SO.Root({ }), { runTask: plugin.runTask, globalContext: plugin });
+        this.behaviors = State.create(new PluginBehavior.Root({ }), { runTask: plugin.runTask, globalContext: plugin, rootState: { isLocked: true } });
 
         this.animation = new PluginAnimationManager(plugin);
     }
