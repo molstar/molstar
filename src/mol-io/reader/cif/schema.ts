@@ -88,18 +88,21 @@ function createListColumn<T extends number | string>(schema: Column.Schema.List<
 
 function createTensorColumn(schema: Column.Schema.Tensor, category: Data.CifCategory, key: string): Column<Tensor.Data> {
     const space = schema.space;
-    const zeroOffset = category.fieldNames.indexOf(`${key}[0]`) >= 0;
+    const zeroOffset = (
+        category.fieldNames.includes(`${key}[0]`) ||
+        category.fieldNames.includes(`${key}[0][0]`) ||
+        category.fieldNames.includes(`${key}[0][0][0]`)
+    );
     const fst = zeroOffset ? 0 : 1;
+    const namingVariant = (
+        category.fieldNames.includes(`${key}_1`) ||
+        category.fieldNames.includes(`${key}_11`) ||
+        category.fieldNames.includes(`${key}_111`)
+    ) ? 'underscore' : 'brackets'
 
-    let firstFieldName: string;
-    switch (space.rank) {
-        case 1: firstFieldName = `${key}[${fst}]`; break;
-        case 2: firstFieldName = `${key}[${fst}][${fst}]`; break;
-        case 3: firstFieldName = `${key}[${fst}][${fst}][${fst}]`; break;
-        default: throw new Error('Tensors with rank > 3 or rank 0 are currently not supported.');
-    }
-    const first = category.getField(firstFieldName) || Column.Undefined(category.rowCount, schema);
-    const value = (row: number) => Data.getTensor(category, key, space, row, zeroOffset);
+    const getName = Data.tensorFieldNameGetter(key, space.rank, zeroOffset, namingVariant)
+    const first = category.getField(getName(fst, fst, fst)) || Column.Undefined(category.rowCount, schema);
+    const value = (row: number) => Data.getTensor(category, space, row, getName);
     const toArray: Column<Tensor.Data>['toArray'] = params => ColumnHelpers.createAndFillArray(category.rowCount, value, params)
 
     return {

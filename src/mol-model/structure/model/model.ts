@@ -24,6 +24,7 @@ import { createModels } from '../../../mol-model-formats/structure/basic/parser'
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { ChainIndex } from './indexing';
 import { SymmetryOperator } from '../../../mol-math/geometry';
+import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -159,19 +160,14 @@ export namespace Model {
         )
     }
 
+    const tmpAngles90 = Vec3.create(1.5708, 1.5708, 1.5708) // in radians
+    const tmpLengths1 = Vec3.create(1, 1, 1)
     export function hasCrystalSymmetry(model: Model) {
-        if (!MmcifFormat.is(model.sourceData)) return false
-        const { db } = model.sourceData.data
-        return (
-            db.symmetry._rowCount === 1 && db.cell._rowCount === 1 && !(
-                db.symmetry.Int_Tables_number.value(0) === 1 &&
-                db.cell.angle_alpha.value(0) === 90 &&
-                db.cell.angle_beta.value(0) === 90 &&
-                db.cell.angle_gamma.value(0) === 90 &&
-                db.cell.length_a.value(0) === 1 &&
-                db.cell.length_b.value(0) === 1 &&
-                db.cell.length_c.value(0) === 1
-            )
+        const spacegroup = ModelSymmetry.Provider.get(model)?.spacegroup
+        return !!spacegroup && !(
+            spacegroup.num === 1 &&
+            Vec3.equals(spacegroup.cell.anglesInRadians, tmpAngles90) &&
+            Vec3.equals(spacegroup.cell.size, tmpLengths1)
         )
     }
 

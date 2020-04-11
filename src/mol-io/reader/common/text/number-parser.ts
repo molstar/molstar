@@ -71,8 +71,9 @@ export function parseFloat(str: string, start: number, end: number) {
             return neg * (ret + point / div);
         } else if (c === 53 || c === 21) { // 'e'/'E'
             return parseScientific(neg * ret, str, _start + 1, end);
+        } else {
+            break;
         }
-        else break;
     }
     return neg * ret;
 }
@@ -137,8 +138,9 @@ export function getNumberType(str: string): NumberType {
                 return NumberType.NaN; // string starts with e/E or -e/-E
             }
             return getNumberTypeScientific(str, start + 1, end);
+        } else {
+            break;
         }
-        else break;
     }
     return start === end ? NumberType.Int : NumberType.NaN;
 }

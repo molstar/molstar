@@ -1,6 +1,7 @@
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
+ * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
@@ -19,7 +20,7 @@ import { IndexPairBonds } from './property/bonds/index-pair';
 async function getModels(mol: MolFile, ctx: RuntimeContext): Promise<Model[]> {
     const { atoms, bonds } = mol;
 
-    const UNK = Column.ofConst('UNK', mol.atoms.count, Column.Schema.str);
+    const MOL = Column.ofConst('MOL', mol.atoms.count, Column.Schema.str);
     const A = Column.ofConst('A', mol.atoms.count, Column.Schema.str);
     const type_symbol = Column.asArrayColumn(atoms.type_symbol);
     const seq_id = Column.ofConst(1, atoms.count, Column.Schema.int);
@@ -27,7 +28,7 @@ async function getModels(mol: MolFile, ctx: RuntimeContext): Promise<Model[]> {
     const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
         auth_asym_id: A,
         auth_atom_id: type_symbol,
-        auth_comp_id: UNK,
+        auth_comp_id: MOL,
         auth_seq_id: seq_id,
         Cartn_x: Column.asArrayColumn(atoms.x, Float32Array),
         Cartn_y: Column.asArrayColumn(atoms.y, Float32Array),
@@ -36,7 +37,7 @@ async function getModels(mol: MolFile, ctx: RuntimeContext): Promise<Model[]> {
 
         label_asym_id: A,
         label_atom_id: type_symbol,
-        label_comp_id: UNK,
+        label_comp_id: MOL,
         label_seq_id: seq_id,
         label_entity_id: Column.ofConst('1', atoms.count, Column.Schema.str),
 
@@ -47,12 +48,12 @@ async function getModels(mol: MolFile, ctx: RuntimeContext): Promise<Model[]> {
     }, atoms.count);
 
     const entityBuilder = new EntityBuilder()
-    entityBuilder.setNames([['UNK', 'Unknown Entity']])
-    entityBuilder.getEntityId('UNK', MoleculeType.Unknown, 'A');
+    entityBuilder.setNames([['MOL', 'Unknown Entity']])
+    entityBuilder.getEntityId('MOL', MoleculeType.Unknown, 'A');
 
     const componentBuilder = new ComponentBuilder(seq_id, type_symbol);
-    componentBuilder.setNames([['UNK', 'Unknown Residue']])
-    componentBuilder.add('UNK', 0);
+    componentBuilder.setNames([['MOL', 'Unknown Molecule']])
+    componentBuilder.add('MOL', 0);
 
     const basics = createBasic({
         entity: entityBuilder.getEntityTable(),

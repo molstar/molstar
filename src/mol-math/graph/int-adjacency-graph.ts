@@ -54,8 +54,11 @@ export namespace IntAdjacencyGraph {
 
         getEdgeIndex(i: VertexIndex, j: VertexIndex): number {
             let a, b;
-            if (i < j) { a = i; b = j; }
-            else { a = j; b = i; }
+            if (i < j) {
+                a = i; b = j;
+            } else {
+                a = j; b = i;
+            }
             for (let t = this.offset[a], _t = this.offset[a + 1]; t < _t; t++) {
                 if (this.b[t] === b) return t;
             }

@@ -321,20 +321,19 @@ async function handleHivRna(ctx: { runtime: RuntimeContext, fetch: AjaxTask }, p
 
 async function loadHivMembrane(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
     const url = `${params.baseUrl}/membranes/hiv_lipids.bcif`
-    const membraneBuilder = state.build().toRoot()
+    const membrane = await state.build().toRoot()
         .apply(StateTransforms.Data.Download, { label: 'hiv_lipids', url, isBinary: true }, { state: { isGhost: true } })
         .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.StructureFromModel)
-    await state.updateTree(membraneBuilder).runInContext(runtime)
+        .commit()
 
     const membraneParams = {
         representation: params.preset.representation,
     }
-    const membrane = state.build().to(membraneBuilder.ref)
-    await plugin.updateDataState(membrane, { revertOnError: true });
-    await CellpackMembranePreset.apply(membrane.selector, membraneParams, plugin)
+
+    await CellpackMembranePreset.apply(membrane, membraneParams, plugin)
 }
 
 async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
@@ -345,6 +344,10 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.source.params }, { state: { isGhost: true } })
     } else {
         const file = params.source.params
+        if (file === null) {
+            plugin.log.error('No file selected')
+            return
+        }
         cellPackJson = state.build().toRoot()
             .apply(StateTransforms.Data.ReadFile, { file, isBinary: false, label: file.name }, { state: { isGhost: true } })
     }
@@ -354,17 +357,19 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
         .apply(ParseCellPack)
 
     const cellPackObject = await state.updateTree(cellPackBuilder).runInContext(runtime)
-    const { packings } = cellPackObject.data
+    const { packings } = cellPackObject.obj!.data
 
     await handleHivRna({ runtime, fetch: plugin.fetch }, packings, params.baseUrl)
 
     for (let i = 0, il = packings.length; i < il; ++i) {
         const p = { packing: i, baseUrl: params.baseUrl, ingredientFiles: params.ingredients.files }
 
-        const packing = state.build().to(cellPackBuilder.ref).apply(StructureFromCellpack, p)
-        await plugin.updateDataState(packing, { revertOnError: true });
+        const packing = await state.build()
+            .to(cellPackBuilder.ref)
+            .apply(StructureFromCellpack, p)
+            .commit({ revertOnError: true })
 
-        const structure = packing.selector.obj?.data
+        const structure = packing.obj?.data
         if (structure) {
             await CellPackInfoProvider.attach({ fetch: plugin.fetch, runtime }, structure, {
                 info: { packingsCount: packings.length, packingIndex: i }
@@ -375,7 +380,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             traceOnly: params.preset.traceOnly,
             representation: params.preset.representation,
         }
-        await CellpackPackingPreset.apply(packing.selector, packingParams, plugin)
+        await CellpackPackingPreset.apply(packing, packingParams, plugin)
     }
 }
 

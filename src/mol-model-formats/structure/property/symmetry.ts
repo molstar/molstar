@@ -8,7 +8,7 @@
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { Spacegroup, SpacegroupCell, SymmetryOperator } from '../../../mol-math/geometry';
 import { Tensor, Vec3, Mat3 } from '../../../mol-math/linear-algebra';
-import { Symmetry as _ModelSymmetry } from '../../../mol-model/structure/model/properties/symmetry';
+import { Symmetry } from '../../../mol-model/structure/model/properties/symmetry';
 import { createAssemblies } from './assembly';
 import { CustomPropertyDescriptor } from '../../../mol-model/structure';
 import { FormatPropertyProvider } from '../common/property';
@@ -21,7 +21,7 @@ namespace ModelSymmetry {
         name: 'model_symmetry',
     };
 
-    export const Provider = FormatPropertyProvider.create<_ModelSymmetry>(Descriptor)
+    export const Provider = FormatPropertyProvider.create<Symmetry>(Descriptor)
 
     type Data = {
         symmetry: Table<mmCIF_Schema['symmetry']>
@@ -33,7 +33,7 @@ namespace ModelSymmetry {
         pdbx_struct_oper_list: Table<mmCIF_Schema['pdbx_struct_oper_list']>
     }
 
-    export function fromData(data: Data): _ModelSymmetry {
+    export function fromData(data: Data): Symmetry {
         const assemblies = createAssemblies(data.pdbx_struct_assembly, data.pdbx_struct_assembly_gen, data.pdbx_struct_oper_list);
         const spacegroup = getSpacegroup(data.symmetry, data.cell);
         const isNonStandardCrytalFrame = checkNonStandardCrystalFrame(data.atom_sites, spacegroup);

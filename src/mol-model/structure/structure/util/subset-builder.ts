@@ -21,8 +21,9 @@ export class StructureSubsetBuilder {
 
     addToUnit(parentId: number, e: ElementIndex) {
         const unit = this.unitMap.get(parentId);
-        if (!!unit) { unit[unit.length] = e; }
-        else {
+        if (!!unit) {
+            unit[unit.length] = e;
+        } else {
             this.unitMap.set(parentId, [e]);
             this.ids[this.ids.length] = parentId;
         }

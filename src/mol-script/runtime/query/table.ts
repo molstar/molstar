@@ -228,36 +228,46 @@ const symbols = [
     })(ctx)),
 
     // ============= GENERATORS ================
-    D(MolScript.structureQuery.generator.atomGroups, function structureQuery_generator_atomGroups(ctx, xs) { return Queries.generators.atoms({
-        entityTest: xs['entity-test'],
-        chainTest: xs['chain-test'],
-        residueTest: xs['residue-test'],
-        atomTest: xs['atom-test'],
-        groupBy: xs['group-by']
-    })(ctx) }),
+    D(MolScript.structureQuery.generator.atomGroups, function structureQuery_generator_atomGroups(ctx, xs) {
+        return Queries.generators.atoms({
+            entityTest: xs['entity-test'],
+            chainTest: xs['chain-test'],
+            residueTest: xs['residue-test'],
+            atomTest: xs['atom-test'],
+            groupBy: xs['group-by']
+        })(ctx)
+    }),
 
     D(MolScript.structureQuery.generator.all, function structureQuery_generator_all(ctx) { return Queries.generators.all(ctx) }),
     D(MolScript.structureQuery.generator.empty, function structureQuery_generator_empty(ctx) { return Queries.generators.none(ctx) }),
-    D(MolScript.structureQuery.generator.bondedAtomicPairs, function structureQuery_generator_bondedAtomicPairs(ctx, xs) { return Queries.generators.bondedAtomicPairs(xs && xs[0])(ctx) }),
-    D(MolScript.structureQuery.generator.rings, function structureQuery_generator_rings(ctx, xs) { return Queries.generators.rings(xs?.['fingerprint']?.(ctx) as any, xs?.['only-aromatic']?.(ctx))(ctx) }),
+    D(MolScript.structureQuery.generator.bondedAtomicPairs, function structureQuery_generator_bondedAtomicPairs(ctx, xs) {
+        return Queries.generators.bondedAtomicPairs(xs && xs[0])(ctx)
+    }),
+    D(MolScript.structureQuery.generator.rings, function structureQuery_generator_rings(ctx, xs) {
+        return Queries.generators.rings(xs?.['fingerprint']?.(ctx) as any, xs?.['only-aromatic']?.(ctx))(ctx)
+    }),
 
     // ============= MODIFIERS ================
 
-    D(MolScript.structureQuery.modifier.includeSurroundings, function structureQuery_modifier_includeSurroundings(ctx, xs) { return Queries.modifiers.includeSurroundings(xs[0] as any, {
-        radius: xs['radius'](ctx),
-        wholeResidues: !!(xs['as-whole-residues'] && xs['as-whole-residues'](ctx)),
-        elementRadius: xs['atom-radius']
-    })(ctx) }),
+    D(MolScript.structureQuery.modifier.includeSurroundings, function structureQuery_modifier_includeSurroundings(ctx, xs) {
+        return Queries.modifiers.includeSurroundings(xs[0] as any, {
+            radius: xs['radius'](ctx),
+            wholeResidues: !!(xs['as-whole-residues'] && xs['as-whole-residues'](ctx)),
+            elementRadius: xs['atom-radius']
+        })(ctx)
+    }),
     D(MolScript.structureQuery.modifier.wholeResidues, function structureQuery_modifier_wholeResidues(ctx, xs) { return Queries.modifiers.wholeResidues(xs[0] as any)(ctx) }),
     D(MolScript.structureQuery.modifier.union, function structureQuery_modifier_union(ctx, xs) { return Queries.modifiers.union(xs[0] as any)(ctx) }),
     D(MolScript.structureQuery.modifier.expandProperty, function structureQuery_modifier_expandProperty(ctx, xs) { return Queries.modifiers.expandProperty(xs[0] as any, xs['property'])(ctx) }),
     D(MolScript.structureQuery.modifier.exceptBy, function structureQuery_modifier_exceptBy(ctx, xs) { return Queries.modifiers.exceptBy(xs[0] as any, xs['by'] as any)(ctx) }),
-    D(MolScript.structureQuery.modifier.includeConnected, function structureQuery_modifier_includeConnected(ctx, xs) { return Queries.modifiers.includeConnected({
-        query: xs[0] as any,
-        bondTest: xs['bond-test'],
-        wholeResidues: !!(xs['as-whole-residues'] && xs['as-whole-residues'](ctx)),
-        layerCount: (xs['layer-count'] && xs['layer-count'](ctx)) || 1
-    })(ctx) }),
+    D(MolScript.structureQuery.modifier.includeConnected, function structureQuery_modifier_includeConnected(ctx, xs) {
+        return Queries.modifiers.includeConnected({
+            query: xs[0] as any,
+            bondTest: xs['bond-test'],
+            wholeResidues: !!(xs['as-whole-residues'] && xs['as-whole-residues'](ctx)),
+            layerCount: (xs['layer-count'] && xs['layer-count'](ctx)) || 1
+        })(ctx)
+    }),
 
     // ============= COMBINATORS ================
 

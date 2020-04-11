@@ -9,17 +9,26 @@ import { IntAdjacencyGraph } from '../../../../mol-math/graph';
 import { Column } from '../../../../mol-data/db';
 import { FormatPropertyProvider } from '../../common/property';
 
-export type IndexPairBonds = IntAdjacencyGraph<number, { readonly order: ArrayLike<number> }>
+export type IndexPairBondsProps = {
+    readonly order: ArrayLike<number>
+    readonly symmetryA: ArrayLike<string>
+    readonly symmetryB: ArrayLike<string>
+}
+export type IndexPairBonds = IntAdjacencyGraph<number, IndexPairBondsProps>
 
-function getGraph(indexA: ArrayLike<number>, indexB: ArrayLike<number>, _order: ArrayLike<number>, count: number): IndexPairBonds {
+function getGraph(indexA: ArrayLike<number>, indexB: ArrayLike<number>, props: Partial<IndexPairBondsProps>, count: number): IndexPairBonds {
     const builder = new IntAdjacencyGraph.EdgeBuilder(count, indexA, indexB);
     const order = new Int8Array(builder.slotCount);
+    const symmetryA = new Array(builder.slotCount);
+    const symmetryB = new Array(builder.slotCount);
     for (let i = 0, _i = builder.edgeCount; i < _i; i++) {
         builder.addNextEdge();
-        builder.assignProperty(order, _order[i]);
+        builder.assignProperty(order, props.order ? props.order[i] : 1);
+        builder.assignProperty(symmetryA, props.symmetryA ? props.symmetryA[i] : '');
+        builder.assignProperty(symmetryB, props.symmetryB ? props.symmetryB[i] : '');
     }
 
-    return builder.createGraph({ order });
+    return builder.createGraph({ order, symmetryA, symmetryB });
 }
 
 export namespace IndexPairBonds {
@@ -33,7 +42,9 @@ export namespace IndexPairBonds {
         pairs: {
             indexA: Column<number>,
             indexB: Column<number>
-            order: Column<number>
+            order?: Column<number>,
+            symmetryA?: Column<string>,
+            symmetryB?: Column<string>,
         },
         count: number
     }
@@ -42,7 +53,9 @@ export namespace IndexPairBonds {
         const { pairs, count } = data
         const indexA = pairs.indexA.toArray()
         const indexB = pairs.indexB.toArray()
-        const order = pairs.order.toArray()
-        return getGraph(indexA, indexB, order, count);
+        const order = pairs.order && pairs.order.toArray()
+        const symmetryA = pairs.symmetryA && pairs.symmetryA.toArray()
+        const symmetryB = pairs.symmetryB && pairs.symmetryB.toArray()
+        return getGraph(indexA, indexB, { order, symmetryA, symmetryB }, count);
     }
 }

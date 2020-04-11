@@ -78,7 +78,7 @@ namespace StateAction {
                 : void 0,
             run({ cell, state, params }) {
                 const tree = state.build().to(cell.transform.ref).apply(transformer, params);
-                return state.updateTree(tree) as Task<void>;
+                return state.updateTree(tree) as unknown as Task<void>;
             }
         })
     }

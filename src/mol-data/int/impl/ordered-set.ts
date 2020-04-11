@@ -150,8 +150,11 @@ function unionII(a: I, b: I) {
     const minA = I.min(a), minB = I.min(b);
     if (areRangesIntersecting(a, b)) return I.ofRange(Math.min(minA, minB), Math.max(I.max(a), I.max(b)));
     let lSize, lMin, rSize, rMin;
-    if (minA < minB) { lSize = sizeA; lMin = minA; rSize = sizeB; rMin = minB; }
-    else { lSize = sizeB; lMin = minB; rSize = sizeA; rMin = minA; }
+    if (minA < minB) {
+        lSize = sizeA; lMin = minA; rSize = sizeB; rMin = minB;
+    } else {
+        lSize = sizeB; lMin = minB; rSize = sizeA; rMin = minA;
+    }
     const arr = new Int32Array(sizeA + sizeB);
     for (let i = 0; i < lSize; i++) arr[i] = i + lMin;
     for (let i = 0; i < rSize; i++) arr[i + lSize] = i + rMin;
@@ -328,9 +331,13 @@ export function indexedIntersect(idxA: OrderedSetImpl, a: S, b: S): OrderedSetIm
     let j = startJ;
     while (O < lenI && j < endJ) {
         const x = a[getAt(idxA, O)], y = b[j];
-        if (x < y) { O++; }
-        else if (x > y) { j++; }
-        else { commonCount++; O++; j++; }
+        if (x < y) {
+            O++;
+        } else if (x > y) {
+            j++;
+        } else {
+            commonCount++; O++; j++;
+        }
     }
 
     // no common elements
@@ -345,9 +352,13 @@ export function indexedIntersect(idxA: OrderedSetImpl, a: S, b: S): OrderedSetIm
     j = startJ;
     while (O < lenI && j < endJ) {
         const x = a[getAt(idxA, O)], y = b[j];
-        if (x < y) { O++; }
-        else if (x > y) { j++; }
-        else { indices[offset++] = j; O++; j++; }
+        if (x < y) {
+            O++;
+        } else if (x > y) {
+            j++;
+        } else {
+            indices[offset++] = j; O++; j++;
+        }
     }
 
     return ofSortedArray(indices);

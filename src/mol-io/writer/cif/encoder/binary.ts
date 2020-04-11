@@ -188,8 +188,7 @@ function getFieldData(field: Field<any, any>, arrayCtor: ArrayCtor<string | numb
                 if (isStr)
                     array[offset] = '';
                 allPresent = false;
-            }
-            else {
+            } else {
                 mask[offset] = Column.ValueKind.Present;
                 array[offset] = getter(key, d, offset);
             }

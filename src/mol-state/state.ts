@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject, StateObjectCell } from './object';
+import { StateObject, StateObjectCell, StateObjectSelector } from './object';
 import { StateTree } from './tree';
 import { StateTransform } from './transform';
 import { StateTransformer } from './transformer';
@@ -57,6 +57,8 @@ class State {
     };
 
     readonly actions = new StateActionManager();
+
+    readonly runTask: <T>(task: Task<T>) => Promise<T>;
 
     get tree(): StateTree { return this._tree; }
     get transforms() { return (this._tree as StateTree).transforms; }
@@ -232,7 +234,7 @@ class State {
      * @param tree Tree instance or a tree builder instance
      * @param doNotReportTiming Indicates whether to log timing of the individual transforms
      */
-    updateTree<T extends StateObject>(tree: StateBuilder.To<T, any>, options?: Partial<State.UpdateOptions>): Task<T>
+    updateTree<T extends StateObject>(tree: StateBuilder.To<T, any>, options?: Partial<State.UpdateOptions>): Task<StateObjectSelector<T>>
     updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<void>
     updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<any> {
         const params: UpdateParams = { tree, options };
@@ -247,6 +249,11 @@ class State {
 
             if (!this.inTransaction) this.behaviors.isUpdating.next(true);
             try {
+                if (StateBuilder.is(tree)) {
+                    if (tree.editInfo.applied) throw new Error('This builder has already been applied. Create a new builder for further state updates');
+                    tree.editInfo.applied = true;
+                }
+
                 this.reverted = false;
                 const ret = options && (options.revertIfAborted || options.revertOnError)
                     ? await this._revertibleTreeUpdate(taskCtx, params, options)
@@ -255,7 +262,9 @@ class State {
 
                 if (ret.ctx.hadError) this.inTransactionError = true;
 
-                return ret.cell;
+                if (!ret.cell) return;
+
+                return new StateObjectSelector(ret.cell.transform.ref, this);
             } finally {
                 this._inUpdate = false;
                 this.updateQueue.handled(params);
@@ -294,7 +303,7 @@ class State {
             updated = await update(ctx);
             if (StateBuilder.isTo(params.tree)) {
                 const cell = this.select(params.tree.ref)[0];
-                return { ctx, cell: cell && cell.obj };
+                return { ctx, cell };
             }
             return { ctx };
         } finally {
@@ -335,10 +344,11 @@ class State {
         return ctx;
     }
 
-    constructor(rootObject: StateObject, params?: { globalContext?: unknown, rootState?: StateTransform.State, historyCapacity?: number }) {
+    constructor(rootObject: StateObject, params: State.Params) {
         this._tree = StateTree.createEmpty(StateTransform.createRoot(params && params.rootState)).asTransient();
         const tree = this._tree;
         const root = tree.root;
+        this.runTask = params.runTask;
 
         if (params?.historyCapacity !== void 0) this.historyCapacity = params.historyCapacity;
 
@@ -363,6 +373,17 @@ class State {
 }
 
 namespace State {
+    export interface Params {
+        runTask<T>(task: Task<T>): Promise<T>,
+        globalContext?: unknown,
+        rootState?: StateTransform.State,
+        historyCapacity?: number
+    }
+
+    export function create(rootObject: StateObject, params: Params) {
+        return new State(rootObject, params);
+    }
+
     export type Cells = ReadonlyMap<StateTransform.Ref, StateObjectCell>
 
     export type Tree = StateTree
@@ -389,10 +410,6 @@ namespace State {
         revertIfAborted: boolean,
         revertOnError: boolean,
         canUndo: boolean | string
-    }
-
-    export function create(rootObject: StateObject, params?: { globalContext?: unknown, rootState?: StateTransform.State }) {
-        return new State(rootObject, params);
     }
 }
 
@@ -885,12 +902,7 @@ function runTask<T>(t: T | Task<T>, ctx: RuntimeContext) {
     return t as T;
 }
 
-function createObject(ctx: UpdateContext, cell: StateObjectCell, transformer: StateTransformer, a: StateObject, params: any) {
-    if (!cell.cache) cell.cache = Object.create(null);
-    return runTask(transformer.definition.apply({ a, params, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(ctx, cell) }, ctx.parent.globalContext), ctx.taskCtx);
-}
-
-function resolveDependencies(ctx: UpdateContext, cell: StateObjectCell) {
+function resolveDependencies(cell: StateObjectCell) {
     if (cell.dependencies.dependsOn.length === 0) return void 0;
 
     const deps = Object.create(null);
@@ -905,10 +917,15 @@ function resolveDependencies(ctx: UpdateContext, cell: StateObjectCell) {
     return deps;
 }
 
+function createObject(ctx: UpdateContext, cell: StateObjectCell, transformer: StateTransformer, a: StateObject, params: any) {
+    if (!cell.cache) cell.cache = Object.create(null);
+    return runTask(transformer.definition.apply({ a, params, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(cell) }, ctx.parent.globalContext), ctx.taskCtx);
+}
+
 async function updateObject(ctx: UpdateContext, cell: StateObjectCell,  transformer: StateTransformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
     if (!transformer.definition.update) {
         return StateTransformer.UpdateResult.Recreate;
     }
     if (!cell.cache) cell.cache = Object.create(null);
-    return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(ctx, cell) }, ctx.parent.globalContext), ctx.taskCtx);
+    return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(cell) }, ctx.parent.globalContext), ctx.taskCtx);
 }

@@ -146,8 +146,8 @@ export function areIntersecting(a: Nums, b: Nums) {
     let { startI: i, startJ: j, endI, endJ } = getSuitableIntersectionRange(a, b);
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
-        if (x < y) { i++; }
-        else if (x > y) { j++; }
+        if (x < y) i++;
+        else if (x > y) j++;
         else return true;
     }
     return false;
@@ -164,9 +164,13 @@ export function isSubset(a: Nums, b: Nums) {
     let equal = 0;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
-        if (x < y) { i++; }
-        else if (x > y) { j++; }
-        else { i++; j++; equal++; }
+        if (x < y) {
+            i++;
+        } else if (x > y) {
+            j++;
+        } else {
+            i++; j++; equal++;
+        }
     }
     return equal === lenB;
 }
@@ -197,9 +201,13 @@ export function union(a: Nums, b: Nums): Nums {
     // insert the common part
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
-        if (x < y) { indices[offset++] = x; i++; }
-        else if (x > y) { indices[offset++] = y; j++; }
-        else { indices[offset++] = x; i++; j++; }
+        if (x < y) {
+            indices[offset++] = x; i++;
+        } else if (x > y) {
+            indices[offset++] = y; j++;
+        } else {
+            indices[offset++] = x; i++; j++;
+        }
     }
 
     // insert the remaining common part
@@ -224,9 +232,13 @@ function getCommonCount(a: Nums, b: Nums, startI: number, startJ: number, endI: 
     let commonCount = 0;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
-        if (x < y) { i++; }
-        else if (x > y) { j++; }
-        else { i++; j++; commonCount++; }
+        if (x < y) {
+            i++;
+        } else if (x > y) {
+            j++;
+        } else {
+            i++; j++; commonCount++;
+        }
     }
     return commonCount;
 }
@@ -251,9 +263,13 @@ export function intersect(a: Nums, b: Nums) {
     let j = startJ;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
-        if (x < y) { i++; }
-        else if (x > y) { j++; }
-        else { indices[offset++] = x; i++; j++; }
+        if (x < y) {
+            i++;
+        } else if (x > y) {
+            j++;
+        } else {
+            indices[offset++] = x; i++; j++;
+        }
     }
 
     return ofSortedArray(indices);
@@ -268,9 +284,13 @@ export function subtract(a: Nums, b: Nums) {
     let commonCount = 0;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
-        if (x < y) { i++; }
-        else if (x > y) { j++; }
-        else { i++; j++; commonCount++; }
+        if (x < y) {
+            i++;
+        } else if (x > y) {
+            j++;
+        } else {
+            i++; j++; commonCount++;
+        }
     }
 
     // A isnt intersecting B ===> A
@@ -288,9 +308,13 @@ export function subtract(a: Nums, b: Nums) {
     j = sJ;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
-        if (x < y) { indices[offset++] = x; i++; }
-        else if (x > y) { j++; }
-        else { i++; j++; }
+        if (x < y) {
+            indices[offset++] = x; i++;
+        } else if (x > y) {
+            j++;
+        } else {
+            i++; j++;
+        }
     }
 
     // insert the "tail"
@@ -323,9 +347,13 @@ export function indicesOf(a: Nums, b: Nums): Nums {
     let commonCount = 0;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
-        if (x < y) { i++; }
-        else if (x > y) { j++; }
-        else { i++; j++; commonCount++; }
+        if (x < y) {
+            i++;
+        } else if (x > y) {
+            j++;
+        } else {
+            i++; j++; commonCount++;
+        }
     }
 
     const lenA = a.length;
@@ -340,9 +368,13 @@ export function indicesOf(a: Nums, b: Nums): Nums {
     j = sJ;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
-        if (x < y) { i++; }
-        else if (x > y) { j++; }
-        else { indices[offset++] = i; i++; j++; }
+        if (x < y) {
+            i++;
+        } else if (x > y) {
+            j++;
+        } else {
+            indices[offset++] = i; i++; j++;
+        }
     }
 
     return ofSortedArray(indices);

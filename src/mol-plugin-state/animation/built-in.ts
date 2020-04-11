@@ -105,7 +105,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
         };
     },
     initialState: () => ({ t: 0 }),
-    async setup(params, plugin) {
+    setup(params, plugin) {
         const state = plugin.state.data;
         const root = !params.target || params.target === 'all' ? StateTransform.RootRef : params.target;
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D, root));
@@ -123,9 +123,9 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
 
         if (!changed) return;
 
-        return plugin.updateDataState(update, { doNotUpdateCurrent: true });
+        return update.commit({ doNotUpdateCurrent: true });
     },
-    async teardown(_, plugin) {
+    teardown(_, plugin) {
         const state = plugin.state.data;
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3DState)
             .withTag('animate-assembly-unwind'));
@@ -133,7 +133,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
 
         const update = state.build();
         for (const r of reprs) update.delete(r.transform.ref);
-        return plugin.updateDataState(update);
+        return update.commit();
     },
     async apply(animState, t, ctx) {
         const state = ctx.plugin.state.data;
@@ -190,9 +190,9 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
 
         if (!changed) return;
 
-        return plugin.updateDataState(update, { doNotUpdateCurrent: true });
+        return update.commit({ doNotUpdateCurrent: true });
     },
-    async teardown(_, plugin) {
+    teardown(_, plugin) {
         const state = plugin.state.data;
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3DState)
             .withTag('animate-units-explode'));
@@ -200,7 +200,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
 
         const update = state.build();
         for (const r of reprs) update.delete(r.transform.ref);
-        return plugin.updateDataState(update);
+        return update.commit();
     },
     async apply(animState, t, ctx) {
         const state = ctx.plugin.state.data;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,7 +11,7 @@ import { Task } from '../../mol-task';
 import { CIF } from '../../mol-io/reader/cif'
 import { PluginContext } from '../../mol-plugin/context';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StateTransformer } from '../../mol-state';
+import { StateTransformer, StateObject } from '../../mol-state';
 import { readFromFile, ajaxGetMany } from '../../mol-util/data-source';
 import * as CCP4 from '../../mol-io/reader/ccp4/parser'
 import * as DSN6 from '../../mol-io/reader/dsn6/parser'
@@ -143,8 +143,12 @@ const ReadFile = PluginStateTransform.BuiltIn({
         isBinary: PD.Optional(PD.Boolean(false, { description: 'If true, open file as as binary (string otherwise)' }))
     }
 })({
-    apply({ params: p }) {
+    apply({ params: p }, plugin: PluginContext) {
         return Task.create('Open File', async ctx => {
+            if (p.file === null) {
+                plugin.log.error('No file(s) selected')
+                return StateObject.Null;
+            }
             const data = await readFromFile(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
             return p.isBinary
                 ? new SO.Data.Binary(data as Uint8Array, { label: p.label ? p.label : p.file.name })
@@ -153,7 +157,7 @@ const ReadFile = PluginStateTransform.BuiltIn({
     },
     update({ oldParams, newParams, b }) {
         if (oldParams.label !== newParams.label) {
-            (b.label as string) = newParams.label || oldParams.file.name;
+            (b.label as string) = newParams.label || oldParams.file?.name || '';
             return StateTransformer.UpdateResult.Updated;
         }
         return StateTransformer.UpdateResult.Unchanged;
