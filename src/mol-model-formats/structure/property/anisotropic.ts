@@ -4,15 +4,20 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Table } from '../../../mol-data/db';
-import { Model, CustomPropertyDescriptor } from '../../../mol-model/structure';
+import { Table, Column } from '../../../mol-data/db';
+import { CustomPropertyDescriptor } from '../../../mol-model/structure';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { CifWriter } from '../../../mol-io/writer/cif';
 import { FormatPropertyProvider } from '../common/property';
+import { MmcifFormat } from '../mmcif';
 
 export { AtomSiteAnisotrop }
 
-type Anisotrop = Table<mmCIF_Schema['atom_site_anisotrop']>
+const Anisotrop = {
+    U: mmCIF_Schema.atom_site_anisotrop.U,
+    U_esd: mmCIF_Schema.atom_site_anisotrop.U_esd
+}
+type Anisotrop = Table<typeof Anisotrop>
 
 interface AtomSiteAnisotrop {
     data: Anisotrop
@@ -21,6 +26,8 @@ interface AtomSiteAnisotrop {
 }
 
 namespace AtomSiteAnisotrop {
+    export const Schema = Anisotrop
+
     export const Descriptor: CustomPropertyDescriptor = {
         name: 'atom_site_anisotrop',
         cifExport: {
@@ -30,8 +37,9 @@ namespace AtomSiteAnisotrop {
                 instance(ctx) {
                     const p = Provider.get(ctx.firstModel);
                     if (!p) return CifWriter.Category.Empty;
+                    if (!MmcifFormat.is(ctx.firstModel.sourceData)) return CifWriter.Category.Empty;
                     // TODO filter to write only data for elements that exist in model
-                    return CifWriter.Category.ofTable(p.data);
+                    return CifWriter.Category.ofTable(ctx.firstModel.sourceData.data.db.atom_site_anisotrop);
                 }
             }]
         }
@@ -39,19 +47,17 @@ namespace AtomSiteAnisotrop {
 
     export const Provider = FormatPropertyProvider.create<AtomSiteAnisotrop>(Descriptor)
 
-    export function getElementToAnsiotrop(model: Model, data: Anisotrop) {
-        const { atomId } = model.atomicConformation
+    export function getElementToAnsiotrop(atomId: Column<number>, ansioId: Column<number>) {
         const atomIdToElement = new Int32Array(atomId.rowCount)
         atomIdToElement.fill(-1)
         for (let i = 0, il = atomId.rowCount; i < il; i++) {
             atomIdToElement[atomId.value(i)] = i
         }
 
-        const { id } = data
         const elementToAnsiotrop = new Int32Array(atomId.rowCount)
         elementToAnsiotrop.fill(-1)
-        for (let i = 0, il = id.rowCount; i < il; ++i) {
-            const ei = atomIdToElement[id.value(i)]
+        for (let i = 0, il = ansioId.rowCount; i < il; ++i) {
+            const ei = atomIdToElement[ansioId.value(i)]
             if (ei !== -1) elementToAnsiotrop[ei] = i
         }
 
