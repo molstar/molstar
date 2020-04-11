@@ -366,6 +366,10 @@ export const CifCore_Schema = {
      */
     database_code: {
         /**
+         * Code assigned by Crystallography Open Database (COD).
+         */
+        COD: str,
+        /**
          * Code assigned by the Cambridge Structural Database.
          */
         CSD: str,
@@ -375,6 +379,20 @@ export const CifCore_Schema = {
          * archived by the CCDC.
          */
         depnum_ccdc_archive: str,
+        /**
+         * Deposition numbers assigned by the Fachinformationszentrum
+         * Karlsruhe (FIZ) to files containing structural information
+         * archived by the Cambridge Crystallographic Data Centre (CCDC).
+         */
+        depnum_ccdc_fiz: str,
+        /**
+         * Code assigned by the Inorganic Crystal Structure Database.
+         */
+        ICSD: str,
+        /**
+         * Code assigned in the Metals Data File.
+         */
+        MDF: str,
         /**
          * Code assigned by the NBS (NIST) Crystal Data Database.
          */

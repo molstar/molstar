@@ -1,8 +1,12 @@
 audit.block_doi
 
 database_code.depnum_ccdc_archive
+database_code.depnum_ccdc_fiz
+database_code.ICSD
+database_code.MDF
 database_code.NBS
 database_code.CSD
+database_code.COD
 
 chemical.name_systematic
 chemical.name_common

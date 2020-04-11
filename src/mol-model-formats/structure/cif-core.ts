@@ -87,7 +87,11 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
         pdbx_PDB_model_num: Column.ofConst(1, atomCount, Column.Schema.int),
     }, atomCount);
 
-    const name = db.chemical.name_common.value(0) || db.chemical.name_systematic.value(0)
+    const name = (
+        db.chemical.name_common.value(0) ||
+        db.chemical.name_systematic.value(0) ||
+        db.chemical_formula.sum.value(0)
+    )
 
     const entityBuilder = new EntityBuilder()
     entityBuilder.setNames([['MOL', name || 'Unknown Entity']])
@@ -175,7 +179,19 @@ namespace CifCoreFormat {
 
     export function fromFrame(frame: CifFrame, db?: CifCore_Database): CifCoreFormat {
         if (!db) db = CIF.schema.cifCore(frame)
-        return { kind: 'cifCore', name: db._name, data: { db, frame } };
+
+        const name = (
+            db.database_code.depnum_ccdc_archive.value(0) ||
+            db.database_code.depnum_ccdc_fiz.value(0) ||
+            db.database_code.ICSD.value(0) ||
+            db.database_code.MDF.value(0) ||
+            db.database_code.NBS.value(0) ||
+            db.database_code.CSD.value(0) ||
+            db.database_code.COD.value(0) ||
+            db._name
+        )
+
+        return { kind: 'cifCore', name, data: { db, frame } };
     }
 }
 
