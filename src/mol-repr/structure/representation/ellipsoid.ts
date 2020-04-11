@@ -50,5 +50,5 @@ export const EllipsoidRepresentationProvider = StructureRepresentationProvider({
     defaultValues: PD.getDefaultValues(EllipsoidParams),
     defaultColorTheme: { name: 'element-symbol' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (structure: Structure) => structure.elementCount > 0 && structure.models.some(m => m.customProperties.has(AtomSiteAnisotrop.Descriptor))
+    isApplicable: (structure: Structure) => structure.elementCount > 0 && structure.models.some(m => AtomSiteAnisotrop.Provider.isApplicable(m))
 })
