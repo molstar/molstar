@@ -13,6 +13,7 @@ import Schema = Column.Schema
 const int = Schema.int;
 const float = Schema.float;
 const str = Schema.str;
+const Matrix = Schema.Matrix;
 
 export const CifCore_Schema = {
     /**
@@ -531,7 +532,41 @@ export const CifCore_Schema = {
          *
          * The unique elements of the real symmetric matrix are entered by row.
          */
+        U: Matrix(3, 3),
+        /**
+         * These are the standard uncertainty values (SU) for the standard
+         * form of the Uij anisotropic atomic displacement components (see
+         * _aniso_UIJ. Because these values are TYPE measurand, the su values
+         * may in practice be auto generated as part of the Uij calculation.
+         */
+        U_11_su: float,
+        /**
+         * These are the standard uncertainty values (SU) for the standard
+         * form of the Uij anisotropic atomic displacement components (see
+         * _aniso_UIJ. Because these values are TYPE measurand, the su values
+         * may in practice be auto generated as part of the Uij calculation.
+         */
+        U_su: Matrix(3, 3),
+        /**
+         * These are the standard anisotropic atomic displacement
+         * components in angstroms squared which appear in the
+         * structure factor term:
+         *
+         * T = exp{-2pi^2^ sum~i~ [sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
+         *
+         * h = the Miller indices
+         * a* = the reciprocal-space cell lengths
+         *
+         * The unique elements of the real symmetric matrix are entered by row.
+         */
         U_12: float,
+        /**
+         * These are the standard uncertainty values (SU) for the standard
+         * form of the Uij anisotropic atomic displacement components (see
+         * _aniso_UIJ. Because these values are TYPE measurand, the su values
+         * may in practice be auto generated as part of the Uij calculation.
+         */
+        U_12_su: float,
         /**
          * These are the standard anisotropic atomic displacement
          * components in angstroms squared which appear in the
@@ -546,6 +581,13 @@ export const CifCore_Schema = {
          */
         U_13: float,
         /**
+         * These are the standard uncertainty values (SU) for the standard
+         * form of the Uij anisotropic atomic displacement components (see
+         * _aniso_UIJ. Because these values are TYPE measurand, the su values
+         * may in practice be auto generated as part of the Uij calculation.
+         */
+        U_13_su: float,
+        /**
          * These are the standard anisotropic atomic displacement
          * components in angstroms squared which appear in the
          * structure factor term:
@@ -558,6 +600,13 @@ export const CifCore_Schema = {
          * The unique elements of the real symmetric matrix are entered by row.
          */
         U_22: float,
+        /**
+         * These are the standard uncertainty values (SU) for the standard
+         * form of the Uij anisotropic atomic displacement components (see
+         * _aniso_UIJ. Because these values are TYPE measurand, the su values
+         * may in practice be auto generated as part of the Uij calculation.
+         */
+        U_22_su: float,
         /**
          * These are the standard anisotropic atomic displacement
          * components in angstroms squared which appear in the
@@ -572,6 +621,13 @@ export const CifCore_Schema = {
          */
         U_23: float,
         /**
+         * These are the standard uncertainty values (SU) for the standard
+         * form of the Uij anisotropic atomic displacement components (see
+         * _aniso_UIJ. Because these values are TYPE measurand, the su values
+         * may in practice be auto generated as part of the Uij calculation.
+         */
+        U_23_su: float,
+        /**
          * These are the standard anisotropic atomic displacement
          * components in angstroms squared which appear in the
          * structure factor term:
@@ -584,6 +640,13 @@ export const CifCore_Schema = {
          * The unique elements of the real symmetric matrix are entered by row.
          */
         U_33: float,
+        /**
+         * These are the standard uncertainty values (SU) for the standard
+         * form of the Uij anisotropic atomic displacement components (see
+         * _aniso_UIJ. Because these values are TYPE measurand, the su values
+         * may in practice be auto generated as part of the Uij calculation.
+         */
+        U_33_su: float,
     },
     /**
      * The CATEGORY of data items used to describe atomic type information
@@ -629,6 +692,13 @@ export const CifCore_Schema = {
 }
 
 export const CifCore_Aliases = {
+    'atom_site_aniso.U': [
+        'atom_site_anisotrop_U',
+    ],
+    'atom_site_aniso.U_su': [
+        'atom_site_aniso_U_esd',
+        'atom_site_anisotrop_U_esd',
+    ],
     'space_group.IT_number': [
         'symmetry_Int_Tables_number',
     ],
@@ -662,20 +732,44 @@ export const CifCore_Aliases = {
     'atom_site_aniso.U_11': [
         'atom_site_anisotrop_U_11',
     ],
+    'atom_site_aniso.U_11_su': [
+        'atom_site_aniso_U_11_esd',
+        'atom_site_anisotrop_U_11_esd',
+    ],
     'atom_site_aniso.U_12': [
         'atom_site_anisotrop_U_12',
+    ],
+    'atom_site_aniso.U_12_su': [
+        'atom_site_aniso_U_12_esd',
+        'atom_site_anisotrop_U_12_esd',
     ],
     'atom_site_aniso.U_13': [
         'atom_site_anisotrop_U_13',
     ],
+    'atom_site_aniso.U_13_su': [
+        'atom_site_aniso_U_13_esd',
+        'atom_site_anisotrop_U_13_esd',
+    ],
     'atom_site_aniso.U_22': [
         'atom_site_anisotrop_U_22',
+    ],
+    'atom_site_aniso.U_22_su': [
+        'atom_site_aniso_U_22_esd',
+        'atom_site_anisotrop_U_22_esd',
     ],
     'atom_site_aniso.U_23': [
         'atom_site_anisotrop_U_23',
     ],
+    'atom_site_aniso.U_23_su': [
+        'atom_site_aniso_U_23_esd',
+        'atom_site_anisotrop_U_23_esd',
+    ],
     'atom_site_aniso.U_33': [
         'atom_site_anisotrop_U_33',
+    ],
+    'atom_site_aniso.U_33_su': [
+        'atom_site_aniso_U_33_esd',
+        'atom_site_anisotrop_U_33_esd',
     ],
 }
 

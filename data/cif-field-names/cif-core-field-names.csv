@@ -45,16 +45,23 @@ atom_site.calc_flag
 atom_site.refinement_flags
 atom_site.disorder_assembly
 atom_site.disorder_group
-
 atom_site.site_symmetry_multiplicity
 
 atom_site_aniso.label
+atom_site_aniso.U
 atom_site_aniso.U_11
 atom_site_aniso.U_22
 atom_site_aniso.U_33
 atom_site_aniso.U_23
 atom_site_aniso.U_13
 atom_site_aniso.U_12
+atom_site_aniso.U_su
+atom_site_aniso.U_11_su
+atom_site_aniso.U_22_su
+atom_site_aniso.U_33_su
+atom_site_aniso.U_23_su
+atom_site_aniso.U_13_su
+atom_site_aniso.U_12_su
 
 geom_bond.atom_site_label_1
 geom_bond.atom_site_label_2
