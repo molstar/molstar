@@ -19,6 +19,7 @@ import { Spacegroup, SpacegroupCell } from '../../mol-math/geometry';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { ModelSymmetry } from './property/symmetry';
 import { IndexPairBonds } from './property/bonds/index-pair';
+import { AtomSiteAnisotrop } from './property/anisotropic';
 
 function getSpacegroupNameOrNumber(space_group: CifCore_Database['space_group']) {
     const groupNumber = space_group.IT_number.value(0)
@@ -143,6 +144,22 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
 
     return models;
 }
+
+function atomSiteAnisotropFromCifCore(model: Model) {
+    if (!CifCoreFormat.is(model.sourceData)) return;
+    const { atom_site, atom_site_aniso } = model.sourceData.data.db
+    const data = Table.ofPartialColumns(AtomSiteAnisotrop.Schema, {
+        U: atom_site_aniso.U,
+        U_esd: atom_site_aniso.U_su
+    }, atom_site_aniso._rowCount);
+    const elementToAnsiotrop = AtomSiteAnisotrop.getElementToAnsiotropFromLabel(atom_site.label, atom_site_aniso.label)
+    return { data, elementToAnsiotrop }
+}
+function atomSiteAnisotropApplicableCifCore(model: Model) {
+    if (!CifCoreFormat.is(model.sourceData)) return false;
+    return model.sourceData.data.db.atom_site_aniso.U.isDefined
+}
+AtomSiteAnisotrop.Provider.formatRegistry.add('cifCore', atomSiteAnisotropFromCifCore, atomSiteAnisotropApplicableCifCore)
 
 //
 

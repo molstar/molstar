@@ -63,4 +63,20 @@ namespace AtomSiteAnisotrop {
 
         return elementToAnsiotrop
     }
+
+    export function getElementToAnsiotropFromLabel(atomLabel: Column<string>, ansioLabel: Column<string>) {
+        const atomLabelToElement: { [k: string]: number | undefined } = {}
+        for (let i = 0, il = atomLabel.rowCount; i < il; i++) {
+            atomLabelToElement[atomLabel.value(i)] = i
+        }
+
+        const elementToAnsiotrop = new Int32Array(atomLabel.rowCount)
+        elementToAnsiotrop.fill(-1)
+        for (let i = 0, il = ansioLabel.rowCount; i < il; ++i) {
+            const ei = atomLabelToElement[ansioLabel.value(i)]
+            if (ei !== undefined) elementToAnsiotrop[ei] = i
+        }
+
+        return elementToAnsiotrop
+    }
 }
