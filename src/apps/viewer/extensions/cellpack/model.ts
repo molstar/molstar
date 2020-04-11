@@ -68,15 +68,14 @@ async function getStructure(model: Model, source: IngredientSource, props: { ass
     }
     let query;
     if (source.selection){
-        const asymIds:string[] = source.selection.replace(" :","").split(" or")
+        const asymIds: string[] = source.selection.replace(' :','').split(' or')
         query = MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
                 'chain-test': MS.core.set.has([MS.set(...asymIds), MS.ammp('auth_asym_id')])
             })
         ])
-    }
-    else {
+    } else {
         query = MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer'])
@@ -109,7 +108,7 @@ function getTransform(trans: Vec3, rot: Quat) {
 }
 
 
-function getResultTransforms(results: Ingredient['results'],legacy:boolean) {
+function getResultTransforms(results: Ingredient['results'], legacy: boolean) {
     if (legacy) return results.map((r: Ingredient['results'][0]) => getTransformLegacy(r[0], r[1]))
     else return results.map((r: Ingredient['results'][0]) => getTransform(r[0], r[1]))
 }
@@ -246,7 +245,7 @@ function getCifCurve(name: string, transforms: Mat4[], model: Model) {
     };
 }
 
-async function getCurve(name: string, ingredient:Ingredient, transforms: Mat4[], model: Model) {
+async function getCurve(name: string, ingredient: Ingredient, transforms: Mat4[], model: Model) {
     const cif = getCifCurve(name, transforms, model)
 
     const curveModelTask = Task.create('Curve Model', async ctx => {
@@ -273,7 +272,7 @@ async function getIngredientStructure(ingredient: Ingredient, baseUrl: string, i
         if (name === 'lypoglycane') return
     }
 
-    //model id in case structure is NMR
+    // model id in case structure is NMR
     const model_id = (ingredient.source.model)? parseInt(ingredient.source.model) : 0;
     const model = await getModel(source.pdb || name,model_id, baseUrl, file)
     if (!model) return
@@ -281,39 +280,35 @@ async function getIngredientStructure(ingredient: Ingredient, baseUrl: string, i
     if (nbCurve) {
         return getCurve(name, ingredient, getCurveTransforms(ingredient), model)
     } else {
-        let bu:string|undefined = source.bu ? source.bu : undefined;
+        let bu: string|undefined = source.bu ? source.bu : undefined;
         if (bu){
-            if (bu === "AU") {bu = undefined;}
-            else {
+            if (bu === 'AU') {
+                bu = undefined;
+            } else {
                 bu = bu.slice(2)
             }
         }
         let structure = await getStructure(model,source, { assembly: bu })
-        //transform with offset and pcp
-        let legacy:boolean = true
-        if (ingredient.offset || ingredient.principalAxis)
-        //center the structure
-        {
+        // transform with offset and pcp
+        let legacy: boolean = true
+        if (ingredient.offset || ingredient.principalAxis){
+            // center the structure
             legacy=false
             const boundary = structure.boundary
-            let structureCenter:Vec3 = Vec3.zero()
+            let structureCenter: Vec3 = Vec3.zero()
             Vec3.negate(structureCenter,boundary.sphere.center)
             const m1: Mat4 = Mat4.identity()
             Mat4.setTranslation(m1, structureCenter)
             structure = Structure.transform(structure,m1)
-            if (ingredient.offset)
-            {
-                if (!Vec3.exactEquals(ingredient.offset,Vec3.zero()))
-                { 
+            if (ingredient.offset){
+                if (!Vec3.exactEquals(ingredient.offset,Vec3.zero())){
                     const m: Mat4 = Mat4.identity();
                     Mat4.setTranslation(m, ingredient.offset)
                     structure = Structure.transform(structure,m);
                 }
             }
-            if (ingredient.principalAxis)
-            {
-                if (!Vec3.exactEquals(ingredient.principalAxis,Vec3.unitZ))
-                {            
+            if (ingredient.principalAxis){
+                if (!Vec3.exactEquals(ingredient.principalAxis,Vec3.unitZ)){
                     const q: Quat = Quat.identity();
                     Quat.rotationTo(q,ingredient.principalAxis,Vec3.unitZ)
                     const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q)
@@ -382,7 +377,7 @@ async function handleHivRna(ctx: { runtime: RuntimeContext, fetch: AjaxTask }, p
     }
 }
 
-async function loadMembrane(name:string, plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
+async function loadMembrane(name: string, plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
     const fname: string  = `${name}.bcif`
     let ingredientFiles: IngredientFiles = {}
     if (params.ingredients.files !== null) {
@@ -484,7 +479,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             representation: params.preset.representation,
         }
         await CellpackPackingPreset.apply(packing, packingParams, plugin)
-        if ( packings[i].location === "surface" ){
+        if ( packings[i].location === 'surface' ){
             await loadMembrane(packings[i].name, plugin, runtime, state, params)
         }
     }
