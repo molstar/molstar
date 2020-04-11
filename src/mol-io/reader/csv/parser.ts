@@ -247,7 +247,7 @@ function init(state: State) {
     addColumn(state)
     state.columnCount = state.columnNames.length
     if (state.noColumnNamesRecord) {
-        state.columnNames.forEach((x, i, arr) => arr[i] = i+'')
+        state.columnNames.forEach((x, i, arr) => arr[i] = i + '')
         Tokenizer.reset(state.tokenizer)
     }
 }

@@ -997,7 +997,7 @@ namespace Mat4 {
             z1 = eyey - target[1],
             z2 = eyez - target[2];
 
-        let len = z0*z0 + z1*z1 + z2*z2;
+        let len = z0 * z0 + z1 * z1 + z2 * z2;
         if (len > 0) {
             len = 1 / Math.sqrt(len);
             z0 *= len;
@@ -1009,7 +1009,7 @@ namespace Mat4 {
             x1 = upz * z0 - upx * z2,
             x2 = upx * z1 - upy * z0;
 
-        len = x0*x0 + x1*x1 + x2*x2;
+        len = x0 * x0 + x1 * x1 + x2 * x2;
         if (len > 0) {
             len = 1 / Math.sqrt(len);
             x0 *= len;

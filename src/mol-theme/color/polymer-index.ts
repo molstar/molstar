@@ -40,7 +40,7 @@ export type PolymerIndexColorThemeProps = PD.Values<typeof PolymerIndexColorThem
 function getPolymerChainCount(structure: Structure) {
     let polymerChainCount = 0
     const { units } = structure
-    for (let i = 0, il = units.length; i <il; ++i) {
+    for (let i = 0, il = units.length; i < il; ++i) {
         if (units[i].polymerElements.length > 0) ++polymerChainCount
     }
     return polymerChainCount
@@ -56,7 +56,7 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<P
 
         const { units } = ctx.structure.root
         const unitIdColor = new Map<number, Color>()
-        for (let i = 0, j = 0, il = units.length; i <il; ++i) {
+        for (let i = 0, j = 0, il = units.length; i < il; ++i) {
             if (units[i].polymerElements.length > 0) {
                 unitIdColor.set(units[i].id, palette.color(j))
                 ++j

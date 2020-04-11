@@ -37,7 +37,7 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
         const palette = getPalette(size, props)
         legend = palette.legend
         const modelColor = new Map<number, Color>()
-        for (let i = 0, il = models.length; i <il; ++i) {
+        for (let i = 0, il = models.length; i < il; ++i) {
             const idx = models[i].trajectoryInfo.index;
             modelColor.set(models[i].trajectoryInfo.index, palette.color(idx))
         }

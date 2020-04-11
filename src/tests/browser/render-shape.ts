@@ -81,7 +81,7 @@ async function getSphereMesh(ctx: RuntimeContext, centers: number[], mesh?: Mesh
 }
 
 const myData = {
-    centers: [0, 0, 0, 0, 3, 0, 1, 0 , 4],
+    centers: [0, 0, 0, 0, 3, 0, 1, 0, 4],
     colors: [ColorNames.tomato, ColorNames.springgreen, ColorNames.springgreen],
     labels: ['Sphere 0, Instance A', 'Sphere 1, Instance A', 'Sphere 0, Instance B', 'Sphere 1, Instance B'],
     transforms: [Mat4.identity(), Mat4.fromTranslation(Mat4.zero(), Vec3.create(3, 0, 0))]

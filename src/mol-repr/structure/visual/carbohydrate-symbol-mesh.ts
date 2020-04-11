@@ -151,7 +151,7 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
             case SaccharideShape.FlatHexagon:
             default:
                 Mat4.mul(t, t, Mat4.rotZYZ90)
-                Mat4.scale(t, t, Vec3.set(sVec, side / 1.5, side , side / 2))
+                Mat4.scale(t, t, Vec3.set(sVec, side / 1.5, side, side / 2))
                 MeshBuilder.addPrimitive(builderState, t, shiftedHexagonalPrism)
                 break
         }

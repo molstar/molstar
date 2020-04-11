@@ -325,7 +325,7 @@ export function IconButton(props: {
         className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
     }
     if (props.transparent) {
-        className+= ' msp-transparent-bg'
+        className += ' msp-transparent-bg'
     }
     const iconStyle = props.small ? { fontSize: '80%' } : void 0;
 

@@ -289,7 +289,7 @@ export namespace TextBuilder {
                 const ib = ChunkedArray.compact(indices, true) as Uint32Array
                 const gb = ChunkedArray.compact(groups, true) as Float32Array
                 const tb = ChunkedArray.compact(tcoords, true) as Float32Array
-                return Text.create(ft, cb,mb, db, ib, gb, tb, indices.elementCount / 2, text)
+                return Text.create(ft, cb, mb, db, ib, gb, tb, indices.elementCount / 2, text)
             }
         }
     }

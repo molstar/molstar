@@ -45,7 +45,7 @@ export function UnitIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Unit
         const palette = getPalette(units.length, props)
         legend = palette.legend
         const unitIdColor = new Map<number, Color>()
-        for (let i = 0, il = units.length; i <il; ++i) {
+        for (let i = 0, il = units.length; i < il; ++i) {
             unitIdColor.set(units[i].id, palette.color(i))
         }
 

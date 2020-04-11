@@ -28,7 +28,7 @@ export class StructureUnitTransforms {
         this.size = structure.units.length
         this.reset() // to set to identity
         let groupOffset = 0
-        for (let i = 0, il = structure.unitSymmetryGroups.length; i <il; ++i) {
+        for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
             const g = structure.unitSymmetryGroups[i]
             this.groupIndexMap.set(g.hashCode, i)
             const groupTransforms = this.unitTransforms.subarray(groupOffset, groupOffset + g.units.length * 16)

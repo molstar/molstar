@@ -12,7 +12,7 @@ import { getBoundary } from '../boundary';
 const xs = [0, 0, 1];
 const ys = [0, 1, 0];
 const zs = [0, 0, 0];
-const rs = [0, 0.5, 1/3];
+const rs = [0, 0.5, 1 / 3];
 
 describe('GridLookup3d', () => {
     it('basic', () => {

@@ -105,7 +105,7 @@ export const IntraUnitBondParams = {
     ...UnitsMeshParams,
     ...BondCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
-    sizeAspectRatio: PD.Numeric(2/3, { min: 0, max: 3, step: 0.01 }),
+    sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
     ignoreHydrogens: PD.Boolean(false),
 }
 export type IntraUnitBondParams = typeof IntraUnitBondParams

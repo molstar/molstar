@@ -215,7 +215,7 @@ namespace Quat {
     export function invert(out: Quat, a: Quat) {
         let a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
         let dot = a0 * a0 + a1 * a1 + a2 * a2 + a3 * a3;
-        let invDot = dot ? 1.0/dot : 0;
+        let invDot = dot ? 1.0 / dot : 0;
 
         // TODO: Would be faster to return [0,0,0,0] immediately if dot == 0
 
@@ -254,24 +254,24 @@ namespace Quat {
             // |w| > 1/2, may as well choose w > 1/2
             fRoot = Math.sqrt(fTrace + 1.0);  // 2w
             out[3] = 0.5 * fRoot;
-            fRoot = 0.5/fRoot;  // 1/(4w)
-            out[0] = (m[5]-m[7])*fRoot;
-            out[1] = (m[6]-m[2])*fRoot;
-            out[2] = (m[1]-m[3])*fRoot;
+            fRoot = 0.5 / fRoot;  // 1/(4w)
+            out[0] = (m[5] - m[7]) * fRoot;
+            out[1] = (m[6] - m[2]) * fRoot;
+            out[2] = (m[1] - m[3]) * fRoot;
         } else {
             // |w| <= 1/2
             let i = 0;
             if ( m[4] > m[0] ) i = 1;
-            if ( m[8] > m[i*3+i] ) i = 2;
-            let j = (i+1)%3;
-            let k = (i+2)%3;
+            if ( m[8] > m[i * 3 + i] ) i = 2;
+            let j = (i + 1) % 3;
+            let k = (i + 2) % 3;
 
-            fRoot = Math.sqrt(m[i*3+i]-m[j*3+j]-m[k*3+k] + 1.0);
+            fRoot = Math.sqrt(m[i * 3 + i] - m[j * 3 + j] - m[k * 3 + k] + 1.0);
             out[i] = 0.5 * fRoot;
             fRoot = 0.5 / fRoot;
-            out[3] = (m[j*3+k] - m[k*3+j]) * fRoot;
-            out[j] = (m[j*3+i] + m[i*3+j]) * fRoot;
-            out[k] = (m[k*3+i] + m[i*3+k]) * fRoot;
+            out[3] = (m[j * 3 + k] - m[k * 3 + j]) * fRoot;
+            out[j] = (m[j * 3 + i] + m[i * 3 + j]) * fRoot;
+            out[k] = (m[k * 3 + i] + m[i * 3 + k]) * fRoot;
         }
 
         return out;
@@ -359,7 +359,7 @@ namespace Quat {
         let y = a[1];
         let z = a[2];
         let w = a[3];
-        let len = x*x + y*y + z*z + w*w;
+        let len = x * x + y * y + z * z + w * w;
         if (len > 0) {
             len = 1 / Math.sqrt(len);
             out[0] = x * len;

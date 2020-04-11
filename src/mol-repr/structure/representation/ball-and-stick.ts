@@ -28,7 +28,7 @@ export const BallAndStickParams = {
     ...InterUnitBondParams,
     unitKinds: getUnitKindsParam(['atomic']),
     sizeFactor: PD.Numeric(0.15, { min: 0.01, max: 10, step: 0.01 }),
-    sizeAspectRatio: PD.Numeric(2/3, { min: 0.01, max: 3, step: 0.01 }),
+    sizeAspectRatio: PD.Numeric(2 / 3, { min: 0.01, max: 3, step: 0.01 }),
     visuals: PD.MultiSelect(['element-sphere', 'intra-bond', 'inter-bond'], PD.objectToOptions(BallAndStickVisuals))
 }
 export type BallAndStickParams = typeof BallAndStickParams

@@ -11,7 +11,8 @@
     "url": "https://github.com/molstar/molstar/issues"
   },
   "scripts": {
-    "lint": "eslint src/**/*.{ts,tsx}",
+    "lint": "eslint ./**/*.{ts,tsx}",
+    "lint-fix": "eslint ./**/*.{ts,tsx} --fix",
     "test": "npm run lint && jest",
     "build": "npm run build-tsc && npm run build-extra && npm run build-webpack",
     "build-tsc": "tsc --incremental",

@@ -226,11 +226,11 @@ export namespace Mesh {
             Vec3.fromArray(vi, vb, i * 3)
             Vec3.fromArray(vj, vb, j * 3)
             Vec3.fromArray(vk, vb, k * 3)
-            Vec3.scale(vi, Vec3.add(vi, Vec3.add(vi, vi, vj), vk), 1/3)
+            Vec3.scale(vi, Vec3.add(vi, Vec3.add(vi, vi, vj), vk), 1 / 3)
             Vec3.fromArray(ni, nb, i * 3)
             Vec3.fromArray(nj, nb, j * 3)
             Vec3.fromArray(nk, nb, k * 3)
-            Vec3.scale(ni, Vec3.add(ni, Vec3.add(ni, ni, nj), nk), 1/3)
+            Vec3.scale(ni, Vec3.add(ni, Vec3.add(ni, ni, nj), nk), 1 / 3)
             ChunkedArray.add3(vertex, vi[0], vi[1], vi[2])
             ChunkedArray.add3(normal, ni[0], ni[1], ni[2])
         }

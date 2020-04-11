@@ -99,7 +99,7 @@ function getMaps(models: ReadonlyArray<Model>) {
     const seqToSrcByModelEntity = new Map<string, Int16Array>()
     const srcKeySerialMap = new Map<string, number>() // serial no starting from 1
 
-    for (let i = 0, il = models.length; i <il; ++i) {
+    for (let i = 0, il = models.length; i < il; ++i) {
         const m = models[i]
         if (!MmcifFormat.is(m.sourceData)) continue
         const { entity_src_gen, entity_src_nat, pdbx_entity_src_syn } = m.sourceData.data.db

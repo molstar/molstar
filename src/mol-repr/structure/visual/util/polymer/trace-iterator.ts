@@ -154,7 +154,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: ResidueIndex) {
         const ss =  this.getSecStruc(residueIndex)
         if (SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Beta)) {
-            Vec3.scale(out, Vec3.add(out, p1, Vec3.add(out, p3, Vec3.add(out, p2, p2))), 1/4)
+            Vec3.scale(out, Vec3.add(out, p1, Vec3.add(out, p3, Vec3.add(out, p2, p2))), 1 / 4)
         } else {
             Vec3.copy(out, p2)
         }
@@ -173,7 +173,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private setDirection(out: Vec3, v1: Vec3, v2: Vec3, v3: Vec3) {
         Vec3.matchDirection(tmpVecA, v1, v2)
         Vec3.matchDirection(tmpVecB, v3, v2)
-        Vec3.scale(out, Vec3.add(out, tmpVecA, Vec3.add(out, tmpVecB, Vec3.add(out, v2, v2))), 1/4)
+        Vec3.scale(out, Vec3.add(out, tmpVecA, Vec3.add(out, tmpVecB, Vec3.add(out, v2, v2))), 1 / 4)
     }
 
     move() {

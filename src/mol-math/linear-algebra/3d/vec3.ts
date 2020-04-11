@@ -373,7 +373,7 @@ namespace Vec3 {
     export function random(out: Vec3, scale: number) {
         const r = Math.random() * 2.0 * Math.PI;
         const z = (Math.random() * 2.0) - 1.0;
-        const zScale = Math.sqrt(1.0-z*z) * scale;
+        const zScale = Math.sqrt(1.0 - z * z) * scale;
 
         out[0] = Math.cos(r) * zScale;
         out[1] = Math.sin(r) * zScale;
