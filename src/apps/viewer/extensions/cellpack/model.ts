@@ -49,7 +49,6 @@ async function getModel(id: string, model_id: number, baseUrl: string, file?: Fi
             throw new Error(`unsupported file type '${file.name}'`)
         }
     } else if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
-        // return
         const cif = await getFromPdb(id)
         model = (await trajectoryFromMmCIF(cif).run())[model_id]
     } else {
@@ -68,7 +67,7 @@ async function getStructure(model: Model, source: IngredientSource, props: { ass
     }
     let query;
     if (source.selection){
-        const asymIds: string[] = source.selection.replace(' :','').split(' or')
+        const asymIds: string[] = source.selection.replace(' :', '').split(' or')
         query = MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
@@ -102,7 +101,7 @@ function getTransformLegacy(trans: Vec3, rot: Quat) {
 function getTransform(trans: Vec3, rot: Quat) {
     const q: Quat = Quat.create(rot[0], rot[1], rot[2], rot[3])
     const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q)
-    const p: Vec3 = Vec3.create(trans[0],trans[1],trans[2])
+    const p: Vec3 = Vec3.create(trans[0], trans[1], trans[2])
     Mat4.setTranslation(m, p)
     return m
 }
@@ -116,7 +115,11 @@ function getResultTransforms(results: Ingredient['results'], legacy: boolean) {
 function getCurveTransforms(ingredient: Ingredient) {
     const n = ingredient.nbCurve || 0
     const instances: Mat4[] = []
-    const segmentLength = (ingredient.radii)? ((ingredient.radii[0].radii)?ingredient.radii[0].radii[0]*2.0:3.4):3.4;
+    const segmentLength = ingredient.radii
+        ? (ingredient.radii[0].radii
+            ? ingredient.radii[0].radii[0] * 2.0
+            : 3.4)
+        : 3.4;
     for (let i = 0; i < n; ++i) {
         const cname = `curve${i}`
         if (!(cname in ingredient)) {
@@ -130,7 +133,7 @@ function getCurveTransforms(ingredient: Ingredient) {
         }
         const points = new Float32Array(_points.length * 3)
         for (let i = 0, il = _points.length; i < il; ++i) Vec3.toArray(_points[i], points, i * 3)
-        const newInstances = getMatFromResamplePoints(points,segmentLength)
+        const newInstances = getMatFromResamplePoints(points, segmentLength)
         instances.push(...newInstances)
     }
 
@@ -273,8 +276,8 @@ async function getIngredientStructure(ingredient: Ingredient, baseUrl: string, i
     }
 
     // model id in case structure is NMR
-    const model_id = (ingredient.source.model)? parseInt(ingredient.source.model) : 0;
-    const model = await getModel(source.pdb || name,model_id, baseUrl, file)
+    const model_id = (ingredient.source.model) ? parseInt(ingredient.source.model) : 0;
+    const model = await getModel(source.pdb || name, model_id, baseUrl, file)
     if (!model) return
 
     if (nbCurve) {
@@ -288,35 +291,35 @@ async function getIngredientStructure(ingredient: Ingredient, baseUrl: string, i
                 bu = bu.slice(2)
             }
         }
-        let structure = await getStructure(model,source, { assembly: bu })
+        let structure = await getStructure(model, source, { assembly: bu })
         // transform with offset and pcp
         let legacy: boolean = true
         if (ingredient.offset || ingredient.principalAxis){
             // center the structure
-            legacy=false
+            legacy = false
             const boundary = structure.boundary
             let structureCenter: Vec3 = Vec3.zero()
-            Vec3.negate(structureCenter,boundary.sphere.center)
+            Vec3.negate(structureCenter, boundary.sphere.center)
             const m1: Mat4 = Mat4.identity()
             Mat4.setTranslation(m1, structureCenter)
-            structure = Structure.transform(structure,m1)
+            structure = Structure.transform(structure, m1)
             if (ingredient.offset){
-                if (!Vec3.exactEquals(ingredient.offset,Vec3.zero())){
+                if (!Vec3.exactEquals(ingredient.offset, Vec3.zero())){
                     const m: Mat4 = Mat4.identity();
                     Mat4.setTranslation(m, ingredient.offset)
-                    structure = Structure.transform(structure,m);
+                    structure = Structure.transform(structure, m);
                 }
             }
             if (ingredient.principalAxis){
-                if (!Vec3.exactEquals(ingredient.principalAxis,Vec3.unitZ)){
+                if (!Vec3.exactEquals(ingredient.principalAxis, Vec3.unitZ)){
                     const q: Quat = Quat.identity();
-                    Quat.rotationTo(q,ingredient.principalAxis,Vec3.unitZ)
+                    Quat.rotationTo(q, ingredient.principalAxis, Vec3.unitZ)
                     const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q)
-                    structure = Structure.transform(structure,m);
+                    structure = Structure.transform(structure, m);
                 }
             }
         }
-        return getAssembly(getResultTransforms(results,legacy), structure)
+        return getAssembly(getResultTransforms(results, legacy), structure)
     }
 }
 
@@ -388,7 +391,7 @@ async function loadMembrane(name: string, plugin: PluginContext, runtime: Runtim
     }
     const url = `${params.baseUrl}/membranes/${name}.bcif`
     //
-    const file = (ingredientFiles)?ingredientFiles[fname]:null;
+    const file = (ingredientFiles) ? ingredientFiles[fname] : null;
     // can we check if url exist
     let membrane
     if (!file) {

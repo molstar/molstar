@@ -55,6 +55,9 @@
             "error",
             "1tbs", { "allowSingleLine": true }
         ],
+        "comma-spacing": "off",
+        "@typescript-eslint/comma-spacing": "error",
+        "space-infix-ops": "error",
         "comma-dangle": "off",
         "eqeqeq": [
             "error",

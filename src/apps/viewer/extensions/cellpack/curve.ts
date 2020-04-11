@@ -119,7 +119,7 @@ function GetSmoothNormals(points: Vec3[]) {
         p0 = points[i - 1]
         p1 = points[i]
         p2 = points[i + 1]
-        const t = Vec3.normalize(tmpV1, Vec3.sub(tmpV1, p2 , p0))
+        const t = Vec3.normalize(tmpV1, Vec3.sub(tmpV1, p2, p0))
         const b = Vec3.normalize(tmpV2, Vec3.cross(tmpV2, t, prevV))
         const n = Vec3.normalize(Vec3(), Vec3.cross(tmpV3, t, b))
         Vec3.negate(n, n)
@@ -128,8 +128,8 @@ function GetSmoothNormals(points: Vec3[]) {
     }
     const last = Vec3()
     Vec3.normalize(last, Vec3.cross(last,
-        Vec3.sub(tmpV1, points[nP - 3], points[nP-2]),
-        Vec3.sub(tmpV2, points[nP-2] , points[nP-1]))
+        Vec3.sub(tmpV1, points[nP - 3], points[nP - 2]),
+        Vec3.sub(tmpV2, points[nP - 2], points[nP - 1]))
     )
     smoothNormals.push(last)
     return smoothNormals;
@@ -168,8 +168,8 @@ function GetMiniFrame(points: Vec3[], normals: Vec3[]) {
     const t0 = Vec3.normalize(mfTmpV1, Vec3.sub(mfTmpV1, points[1], points[0]))
     frames.push(getFrame(normals[0], t0))
 
-    for (let i = 0; i< points.length-2; ++i) {
-        const t2 = Vec3.normalize(mfTmpV1, Vec3.sub(mfTmpV1, points[i+2], points[i+1]))
+    for (let i = 0; i < points.length - 2; ++i) {
+        const t2 = Vec3.normalize(mfTmpV1, Vec3.sub(mfTmpV1, points[i + 2], points[i + 1]))
         const v1 = Vec3.sub(mfTmpV2, points[i + 1], points[i]) // this is tangeant
         const c1 = Vec3.dot(v1, v1)
         // compute r_i^L = R_1 * r_i
@@ -179,10 +179,10 @@ function GetMiniFrame(points: Vec3[], normals: Vec3[]) {
         const v1t = Vec3.scale(mfTmpV5, v1, (2.0 / c1) * Vec3.dot(v1, frames[i].t))
         const tan_L_i = Vec3.sub(mfTmpV6, frames[i].t, v1t)
         // # compute reflection vector of R_2
-        const v2 =  Vec3.sub(mfTmpV7, t2 , tan_L_i)
+        const v2 =  Vec3.sub(mfTmpV7, t2, tan_L_i)
         const c2 = Vec3.dot(v2, v2)
         // compute r_(i+1) = R_2 * r_i^L
-        const v2l = Vec3.scale(mfTmpV8, v1, (2.0/c2) * Vec3.dot(v2, ref_L_i))
+        const v2l = Vec3.scale(mfTmpV8, v1, (2.0 / c2) * Vec3.dot(v2, ref_L_i))
         const ref_next = Vec3.sub(mfTmpV9, ref_L_i, v2l) // ref_L_i - (2 / c2) * v2.dot(ref_L_i) * v2
         frames.push(getFrame(ref_next, t2)) // frames.append(Frame(ref_next, tangents[i+1]))
     }
@@ -199,13 +199,13 @@ export function getMatFromResamplePoints(points: NumberArray, segmentLength: num
     const limit = npoints
     const transforms: Mat4[] = []
     const pti = Vec3.copy(rpTmpVec1, new_points[0]);
-    for (let i = 0; i<npoints-2; ++i) {
-        const pti1: Vec3 = new_points[i+1] // Vec3.create(points[(i+1)*3],points[(i+1)*3+1],points[(i+1)*3+2]);
+    for (let i = 0; i < npoints - 2; ++i) {
+        const pti1: Vec3 = new_points[i + 1] // Vec3.create(points[(i+1)*3],points[(i+1)*3+1],points[(i+1)*3+2]);
         const d = Vec3.distance(pti, pti1)
         if (d >= segmentLength) {
             // use twist or random?
             const quat = Quat.rotationTo(Quat.zero(), Vec3.create(0, 0, 1), frames[i].t) // Quat.rotationTo(Quat.zero(), Vec3.create(0,0,1),new_normal[i]);//Quat.rotationTo(Quat.zero(), Vec3.create(0,0,1),direction);new_normal
-            const rq = Quat.setAxisAngle(Quat.zero(), frames[i].t, Math.random()*3.60 ) // Quat.setAxisAngle(Quat.zero(),direction, Math.random()*3.60 );//Quat.identity();//
+            const rq = Quat.setAxisAngle(Quat.zero(), frames[i].t, Math.random() * 3.60 ) // Quat.setAxisAngle(Quat.zero(),direction, Math.random()*3.60 );//Quat.identity();//
             const m = Mat4.fromQuat(Mat4.zero(), Quat.multiply(Quat.zero(), rq, quat)) // Mat4.fromQuat(Mat4.zero(),Quat.multiply(Quat.zero(),quat1,quat2));//Mat4.fromQuat(Mat4.zero(),quat);//Mat4.identity();//Mat4.fromQuat(Mat4.zero(),Quat.multiply(Quat.zero(),rq,quat));
             // let pos:Vec3 = Vec3.add(Vec3.zero(),pti1,pti)
             // pos = Vec3.scale(pos,pos,1.0/2.0);
