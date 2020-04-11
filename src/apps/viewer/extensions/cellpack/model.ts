@@ -389,28 +389,21 @@ async function loadMembrane(name: string, plugin: PluginContext, runtime: Runtim
             if (file) ingredientFiles[file.name] = file
         }
     }
-    const url = `${params.baseUrl}/membranes/${name}.bcif`
-    //
-    const file = (ingredientFiles) ? ingredientFiles[fname] : null;
-    // can we check if url exist
-    let membrane
-    if (!file) {
-        membrane = await state.build().toRoot()
-            .apply(StateTransforms.Data.Download, { label: name, url, isBinary: true }, { state: { isGhost: true } })
-            .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
-            .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
-            .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
-            .apply(StateTransforms.Model.StructureFromModel)
-            .commit()
+
+    let b = state.build().toRoot()
+    if (fname in ingredientFiles) {
+        const file = ingredientFiles[fname];
+        b = b.apply(StateTransforms.Data.ReadFile, { file, isBinary: true, label: file.name }, { state: { isGhost: true } })
     } else {
-        membrane = await state.build().toRoot()
-            .apply(StateTransforms.Data.ReadFile, { file, isBinary: true, label: file.name }, { state: { isGhost: true } })
-            .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
-            .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
-            .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
-            .apply(StateTransforms.Model.StructureFromModel)
-            .commit()
+        const url = `${params.baseUrl}/membranes/${name}.bcif`
+        b = b.apply(StateTransforms.Data.Download, { url, isBinary: true, label: name }, { state: { isGhost: true } })
     }
+
+    const membrane = await b.apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
+        .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
+        .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
+        .apply(StateTransforms.Model.StructureFromModel)
+        .commit()
 
     const membraneParams = {
         representation: params.preset.representation,
