@@ -388,7 +388,7 @@ const StructureCoordinateSystem = PluginStateTransform.BuiltIn({
             Mat4.mul3(transform, _n, rot, _m);
         } else if (params.transform.name === 'matrix') {
             Mat4.copy(transform, params.transform.params.data);
-            if (params.transform.params.transpose) Mat4.transpose(transform, transform)
+            if (params.transform.params.transpose) Mat4.transpose(transform, transform);
         }
 
         // TODO: compose with parent's coordinate system
@@ -435,7 +435,7 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
             Mat4.mul3(transform, _n, rot, _m);
         } else if (params.transform.name === 'matrix') {
             Mat4.copy(transform, params.transform.params.data);
-            if (params.transform.params.transpose) Mat4.transpose(transform, transform)
+            if (params.transform.params.transpose) Mat4.transpose(transform, transform);
         }
 
         const s = Structure.transform(a.data, transform);

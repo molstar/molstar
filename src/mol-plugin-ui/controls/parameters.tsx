@@ -750,7 +750,7 @@ export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isEx
     componentChange: ParamOnChange = ({ name, value }) => {
         const v = Mat4.copy(Mat4(), this.props.value);
         if (name === 'json') {
-            Mat4.copy(v, JSON.parse(value))
+            Mat4.copy(v, JSON.parse(value));
         } else {
             v[+name] = value;
         }
