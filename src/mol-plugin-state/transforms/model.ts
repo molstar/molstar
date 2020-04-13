@@ -364,7 +364,10 @@ const StructureCoordinateSystem = PluginStateTransform.BuiltIn({
                 angle: PD.Numeric(0, { min: -180, max: 180, step: 0.1 }),
                 translation: PD.Vec3(Vec3.create(0, 0, 0)),
             }, { isFlat: true }),
-            matrix: PD.Mat4(Mat4.identity())
+            matrix: PD.Group({
+                data: PD.Mat4(Mat4.identity()),
+                transpose: PD.Boolean(false)
+            }, { isFlat: true })
         }, { label: 'Kind' })
     }
 })({
@@ -374,17 +377,18 @@ const StructureCoordinateSystem = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         // TODO: optimze
 
-        const transform = Mat4.zero();
+        const transform = Mat4();
 
         if (params.transform.name === 'components') {
             const { axis, angle, translation } = params.transform.params;
             const center = a.data.boundary.sphere.center;
             Mat4.fromTranslation(_m, Vec3.negate(_translation, center));
             Mat4.fromTranslation(_n, Vec3.add(_translation, center, translation));
-            const rot = Mat4.fromRotation(Mat4.zero(), Math.PI / 180 * angle, Vec3.normalize(Vec3.zero(), axis));
+            const rot = Mat4.fromRotation(Mat4(), Math.PI / 180 * angle, Vec3.normalize(Vec3(), axis));
             Mat4.mul3(transform, _n, rot, _m);
-        } else {
-            Mat4.copy(transform, params.transform.params);
+        } else if (params.transform.name === 'matrix') {
+            Mat4.copy(transform, params.transform.params.data);
+            if (params.transform.params.transpose) Mat4.transpose(transform, transform)
         }
 
         // TODO: compose with parent's coordinate system
@@ -407,7 +411,10 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
                 angle: PD.Numeric(0, { min: -180, max: 180, step: 0.1 }),
                 translation: PD.Vec3(Vec3.create(0, 0, 0)),
             }, { isFlat: true }),
-            matrix: PD.Mat4(Mat4.identity())
+            matrix: PD.Group({
+                data: PD.Mat4(Mat4.identity()),
+                transpose: PD.Boolean(false)
+            }, { isFlat: true })
         }, { label: 'Kind' })
     }
 })({
@@ -417,17 +424,18 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         // TODO: optimze
 
-        const transform = Mat4.zero();
+        const transform = Mat4();
 
         if (params.transform.name === 'components') {
             const { axis, angle, translation } = params.transform.params;
             const center = a.data.boundary.sphere.center;
             Mat4.fromTranslation(_m, Vec3.negate(_translation, center));
             Mat4.fromTranslation(_n, Vec3.add(_translation, center, translation));
-            const rot = Mat4.fromRotation(Mat4.zero(), Math.PI / 180 * angle, Vec3.normalize(Vec3.zero(), axis));
+            const rot = Mat4.fromRotation(Mat4(), Math.PI / 180 * angle, Vec3.normalize(Vec3(), axis));
             Mat4.mul3(transform, _n, rot, _m);
-        } else {
-            Mat4.copy(transform, params.transform.params);
+        } else if (params.transform.name === 'matrix') {
+            Mat4.copy(transform, params.transform.params.data);
+            if (params.transform.params.transpose) Mat4.transpose(transform, transform)
         }
 
         const s = Structure.transform(a.data, transform);
@@ -435,15 +443,15 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
     }
     // interpolate(src, tar, t) {
     //     // TODO: optimize
-    //     const u = Mat4.fromRotation(Mat4.zero(), Math.PI / 180 * src.angle, Vec3.normalize(Vec3(), src.axis));
+    //     const u = Mat4.fromRotation(Mat4(), Math.PI / 180 * src.angle, Vec3.normalize(Vec3(), src.axis));
     //     Mat4.setTranslation(u, src.translation);
-    //     const v = Mat4.fromRotation(Mat4.zero(), Math.PI / 180 * tar.angle, Vec3.normalize(Vec3(), tar.axis));
+    //     const v = Mat4.fromRotation(Mat4(), Math.PI / 180 * tar.angle, Vec3.normalize(Vec3(), tar.axis));
     //     Mat4.setTranslation(v, tar.translation);
-    //     const m = SymmetryOperator.slerp(Mat4.zero(), u, v, t);
+    //     const m = SymmetryOperator.slerp(Mat4(), u, v, t);
     //     const rot = Mat4.getRotation(Quat.zero(), m);
-    //     const axis = Vec3.zero();
+    //     const axis = Vec3();
     //     const angle = Quat.getAxisAngle(axis, rot);
-    //     const translation = Mat4.getTranslation(Vec3.zero(), m);
+    //     const translation = Mat4.getTranslation(Vec3(), m);
     //     return { axis, angle, translation };
     // }
 });
