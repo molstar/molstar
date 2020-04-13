@@ -4,12 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ResidueIndex, Model } from '../../mol-model/structure';
+import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
+import { Model, ResidueIndex } from '../../mol-model/structure';
+import { PluginContext } from '../../mol-plugin/context';
 import { StructureRepresentationRegistry } from '../../mol-repr/structure/registry';
 import { ColorTheme } from '../../mol-theme/color';
-import { PolymerType } from '../../mol-model/structure/model/types';
-import { PluginContext } from '../../mol-plugin/context';
-import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 
 export interface ModelInfo {
     hetResidues: { name: string, indices: ResidueIndex[] }[],
@@ -54,11 +53,10 @@ export namespace ModelInfo {
         const hetMap = new Map<string, ModelInfo['hetResidues'][0]>();
 
         for (let rI = 0 as ResidueIndex; rI < residueCount; rI++) {
-            if (model.atomicHierarchy.derived.residue.polymerType[rI] !== PolymerType.NA) continue;
-
             const cI = chainIndex[residueOffsets[rI]];
             const eI = model.atomicHierarchy.index.getEntityFromChain(cI);
-            if (model.entities.data.type.value(eI) === 'water') continue;
+            const entityType = model.entities.data.type.value(eI);
+            if (entityType !== 'non-polymer' && entityType !== 'branched') continue;
 
             const comp_id = model.atomicHierarchy.residues.label_comp_id.value(rI);
 
