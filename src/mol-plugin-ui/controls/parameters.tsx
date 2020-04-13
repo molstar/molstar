@@ -724,22 +724,23 @@ export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isEx
     state = { isExpanded: false }
 
     components = {
-        0: PD.Numeric(0),
-        1: PD.Numeric(0),
-        2: PD.Numeric(0),
-        3: PD.Numeric(0),
-        4: PD.Numeric(0),
-        5: PD.Numeric(0),
-        6: PD.Numeric(0),
-        7: PD.Numeric(0),
-        8: PD.Numeric(0),
-        9: PD.Numeric(0),
-        10: PD.Numeric(0),
-        11: PD.Numeric(0),
-        12: PD.Numeric(0),
-        13: PD.Numeric(0),
-        14: PD.Numeric(0),
-        15: PD.Numeric(0),
+        0: PD.Numeric(0, undefined, { label: 'Col 0, Row 0' }),
+        1: PD.Numeric(0, undefined, { label: 'Col 0, Row 1' }),
+        2: PD.Numeric(0, undefined, { label: 'Col 0, Row 2' }),
+        3: PD.Numeric(0, undefined, { label: 'Col 0, Row 3' }),
+        4: PD.Numeric(0, undefined, { label: 'Col 1, Row 0' }),
+        5: PD.Numeric(0, undefined, { label: 'Col 1, Row 1' }),
+        6: PD.Numeric(0, undefined, { label: 'Col 1, Row 2' }),
+        7: PD.Numeric(0, undefined, { label: 'Col 1, Row 3' }),
+        8: PD.Numeric(0, undefined, { label: 'Col 2, Row 0' }),
+        9: PD.Numeric(0, undefined, { label: 'Col 2, Row 1' }),
+        10: PD.Numeric(0, undefined, { label: 'Col 2, Row 2' }),
+        11: PD.Numeric(0, undefined, { label: 'Col 2, Row 3' }),
+        12: PD.Numeric(0, undefined, { label: 'Col 3, Row 0' }),
+        13: PD.Numeric(0, undefined, { label: 'Col 3, Row 1' }),
+        14: PD.Numeric(0, undefined, { label: 'Col 3, Row 2' }),
+        15: PD.Numeric(0, undefined, { label: 'Col 3, Row 3' }),
+        json: PD.Text(JSON.stringify(Mat4()), { description: 'JSON array with 4x4 matrix in a column major (j * 4 + i indexing) format' })
     }
 
     change(value: PD.MultiSelect<any>['defaultValue']) {
@@ -747,8 +748,13 @@ export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isEx
     }
 
     componentChange: ParamOnChange = ({ name, value }) => {
-        const v = Mat4.copy(Mat4.zero(), this.props.value);
-        v[+name] = value;
+        const v = Mat4.copy(Mat4(), this.props.value);
+        if (name === 'json') {
+            Mat4.copy(v, JSON.parse(value))
+        } else {
+            v[+name] = value;
+        }
+
         this.change(v);
     }
 
@@ -758,7 +764,10 @@ export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isEx
     }
 
     render() {
-        const v = this.props.value;
+        const v = {
+            ...this.props.value,
+            json: JSON.stringify(this.props.value)
+        };
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         return <>
             <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{'4\u00D74 Matrix'}</button>} />
