@@ -16,6 +16,8 @@ import { lociLabel } from '../../mol-theme/label';
 import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { StateTransform } from '../../mol-state';
 import { Binding } from '../../mol-util/binding';
+import { memoizeLatest } from '../../mol-util/memoize';
+import { StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 
 interface StructureFocusControlsState {
     isBusy: boolean
@@ -95,6 +97,8 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
 
     componentDidMount() {
         this.subscribe(this.plugin.managers.structure.focus.behaviors.current, c => {
+            // clear the memo cache
+            this.getSelectionItems([]);
             this.forceUpdate();
         });
 
@@ -110,6 +114,27 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
     get isDisabled() {
         return this.state.isBusy || this.actionItems.length === 0
     }
+
+    getSelectionItems = memoizeLatest((structures: ReadonlyArray<StructureRef>) => {
+        const presetItems: ActionMenu.Items[] = []
+        for (const s of structures) {
+            const d = s.cell.obj?.data
+            if (d) {
+                const entries = getFocusEntries(d)
+                if (entries.length > 0) {
+                    presetItems.push([
+                        ActionMenu.Header(d.label, { description: d.label }),
+                        ...ActionMenu.createItems(entries, {
+                            label: f => f.label,
+                            category: f => f.category,
+                            description: f => f.label
+                        })
+                    ])
+                }
+            }
+        }
+        return presetItems;
+    });
 
     get actionItems() {
         const historyItems: ActionMenu.Items[] = []
@@ -128,24 +153,7 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
             ])
         }
 
-        const presetItems: ActionMenu.Items[] = []
-        const { structures } = this.plugin.managers.structure.hierarchy.selection;
-        for (const s of structures) {
-            const d = s.cell.obj?.data
-            if (d) {
-                const entries = getFocusEntries(d)
-                if (entries.length > 0) {
-                    presetItems.push([
-                        ActionMenu.Header(d.label, { description: d.label }),
-                        ...ActionMenu.createItems(entries, {
-                            label: f => f.label,
-                            category: f => f.category,
-                            description: f => f.label
-                        })
-                    ])
-                }
-            }
-        }
+        const presetItems: ActionMenu.Items[] = this.getSelectionItems(this.plugin.managers.structure.hierarchy.selection.structures);
         if (presetItems.length === 1) {
             const item = presetItems[0] as ActionMenu.Items[]
             const header = item[0] as ActionMenu.Header
