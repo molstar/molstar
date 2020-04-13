@@ -18,27 +18,29 @@ import { StateTransform } from '../../mol-state';
 import { Binding } from '../../mol-util/binding';
 import { memoizeLatest } from '../../mol-util/memoize';
 import { StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
+import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 
 interface StructureFocusControlsState {
     isBusy: boolean
     showAction: boolean
 }
 
-function addSymmetryGroupEntries(entries: Map<string, FocusEntry[]>, location: StructureElement.Location, unitSymmetryGroup: Unit.SymmetryGroup) {
+function addSymmetryGroupEntries(entries: Map<string, FocusEntry[]>, location: StructureElement.Location, unitSymmetryGroup: Unit.SymmetryGroup, granularity: 'residue' | 'chain') {
     const idx = SortedArray.indexOf(location.unit.elements, location.element) as UnitIndex;
-    const base = StructureElement.Loci.extendToWholeResidues(
-        StructureElement.Loci(location.structure, [
-            { unit: location.unit, indices: OrderedSet.ofSingleton(idx) }
-        ])
-    );
+    const base = StructureElement.Loci(location.structure, [
+        { unit: location.unit, indices: OrderedSet.ofSingleton(idx) }
+    ]);
+    const extended = granularity === 'residue'
+        ? StructureElement.Loci.extendToWholeResidues(base)
+        : StructureElement.Loci.extendToWholeChains(base);
     const name = StructureProperties.entity.pdbx_description(location).join(', ');
 
     for (const u of unitSymmetryGroup.units) {
-        const loci = StructureElement.Loci(base.structure, [
-            { unit: u, indices: base.elements[0].indices }
+        const loci = StructureElement.Loci(extended.structure, [
+            { unit: u, indices: extended.elements[0].indices }
         ]);
 
-        let label = lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false, granularity: 'residue' });
+        let label = lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false, granularity });
         if (!label) label = lociLabel(loci, { hidePrefix: false, htmlStyling: false });
         if (unitSymmetryGroup.units.length > 1) {
             label += ` | ${loci.elements[0].unit.conformation.operator.name}`;
@@ -57,13 +59,17 @@ function getFocusEntries(structure: Structure) {
     for (const ug of structure.unitSymmetryGroups) {
         l.unit = ug.units[0];
         l.element = ug.elements[0];
-        const entityType = StructureProperties.entity.type(l);
         const isMultiChain = Unit.Traits.is(l.unit.traits, Unit.Trait.MultiChain);
+        const entityType = StructureProperties.entity.type(l);
         const isPolymer = entityType === 'non-polymer';
         const isBranched = entityType === 'branched';
+        const asymId = StructureProperties.chain.label_asym_id(l);
+        const isBirdMolecule = MmcifFormat.isBirdMolecule(l.unit.model, asymId);
 
-        if (isPolymer && !isMultiChain) {
-            addSymmetryGroupEntries(entityEntries, l, ug);
+        if (isBirdMolecule) {
+            addSymmetryGroupEntries(entityEntries, l, ug, 'chain');
+        } else if (isPolymer && !isMultiChain) {
+            addSymmetryGroupEntries(entityEntries, l, ug, 'residue');
         } else if (isBranched || (isPolymer && isMultiChain)) {
             const u = l.unit;
             const { index: residueIndex } = u.model.atomicHierarchy.residueAtomSegments;
@@ -73,7 +79,7 @@ function getFocusEntries(structure: Structure) {
                 const rI = residueIndex[eI];
                 if(rI !== prev) {
                     l.element = eI;
-                    addSymmetryGroupEntries(entityEntries, l, ug);
+                    addSymmetryGroupEntries(entityEntries, l, ug, 'residue');
                     prev = rI;
                 }
             }
