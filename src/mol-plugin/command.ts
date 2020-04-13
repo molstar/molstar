@@ -7,7 +7,7 @@
 import { PluginContext } from './context';
 import { UUID } from '../mol-util';
 
-export { PluginCommand, PluginCommandManager }
+export { PluginCommand, PluginCommandManager };
 
 interface PluginCommand<T = unknown> {
     (ctx: PluginContext, params?: T): Promise<void>,
@@ -57,7 +57,7 @@ class PluginCommandManager {
                 }
                 actions.pop();
             }
-        }
+        };
     }
 
 

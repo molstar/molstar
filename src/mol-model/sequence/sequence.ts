@@ -6,7 +6,7 @@
  */
 
 import { AminoAlphabet, NuclecicAlphabet, getProteinOneLetterCode, getRnaOneLetterCode, getDnaOneLetterCode } from './constants';
-import { Column } from '../../mol-data/db'
+import { Column } from '../../mol-data/db';
 
 // TODO add mapping support to other sequence spaces, e.g. uniprot
 // TODO sequence alignment (take NGL code as starting point)
@@ -42,13 +42,13 @@ namespace Sequence {
     export interface Generic extends Base<Kind.Generic, 'X' | '-'> { }
 
     export function create<K extends Kind, Alphabet extends string>(kind: K, code: Column<Alphabet>, label: Column<string>, seqId: Column<number>, compId: Column<string>, microHet: Map<number, string[]>, offset: number = 0): Base<K, Alphabet> {
-        const length = code.rowCount
+        const length = code.rowCount;
         return { kind, code, label, seqId, compId, microHet, offset, length };
     }
 
     export function getSequenceString(seq: Sequence) {
-        const array = seq.code.toArray()
-        return (array instanceof Array ? array : Array.from(array)).join('')
+        const array = seq.code.toArray();
+        return (array instanceof Array ? array : Array.from(array)).join('');
     }
 
     function determineKind(names: Column<string>) {
@@ -62,22 +62,22 @@ namespace Sequence {
     }
 
     function codeProvider(kind: Kind, map?: ReadonlyMap<string, string>) {
-        let code: (name: string) => string
+        let code: (name: string) => string;
         switch (kind) {
             case Kind.Protein: code = getProteinOneLetterCode; break;
             case Kind.DNA: code = getDnaOneLetterCode; break;
             case Kind.RNA: code = getRnaOneLetterCode; break;
             case Kind.Generic: code = () => 'X'; break;
-            default: throw new Error(`unknown kind '${kind}'`)
+            default: throw new Error(`unknown kind '${kind}'`);
         }
         if (map && map.size > 0) {
             return (name: string) => {
                 const ret = code(name);
                 if (ret !== 'X' || !map.has(name)) return ret;
                 return code(map.get(name)!);
-            }
+            };
         }
-        return code
+        return code;
     }
 
     export function ofResidueNames(compId: Column<string>, seqId: Column<number>): Sequence {
@@ -148,7 +148,7 @@ namespace Sequence {
             }
 
             for (let i = 0, _i = this.seqId.rowCount; i < _i; i++) {
-                const seqId = this.seqId.value(i)
+                const seqId = this.seqId.value(i);
                 const idx = seqId - minSeqId;
                 const name = this.compId.value(i);
                 const code = this.codeFromName(name);
@@ -160,33 +160,33 @@ namespace Sequence {
                 compIds[seqId].push(name);
             }
 
-            const microHet = new Map()
+            const microHet = new Map();
             for (let i = minSeqId; i <= maxSeqId; ++i) {
-                if (compIds[i].length > 1) microHet.set(i, compIds[i])
+                if (compIds[i].length > 1) microHet.set(i, compIds[i]);
             }
 
-            this._code = Column.ofStringArray(sequenceArray) as Column<Alphabet>
+            this._code = Column.ofStringArray(sequenceArray) as Column<Alphabet>;
             this._label = Column.ofLambda({
                 value: i => {
-                    const l = labels[i]
-                    return l.length > 1 ? `(${l.join('|')})` : l.join('')
+                    const l = labels[i];
+                    return l.length > 1 ? `(${l.join('|')})` : l.join('');
                 },
                 rowCount: labels.length,
                 schema: Column.Schema.str
-            })
-            this._microHet = microHet
+            });
+            this._microHet = microHet;
             this._offset = minSeqId - 1;
-            this._length = count
+            this._length = count;
         }
 
         constructor(public kind: K, public compId: Column<string>, public seqId: Column<number>) {
 
-            this.codeFromName = codeProvider(kind)
+            this.codeFromName = codeProvider(kind);
         }
     }
 
     export function ofSequenceRanges(seqIdBegin: Column<number>, seqIdEnd: Column<number>): Sequence {
-        const kind = Kind.Generic
+        const kind = Kind.Generic;
 
         return new SequenceRangesImpl(kind, seqIdBegin, seqIdEnd) as Sequence;
     }
@@ -211,19 +211,19 @@ namespace Sequence {
 
             const count = maxSeqId - minSeqId + 1;
 
-            this.code = Column.ofConst('X', count, Column.Schema.str) as Column<Alphabet>
-            this.label = Column.ofConst('', count, Column.Schema.str)
+            this.code = Column.ofConst('X', count, Column.Schema.str) as Column<Alphabet>;
+            this.label = Column.ofConst('', count, Column.Schema.str);
             this.seqId = Column.ofLambda({
                 value: row => row + minSeqId + 1,
                 rowCount: count,
                 schema: Column.Schema.int
-            })
-            this.compId = Column.ofConst('', count, Column.Schema.str)
+            });
+            this.compId = Column.ofConst('', count, Column.Schema.str);
 
             this.offset = minSeqId - 1;
-            this.length = count
+            this.length = count;
         }
     }
 }
 
-export { Sequence }
+export { Sequence };

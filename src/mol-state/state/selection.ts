@@ -68,7 +68,7 @@ namespace StateSelection {
     };
 
     function registerModifier(name: string, f: Function) {
-        BuilderPrototype[name] = function (this: any, ...args: any[]) { return f.call(void 0, this, ...args) };
+        BuilderPrototype[name] = function (this: any, ...args: any[]) { return f.call(void 0, this, ...args); };
     }
 
     function build<C extends StateObjectCell>(compile: () => Query<C>): Builder<C> {
@@ -199,7 +199,7 @@ namespace StateSelection {
                 }
             }
             return ret;
-        })
+        });
     }
 
     registerModifier('first', first);
@@ -224,7 +224,7 @@ namespace StateSelection {
     export function subtree(b: Selector) {
         return flatMap(b, (n, s) => {
             const nodes = [] as string[];
-            StateTree.doPreOrder(s.tree, s.tree.transforms.get(n.transform.ref), nodes, (x, _, ctx) => { ctx.push(x.ref) });
+            StateTree.doPreOrder(s.tree, s.tree.transforms.get(n.transform.ref), nodes, (x, _, ctx) => { ctx.push(x.ref); });
             return nodes.map(x => s.cells.get(x)!);
         });
     }
@@ -333,4 +333,4 @@ namespace StateSelection {
     }
 }
 
-export { StateSelection }
+export { StateSelection };

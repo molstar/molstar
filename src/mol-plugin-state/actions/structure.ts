@@ -71,7 +71,7 @@ const DownloadStructure = StateAction.build({
                     options
                 }, { isFlat: true, label: 'URL' })
             })
-        }
+        };
     }
 })(({ params, state }, plugin: PluginContext) => Task.create('Download Structure', async ctx => {
     plugin.behaviors.layout.leftPanelTabName.next('data');
@@ -83,7 +83,7 @@ const DownloadStructure = StateAction.build({
     switch (src.name) {
         case 'url':
             downloadParams = [{ url: src.params.url, isBinary: src.params.isBinary }];
-            format = src.params.format
+            format = src.params.format;
             break;
         case 'pdb':
             downloadParams = src.params.provider.server.name === 'pdbe'
@@ -98,8 +98,8 @@ const DownloadStructure = StateAction.build({
         case 'pdb-dev':
             downloadParams = getDownloadParams(src.params.id,
                 id => {
-                    const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`
-                    return `https://pdb-dev.wwpdb.org/cif/${nId.toUpperCase()}.cif`
+                    const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
+                    return `https://pdb-dev.wwpdb.org/cif/${nId.toUpperCase()}.cif`;
                 },
                 id => id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`,
                 false
@@ -113,12 +113,12 @@ const DownloadStructure = StateAction.build({
         case 'swissmodel':
             downloadParams = getDownloadParams(src.params.id, id => `https://swissmodel.expasy.org/repository/uniprot/${id.toUpperCase()}.pdb`, id => `SWISS-MODEL: ${id}`, false);
             asTrajectory = !!src.params.options.asTrajectory;
-            format = 'pdb'
+            format = 'pdb';
             break;
         case 'pubchem':
             downloadParams = getDownloadParams(src.params.id, id => `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/CID/${id.trim()}/record/SDF/?record_type=3d`, id => `PubChem: ${id}`, false);
             asTrajectory = !!src.params.options.asTrajectory;
-            format = 'mol'
+            format = 'mol';
             break;
         default: throw new Error(`${(src as any).name} not supported.`);
     }
@@ -160,7 +160,7 @@ function getDownloadParams(src: string, url: (id: string) => string, label: (id:
     const ids = src.split(',').map(id => id.trim()).filter(id => !!id && (id.length >= 4 || /^[1-9][0-9]*$/.test(id)));
     const ret: StateTransformer.Params<Download>[] = [];
     for (const id of ids) {
-        ret.push({ url: url(id), isBinary, label: label(id) })
+        ret.push({ url: url(id), isBinary, label: label(id) });
     }
     return ret;
 }
@@ -200,7 +200,7 @@ export const EnableModelCustomProps = StateAction.build({
     display: { name: 'Custom Model Properties', description: 'Enable parameters for custom properties of the model.' },
     from: PluginStateObject.Molecule.Model,
     params(a, ctx: PluginContext) {
-        return ctx.customModelProperties.getParams(a?.data)
+        return ctx.customModelProperties.getParams(a?.data);
     },
     isApplicable(a, t, ctx: PluginContext) {
         return t.transformer !== CustomModelProperties;
@@ -211,7 +211,7 @@ export const EnableStructureCustomProps = StateAction.build({
     display: { name: 'Custom Structure Properties', description: 'Enable parameters for custom properties of the structure.' },
     from: PluginStateObject.Molecule.Structure,
     params(a, ctx: PluginContext) {
-        return ctx.customStructureProperties.getParams(a?.data)
+        return ctx.customStructureProperties.getParams(a?.data);
     },
     isApplicable(a, t, ctx: PluginContext) {
         return t.transformer !== CustomStructureProperties;
@@ -222,18 +222,18 @@ export const AddTrajectory = StateAction.build({
     display: { name: 'Add Trajectory', description: 'Add trajectory from existing model/topology and coordinates.' },
     from: PluginStateObject.Root,
     params(a, ctx: PluginContext) {
-        const state = ctx.state.data
+        const state = ctx.state.data;
         const models = [
             ...state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)),
             ...state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Topology)),
-        ]
-        const modelOptions = models.map(t => [t.transform.ref, t.obj!.label]) as [string, string][]
-        const coords = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Coordinates))
-        const coordOptions = coords.map(c => [c.transform.ref, c.obj!.label]) as [string, string][]
+        ];
+        const modelOptions = models.map(t => [t.transform.ref, t.obj!.label]) as [string, string][];
+        const coords = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Coordinates));
+        const coordOptions = coords.map(c => [c.transform.ref, c.obj!.label]) as [string, string][];
         return {
             model: PD.Select(modelOptions.length ? modelOptions[0][0] : '', modelOptions),
             coordinates: PD.Select(coordOptions.length ? coordOptions[0][0] : '', coordOptions)
-        }
+        };
     }
 })(({ params, state }, ctx: PluginContext) => Task.create('Add Trajectory', taskCtx => {
     return state.transaction(async () => {
@@ -248,5 +248,5 @@ export const AddTrajectory = StateAction.build({
         await state.updateTree(model).runInContext(taskCtx);
         const structure = await ctx.builders.structure.createStructure(model.selector);
         await ctx.builders.structure.representation.applyPreset(structure, 'auto');
-    }).runInContext(taskCtx)
+    }).runInContext(taskCtx);
 }));

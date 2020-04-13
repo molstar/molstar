@@ -20,7 +20,7 @@ const ValidationColors = [
     Color.fromRgb(255, 255, 0), // 1
     Color.fromRgb(255, 128, 0), // 2
     Color.fromRgb(255, 0, 0), // 3 or more
-]
+];
 
 const ValidationColorTable: [string, Color][] = [
     ['No Issues', ValidationColors[1]],
@@ -28,7 +28,7 @@ const ValidationColorTable: [string, Color][] = [
     ['Two Issues', ValidationColors[3]],
     ['Three Or More Issues', ValidationColors[4]],
     ['Not Applicable', ValidationColors[9]]
-]
+];
 
 export const StructureQualityReportColorThemeParams = {
     type: PD.MappedStatic('issue-count', {
@@ -42,7 +42,7 @@ export const StructureQualityReportColorThemeParams = {
 type Params = typeof StructureQualityReportColorThemeParams
 
 export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: PD.Values<Params>): ColorTheme<Params> {
-    let color: LocationColor
+    let color: LocationColor;
 
     if (ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(StructureQualityReportProvider.descriptor)) {
         const getIssues = StructureQualityReport.getIssues;
@@ -53,7 +53,7 @@ export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: P
                     return ValidationColors[Math.min(3, getIssues(location).length) + 1];
                 }
                 return ValidationColors[0];
-            }
+            };
         } else {
             const issue = props.type.params.kind;
             color = (location: Location) => {
@@ -61,7 +61,7 @@ export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: P
                     return ValidationColors[4];
                 }
                 return ValidationColors[0];
-            }
+            };
         }
     } else {
         color = () => ValidationColors[0];
@@ -74,7 +74,7 @@ export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: P
         props: props,
         description: 'Assigns residue colors according to the number of quality issues or a specific quality issue. Data from wwPDB Validation Report, obtained via PDBe.',
         legend: TableLegend(ValidationColorTable)
-    }
+    };
 }
 
 export const StructureQualityReportColorThemeProvider: ColorTheme.Provider<Params, 'pdbe-structure-quality-report'> =  {
@@ -107,4 +107,4 @@ export const StructureQualityReportColorThemeProvider: ColorTheme.Provider<Param
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? StructureQualityReportProvider.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
         detach: (data) => data.structure && data.structure.models[0].customProperties.reference(StructureQualityReportProvider.descriptor, false)
     }
-}
+};

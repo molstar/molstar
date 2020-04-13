@@ -14,20 +14,20 @@ import { OrientationEllipsoidMeshParams, OrientationEllipsoidMeshVisual } from '
 
 const OrientationVisuals = {
     'orientation-ellipsoid-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, OrientationEllipsoidMeshParams>) => UnitsRepresentation('Orientation ellipsoid mesh', ctx, getParams, OrientationEllipsoidMeshVisual),
-}
+};
 
 export const OrientationParams = {
     ...OrientationEllipsoidMeshParams,
     visuals: PD.MultiSelect(['orientation-ellipsoid-mesh'], PD.objectToOptions(OrientationVisuals)),
-}
+};
 export type OrientationParams = typeof OrientationParams
 export function getOrientationParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(OrientationParams)
+    return PD.clone(OrientationParams);
 }
 
 export type OrientationRepresentation = StructureRepresentation<OrientationParams>
 export function OrientationRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, OrientationParams>): OrientationRepresentation {
-    return Representation.createMulti('Orientation', ctx, getParams, StructureRepresentationStateBuilder, OrientationVisuals as unknown as Representation.Def<Structure, OrientationParams>)
+    return Representation.createMulti('Orientation', ctx, getParams, StructureRepresentationStateBuilder, OrientationVisuals as unknown as Representation.Def<Structure, OrientationParams>);
 }
 
 export const OrientationRepresentationProvider = StructureRepresentationProvider({
@@ -40,4 +40,4 @@ export const OrientationRepresentationProvider = StructureRepresentationProvider
     defaultColorTheme: { name: 'polymer-id' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-})
+});

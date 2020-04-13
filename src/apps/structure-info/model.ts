@@ -5,11 +5,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as argparse from 'argparse'
+import * as argparse from 'argparse';
 require('util.promisify').shim();
 
-import { CifFrame } from '../../mol-io/reader/cif'
-import { Model, Structure, StructureElement, Unit, StructureProperties, UnitRing } from '../../mol-model/structure'
+import { CifFrame } from '../../mol-io/reader/cif';
+import { Model, Structure, StructureElement, Unit, StructureProperties, UnitRing } from '../../mol-model/structure';
 // import { Run, Progress } from '../../mol-task'
 import { OrderedSet } from '../../mol-data/int';
 import { openCif, downloadCif } from './helpers';
@@ -32,30 +32,30 @@ export async function readCifFile(path: string) {
 }
 
 export function atomLabel(model: Model, aI: number) {
-    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy
-    const { label_atom_id } = atoms
-    const { label_comp_id, label_seq_id } = residues
-    const { label_asym_id } = chains
-    const rI = residueAtomSegments.index[aI]
-    const cI = chainAtomSegments.index[aI]
-    return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)} ${label_atom_id.value(aI)}`
+    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
+    const { label_atom_id } = atoms;
+    const { label_comp_id, label_seq_id } = residues;
+    const { label_asym_id } = chains;
+    const rI = residueAtomSegments.index[aI];
+    const cI = chainAtomSegments.index[aI];
+    return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)} ${label_atom_id.value(aI)}`;
 }
 
 export function residueLabel(model: Model, rI: number) {
-    const { residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy
-    const { label_comp_id, label_seq_id } = residues
-    const { label_asym_id } = chains
-    const cI = chainAtomSegments.index[residueAtomSegments.offsets[rI]]
-    return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`
+    const { residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
+    const { label_comp_id, label_seq_id } = residues;
+    const { label_asym_id } = chains;
+    const cI = chainAtomSegments.index[residueAtomSegments.offsets[rI]];
+    return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`;
 }
 
 export function printSecStructure(model: Model) {
     console.log('\nSecondary Structure\n=============');
     const { residues } = model.atomicHierarchy;
     const secondaryStructure = ModelSecondaryStructure.Provider.get(model);
-    if (!secondaryStructure) return
+    if (!secondaryStructure) return;
 
-    const { key, elements } = secondaryStructure
+    const { key, elements } = secondaryStructure;
     const count = residues._rowCount;
     let rI = 0;
     while (rI < count) {
@@ -116,7 +116,7 @@ export function printSequence(model: Model) {
     const { byEntityKey } = model.sequence;
     for (const key of Object.keys(byEntityKey)) {
         const { sequence, entityId } = byEntityKey[+key];
-        const { seqId, compId } = sequence
+        const { seqId, compId } = sequence;
         console.log(`${entityId} (${sequence.kind} ${seqId.value(0)} (offset ${sequence.offset}), ${seqId.value(seqId.rowCount - 1)}) (${compId.value(0)}, ${compId.value(compId.rowCount - 1)})`);
         console.log(`${Sequence.getSequenceString(sequence)}`);
     }
@@ -132,7 +132,7 @@ export function printRings(structure: Structure) {
         for (let i = 0, _i = Math.min(5, all.length); i < _i; i++) {
             fps[fps.length] = UnitRing.fingerprint(unit, all[i]);
         }
-        if (all.length > 5) fps.push('...')
+        if (all.length > 5) fps.push('...');
         console.log(`Unit ${unit.id}, ${all.length} ring(s), ${byFingerprint.size} different fingerprint(s).\n  ${fps.join(', ')}`);
     }
     console.log();
@@ -171,8 +171,8 @@ export function printUnits(structure: Structure) {
 
 export function printSymmetryInfo(model: Model) {
     console.log('\nSymmetry Info\n=============');
-    const symmetry = ModelSymmetry.Provider.get(model)
-    if (!symmetry) return
+    const symmetry = ModelSymmetry.Provider.get(model);
+    if (!symmetry) return;
     const { size, anglesInRadians } = symmetry.spacegroup.cell;
     console.log(`Spacegroup: ${symmetry.spacegroup.name} size: ${Vec3.toString(size)} angles: ${Vec3.toString(anglesInRadians)}`);
     console.log(`Assembly names: ${symmetry.assemblies.map(a => a.id).join(', ')}`);
@@ -213,7 +213,7 @@ async function run(frame: CifFrame, args: Args) {
 }
 
 async function runDL(pdb: string, args: Args) {
-    const mmcif = await downloadFromPdb(pdb)
+    const mmcif = await downloadFromPdb(pdb);
     run(mmcif, args);
 }
 
@@ -255,5 +255,5 @@ interface Args {
 }
 const args: Args = parser.parseArgs();
 
-if (args.download) runDL(args.download, args)
-else if (args.file) runFile(args.file, args)
+if (args.download) runDL(args.download, args);
+else if (args.file) runFile(args.file, args);

@@ -8,7 +8,7 @@
 import { Vec3 } from '../../mol-math/linear-algebra/3d';
 import { Sphere3D } from './primitives/sphere3d';
 
-export { CentroidHelper }
+export { CentroidHelper };
 
 class CentroidHelper {
     private count = 0;
@@ -44,10 +44,10 @@ class CentroidHelper {
     }
 
     getSphere(sphere?: Sphere3D): Sphere3D {
-        if (!sphere) sphere = Sphere3D()
-        Vec3.copy(sphere.center, this.center)
-        sphere.radius = Math.sqrt(this.radiusSq)
-        return sphere
+        if (!sphere) sphere = Sphere3D();
+        Vec3.copy(sphere.center, this.center);
+        sphere.radius = Math.sqrt(this.radiusSq);
+        return sphere;
     }
 
     getCount() {
@@ -58,9 +58,9 @@ class CentroidHelper {
 }
 
 namespace CentroidHelper {
-    const helper = new CentroidHelper()
-    const posA = Vec3()
-    const posB = Vec3()
+    const helper = new CentroidHelper();
+    const posA = Vec3();
+    const posB = Vec3();
 
     export function fromArrays({ x, y, z }: { x: ArrayLike<number>, y: ArrayLike<number>, z: ArrayLike<number> }, to: Sphere3D) {
         helper.reset();
@@ -75,41 +75,41 @@ namespace CentroidHelper {
             helper.radiusStep(posA);
         }
         Vec3.copy(to.center, helper.center);
-        to.radius = Math.sqrt(helper.radiusSq)
+        to.radius = Math.sqrt(helper.radiusSq);
         return to;
     }
 
     export function fromProvider(count: number, getter: (i: number, pos: Vec3) => void, to: Sphere3D) {
         helper.reset();
         for (let i = 0; i < count; i++) {
-            getter(i, posA)
+            getter(i, posA);
             helper.includeStep(posA);
         }
         helper.finishedIncludeStep();
         for (let i = 0; i < count; i++) {
-            getter(i, posA)
+            getter(i, posA);
             helper.radiusStep(posA);
         }
         Vec3.copy(to.center, helper.center);
-        to.radius = Math.sqrt(helper.radiusSq)
+        to.radius = Math.sqrt(helper.radiusSq);
         return to;
     }
 
     export function fromPairProvider(count: number, getter: (i: number, posA: Vec3, posB: Vec3) => void, to: Sphere3D) {
         helper.reset();
         for (let i = 0; i < count; i++) {
-            getter(i, posA, posB)
+            getter(i, posA, posB);
             helper.includeStep(posA);
             helper.includeStep(posB);
         }
         helper.finishedIncludeStep();
         for (let i = 0; i < count; i++) {
-            getter(i, posA, posB)
+            getter(i, posA, posB);
             helper.radiusStep(posA);
             helper.radiusStep(posB);
         }
         Vec3.copy(to.center, helper.center);
-        to.radius = Math.sqrt(helper.radiusSq)
+        to.radius = Math.sqrt(helper.radiusSq);
         return to;
     }
 }

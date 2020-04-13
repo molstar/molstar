@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Structure from '../structure'
+import Structure from '../structure';
 import { Lookup3D, GridLookup3D, Box3D, Sphere3D, Result } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { computeStructureBoundary } from './boundary';
@@ -37,8 +37,8 @@ export namespace StructureResult {
             out.units[i] = result.units[i];
             out.squaredDistances[i] = result.squaredDistances[i];
         }
-        out.count = result.count
-        return out
+        out.count = result.count;
+        return out;
     }
 }
 
@@ -175,7 +175,7 @@ export class StructureLookup3D {
             radius[i] = s.radius;
         }
 
-        const position = { x: xs, y: ys, z: zs, radius, indices: OrderedSet.ofBounds(0, unitCount) }
+        const position = { x: xs, y: ys, z: zs, radius, indices: OrderedSet.ofBounds(0, unitCount) };
         this.unitLookup = GridLookup3D(position, getBoundary(position));
     }
 }

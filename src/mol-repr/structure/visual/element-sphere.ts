@@ -18,11 +18,11 @@ export const ElementSphereParams = {
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
     ignoreHydrogens: PD.Boolean(false),
     traceOnly: PD.Boolean(false),
-}
+};
 export type ElementSphereParams = typeof ElementSphereParams
 
 export function getElementSphereVisual(webgl?: WebGLContext) {
-    return webgl && webgl.extensions.fragDepth ? ElementSphereImpostorVisual : ElementSphereMeshVisual
+    return webgl && webgl.extensions.fragDepth ? ElementSphereImpostorVisual : ElementSphereMeshVisual;
 }
 
 export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<ElementSphereParams> {
@@ -36,9 +36,9 @@ export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<Ele
             state.createGeometry = (
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.traceOnly !== currentProps.traceOnly
-            )
+            );
         }
-    }, materialId)
+    }, materialId);
 }
 
 export function ElementSphereMeshVisual(materialId: number): UnitsVisual<ElementSphereParams> {
@@ -54,7 +54,7 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
                 newProps.detail !== currentProps.detail ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.traceOnly !== currentProps.traceOnly
-            )
+            );
         }
-    }, materialId)
+    }, materialId);
 }

@@ -56,7 +56,7 @@ function handleAtoms(tokenizer: Tokenizer, count: number): MolFile['atoms'] {
         y: TokenColumn(y)(Column.Schema.float),
         z: TokenColumn(z)(Column.Schema.float),
         type_symbol: TokenColumn(type_symbol)(Column.Schema.str)
-    }
+    };
 }
 
 function handleBonds(tokenizer: Tokenizer, count: number): MolFile['bonds'] {
@@ -81,7 +81,7 @@ function handleBonds(tokenizer: Tokenizer, count: number): MolFile['bonds'] {
         atomIdxA: TokenColumn(atomIdxA)(Column.Schema.int),
         atomIdxB: TokenColumn(atomIdxB)(Column.Schema.int),
         order: TokenColumn(order)(Column.Schema.int)
-    }
+    };
 }
 
 function parseInternal(data: string): Result<MolFile> {
@@ -104,12 +104,12 @@ function parseInternal(data: string): Result<MolFile> {
         comment,
         atoms,
         bonds
-    }
+    };
     return Result.success(result);
 }
 
 export function parseMol(data: string) {
     return Task.create<Result<MolFile>>('Parse Mol', async () => {
-        return parseInternal(data)
+        return parseInternal(data);
     });
 }

@@ -14,19 +14,19 @@ import { Structure } from '../../../mol-model/structure';
 
 const PointVisuals = {
     'element-point': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementPointParams>) => UnitsRepresentation('Points', ctx, getParams, ElementPointVisual),
-}
+};
 
 export const PointParams = {
     ...ElementPointParams,
-}
+};
 export type PointParams = typeof PointParams
 export function getPointParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(PointParams)
+    return PD.clone(PointParams);
 }
 
 export type PointRepresentation = StructureRepresentation<PointParams>
 export function PointRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PointParams>): PointRepresentation {
-    return Representation.createMulti('Point', ctx, getParams, StructureRepresentationStateBuilder, PointVisuals as unknown as Representation.Def<Structure, PointParams>)
+    return Representation.createMulti('Point', ctx, getParams, StructureRepresentationStateBuilder, PointVisuals as unknown as Representation.Def<Structure, PointParams>);
 }
 
 export const PointRepresentationProvider = StructureRepresentationProvider({
@@ -39,4 +39,4 @@ export const PointRepresentationProvider = StructureRepresentationProvider({
     defaultColorTheme: { name: 'element-symbol' },
     defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-})
+});

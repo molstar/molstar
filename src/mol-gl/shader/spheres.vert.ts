@@ -92,4 +92,4 @@ void main(void){
     vPoint = vPoint4.xyz / vPoint4.w;
     vPointViewPosition = -mvPosition.xyz / mvPosition.w;
 }
-`
+`;

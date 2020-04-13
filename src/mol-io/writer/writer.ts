@@ -13,4 +13,4 @@ namespace Writer {
 
 }
 
-export default Writer
+export default Writer;

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { utf8Read } from '../utf8'
+import { utf8Read } from '../utf8';
 
 export default function decode(buffer: Uint8Array) {
     return parse({ buffer, offset: 0, dataView: new DataView(buffer.buffer) });

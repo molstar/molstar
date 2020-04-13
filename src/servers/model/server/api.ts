@@ -68,7 +68,7 @@ export const AtomSiteSchemaElement = {
     label_atom_id: { type: QueryParamType.String, groupName: 'atom_site' },
     auth_atom_id: { type: QueryParamType.String, groupName: 'atom_site' },
     type_symbol: { type: QueryParamType.String, groupName: 'atom_site' }
-}
+};
 
 export interface AtomSiteSchemaElement {
     label_entity_id?: string,
@@ -203,7 +203,7 @@ export function getQueryByName(name: QueryName): QueryDefinition {
 export const QueryList = (function () {
     const list: { name: string, definition: QueryDefinition }[] = [];
     for (const k of Object.keys(QueryMap)) list.push({ name: k, definition: <QueryDefinition>QueryMap[k as QueryName] });
-    list.sort(function (a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0 });
+    list.sort(function (a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0; });
     return list;
 })();
 

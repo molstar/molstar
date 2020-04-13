@@ -28,24 +28,24 @@ export type TransformData = {
 
 export function createTransform(transformArray: Float32Array, instanceCount: number, transformData?: TransformData): TransformData {
     if (transformData) {
-        ValueCell.update(transformData.matrix, transformData.matrix.ref.value)
-        ValueCell.update(transformData.transform, transformArray)
-        ValueCell.update(transformData.uInstanceCount, instanceCount)
-        ValueCell.update(transformData.instanceCount, instanceCount)
+        ValueCell.update(transformData.matrix, transformData.matrix.ref.value);
+        ValueCell.update(transformData.transform, transformArray);
+        ValueCell.update(transformData.uInstanceCount, instanceCount);
+        ValueCell.update(transformData.instanceCount, instanceCount);
 
-        const aTransform = transformData.aTransform.ref.value.length >= instanceCount * 16 ? transformData.aTransform.ref.value : new Float32Array(instanceCount * 16)
-        aTransform.set(transformArray)
-        ValueCell.update(transformData.aTransform, aTransform)
+        const aTransform = transformData.aTransform.ref.value.length >= instanceCount * 16 ? transformData.aTransform.ref.value : new Float32Array(instanceCount * 16);
+        aTransform.set(transformArray);
+        ValueCell.update(transformData.aTransform, aTransform);
 
         // Note that this sets `extraTransform` to identity transforms
-        const extraTransform = transformData.extraTransform.ref.value.length >= instanceCount * 16 ? transformData.extraTransform.ref.value : new Float32Array(instanceCount * 16)
-        ValueCell.update(transformData.extraTransform, fillIdentityTransform(extraTransform, instanceCount))
+        const extraTransform = transformData.extraTransform.ref.value.length >= instanceCount * 16 ? transformData.extraTransform.ref.value : new Float32Array(instanceCount * 16);
+        ValueCell.update(transformData.extraTransform, fillIdentityTransform(extraTransform, instanceCount));
 
-        const aInstance = transformData.aInstance.ref.value.length >= instanceCount ? transformData.aInstance.ref.value : new Float32Array(instanceCount)
-        ValueCell.update(transformData.aInstance, fillSerial(aInstance, instanceCount))
+        const aInstance = transformData.aInstance.ref.value.length >= instanceCount ? transformData.aInstance.ref.value : new Float32Array(instanceCount);
+        ValueCell.update(transformData.aInstance, fillSerial(aInstance, instanceCount));
 
-        updateTransformData(transformData)
-        return transformData
+        updateTransformData(transformData);
+        return transformData;
     } else {
         return {
             aTransform: ValueCell.create(new Float32Array(transformArray)),
@@ -55,22 +55,22 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
             uInstanceCount: ValueCell.create(instanceCount),
             instanceCount: ValueCell.create(instanceCount),
             aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount)))
-        }
+        };
     }
 }
 
-const identityTransform = new Float32Array(16)
-Mat4.toArray(Mat4.identity(), identityTransform, 0)
+const identityTransform = new Float32Array(16);
+Mat4.toArray(Mat4.identity(), identityTransform, 0);
 
 export function createIdentityTransform(transformData?: TransformData): TransformData {
-    return createTransform(new Float32Array(identityTransform), 1, transformData)
+    return createTransform(new Float32Array(identityTransform), 1, transformData);
 }
 
 export function fillIdentityTransform(transform: Float32Array, count: number) {
     for (let i = 0; i < count; i++) {
-        transform.set(identityTransform, i * 16)
+        transform.set(identityTransform, i * 16);
     }
-    return transform
+    return transform;
 }
 
 /**
@@ -78,15 +78,15 @@ export function fillIdentityTransform(transform: Float32Array, count: number) {
  * `aTransform[i] = matrix * transform[i] * extraTransform[i]`
  */
 export function updateTransformData(transformData: TransformData) {
-    const aTransform = transformData.aTransform.ref.value
-    const instanceCount = transformData.instanceCount.ref.value
-    const matrix = transformData.matrix.ref.value
-    const transform = transformData.transform.ref.value
-    const extraTransform = transformData.extraTransform.ref.value
+    const aTransform = transformData.aTransform.ref.value;
+    const instanceCount = transformData.instanceCount.ref.value;
+    const matrix = transformData.matrix.ref.value;
+    const transform = transformData.transform.ref.value;
+    const extraTransform = transformData.extraTransform.ref.value;
     for (let i = 0; i < instanceCount; i++) {
-        const i16 = i * 16
-        Mat4.mulOffset(aTransform, extraTransform, transform, i16, i16, i16)
-        Mat4.mulOffset(aTransform, matrix, aTransform, i16, 0, i16)
+        const i16 = i * 16;
+        Mat4.mulOffset(aTransform, extraTransform, transform, i16, i16, i16);
+        Mat4.mulOffset(aTransform, matrix, aTransform, i16, 0, i16);
     }
-    ValueCell.update(transformData.aTransform, aTransform)
+    ValueCell.update(transformData.aTransform, aTransform);
 }

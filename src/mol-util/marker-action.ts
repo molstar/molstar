@@ -19,21 +19,21 @@ export enum MarkerAction {
 
 export type MarkerActions = BitFlags<MarkerAction>
 export namespace MarkerActions {
-    export const is: (m: MarkerActions, f: MarkerAction) => boolean = BitFlags.has
+    export const is: (m: MarkerActions, f: MarkerAction) => boolean = BitFlags.has;
 
     export const All = (
         MarkerAction.Highlight | MarkerAction.RemoveHighlight |
         MarkerAction.Select | MarkerAction.Deselect | MarkerAction.Toggle |
         MarkerAction.Clear
-    ) as MarkerActions
+    ) as MarkerActions;
     export const Highlighting = (
         MarkerAction.Highlight | MarkerAction.RemoveHighlight |
         MarkerAction.Clear
-    ) as MarkerActions
+    ) as MarkerActions;
     export const Selecting = (
         MarkerAction.Select | MarkerAction.Deselect | MarkerAction.Toggle |
         MarkerAction.Clear
-    ) as MarkerActions
+    ) as MarkerActions;
 }
 
 export function applyMarkerActionAtPosition(array: Uint8Array, i: number, action: MarkerAction) {

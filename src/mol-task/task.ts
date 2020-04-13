@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { RuntimeContext } from './execution/runtime-context'
-import { Progress } from './execution/progress'
+import { RuntimeContext } from './execution/runtime-context';
+import { Progress } from './execution/progress';
 import { ExecuteObservable, ExecuteObservableChild, ExecuteInContext } from './execution/observable';
 import { SyncRuntimeContext } from './execution/synchronous';
 import { idFactory } from '../mol-util/id-factory';
@@ -82,7 +82,7 @@ namespace Task {
         max: number
     }
 
-    const getNextId = idFactory(0, 0x3fffffff)
+    const getNextId = idFactory(0, 0x3fffffff);
 }
 
-export { Task }
+export { Task };

@@ -8,26 +8,26 @@ import { Color, ColorScale } from '../../mol-util/color';
 import { StructureElement, Unit, Bond, ElementIndex } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
-import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 
-const DefaultOccupancyColor = Color(0xCCCCCC)
-const Description = `Assigns a color based on the occupancy of an atom.`
+const DefaultOccupancyColor = Color(0xCCCCCC);
+const Description = `Assigns a color based on the occupancy of an atom.`;
 
 export const OccupancyColorThemeParams = {
     domain: PD.Interval([0, 1]),
     list: PD.ColorList('purples', { presetKind: 'scale' }),
-}
+};
 export type OccupancyColorThemeParams = typeof OccupancyColorThemeParams
 export function getOccupancyColorThemeParams(ctx: ThemeDataContext) {
-    return OccupancyColorThemeParams // TODO return copy
+    return OccupancyColorThemeParams; // TODO return copy
 }
 
 export function getOccupancy(unit: Unit, element: ElementIndex): number {
     if (Unit.isAtomic(unit)) {
-        return unit.model.atomicConformation.occupancy.value(element)
+        return unit.model.atomicConformation.occupancy.value(element);
     } else {
-        return 0
+        return 0;
     }
 }
 
@@ -36,15 +36,15 @@ export function OccupancyColorTheme(ctx: ThemeDataContext, props: PD.Values<Occu
         reverse: false,
         domain: props.domain,
         listOrName: props.list.colors,
-    })
+    });
 
     function color(location: Location): Color {
         if (StructureElement.Location.is(location)) {
-            return scale.color(getOccupancy(location.unit, location.element))
+            return scale.color(getOccupancy(location.unit, location.element));
         } else if (Bond.isLocation(location)) {
-            return scale.color(getOccupancy(location.aUnit, location.aUnit.elements[location.aIndex]))
+            return scale.color(getOccupancy(location.aUnit, location.aUnit.elements[location.aIndex]));
         }
-        return DefaultOccupancyColor
+        return DefaultOccupancyColor;
     }
 
     return {
@@ -54,7 +54,7 @@ export function OccupancyColorTheme(ctx: ThemeDataContext, props: PD.Values<Occu
         props,
         description: Description,
         legend: scale ? scale.legend : undefined
-    }
+    };
 }
 
 export const OccupancyColorThemeProvider: ColorTheme.Provider<OccupancyColorThemeParams, 'occupancy'> = {
@@ -65,4 +65,4 @@ export const OccupancyColorThemeProvider: ColorTheme.Provider<OccupancyColorThem
     getParams: getOccupancyColorThemeParams,
     defaultValues: PD.getDefaultValues(OccupancyColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.some(m => m.atomicConformation.occupancy.isDefined)
-}
+};

@@ -6,7 +6,7 @@
  * @author molstar/ciftools package
  */
 
-import { Database, Column } from '../../../../mol-data/db'
+import { Database, Column } from '../../../../mol-data/db';
 
 import Schema = Column.Schema
 
@@ -493,7 +493,7 @@ export const BIRD_Schema = {
          */
         action_type: Aliased<'Initial release' | 'Create molecule' | 'Modify type' | 'Modify class' | 'Modify molecule name' | 'Modify representation' | 'Modify sequence' | 'Modify linkage' | 'Modify taxonomy organism' | 'Modify audit' | 'Other modification' | 'Obsolete molecule'>(str),
     },
-}
+};
 
 export type BIRD_Schema = typeof BIRD_Schema;
 export interface BIRD_Database extends Database<BIRD_Schema> {}

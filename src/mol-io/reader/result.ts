@@ -39,4 +39,4 @@ namespace ReaderResult {
     }
 }
 
-export { ReaderResult }
+export { ReaderResult };

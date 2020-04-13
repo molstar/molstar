@@ -10,7 +10,7 @@ import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajecto
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import './index.html';
-require('mol-plugin-ui/skin/light.scss')
+require('mol-plugin-ui/skin/light.scss');
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }
 
@@ -57,7 +57,7 @@ const Canvas3DPresets = {
             lightIntensity: 0.6,
         }
     }
-}
+};
 
 type Canvas3DPreset = keyof typeof Canvas3DPresets
 
@@ -80,7 +80,7 @@ class LightingDemo {
     }
 
     setPreset(preset: Canvas3DPreset) {
-        const props = Canvas3DPresets[preset]
+        const props = Canvas3DPresets[preset];
         PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: {
             ...props,
             multiSample: {

@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Type from './type'
-import Expression from './expression'
+import Type from './type';
+import Expression from './expression';
 
 export type Argument<T extends Type = Type>  = {
     type: T,
@@ -15,7 +15,7 @@ export type Argument<T extends Type = Type>  = {
     description: string | undefined
 }
 export function Argument<T extends Type>(type: T, params?: { description?: string, defaultValue?: T['@type'], isOptional?: boolean, isRest?: boolean }): Argument<T> {
-    const { description = void 0, isOptional = false, isRest = false, defaultValue = void 0 } = params || {}
+    const { description = void 0, isOptional = false, isRest = false, defaultValue = void 0 } = params || {};
     return { type, isOptional, isRest, defaultValue, description };
 }
 
@@ -44,7 +44,7 @@ export namespace Arguments {
     }
 
     export function List<T extends Type>(type: T, params?: { nonEmpty?: boolean }): Arguments<{ [key: string]: T['@type'] }> {
-        const { nonEmpty = false } = params || { }
+        const { nonEmpty = false } = params || { };
         return { kind: 'list', type, nonEmpty, '@type': 0 as any };
     }
 }

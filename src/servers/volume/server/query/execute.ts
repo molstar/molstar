@@ -6,17 +6,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as DataFormat from '../../common/data-format'
-import * as File from '../../common/file'
-import * as Data from './data-model'
-import * as Coords from '../algebra/coordinate'
-import * as Box from '../algebra/box'
-import { ConsoleLogger } from '../../../../mol-util/console-logger'
-import { State } from '../state'
+import * as DataFormat from '../../common/data-format';
+import * as File from '../../common/file';
+import * as Data from './data-model';
+import * as Coords from '../algebra/coordinate';
+import * as Box from '../algebra/box';
+import { ConsoleLogger } from '../../../../mol-util/console-logger';
+import { State } from '../state';
 
-import identify from './identify'
-import compose from './compose'
-import encode from './encode'
+import identify from './identify';
+import compose from './compose';
+import encode from './encode';
 import { SpacegroupCell } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { UUID } from '../../../../mol-util';
@@ -79,7 +79,7 @@ function createSampling(header: DataFormat.Header, index: number, dataOffset: nu
         byteOffset: sampling.byteOffset + dataOffset,
         dataDomain,
         blockDomain: blockDomain(dataDomain, header.blockSize)
-    }
+    };
 }
 
 async function createDataContext(file: FileHandle): Promise<Data.DataContext> {
@@ -94,7 +94,7 @@ async function createDataContext(file: FileHandle): Promise<Data.DataContext> {
         spacegroup: SpacegroupCell.create(header.spacegroup.number, Vec3.ofArray(header.spacegroup.size), Vec3.scale(Vec3.zero(), Vec3.ofArray(header.spacegroup.angles), Math.PI / 180)),
         dataBox: { a: origin, b: Coords.add(origin, dimensions) },
         sampling: header.sampling.map((s, i) => createSampling(header, i, dataOffset))
-    }
+    };
 }
 
 function createQuerySampling(data: Data.DataContext, sampling: Data.Sampling, queryBox: Box.Fractional): Data.QuerySamplingInfo {
@@ -132,7 +132,7 @@ function pickSampling(data: Data.DataContext, queryBox: Box.Fractional, forcedLe
 }
 
 function emptyQueryContext(data: Data.DataContext, params: Data.QueryParams, guid: string): Data.QueryContext {
-    return { kind: 'Empty', guid, params, data }
+    return { kind: 'Empty', guid, params, data };
 }
 
 function getQueryBox(data: Data.DataContext, queryBox: Data.QueryParamsBox) {
@@ -183,7 +183,7 @@ function createQueryContext(data: Data.DataContext, params: Data.QueryParams, gu
         params,
         samplingInfo,
         values: allocateValues(samplingInfo.gridDomain, data.header.channels.length, data.header.valueType)
-    }
+    };
 }
 
 
@@ -206,7 +206,7 @@ async function _execute(file: FileHandle, params: Data.QueryParams, guid: string
         encode(query, output);
         output.end();
     } catch (e) {
-        const query: Data.QueryContext = { kind: 'Error', guid, params, message: `${e}` }
+        const query: Data.QueryContext = { kind: 'Error', guid, params, message: `${e}` };
         try {
             if (!output) output = outputProvider();
             encode(query, output);

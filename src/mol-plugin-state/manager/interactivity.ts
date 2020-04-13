@@ -27,7 +27,7 @@ const DefaultInteractivityFocusOptions = {
     minRadius: 6,
     extraRadius: 6,
     durationMs: 250,
-}
+};
 
 export type InteractivityFocusLociOptions = typeof DefaultInteractivityFocusOptions
 
@@ -65,7 +65,7 @@ class InteractivityManager extends StatefulPluginComponent<InteractivityManagerS
 namespace InteractivityManager {
     export const Params = {
         granularity: PD.Select('residue', Loci.GranularityOptions, { label: 'Picking Level', description: 'Controls if selections are expanded upon picking to whole residues, chains, structures, instances, or left as atoms and coarse elements' }),
-    }
+    };
     export type Params = typeof Params
     export type Props = PD.Values<Params>
 
@@ -81,7 +81,7 @@ namespace InteractivityManager {
         readonly props: Readonly<Props> = PD.getDefaultValues(Params)
 
         setProps(props: Partial<Props>) {
-            Object.assign(this.props, props)
+            Object.assign(this.props, props);
         }
 
         addProvider(provider: LociMarkProvider) {
@@ -94,9 +94,9 @@ namespace InteractivityManager {
         }
 
         protected normalizedLoci(reprLoci: Representation.Loci, applyGranularity = true) {
-            const { loci, repr } = reprLoci
-            const granularity =  applyGranularity ? this.props.granularity : undefined
-            return { loci: Loci.normalize(loci, granularity), repr }
+            const { loci, repr } = reprLoci;
+            const granularity =  applyGranularity ? this.props.granularity : undefined;
+            return { loci: Loci.normalize(loci, granularity), repr };
         }
 
         protected mark(current: Representation.Loci, action: MarkerAction) {
@@ -104,8 +104,8 @@ namespace InteractivityManager {
         }
 
         constructor(public readonly ctx: PluginContext, props: Partial<Props> = {}) {
-            this.sel = ctx.managers.structure.selection
-            this.setProps(props)
+            this.sel = ctx.managers.structure.selection;
+            this.setProps(props);
         }
     }
 
@@ -116,48 +116,48 @@ namespace InteractivityManager {
 
         private isHighlighted(loci: Representation.Loci) {
             for (const p of this.prev) {
-                if (Representation.Loci.areEqual(p, loci)) return true
+                if (Representation.Loci.areEqual(p, loci)) return true;
             }
-            return false
+            return false;
         }
 
         private addHighlight(loci: Representation.Loci) {
             this.mark(loci, MarkerAction.Highlight);
-            this.prev.push(loci)
+            this.prev.push(loci);
         }
 
         clearHighlights = () => {
             for (const p of this.prev) {
                 this.mark(p, MarkerAction.RemoveHighlight);
             }
-            this.prev.length = 0
+            this.prev.length = 0;
         }
 
         highlight(current: Representation.Loci, applyGranularity = true) {
-            const normalized = this.normalizedLoci(current, applyGranularity)
+            const normalized = this.normalizedLoci(current, applyGranularity);
             if (!this.isHighlighted(normalized)) {
-                this.addHighlight(normalized)
+                this.addHighlight(normalized);
             }
         }
 
         highlightOnly(current: Representation.Loci, applyGranularity = true) {
-            const normalized = this.normalizedLoci(current, applyGranularity)
+            const normalized = this.normalizedLoci(current, applyGranularity);
             if (!this.isHighlighted(normalized)) {
-                this.clearHighlights()
-                this.addHighlight(normalized)
+                this.clearHighlights();
+                this.addHighlight(normalized);
             }
         }
 
         highlightOnlyExtend(current: Representation.Loci, applyGranularity = true) {
-            const normalized = this.normalizedLoci(current, applyGranularity)
+            const normalized = this.normalizedLoci(current, applyGranularity);
             if (StructureElement.Loci.is(normalized.loci)) {
                 const loci = {
                     loci: this.sel.tryGetRange(normalized.loci) || normalized.loci,
                     repr: normalized.repr
-                }
+                };
                 if (!this.isHighlighted(loci)) {
-                    this.clearHighlights()
-                    this.addHighlight(loci)
+                    this.clearHighlights();
+                    this.addHighlight(loci);
                 }
             }
         }
@@ -169,7 +169,7 @@ namespace InteractivityManager {
         toggle(current: Representation.Loci, applyGranularity = true) {
             if (Loci.isEmpty(current.loci)) return;
 
-            const normalized = this.normalizedLoci(current, applyGranularity)
+            const normalized = this.normalizedLoci(current, applyGranularity);
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.toggleSel(normalized);
             } else {
@@ -180,7 +180,7 @@ namespace InteractivityManager {
         toggleExtend(current: Representation.Loci, applyGranularity = true) {
             if (Loci.isEmpty(current.loci)) return;
 
-            const normalized = this.normalizedLoci(current, applyGranularity)
+            const normalized = this.normalizedLoci(current, applyGranularity);
             if (StructureElement.Loci.is(normalized.loci)) {
                 const loci = this.sel.tryGetRange(normalized.loci) || normalized.loci;
                 this.toggleSel({ loci, repr: normalized.repr });
@@ -188,7 +188,7 @@ namespace InteractivityManager {
         }
 
         select(current: Representation.Loci, applyGranularity = true) {
-            const normalized = this.normalizedLoci(current, applyGranularity)
+            const normalized = this.normalizedLoci(current, applyGranularity);
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.sel.modify('add', normalized.loci);
             }
@@ -196,7 +196,7 @@ namespace InteractivityManager {
         }
 
         selectJoin(current: Representation.Loci, applyGranularity = true) {
-            const normalized = this.normalizedLoci(current, applyGranularity)
+            const normalized = this.normalizedLoci(current, applyGranularity);
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.sel.modify('intersect', normalized.loci);
             }
@@ -204,8 +204,8 @@ namespace InteractivityManager {
         }
 
         selectOnly(current: Representation.Loci, applyGranularity = true) {
-            this.deselectAll()
-            const normalized = this.normalizedLoci(current, applyGranularity)
+            this.deselectAll();
+            const normalized = this.normalizedLoci(current, applyGranularity);
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.sel.modify('set', normalized.loci);
             }
@@ -213,7 +213,7 @@ namespace InteractivityManager {
         }
 
         deselect(current: Representation.Loci, applyGranularity = true) {
-            const normalized = this.normalizedLoci(current, applyGranularity)
+            const normalized = this.normalizedLoci(current, applyGranularity);
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.sel.modify('remove', normalized.loci);
             }
@@ -226,19 +226,19 @@ namespace InteractivityManager {
         }
 
         deselectAllOnEmpty(current: Representation.Loci) {
-            if (isEmptyLoci(current.loci)) this.deselectAll()
+            if (isEmptyLoci(current.loci)) this.deselectAll();
         }
 
         protected mark(current: Representation.Loci, action: MarkerAction.Select | MarkerAction.Deselect) {
-            const { loci } = current
+            const { loci } = current;
             if (StructureElement.Loci.is(loci)) {
                 // do a full deselect/select for the current structure so visuals that are
                 // marked with granularity unequal to 'element' and join/intersect operations
                 // are handled properly
-                super.mark({ loci: Structure.Loci(loci.structure) }, MarkerAction.Deselect)
-                super.mark({ loci: this.sel.getLoci(loci.structure) }, MarkerAction.Select)
+                super.mark({ loci: Structure.Loci(loci.structure) }, MarkerAction.Deselect);
+                super.mark({ loci: this.sel.getLoci(loci.structure) }, MarkerAction.Select);
             } else {
-                super.mark(current, action)
+                super.mark(current, action);
             }
         }
 

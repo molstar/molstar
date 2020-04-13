@@ -6,11 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Format from './format'
-import * as File from '../common/file'
-import * as Data from './data-model'
-import * as Sampling from './sampling'
-import * as DataFormat from '../common/data-format'
+import * as Format from './format';
+import * as File from '../common/file';
+import * as Data from './data-model';
+import * as Sampling from './sampling';
+import * as DataFormat from '../common/data-format';
 import { FileHandle } from '../../../mol-io/common/file-handle';
 
 export default async function pack(input: { name: string, filename: string }[], blockSizeInMB: number, isPeriodic: boolean, outputFilename: string, format: Format.Type) {

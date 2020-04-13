@@ -2,7 +2,7 @@
  * Copyright (c) 2016 - now, David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
  */
 
-import * as Coords from './coordinate'
+import * as Coords from './coordinate';
 import { SpacegroupCell } from '../../../../mol-math/geometry';
 
 export interface Box<C extends Coords.Coord<Coords.Space>> { a: C, b: C }
@@ -29,11 +29,11 @@ export function cartesianToFractional(box: Cartesian, spacegroup: SpacegroupCell
 }
 
 export function fractionalToGrid<K>(box: Fractional, domain: Coords.GridDomain<K>): Grid<K> {
-    return { a: Coords.fractionalToGrid(box.a, domain, 'bottom'), b: Coords.fractionalToGrid(box.b, domain, 'top') }
+    return { a: Coords.fractionalToGrid(box.a, domain, 'bottom'), b: Coords.fractionalToGrid(box.b, domain, 'top') };
 }
 
 export function gridToFractional<K>(box: Grid<K>): Fractional {
-    return { a: Coords.gridToFractional(box.a), b: Coords.gridToFractional(box.b) }
+    return { a: Coords.gridToFractional(box.a), b: Coords.gridToFractional(box.b) };
 }
 
 export function fractionalBoxReorderAxes(box: Fractional, axisOrder: number[]) {
@@ -41,7 +41,7 @@ export function fractionalBoxReorderAxes(box: Fractional, axisOrder: number[]) {
     return {
         a: Coords.withCoord(a, a[axisOrder[0]], a[axisOrder[1]], a[axisOrder[2]]),
         b: Coords.withCoord(b, b[axisOrder[0]], b[axisOrder[1]], b[axisOrder[2]])
-    }
+    };
 }
 
 export function expandGridBox<K>(box: Grid<K>, by: number) {
@@ -49,7 +49,7 @@ export function expandGridBox<K>(box: Grid<K>, by: number) {
     return {
         a: Coords.withCoord(a, a[0] - by, a[1] - by, a[2] - by),
         b: Coords.withCoord(b, b[0] + by, b[1] + by, b[2] + by)
-    }
+    };
 }
 
 // MISC
@@ -79,7 +79,7 @@ export function fractionalFromBlock(block: Coords.Grid<'Block'>): Fractional {
     for (let i = 0; i < 3; i++) {
         b[i] = Math.min(b[i], domain.origin[i] + domain.dimensions[i]);
     }
-    return { a, b }
+    return { a, b };
 }
 
 export function bounding<C extends Coords.Coord<Coords.Space>>(xs: C[]): Box<C> {
@@ -92,7 +92,7 @@ export function bounding<C extends Coords.Coord<Coords.Space>>(xs: C[]): Box<C> 
             b[i] = Math.max(b[i], x[i]);
         }
     }
-    return { a, b }
+    return { a, b };
 }
 
 export function areIntersecting<C extends Coords.Coord<S>, S extends Coords.Space>(box1: Box<C>, box2: Box<C>) {

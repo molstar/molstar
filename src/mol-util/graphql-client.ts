@@ -34,32 +34,32 @@ export class ClientError extends Error {
     request: GraphQLRequestContext
 
     constructor (response: GraphQLResponse, request: GraphQLRequestContext) {
-        const message = `${ClientError.extractMessage(response)}: ${JSON.stringify({ response, request })}`
+        const message = `${ClientError.extractMessage(response)}: ${JSON.stringify({ response, request })}`;
 
-        super(message)
+        super(message);
 
-        this.response = response
-        this.request = request
+        this.response = response;
+        this.request = request;
 
         // this is needed as Safari doesn't support .captureStackTrace
         /* tslint:disable-next-line */
         if (typeof Error.captureStackTrace === 'function') {
-            Error.captureStackTrace(this, ClientError)
+            Error.captureStackTrace(this, ClientError);
         }
     }
 
     private static extractMessage (response: GraphQLResponse): string {
         try {
-            return response.errors![0].message
+            return response.errors![0].message;
         } catch (e) {
-            return `GraphQL Error (Code: ${response.status})`
+            return `GraphQL Error (Code: ${response.status})`;
         }
     }
 }
 
 export class GraphQLClient {
     constructor(private url: string, private fetch: import('../mol-util/data-source').AjaxTask) {
-        this.url = url
+        this.url = url;
     }
 
     async request<T extends any>(ctx: RuntimeContext, query: string, variables?: Variables): Promise<T> {
@@ -67,19 +67,19 @@ export class GraphQLClient {
         const body = JSON.stringify({
             query,
             variables: variables ? variables : undefined,
-        })
+        });
 
-        const resultStr = await this.fetch({ url: this.url, body }).runInContext(ctx)
-        const result = JSON.parse(resultStr)
+        const resultStr = await this.fetch({ url: this.url, body }).runInContext(ctx);
+        const result = JSON.parse(resultStr);
 
         if (!result.errors && result.data) {
-            return result.data
+            return result.data;
         } else {
-            const errorResult = typeof result === 'string' ? { error: result } : result
+            const errorResult = typeof result === 'string' ? { error: result } : result;
             throw new ClientError(
                 { ...errorResult },
                 { query, variables },
-            )
+            );
         }
     }
 }

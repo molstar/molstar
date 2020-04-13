@@ -29,14 +29,14 @@ export class StructureMeasurementsControls extends CollapsableControls {
             isCollapsed: false,
             header: 'Measurements',
             brand: { name: 'Msr', accent: 'gray' as const }
-        }
+        };
     }
 
     renderControls() {
         return <>
             <MeasurementControls />
             <MeasurementList />
-        </>
+        </>;
     }
 }
 
@@ -50,7 +50,7 @@ export class MeasurementList extends PurePluginUIComponent {
     renderGroup(cells: ReadonlyArray<StructureMeasurementCell>, header: string) {
         const group: JSX.Element[] = [];
         for (const cell of cells) {
-            if (cell.obj) group.push(<MeasurementEntry key={cell.obj.id} cell={cell} />)
+            if (cell.obj) group.push(<MeasurementEntry key={cell.obj.id} cell={cell} />);
         }
         return group.length ? <ExpandGroup header={header} initiallyExpanded={true}>{group}</ExpandGroup> : null;
     }
@@ -164,7 +164,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
             {entries.length === 0 && <div className='msp-control-offset msp-help-text'>
                 <div className='msp-help-description'><Icon name='help-circle' />Add one or more selections</div>
             </div>}
-        </>
+        </>;
     }
 
     render() {
@@ -175,7 +175,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
             </div>
             {this.state.action === 'add' && this.add()}
             {this.state.action === 'options' && <MeasurementsOptions />}
-        </>
+        </>;
     }
 }
 
@@ -188,8 +188,8 @@ class MeasurementsOptions extends PurePluginUIComponent<{}, { isDisabled: boolea
         });
 
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            console.log('isBusy', 'measurement opt', v)
-            this.setState({ isDisabled: v })
+            console.log('isBusy', 'measurement opt', v);
+            this.setState({ isDisabled: v });
         });
     }
 
@@ -250,7 +250,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         const selections = this.selections;
         if (!selections) return;
 
-        const sphere = Loci.getBundleBoundingSphere(toLociBundle(selections.data))
+        const sphere = Loci.getBundleBoundingSphere(toLociBundle(selections.data));
         if (sphere) {
             this.plugin.managers.camera.focusSphere(sphere);
         }
@@ -259,16 +259,16 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
     get label() {
         const selections = this.selections;
         switch (selections?.data.length) {
-            case 1: return lociLabel(selections.data[0].loci, { condensed: true })
-            case 2: return distanceLabel(toLociBundle(selections.data), { condensed: true, unitLabel: this.plugin.managers.structure.measurement.state.options.distanceUnitLabel })
-            case 3: return angleLabel(toLociBundle(selections.data), { condensed: true })
-            case 4: return dihedralLabel(toLociBundle(selections.data), { condensed: true })
-            default: return ''
+            case 1: return lociLabel(selections.data[0].loci, { condensed: true });
+            case 2: return distanceLabel(toLociBundle(selections.data), { condensed: true, unitLabel: this.plugin.managers.structure.measurement.state.options.distanceUnitLabel });
+            case 3: return angleLabel(toLociBundle(selections.data), { condensed: true });
+            case 4: return dihedralLabel(toLociBundle(selections.data), { condensed: true });
+            default: return '';
         }
     }
 
     get actions(): ActionMenu.Items {
-        this.props.cell.sourceRef
+        this.props.cell.sourceRef;
         return [ActionMenu.Item('Select This', () => this.plugin.managers.structure.selection.fromSelections(this.props.cell.sourceRef!), { icon: 'set' })];
     }
 
@@ -300,10 +300,10 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
                     </ExpandGroup>
                 </div>
             </>}
-        </>
+        </>;
     }
 }
 
 function toLociBundle(data: FiniteArray<{ loci: Loci }, any>): { loci: FiniteArray<Loci, any> } {
-    return { loci: (data.map(d => d.loci) as unknown as FiniteArray<Loci, any>) }
+    return { loci: (data.map(d => d.loci) as unknown as FiniteArray<Loci, any>) };
 }

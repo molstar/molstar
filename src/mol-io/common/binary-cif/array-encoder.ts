@@ -7,8 +7,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ChunkedArray } from '../../../mol-data/util'
-import { Encoding, EncodedData } from './encoding'
+import { ChunkedArray } from '../../../mol-data/util';
+import { Encoding, EncodedData } from './encoding';
 import { classifyIntArray } from './classifier';
 import { TypedIntArray, TypedFloatArray } from '../../../mol-util/type-helpers';
 
@@ -42,7 +42,7 @@ export class ArrayEncoderImpl implements ArrayEncoder {
         return {
             encoding,
             data
-        }
+        };
     }
 
     constructor(private providers: ArrayEncoding.Provider[]) {
@@ -103,13 +103,13 @@ export namespace ArrayEncoding {
     }
 
     const writers = {
-        [Encoding.IntDataType.Int16]: function (v: DataView, i: number, a: number) { v.setInt16(2 * i, a, true) },
-        [Encoding.IntDataType.Uint16]: function (v: DataView, i: number, a: number) { v.setUint16(2 * i, a, true) },
-        [Encoding.IntDataType.Int32]: function (v: DataView, i: number, a: number) { v.setInt32(4 * i, a, true) },
-        [Encoding.IntDataType.Uint32]: function (v: DataView, i: number, a: number) { v.setUint32(4 * i, a, true) },
-        [Encoding.FloatDataType.Float32]: function (v: DataView, i: number, a: number) { v.setFloat32(4 * i, a, true) },
-        [Encoding.FloatDataType.Float64]: function (v: DataView, i: number, a: number) { v.setFloat64(8 * i, a, true) }
-    }
+        [Encoding.IntDataType.Int16]: function (v: DataView, i: number, a: number) { v.setInt16(2 * i, a, true); },
+        [Encoding.IntDataType.Uint16]: function (v: DataView, i: number, a: number) { v.setUint16(2 * i, a, true); },
+        [Encoding.IntDataType.Int32]: function (v: DataView, i: number, a: number) { v.setInt32(4 * i, a, true); },
+        [Encoding.IntDataType.Uint32]: function (v: DataView, i: number, a: number) { v.setUint32(4 * i, a, true); },
+        [Encoding.FloatDataType.Float32]: function (v: DataView, i: number, a: number) { v.setFloat32(4 * i, a, true); },
+        [Encoding.FloatDataType.Float64]: function (v: DataView, i: number, a: number) { v.setFloat64(8 * i, a, true); }
+    };
 
     const byteSizes = {
         [Encoding.IntDataType.Int16]: 2,
@@ -118,7 +118,7 @@ export namespace ArrayEncoding {
         [Encoding.IntDataType.Uint32]: 4,
         [Encoding.FloatDataType.Float32]: 4,
         [Encoding.FloatDataType.Float64]: 8
-    }
+    };
 
     export function byteArray(data: TypedFloatArray | TypedIntArray) {
         const type = Encoding.getDataType(data);
@@ -300,14 +300,14 @@ export namespace ArrayEncoding {
                 isSigned: signed,
                 size: size16,
                 bytesPerElement: 2
-            }
+            };
         } else {
             // 1 byte packing is the most effective
             return {
                 isSigned: signed,
                 size: size8,
                 bytesPerElement: 1
-            }
+            };
         };
     }
 

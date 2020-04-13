@@ -7,11 +7,11 @@
 export type GLRenderingContext = WebGLRenderingContext | WebGL2RenderingContext
 
 export function isWebGL(gl: any): gl is WebGLRenderingContext {
-    return typeof WebGLRenderingContext !== 'undefined' && gl instanceof WebGLRenderingContext
+    return typeof WebGLRenderingContext !== 'undefined' && gl instanceof WebGLRenderingContext;
 }
 
 export function isWebGL2(gl: any): gl is WebGL2RenderingContext {
-    return typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext
+    return typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
 }
 
 export interface COMPAT_instanced_arrays {
@@ -28,16 +28,16 @@ export function getInstancedArrays(gl: GLRenderingContext): COMPAT_instanced_arr
             drawElementsInstanced: gl.drawElementsInstanced.bind(gl),
             vertexAttribDivisor: gl.vertexAttribDivisor.bind(gl),
             VERTEX_ATTRIB_ARRAY_DIVISOR: gl.VERTEX_ATTRIB_ARRAY_DIVISOR
-        }
+        };
     } else {
-        const ext = gl.getExtension('ANGLE_instanced_arrays')
-        if (ext === null) return null
+        const ext = gl.getExtension('ANGLE_instanced_arrays');
+        if (ext === null) return null;
         return {
             drawArraysInstanced: ext.drawArraysInstancedANGLE.bind(ext),
             drawElementsInstanced: ext.drawElementsInstancedANGLE.bind(ext),
             vertexAttribDivisor: ext.vertexAttribDivisorANGLE.bind(ext),
             VERTEX_ATTRIB_ARRAY_DIVISOR: ext.VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE
-        }
+        };
     }
 }
 
@@ -47,11 +47,11 @@ export interface COMPAT_standard_derivatives {
 
 export function getStandardDerivatives(gl: GLRenderingContext): COMPAT_standard_derivatives | null {
     if (isWebGL2(gl)) {
-        return { FRAGMENT_SHADER_DERIVATIVE_HINT: gl.FRAGMENT_SHADER_DERIVATIVE_HINT }
+        return { FRAGMENT_SHADER_DERIVATIVE_HINT: gl.FRAGMENT_SHADER_DERIVATIVE_HINT };
     } else {
-        const ext = gl.getExtension('OES_standard_derivatives')
-        if (ext === null) return null
-        return { FRAGMENT_SHADER_DERIVATIVE_HINT: ext.FRAGMENT_SHADER_DERIVATIVE_HINT_OES }
+        const ext = gl.getExtension('OES_standard_derivatives');
+        if (ext === null) return null;
+        return { FRAGMENT_SHADER_DERIVATIVE_HINT: ext.FRAGMENT_SHADER_DERIVATIVE_HINT_OES };
     }
 }
 
@@ -59,7 +59,7 @@ export interface COMPAT_element_index_uint {
 }
 
 export function getElementIndexUint(gl: GLRenderingContext): COMPAT_element_index_uint | null {
-    return isWebGL2(gl) ? {} : gl.getExtension('OES_element_index_uint')
+    return isWebGL2(gl) ? {} : gl.getExtension('OES_element_index_uint');
 }
 
 export interface COMPAT_vertex_array_object {
@@ -78,17 +78,17 @@ export function getVertexArrayObject(gl: GLRenderingContext): COMPAT_vertex_arra
             createVertexArray: gl.createVertexArray.bind(gl),
             deleteVertexArray: gl.deleteVertexArray.bind(gl),
             isVertexArray: gl.isVertexArray.bind(gl)
-        }
+        };
     } else {
-        const ext = gl.getExtension('OES_vertex_array_object')
-        if (ext === null) return null
+        const ext = gl.getExtension('OES_vertex_array_object');
+        if (ext === null) return null;
         return {
             VERTEX_ARRAY_BINDING: ext.VERTEX_ARRAY_BINDING_OES,
             bindVertexArray: ext.bindVertexArrayOES.bind(ext),
             createVertexArray: ext.createVertexArrayOES.bind(ext),
             deleteVertexArray: ext.deleteVertexArrayOES.bind(ext),
             isVertexArray: ext.isVertexArrayOES.bind(ext)
-        }
+        };
     }
 }
 
@@ -96,14 +96,14 @@ export interface COMPAT_texture_float {
 }
 
 export function getTextureFloat(gl: GLRenderingContext): COMPAT_texture_float | null {
-    return isWebGL2(gl) ? {} : gl.getExtension('OES_texture_float')
+    return isWebGL2(gl) ? {} : gl.getExtension('OES_texture_float');
 }
 
 export interface COMPAT_texture_float_linear {
 }
 
 export function getTextureFloatLinear(gl: GLRenderingContext): COMPAT_texture_float_linear | null {
-    return gl.getExtension('OES_texture_float_linear')
+    return gl.getExtension('OES_texture_float_linear');
 }
 
 export interface COMPAT_blend_minmax {
@@ -113,11 +113,11 @@ export interface COMPAT_blend_minmax {
 
 export function getBlendMinMax(gl: GLRenderingContext): COMPAT_blend_minmax | null {
     if (isWebGL2(gl)) {
-        return { MIN: gl.MIN, MAX: gl.MAX }
+        return { MIN: gl.MIN, MAX: gl.MAX };
     } else {
-        const ext = gl.getExtension('EXT_blend_minmax')
-        if (ext === null) return null
-        return { MIN: ext.MIN_EXT, MAX: ext.MAX_EXT }
+        const ext = gl.getExtension('EXT_blend_minmax');
+        if (ext === null) return null;
+        return { MIN: ext.MIN_EXT, MAX: ext.MAX_EXT };
     }
 }
 
@@ -125,7 +125,7 @@ export interface COMPAT_frag_depth {
 }
 
 export function getFragDepth(gl: GLRenderingContext): COMPAT_frag_depth | null {
-    return isWebGL2(gl) ? {} : gl.getExtension('EXT_frag_depth')
+    return isWebGL2(gl) ? {} : gl.getExtension('EXT_frag_depth');
 }
 
 export interface COMPAT_color_buffer_float {
@@ -134,12 +134,12 @@ export interface COMPAT_color_buffer_float {
 
 export function getColorBufferFloat(gl: GLRenderingContext): COMPAT_color_buffer_float | null {
     if (isWebGL2(gl)) {
-        if (gl.getExtension('EXT_color_buffer_float') === null) return null
-        return { RGBA32F: gl.RGBA32F }
+        if (gl.getExtension('EXT_color_buffer_float') === null) return null;
+        return { RGBA32F: gl.RGBA32F };
     } else {
-        const ext = gl.getExtension('WEBGL_color_buffer_float')
-        if (ext === null) return null
-        return { RGBA32F: ext.RGBA32F_EXT }
+        const ext = gl.getExtension('WEBGL_color_buffer_float');
+        if (ext === null) return null;
+        return { RGBA32F: ext.RGBA32F_EXT };
     }
 }
 
@@ -187,10 +187,10 @@ export function getDrawBuffers(gl: GLRenderingContext): COMPAT_draw_buffers | nu
             DRAW_BUFFER7: gl.DRAW_BUFFER7,
             MAX_COLOR_ATTACHMENTS: gl.MAX_COLOR_ATTACHMENTS,
             MAX_DRAW_BUFFERS: gl.MAX_DRAW_BUFFERS,
-        }
+        };
     } else {
-        const ext = gl.getExtension('WEBGL_draw_buffers')
-        if (ext === null) return null
+        const ext = gl.getExtension('WEBGL_draw_buffers');
+        if (ext === null) return null;
         return {
             drawBuffers: ext.drawBuffersWEBGL.bind(ext),
             COLOR_ATTACHMENT0: ext.COLOR_ATTACHMENT0_WEBGL,
@@ -211,7 +211,7 @@ export function getDrawBuffers(gl: GLRenderingContext): COMPAT_draw_buffers | nu
             DRAW_BUFFER7: ext.DRAW_BUFFER7_WEBGL,
             MAX_COLOR_ATTACHMENTS: ext.MAX_COLOR_ATTACHMENTS_WEBGL,
             MAX_DRAW_BUFFERS: ext.MAX_DRAW_BUFFERS_WEBGL,
-        }
+        };
     }
 }
 
@@ -219,7 +219,7 @@ export interface COMPAT_shader_texture_lod {
 }
 
 export function getShaderTextureLod(gl: GLRenderingContext): COMPAT_shader_texture_lod | null {
-    return isWebGL2(gl) ? {} : gl.getExtension('EXT_shader_texture_lod')
+    return isWebGL2(gl) ? {} : gl.getExtension('EXT_shader_texture_lod');
 }
 
 export interface COMPAT_depth_texture {
@@ -230,12 +230,12 @@ export function getDepthTexture(gl: GLRenderingContext): COMPAT_depth_texture | 
     if (isWebGL2(gl)) {
         return {
             UNSIGNED_INT_24_8: gl.UNSIGNED_INT_24_8
-        }
+        };
     } else {
-        const ext = gl.getExtension('WEBGL_depth_texture')
-        if (ext === null) return null
+        const ext = gl.getExtension('WEBGL_depth_texture');
+        if (ext === null) return null;
         return {
             UNSIGNED_INT_24_8: ext.UNSIGNED_INT_24_8_WEBGL
-        }
+        };
     }
 }

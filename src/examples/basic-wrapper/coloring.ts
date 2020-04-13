@@ -21,10 +21,10 @@ export const StripedResidues = CustomElementProperty.create<number>({
         return map;
     },
     coloring: {
-        getColor(e) { return e === 0 ? Color(0xff0000) : Color(0x0000ff) },
+        getColor(e) { return e === 0 ? Color(0xff0000) : Color(0x0000ff); },
         defaultColor: Color(0x777777)
     },
     getLabel(e) {
-        return e === 0 ? 'Odd stripe' : 'Even stripe'
+        return e === 0 ? 'Odd stripe' : 'Even stripe';
     }
-})
+});

@@ -10,7 +10,7 @@ import { Script } from '../../mol-script/script';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { PluginStateObject as SO } from '../objects';
 
-export { StructureQueryHelper }
+export { StructureQueryHelper };
 namespace StructureQueryHelper {
     export interface CacheEntry {
         script?: Script,
@@ -37,7 +37,7 @@ namespace StructureQueryHelper {
     }
 
     export function run(entry: CacheEntry, structure: Structure) {
-        return entry.compiled(new QueryContext(structure))
+        return entry.compiled(new QueryContext(structure));
     }
 
     export function createAndRun(structure: Structure, query: Script | Expression) {

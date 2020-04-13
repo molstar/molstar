@@ -11,12 +11,12 @@
 // but not
 // const undefPooledStr = UndefinedColumn(molecule.num_atoms, ColumnType.pooledStr);
 // because latter actuall return a column of zeros
-import { Column } from '../../../mol-data/db'
-import { TokenBuilder, Tokenizer } from '../common/text/tokenizer'
-import TokenColumn from '../common/text/column/token'
-import * as Schema from './schema'
-import { ReaderResult as Result } from '../result'
-import { Task, RuntimeContext, chunkedSubtask } from '../../../mol-task'
+import { Column } from '../../../mol-data/db';
+import { TokenBuilder, Tokenizer } from '../common/text/tokenizer';
+import TokenColumn from '../common/text/column/token';
+import * as Schema from './schema';
+import { ReaderResult as Result } from '../result';
+import { Task, RuntimeContext, chunkedSubtask } from '../../../mol-task';
 
 const { skipWhitespace, eatValue, markLine, getTokenString, readLine } = Tokenizer;
 
@@ -76,12 +76,12 @@ function handleMolecule(state: State) {
     molecule.charge_type = getTokenString(tokenizer);
 
     markLine(tokenizer);
-    if (getTokenString(tokenizer) === '') return
-    molecule.status_bits = getTokenString(tokenizer)
+    if (getTokenString(tokenizer) === '') return;
+    molecule.status_bits = getTokenString(tokenizer);
 
     markLine(tokenizer);
-    if (getTokenString(tokenizer) === '') return
-    molecule.mol_comment = getTokenString(tokenizer)
+    if (getTokenString(tokenizer) === '') return;
+    molecule.mol_comment = getTokenString(tokenizer);
 }
 
 function isStatus_bit(aString: string): boolean {
@@ -108,7 +108,7 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     const initialTokenizerPosition = tokenizer.position;
     const initialTokenizerLineNumber = tokenizer.lineNumber;
     const firstLine = readLine(tokenizer);
-    const firstLineArray = firstLine.trim().split(/\s+/g)
+    const firstLineArray = firstLine.trim().split(/\s+/g);
     const firstLineLength = firstLineArray.length;
 
     // optional columns are in order "integer string float string".
@@ -160,10 +160,10 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     const undefStr = Column.Undefined(molecule.num_atoms, Column.Schema.str);
 
     let numOfColumn = 6;
-    if (hasSubst_id) { numOfColumn++ }
-    if (hasSubst_name) { numOfColumn++ }
-    if (hasCharge) { numOfColumn++ }
-    if (hasStatus_bit) { numOfColumn++ }
+    if (hasSubst_id) { numOfColumn++; }
+    if (hasSubst_name) { numOfColumn++; }
+    if (hasCharge) { numOfColumn++; }
+    if (hasStatus_bit) { numOfColumn++; }
 
     tokenizer.position = initialTokenizerPosition;
     tokenizer.lineNumber = initialTokenizerLineNumber;
@@ -250,7 +250,7 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     const initialTokenizerPosition = tokenizer.position;
     const initialTokenizerLineNumber = tokenizer.lineNumber;
     const firstLine = readLine(tokenizer);
-    const firstLineArray = firstLine.trim().split(/\s+/g)
+    const firstLineArray = firstLine.trim().split(/\s+/g);
     const firstLineLength = firstLineArray.length;
     if (firstLineLength === 5) {
         hasStatus_bit = true;
@@ -273,7 +273,7 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     const undefStr = Column.Undefined(molecule.num_bonds, Column.Schema.str);
 
     let numberOfColumn = 4;
-    if (hasStatus_bit) { numberOfColumn++ }
+    if (hasStatus_bit) { numberOfColumn++; }
 
     tokenizer.position = initialTokenizerPosition;
     tokenizer.lineNumber = initialTokenizerLineNumber;

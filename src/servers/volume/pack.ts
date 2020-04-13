@@ -8,9 +8,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as argparse from 'argparse'
-import pack from './pack/main'
-import VERSION from './pack/version'
+import * as argparse from 'argparse';
+import pack from './pack/main';
+import VERSION from './pack/version';
 
 type FileFormat = 'ccp4' | 'dsn6'
 
@@ -27,23 +27,23 @@ function getConfig(args: Args) {
         blockSizeInMB: args.blockSizeInMB,
         format: args.format,
         outputFilename: args.output
-    }
+    };
     switch (args.mode) {
         case 'em':
             config.input = [
                 { name: 'em', filename: args.inputEm }
             ];
             config.isPeriodic = false;
-            break
+            break;
         case 'xray':
             config.input = [
                 { name: '2Fo-Fc', filename: args.input2fofc },
                 { name: 'Fo-Fc', filename: args.inputFofc }
             ];
             config.isPeriodic = true;
-            break
+            break;
     }
-    return config as Config
+    return config as Config;
 }
 
 interface GeneralArgs {
@@ -73,21 +73,21 @@ const subparsers = parser.addSubparsers({
 });
 
 function addGeneralArgs(parser: argparse.ArgumentParser) {
-    parser.addArgument(['output'], { help: `Output path.` })
-    parser.addArgument(['--blockSizeInMB'], { defaultValue: 96, help: `Maximum block size.`, metavar: 'SIZE' })
-    parser.addArgument(['--format'], { defaultValue: 'ccp4', help: `Input file format.` })
+    parser.addArgument(['output'], { help: `Output path.` });
+    parser.addArgument(['--blockSizeInMB'], { defaultValue: 96, help: `Maximum block size.`, metavar: 'SIZE' });
+    parser.addArgument(['--format'], { defaultValue: 'ccp4', help: `Input file format.` });
 }
 
-const xrayParser = subparsers.addParser('xray', { addHelp: true })
-xrayParser.addArgument(['input2fofc'], { help: `Path to 2fofc file.`, metavar: '2FOFC' })
-xrayParser.addArgument(['inputFofc'], { help: `Path to fofc file.`, metavar: 'FOFC' })
-addGeneralArgs(xrayParser)
+const xrayParser = subparsers.addParser('xray', { addHelp: true });
+xrayParser.addArgument(['input2fofc'], { help: `Path to 2fofc file.`, metavar: '2FOFC' });
+xrayParser.addArgument(['inputFofc'], { help: `Path to fofc file.`, metavar: 'FOFC' });
+addGeneralArgs(xrayParser);
 
-const emParser = subparsers.addParser('em', { addHelp: true })
-emParser.addArgument(['inputEm'], { help: `Path to EM density file.`, metavar: 'EM' })
-addGeneralArgs(emParser)
+const emParser = subparsers.addParser('em', { addHelp: true });
+emParser.addArgument(['inputEm'], { help: `Path to EM density file.`, metavar: 'EM' });
+addGeneralArgs(emParser);
 
 const args: Args = parser.parseArgs();
-const config = getConfig(args)
+const config = getConfig(args);
 
 pack(config.input, config.blockSizeInMB, config.isPeriodic, config.outputFilename, config.format);

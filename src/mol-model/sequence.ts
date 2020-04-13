@@ -4,4 +4,4 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from './sequence/sequence'
+export * from './sequence/sequence';

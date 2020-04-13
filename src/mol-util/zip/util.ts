@@ -66,13 +66,13 @@ export const U = (function(){
     */
     makeCodes(U.fltree, 9);
     codes2map(U.fltree, 9, U.flmap);
-    revCodes (U.fltree, 9)
+    revCodes (U.fltree, 9);
 
     pushV(U.fdtree, 32, 5);
     // for(i=0;i<32; i++) U.fdtree.push(0,5);
     makeCodes(U.fdtree, 5);
     codes2map(U.fdtree, 5, U.fdmap);
-    revCodes (U.fdtree, 5)
+    revCodes (U.fdtree, 5);
 
     pushV(U.itree, 19, 0);  pushV(U.ltree, 286, 0);  pushV(U.dtree, 30, 0);  pushV(U.ttree, 320, 0);
     /*
@@ -90,8 +90,8 @@ export function codes2map(tree: number[], MAX_BITS: number, map: Uint16Array) {
         if(tree[i + 1] !== 0)  {
             const lit = i >> 1;
             const cl = tree[i + 1], val = (lit << 4) | cl; // :  (0x8000 | (U.of0[lit-257]<<7) | (U.exb[lit-257]<<4) | cl);
-            const rest = (MAX_BITS - cl)
-            let i0 = tree[i] << rest
+            const rest = (MAX_BITS - cl);
+            let i0 = tree[i] << rest;
             const i1 = i0 + (1 << rest);
             // tree[i]=r15[i0]>>>(15-MAX_BITS);
             while(i0 !== i1) {

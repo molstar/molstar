@@ -137,7 +137,7 @@ function run(f: () => number, n: number) {
     console.log('set', testSet(set, queryPoints));
     console.log('mask', testMask(mask, queryPoints));
 
-    console.log('----------------------')
+    console.log('----------------------');
 
     console.time('obj');
     run(() => testObj(obj, queryPoints), 100);
@@ -155,7 +155,7 @@ function run(f: () => number, n: number) {
     run(() => testMask(mask, queryPoints), 100);
     console.timeEnd('mask-search');
 
-    console.log('----------------------')
+    console.log('----------------------');
 
     console.time('prepare-obj');
     run(() => prepareObj(list), 1);
@@ -168,4 +168,4 @@ function run(f: () => number, n: number) {
     console.time('prepare-mask');
     run(() => prepareMask(list).min, 1);
     console.timeEnd('prepare-mask');
-}())
+}());

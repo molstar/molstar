@@ -44,4 +44,4 @@ void main() {
         gl_FragColor.rgb = encodeFloatRGB(vGroup);
     #endif
 }
-`
+`;

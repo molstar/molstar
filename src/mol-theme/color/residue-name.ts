@@ -8,7 +8,7 @@ import { Color, ColorMap } from '../../mol-util/color';
 import { StructureElement, Unit, Bond, ElementIndex } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
-import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
@@ -58,62 +58,62 @@ export const ResidueNameColors = ColorMap({
     'GPN': 0x32CD32,
     'CPN': 0xFFD700,
     'TPN': 0x4169E1,
-})
+});
 export type ResidueNameColors = typeof ResidueNameColors
 
-const DefaultResidueNameColor = Color(0xFF00FF)
-const Description = 'Assigns a color to every residue according to its name.'
+const DefaultResidueNameColor = Color(0xFF00FF);
+const Description = 'Assigns a color to every residue according to its name.';
 
 export const ResidueNameColorThemeParams = {
     saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
     lightness: PD.Numeric(1, { min: -6, max: 6, step: 0.1 })
-}
+};
 export type ResidueNameColorThemeParams = typeof ResidueNameColorThemeParams
 export function getResidueNameColorThemeParams(ctx: ThemeDataContext) {
-    return ResidueNameColorThemeParams // TODO return copy
+    return ResidueNameColorThemeParams; // TODO return copy
 }
 
 function getAtomicCompId(unit: Unit.Atomic, element: ElementIndex) {
-    return unit.model.atomicHierarchy.residues.label_comp_id.value(unit.residueIndex[element])
+    return unit.model.atomicHierarchy.residues.label_comp_id.value(unit.residueIndex[element]);
 }
 
 function getCoarseCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIndex) {
-    const seqIdBegin = unit.coarseElements.seq_id_begin.value(element)
-    const seqIdEnd = unit.coarseElements.seq_id_end.value(element)
+    const seqIdBegin = unit.coarseElements.seq_id_begin.value(element);
+    const seqIdEnd = unit.coarseElements.seq_id_end.value(element);
     if (seqIdBegin === seqIdEnd) {
-        const entityKey = unit.coarseElements.entityKey[element]
-        const seq = unit.model.sequence.byEntityKey[entityKey].sequence
-        return seq.compId.value(seqIdBegin - 1) // 1-indexed
+        const entityKey = unit.coarseElements.entityKey[element];
+        const seq = unit.model.sequence.byEntityKey[entityKey].sequence;
+        return seq.compId.value(seqIdBegin - 1); // 1-indexed
     }
 }
 
 export function residueNameColor(colorMap: ResidueNameColors, residueName: string): Color {
-    const c = colorMap[residueName as keyof ResidueNameColors]
-    return c === undefined ? DefaultResidueNameColor : c
+    const c = colorMap[residueName as keyof ResidueNameColors];
+    return c === undefined ? DefaultResidueNameColor : c;
 }
 
 export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<ResidueNameColorThemeParams>): ColorTheme<ResidueNameColorThemeParams> {
-    const colorMap = getAdjustedColorMap(ResidueNameColors, props.saturation, props.lightness)
+    const colorMap = getAdjustedColorMap(ResidueNameColors, props.saturation, props.lightness);
 
     function color(location: Location): Color {
         if (StructureElement.Location.is(location)) {
             if (Unit.isAtomic(location.unit)) {
-                const compId = getAtomicCompId(location.unit, location.element)
-                return residueNameColor(colorMap, compId)
+                const compId = getAtomicCompId(location.unit, location.element);
+                return residueNameColor(colorMap, compId);
             } else {
-                const compId = getCoarseCompId(location.unit, location.element)
-                if (compId) return residueNameColor(colorMap, compId)
+                const compId = getCoarseCompId(location.unit, location.element);
+                if (compId) return residueNameColor(colorMap, compId);
             }
         } else if (Bond.isLocation(location)) {
             if (Unit.isAtomic(location.aUnit)) {
-                const compId = getAtomicCompId(location.aUnit, location.aUnit.elements[location.aIndex])
-                return residueNameColor(colorMap, compId)
+                const compId = getAtomicCompId(location.aUnit, location.aUnit.elements[location.aIndex]);
+                return residueNameColor(colorMap, compId);
             } else {
-                const compId = getCoarseCompId(location.aUnit, location.aUnit.elements[location.aIndex])
-                if (compId) return residueNameColor(colorMap, compId)
+                const compId = getCoarseCompId(location.aUnit, location.aUnit.elements[location.aIndex]);
+                if (compId) return residueNameColor(colorMap, compId);
             }
         }
-        return DefaultResidueNameColor
+        return DefaultResidueNameColor;
     }
 
     return {
@@ -123,9 +123,9 @@ export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<Re
         props,
         description: Description,
         legend: TableLegend(Object.keys(ResidueNameColors).map(name => {
-            return [name, (ResidueNameColors as any)[name] as Color] as [string, Color]
+            return [name, (ResidueNameColors as any)[name] as Color] as [string, Color];
         }).concat([[ 'Unknown', DefaultResidueNameColor ]]))
-    }
+    };
 }
 
 export const ResidueNameColorThemeProvider: ColorTheme.Provider<ResidueNameColorThemeParams, 'residue-name'> = {
@@ -136,4 +136,4 @@ export const ResidueNameColorThemeProvider: ColorTheme.Provider<ResidueNameColor
     getParams: getResidueNameColorThemeParams,
     defaultValues: PD.getDefaultValues(ResidueNameColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
-}
+};

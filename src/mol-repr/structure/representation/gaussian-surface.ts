@@ -18,21 +18,21 @@ const GaussianSurfaceVisuals = {
     'structure-gaussian-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, StructureGaussianSurfaceMeshParams>) => ComplexRepresentation('Structure-Gaussian surface mesh', ctx, getParams, StructureGaussianSurfaceMeshVisual),
     'gaussian-surface-texture-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceMeshParams>) => UnitsRepresentation('Gaussian surface texture-mesh', ctx, getParams, GaussianSurfaceTextureMeshVisual),
     'gaussian-surface-wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianWireframeParams>) => UnitsRepresentation('Gaussian surface wireframe', ctx, getParams, GaussianWireframeVisual),
-}
+};
 
 export const GaussianSurfaceParams = {
     ...GaussianSurfaceMeshParams,
     ...GaussianWireframeParams,
     visuals: PD.MultiSelect(['gaussian-surface-mesh'], PD.objectToOptions(GaussianSurfaceVisuals)),
-}
+};
 export type GaussianSurfaceParams = typeof GaussianSurfaceParams
 export function getGaussianSurfaceParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(GaussianSurfaceParams)
+    return PD.clone(GaussianSurfaceParams);
 }
 
 export type GaussianSurfaceRepresentation = StructureRepresentation<GaussianSurfaceParams>
 export function GaussianSurfaceRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceParams>): GaussianSurfaceRepresentation {
-    return Representation.createMulti('Gaussian Surface', ctx, getParams, StructureRepresentationStateBuilder, GaussianSurfaceVisuals as unknown as Representation.Def<Structure, GaussianSurfaceParams>)
+    return Representation.createMulti('Gaussian Surface', ctx, getParams, StructureRepresentationStateBuilder, GaussianSurfaceVisuals as unknown as Representation.Def<Structure, GaussianSurfaceParams>);
 }
 
 export const GaussianSurfaceRepresentationProvider = StructureRepresentationProvider({
@@ -45,4 +45,4 @@ export const GaussianSurfaceRepresentationProvider = StructureRepresentationProv
     defaultColorTheme: { name: 'polymer-id' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-})
+});

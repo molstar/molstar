@@ -8,10 +8,10 @@ import { Structure, Model } from '../../../mol-model/structure';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { Cache } from './cache';
 import { ModelServerConfig as Config, mapSourceAndIdToFilename, ModelServerFetchFormats } from '../config';
-import { CIF, CifFrame, CifBlock } from '../../../mol-io/reader/cif'
-import * as util from 'util'
-import * as fs from 'fs'
-import * as zlib from 'zlib'
+import { CIF, CifFrame, CifBlock } from '../../../mol-io/reader/cif';
+import * as util from 'util';
+import * as fs from 'fs';
+import * as zlib from 'zlib';
 import { JobEntry } from './jobs';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { ModelPropertiesProvider } from '../property-provider';
@@ -70,7 +70,7 @@ const unzipAsync = util.promisify<zlib.InputType, Buffer>(zlib.unzip);
 async function readFile(filename: string) {
     const isGz = /\.gz$/i.test(filename);
     if (filename.match(/\.bcif/)) {
-        let input = await readFileAsync(filename)
+        let input = await readFileAsync(filename);
         if (isGz) input = await unzipAsync(input);
         const data = new Uint8Array(input.byteLength);
         for (let i = 0; i < input.byteLength; i++) data[i] = input[i];

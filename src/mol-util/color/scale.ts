@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color } from './color'
-import { getColorListFromName, ColorListName } from './lists'
+import { Color } from './color';
+import { getColorListFromName, ColorListName } from './lists';
 import { defaults } from '../../mol-util';
 import { NumberArray } from '../../mol-util/type-helpers';
 import { ScaleLegend } from '../legend';
@@ -29,45 +29,45 @@ export const DefaultColorScaleProps = {
     listOrName: 'red-yellow-blue' as Color[] | ColorListName,
     minLabel: '' as string | undefined,
     maxLabel: '' as string | undefined,
-}
+};
 export type ColorScaleProps = Partial<typeof DefaultColorScaleProps>
 
 export namespace ColorScale {
     export function create(props: ColorScaleProps): ColorScale {
-        const { domain, reverse, listOrName } = { ...DefaultColorScaleProps, ...props }
-        const list = typeof listOrName === 'string' ? getColorListFromName(listOrName).list : listOrName
+        const { domain, reverse, listOrName } = { ...DefaultColorScaleProps, ...props };
+        const list = typeof listOrName === 'string' ? getColorListFromName(listOrName).list : listOrName;
 
-        const colors = reverse ? list.slice().reverse() : list
-        const count1 = colors.length - 1
+        const colors = reverse ? list.slice().reverse() : list;
+        const count1 = colors.length - 1;
 
-        let diff = 0, min = 0, max = 0
+        let diff = 0, min = 0, max = 0;
         function setDomain(_min: number, _max: number) {
-            min = _min
-            max = _max
-            diff = (max - min) || 1
+            min = _min;
+            max = _max;
+            diff = (max - min) || 1;
         }
-        setDomain(domain[0], domain[1])
+        setDomain(domain[0], domain[1]);
 
-        const minLabel = defaults(props.minLabel, min.toString())
-        const maxLabel = defaults(props.maxLabel, max.toString())
+        const minLabel = defaults(props.minLabel, min.toString());
+        const maxLabel = defaults(props.maxLabel, max.toString());
 
         function color(value: number) {
-            const t = Math.min(colors.length - 1, Math.max(0, ((value - min) / diff) * count1))
-            const tf = Math.floor(t)
-            const c1 = colors[tf]
-            const c2 = colors[Math.ceil(t)]
-            return Color.interpolate(c1, c2, t - tf)
+            const t = Math.min(colors.length - 1, Math.max(0, ((value - min) / diff) * count1));
+            const tf = Math.floor(t);
+            const c1 = colors[tf];
+            const c2 = colors[Math.ceil(t)];
+            return Color.interpolate(c1, c2, t - tf);
         }
         return {
             color,
             colorToArray: (value: number, array: NumberArray, offset: number) => {
-                Color.toArray(color(value), array, offset)
+                Color.toArray(color(value), array, offset);
             },
             normalizedColorToArray: (value: number, array: NumberArray, offset: number) => {
-                Color.toArrayNormalized(color(value), array, offset)
+                Color.toArrayNormalized(color(value), array, offset);
             },
             setDomain,
-            get legend() { return ScaleLegend(minLabel, maxLabel, colors) }
-        }
+            get legend() { return ScaleLegend(minLabel, maxLabel, colors); }
+        };
     }
 }

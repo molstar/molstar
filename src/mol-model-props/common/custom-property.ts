@@ -12,7 +12,7 @@ import { OrderedMap } from 'immutable';
 
 type AjaxTask = import('../../mol-util/data-source').AjaxTask
 
-export { CustomProperty }
+export { CustomProperty };
 
 namespace CustomProperty {
     export interface Context {
@@ -44,54 +44,54 @@ namespace CustomProperty {
 
         /** Get params for all applicable property providers */
         getParams(data?: Data) {
-            const propertiesParams: PD.Params = {}
-            const autoAttachOptions: [string, string][] = []
-            const autoAttachDefault: string[] = []
+            const propertiesParams: PD.Params = {};
+            const autoAttachOptions: [string, string][] = [];
+            const autoAttachDefault: string[] = [];
             if (data) {
                 const values = this.providers.values();
                 while (true) {
-                    const v = values.next()
-                    if (v.done) break
+                    const v = values.next();
+                    if (v.done) break;
 
-                    const provider = v.value
-                    if (!provider.isApplicable(data)) continue
+                    const provider = v.value;
+                    if (!provider.isApplicable(data)) continue;
 
-                    autoAttachOptions.push([provider.descriptor.name, provider.label])
+                    autoAttachOptions.push([provider.descriptor.name, provider.label]);
                     if (this.defaultAutoAttachValues.get(provider.descriptor.name)) {
-                        autoAttachDefault.push(provider.descriptor.name)
+                        autoAttachDefault.push(provider.descriptor.name);
                     }
 
                     propertiesParams[provider.descriptor.name] = PD.Group({
                         ...provider.getParams(data)
-                    }, { label: provider.label })
+                    }, { label: provider.label });
                 }
             }
             return {
                 autoAttach: PD.MultiSelect(autoAttachDefault, autoAttachOptions),
                 properties: PD.Group(propertiesParams, { isFlat: true })
-            }
+            };
         }
 
         setDefaultAutoAttach(name: string, value: boolean) {
-            this.defaultAutoAttachValues.set(name, value)
+            this.defaultAutoAttachValues.set(name, value);
         }
 
         get(name: string) {
             const prop = this.providers.get(name);
             if (!prop) {
-                throw new Error(`Custom property '${name}' is not registered.`)
+                throw new Error(`Custom property '${name}' is not registered.`);
             }
-            return this.providers.get(name)
+            return this.providers.get(name);
         }
 
         register(provider: Provider<Data, any, any>, defaultAutoAttach: boolean) {
-            this.providers.set(provider.descriptor.name, provider)
-            this.defaultAutoAttachValues.set(provider.descriptor.name, defaultAutoAttach)
+            this.providers.set(provider.descriptor.name, provider);
+            this.defaultAutoAttachValues.set(provider.descriptor.name, defaultAutoAttach);
         }
 
         unregister(name: string) {
-            this.providers.delete(name)
-            this.defaultAutoAttachValues.delete(name)
+            this.providers.delete(name);
+            this.defaultAutoAttachValues.delete(name);
         }
     }
 }

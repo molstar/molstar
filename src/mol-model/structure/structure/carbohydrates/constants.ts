@@ -30,7 +30,7 @@ export const SaccharideColors = ColorMap({
     Red: 0xed1c24,
 
     Secondary: 0xf1ece1
-})
+});
 
 export const enum SaccharideType {
     Hexose, HexNAc, Hexosamine, Hexuronate, Deoxyhexose, DeoxyhexNAc, DiDeoxyhexose,
@@ -50,10 +50,10 @@ const SaccharideTypeNameMap = {
     [SaccharideType.DiDeoxynonulosonate]: 'Di-deoxynonulosonate',
     [SaccharideType.Unknown]: 'Unknown',
     [SaccharideType.Assigned]: 'Assigned',
-}
+};
 
 export function getSaccharideName(type: SaccharideType) {
-    return SaccharideTypeNameMap[type]
+    return SaccharideTypeNameMap[type];
 }
 
 const SaccharideTypeShapeMap = {
@@ -69,17 +69,17 @@ const SaccharideTypeShapeMap = {
     [SaccharideType.DiDeoxynonulosonate]: SaccharideShape.FlatDiamond,
     [SaccharideType.Unknown]: SaccharideShape.FlatHexagon,
     [SaccharideType.Assigned]: SaccharideShape.Pentagon,
-}
+};
 
 export function getSaccharideShape(type: SaccharideType, ringMemberCount: number): SaccharideShape {
     if (type === SaccharideType.Unknown) {
-        if (ringMemberCount === 4) return SaccharideShape.DiamondPrism
-        else if (ringMemberCount === 5) return SaccharideShape.PentagonalPrism
-        else if (ringMemberCount === 6) return SaccharideShape.HexagonalPrism
-        else if (ringMemberCount === 7) return SaccharideShape.HeptagonalPrism
-        else return SaccharideShape.FlatHexagon
+        if (ringMemberCount === 4) return SaccharideShape.DiamondPrism;
+        else if (ringMemberCount === 5) return SaccharideShape.PentagonalPrism;
+        else if (ringMemberCount === 6) return SaccharideShape.HexagonalPrism;
+        else if (ringMemberCount === 7) return SaccharideShape.HeptagonalPrism;
+        else return SaccharideShape.FlatHexagon;
     } else {
-        return SaccharideTypeShapeMap[type]
+        return SaccharideTypeShapeMap[type];
     }
 }
 
@@ -95,7 +95,7 @@ export const UnknownSaccharideComponent: SaccharideComponent = {
     name: 'Unknown',
     color: SaccharideColors.Secondary,
     type: SaccharideType.Unknown
-}
+};
 
 const Monosaccharides: SaccharideComponent[] = [
     { abbr: 'Glc', name: 'Glucose', color: SaccharideColors.Blue, type: SaccharideType.Hexose },
@@ -184,16 +184,16 @@ const Monosaccharides: SaccharideComponent[] = [
     { abbr: 'Tag', name: 'Tagatose', color: SaccharideColors.Yellow, type: SaccharideType.Assigned },
     { abbr: 'Sor', name: 'Sorbose', color: SaccharideColors.Orange, type: SaccharideType.Assigned },
     { abbr: 'Psi', name: 'Psicose', color: SaccharideColors.Pink, type: SaccharideType.Assigned },
-]
+];
 
 export const SaccharidesSnfgMap = (function () {
-    const map = new Map<string, SaccharideComponent>()
+    const map = new Map<string, SaccharideComponent>();
     for (let i = 0, il = Monosaccharides.length; i < il; ++i) {
-        const saccharide = Monosaccharides[i]
-        map.set(saccharide.abbr, saccharide)
+        const saccharide = Monosaccharides[i];
+        map.set(saccharide.abbr, saccharide);
     }
-    return map
-})()
+    return map;
+})();
 
 export const MonosaccharidesColorTable: [string, Color][] = [
     ['Glc-family', SaccharideColors.Blue],
@@ -206,7 +206,7 @@ export const MonosaccharidesColorTable: [string, Color][] = [
     ['Ido-family', SaccharideColors.Brown],
     ['Fuc-family', SaccharideColors.Red],
     ['Generic/Unknown/Secondary', SaccharideColors.Secondary],
-]
+];
 
 const CommonSaccharideNames: { [k: string]: string[] } = {
     // Hexose
@@ -300,30 +300,30 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     Tag: ['T6T'],
     Sor: ['SOE'],
     Psi: ['PSV', 'SF6', 'SF9'],
-}
+};
 
 const UnknownSaccharideNames = [
     'NGZ', // via CCD
     'LAT', // BETA-LACTOSE, Gal-Glc di-saccharide via GlyFinder
 
     'PUF', 'GDA', '9WJ', // via updated CCD
-]
+];
 
 export const SaccharideCompIdMap = (function () {
-    const map = new Map<string, SaccharideComponent>()
+    const map = new Map<string, SaccharideComponent>();
     for (let i = 0, il = Monosaccharides.length; i < il; ++i) {
-        const saccharide = Monosaccharides[i]
-        const names = CommonSaccharideNames[saccharide.abbr]
+        const saccharide = Monosaccharides[i];
+        const names = CommonSaccharideNames[saccharide.abbr];
         if (names) {
             for (let j = 0, jl = names.length; j < jl; ++j) {
-                map.set(names[j], saccharide)
+                map.set(names[j], saccharide);
             }
         }
     }
     for (let i = 0, il = UnknownSaccharideNames.length; i < il; ++i) {
-        map.set(UnknownSaccharideNames[i], UnknownSaccharideComponent)
+        map.set(UnknownSaccharideNames[i], UnknownSaccharideComponent);
     }
-    return map
-})()
+    return map;
+})();
 
 export type SaccharideComponentMap = ReadonlyMap<string, SaccharideComponent>

@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CifField as CsvColumn } from '../cif/data-model'
+import { CifField as CsvColumn } from '../cif/data-model';
 
-export { CsvColumn }
+export { CsvColumn };
 
 export interface CsvFile {
     readonly table: CsvTable

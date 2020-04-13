@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as fs from 'fs'
-import * as argparse from 'argparse'
-import * as util from 'util'
+import * as fs from 'fs';
+import * as argparse from 'argparse';
+import * as util from 'util';
 
-import { VolumeData, VolumeIsoValue } from '../../mol-model/volume'
-import { downloadCif } from './helpers'
-import { CIF } from '../../mol-io/reader/cif'
+import { VolumeData, VolumeIsoValue } from '../../mol-model/volume';
+import { downloadCif } from './helpers';
+import { CIF } from '../../mol-io/reader/cif';
 import { DensityServer_Data_Database } from '../../mol-io/reader/cif/schema/density-server';
 import { Table } from '../../mol-data/db';
 import { StringBuilder } from '../../mol-util';

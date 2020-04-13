@@ -14,19 +14,19 @@ import { Structure } from '../../../mol-model/structure';
 
 const SpacefillVisuals = {
     'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Sphere mesh', ctx, getParams, getElementSphereVisual(ctx.webgl)),
-}
+};
 
 export const SpacefillParams = {
     ...ElementSphereParams,
-}
+};
 export type SpacefillParams = typeof SpacefillParams
 export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(SpacefillParams)
+    return PD.clone(SpacefillParams);
 }
 
 export type SpacefillRepresentation = StructureRepresentation<SpacefillParams>
 export function SpacefillRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SpacefillParams>): SpacefillRepresentation {
-    return Representation.createMulti('Spacefill', ctx, getParams, StructureRepresentationStateBuilder, SpacefillVisuals as unknown as Representation.Def<Structure, SpacefillParams>)
+    return Representation.createMulti('Spacefill', ctx, getParams, StructureRepresentationStateBuilder, SpacefillVisuals as unknown as Representation.Def<Structure, SpacefillParams>);
 }
 
 export const SpacefillRepresentationProvider = StructureRepresentationProvider({
@@ -39,4 +39,4 @@ export const SpacefillRepresentationProvider = StructureRepresentationProvider({
     defaultColorTheme: { name: 'element-symbol' },
     defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-})
+});

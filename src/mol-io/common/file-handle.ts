@@ -47,55 +47,55 @@ export namespace FileHandle {
     export function fromBuffer(buffer: SimpleBuffer): FileHandle {
         return {
             readBuffer: (position: number, sizeOrBuffer: SimpleBuffer | number, size?: number, byteOffset?: number) => {
-                let bytesRead: number
-                let outBuffer: SimpleBuffer
+                let bytesRead: number;
+                let outBuffer: SimpleBuffer;
                 if (typeof sizeOrBuffer === 'number') {
-                    size = defaults(size, sizeOrBuffer)
-                    const start = position
-                    const end = Math.min(buffer.length, start + size)
-                    bytesRead = end - start
-                    outBuffer = SimpleBuffer.fromUint8Array(new Uint8Array(buffer.buffer, start, end - start))
+                    size = defaults(size, sizeOrBuffer);
+                    const start = position;
+                    const end = Math.min(buffer.length, start + size);
+                    bytesRead = end - start;
+                    outBuffer = SimpleBuffer.fromUint8Array(new Uint8Array(buffer.buffer, start, end - start));
                 } else {
-                    size = defaults(size, sizeOrBuffer.length)
-                    const start = position
-                    const end = Math.min(buffer.length, start + size)
-                    sizeOrBuffer.set(buffer.subarray(start, end), byteOffset)
-                    bytesRead = end - start
-                    outBuffer = sizeOrBuffer
+                    size = defaults(size, sizeOrBuffer.length);
+                    const start = position;
+                    const end = Math.min(buffer.length, start + size);
+                    sizeOrBuffer.set(buffer.subarray(start, end), byteOffset);
+                    bytesRead = end - start;
+                    outBuffer = sizeOrBuffer;
                 }
                 if (size !== bytesRead) {
-                    console.warn(`byteCount ${size} and bytesRead ${bytesRead} differ`)
+                    console.warn(`byteCount ${size} and bytesRead ${bytesRead} differ`);
                 }
-                return Promise.resolve({ bytesRead, buffer: outBuffer })
+                return Promise.resolve({ bytesRead, buffer: outBuffer });
             },
             writeBuffer: (position: number, buffer: SimpleBuffer, length?: number) => {
-                length = defaults(length, buffer.length)
-                console.error('.writeBuffer not implemented for FileHandle.fromBuffer')
-                return Promise.resolve(0)
+                length = defaults(length, buffer.length);
+                console.error('.writeBuffer not implemented for FileHandle.fromBuffer');
+                return Promise.resolve(0);
             },
             writeBufferSync: (position: number, buffer: SimpleBuffer, length?: number, ) => {
-                length = defaults(length, buffer.length)
-                console.error('.writeSync not implemented for FileHandle.fromBuffer')
-                return 0
+                length = defaults(length, buffer.length);
+                console.error('.writeSync not implemented for FileHandle.fromBuffer');
+                return 0;
             },
             close: noop
-        }
+        };
     }
 
     export function fromDescriptor(file: number): FileHandle {
-        if (fs === undefined) throw new Error('fs module not available')
+        if (fs === undefined) throw new Error('fs module not available');
         return {
             readBuffer: (position: number, sizeOrBuffer: SimpleBuffer | number, length?: number, byteOffset?: number) => {
                 return new Promise((res, rej) => {
-                    let outBuffer: SimpleBuffer
+                    let outBuffer: SimpleBuffer;
                     if (typeof sizeOrBuffer === 'number') {
-                        byteOffset = defaults(byteOffset, 0)
-                        length = defaults(length, sizeOrBuffer)
+                        byteOffset = defaults(byteOffset, 0);
+                        length = defaults(length, sizeOrBuffer);
                         outBuffer = SimpleBuffer.fromArrayBuffer(new ArrayBuffer(sizeOrBuffer));
                     } else {
-                        byteOffset = defaults(byteOffset, 0)
-                        length = defaults(length, sizeOrBuffer.length)
-                        outBuffer = sizeOrBuffer
+                        byteOffset = defaults(byteOffset, 0);
+                        length = defaults(length, sizeOrBuffer.length);
+                        outBuffer = sizeOrBuffer;
                     }
                     fs.read(file, outBuffer, byteOffset, length, position, (err, bytesRead, buffer) => {
                         if (err) {
@@ -103,23 +103,23 @@ export namespace FileHandle {
                             return;
                         }
                         if (length !== bytesRead) {
-                            console.warn(`byteCount ${length} and bytesRead ${bytesRead} differ`)
+                            console.warn(`byteCount ${length} and bytesRead ${bytesRead} differ`);
                         }
                         res({ bytesRead, buffer });
                     });
-                })
+                });
             },
             writeBuffer: (position: number, buffer: SimpleBuffer, length?: number) => {
-                length = defaults(length, buffer.length)
+                length = defaults(length, buffer.length);
                 return new Promise<number>((res, rej) => {
                     fs.write(file, buffer, 0, length, position, (err, written) => {
                         if (err) rej(err);
                         else res(written);
-                    })
-                })
+                    });
+                });
             },
             writeBufferSync: (position: number, buffer: Uint8Array, length?: number) => {
-                length = defaults(length, buffer.length)
+                length = defaults(length, buffer.length);
                 return fs.writeSync(file, buffer, 0, length, position);
             },
             close: () => {
@@ -129,6 +129,6 @@ export namespace FileHandle {
 
                 }
             }
-        }
+        };
     }
 }

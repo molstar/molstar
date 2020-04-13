@@ -6,4 +6,4 @@
 
 import { CifField } from '../cif/data-model';
 
-export const Field = CifField.ofTokens
+export const Field = CifField.ofTokens;

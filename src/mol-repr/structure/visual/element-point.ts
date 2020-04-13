@@ -21,7 +21,7 @@ export const ElementPointParams = {
     // sizeFactor: PD.Numeric(1.0, { min: 0, max: 10, step: 0.01 }),
     pointSizeAttenuation: PD.Boolean(false),
     showHydrogens: PD.Boolean(true),
-}
+};
 export type ElementPointParams = typeof ElementPointParams
 
 // TODO size
@@ -29,24 +29,24 @@ export type ElementPointParams = typeof ElementPointParams
 export function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ElementPointParams>, points: Points) {
     // const { sizeFactor } = props
 
-    const elements = unit.elements
-    const n = elements.length
-    const builder = PointsBuilder.create(n, n / 10, points)
+    const elements = unit.elements;
+    const n = elements.length;
+    const builder = PointsBuilder.create(n, n / 10, points);
 
-    const pos = unit.conformation.invariantPosition
-    const p = Vec3.zero()
+    const pos = unit.conformation.invariantPosition;
+    const p = Vec3.zero();
 
     for (let i = 0; i < n; ++i) {
-        pos(elements[i], p)
-        builder.add(p[0], p[1], p[2], i)
+        pos(elements[i], p);
+        builder.add(p[0], p[1], p[2], i);
     }
 
-    const pt = builder.getPoints()
+    const pt = builder.getPoints();
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor)
-    pt.setBoundingSphere(sphere)
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
+    pt.setBoundingSphere(sphere);
 
-    return pt
+    return pt;
 }
 
 export function ElementPointVisual(materialId: number): UnitsVisual<ElementPointParams> {
@@ -59,5 +59,5 @@ export function ElementPointVisual(materialId: number): UnitsVisual<ElementPoint
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementPointParams>, currentProps: PD.Values<ElementPointParams>) => {
 
         }
-    }, materialId)
+    }, materialId);
 }

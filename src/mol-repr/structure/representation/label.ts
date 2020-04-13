@@ -14,22 +14,22 @@ import { MarkerAction } from '../../../mol-util/marker-action';
 
 const LabelVisuals = {
     'label-text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, LabelTextParams>) => ComplexRepresentation('Label text', ctx, getParams, LabelTextVisual),
-}
+};
 
 export const LabelParams = {
     ...LabelTextParams,
     visuals: PD.MultiSelect(['label-text'], PD.objectToOptions(LabelVisuals)),
-}
+};
 export type LabelParams = typeof LabelParams
 export function getLabelParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(LabelParams)
+    return PD.clone(LabelParams);
 }
 
 export type LabelRepresentation = StructureRepresentation<LabelParams>
 export function LabelRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, LabelParams>): LabelRepresentation {
-    const repr = Representation.createMulti('Label', ctx, getParams, StructureRepresentationStateBuilder, LabelVisuals as unknown as Representation.Def<Structure, LabelParams>)
-    repr.setState({ pickable: false, markerActions: MarkerAction.None })
-    return repr
+    const repr = Representation.createMulti('Label', ctx, getParams, StructureRepresentationStateBuilder, LabelVisuals as unknown as Representation.Def<Structure, LabelParams>);
+    repr.setState({ pickable: false, markerActions: MarkerAction.None });
+    return repr;
 }
 
 export const LabelRepresentationProvider = StructureRepresentationProvider({
@@ -42,4 +42,4 @@ export const LabelRepresentationProvider = StructureRepresentationProvider({
     defaultColorTheme: { name: 'uniform' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-})
+});

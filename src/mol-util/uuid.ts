@@ -10,7 +10,7 @@ import { now } from '../mol-util/now';
 type UUID = string & { '@type': 'uuid' }
 
 namespace UUID {
-    const _btoa = typeof btoa !== 'undefined' ? btoa : (s: string) => Buffer.from(s).toString('base64')
+    const _btoa = typeof btoa !== 'undefined' ? btoa : (s: string) => Buffer.from(s).toString('base64');
 
     const chars: string[] = [];
     /** Creates a 22 characters 'base64' encoded UUID */

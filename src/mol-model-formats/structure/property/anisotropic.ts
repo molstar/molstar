@@ -11,12 +11,12 @@ import { CifWriter } from '../../../mol-io/writer/cif';
 import { FormatPropertyProvider } from '../common/property';
 import { MmcifFormat } from '../mmcif';
 
-export { AtomSiteAnisotrop }
+export { AtomSiteAnisotrop };
 
 const Anisotrop = {
     U: mmCIF_Schema.atom_site_anisotrop.U,
     U_esd: mmCIF_Schema.atom_site_anisotrop.U_esd
-}
+};
 type Anisotrop = Table<typeof Anisotrop>
 
 interface AtomSiteAnisotrop {
@@ -26,7 +26,7 @@ interface AtomSiteAnisotrop {
 }
 
 namespace AtomSiteAnisotrop {
-    export const Schema = Anisotrop
+    export const Schema = Anisotrop;
 
     export const Descriptor: CustomPropertyDescriptor = {
         name: 'atom_site_anisotrop',
@@ -45,38 +45,38 @@ namespace AtomSiteAnisotrop {
         }
     };
 
-    export const Provider = FormatPropertyProvider.create<AtomSiteAnisotrop>(Descriptor)
+    export const Provider = FormatPropertyProvider.create<AtomSiteAnisotrop>(Descriptor);
 
     export function getElementToAnsiotrop(atomId: Column<number>, ansioId: Column<number>) {
-        const atomIdToElement = new Int32Array(atomId.rowCount)
-        atomIdToElement.fill(-1)
+        const atomIdToElement = new Int32Array(atomId.rowCount);
+        atomIdToElement.fill(-1);
         for (let i = 0, il = atomId.rowCount; i < il; i++) {
-            atomIdToElement[atomId.value(i)] = i
+            atomIdToElement[atomId.value(i)] = i;
         }
 
-        const elementToAnsiotrop = new Int32Array(atomId.rowCount)
-        elementToAnsiotrop.fill(-1)
+        const elementToAnsiotrop = new Int32Array(atomId.rowCount);
+        elementToAnsiotrop.fill(-1);
         for (let i = 0, il = ansioId.rowCount; i < il; ++i) {
-            const ei = atomIdToElement[ansioId.value(i)]
-            if (ei !== -1) elementToAnsiotrop[ei] = i
+            const ei = atomIdToElement[ansioId.value(i)];
+            if (ei !== -1) elementToAnsiotrop[ei] = i;
         }
 
-        return elementToAnsiotrop
+        return elementToAnsiotrop;
     }
 
     export function getElementToAnsiotropFromLabel(atomLabel: Column<string>, ansioLabel: Column<string>) {
-        const atomLabelToElement: { [k: string]: number | undefined } = {}
+        const atomLabelToElement: { [k: string]: number | undefined } = {};
         for (let i = 0, il = atomLabel.rowCount; i < il; i++) {
-            atomLabelToElement[atomLabel.value(i)] = i
+            atomLabelToElement[atomLabel.value(i)] = i;
         }
 
-        const elementToAnsiotrop = new Int32Array(atomLabel.rowCount)
-        elementToAnsiotrop.fill(-1)
+        const elementToAnsiotrop = new Int32Array(atomLabel.rowCount);
+        elementToAnsiotrop.fill(-1);
         for (let i = 0, il = ansioLabel.rowCount; i < il; ++i) {
-            const ei = atomLabelToElement[ansioLabel.value(i)]
-            if (ei !== undefined) elementToAnsiotrop[ei] = i
+            const ei = atomLabelToElement[ansioLabel.value(i)];
+            if (ei !== undefined) elementToAnsiotrop[ei] = i;
         }
 
-        return elementToAnsiotrop
+        return elementToAnsiotrop;
     }
 }

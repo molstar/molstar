@@ -41,7 +41,7 @@ function Channel(props: {
     const value = Math.round(100 * (channel.isoValue.kind === 'relative' ? channel.isoValue.relativeValue : channel.isoValue.absoluteValue)) / 100;
     const relMin = (min - mean) / sigma;
     const relMax = (max - mean) / sigma;
-    const step = toPrecision(isRelative ? Math.round(((max - min) / sigma)) / 100 : sigma / 100, 2)
+    const step = toPrecision(isRelative ? Math.round(((max - min) / sigma)) / 100 : sigma / 100, 2);
 
     return <ExpandableControlRow
         label={props.label + (props.isRelative ? ' \u03C3' : '')}
@@ -63,7 +63,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
     }
 
     changeIso = (name: string, value: number, isRelative: boolean) => {
-        const old = this.props.params as VolumeStreaming.Params
+        const old = this.props.params as VolumeStreaming.Params;
         this.newParams({
             ...old,
             entry: {
@@ -107,11 +107,11 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
             ...channel, isoValue: isRelative
                 ? VolumeIsoValue.toRelative(channel.isoValue, stats)
                 : VolumeIsoValue.toAbsolute(channel.isoValue, stats)
-        }
+        };
     }
 
     changeOption: ParamOnChange = ({ name, value }) => {
-        const old = this.props.params as VolumeStreaming.Params
+        const old = this.props.params as VolumeStreaming.Params;
 
         if (name === 'entry') {
             this.newParams({
@@ -177,7 +177,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
 
         const params = this.props.params as VolumeStreaming.Params;
         const detailLevel = ((this.props.info.params as VolumeStreaming.ParamDefinition)
-            .entry.map(params.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>).params.detailLevel
+            .entry.map(params.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>).params.detailLevel;
         const isRelative = ((params.entry.params.channels as any)[pivot].isoValue as VolumeIsoValue).kind === 'relative';
 
         const sampling = b.info.header.sampling[0];
@@ -235,6 +235,6 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
             {isEM && <Channel label='EM' name='em' channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[0]} />}
 
             <ParameterControls onChange={this.changeOption} params={OptionsParams} values={options} onEnter={this.props.events.onEnter} />
-        </>
+        </>;
     }
 }

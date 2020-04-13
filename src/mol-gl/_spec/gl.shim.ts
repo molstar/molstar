@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { idFactory } from '../../mol-util/id-factory'
+import { idFactory } from '../../mol-util/id-factory';
 
 const c = {
     ACTIVE_ATTRIBUTE_MAX_LENGTH: 35722,
@@ -16,7 +16,7 @@ const c = {
 
     MAX_TEXTURE_MAX_ANISOTROPY_EXT: 0x84FF,
     MAX_TEXTURE_IMAGE_UNITS_NV: 0x8872
-}
+};
 
 const gl = {
     ACTIVE_ATTRIBUTES: 35721,
@@ -316,16 +316,16 @@ const gl = {
     VERTEX_SHADER: 35633,
     VIEWPORT: 2978,
     ZERO: 0
-}
+};
 type gl = typeof gl
 
 export function createGl(width: number, height: number, contextAttributes: WebGLContextAttributes): WebGLRenderingContext {
-    const getNextId = idFactory()
-    const items: { [k: number]: any } = {}
-    const boundTextures: { [k: number]: any } = {}
-    const viewport = { x: 0, y: 0, width, height }
-    const depthRange = { zNear: 0, zFar: 1 }
-    const colorClearValue = { r: 0, g: 0, b: 0, a: 0 }
+    const getNextId = idFactory();
+    const items: { [k: number]: any } = {};
+    const boundTextures: { [k: number]: any } = {};
+    const viewport = { x: 0, y: 0, width, height };
+    const depthRange = { zNear: 0, zFar: 1 };
+    const colorClearValue = { r: 0, g: 0, b: 0, a: 0 };
 
     // let _activeFramebuffer: number
     // let _activeRenderbuffer: number
@@ -336,12 +336,12 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
             width, height
         } as HTMLCanvasElement,
         getAttachedShaders: function(program: WebGLProgram) {
-            return [] as WebGLShader[]
+            return [] as WebGLShader[];
         },
         getBufferParameter: function(target: number, pname: number) {
-            return 0
+            return 0;
         },
-        getContextAttributes: function() { return contextAttributes },
+        getContextAttributes: function() { return contextAttributes; },
         getFramebufferAttachmentParameter: function() {},
         getProgramInfoLog: function() { return ''; },
         getShaderInfoLog: function() { return ''; },
@@ -351,7 +351,7 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
                 precision: 0,
                 rangeMax: 0,
                 rangeMin: 0
-            }
+            };
         },
         getShaderSource: function(shader: WebGLShader | null) { return ''; },
         getTexParameter: function() {},
@@ -371,71 +371,71 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
                 case 'EXT_blend_minmax': return {
                     MAX_EXT: 0,
                     MIN_EXT: 0
-                } as EXT_blend_minmax
+                } as EXT_blend_minmax;
                 case 'EXT_texture_filter_anisotropic': return {
                     MAX_TEXTURE_MAX_ANISOTROPY_EXT: 0,
                     TEXTURE_MAX_ANISOTROPY_EXT: 0
-                } as EXT_texture_filter_anisotropic
-                case 'EXT_frag_depth': return {} as EXT_frag_depth
-                case 'EXT_shader_texture_lod': return {} as EXT_shader_texture_lod
+                } as EXT_texture_filter_anisotropic;
+                case 'EXT_frag_depth': return {} as EXT_frag_depth;
+                case 'EXT_shader_texture_lod': return {} as EXT_shader_texture_lod;
                 case 'EXT_sRGB': return {
                     FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING_EXT: 0,
                     SRGB8_ALPHA8_EXT: 0,
                     SRGB_ALPHA_EXT: 0,
                     SRGB_EXT: 0
-                } as EXT_sRGB
+                } as EXT_sRGB;
                 case 'OES_vertex_array_object': return {
                     VERTEX_ARRAY_BINDING_OES: 0,
                     bindVertexArrayOES: function(arrayObject: WebGLVertexArrayObjectOES) { },
-                    createVertexArrayOES: function(): WebGLVertexArrayObjectOES { return {} },
+                    createVertexArrayOES: function(): WebGLVertexArrayObjectOES { return {}; },
                     deleteVertexArrayOES: function(arrayObject: WebGLVertexArrayObjectOES) { },
                     isVertexArrayOES: function(value: any) { return true; }
-                } as OES_vertex_array_object
+                } as OES_vertex_array_object;
                 case 'WEBGL_color_buffer_float': return {
                     FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE_EXT: 0,
                     RGB32F_EXT: 0,
                     RGBA32F_EXT: 0,
                     UNSIGNED_NORMALIZED_EXT: 0
-                } as WEBGL_color_buffer_float
-                case 'WEBGL_compressed_texture_astc': return null
-                case 'WEBGL_compressed_texture_s3tc_srgb': return null
+                } as WEBGL_color_buffer_float;
+                case 'WEBGL_compressed_texture_astc': return null;
+                case 'WEBGL_compressed_texture_s3tc_srgb': return null;
                 case 'WEBGL_debug_shaders': return {
                     getTranslatedShaderSource(shader: WebGLShader) { return ''; }
-                } as WEBGL_debug_shaders
-                case 'WEBGL_draw_buffers': return null
+                } as WEBGL_debug_shaders;
+                case 'WEBGL_draw_buffers': return null;
                 case 'WEBGL_lose_context': return {
                     loseContext: function() { },
                     restoreContext: function() { },
-                } as WEBGL_lose_context
+                } as WEBGL_lose_context;
                 case 'WEBGL_depth_texture': return {
                     UNSIGNED_INT_24_8_WEBGL: 0
-                } as WEBGL_depth_texture
+                } as WEBGL_depth_texture;
                 case 'WEBGL_debug_renderer_info': return {
                     UNMASKED_RENDERER_WEBGL: 0,
                     UNMASKED_VENDOR_WEBGL: 0
-                } as WEBGL_debug_renderer_info
-                case 'WEBGL_compressed_texture_s3tc': return null
-                case 'OES_texture_half_float_linear': return {} as OES_texture_half_float_linear
+                } as WEBGL_debug_renderer_info;
+                case 'WEBGL_compressed_texture_s3tc': return null;
+                case 'OES_texture_half_float_linear': return {} as OES_texture_half_float_linear;
                 case 'OES_texture_half_float': return {
                     HALF_FLOAT_OES: 0
-                } as OES_texture_half_float
-                case 'OES_texture_float_linear': return {} as OES_texture_float_linear
-                case 'OES_texture_float': return {} as OES_texture_float
+                } as OES_texture_half_float;
+                case 'OES_texture_float_linear': return {} as OES_texture_float_linear;
+                case 'OES_texture_float': return {} as OES_texture_float;
                 case 'OES_standard_derivatives': return {
                     FRAGMENT_SHADER_DERIVATIVE_HINT_OES: 0
-                } as OES_standard_derivatives
-                case 'OES_element_index_uint': return {} as OES_element_index_uint
+                } as OES_standard_derivatives;
+                case 'OES_element_index_uint': return {} as OES_element_index_uint;
                 case 'ANGLE_instanced_arrays': return {
                     drawArraysInstancedANGLE: function(mode: number, first: number, count: number, primcount: number) {},
                     drawElementsInstancedANGLE: function(mode: number, count: number, type: number, offset: number, primcount: number) {},
                     vertexAttribDivisorANGLE: function(index: number, divisor: number) {},
                     VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE: 0
-                } as ANGLE_instanced_arrays
+                } as ANGLE_instanced_arrays;
             }
-            return null
+            return null;
         },
         createBuffer: function () {
-            const id = getNextId()
+            const id = getNextId();
             items[id] = {
                 which: 'buffer',
             };
@@ -459,50 +459,50 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
                     // return _activeRenderbuffer
                 case gl.TEXTURE_BINDING_2D:
                 case gl.TEXTURE_BINDING_CUBE_MAP:
-                    return null
+                    return null;
 
                 case gl.VERSION:
-                    return '1.0.0'
+                    return '1.0.0';
                 case gl.VENDOR:
-                    return 'shim'
+                    return 'shim';
                 case gl.RENDERER:
-                    return 'shim-renderer'
+                    return 'shim-renderer';
                 case gl.SHADING_LANGUAGE_VERSION:
-                    return 'WebGL GLSL ES 1.0 shim'
+                    return 'WebGL GLSL ES 1.0 shim';
 
                 case gl.COMPRESSED_TEXTURE_FORMATS:
-                    return new Uint32Array(0)
+                    return new Uint32Array(0);
 
                 // Int arrays
                 case gl.MAX_VIEWPORT_DIMS:
                 case gl.SCISSOR_BOX:
-                    return new Int32Array([ 0, 0, 4096, 4096 ])
+                    return new Int32Array([ 0, 0, 4096, 4096 ]);
                 case gl.VIEWPORT:
-                    const { x, y, width, height } = viewport
-                    return new Int32Array([ x, y, width, height ])
+                    const { x, y, width, height } = viewport;
+                    return new Int32Array([ x, y, width, height ]);
 
                 // Float arrays
                 case gl.ALIASED_LINE_WIDTH_RANGE:
-                    return new Float32Array([0, 1])
+                    return new Float32Array([0, 1]);
                 case gl.ALIASED_POINT_SIZE_RANGE:
-                    return new Float32Array([0, 255])
+                    return new Float32Array([0, 255]);
                 case gl.DEPTH_RANGE:
-                    return new Float32Array([ depthRange.zNear, depthRange.zFar ])
+                    return new Float32Array([ depthRange.zNear, depthRange.zFar ]);
                 case gl.BLEND_COLOR:
-                    return new Float32Array([0, 0, 0, 0])
+                    return new Float32Array([0, 0, 0, 0]);
                 case gl.COLOR_CLEAR_VALUE:
-                    const { r, g, b, a } = colorClearValue
-                    return new Float32Array([ r, g, b, a ])
+                    const { r, g, b, a } = colorClearValue;
+                    return new Float32Array([ r, g, b, a ]);
 
                 case gl.COLOR_WRITEMASK:
-                    return 0
+                    return 0;
 
                 case gl.DEPTH_CLEAR_VALUE:
                 case gl.LINE_WIDTH:
                 case gl.POLYGON_OFFSET_FACTOR:
                 case gl.POLYGON_OFFSET_UNITS:
                 case gl.SAMPLE_COVERAGE_VALUE:
-                    return 1
+                    return 1;
 
                 case gl.BLEND:
                 case gl.CULL_FACE:
@@ -590,7 +590,7 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
             ];
         },
         createShader: function (type: number) {
-            const id = getNextId()
+            const id = getNextId();
             items[id] = {
                 which: 'shader',
                 type: type,
@@ -607,7 +607,7 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         shaderSource: function () { },
         compileShader: function () { },
         createProgram: function () {
-            const id = getNextId()
+            const id = getNextId();
             items[id] = {
                 which: 'program',
                 shaders: [],
@@ -634,16 +634,16 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         deleteShader: function () { },
         deleteProgram: function () { },
         viewport: function (x: number, y: number, width: number, height: number) {
-            viewport.x = x
-            viewport.y = y
-            viewport.width = width
-            viewport.height = height
+            viewport.x = x;
+            viewport.y = y;
+            viewport.width = width;
+            viewport.height = height;
         },
         clearColor: function (red: number, green: number, blue: number, alpha: number) {
-            colorClearValue.r = red
-            colorClearValue.g = green
-            colorClearValue.b = blue
-            colorClearValue.a = alpha
+            colorClearValue.r = red;
+            colorClearValue.g = green;
+            colorClearValue.b = blue;
+            colorClearValue.a = alpha;
         },
         clearDepth: function () { },
         depthFunc: function () { },
@@ -653,7 +653,7 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         cullFace: function () { },
         activeTexture: function () { },
         createTexture: function () {
-            const id = getNextId()
+            const id = getNextId();
             items[id] = {
                 which: 'texture',
             };
@@ -707,7 +707,7 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         uniformMatrix2fv: function () { },
         uniformMatrix3fv: function () { },
         uniformMatrix4fv: function () { },
-        getAttribLocation: function () { return 1 },
+        getAttribLocation: function () { return 1; },
         vertexAttribPointer: function () { },
         enableVertexAttribArray: function () { },
         disableVertexAttribArray: function () { },
@@ -715,13 +715,13 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         drawArrays: function () { },
         depthMask: function () { },
         depthRange: function (zNear: number, zFar: number) {
-            depthRange.zNear = zNear
-            depthRange.zFar = zFar
+            depthRange.zNear = zNear;
+            depthRange.zFar = zFar;
         },
         bufferSubData: function () { },
         blendFunc: function () { },
         createFramebuffer: function () {
-            const id = getNextId()
+            const id = getNextId();
             items[id] = {
                 which: 'framebuffer',
                 shaders: [],
@@ -735,7 +735,7 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         },
         deleteFramebuffer: function () { },
         createRenderbuffer: function () {
-            const id = getNextId()
+            const id = getNextId();
             items[id] = {
                 which: 'renderbuffer',
                 shaders: [],
@@ -783,5 +783,5 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         stencilMaskSeparate: function () { },
         stencilOp: function () { },
         stencilOpSeparate: function () { },
-    }
+    };
 }

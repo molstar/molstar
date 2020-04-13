@@ -20,12 +20,12 @@ import { now, formatTimespan } from '../mol-util/now';
 import { ParamDefinition } from '../mol-util/param-definition';
 import { StateTreeSpine } from './tree/spine';
 import { AsyncQueue } from '../mol-util/async-queue';
-import { isProductionMode } from '../mol-util/debug'
+import { isProductionMode } from '../mol-util/debug';
 import { arraySetAdd, arraySetRemove } from '../mol-util/array';
 import { UniqueArray } from '../mol-data/generic';
 import { assignIfUndefined } from '../mol-util/object';
 
-export { State }
+export { State };
 
 class State {
     private _tree: TransientTree;
@@ -146,7 +146,7 @@ class State {
      * @example state.query('test')
      */
     select<C extends StateObjectCell>(selector: StateSelection.Selector<C>) {
-        return StateSelection.select(selector, this)
+        return StateSelection.select(selector, this);
     }
 
     /**
@@ -155,7 +155,7 @@ class State {
      */
     selectQ<C extends StateObjectCell>(selector: (q: typeof StateSelection.Generators) => StateSelection.Selector<C>) {
         if (typeof selector === 'string') return StateSelection.select(selector, this);
-        return StateSelection.select(selector(StateSelection.Generators), this)
+        return StateSelection.select(selector(StateSelection.Generators), this);
     }
 
     /**

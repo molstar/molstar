@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Tensor as T } from '../tensor'
-import { Mat4 } from '../3d'
+import { Tensor as T } from '../tensor';
+import { Mat4 } from '../3d';
 
 describe('tensor', () => {
     it('vector', () => {
@@ -24,7 +24,7 @@ describe('tensor', () => {
 
     it('matrix cm', () => {
         const M = T.ColumnMajorMatrix(3, 2, Int32Array);
-        const data = M.create()
+        const data = M.create();
 
         // rows: [ [0, 1], [1, 2], [2, 3]  ]
         for (let i = 0; i < 3; i++) {
@@ -68,7 +68,7 @@ describe('tensor', () => {
     it('2d ij', () => {
         const M = T.Space([3, 4], [0, 1]);
         const data = M.create();
-        const exp = new Float64Array(3 * 4)
+        const exp = new Float64Array(3 * 4);
 
         let o = 0;
         for (let i = 0; i < 3; i++) {
@@ -86,7 +86,7 @@ describe('tensor', () => {
     it('2d ji', () => {
         const M = T.Space([3, 4], [1, 0]);
         const data = M.create();
-        const exp = new Float64Array(3 * 4)
+        const exp = new Float64Array(3 * 4);
 
         let o = 0;
         for (let j = 0; j < 4; j++) {
@@ -104,7 +104,7 @@ describe('tensor', () => {
     it('3d ijk', () => {
         const M = T.Space([3, 4, 5], [0, 1, 2]);
         const data = M.create();
-        const exp = new Float64Array(3 * 4 * 5)
+        const exp = new Float64Array(3 * 4 * 5);
 
         let o = 0;
         for (let i = 0; i < 3; i++) {
@@ -124,7 +124,7 @@ describe('tensor', () => {
     it('3d ikj', () => {
         const M = T.Space([3, 3, 3], [0, 2, 1]);
         const data = M.create();
-        const exp = new Float64Array(3 * 3 * 3)
+        const exp = new Float64Array(3 * 3 * 3);
 
         let o = 0;
         for (let i = 0; i < 3; i++) {
@@ -144,7 +144,7 @@ describe('tensor', () => {
     it('3d jik', () => {
         const M = T.Space([3, 3, 3], [1, 0, 2]);
         const data = M.create();
-        const exp = new Float64Array(3 * 3 * 3)
+        const exp = new Float64Array(3 * 3 * 3);
 
         let o = 0;
         for (let j = 0; j < 3; j++) {
@@ -163,7 +163,7 @@ describe('tensor', () => {
     it('3d jki', () => {
         const M = T.Space([3, 3, 3], [1, 2, 0]);
         const data = M.create();
-        const exp = new Float64Array(3 * 3 * 3)
+        const exp = new Float64Array(3 * 3 * 3);
 
         let o = 0;
         for (let j = 0; j < 3; j++) {
@@ -183,7 +183,7 @@ describe('tensor', () => {
     it('3d kij', () => {
         const M = T.Space([3, 3, 3], [2, 0, 1]);
         const data = M.create();
-        const exp = new Float64Array(3 * 3 * 3)
+        const exp = new Float64Array(3 * 3 * 3);
 
         let o = 0;
         for (let k = 0; k < 3; k++) {
@@ -203,7 +203,7 @@ describe('tensor', () => {
     it('3d kji', () => {
         const M = T.Space([3, 3, 3], [2, 1, 0]);
         const data = M.create();
-        const exp = new Float64Array(3 * 3 * 3)
+        const exp = new Float64Array(3 * 3 * 3);
 
         let o = 0;
         for (let k = 0; k < 3; k++) {
@@ -223,7 +223,7 @@ describe('tensor', () => {
     it('4d jikl', () => {
         const M = T.Space([2, 3, 4, 5], [1, 0, 2, 3]);
         const data = M.create();
-        const exp = new Float64Array(2 * 3 * 4 * 5)
+        const exp = new Float64Array(2 * 3 * 4 * 5);
 
         let o = 0;
         for (let j = 0; j < 3; j++) {
@@ -245,7 +245,7 @@ describe('tensor', () => {
     it('4d jilk', () => {
         const M = T.Space([2, 3, 4, 5], [1, 0, 3, 2]);
         const data = M.create();
-        const exp = new Float64Array(2 * 3 * 4 * 5)
+        const exp = new Float64Array(2 * 3 * 4 * 5);
 
         let o = 0;
         for (let j = 0; j < 3; j++) {

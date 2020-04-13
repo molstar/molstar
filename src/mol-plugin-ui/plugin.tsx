@@ -24,7 +24,7 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
             <div className='msp-layout-static'>
                 {element}
             </div>
-        </div>
+        </div>;
     }
 
     render() {
@@ -63,39 +63,39 @@ class Layout extends PluginUIComponent {
         const layout = this.plugin.layout.state;
         const controls = (this.plugin.spec.layout && this.plugin.spec.layout.controls) || { };
 
-        const classList: string[] = []
+        const classList: string[] = [];
         if (controls.top === 'none' || !layout.showControls || layout.regionState.top === 'hidden') {
-            classList.push('msp-layout-hide-top')
+            classList.push('msp-layout-hide-top');
         }
 
         if (controls.left === 'none' || !layout.showControls || layout.regionState.left === 'hidden') {
-            classList.push('msp-layout-hide-left')
+            classList.push('msp-layout-hide-left');
         } else if (layout.regionState.left === 'collapsed') {
-            classList.push('msp-layout-collapse-left')
+            classList.push('msp-layout-collapse-left');
         }
 
         if (controls.right === 'none' || !layout.showControls || layout.regionState.right === 'hidden') {
-            classList.push('msp-layout-hide-right')
+            classList.push('msp-layout-hide-right');
         }
 
         if (controls.bottom === 'none' || !layout.showControls || layout.regionState.bottom === 'hidden') {
-            classList.push('msp-layout-hide-bottom')
+            classList.push('msp-layout-hide-bottom');
         }
 
-        return classList.join(' ')
+        return classList.join(' ');
     }
 
     get layoutClassName() {
         const layout = this.plugin.layout.state;
 
-        const classList: string[] = ['msp-plugin-content']
+        const classList: string[] = ['msp-plugin-content'];
         if (layout.isExpanded) {
-            classList.push('msp-layout-expanded')
+            classList.push('msp-layout-expanded');
         } else {
-            classList.push('msp-layout-standard', `msp-layout-standard-${layout.controlsDisplay}`)
+            classList.push('msp-layout-standard', `msp-layout-standard-${layout.controlsDisplay}`);
         }
 
-        return classList.join(' ')
+        return classList.join(' ');
     }
 
     render() {

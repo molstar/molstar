@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as cluster from 'cluster'
+import * as cluster from 'cluster';
 import { runChild } from './preprocess/parallel';
 
 if (cluster.isMaster) {

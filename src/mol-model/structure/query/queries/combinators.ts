@@ -25,7 +25,7 @@ export function merge(queries: ArrayLike<StructureQuery>): StructureQuery {
             });
         }
         return ret.getSelection();
-    }
+    };
 }
 
 export function intersect(queries: ArrayLike<StructureQuery>): StructureQuery {

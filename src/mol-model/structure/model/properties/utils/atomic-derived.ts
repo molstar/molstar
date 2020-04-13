@@ -13,56 +13,56 @@ import { ChemicalComponentMap } from '../common';
 import { isProductionMode } from '../../../../../mol-util/debug';
 
 export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemicalComponentMap: ChemicalComponentMap): AtomicDerivedData {
-    const { label_comp_id, _rowCount: n } = data.residues
+    const { label_comp_id, _rowCount: n } = data.residues;
 
-    const traceElementIndex = new Int32Array(n)
-    const directionFromElementIndex = new Int32Array(n)
-    const directionToElementIndex = new Int32Array(n)
-    const moleculeType = new Uint8Array(n)
-    const polymerType = new Uint8Array(n)
+    const traceElementIndex = new Int32Array(n);
+    const directionFromElementIndex = new Int32Array(n);
+    const directionToElementIndex = new Int32Array(n);
+    const moleculeType = new Uint8Array(n);
+    const polymerType = new Uint8Array(n);
 
-    const moleculeTypeMap = new Map<string, MoleculeType>()
-    const polymerTypeMap = new Map<string, PolymerType>()
+    const moleculeTypeMap = new Map<string, MoleculeType>();
+    const polymerTypeMap = new Map<string, PolymerType>();
 
     for (let i = 0 as ResidueIndex; i < n; ++i) {
-        const compId = label_comp_id.value(i)
-        const chemCompMap = chemicalComponentMap
+        const compId = label_comp_id.value(i);
+        const chemCompMap = chemicalComponentMap;
 
-        let molType: MoleculeType
-        let polyType: PolymerType
+        let molType: MoleculeType;
+        let polyType: PolymerType;
         if (moleculeTypeMap.has(compId)) {
-            molType = moleculeTypeMap.get(compId)!
-            polyType = polymerTypeMap.get(compId)!
+            molType = moleculeTypeMap.get(compId)!;
+            polyType = polymerTypeMap.get(compId)!;
         } else {
-            let type: string
+            let type: string;
             if (chemCompMap.has(compId)) {
-                type = chemCompMap.get(compId)!.type
+                type = chemCompMap.get(compId)!.type;
             } else {
-                if (!isProductionMode) console.info('chemComp not found', compId)
-                type = getComponentType(compId)
+                if (!isProductionMode) console.info('chemComp not found', compId);
+                type = getComponentType(compId);
             }
-            molType = getMoleculeType(type, compId)
+            molType = getMoleculeType(type, compId);
             // TODO if unknown molecule type, use atom names to guess molecule type
-            polyType = getPolymerType(type, molType)
-            moleculeTypeMap.set(compId, molType)
-            polymerTypeMap.set(compId, polyType)
+            polyType = getPolymerType(type, molType);
+            moleculeTypeMap.set(compId, molType);
+            polymerTypeMap.set(compId, polyType);
         }
-        moleculeType[i] = molType
-        polymerType[i] = polyType
+        moleculeType[i] = molType;
+        polymerType[i] = polyType;
 
-        const traceAtomId = getAtomIdForAtomRole(polyType, 'trace')
-        let traceIndex = index.findAtomsOnResidue(i, traceAtomId)
+        const traceAtomId = getAtomIdForAtomRole(polyType, 'trace');
+        let traceIndex = index.findAtomsOnResidue(i, traceAtomId);
         if (traceIndex === -1) {
-            const coarseAtomId = getAtomIdForAtomRole(polyType, 'coarseBackbone')
-            traceIndex = index.findAtomsOnResidue(i, coarseAtomId)
+            const coarseAtomId = getAtomIdForAtomRole(polyType, 'coarseBackbone');
+            traceIndex = index.findAtomsOnResidue(i, coarseAtomId);
         }
-        traceElementIndex[i] = traceIndex
+        traceElementIndex[i] = traceIndex;
 
-        const directionFromAtomId = getAtomIdForAtomRole(polyType, 'directionFrom')
-        directionFromElementIndex[i] = index.findAtomsOnResidue(i, directionFromAtomId)
+        const directionFromAtomId = getAtomIdForAtomRole(polyType, 'directionFrom');
+        directionFromElementIndex[i] = index.findAtomsOnResidue(i, directionFromAtomId);
 
-        const directionToAtomId = getAtomIdForAtomRole(polyType, 'directionTo')
-        directionToElementIndex[i] = index.findAtomsOnResidue(i, directionToAtomId)
+        const directionToAtomId = getAtomIdForAtomRole(polyType, 'directionTo');
+        directionToElementIndex[i] = index.findAtomsOnResidue(i, directionToAtomId);
     }
 
     return {
@@ -73,5 +73,5 @@ export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemi
             moleculeType: moleculeType as unknown as ArrayLike<MoleculeType>,
             polymerType: polymerType as unknown as ArrayLike<PolymerType>,
         }
-    }
+    };
 }

@@ -5,11 +5,11 @@
  */
 
 // import { Column } from 'mol-data/db'
-import { Tokens, TokenBuilder, Tokenizer } from '../common/text/tokenizer'
-import * as Data from './data-model'
-import { Field } from './field'
-import { ReaderResult as Result } from '../result'
-import { Task, RuntimeContext, chunkedSubtask, } from '../../../mol-task'
+import { Tokens, TokenBuilder, Tokenizer } from '../common/text/tokenizer';
+import * as Data from './data-model';
+import { Field } from './field';
+import { ReaderResult as Result } from '../result';
+import { Task, RuntimeContext, chunkedSubtask, } from '../../../mol-task';
 
 const enum CsvTokenType {
     Value = 0,
@@ -40,7 +40,7 @@ interface State {
 
 function State(data: string, runtimeCtx: RuntimeContext, opts: CsvOptions): State {
 
-    const tokenizer = Tokenizer(data)
+    const tokenizer = Tokenizer(data);
     return {
         data,
         tokenizer,
@@ -70,7 +70,7 @@ function State(data: string, runtimeCtx: RuntimeContext, opts: CsvOptions): Stat
 function eatValue(state: Tokenizer, delimiterCharCode: number) {
     while (state.position < state.length) {
         const c = state.data.charCodeAt(state.position);
-        ++state.position
+        ++state.position;
         switch (c) {
             case 10:  // \n
             case 13:  // \r
@@ -105,7 +105,7 @@ function eatQuoted(state: Tokenizer, quoteCharCode: number, delimiterCharCode: n
                 state.tokenStart++;
                 state.tokenEnd = state.position;
                 ++state.position;
-                return skipEmpty(state, delimiterCharCode)
+                return skipEmpty(state, delimiterCharCode);
             }
         }
         ++state.position;
@@ -123,7 +123,7 @@ function skipEmpty(state: Tokenizer, delimiterCharCode: number) {
         if (c !== 9 && c !== 32 && c !== delimiterCharCode) {  // \t or ' '
             return c === 10 || c === 13;  // \n or \r
         }
-        ++state.position
+        ++state.position;
     }
 }
 
@@ -159,8 +159,8 @@ function skipWhitespace(state: Tokenizer) {
 function skipLine(state: Tokenizer) {
     while (state.position < state.length) {
         const c = state.data.charCodeAt(state.position);
-        if (c === 10 || c === 13) return  // \n or \r
-        ++state.position
+        if (c === 10 || c === 13) return;  // \n or \r
+        ++state.position;
     }
 }
 
@@ -169,7 +169,7 @@ function skipLine(state: Tokenizer) {
  * Returns true when the current char is a newline, i.e. indicating a full record.
  */
 function moveNextInternal(state: State) {
-    const tokenizer = state.tokenizer
+    const tokenizer = state.tokenizer;
     skipWhitespace(tokenizer);
 
     if (tokenizer.position >= tokenizer.length) {
@@ -203,23 +203,23 @@ function moveNext(state: State) {
     while (state.tokenType === CsvTokenType.Comment) {
         newRecord = moveNextInternal(state);
     }
-    return newRecord
+    return newRecord;
 }
 
 function readRecordsChunk(chunkSize: number, state: State) {
-    if (state.tokenType === CsvTokenType.End) return 0
+    if (state.tokenType === CsvTokenType.End) return 0;
 
     let counter = 0;
-    let newRecord: boolean | undefined
+    let newRecord: boolean | undefined;
 
     const { tokens, tokenizer } = state;
 
     while (state.tokenType === CsvTokenType.Value && counter < chunkSize) {
         TokenBuilder.add(tokens[state.fieldCount % state.columnCount], tokenizer.tokenStart, tokenizer.tokenEnd);
-        ++state.fieldCount
+        ++state.fieldCount;
         newRecord = moveNext(state);
         if (newRecord) {
-            ++state.recordCount
+            ++state.recordCount;
             ++counter;
         }
     }
@@ -228,48 +228,48 @@ function readRecordsChunk(chunkSize: number, state: State) {
 
 function readRecordsChunks(state: State) {
     let newRecord = moveNext(state);
-    if (newRecord) ++state.recordCount
+    if (newRecord) ++state.recordCount;
     return chunkedSubtask(state.runtimeCtx, 100000, state, readRecordsChunk,
         (ctx, state) => ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.data.length }));
 }
 
 function addColumn (state: State) {
-    state.columnNames.push(Tokenizer.getTokenString(state.tokenizer))
-    state.tokens.push(TokenBuilder.create(state.tokenizer.data, state.data.length / 80))
+    state.columnNames.push(Tokenizer.getTokenString(state.tokenizer));
+    state.tokens.push(TokenBuilder.create(state.tokenizer.data, state.data.length / 80));
 }
 
 function init(state: State) {
-    let newRecord = moveNext(state)
+    let newRecord = moveNext(state);
     while (!newRecord) {
-        addColumn(state)
+        addColumn(state);
         newRecord = moveNext(state);
     }
-    addColumn(state)
-    state.columnCount = state.columnNames.length
+    addColumn(state);
+    state.columnCount = state.columnNames.length;
     if (state.noColumnNamesRecord) {
-        state.columnNames.forEach((x, i, arr) => arr[i] = i + '')
-        Tokenizer.reset(state.tokenizer)
+        state.columnNames.forEach((x, i, arr) => arr[i] = i + '');
+        Tokenizer.reset(state.tokenizer);
     }
 }
 
 async function handleRecords(state: State): Promise<Data.CsvTable> {
-    init(state)
-    await readRecordsChunks(state)
+    init(state);
+    await readRecordsChunks(state);
 
     const columns: Data.CsvColumns = Object.create(null);
     for (let i = 0; i < state.columnCount; ++i) {
         columns[state.columnNames[i]] = Field(state.tokens[i]);
     }
 
-    return Data.CsvTable(state.recordCount, state.columnNames, columns)
+    return Data.CsvTable(state.recordCount, state.columnNames, columns);
 }
 
 async function parseInternal(data: string, ctx: RuntimeContext, opts: CsvOptions): Promise<Result<Data.CsvFile>> {
     const state = State(data, ctx, opts);
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
-    const table = await handleRecords(state)
-    const result = Data.CsvFile(table)
+    const table = await handleRecords(state);
+    const result = Data.CsvFile(table);
     return Result.success(result);
 }
 
@@ -281,7 +281,7 @@ interface CsvOptions {
 }
 
 export function parseCsv(data: string, opts?: Partial<CsvOptions>) {
-    const completeOpts = Object.assign({}, { quote: '"', comment: '#', delimiter: ',', noColumnNames: false }, opts)
+    const completeOpts = Object.assign({}, { quote: '"', comment: '#', delimiter: ',', noColumnNames: false }, opts);
     return Task.create<Result<Data.CsvFile>>('Parse CSV', async ctx => {
         return await parseInternal(data, ctx, completeOpts);
     });

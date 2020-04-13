@@ -21,19 +21,19 @@ import { arrayMax } from '../../../mol-util/array';
 import { Representation } from '../../../mol-repr/representation';
 import { LociLabel } from '../../../mol-plugin-state/manager/loci-label';
 
-const B = ButtonsType
-const M = ModifiersKeys
-const Trigger = Binding.Trigger
+const B = ButtonsType;
+const M = ModifiersKeys;
+const Trigger = Binding.Trigger;
 
 //
 
 const DefaultHighlightLociBindings = {
     hoverHighlightOnly: Binding([Trigger(B.Flag.None)], 'Highlight', 'Hover element using ${triggers}'),
     hoverHighlightOnlyExtend: Binding([Trigger(B.Flag.None, M.create({ shift: true }))], 'Extend highlight', 'From selected to hovered element along polymer using ${triggers}'),
-}
+};
 const HighlightLociParams = {
     bindings: PD.Value(DefaultHighlightLociBindings, { isHidden: true }),
-}
+};
 type HighlightLociProps = PD.Values<typeof HighlightLociParams>
 
 export const HighlightLoci = PluginBehavior.create({
@@ -42,31 +42,31 @@ export const HighlightLoci = PluginBehavior.create({
     ctor: class extends PluginBehavior.Handler<HighlightLociProps> {
         private lociMarkProvider = (interactionLoci: Representation.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d) return;
-            this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action)
+            this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action);
         }
         register() {
             this.subscribeObservable(this.ctx.behaviors.interaction.hover, ({ current, buttons, modifiers }) => {
-                if (!this.ctx.canvas3d || this.ctx.isBusy) return
-                let matched = false
+                if (!this.ctx.canvas3d || this.ctx.isBusy) return;
+                let matched = false;
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnly, buttons, modifiers)) {
-                    this.ctx.managers.interactivity.lociHighlights.highlightOnly(current)
-                    matched = true
+                    this.ctx.managers.interactivity.lociHighlights.highlightOnly(current);
+                    matched = true;
                 }
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnlyExtend, buttons, modifiers)) {
-                    this.ctx.managers.interactivity.lociHighlights.highlightOnlyExtend(current)
-                    matched = true
+                    this.ctx.managers.interactivity.lociHighlights.highlightOnlyExtend(current);
+                    matched = true;
                 }
 
                 if (!matched) {
-                    this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EmptyLoci })
+                    this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EmptyLoci });
                 }
             });
-            this.ctx.managers.interactivity.lociHighlights.addProvider(this.lociMarkProvider)
+            this.ctx.managers.interactivity.lociHighlights.addProvider(this.lociMarkProvider);
         }
         unregister() {
-            this.ctx.managers.interactivity.lociHighlights.removeProvider(this.lociMarkProvider)
+            this.ctx.managers.interactivity.lociHighlights.removeProvider(this.lociMarkProvider);
         }
     },
     params: () => HighlightLociParams,
@@ -82,10 +82,10 @@ const DefaultSelectLociBindings = {
     clickToggle: Binding([Trigger(B.Flag.Primary, M.create())], 'Toggle selection', '${triggers} on element'),
     clickDeselect: Binding.Empty,
     clickDeselectAllOnEmpty: Binding([Trigger(B.Flag.Primary, M.create())], 'Deselect all', 'Click on nothing using ${triggers}'),
-}
+};
 const SelectLociParams = {
     bindings: PD.Value(DefaultSelectLociBindings, { isHidden: true }),
-}
+};
 type SelectLociProps = PD.Values<typeof SelectLociParams>
 
 export const SelectLoci = PluginBehavior.create({
@@ -95,25 +95,25 @@ export const SelectLoci = PluginBehavior.create({
         private spine: StateTreeSpine.Impl
         private lociMarkProvider = (reprLoci: Representation.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d) return;
-            this.ctx.canvas3d.mark({ loci: reprLoci.loci }, action)
+            this.ctx.canvas3d.mark({ loci: reprLoci.loci }, action);
         }
         private applySelectMark(ref: string, clear?: boolean) {
-            const cell = this.ctx.state.data.cells.get(ref)
+            const cell = this.ctx.state.data.cells.get(ref);
             if (cell && SO.isRepresentation3D(cell.obj)) {
-                this.spine.current = cell
-                const so = this.spine.getRootOfType(SO.Molecule.Structure)
+                this.spine.current = cell;
+                const so = this.spine.getRootOfType(SO.Molecule.Structure);
                 if (so) {
                     if (clear) {
-                        this.lociMarkProvider({ loci: Structure.Loci(so.data) }, MarkerAction.Deselect)
+                        this.lociMarkProvider({ loci: Structure.Loci(so.data) }, MarkerAction.Deselect);
                     }
-                    const loci = this.ctx.managers.structure.selection.getLoci(so.data)
-                    this.lociMarkProvider({ loci }, MarkerAction.Select)
+                    const loci = this.ctx.managers.structure.selection.getLoci(so.data);
+                    this.lociMarkProvider({ loci }, MarkerAction.Select);
                 }
             }
         }
         register() {
-            const lociIsEmpty = (current: Representation.Loci) => Loci.isEmpty(current.loci)
-            const lociIsNotEmpty = (current: Representation.Loci) => !Loci.isEmpty(current.loci)
+            const lociIsEmpty = (current: Representation.Loci) => Loci.isEmpty(current.loci);
+            const lociIsNotEmpty = (current: Representation.Loci) => !Loci.isEmpty(current.loci);
 
             const actions: [keyof typeof DefaultSelectLociBindings, (current: Representation.Loci) => void, ((current: Representation.Loci) => boolean) | undefined][] = [
                 ['clickSelect', current => this.ctx.managers.interactivity.lociSelects.select(current), lociIsNotEmpty],
@@ -130,7 +130,7 @@ export const SelectLoci = PluginBehavior.create({
                 const k = x.triggers.length === 0 ? 0 : arrayMax(x.triggers.map(t => M.size(t.modifiers)));
                 const l = y.triggers.length === 0 ? 0 : arrayMax(y.triggers.map(t => M.size(t.modifiers)));
                 return l - k;
-            })
+            });
 
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d || this.ctx.isBusy || !this.ctx.selectionMode) return;
@@ -143,25 +143,25 @@ export const SelectLoci = PluginBehavior.create({
                     }
                 }
             });
-            this.ctx.managers.interactivity.lociSelects.addProvider(this.lociMarkProvider)
+            this.ctx.managers.interactivity.lociSelects.addProvider(this.lociMarkProvider);
 
             this.subscribeObservable(this.ctx.events.state.object.created, ({ ref }) => this.applySelectMark(ref));
 
             // re-apply select-mark to all representation of an updated structure
             this.subscribeObservable(this.ctx.events.state.object.updated, ({ ref }) => {
-                const cell = this.ctx.state.data.cells.get(ref)
+                const cell = this.ctx.state.data.cells.get(ref);
                 if (cell && SO.Molecule.Structure.is(cell.obj)) {
-                    const reprs = this.ctx.state.data.select(StateSelection.Generators.ofType(SO.Molecule.Structure.Representation3D, ref))
-                    for (const repr of reprs) this.applySelectMark(repr.transform.ref, true)
+                    const reprs = this.ctx.state.data.select(StateSelection.Generators.ofType(SO.Molecule.Structure.Representation3D, ref));
+                    for (const repr of reprs) this.applySelectMark(repr.transform.ref, true);
                 }
             });
         }
         unregister() {
-            this.ctx.managers.interactivity.lociSelects.removeProvider(this.lociMarkProvider)
+            this.ctx.managers.interactivity.lociSelects.removeProvider(this.lociMarkProvider);
         }
         constructor(ctx: PluginContext, params: SelectLociProps) {
-            super(ctx, params)
-            this.spine = new StateTreeSpine.Impl(ctx.state.data.cells)
+            super(ctx, params);
+            this.spine = new StateTreeSpine.Impl(ctx.state.data.cells);
         }
     },
     params: () => SelectLociParams,
@@ -176,15 +176,15 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
     ctor: class implements PluginBehavior<undefined> {
         private f = {
             label: (loci: Loci) => {
-                const label: string[] = []
+                const label: string[] = [];
                 if (StructureElement.Loci.is(loci) && loci.elements.length === 1) {
-                    const { unit: u } = loci.elements[0]
-                    const l = StructureElement.Location.create(loci.structure, u, u.elements[0])
-                    const name = StructureProperties.entity.pdbx_description(l).join(', ')
-                    label.push(name)
+                    const { unit: u } = loci.elements[0];
+                    const l = StructureElement.Location.create(loci.structure, u, u.elements[0]);
+                    const name = StructureProperties.entity.pdbx_description(l).join(', ');
+                    label.push(name);
                 }
-                label.push(lociLabel(loci))
-                return label.filter(l => !!l).join('</br>')
+                label.push(lociLabel(loci));
+                return label.filter(l => !!l).join('</br>');
             },
             group: (label: LociLabel) => label.toString().replace(/Model [0-9]+/g, 'Models'),
             priority: 100
@@ -213,10 +213,10 @@ const DefaultFocusLociBindings = {
         Trigger(B.Flag.Secondary, M.create({ shift: true })),
         Trigger(B.Flag.Primary, M.create({ control: true, shift: true }))
     ], 'Representation Focus Add', 'Click element using ${triggers}'),
-}
+};
 const FocusLociParams = {
     bindings: PD.Value(DefaultFocusLociBindings, { isHidden: true }),
-}
+};
 type FocusLociProps = PD.Values<typeof FocusLociParams>
 
 export const FocusLoci = PluginBehavior.create<FocusLociProps>({
@@ -228,27 +228,27 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                 const { clickFocus, clickFocusAdd, clickFocusSelectMode, clickFocusAddSelectMode } = this.params.bindings;
 
                 const binding = this.ctx.selectionMode ? clickFocusSelectMode : clickFocus;
-                const matched = Binding.match(binding, button, modifiers)
+                const matched = Binding.match(binding, button, modifiers);
 
                 const bindingAdd = this.ctx.selectionMode ? clickFocusAddSelectMode : clickFocusAdd;
-                const matchedAdd = Binding.match(bindingAdd, button, modifiers)
+                const matchedAdd = Binding.match(bindingAdd, button, modifiers);
 
                 if (matched || matchedAdd) {
-                    const loci = Loci.normalize(current.loci, 'residue')
-                    const entry = this.ctx.managers.structure.focus.current
+                    const loci = Loci.normalize(current.loci, 'residue');
+                    const entry = this.ctx.managers.structure.focus.current;
                     if (entry && Loci.areEqual(entry.loci, loci)) {
-                        this.ctx.managers.structure.focus.clear()
+                        this.ctx.managers.structure.focus.clear();
                     } else {
                         if (matched) {
-                            this.ctx.managers.structure.focus.setFromLoci(loci)
+                            this.ctx.managers.structure.focus.setFromLoci(loci);
                         } else {
-                            this.ctx.managers.structure.focus.addFromLoci(loci)
+                            this.ctx.managers.structure.focus.addFromLoci(loci);
                         }
                         if (isEmptyLoci(loci)) {
-                            this.ctx.managers.camera.reset()
+                            this.ctx.managers.camera.reset();
                         }
                     }
-                    return
+                    return;
                 }
             });
         }

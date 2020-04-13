@@ -6,16 +6,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as File from '../common/file'
-import execute from './query/execute'
-import * as Data from './query/data-model'
-import { ConsoleLogger } from '../../../mol-util/console-logger'
-import * as DataFormat from '../common/data-format'
+import * as File from '../common/file';
+import execute from './query/execute';
+import * as Data from './query/data-model';
+import { ConsoleLogger } from '../../../mol-util/console-logger';
+import * as DataFormat from '../common/data-format';
 import { FileHandle } from '../../../mol-io/common/file-handle';
 import { LimitsConfig } from '../config';
 
 export function getOutputFilename(source: string, id: string, { asBinary, box, detail, forcedSamplingLevel }: Data.QueryParams) {
-    function n(s: string) { return (s || '').replace(/[ \n\t]/g, '').toLowerCase() }
+    function n(s: string) { return (s || '').replace(/[ \n\t]/g, '').toLowerCase(); }
     function r(v: number) { return Math.round(10 * v) / 10; }
     const det = forcedSamplingLevel !== void 0
         ? `l${forcedSamplingLevel}`

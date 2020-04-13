@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as fs from 'fs'
+import * as fs from 'fs';
 import Version from './version';
 import { LocalInput, runLocal } from './server/api-local';
 

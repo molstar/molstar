@@ -5,14 +5,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator'
-import { Model } from '../model'
-import { GridLookup3D, Lookup3D } from '../../../mol-math/geometry'
-import { IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds'
+import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator';
+import { Model } from '../model';
+import { GridLookup3D, Lookup3D } from '../../../mol-math/geometry';
+import { IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds';
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
 import { ValueRef, BitFlags } from '../../../mol-util';
 import { UnitRings } from './unit/rings';
-import StructureElement from './element'
+import StructureElement from './element';
 import { ChainIndex, ResidueIndex, ElementIndex } from '../model/indexing';
 import { IntMap, SortedArray, Segmentation } from '../../../mol-data/int';
 import { hash2, hashFnv32a } from '../../../mol-data/util';
@@ -61,25 +61,25 @@ namespace Unit {
         for (let i = 0, _i = units.length; i < _i; i++) {
             unitIndexMap.set(units[i].id, i);
         }
-        return unitIndexMap
+        return unitIndexMap;
     }
 
     export function SymmetryGroup(units: Unit[]) {
         const props: {
             unitIndexMap?: IntMap<number>
-        } = {}
+        } = {};
 
         return {
             elements: units[0].elements,
             units,
             get unitIndexMap () {
-                if (props.unitIndexMap) return props.unitIndexMap
-                props.unitIndexMap = getUnitIndexMap(units)
-                return props.unitIndexMap
+                if (props.unitIndexMap) return props.unitIndexMap;
+                props.unitIndexMap = getUnitIndexMap(units);
+                return props.unitIndexMap;
             },
             hashCode: hashUnit(units[0]),
             transformHash: hashFnv32a(units.map(u => u.id))
-        }
+        };
     }
 
     export namespace SymmetryGroup {
@@ -93,12 +93,12 @@ namespace Unit {
             for (let i = 0, _i = symmetryGroups.length; i < _i; i++) {
                 unitSymmetryGroupsIndexMap.set(symmetryGroups[i].units[0].invariantId, i);
             }
-            return unitSymmetryGroupsIndexMap
+            return unitSymmetryGroupsIndexMap;
         }
     }
 
     export function conformationId (unit: Unit) {
-        return Unit.isAtomic(unit) ? unit.model.atomicConformation.id : unit.model.coarseConformation.id
+        return Unit.isAtomic(unit) ? unit.model.atomicConformation.id : unit.model.coarseConformation.id;
     }
 
     export function hashUnit(u: Unit) {
@@ -112,8 +112,8 @@ namespace Unit {
         Partitioned = 0x2
     }
     export namespace Traits {
-        export const is: (t: Traits, f: Trait) => boolean = BitFlags.has
-        export const create: (f: Trait) => Traits = BitFlags.create
+        export const is: (t: Traits, f: Trait) => boolean = BitFlags.has;
+        export const create: (f: Trait) => Traits = BitFlags.create;
     }
 
     export interface Base {
@@ -266,11 +266,11 @@ namespace Unit {
         get residueCount(): number {
             if (this.props.residueCount.ref !== undefined) return this.props.residueCount.ref;
 
-            let residueCount = 0
-            const residueIt = Segmentation.transientSegments(this.model.atomicHierarchy.residueAtomSegments, this.elements)
+            let residueCount = 0;
+            const residueIt = Segmentation.transientSegments(this.model.atomicHierarchy.residueAtomSegments, this.elements);
             while (residueIt.hasNext) {
-                residueIt.move()
-                residueCount += 1
+                residueIt.move();
+                residueCount += 1;
             }
 
             this.props.residueCount.ref = residueCount;
@@ -384,7 +384,7 @@ namespace Unit {
 
         constructor(id: number, invariantId: number, chainGroupId: number, traits: Traits, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties) {
             this.kind = kind;
-            this.objectPrimitive = kind === Kind.Spheres ? 'sphere' : 'gaussian'
+            this.objectPrimitive = kind === Kind.Spheres ? 'sphere' : 'gaussian';
             this.id = id;
             this.invariantId = invariantId;
             this.chainGroupId = chainGroupId;

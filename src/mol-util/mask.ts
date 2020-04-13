@@ -87,7 +87,7 @@ namespace Mask {
         private flatten() {
             if (this._flat) return this._flat;
             const indices = new Int32Array(this.size);
-            let offset = 0
+            let offset = 0;
             this.set.forEach(i => indices[offset++] = i);
             sortAsc(indices);
             this._flat = indices as any as number[];
@@ -150,8 +150,8 @@ namespace Mask {
     }
 
     export function complement(mask: Mask, against: Mask) {
-        let count = 0
-        let max = 0
+        let count = 0;
+        let max = 0;
         against.forEach(i => {
             if (!mask.has(i)) {
                 count++;
@@ -161,7 +161,7 @@ namespace Mask {
 
         if (count / max < 1 / 12) {
             // set based
-            const set = new Set<number>()
+            const set = new Set<number>();
             against.forEach(i => {
                 if (!mask.has(i)) {
                     set.add(i);

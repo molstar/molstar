@@ -5,11 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from '../../../../mol-model/structure/model/model'
-import { BondType } from '../../../../mol-model/structure/model/types'
+import { Model } from '../../../../mol-model/structure/model/model';
+import { BondType } from '../../../../mol-model/structure/model/types';
 import { CustomPropertyDescriptor } from '../../../../mol-model/structure';
 import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
-import { CifWriter } from '../../../../mol-io/writer/cif'
+import { CifWriter } from '../../../../mol-io/writer/cif';
 import { Table } from '../../../../mol-data/db';
 import { FormatPropertyProvider } from '../../common/property';
 
@@ -38,18 +38,18 @@ export namespace ComponentBond {
                         if (comp_names.has(comp_id.value(i))) indices[indices.length] = i;
                     }
 
-                    return CifWriter.Category.ofTable(chem_comp_bond, indices)
+                    return CifWriter.Category.ofTable(chem_comp_bond, indices);
                 }
             }]
         }
-    }
+    };
 
-    export const Provider = FormatPropertyProvider.create<ComponentBond>(Descriptor)
+    export const Provider = FormatPropertyProvider.create<ComponentBond>(Descriptor);
 
     export function chemCompBondFromTable(model: Model, table: Table<mmCIF_Schema['chem_comp_bond']>): Table<mmCIF_Schema['chem_comp_bond']> {
         return Table.pick(table, mmCIF_Schema.chem_comp_bond, (i: number) => {
-            return model.properties.chemicalComponentMap.has(table.comp_id.value(i))
-        })
+            return model.properties.chemicalComponentMap.has(table.comp_id.value(i));
+        });
     }
 
     export function getEntriesFromChemCompBond(data: Table<mmCIF_Schema['chem_comp_bond']>) {
@@ -90,7 +90,7 @@ export namespace ComponentBond {
             entry.add(nameA, nameB, ord, flags);
         }
 
-        return entries
+        return entries;
     }
 
     export class Entry {

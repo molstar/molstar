@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Data from './data-model'
+import * as Data from './data-model';
 import { TypedArrayValueArray } from '../../../mol-io/common/typed-array';
 
 /**
@@ -121,7 +121,7 @@ function downsampleHK(kernel: Data.Kernel, dimsX: number[], buffer: Data.Downsam
 
 /** Calls downsampleH and downsampleHk for each input channel separately. */
 function downsampleSlice(ctx: Data.Context, sampling: Data.Sampling) {
-    const dimsU = [sampling.sampleCount[1], Math.floor((sampling.sampleCount[0] + 1) / 2)]
+    const dimsU = [sampling.sampleCount[1], Math.floor((sampling.sampleCount[0] + 1) / 2)];
     for (let i = 0, _ii = sampling.blocks.values.length; i < _ii; i++) {
         downsampleH(ctx.kernel, sampling.sampleCount, sampling.blocks.values[i], sampling.blocks.slicesWritten - 1, sampling.downsampling![i]);
         downsampleHK(ctx.kernel, dimsU, sampling.downsampling![i]);

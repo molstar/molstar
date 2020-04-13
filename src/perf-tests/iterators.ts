@@ -1,5 +1,5 @@
-import * as B from 'benchmark'
-import It from '../mol-data/iterator'
+import * as B from 'benchmark';
+import It from '../mol-data/iterator';
 
 function createData(n: number) {
     const data = []; // new Int32Array(n);
@@ -32,13 +32,13 @@ export namespace Iterators {
 
     export function forEach() {
         const ctx = { sum: 0 };
-        data.forEach(function (this: typeof ctx, v: number) { this.sum += v }, ctx);
+        data.forEach(function (this: typeof ctx, v: number) { this.sum += v; }, ctx);
         return ctx.sum;
     }
 
     export function forEachAllParams() {
         const ctx = { sum: 0 };
-        data.forEach(function (this: typeof ctx, v: number, _: any, __: any) { this.sum += v }, ctx);
+        data.forEach(function (this: typeof ctx, v: number, _: any, __: any) { this.sum += v; }, ctx);
         return ctx.sum;
     }
 
@@ -57,7 +57,7 @@ export namespace Iterators {
 
     export function forEachClosureAllFunction() {
         let sum = 0;
-        data.forEach(function (v, _, __) { sum += v });
+        data.forEach(function (v, _, __) { sum += v; });
         return sum;
     }
 
@@ -77,7 +77,7 @@ export namespace Iterators {
         private index: number = -1;
         private length: number = 0;
 
-        [Symbol.iterator]() { return this };
+        [Symbol.iterator]() { return this; };
 
         next() {
             const index = ++this.index;
@@ -104,7 +104,7 @@ export namespace Iterators {
         private index: number = -1;
         private length: number = 0;
 
-        [Symbol.iterator]() { return this };
+        [Symbol.iterator]() { return this; };
 
         next() {
             const index = ++this.index;

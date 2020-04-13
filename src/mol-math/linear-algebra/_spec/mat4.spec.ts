@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Mat4, Vec3 } from '../3d'
+import { Mat4, Vec3 } from '../3d';
 
 describe('Mat4', () => {
     it('permutation', () => {

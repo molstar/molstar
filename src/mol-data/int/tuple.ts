@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { hash2 } from '../util'
+import { hash2 } from '../util';
 
 /**
  * Represents a pair of two integers as a double,
@@ -80,4 +80,4 @@ namespace IntTuple {
     }
 }
 
-export default IntTuple
+export default IntTuple;

@@ -56,7 +56,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
                     addAtom(atomSite, modelStr, tokenizer, s, e);
                 } else if (substringStartsWith(data, s, e, 'ANISOU')) {
-                    addAnisotropic(anisotropic, modelStr, tokenizer, s, e)
+                    addAnisotropic(anisotropic, modelStr, tokenizer, s, e);
                 }
                 break;
             case 'C':
@@ -71,7 +71,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                         if (!substringStartsWith(data, s, e, 'COMPND')) break;
                         j++;
                     }
-                    entityBuilder.setCompounds(parseCmpnd(lines, i, j))
+                    entityBuilder.setCompounds(parseCmpnd(lines, i, j));
                     i = j - 1;
                 }
                 break;
@@ -95,7 +95,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                         if (!substringStartsWith(data, s, e, 'HETNAM')) break;
                         j++;
                     }
-                    heteroNames.push(...Array.from(parseHetnam(lines, i, j).entries()))
+                    heteroNames.push(...Array.from(parseHetnam(lines, i, j).entries()));
                     i = j - 1;
                 }
                 break;
@@ -148,17 +148,17 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     }
 
     // build entity and chem_comp categories
-    const seqIds = Column.ofIntTokens(atomSite.auth_seq_id)
-    const atomIds = Column.ofStringTokens(atomSite.auth_atom_id)
-    const compIds = Column.ofStringTokens(atomSite.auth_comp_id)
-    const asymIds = Column.ofStringTokens(atomSite.auth_asym_id)
-    const componentBuilder = new ComponentBuilder(seqIds, atomIds)
-    componentBuilder.setNames(heteroNames)
-    entityBuilder.setNames(heteroNames)
+    const seqIds = Column.ofIntTokens(atomSite.auth_seq_id);
+    const atomIds = Column.ofStringTokens(atomSite.auth_atom_id);
+    const compIds = Column.ofStringTokens(atomSite.auth_comp_id);
+    const asymIds = Column.ofStringTokens(atomSite.auth_asym_id);
+    const componentBuilder = new ComponentBuilder(seqIds, atomIds);
+    componentBuilder.setNames(heteroNames);
+    entityBuilder.setNames(heteroNames);
     for (let i = 0, il = compIds.rowCount; i < il; ++i) {
-        const compId = compIds.value(i)
-        const moleculeType = getMoleculeType(componentBuilder.add(compId, i).type, compId)
-        atomSite.label_entity_id[i] = entityBuilder.getEntityId(compId, moleculeType, asymIds.value(i))
+        const compId = compIds.value(i);
+        const moleculeType = getMoleculeType(componentBuilder.add(compId, i).type, compId);
+        atomSite.label_entity_id[i] = entityBuilder.getEntityId(compId, moleculeType, asymIds.value(i));
     }
 
     const categories = {

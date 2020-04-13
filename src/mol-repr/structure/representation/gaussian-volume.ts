@@ -13,19 +13,19 @@ import { Structure } from '../../../mol-model/structure';
 
 const GaussianVolumeVisuals = {
     'gaussian-volume': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianDensityVolumeParams>) => ComplexRepresentation('Gaussian volume', ctx, getParams, GaussianDensityVolumeVisual)
-}
+};
 
 export const GaussianVolumeParams = {
     ...GaussianDensityVolumeParams,
-}
+};
 export type GaussianVolumeParams = typeof GaussianVolumeParams
 export function getGaussianVolumeParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(GaussianVolumeParams)
+    return PD.clone(GaussianVolumeParams);
 }
 
 export type GaussianVolumeRepresentation = StructureRepresentation<GaussianVolumeParams>
 export function GaussianVolumeRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianVolumeParams>): GaussianVolumeRepresentation {
-    return Representation.createMulti('Gaussian Volume', ctx, getParams, StructureRepresentationStateBuilder, GaussianVolumeVisuals as unknown as Representation.Def<Structure, GaussianVolumeParams>)
+    return Representation.createMulti('Gaussian Volume', ctx, getParams, StructureRepresentationStateBuilder, GaussianVolumeVisuals as unknown as Representation.Def<Structure, GaussianVolumeParams>);
 }
 
 export const GaussianVolumeRepresentationProvider = StructureRepresentationProvider({
@@ -38,4 +38,4 @@ export const GaussianVolumeRepresentationProvider = StructureRepresentationProvi
     defaultColorTheme: { name: 'polymer-id' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-})
+});

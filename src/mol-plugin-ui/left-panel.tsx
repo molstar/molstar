@@ -97,7 +97,7 @@ class DataIcon extends PluginUIComponent<{ set: (tab: LeftPanelTabName) => void 
     state = { changed: false };
 
     get tab() {
-        return this.plugin.behaviors.layout.leftPanelTabName.value
+        return this.plugin.behaviors.layout.leftPanelTabName.value;
     }
 
     componentDidMount() {
@@ -129,9 +129,9 @@ class FullSettings extends PluginUIComponent {
 
         this.subscribe(this.plugin.canvas3d!.camera.stateChanged, state => {
             if (state.radiusMax !== undefined || state.radius !== undefined) {
-                this.forceUpdate()
+                this.forceUpdate();
             }
-        })
+        });
     }
 
     icon(name: IconName, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
@@ -146,7 +146,7 @@ class FullSettings extends PluginUIComponent {
             </>}
             <SectionHeader title='Behavior' />
             <StateTree state={this.plugin.state.behaviors} />
-        </>
+        </>;
     }
 }
 

@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task } from '../task'
-import { RuntimeContext } from './runtime-context'
-import { Progress } from './progress'
+import { Task } from '../task';
+import { RuntimeContext } from './runtime-context';
+import { Progress } from './progress';
 import { now } from '../../mol-util/now';
-import { Scheduler } from '../util/scheduler'
-import { UserTiming } from '../util/user-timing'
-import { isDebugMode } from '../../mol-util/debug'
+import { Scheduler } from '../util/scheduler';
+import { UserTiming } from '../util/user-timing';
+import { isDebugMode } from '../../mol-util/debug';
 
 interface ExposedTask<T> extends Task<T> {
     f: (ctx: RuntimeContext) => Promise<T>,
@@ -94,12 +94,12 @@ function snapshotProgress(info: ProgressInfo): Progress {
 }
 
 async function execute<T>(task: ExposedTask<T>, ctx: ObservableRuntimeContext) {
-    UserTiming.markStart(task)
+    UserTiming.markStart(task);
     ctx.node.progress.startedTime = now();
     try {
         const ret = await task.f(ctx);
-        UserTiming.markEnd(task)
-        UserTiming.measure(task)
+        UserTiming.markEnd(task);
+        UserTiming.measure(task);
         if (ctx.info.abortToken.abortRequested) {
             abort(ctx.info);
         }

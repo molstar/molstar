@@ -12,7 +12,7 @@ import { getCcp4Origin } from '../../../../mol-model-formats/volume/ccp4';
 import { Ccp4Header } from '../../../../mol-io/reader/ccp4/schema';
 
 async function readHeader(name: string, file: FileHandle) {
-    const { header: ccp4Header, littleEndian } = await readCcp4Header(file)
+    const { header: ccp4Header, littleEndian } = await readCcp4Header(file);
 
     const header: Header = {
         name,
@@ -54,4 +54,4 @@ export async function readSlices(data: Data) {
     }
 }
 
-export const Ccp4Provider: Provider = { readHeader, readSlices }
+export const Ccp4Provider: Provider = { readHeader, readSlices };

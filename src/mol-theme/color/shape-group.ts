@@ -8,16 +8,16 @@ import { ColorTheme } from '../color';
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
 import { ShapeGroup } from '../../mol-model/shape';
-import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 
-const DefaultColor = Color(0xCCCCCC)
-const Description = 'Assigns colors as defined by the shape object.'
+const DefaultColor = Color(0xCCCCCC);
+const Description = 'Assigns colors as defined by the shape object.';
 
-export const ShapeGroupColorThemeParams = {}
+export const ShapeGroupColorThemeParams = {};
 export type ShapeGroupColorThemeParams = typeof ShapeGroupColorThemeParams
 export function getShapeGroupColorThemeParams(ctx: ThemeDataContext) {
-    return ShapeGroupColorThemeParams // TODO return copy
+    return ShapeGroupColorThemeParams; // TODO return copy
 }
 
 export function ShapeGroupColorTheme(ctx: ThemeDataContext, props: PD.Values<ShapeGroupColorThemeParams>): ColorTheme<ShapeGroupColorThemeParams> {
@@ -26,13 +26,13 @@ export function ShapeGroupColorTheme(ctx: ThemeDataContext, props: PD.Values<Sha
         granularity: 'groupInstance',
         color: (location: Location): Color => {
             if (ShapeGroup.isLocation(location)) {
-                return location.shape.getColor(location.group, location.instance)
+                return location.shape.getColor(location.group, location.instance);
             }
-            return DefaultColor
+            return DefaultColor;
         },
         props,
         description: Description
-    }
+    };
 }
 
 export const ShapeGroupColorThemeProvider: ColorTheme.Provider<ShapeGroupColorThemeParams, 'shape-group'> = {
@@ -43,4 +43,4 @@ export const ShapeGroupColorThemeProvider: ColorTheme.Provider<ShapeGroupColorTh
     getParams: getShapeGroupColorThemeParams,
     defaultValues: PD.getDefaultValues(ShapeGroupColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.shape
-}
+};

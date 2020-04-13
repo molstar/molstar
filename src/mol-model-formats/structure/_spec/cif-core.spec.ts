@@ -72,28 +72,28 @@ C7 0.041(4) 0.072(5) 0.055(5) 0.013(5) 0.006(4) -0.015(4)
 C1 0.061(5) 0.067(5) 0.043(5) -0.002(4) 0.017(4) -0.005(4)
 C3 0.038(4) 0.090(6) 0.054(5) 0.003(5) 0.013(4) -0.018(4)
 C6 0.045(4) 0.043(4) 0.038(4) 0.004(4) 0.008(3) -0.002(4)
-`
+`;
 
 describe('cif-core read', () => {
     it('frame', async () => {
-        const parsed = await CIF.parseText(cifCoreString).run()
-        if (parsed.isError) return
-        const cifFile = parsed.result
-        const block = cifFile.blocks[0]
+        const parsed = await CIF.parseText(cifCoreString).run();
+        if (parsed.isError) return;
+        const cifFile = parsed.result;
+        const block = cifFile.blocks[0];
 
-        expect(block.getField('cell_length_a')!.float(0)).toBe(11.0829)
-        expect.assertions(1)
+        expect(block.getField('cell_length_a')!.float(0)).toBe(11.0829);
+        expect.assertions(1);
     });
 
     it('schema', async () => {
-        const parsed = await CIF.parseText(cifCoreString).run()
-        if (parsed.isError) return
-        const cifFile = parsed.result
-        const block = cifFile.blocks[0]
-        const cifCore = CIF.schema.cifCore(block)
+        const parsed = await CIF.parseText(cifCoreString).run();
+        if (parsed.isError) return;
+        const cifFile = parsed.result;
+        const block = cifFile.blocks[0];
+        const cifCore = CIF.schema.cifCore(block);
 
-        expect(cifCore.cell.length_a.value(0)).toBe(11.0829)
-        expect(cifCore.atom_site_aniso.U.value(0)).toEqual(new Float64Array([ 0.0425, 0, 0, 0.00089, 0.0423, 0, 0.01515, 0.00066, 0.0375 ]))
-        expect.assertions(2)
+        expect(cifCore.cell.length_a.value(0)).toBe(11.0829);
+        expect(cifCore.atom_site_aniso.U.value(0)).toEqual(new Float64Array([ 0.0425, 0, 0, 0.00089, 0.0423, 0, 0.01515, 0.00066, 0.0375 ]));
+        expect.assertions(2);
     });
 });

@@ -11,7 +11,7 @@ import { PluginLayoutStateProps } from './layout';
 import { PluginStateAnimation } from '../mol-plugin-state/animation/model';
 import { PluginConfigItem } from './config';
 
-export { PluginSpec }
+export { PluginSpec };
 
 interface PluginSpec {
     actions: PluginSpec.Action[],

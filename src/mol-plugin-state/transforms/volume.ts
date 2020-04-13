@@ -32,7 +32,7 @@ const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }) {
         return Task.create('Create volume from CCP4/MRC/MAP', async ctx => {
-            const volume = await volumeFromCcp4(a.data, params).runInContext(ctx)
+            const volume = await volumeFromCcp4(a.data, params).runInContext(ctx);
             const props = { label: 'Volume' };
             return new SO.Volume.Data(volume, props);
         });
@@ -53,7 +53,7 @@ const VolumeFromDsn6 = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }) {
         return Task.create('Create volume from DSN6/BRIX', async ctx => {
-            const volume = await volumeFromDsn6(a.data, params).runInContext(ctx)
+            const volume = await volumeFromDsn6(a.data, params).runInContext(ctx);
             const props = { label: 'Volume' };
             return new SO.Volume.Data(volume, props);
         });
@@ -84,8 +84,8 @@ const VolumeFromDensityServerCif = PluginStateTransform.BuiltIn({
             const header = params.blockHeader || a.data.blocks[1].header; // zero block contains query meta-data
             const block = a.data.blocks.find(b => b.header === header);
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
-            const densityServerCif = CIF.schema.densityServer(block)
-            const volume = await volumeFromDensityServerData(densityServerCif).runInContext(ctx)
+            const densityServerCif = CIF.schema.densityServer(block);
+            const volume = await volumeFromDensityServerData(densityServerCif).runInContext(ctx);
             const props = { label: densityServerCif.volume_data_3d_info.name.value(0), description: `${densityServerCif.volume_data_3d_info.name.value(0)}` };
             return new SO.Volume.Data(volume, props);
         });

@@ -120,7 +120,7 @@ function createElementRadiusFn(ctx: QueryContext, eRadius: QueryFn<number>): Str
         ctx.element.unit = e.unit;
         ctx.element.element = e.element;
         return eRadius(ctx);
-    }
+    };
 }
 
 function findStructureRadius(ctx: QueryContext, eRadius: QueryFn<number>) {
@@ -196,7 +196,7 @@ export function querySelection(selection: StructureQuery, query: StructureQuery)
             if (sI % 10 === 0) ctx.throwIfTimedOut();
         });
         return ret.getSelection();
-    }
+    };
 }
 
 export function intersectBy(query: StructureQuery, by: StructureQuery): StructureQuery {
@@ -326,7 +326,7 @@ export function includeConnected({ query, layerCount, wholeResidues, bondTest }:
         ctx.popCurrentBond();
 
         return builder.getSelection();
-    }
+    };
 }
 
 function includeConnectedStep(ctx: QueryContext, wholeResidues: boolean, structure: Structure) {

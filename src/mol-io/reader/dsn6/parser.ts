@@ -5,8 +5,8 @@
  */
 
 import { Task, RuntimeContext } from '../../../mol-task';
-import { Dsn6File, Dsn6Header } from './schema'
-import { ReaderResult as Result } from '../result'
+import { Dsn6File, Dsn6Header } from './schema';
+import { ReaderResult as Result } from '../result';
 import { FileHandle } from '../../common/file-handle';
 import { SimpleBuffer } from '../../../mol-io/common/simple-buffer';
 
@@ -32,12 +32,12 @@ function parseBrixHeader(str: string): Dsn6Header {
         divisor: parseFloat(str.substr(138, 12)),
         summand: parseInt(str.substr(155, 8)),
         sigma: parseFloat(str.substr(170, 12))
-    }
+    };
 }
 
 function parseDsn6Header(buffer: SimpleBuffer, littleEndian: boolean): Dsn6Header {
-    const readInt = littleEndian ? (o: number) => buffer.readInt16LE(o * 2) : (o: number) => buffer.readInt16BE(o * 2)
-    const factor = 1 / readInt(17)
+    const readInt = littleEndian ? (o: number) => buffer.readInt16LE(o * 2) : (o: number) => buffer.readInt16BE(o * 2);
+    const factor = 1 / readInt(17);
     return {
         xStart: readInt(0),
         yStart: readInt(1),
@@ -57,55 +57,55 @@ function parseDsn6Header(buffer: SimpleBuffer, littleEndian: boolean): Dsn6Heade
         divisor: readInt(15) / 100,
         summand: readInt(16),
         sigma: undefined
-    }
+    };
 }
 
 function getBlocks(header: Dsn6Header) {
-    const { xExtent, yExtent, zExtent } = header
-    const xBlocks = Math.ceil(xExtent / 8)
-    const yBlocks = Math.ceil(yExtent / 8)
-    const zBlocks = Math.ceil(zExtent / 8)
-    return { xBlocks, yBlocks, zBlocks }
+    const { xExtent, yExtent, zExtent } = header;
+    const xBlocks = Math.ceil(xExtent / 8);
+    const yBlocks = Math.ceil(yExtent / 8);
+    const zBlocks = Math.ceil(zExtent / 8);
+    return { xBlocks, yBlocks, zBlocks };
 }
 
 export async function readDsn6Header(file: FileHandle): Promise<{ header: Dsn6Header, littleEndian: boolean }> {
-    const { buffer } = await file.readBuffer(0, dsn6HeaderSize)
-    const brixStr = String.fromCharCode.apply(null, buffer) as string
-    const isBrix = brixStr.startsWith(':-)')
-    const littleEndian = isBrix || buffer.readInt16LE(18 * 2) === 100
-    const header = isBrix ? parseBrixHeader(brixStr) : parseDsn6Header(buffer, littleEndian)
-    return { header, littleEndian }
+    const { buffer } = await file.readBuffer(0, dsn6HeaderSize);
+    const brixStr = String.fromCharCode.apply(null, buffer) as string;
+    const isBrix = brixStr.startsWith(':-)');
+    const littleEndian = isBrix || buffer.readInt16LE(18 * 2) === 100;
+    const header = isBrix ? parseBrixHeader(brixStr) : parseDsn6Header(buffer, littleEndian);
+    return { header, littleEndian };
 }
 
 export async function parseDsn6Values(header: Dsn6Header, source: Uint8Array, target: Float32Array, littleEndian: boolean) {
     if (!littleEndian) {
         // even though the values are one byte they need to be swapped like they are 2
-        SimpleBuffer.flipByteOrderInPlace2(source.buffer)
+        SimpleBuffer.flipByteOrderInPlace2(source.buffer);
     }
 
-    const { divisor, summand, xExtent, yExtent, zExtent } = header
-    const { xBlocks, yBlocks, zBlocks } = getBlocks(header)
+    const { divisor, summand, xExtent, yExtent, zExtent } = header;
+    const { xBlocks, yBlocks, zBlocks } = getBlocks(header);
 
-    let offset = 0
+    let offset = 0;
     // loop over blocks
     for (let zz = 0; zz < zBlocks; ++zz) {
         for (let yy = 0; yy < yBlocks; ++yy) {
             for (let xx = 0; xx < xBlocks; ++xx) {
                 // loop inside block
                 for (let k = 0; k < 8; ++k) {
-                    const z = 8 * zz + k
+                    const z = 8 * zz + k;
                     for (let j = 0; j < 8; ++j) {
-                        const y = 8 * yy + j
+                        const y = 8 * yy + j;
                         for (let i = 0; i < 8; ++i) {
-                            const x = 8 * xx + i
+                            const x = 8 * xx + i;
                             // check if remaining slice-part contains values
                             if (x < xExtent && y < yExtent && z < zExtent) {
-                                const idx = ((((x * yExtent) + y) * zExtent) + z)
-                                target[idx] = (source[offset] - summand) / divisor
-                                ++offset
+                                const idx = ((((x * yExtent) + y) * zExtent) + z);
+                                target[idx] = (source[offset] - summand) / divisor;
+                                ++offset;
                             } else {
-                                offset += 8 - i
-                                break
+                                offset += 8 - i;
+                                break;
                             }
                         }
                     }
@@ -116,23 +116,23 @@ export async function parseDsn6Values(header: Dsn6Header, source: Uint8Array, ta
 }
 
 export function getDsn6Counts(header: Dsn6Header) {
-    const { xExtent, yExtent, zExtent } = header
-    const { xBlocks, yBlocks, zBlocks } = getBlocks(header)
-    const valueCount = xExtent * yExtent * zExtent
-    const count = xBlocks * 8 * yBlocks * 8 * zBlocks * 8
-    const elementByteSize = 1
-    const byteCount = count * elementByteSize
-    return { count, byteCount, valueCount }
+    const { xExtent, yExtent, zExtent } = header;
+    const { xBlocks, yBlocks, zBlocks } = getBlocks(header);
+    const valueCount = xExtent * yExtent * zExtent;
+    const count = xBlocks * 8 * yBlocks * 8 * zBlocks * 8;
+    const elementByteSize = 1;
+    const byteCount = count * elementByteSize;
+    return { count, byteCount, valueCount };
 }
 
 async function parseInternal(file: FileHandle, size: number, ctx: RuntimeContext): Promise<Dsn6File> {
     await ctx.update({ message: 'Parsing DSN6/BRIX file...' });
-    const { header, littleEndian } = await readDsn6Header(file)
-    const { buffer } = await file.readBuffer(dsn6HeaderSize, size - dsn6HeaderSize)
-    const { valueCount } = getDsn6Counts(header)
+    const { header, littleEndian } = await readDsn6Header(file);
+    const { buffer } = await file.readBuffer(dsn6HeaderSize, size - dsn6HeaderSize);
+    const { valueCount } = getDsn6Counts(header);
 
-    const values = new Float32Array(valueCount)
-    await parseDsn6Values(header, buffer, values, littleEndian)
+    const values = new Float32Array(valueCount);
+    await parseDsn6Values(header, buffer, values, littleEndian);
 
     const result: Dsn6File = { header, values };
     return result;
@@ -145,9 +145,9 @@ export function parseFile(file: FileHandle, size: number) {
         } catch (e) {
             return Result.error(e);
         }
-    })
+    });
 }
 
 export function parse(buffer: Uint8Array) {
-    return parseFile(FileHandle.fromBuffer(SimpleBuffer.fromUint8Array(buffer)), buffer.length)
+    return parseFile(FileHandle.fromBuffer(SimpleBuffer.fromUint8Array(buffer)), buffer.length);
 }

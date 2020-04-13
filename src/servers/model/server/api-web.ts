@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as express from 'express';
-import * as bodyParser from 'body-parser'
+import * as bodyParser from 'body-parser';
 import { ModelServerConfig as Config, ModelServerConfig, mapSourceAndIdToFilename } from '../config';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { resolveJob } from './query';
@@ -156,7 +156,7 @@ export function initWebApi(app: express.Express) {
     });
     app.post(makePath('v1/query-many'), (req, res) => {
         const params = req.body;
-        req.setTimeout
+        req.setTimeout;
         createMultiJob(params, res);
     });
 

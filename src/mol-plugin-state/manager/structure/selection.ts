@@ -63,24 +63,24 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
     }
 
     private calcStats(): SelectionStats {
-        let structureCount = 0
-        let elementCount = 0
-        const stats = StructureElement.Stats.create()
+        let structureCount = 0;
+        let elementCount = 0;
+        const stats = StructureElement.Stats.create();
 
         this.entries.forEach(v => {
-            const { elements } = v.selection
+            const { elements } = v.selection;
             if (elements.length) {
-                structureCount += 1
+                structureCount += 1;
                 for (let i = 0, il = elements.length; i < il; ++i) {
-                    elementCount += OrderedSet.size(elements[i].indices)
+                    elementCount += OrderedSet.size(elements[i].indices);
                 }
-                StructureElement.Stats.add(stats, stats, StructureElement.Stats.ofLoci(v.selection))
+                StructureElement.Stats.add(stats, stats, StructureElement.Stats.ofLoci(v.selection));
             }
-        })
+        });
 
-        const label = structureElementStatsLabel(stats, { countsOnly: true })
+        const label = structureElementStatsLabel(stats, { countsOnly: true });
 
-        return { structureCount, elementCount, label }
+        return { structureCount, elementCount, label };
     }
 
     private add(loci: Loci): boolean {
@@ -92,7 +92,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         const sel = entry.selection;
         entry.selection = StructureElement.Loci.union(entry.selection, loci);
         this.tryAddHistory(loci);
-        this.referenceLoci = loci
+        this.referenceLoci = loci;
         return !StructureElement.Loci.areEqual(sel, entry.selection);
     }
 
@@ -105,7 +105,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         const sel = entry.selection;
         entry.selection = StructureElement.Loci.subtract(entry.selection, loci);
         // this.addHistory(loci);
-        this.referenceLoci = loci
+        this.referenceLoci = loci;
         return !StructureElement.Loci.areEqual(sel, entry.selection);
     }
 
@@ -118,7 +118,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         const sel = entry.selection;
         entry.selection = StructureElement.Loci.intersect(entry.selection, loci);
         // this.addHistory(loci);
-        this.referenceLoci = loci
+        this.referenceLoci = loci;
         return !StructureElement.Loci.areEqual(sel, entry.selection);
     }
 
@@ -194,7 +194,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
             this.entries.delete(ref);
             // TODO: property update the latest loci
             this.state.additionsHistory = [];
-            this.referenceLoci = undefined
+            this.referenceLoci = undefined;
         }
     }
 
@@ -206,7 +206,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
 
             // TODO: property update the latest loci & reference loci
             this.state.additionsHistory = [];
-            this.referenceLoci = undefined
+            this.referenceLoci = undefined;
 
             // remap the old selection to be related to the new object if possible.
             if (Structure.areUnitAndIndicesEqual(oldObj.data, obj.data)) {
@@ -267,7 +267,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         const xs = loci.elements[0];
         if (!xs) return;
 
-        const ref = this.referenceLoci
+        const ref = this.referenceLoci;
         if (!ref || !StructureElement.Loci.is(ref) || ref.structure.root !== loci.structure.root) return;
 
         let e: StructureElement.Loci['elements'][0] | undefined;
@@ -281,7 +281,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
 
         if (xs.unit !== e.unit) return;
 
-        return getElementRange(loci.structure.root, e, xs)
+        return getElementRange(loci.structure.root, e, xs);
     }
 
     private prevHighlight: StructureElement.Loci | undefined = void 0;
@@ -305,32 +305,32 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
 
     /** Count of all selected elements */
     elementCount() {
-        let count = 0
+        let count = 0;
         this.entries.forEach(v => {
-            count += StructureElement.Loci.size(v.selection)
-        })
-        return count
+            count += StructureElement.Loci.size(v.selection);
+        });
+        return count;
     }
 
     getBoundary() {
-        const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
-        const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
+        const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+        const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
 
         boundaryHelper.reset();
 
-        const boundaries: Boundary[] = []
+        const boundaries: Boundary[] = [];
         this.entries.forEach(v => {
-            const loci = v.selection
+            const loci = v.selection;
             if (!StructureElement.Loci.isEmpty(loci)) {
-                boundaries.push(StructureElement.Loci.getBoundary(loci))
+                boundaries.push(StructureElement.Loci.getBoundary(loci));
             }
-        })
+        });
 
         for (let i = 0, il = boundaries.length; i < il; ++i) {
             const { box, sphere } = boundaries[i];
             Vec3.min(min, min, box.min);
             Vec3.max(max, max, box.max);
-            boundaryHelper.includePositionRadius(sphere.center, sphere.radius)
+            boundaryHelper.includePositionRadius(sphere.center, sphere.radius);
         }
         boundaryHelper.finishedIncludeStep();
         for (let i = 0, il = boundaries.length; i < il; ++i) {
@@ -342,14 +342,14 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
     }
 
     getPrincipalAxes(): PrincipalAxes {
-        const elementCount = this.elementCount()
-        const positions = new Float32Array(3 * elementCount)
-        let offset = 0
+        const elementCount = this.elementCount();
+        const positions = new Float32Array(3 * elementCount);
+        let offset = 0;
         this.entries.forEach(v => {
-            StructureElement.Loci.toPositionsArray(v.selection, positions, offset)
-            offset += StructureElement.Loci.size(v.selection) * 3
-        })
-        return PrincipalAxes.ofPositions(positions)
+            StructureElement.Loci.toPositionsArray(v.selection, positions, offset);
+            offset += StructureElement.Loci.size(v.selection) * 3;
+        });
+        return PrincipalAxes.ofPositions(positions);
     }
 
     modify(modifier: StructureSelectionModifier, loci: Loci) {
@@ -376,17 +376,17 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
     private triggerInteraction(modifier: StructureSelectionModifier, loci: Loci, applyGranularity = true) {
         switch (modifier) {
             case 'add':
-                this.plugin.managers.interactivity.lociSelects.select({ loci }, applyGranularity)
-                break
+                this.plugin.managers.interactivity.lociSelects.select({ loci }, applyGranularity);
+                break;
             case 'remove':
-                this.plugin.managers.interactivity.lociSelects.deselect({ loci }, applyGranularity)
-                break
+                this.plugin.managers.interactivity.lociSelects.deselect({ loci }, applyGranularity);
+                break;
             case 'intersect':
-                this.plugin.managers.interactivity.lociSelects.selectJoin({ loci }, applyGranularity)
-                break
+                this.plugin.managers.interactivity.lociSelects.selectJoin({ loci }, applyGranularity);
+                break;
             case 'set':
-                this.plugin.managers.interactivity.lociSelects.selectOnly({ loci }, applyGranularity)
-                break
+                this.plugin.managers.interactivity.lociSelects.selectOnly({ loci }, applyGranularity);
+                break;
         }
     }
 
@@ -400,7 +400,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
                 const loci = await query.getSelection(this.plugin, runtime, s);
                 this.triggerInteraction(modifier, StructureSelection.toLociWithSourceUnits(loci), applyGranularity);
             }
-        }))
+        }));
     }
 
     fromSelections(ref: StateObjectRef<PluginStateObject.Molecule.Structure.Selections>) {
@@ -432,7 +432,7 @@ interface SelectionStats {
     label: string
 }
 
-function SelectionStats(): SelectionStats { return { structureCount: 0, elementCount: 0, label: 'Nothing Selected' } };
+function SelectionStats(): SelectionStats { return { structureCount: 0, elementCount: 0, label: 'Nothing Selected' }; };
 
 class SelectionEntry {
     private _selection: StructureElement.Loci;
@@ -441,7 +441,7 @@ class SelectionEntry {
     get selection() { return this._selection; }
     set selection(value: StructureElement.Loci) {
         this._selection = value;
-        this._structure = void 0
+        this._structure = void 0;
     }
 
     get structure(): Structure | undefined {
@@ -474,8 +474,8 @@ function remapSelectionEntry(e: SelectionEntry, s: Structure): SelectionEntry {
  * Assumes `ref` and `ext` belong to the same unit in the same structure
  */
 function getElementRange(structure: Structure, ref: StructureElement.Loci['elements'][0], ext: StructureElement.Loci['elements'][0]) {
-    const min = Math.min(OrderedSet.min(ref.indices), OrderedSet.min(ext.indices))
-    const max = Math.max(OrderedSet.max(ref.indices), OrderedSet.max(ext.indices))
+    const min = Math.min(OrderedSet.min(ref.indices), OrderedSet.min(ext.indices));
+    const max = Math.max(OrderedSet.max(ref.indices), OrderedSet.max(ext.indices));
 
     return StructureElement.Loci(structure, [{
         unit: ref.unit,

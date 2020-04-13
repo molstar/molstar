@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Data from './data-model'
+import * as Data from './data-model';
 import { getElementByteSize } from '../../../mol-io/common/typed-array';
 import { SimpleBuffer } from '../../../mol-io/common/simple-buffer';
 

@@ -16,7 +16,7 @@ export function trajectoryFromPDB(pdb: PdbFile): Task<Model.Trajectory> {
     return Task.create('Parse PDB', async ctx => {
         await ctx.update('Converting to mmCIF');
         const cif = await pdbToMmCif(pdb);
-        const format = MmcifFormat.fromFrame(cif)
-        return createModels(format.data.db, format, ctx)
-    })
+        const format = MmcifFormat.fromFrame(cif);
+        return createModels(format.data.db, format, ctx);
+    });
 }

@@ -6,12 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Api from './api'
-import * as Data from './query/data-model'
-import * as Coordinate from './algebra/coordinate'
+import * as Api from './api';
+import * as Data from './query/data-model';
+import * as Coordinate from './algebra/coordinate';
 
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface JobEntry {
     source: {
@@ -71,13 +71,13 @@ async function query(job: JobEntry) {
             kind: 'Fractional',
             a: Coordinate.fractional(job.query.bottomLeft![0], job.query.bottomLeft![1], job.query.bottomLeft![2]),
             b: Coordinate.fractional(job.query.topRight![0], job.query.topRight![1], job.query.topRight![2]),
-        }
+        };
     } else {
         box = {
             kind: 'Cartesian',
             a: Coordinate.cartesian(job.query.bottomLeft![0], job.query.bottomLeft![1], job.query.bottomLeft![2]),
             b: Coordinate.cartesian(job.query.topRight![0], job.query.topRight![1], job.query.topRight![2]),
-        }
+        };
     }
 
     const params: Data.QueryParams = {
@@ -93,9 +93,9 @@ async function query(job: JobEntry) {
         makeDir(job.outputFolder);
     }
 
-    const filename = path.join(job.outputFolder, Api.getOutputFilename(job.source.name, job.source.id, params))
+    const filename = path.join(job.outputFolder, Api.getOutputFilename(job.source.name, job.source.id, params));
     const res = () => wrapFile(filename);
-    await Api.queryBox(params, res)
+    await Api.queryBox(params, res);
 }
 
 function makeDir(path: string, root?: string): boolean {

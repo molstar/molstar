@@ -38,13 +38,13 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
             this.setState({
                 isHidden: !this.canEnable(),
                 description: StructureHierarchyManager.getSelectedStructuresDescription(this.plugin)
-            })
+            });
         });
         this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
             if (StateTransform.hasTag(e.cell.transform, VolumeStreaming.RootTag)) this.forceUpdate();
         });
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isBusy: v })
+            this.setState({ isBusy: v });
         });
     }
 
@@ -72,7 +72,7 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
             ? { header: 'Error enabling', icon: 'alert' as const, title: rootCell.errorText }
             : rootCell && rootCell.obj?.data.entries.length === 0
                 ? { header: 'Error enabling', icon: 'alert' as const, title: 'No entry for streaming found' }
-                : { header: 'Enable', icon: 'check' as const, title: 'Enable' }
+                : { header: 'Enable', icon: 'check' as const, title: 'Enable' };
 
         return <ApplyActionControl state={pivot.cell.parent} action={InitVolumeStreaming} initiallyCollapsed={true} nodeRef={pivot.cell.transform.ref} simpleApply={simpleApply} />;
     }

@@ -17,7 +17,7 @@
  * furnished to do so, subject to the following conditions:
  */
 
-import { EPSILON, equalEps } from './common'
+import { EPSILON, equalEps } from './common';
 import Vec3 from './vec3';
 import Quat from './quat';
 import { degToRad } from '../../misc';
@@ -105,8 +105,8 @@ namespace Mat4 {
     }
 
     export function hasNaN(m: Mat4) {
-        for (let i = 0; i < 16; i++) if (isNaN(m[i])) return true
-        return false
+        for (let i = 0; i < 16; i++) if (isNaN(m[i])) return true;
+        return false;
     }
 
     export function areEqual(a: Mat4, b: Mat4, eps: number) {
@@ -145,23 +145,23 @@ namespace Mat4 {
     }
 
     export function fromArray(a: Mat4, array: NumberArray, offset: number) {
-        a[0] = array[offset + 0]
-        a[1] = array[offset + 1]
-        a[2] = array[offset + 2]
-        a[3] = array[offset + 3]
-        a[4] = array[offset + 4]
-        a[5] = array[offset + 5]
-        a[6] = array[offset + 6]
-        a[7] = array[offset + 7]
-        a[8] = array[offset + 8]
-        a[9] = array[offset + 9]
-        a[10] = array[offset + 10]
-        a[11] = array[offset + 11]
-        a[12] = array[offset + 12]
-        a[13] = array[offset + 13]
-        a[14] = array[offset + 14]
-        a[15] = array[offset + 15]
-        return a
+        a[0] = array[offset + 0];
+        a[1] = array[offset + 1];
+        a[2] = array[offset + 2];
+        a[3] = array[offset + 3];
+        a[4] = array[offset + 4];
+        a[5] = array[offset + 5];
+        a[6] = array[offset + 6];
+        a[7] = array[offset + 7];
+        a[8] = array[offset + 8];
+        a[9] = array[offset + 9];
+        a[10] = array[offset + 10];
+        a[11] = array[offset + 11];
+        a[12] = array[offset + 12];
+        a[13] = array[offset + 13];
+        a[14] = array[offset + 14];
+        a[15] = array[offset + 15];
+        return a;
     }
 
     export function copy(out: Mat4, a: Mat4) {
@@ -511,7 +511,7 @@ namespace Mat4 {
         out[2] = view[0];
         out[6] = view[1];
         out[10] = view[2];
-        return out
+        return out;
     }
 
     export function rotate(out: Mat4, a: Mat4, rad: number, axis: Vec3) {
@@ -747,7 +747,7 @@ namespace Mat4 {
      * Allows for improper rotations
      */
     export function isRotationAndTranslation(a: Mat4, eps?: number) {
-        return _isRotationAndTranslation(a, typeof eps !== 'undefined' ? eps : EPSILON)
+        return _isRotationAndTranslation(a, typeof eps !== 'undefined' ? eps : EPSILON);
     }
 
     function _isRotationAndTranslation(a: Mat4, eps: number) {
@@ -776,11 +776,11 @@ namespace Mat4 {
      * [ 0  0  0  1 ]
      */
     export function isTranslationAndUniformScaling(a: Mat4, eps?: number) {
-        return _isTranslationAndUniformScaling(a, typeof eps !== 'undefined' ? eps : EPSILON)
+        return _isTranslationAndUniformScaling(a, typeof eps !== 'undefined' ? eps : EPSILON);
     }
 
     function _isTranslationAndUniformScaling(a: Mat4, eps: number) {
-        const a00 = a[0]
+        const a00 = a[0];
         return (
             // 0 base scaling
             equalEps(a[1], 0, eps) &&
@@ -796,7 +796,7 @@ namespace Mat4 {
             equalEps(a[11], 0, eps) &&
             // 12, 13, 14 translation can be anything
             equalEps(a[15], 1, eps)
-        )
+        );
     }
 
     export function fromQuat(out: Mat4, q: Quat) {
@@ -1049,43 +1049,43 @@ namespace Mat4 {
     }
 
     export function getMaxScaleOnAxis(m: Mat4) {
-        const scaleXSq = m[0] * m[0] + m[1] * m[1] + m[2] * m[2]
-        const scaleYSq = m[4] * m[4] + m[5] * m[5] + m[6] * m[6]
-        const scaleZSq = m[8] * m[8] + m[9] * m[9] + m[10] * m[10]
-        return Math.sqrt(Math.max(scaleXSq, scaleYSq, scaleZSq))
+        const scaleXSq = m[0] * m[0] + m[1] * m[1] + m[2] * m[2];
+        const scaleYSq = m[4] * m[4] + m[5] * m[5] + m[6] * m[6];
+        const scaleZSq = m[8] * m[8] + m[9] * m[9] + m[10] * m[10];
+        return Math.sqrt(Math.max(scaleXSq, scaleYSq, scaleZSq));
     }
 
-    const xAxis = Vec3.create(1, 0, 0)
-    const yAxis = Vec3.create(0, 1, 0)
-    const zAxis = Vec3.create(0, 0, 1)
+    const xAxis = Vec3.create(1, 0, 0);
+    const yAxis = Vec3.create(0, 1, 0);
+    const zAxis = Vec3.create(0, 0, 1);
 
     /** Rotation matrix for 90deg around x-axis */
-    export const rotX90: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(90), xAxis)
+    export const rotX90: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(90), xAxis);
     /** Rotation matrix for 180deg around x-axis */
-    export const rotX180: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(180), xAxis)
+    export const rotX180: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(180), xAxis);
     /** Rotation matrix for 90deg around y-axis */
-    export const rotY90: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(90), yAxis)
+    export const rotY90: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(90), yAxis);
     /** Rotation matrix for 180deg around y-axis */
-    export const rotY180: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(180), yAxis)
+    export const rotY180: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(180), yAxis);
     /** Rotation matrix for 270deg around y-axis */
-    export const rotY270: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(270), yAxis)
+    export const rotY270: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(270), yAxis);
     /** Rotation matrix for 90deg around z-axis */
-    export const rotZ90: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(90), zAxis)
+    export const rotZ90: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(90), zAxis);
     /** Rotation matrix for 180deg around z-axis */
-    export const rotZ180: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(180), zAxis)
+    export const rotZ180: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(180), zAxis);
     /** Rotation matrix for 90deg around first x-axis and then y-axis */
-    export const rotXY90: ReadonlyMat4 = Mat4.mul(Mat4(), rotX90, rotY90)
+    export const rotXY90: ReadonlyMat4 = Mat4.mul(Mat4(), rotX90, rotY90);
     /** Rotation matrix for 90deg around first z-axis and then y-axis */
-    export const rotZY90: ReadonlyMat4 = Mat4.mul(Mat4(), rotZ90, rotY90)
+    export const rotZY90: ReadonlyMat4 = Mat4.mul(Mat4(), rotZ90, rotY90);
     /** Rotation matrix for 90deg around first z-axis and then y-axis and then z-axis */
-    export const rotZYZ90: ReadonlyMat4 = Mat4.mul(Mat4(), rotZY90, rotZ90)
+    export const rotZYZ90: ReadonlyMat4 = Mat4.mul(Mat4(), rotZY90, rotZ90);
     /** Rotation matrix for 90deg around first z-axis and then 180deg around x-axis */
-    export const rotZ90X180: ReadonlyMat4 = Mat4.mul(Mat4(), rotZ90, rotX180)
+    export const rotZ90X180: ReadonlyMat4 = Mat4.mul(Mat4(), rotZ90, rotX180);
     /** Rotation matrix for 90deg around first y-axis and then 180deg around z-axis */
-    export const rotY90Z180: ReadonlyMat4 = Mat4.mul(Mat4(), rotY90, rotZ180)
+    export const rotY90Z180: ReadonlyMat4 = Mat4.mul(Mat4(), rotY90, rotZ180);
 
     /** Identity matrix */
-    export const id: ReadonlyMat4 = Mat4.identity()
+    export const id: ReadonlyMat4 = Mat4.identity();
 }
 
-export default Mat4
+export default Mat4;

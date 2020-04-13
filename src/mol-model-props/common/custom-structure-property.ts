@@ -9,7 +9,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ValueBox } from '../../mol-util';
 import { CustomProperty } from './custom-property';
 
-export { CustomStructureProperty }
+export { CustomStructureProperty };
 
 namespace CustomStructureProperty {
     export interface Provider<Params extends PD.Params, Value> extends CustomProperty.Provider<Structure, Params, Value> { }
@@ -25,25 +25,25 @@ namespace CustomStructureProperty {
     }
 
     export function createProvider<Params extends PD.Params, Value>(builder: ProviderBuilder<Params, Value>): CustomProperty.Provider<Structure, Params, Value> {
-        const descriptorName = builder.descriptor.name
-        const propertyDataName = builder.type === 'root' ? 'inheritedPropertyData' : 'currentPropertyData'
+        const descriptorName = builder.descriptor.name;
+        const propertyDataName = builder.type === 'root' ? 'inheritedPropertyData' : 'currentPropertyData';
 
         const get = (data: Structure) => {
             if (!(descriptorName in data[propertyDataName])) {
                 (data[propertyDataName][descriptorName] as CustomProperty.Container<PD.Values<Params>, Value>) = {
                     props: { ...PD.getDefaultValues(builder.getParams(data)) },
                     data: ValueBox.create(undefined)
-                }
+                };
             }
             return data[propertyDataName][descriptorName] as CustomProperty.Container<PD.Values<Params>, Value>;
-        }
+        };
         const set = (data: Structure, props: PD.Values<Params>, value: Value | undefined) => {
             const property = get(data);
             (data[propertyDataName][descriptorName] as CustomProperty.Container<PD.Values<Params>, Value>) = {
                 props,
                 data: ValueBox.withValue(property.data, value)
             };
-        }
+        };
 
         return {
             label: builder.label,
@@ -53,27 +53,27 @@ namespace CustomStructureProperty {
             isApplicable: builder.isApplicable,
             attach: async (ctx: CustomProperty.Context, data: Structure, props: Partial<PD.Values<Params>> = {}, addRef) => {
                 if (addRef) data.customPropertyDescriptors.reference(builder.descriptor, true);
-                if (builder.type === 'root') data = data.root
-                const rootProps = get(data.root).props
-                const property = get(data)
-                const p = PD.merge(builder.defaultParams, rootProps, props)
-                if (property.data.value && PD.areEqual(builder.defaultParams, property.props, p)) return
-                const value = await builder.obtain(ctx, data, p)
+                if (builder.type === 'root') data = data.root;
+                const rootProps = get(data.root).props;
+                const property = get(data);
+                const p = PD.merge(builder.defaultParams, rootProps, props);
+                if (property.data.value && PD.areEqual(builder.defaultParams, property.props, p)) return;
+                const value = await builder.obtain(ctx, data, p);
                 data.customPropertyDescriptors.add(builder.descriptor);
                 set(data, p, value);
             },
             ref: (data: Structure, add: boolean) => data.customPropertyDescriptors.reference(builder.descriptor, add),
             get: (data: Structure) => get(data).data,
             set: (data: Structure, props: Partial<PD.Values<Params>> = {}, value?: Value) => {
-                if (builder.type === 'root') data = data.root
-                const property = get(data)
-                const p = PD.merge(builder.defaultParams, property.props, props)
+                if (builder.type === 'root') data = data.root;
+                const property = get(data);
+                const p = PD.merge(builder.defaultParams, property.props, props);
                 if (!PD.areEqual(builder.defaultParams, property.props, p)) {
                     // this invalidates property.value
-                    set(data, p, value)
+                    set(data, p, value);
                 }
             },
             props: (data: Structure) => get(data).props,
-        }
+        };
     }
 }

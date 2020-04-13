@@ -6,24 +6,24 @@
 
 import { ColorTheme } from '../color';
 import { Color } from '../../mol-util/color';
-import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { defaults } from '../../mol-util';
 
-const DefaultColor = Color(0xCCCCCC)
-const Description = 'Gives everything the same, uniform color.'
+const DefaultColor = Color(0xCCCCCC);
+const Description = 'Gives everything the same, uniform color.';
 
 export const UniformColorThemeParams = {
     value: PD.Color(DefaultColor),
-}
+};
 export type UniformColorThemeParams = typeof UniformColorThemeParams
 export function getUniformColorThemeParams(ctx: ThemeDataContext) {
-    return UniformColorThemeParams // TODO return copy
+    return UniformColorThemeParams; // TODO return copy
 }
 
 export function UniformColorTheme(ctx: ThemeDataContext, props: PD.Values<UniformColorThemeParams>): ColorTheme<UniformColorThemeParams> {
-    const color = defaults(props.value, DefaultColor)
+    const color = defaults(props.value, DefaultColor);
 
     return {
         factory: UniformColorTheme,
@@ -32,7 +32,7 @@ export function UniformColorTheme(ctx: ThemeDataContext, props: PD.Values<Unifor
         props: props,
         description: Description,
         legend: TableLegend([['uniform', color]])
-    }
+    };
 }
 
 export const UniformColorThemeProvider: ColorTheme.Provider<UniformColorThemeParams, 'uniform'> = {
@@ -43,4 +43,4 @@ export const UniformColorThemeProvider: ColorTheme.Provider<UniformColorThemePar
     getParams: getUniformColorThemeParams,
     defaultValues: PD.getDefaultValues(UniformColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => true
-}
+};

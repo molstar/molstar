@@ -20,13 +20,13 @@ export const StructureRepresentationStateBuilder: Representation.StateBuilder<St
             ...Representation.createState(),
             unitTransforms: null,
             unitTransformsVersion: -1
-        }
+        };
     },
     update: (state: StructureRepresentationState, update: Partial<StructureRepresentationState>) => {
-        Representation.updateState(state, update)
-        if (update.unitTransforms !== undefined) state.unitTransforms = update.unitTransforms
+        Representation.updateState(state, update);
+        if (update.unitTransforms !== undefined) state.unitTransforms = update.unitTransforms;
     }
-}
+};
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P, StructureRepresentationState> { }
 

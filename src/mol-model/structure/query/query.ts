@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure } from '../structure'
-import { StructureSelection } from './selection'
+import { Structure } from '../structure';
+import { StructureSelection } from './selection';
 import { QueryContext, QueryFn, QueryContextOptions } from './context';
 
 interface StructureQuery extends QueryFn<StructureSelection> { }
@@ -15,4 +15,4 @@ namespace StructureQuery {
     }
 }
 
-export { StructureQuery }
+export { StructureQuery };

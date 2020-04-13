@@ -17,7 +17,7 @@ const DefaultCameraFocusOptions = {
     minRadius: 5,
     extraRadius: 6,
     durationMs: 250
-}
+};
 
 export type CameraFocusOptions = typeof DefaultCameraFocusOptions
 
@@ -89,11 +89,11 @@ export class CameraManager {
         if (options?.principalAxes) {
             const { origin, dirA, dirC } = options?.principalAxes.boxAxes;
             const snapshot = this.plugin.canvas3d?.camera.getFocus(origin, radius, dirA, dirC);
-            this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot })
+            this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
             // this.plugin.canvas3d?.camera.focus(origin, radius, durationMs, dirA, dirC);
         } else {
             const snapshot = this.plugin.canvas3d?.camera.getFocus(sphere.center, radius);
-            this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot })
+            this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
 
             // this.plugin.canvas3d?.camera.focus(sphere.center, radius, durationMs);
         }

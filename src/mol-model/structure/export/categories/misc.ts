@@ -20,7 +20,7 @@ export const _chem_comp: CifCategory<CifExportContext> = {
         const indices = Column.indicesOf(id, id => names.has(id));
         return CifCategory.ofTable(chem_comp, indices);
     }
-}
+};
 
 export const _pdbx_chem_comp_identifier: CifCategory<CifExportContext> = {
     name: 'pdbx_chem_comp_identifier',
@@ -32,7 +32,7 @@ export const _pdbx_chem_comp_identifier: CifCategory<CifExportContext> = {
         const indices = Column.indicesOf(comp_id, id => names.has(id));
         return CifCategory.ofTable(pdbx_chem_comp_identifier, indices);
     }
-}
+};
 
 export const _pdbx_nonpoly_scheme: CifCategory<CifExportContext> = {
     name: 'pdbx_nonpoly_scheme',
@@ -42,4 +42,4 @@ export const _pdbx_nonpoly_scheme: CifCategory<CifExportContext> = {
         // TODO: filter?
         return CifCategory.ofTable(pdbx_nonpoly_scheme);
     }
-}
+};

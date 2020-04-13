@@ -32,7 +32,7 @@ export const VdWLookup = [
     1.80, // 7: C (nucleic)
     1.60, // 8: N (nucleic)
     1.40  // 9: P (nucleic)
-] // can still be appended on-the-fly for rare elements like selenium
+]; // can still be appended on-the-fly for rare elements like selenium
 
 /** Maximum accessible surface area observed for amino acids. Taken from: http://dx.doi.org/10.1371/journal.pone.0080635 */
 export const MaxAsa: { [k: string]: number } = {
@@ -56,5 +56,5 @@ export const MaxAsa: { [k: string]: number } = {
     'TRP': 264.0,
     'TYR': 255.0,
     'VAL': 165.0
-}
-export const DefaultMaxAsa = 121.0
+};
+export const DefaultMaxAsa = 121.0;

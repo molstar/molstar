@@ -4,17 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as B from 'benchmark'
+import * as B from 'benchmark';
 
-import * as util from 'util'
-import * as fs from 'fs'
-import fetch from 'node-fetch'
-import { CIF } from '../mol-io/reader/cif'
+import * as util from 'util';
+import * as fs from 'fs';
+import fetch from 'node-fetch';
+import { CIF } from '../mol-io/reader/cif';
 
-import { Structure, Model, Queries as Q, StructureElement, StructureSelection, StructureSymmetry, StructureQuery, StructureProperties as SP } from '../mol-model/structure'
+import { Structure, Model, Queries as Q, StructureElement, StructureSelection, StructureSymmetry, StructureQuery, StructureProperties as SP } from '../mol-model/structure';
 // import { Segmentation, OrderedSet } from '../mol-data/int'
 
-import to_mmCIF from '../mol-model/structure/export/mmcif'
+import to_mmCIF from '../mol-model/structure/export/mmcif';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { trajectoryFromMmCIF, MmcifFormat } from '../mol-model-formats/structure/mmcif';
 // import { printUnits } from '../apps/structure-info/model';
@@ -26,7 +26,7 @@ const writeFileAsync = util.promisify(fs.writeFile);
 
 async function readData(path: string) {
     if (path.match(/\.bcif$/)) {
-        const input = await readFileAsync(path)
+        const input = await readFileAsync(path);
         const data = new Uint8Array(input.byteLength);
         for (let i = 0; i < input.byteLength; i++) data[i] = input[i];
         return data;
@@ -58,7 +58,7 @@ async function readData(path: string) {
 
 export async function readCIF(path: string) {
     console.time('readData');
-    const input = await readData(path)
+    const input = await readData(path);
     console.timeEnd('readData');
 
     console.time('parse');
@@ -70,9 +70,9 @@ export async function readCIF(path: string) {
     }
 
     const data = parsed.result.blocks[0];
-    console.time('buildModels')
+    console.time('buildModels');
     const models = await trajectoryFromMmCIF(data).run();
-    console.timeEnd('buildModels')
+    console.timeEnd('buildModels');
     const structures = models.map(Structure.ofModel);
 
     return { mmcif: models[0].sourceData.data, models, structures };
@@ -82,20 +82,20 @@ const DATA_DIR = './build/data';
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
 function getBcifUrl(pdbId: string) {
-    return `http://www.ebi.ac.uk/pdbe/coordinates/${pdbId.toLowerCase()}/full?encoding=bcif`
+    return `http://www.ebi.ac.uk/pdbe/coordinates/${pdbId.toLowerCase()}/full?encoding=bcif`;
 }
 
 function getBcifPath(pdbId: string) {
-    return `${DATA_DIR}/${pdbId.toLowerCase()}_full.bcif`
+    return `${DATA_DIR}/${pdbId.toLowerCase()}_full.bcif`;
 }
 
 async function ensureBcifAvailable(pdbId: string) {
     const bcifPath = getBcifPath(pdbId);
     if (!fs.existsSync(bcifPath)) {
-        console.log(`downloading ${pdbId} bcif...`)
-        const data = await fetch(getBcifUrl(pdbId))
-        await writeFileAsync(bcifPath, await data.buffer())
-        console.log(`done downloading ${pdbId} bcif`)
+        console.log(`downloading ${pdbId} bcif...`);
+        const data = await fetch(getBcifUrl(pdbId));
+        await writeFileAsync(bcifPath, await data.buffer());
+        console.log(`done downloading ${pdbId} bcif`);
     }
 }
 
@@ -288,26 +288,26 @@ export namespace PropertyAccess {
     }
 
     export async function testAssembly(id: string, s: Structure) {
-        console.time('assembly')
+        console.time('assembly');
         const a = await StructureSymmetry.buildAssembly(s, '1').run();
         // const auth_comp_id = SP.residue.auth_comp_id;
         // const q1 = Query(Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' }));
         // const alas = await query(q1, a);
 
-        console.timeEnd('assembly')
+        console.timeEnd('assembly');
         fs.writeFileSync(`${DATA_DIR}/${id}_assembly.bcif`, to_mmCIF(id, a, true));
         // fs.writeFileSync(`${DATA_DIR}/${id}_assembly.bcif`, to_mmCIF(id, Selection.unionStructure(alas), true));
         console.log('exported');
     }
 
     export async function testSymmetry(id: string, s: Structure) {
-        console.time('symmetry')
+        console.time('symmetry');
         const a = await StructureSymmetry.buildSymmetryRange(s, Vec3.create(-1, -1, -1), Vec3.create(1, 1, 1)).run();
         // const auth_comp_id = SP.residue.auth_comp_id;
         // const q1 = Query(Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' }));
         // const alas = await query(q1, a);
 
-        console.timeEnd('symmetry')
+        console.timeEnd('symmetry');
         fs.writeFileSync(`${DATA_DIR}/${id}_symm.bcif`, to_mmCIF(id, a, true));
         // fs.writeFileSync(`${DATA_DIR}/${id}_assembly.bcif`, to_mmCIF(id, Selection.unionStructure(alas), true));
         console.log('exported');
@@ -315,7 +315,7 @@ export namespace PropertyAccess {
 
     export async function testIncludeSurroundings(id: string, s: Structure) {
         // const a = s;
-        console.time('symmetry')
+        console.time('symmetry');
         const a = await StructureSymmetry.buildSymmetryRange(s, Vec3.create(-2, -2, -2), Vec3.create(2, 2, 2)).run();
         // console.log(printUnits(a));
 
@@ -329,7 +329,7 @@ export namespace PropertyAccess {
             wholeResidues: true
         });
         const surr = StructureSelection.unionStructure(StructureQuery.run(q1, a));
-        console.timeEnd('symmetry')
+        console.timeEnd('symmetry');
 
         // for (const u of surr.units) {
         //     const { atomId } = u.model.atomicConformation;
@@ -375,7 +375,7 @@ export namespace PropertyAccess {
     export async function runBonds() {
         const { structures } = await readCIF('e:/test/quick/3j3q_full.bcif');
         console.time('bonds');
-        structures[0].interUnitBonds
+        structures[0].interUnitBonds;
         console.timeEnd('bonds');
     }
 
@@ -424,9 +424,9 @@ export namespace PropertyAccess {
         console.time('atom.x');
         console.log('atom.x', sumProperty(structures[0], SP.atom.x));
         console.timeEnd('atom.x');
-        console.time('__x')
+        console.time('__x');
         // console.log('__x', sumProperty(structures[0], l => l.unit.conformation.x[l.atom]));
-        console.timeEnd('__x')
+        console.timeEnd('__x');
 
         // const authSeqId = Element.property(l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom]));
 
@@ -436,7 +436,7 @@ export namespace PropertyAccess {
         // const set =  new Set(['A', 'B', 'C', 'D']);
         // const q = Q.generators.atomGroups({ atomTest: l => auth_seq_id(l) < 3 });
         const q = Q.generators.atoms({ atomTest: Q.pred.eq(l => SP.residue.auth_comp_id(l.element), 'ALA') });
-        const P = SP
+        const P = SP;
         // const q0 = Q.generators.atoms({ atomTest: l => auth_comp_id(l) === 'ALA' });
         const q1 = (Q.generators.atoms({ residueTest: l => auth_comp_id(l.element) === 'ALA' }));
         const q2 = (Q.generators.atoms({ residueTest: l => auth_comp_id(l.element) === 'ALA', groupBy: l => SP.residue.key(l.element) }));
@@ -447,15 +447,15 @@ export namespace PropertyAccess {
         await query(q, structures[0]);
         // console.log(to_mmCIF('test', Selection.union(q0r)));
 
-        console.time('q1')
+        console.time('q1');
         query(q1, structures[0]);
-        console.timeEnd('q1')
-        console.time('q1')
+        console.timeEnd('q1');
+        console.time('q1');
         query(q1, structures[0]);
-        console.timeEnd('q1')
-        console.time('q2')
+        console.timeEnd('q1');
+        console.time('q2');
         const q2r = query(q2, structures[0]);
-        console.timeEnd('q2')
+        console.timeEnd('q2');
         console.log(StructureSelection.structureCount(q2r));
         // console.log(q1(structures[0]));
 

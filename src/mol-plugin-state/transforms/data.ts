@@ -8,18 +8,18 @@
 import { PluginStateTransform } from '../objects';
 import { PluginStateObject as SO } from '../objects';
 import { Task } from '../../mol-task';
-import { CIF } from '../../mol-io/reader/cif'
+import { CIF } from '../../mol-io/reader/cif';
 import { PluginContext } from '../../mol-plugin/context';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StateTransformer, StateObject } from '../../mol-state';
 import { readFromFile, ajaxGetMany } from '../../mol-util/data-source';
-import * as CCP4 from '../../mol-io/reader/ccp4/parser'
-import * as DSN6 from '../../mol-io/reader/dsn6/parser'
-import * as PLY from '../../mol-io/reader/ply/parser'
+import * as CCP4 from '../../mol-io/reader/ccp4/parser';
+import * as DSN6 from '../../mol-io/reader/dsn6/parser';
+import * as PLY from '../../mol-io/reader/ply/parser';
 import { parsePsf } from '../../mol-io/reader/psf/parser';
 import { isTypedArray } from '../../mol-data/db/column-helpers';
 
-export { Download }
+export { Download };
 type Download = typeof Download
 const Download = PluginStateTransform.BuiltIn({
     name: 'download',
@@ -51,7 +51,7 @@ const Download = PluginStateTransform.BuiltIn({
     }
 });
 
-export { DownloadBlob }
+export { DownloadBlob };
 type DownloadBlob = typeof DownloadBlob
 const DownloadBlob = PluginStateTransform.BuiltIn({
     name: 'download-blob',
@@ -98,7 +98,7 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
     // }
 });
 
-export { RawData }
+export { RawData };
 type RawData = typeof RawData
 const RawData = PluginStateTransform.BuiltIn({
     name: 'raw-data',
@@ -130,7 +130,7 @@ const RawData = PluginStateTransform.BuiltIn({
     }
 });
 
-export { ReadFile }
+export { ReadFile };
 type ReadFile = typeof ReadFile
 const ReadFile = PluginStateTransform.BuiltIn({
     name: 'read-file',
@@ -146,7 +146,7 @@ const ReadFile = PluginStateTransform.BuiltIn({
     apply({ params: p }, plugin: PluginContext) {
         return Task.create('Open File', async ctx => {
             if (p.file === null) {
-                plugin.log.error('No file(s) selected')
+                plugin.log.error('No file(s) selected');
                 return StateObject.Null;
             }
             const data = await readFromFile(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
@@ -165,7 +165,7 @@ const ReadFile = PluginStateTransform.BuiltIn({
     isSerializable: () => ({ isSerializable: false, reason: 'Cannot serialize user loaded files.' })
 });
 
-export { ParseBlob }
+export { ParseBlob };
 type ParseBlob = typeof ParseBlob
 const ParseBlob = PluginStateTransform.BuiltIn({
     name: 'parse-blob',
@@ -209,7 +209,7 @@ const ParseBlob = PluginStateTransform.BuiltIn({
     // }
 });
 
-export { ParseCif }
+export { ParseCif };
 type ParseCif = typeof ParseCif
 const ParseCif = PluginStateTransform.BuiltIn({
     name: 'parse-cif',
@@ -226,7 +226,7 @@ const ParseCif = PluginStateTransform.BuiltIn({
     }
 });
 
-export { ParsePsf }
+export { ParsePsf };
 type ParsePsf = typeof ParsePsf
 const ParsePsf = PluginStateTransform.BuiltIn({
     name: 'parse-psf',
@@ -243,7 +243,7 @@ const ParsePsf = PluginStateTransform.BuiltIn({
     }
 });
 
-export { ParsePly }
+export { ParsePly };
 type ParsePly = typeof ParsePly
 const ParsePly = PluginStateTransform.BuiltIn({
     name: 'parse-ply',
@@ -260,7 +260,7 @@ const ParsePly = PluginStateTransform.BuiltIn({
     }
 });
 
-export { ParseCcp4 }
+export { ParseCcp4 };
 type ParseCcp4 = typeof ParseCcp4
 const ParseCcp4 = PluginStateTransform.BuiltIn({
     name: 'parse-ccp4',
@@ -277,7 +277,7 @@ const ParseCcp4 = PluginStateTransform.BuiltIn({
     }
 });
 
-export { ParseDsn6 }
+export { ParseDsn6 };
 type ParseDsn6 = typeof ParseDsn6
 const ParseDsn6 = PluginStateTransform.BuiltIn({
     name: 'parse-dsn6',
@@ -294,7 +294,7 @@ const ParseDsn6 = PluginStateTransform.BuiltIn({
     }
 });
 
-export { ImportString }
+export { ImportString };
 type ImportString = typeof ImportString
 const ImportString = PluginStateTransform.BuiltIn({
     name: 'import-string',
@@ -320,7 +320,7 @@ const ImportString = PluginStateTransform.BuiltIn({
     isSerializable: () => ({ isSerializable: false, reason: 'Cannot serialize user imported strings.' })
 });
 
-export { ImportJson }
+export { ImportJson };
 type ImportJson = typeof ImportJson
 const ImportJson = PluginStateTransform.BuiltIn({
     name: 'import-json',
@@ -346,7 +346,7 @@ const ImportJson = PluginStateTransform.BuiltIn({
     isSerializable: () => ({ isSerializable: false, reason: 'Cannot serialize user imported JSON.' })
 });
 
-export { ParseJson }
+export { ParseJson };
 type ParseJson = typeof ParseJson
 const ParseJson = PluginStateTransform.BuiltIn({
     name: 'parse-json',
@@ -357,7 +357,7 @@ const ParseJson = PluginStateTransform.BuiltIn({
     apply({ a }) {
         return Task.create('Parse JSON', async ctx => {
             const json = await (new Response(a.data)).json(); // async JSON parsing via fetch API
-            return new SO.Format.Json(json)
+            return new SO.Format.Json(json);
         });
     }
 });

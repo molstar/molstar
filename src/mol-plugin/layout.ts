@@ -30,7 +30,7 @@ export const PluginLayoutStateParams = {
         bottom: PD.Select('full', simpleRegionStateOptions),
     }),
     controlsDisplay: PD.Value<PluginLayoutControlsDisplay>('outside', { isHidden: true })
-}
+};
 export type PluginLayoutStateProps = PD.Values<typeof PluginLayoutStateParams>
 
 export type LeftPanelTabName = 'none' | 'root' | 'data' | 'states' | 'settings' | 'help'
@@ -164,7 +164,7 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
                         head.appendChild(v);
                     }
 
-                    const s = body.style
+                    const s = body.style;
                     s.top = t.top!;
                     s.bottom = t.bottom!;
                     s.left = t.left!;
@@ -192,7 +192,7 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
                 }
             }
         } catch (e) {
-            const msg = 'Layout change error, you might have to reload the page.'
+            const msg = 'Layout change error, you might have to reload the page.';
             this.context.log.error(msg);
             console.error(msg, e);
         }

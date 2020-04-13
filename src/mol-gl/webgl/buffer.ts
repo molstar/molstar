@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { WebGLContext } from './context'
+import { WebGLContext } from './context';
 import { ValueCell } from '../../mol-util';
 import { RenderableSchema } from '../renderable/schema';
 import { idFactory } from '../../mol-util/id-factory';
@@ -12,7 +12,7 @@ import { ValueOf } from '../../mol-util/type-helpers';
 import { GLRenderingContext } from './compat';
 import { WebGLExtensions } from './extensions';
 
-const getNextBufferId = idFactory()
+const getNextBufferId = idFactory();
 
 export type UsageHint = 'static' | 'dynamic' | 'stream'
 export type DataType = 'uint8' | 'int8' | 'uint16' | 'int16' | 'uint32' | 'int32' | 'float32'
@@ -32,49 +32,49 @@ export type ArrayKind = keyof DataTypeArrayType
 
 export function getUsageHint(gl: GLRenderingContext, usageHint: UsageHint) {
     switch (usageHint) {
-        case 'static': return gl.STATIC_DRAW
-        case 'dynamic': return gl.DYNAMIC_DRAW
-        case 'stream': return gl.STREAM_DRAW
+        case 'static': return gl.STATIC_DRAW;
+        case 'dynamic': return gl.DYNAMIC_DRAW;
+        case 'stream': return gl.STREAM_DRAW;
     }
 }
 
 export function getDataType(gl: GLRenderingContext, dataType: DataType) {
     switch (dataType) {
-        case 'uint8': return gl.UNSIGNED_BYTE
-        case 'int8': return gl.BYTE
-        case 'uint16': return gl.UNSIGNED_SHORT
-        case 'int16': return gl.SHORT
-        case 'uint32': return gl.UNSIGNED_INT
-        case 'int32': return gl.INT
-        case 'float32': return gl.FLOAT
+        case 'uint8': return gl.UNSIGNED_BYTE;
+        case 'int8': return gl.BYTE;
+        case 'uint16': return gl.UNSIGNED_SHORT;
+        case 'int16': return gl.SHORT;
+        case 'uint32': return gl.UNSIGNED_INT;
+        case 'int32': return gl.INT;
+        case 'float32': return gl.FLOAT;
     }
 }
 
 function dataTypeFromArray(gl: GLRenderingContext, array: ArrayType) {
     if (array instanceof Uint8Array) {
-        return gl.UNSIGNED_BYTE
+        return gl.UNSIGNED_BYTE;
     } else if (array instanceof Int8Array) {
-        return gl.BYTE
+        return gl.BYTE;
     } else if (array instanceof Uint16Array) {
-        return gl.UNSIGNED_SHORT
+        return gl.UNSIGNED_SHORT;
     } else if (array instanceof Int16Array) {
-        return gl.SHORT
+        return gl.SHORT;
     } else if (array instanceof Uint32Array) {
-        return gl.UNSIGNED_INT
+        return gl.UNSIGNED_INT;
     } else if (array instanceof Int32Array) {
-        return gl.INT
+        return gl.INT;
     } else if (array instanceof Float32Array) {
-        return gl.FLOAT
+        return gl.FLOAT;
     } else {
-        throw new Error('Should nevver happen')
+        throw new Error('Should nevver happen');
     }
 }
 
 export function getBufferType(gl: GLRenderingContext, bufferType: BufferType) {
     switch (bufferType) {
-        case 'attribute': return gl.ARRAY_BUFFER
-        case 'elements': return gl.ELEMENT_ARRAY_BUFFER
-        case 'uniform': return (gl as WebGL2RenderingContext).UNIFORM_BUFFER
+        case 'attribute': return gl.ARRAY_BUFFER;
+        case 'elements': return gl.ELEMENT_ARRAY_BUFFER;
+        case 'uniform': return (gl as WebGL2RenderingContext).UNIFORM_BUFFER;
     }
 }
 
@@ -97,29 +97,29 @@ export interface Buffer {
 }
 
 function getBuffer(gl: GLRenderingContext) {
-    const buffer = gl.createBuffer()
+    const buffer = gl.createBuffer();
     if (buffer === null) {
-        throw new Error('Could not create WebGL buffer')
+        throw new Error('Could not create WebGL buffer');
     }
-    return buffer
+    return buffer;
 }
 
 function createBuffer(gl: GLRenderingContext, array: ArrayType, usageHint: UsageHint, bufferType: BufferType): Buffer {
-    let _buffer = getBuffer(gl)
+    let _buffer = getBuffer(gl);
 
-    const _usageHint = getUsageHint(gl, usageHint)
-    const _bufferType = getBufferType(gl, bufferType)
-    const _dataType = dataTypeFromArray(gl, array)
-    const _bpe = array.BYTES_PER_ELEMENT
-    const _length = array.length
+    const _usageHint = getUsageHint(gl, usageHint);
+    const _bufferType = getBufferType(gl, bufferType);
+    const _dataType = dataTypeFromArray(gl, array);
+    const _bpe = array.BYTES_PER_ELEMENT;
+    const _length = array.length;
 
     function updateData(array: ArrayType) {
         gl.bindBuffer(_bufferType, _buffer);
-        gl.bufferData(_bufferType, array, _usageHint)
+        gl.bufferData(_bufferType, array, _usageHint);
     }
-    updateData(array)
+    updateData(array);
 
-    let destroyed = false
+    let destroyed = false;
 
     return {
         id: getNextBufferId(),
@@ -135,19 +135,19 @@ function createBuffer(gl: GLRenderingContext, array: ArrayType, usageHint: Usage
         updateData,
         updateSubData: (array: ArrayType, offset: number, count: number) => {
             gl.bindBuffer(_bufferType, _buffer);
-            gl.bufferSubData(_bufferType, offset * _bpe, array.subarray(offset, offset + count))
+            gl.bufferSubData(_bufferType, offset * _bpe, array.subarray(offset, offset + count));
         },
 
         reset: () => {
-            _buffer = getBuffer(gl)
-            updateData(array)
+            _buffer = getBuffer(gl);
+            updateData(array);
         },
         destroy: () => {
-            if (destroyed) return
-            gl.deleteBuffer(_buffer)
-            destroyed = true
+            if (destroyed) return;
+            gl.deleteBuffer(_buffer);
+            destroyed = true;
         }
-    }
+    };
 }
 
 //
@@ -159,23 +159,23 @@ export function getAttribType(gl: GLRenderingContext, kind: AttributeKind, itemS
     switch (kind) {
         case 'int32':
             switch (itemSize) {
-                case 1: return gl.INT
-                case 2: return gl.INT_VEC2
-                case 3: return gl.INT_VEC3
-                case 4: return gl.INT_VEC4
+                case 1: return gl.INT;
+                case 2: return gl.INT_VEC2;
+                case 3: return gl.INT_VEC3;
+                case 4: return gl.INT_VEC4;
             }
-            break
+            break;
         case 'float32':
             switch (itemSize) {
-                case 1: return gl.FLOAT
-                case 2: return gl.FLOAT_VEC2
-                case 3: return gl.FLOAT_VEC3
-                case 4: return gl.FLOAT_VEC4
-                case 16: return gl.FLOAT_MAT4
+                case 1: return gl.FLOAT;
+                case 2: return gl.FLOAT_VEC2;
+                case 3: return gl.FLOAT_VEC3;
+                case 4: return gl.FLOAT_VEC4;
+                case 16: return gl.FLOAT_MAT4;
             }
-            break
+            break;
     }
-    throw new Error(`unknown attribute type for kind '${kind}' and itemSize '${itemSize}'`)
+    throw new Error(`unknown attribute type for kind '${kind}' and itemSize '${itemSize}'`);
 }
 
 export type AttributeDefs = {
@@ -189,39 +189,39 @@ export interface AttributeBuffer extends Buffer {
 }
 
 export function createAttributeBuffer<T extends ArrayType, S extends AttributeItemSize>(gl: GLRenderingContext, extensions: WebGLExtensions, array: T, itemSize: S, divisor: number, usageHint: UsageHint = 'dynamic'): AttributeBuffer {
-    const { instancedArrays } = extensions
+    const { instancedArrays } = extensions;
 
-    const buffer = createBuffer(gl, array, usageHint, 'attribute')
-    const { _bufferType, _dataType, _bpe } = buffer
+    const buffer = createBuffer(gl, array, usageHint, 'attribute');
+    const { _bufferType, _dataType, _bpe } = buffer;
 
     return {
         ...buffer,
         bind: (location: number) => {
-            gl.bindBuffer(_bufferType, buffer.getBuffer())
+            gl.bindBuffer(_bufferType, buffer.getBuffer());
             if (itemSize === 16) {
                 for (let i = 0; i < 4; ++i) {
-                    gl.enableVertexAttribArray(location + i)
-                    gl.vertexAttribPointer(location + i, 4, _dataType, false, 4 * 4 * _bpe, i * 4 * _bpe)
-                    instancedArrays.vertexAttribDivisor(location + i, divisor)
+                    gl.enableVertexAttribArray(location + i);
+                    gl.vertexAttribPointer(location + i, 4, _dataType, false, 4 * 4 * _bpe, i * 4 * _bpe);
+                    instancedArrays.vertexAttribDivisor(location + i, divisor);
                 }
             } else {
-                gl.enableVertexAttribArray(location)
-                gl.vertexAttribPointer(location, itemSize, _dataType, false, 0, 0)
-                instancedArrays.vertexAttribDivisor(location, divisor)
+                gl.enableVertexAttribArray(location);
+                gl.vertexAttribPointer(location, itemSize, _dataType, false, 0, 0);
+                instancedArrays.vertexAttribDivisor(location, divisor);
             }
         }
-    }
+    };
 }
 
 export function createAttributeBuffers(ctx: WebGLContext, schema: RenderableSchema, values: AttributeValues) {
-    const buffers: AttributeBuffers = []
+    const buffers: AttributeBuffers = [];
     Object.keys(schema).forEach(k => {
-        const spec = schema[k]
+        const spec = schema[k];
         if (spec.type === 'attribute') {
-            buffers[buffers.length] = [k, ctx.resources.attribute(values[k].ref.value, spec.itemSize, spec.divisor)]
+            buffers[buffers.length] = [k, ctx.resources.attribute(values[k].ref.value, spec.itemSize, spec.divisor)];
         }
-    })
-    return buffers
+    });
+    return buffers;
 }
 
 //
@@ -234,12 +234,12 @@ export interface ElementsBuffer extends Buffer {
 }
 
 export function createElementsBuffer(gl: GLRenderingContext, array: ElementsType, usageHint: UsageHint = 'static'): ElementsBuffer {
-    const buffer = createBuffer(gl, array, usageHint, 'elements')
+    const buffer = createBuffer(gl, array, usageHint, 'elements');
 
     return {
         ...buffer,
         bind: () => {
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer.getBuffer());
         }
-    }
+    };
 }

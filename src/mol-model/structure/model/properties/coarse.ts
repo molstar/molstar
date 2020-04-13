@@ -4,5 +4,5 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from './coarse/conformation'
-export * from './coarse/hierarchy'
+export * from './coarse/conformation';
+export * from './coarse/hierarchy';

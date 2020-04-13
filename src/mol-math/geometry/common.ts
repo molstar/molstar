@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { OrderedSet } from '../../mol-data/int'
+import { OrderedSet } from '../../mol-data/int';
 import { Mat4, Tensor, Vec3, Vec2 } from '../linear-algebra';
 import { Box3D } from '../geometry';
 import { Texture } from '../../mol-gl/webgl/texture';
@@ -38,9 +38,9 @@ export type DensityTextureData = {
 }
 
 export function fillGridDim(length: number, start: number, step: number) {
-    const a = new Float32Array(length)
+    const a = new Float32Array(length);
     for (let i = 0; i < a.length; i++) {
-        a[i] = start + (step * i)
+        a[i] = start + (step * i);
     }
-    return a
+    return a;
 }

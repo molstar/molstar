@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column } from '../../../../../mol-data/db'
-import UUID from '../../../../../mol-util/uuid'
+import { Column } from '../../../../../mol-data/db';
+import UUID from '../../../../../mol-util/uuid';
 
 export interface AtomicConformation {
     id: UUID,

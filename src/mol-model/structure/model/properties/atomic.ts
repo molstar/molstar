@@ -4,6 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from './atomic/conformation'
-export * from './atomic/hierarchy'
-export * from './atomic/measures'
+export * from './atomic/conformation';
+export * from './atomic/hierarchy';
+export * from './atomic/measures';

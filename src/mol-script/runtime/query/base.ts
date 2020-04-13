@@ -51,7 +51,7 @@ export type CompiledQueryFn<T = any> = { isConst: boolean, fn: QueryFn }
 
 export namespace QueryCompiledSymbol {
     export function Const(value: any): QueryCompiledSymbolRuntime  {
-        return { kind: 'const', value }
+        return { kind: 'const', value };
     }
 
     export function Dynamic(runtime: QuerySymbolFn): QueryCompiledSymbolRuntime {
@@ -61,7 +61,7 @@ export namespace QueryCompiledSymbol {
 
 export namespace CompiledQueryFn {
     export function Const(value: any): CompiledQueryFn  {
-        return { isConst: true, fn: function CompiledQueryFn_Const(ctx) { return value } };
+        return { isConst: true, fn: function CompiledQueryFn_Const(ctx) { return value; } };
     }
 
     export function Dynamic(fn: QueryFn): CompiledQueryFn {
@@ -125,7 +125,7 @@ class SymbolRuntimeImpl<S extends MSymbol> implements QuerySymbolRuntime {
 
         if (this.isConst) {
             if (this.isConst && constArgs) {
-                return CompiledQueryFn.Const(this.fn(ctx.constQueryContext, args))
+                return CompiledQueryFn.Const(this.fn(ctx.constQueryContext, args));
             }
 
             return CompiledQueryFn.Dynamic(createDynamicFn(this.fn, args));
@@ -140,7 +140,7 @@ class SymbolRuntimeImpl<S extends MSymbol> implements QuerySymbolRuntime {
 }
 
 function createDynamicFn<S extends MSymbol>(fn: QuerySymbolFn<S>, args: any): QueryFn {
-    return function DynamicFn(ctx) { return fn(ctx, args) };
+    return function DynamicFn(ctx) { return fn(ctx, args); };
 }
 
 function _compile(ctx: QueryCompilerCtx, expression: Expression): CompiledQueryFn {

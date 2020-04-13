@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Vec3, Mat4, Mat3, Quat } from '../linear-algebra/3d'
+import { Vec3, Mat4, Mat3, Quat } from '../linear-algebra/3d';
 import { lerp as scalar_lerp } from '../../mol-math/interpolate';
 import { defaults } from '../../mol-util';
 
@@ -43,7 +43,7 @@ interface SymmetryOperator {
 }
 
 namespace SymmetryOperator {
-    export const DefaultName = '1_555'
+    export const DefaultName = '1_555';
     export const Default: SymmetryOperator = create(DefaultName, Mat4.identity());
 
     export const RotationTranslationEpsilon = 0.005;
@@ -69,7 +69,7 @@ namespace SymmetryOperator {
 
         if (typeof info.spgrOp !== 'undefined' && typeof info.hkl !== 'undefined' && info.spgrOp !== -1) {
             const [i, j, k] = info.hkl;
-            return `-${info.spgrOp + 1}_${5 + i}${5 + j}${5 + k}`
+            return `-${info.spgrOp + 1}_${5 + i}${5 + j}${5 + k}`;
         }
 
         if (info.ncsId) {
@@ -175,7 +175,7 @@ namespace SymmetryOperator {
     }
 }
 
-export { SymmetryOperator }
+export { SymmetryOperator };
 
 function _zeroRadius(i: number) { return 0; }
 
@@ -205,7 +205,7 @@ function projectX({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: Symm
     return (i: number) => {
         const x = xs[i], y = ys[i], z = zs[i], w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
         return (xx * x + yy * y + zz * z + tx) / w;
-    }
+    };
 }
 
 function projectY({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: SymmetryOperator.Coordinates) {
@@ -219,7 +219,7 @@ function projectY({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: Symm
     return (i: number) => {
         const x = xs[i], y = ys[i], z = zs[i], w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
         return (xx * x + yy * y + zz * z + ty) / w;
-    }
+    };
 }
 
 function projectZ({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: SymmetryOperator.Coordinates) {
@@ -233,7 +233,7 @@ function projectZ({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: Symm
     return (i: number) => {
         const x = xs[i], y = ys[i], z = zs[i], w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
         return (xx * x + yy * y + zz * z + tz) / w;
-    }
+    };
 }
 
 function identityPosition<T extends number>({ x, y, z }: SymmetryOperator.Coordinates): SymmetryOperator.CoordinateMapper<T> {
@@ -242,7 +242,7 @@ function identityPosition<T extends number>({ x, y, z }: SymmetryOperator.Coordi
         s[1] = y[i];
         s[2] = z[i];
         return s;
-    }
+    };
 }
 
 function generalPosition<T extends number>({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: SymmetryOperator.Coordinates) {
@@ -254,7 +254,7 @@ function generalPosition<T extends number>({ matrix: m }: SymmetryOperator, { x:
             r[1] = m[1] * x + m[5] * y + m[9] * z + m[13];
             r[2] = m[2] * x + m[6] * y + m[10] * z + m[14];
             return r;
-        }
+        };
     }
     return (i: T, r: Vec3): Vec3 => {
         r[0] = xs[i];
@@ -262,5 +262,5 @@ function generalPosition<T extends number>({ matrix: m }: SymmetryOperator, { x:
         r[2] = zs[i];
         Vec3.transformMat4(r, r, m);
         return r;
-    }
+    };
 }

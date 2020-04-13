@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Ply from '../ply/parser'
+import Ply from '../ply/parser';
 import { PlyTable, PlyList } from '../ply/schema';
 
 const plyString = `ply
@@ -54,7 +54,7 @@ end_header
 131.482 160.483 161.621 90 159 210 255 -0.832 -0.431 -0.349 179 21 100 150 24 102 151 20 100 150 20 100 150 30 106 154 20 100 150 171 196 212
 3 0 2 1
 3 3 5 4
-`
+`;
 
 const plyCubeString = `ply
 format ascii 1.0
@@ -107,7 +107,7 @@ end_header
 255 255 0
 0 255 255
 255 0 255
-`
+`;
 
 describe('ply reader', () => {
     it('basic', async () => {
@@ -115,18 +115,18 @@ describe('ply reader', () => {
         if (parsed.isError) return;
         const plyFile = parsed.result;
 
-        const vertex = plyFile.getElement('vertex') as PlyTable
-        if (!vertex) return
-        const x = vertex.getProperty('x')
-        if (!x) return
-        expect(x.value(0)).toEqual(130.901)
+        const vertex = plyFile.getElement('vertex') as PlyTable;
+        if (!vertex) return;
+        const x = vertex.getProperty('x');
+        if (!x) return;
+        expect(x.value(0)).toEqual(130.901);
 
-        const face = plyFile.getElement('face') as PlyList
-        if (!face) return
-        expect(face.value(0)).toEqual({ count: 3, entries: [0, 2, 1]})
-        expect(face.value(1)).toEqual({ count: 3, entries: [3, 5, 4]})
+        const face = plyFile.getElement('face') as PlyList;
+        if (!face) return;
+        expect(face.value(0)).toEqual({ count: 3, entries: [0, 2, 1]});
+        expect(face.value(1)).toEqual({ count: 3, entries: [3, 5, 4]});
 
-        expect.assertions(3)
+        expect.assertions(3);
     });
 
     it('material', async () => {
@@ -134,18 +134,18 @@ describe('ply reader', () => {
         if (parsed.isError) return;
         const plyFile = parsed.result;
 
-        const vertex = plyFile.getElement('vertex') as PlyTable
-        if (!vertex) return
-        expect(vertex.rowCount).toBe(24)
+        const vertex = plyFile.getElement('vertex') as PlyTable;
+        if (!vertex) return;
+        expect(vertex.rowCount).toBe(24);
 
-        const face = plyFile.getElement('face') as PlyList
-        if (!face) return
-        expect(face.rowCount).toBe(6)
+        const face = plyFile.getElement('face') as PlyList;
+        if (!face) return;
+        expect(face.rowCount).toBe(6);
 
-        const material = plyFile.getElement('face') as PlyTable
-        if (!material) return
-        expect(face.rowCount).toBe(6)
+        const material = plyFile.getElement('face') as PlyTable;
+        if (!material) return;
+        expect(face.rowCount).toBe(6);
 
-        expect.assertions(3)
+        expect.assertions(3);
     });
 });

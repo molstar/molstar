@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import './index.html'
+import './index.html';
 import { resizeCanvas } from '../../mol-canvas3d/util';
 import { Canvas3D } from '../../mol-canvas3d/canvas3d';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
@@ -16,35 +16,35 @@ import { Color } from '../../mol-util/color';
 import { createRenderObject } from '../../mol-gl/render-object';
 import { Representation } from '../../mol-repr/representation';
 
-const parent = document.getElementById('app')!
-parent.style.width = '100%'
-parent.style.height = '100%'
+const parent = document.getElementById('app')!;
+parent.style.width = '100%';
+parent.style.height = '100%';
 
-const canvas = document.createElement('canvas')
-parent.appendChild(canvas)
-resizeCanvas(canvas, parent)
+const canvas = document.createElement('canvas');
+parent.appendChild(canvas);
+resizeCanvas(canvas, parent);
 
-const canvas3d = Canvas3D.fromCanvas(canvas)
-canvas3d.animate()
+const canvas3d = Canvas3D.fromCanvas(canvas);
+canvas3d.animate();
 
 function meshRepr() {
-    const builderState = MeshBuilder.createState()
+    const builderState = MeshBuilder.createState();
 
-    const t = Mat4.identity()
-    MeshBuilder.addCage(builderState, t, HexagonalPrismCage(), 0.005, 2, 20)
+    const t = Mat4.identity();
+    MeshBuilder.addCage(builderState, t, HexagonalPrismCage(), 0.005, 2, 20);
 
-    const t2 = Mat4.identity()
-    Mat4.scaleUniformly(t2, t2, 0.1)
-    MeshBuilder.addPrimitive(builderState, t2, SpikedBall(3))
+    const t2 = Mat4.identity();
+    Mat4.scaleUniformly(t2, t2, 0.1);
+    MeshBuilder.addPrimitive(builderState, t2, SpikedBall(3));
 
-    const mesh = MeshBuilder.getMesh(builderState)
+    const mesh = MeshBuilder.getMesh(builderState);
 
-    const values = Mesh.Utils.createValuesSimple(mesh, {}, Color(0xFF0000), 1)
-    const state = Mesh.Utils.createRenderableState({})
-    const renderObject = createRenderObject('mesh', values, state, -1)
-    const repr = Representation.fromRenderObject('mesh', renderObject)
-    return repr
+    const values = Mesh.Utils.createValuesSimple(mesh, {}, Color(0xFF0000), 1);
+    const state = Mesh.Utils.createRenderableState({});
+    const renderObject = createRenderObject('mesh', values, state, -1);
+    const repr = Representation.fromRenderObject('mesh', renderObject);
+    return repr;
 }
 
-canvas3d.add(meshRepr())
-canvas3d.requestCameraReset()
+canvas3d.add(meshRepr());
+canvas3d.requestCameraReset();

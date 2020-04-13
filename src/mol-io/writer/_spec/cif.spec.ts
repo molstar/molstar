@@ -1,6 +1,6 @@
-import * as Data from '../../reader/cif/data-model'
+import * as Data from '../../reader/cif/data-model';
 import { CifWriter } from '../cif';
-import decodeMsgPack from '../../common/msgpack/decode'
+import decodeMsgPack from '../../common/msgpack/decode';
 import { EncodedFile, EncodedCategory } from '../../common/binary-cif';
 import Field from '../../reader/cif/binary/field';
 import * as C from '../cif/encoder';
@@ -130,7 +130,7 @@ function process(encoder: C.Encoder) {
     for (const cat of [atom_site, other_fields]) {
         const fields: CifWriter.Field[] = [];
         for (const f of cat.fieldNames) {
-            fields.push(wrap(f, cat.getField(f)!))
+            fields.push(wrap(f, cat.getField(f)!));
         }
         encoder.writeCategory(getCategoryInstanceProvider(cat, fields));
     }
@@ -179,5 +179,5 @@ function Category(data: EncodedCategory): Data.CifCategory {
             cache[name] = Field(col);
             return cache[name];
         }
-    }
+    };
 }

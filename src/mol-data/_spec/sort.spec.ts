@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Sort from '../util/sort'
+import * as Sort from '../util/sort';
 
 function shuffle<T>(data: T, len: number, clone: (s: T) => T, swap: Sort.Swapper = Sort.arraySwap) {
     const a = clone(data);
@@ -40,7 +40,7 @@ describe('qsort-array asc', () => {
     test('uniq shuffle', data0, true);
     test('rep', data1, false);
     test('rep shuffle', data1, true);
-})
+});
 
 describe('qsort-array generic', () => {
     const data0 = new Array(50);
@@ -63,15 +63,15 @@ describe('qsort-array generic', () => {
     test('uniq shuffle', data0, true);
     test('rep', data1, false);
     test('rep shuffle', data1, true);
-})
+});
 
 describe('qsort-dual array', () => {
     const len = 3;
     const data = { xs: [0, 1, 2], ys: ['x', 'y', 'z'] };
 
     const cmp: Sort.Comparer<typeof data> = (data, i, j) => data.xs[i] - data.xs[j];
-    const swap: Sort.Swapper<typeof data> = (data, i, j) => { Sort.arraySwap(data.xs, i, j); Sort.arraySwap(data.ys, i, j); }
-    const clone = (d: typeof data) => ({ xs: [...d.xs], ys: [...d.ys] })
+    const swap: Sort.Swapper<typeof data> = (data, i, j) => { Sort.arraySwap(data.xs, i, j); Sort.arraySwap(data.ys, i, j); };
+    const clone = (d: typeof data) => ({ xs: [...d.xs], ys: [...d.ys] });
 
     function test(name: string, src: typeof data, randomize: boolean) {
         it(name, () => {
@@ -87,4 +87,4 @@ describe('qsort-dual array', () => {
     }
     test('sorted', data, false);
     test('shuffled', data, true);
-})
+});

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CIF } from '../../../../mol-io/reader/cif'
+import { CIF } from '../../../../mol-io/reader/cif';
 import { parsePDB } from '../../../../mol-io/reader/pdb/parser';
 
 export async function parseCif(data: string|Uint8Array) {
@@ -37,12 +37,12 @@ export async function getFromPdb(id: string) {
 }
 
 function getCellPackDataUrl(id: string, baseUrl: string) {
-    const url = `${baseUrl}/other/${id}`
-    return url.endsWith('.pdb') ? url : `${url}.pdb`
+    const url = `${baseUrl}/other/${id}`;
+    return url.endsWith('.pdb') ? url : `${url}.pdb`;
 }
 
 export async function getFromCellPackDB(id: string, baseUrl: string) {
-    const name = id.endsWith('.pdb') ? id.substring(0, id.length - 4) : id
+    const name = id.endsWith('.pdb') ? id.substring(0, id.length - 4) : id;
     const parsed = await downloadPDB(getCellPackDataUrl(id, baseUrl), name);
     return parsed;
 }

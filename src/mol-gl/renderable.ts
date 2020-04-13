@@ -11,7 +11,7 @@ import { ValueCell } from '../mol-util';
 import { idFactory } from '../mol-util/id-factory';
 import { clamp } from '../mol-math/interpolate';
 
-const getNextRenderableId = idFactory()
+const getNextRenderableId = idFactory();
 
 export type RenderableState = {
     visible: boolean
@@ -41,17 +41,17 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
 
         render: (variant: GraphicsRenderVariant) => {
             if (values.uAlpha && values.alpha) {
-                ValueCell.updateIfChanged(values.uAlpha, clamp(values.alpha.ref.value * state.alphaFactor, 0, 1))
+                ValueCell.updateIfChanged(values.uAlpha, clamp(values.alpha.ref.value * state.alphaFactor, 0, 1));
             }
             if (values.uPickable) {
-                ValueCell.updateIfChanged(values.uPickable, state.pickable ? 1 : 0)
+                ValueCell.updateIfChanged(values.uPickable, state.pickable ? 1 : 0);
             }
-            renderItem.render(variant)
+            renderItem.render(variant);
         },
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
         update: () => renderItem.update(),
         dispose: () => renderItem.destroy()
-    }
+    };
 }
 
 //
@@ -73,5 +73,5 @@ export function createComputeRenderable<T extends Values<RenderableSchema>>(rend
         render: () => renderItem.render('compute'),
         update: () => renderItem.update(),
         dispose: () => renderItem.destroy()
-    }
+    };
 }

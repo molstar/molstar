@@ -47,7 +47,7 @@ export interface SimpleBuffer extends Uint8Array {
 
 export namespace SimpleBuffer {
     export function fromUint8Array(array: Uint8Array): SimpleBuffer {
-        const dv = new DataView(array.buffer)
+        const dv = new DataView(array.buffer);
         return Object.assign(array.subarray(0), {
             readInt8: (offset: number) => dv.getInt8(offset),
             readUInt8: (offset: number) => dv.getUint8(offset),
@@ -83,21 +83,21 @@ export namespace SimpleBuffer {
             writeDoubleBE: (value: number, offset: number) => dv.setFloat64(offset, value, false),
 
             copy: (targetBuffer: Uint8Array, targetStart?: number, sourceStart?: number, sourceEnd?: number) => {
-                targetStart = defaults(targetStart, 0)
-                sourceStart = defaults(sourceStart, 0)
-                sourceEnd = defaults(sourceEnd, array.length)
-                targetBuffer.set(array.subarray(sourceStart, sourceEnd), targetStart)
-                return sourceEnd - sourceStart
+                targetStart = defaults(targetStart, 0);
+                sourceStart = defaults(sourceStart, 0);
+                sourceEnd = defaults(sourceEnd, array.length);
+                targetBuffer.set(array.subarray(sourceStart, sourceEnd), targetStart);
+                return sourceEnd - sourceStart;
             }
-        })
+        });
     }
 
     export function fromArrayBuffer(arrayBuffer: ArrayBuffer): SimpleBuffer {
-        return fromUint8Array(new Uint8Array(arrayBuffer))
+        return fromUint8Array(new Uint8Array(arrayBuffer));
     }
 
     export function fromBuffer(buffer: Buffer): SimpleBuffer {
-        return buffer
+        return buffer;
     }
 
     export const IsNativeEndianLittle = new Uint16Array(new Uint8Array([0x12, 0x34]).buffer)[0] === 0x3412;
@@ -112,10 +112,10 @@ export namespace SimpleBuffer {
     }
 
     export function flipByteOrderInPlace2(buffer: ArrayBuffer, byteOffset = 0, length?: number) {
-        const intView = new Int16Array(buffer, byteOffset, length)
+        const intView = new Int16Array(buffer, byteOffset, length);
         for (let i = 0, n = intView.length; i < n; ++i) {
-            const val = intView[i]
-            intView[i] = ((val & 0xff) << 8) | ((val >> 8) & 0xff)
+            const val = intView[i];
+            intView[i] = ((val & 0xff) << 8) | ((val >> 8) & 0xff);
         }
     }
 

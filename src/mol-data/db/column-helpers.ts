@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column from './column'
+import Column from './column';
 
 export function getArrayBounds(rowCount: number, params?: Column.ToArrayParams<any>) {
     const start = params && typeof params.start !== 'undefined' ? Math.max(Math.min(params.start, rowCount - 1), 0) : 0;

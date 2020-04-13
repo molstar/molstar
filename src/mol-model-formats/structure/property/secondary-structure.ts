@@ -6,7 +6,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif'
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { AtomicHierarchy } from '../../../mol-model/structure/model/properties/atomic';
 import { SecondaryStructure } from '../../../mol-model/structure/model/properties/seconday-structure';
@@ -15,7 +15,7 @@ import { ChainIndex, ResidueIndex } from '../../../mol-model/structure/model/ind
 import { FormatPropertyProvider } from '../common/property';
 import { CustomPropertyDescriptor } from '../../../mol-model/structure';
 
-export { ModelSecondaryStructure }
+export { ModelSecondaryStructure };
 
 type StructConf = Table<mmCIF_Schema['struct_conf']>
 type StructSheetRange = Table<mmCIF_Schema['struct_sheet_range']>
@@ -25,7 +25,7 @@ namespace ModelSecondaryStructure {
         name: 'model_secondary_structure',
     };
 
-    export const Provider = FormatPropertyProvider.create<SecondaryStructure>(Descriptor)
+    export const Provider = FormatPropertyProvider.create<SecondaryStructure>(Descriptor);
 
     export function fromStruct(conf: StructConf, sheetRange: StructSheetRange, hierarchy: AtomicHierarchy): SecondaryStructure {
         const map: SecondaryStructureMap = new Map();
@@ -34,8 +34,8 @@ namespace ModelSecondaryStructure {
         // must add Helices 1st because of 'key' value assignment.
         addSheets(sheetRange, map, conf._rowCount, elements);
 
-        const n = hierarchy.residues._rowCount
-        const getIndex = (rI: ResidueIndex) => rI
+        const n = hierarchy.residues._rowCount;
+        const getIndex = (rI: ResidueIndex) => rI;
 
         const secStruct: SecondaryStructureData = {
             type: new Int32Array(n) as any,
@@ -93,9 +93,9 @@ function addHelices(cat: StructConf, map: SecondaryStructureMap, elements: Secon
 
         const asymId = beg_label_asym_id.value(i)!;
         if (map.has(asymId)) {
-            const entries = map.get(asymId)!
+            const entries = map.get(asymId)!;
             if (entries.has(entry.startSeqNumber)) {
-                entries.get(entry.startSeqNumber)!.push(entry)
+                entries.get(entry.startSeqNumber)!.push(entry);
             } else {
                 entries.set(entry.startSeqNumber, [entry]);
             }
@@ -130,7 +130,7 @@ function addSheets(cat: StructSheetRange, map: SecondaryStructureMap, sheetCount
             flags: type,
             sheet_id: id,
             symmetry: void 0
-        }
+        };
         const entry: SecondaryStructureEntry = {
             startSeqNumber: beg_label_seq_id.value(i),
             startInsCode: pdbx_beg_PDB_ins_code.value(i),
@@ -144,9 +144,9 @@ function addSheets(cat: StructSheetRange, map: SecondaryStructureMap, sheetCount
 
         const asymId = beg_label_asym_id.value(i)!;
         if (map.has(asymId)) {
-            const entries = map.get(asymId)!
+            const entries = map.get(asymId)!;
             if (entries.has(entry.startSeqNumber)) {
-                entries.get(entry.startSeqNumber)!.push(entry)
+                entries.get(entry.startSeqNumber)!.push(entry);
             } else {
                 entries.set(entry.startSeqNumber, [entry]);
             }

@@ -12,26 +12,26 @@ class FormatRegistry<T> {
     private applicable = new Map<ModelFormat['kind'], (model: Model) => boolean>()
 
     add(kind: ModelFormat['kind'], obtain: (model: Model) => T | undefined, applicable?: (model: Model) => boolean) {
-        this.map.set(kind, obtain)
-        if (applicable) this.applicable.set(kind, applicable)
+        this.map.set(kind, obtain);
+        if (applicable) this.applicable.set(kind, applicable);
     }
 
     remove(kind: ModelFormat['kind']) {
-        this.map.delete(kind)
-        this.applicable.delete(kind)
+        this.map.delete(kind);
+        this.applicable.delete(kind);
     }
 
     get(kind: ModelFormat['kind']) {
-        return this.map.get(kind)
+        return this.map.get(kind);
     }
 
     isApplicable(model: Model) {
-        const isApplicable = this.applicable.get(model.sourceData.kind)
-        return isApplicable ? isApplicable(model) : true
+        const isApplicable = this.applicable.get(model.sourceData.kind);
+        return isApplicable ? isApplicable(model) : true;
     }
 }
 
-export { FormatPropertyProvider as FormatPropertyProvider }
+export { FormatPropertyProvider as FormatPropertyProvider };
 
 interface FormatPropertyProvider<T> {
     readonly descriptor: CustomPropertyDescriptor
@@ -43,29 +43,29 @@ interface FormatPropertyProvider<T> {
 
 namespace FormatPropertyProvider {
     export function create<T>(descriptor: CustomPropertyDescriptor): FormatPropertyProvider<T> {
-        const { name } = descriptor
-        const formatRegistry = new FormatRegistry<T>()
+        const { name } = descriptor;
+        const formatRegistry = new FormatRegistry<T>();
 
         return {
             descriptor,
             formatRegistry,
             isApplicable(model: Model) {
-                return formatRegistry.isApplicable(model)
+                return formatRegistry.isApplicable(model);
             },
             get(model: Model): T | undefined {
-                if (model._staticPropertyData[name]) return model._staticPropertyData[name]
-                if (model.customProperties.has(descriptor)) return
+                if (model._staticPropertyData[name]) return model._staticPropertyData[name];
+                if (model.customProperties.has(descriptor)) return;
 
-                const obtain = formatRegistry.get(model.sourceData.kind)
-                if (!obtain) return
+                const obtain = formatRegistry.get(model.sourceData.kind);
+                if (!obtain) return;
 
-                model._staticPropertyData[name] = obtain(model)
-                model.customProperties.add(descriptor)
-                return model._staticPropertyData[name]
+                model._staticPropertyData[name] = obtain(model);
+                model.customProperties.add(descriptor);
+                return model._staticPropertyData[name];
             },
             set(model: Model, value: T) {
-                model._staticPropertyData[name] = value
+                model._staticPropertyData[name] = value;
             }
-        }
+        };
     }
 }

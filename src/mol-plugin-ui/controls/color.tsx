@@ -99,12 +99,12 @@ export function ColorOptions() {
 }
 
 const DefaultColorSwatchMap = (function () {
-    const map = new Map<Color, string>()
-    for (const v of DefaultColorSwatch) map.set(v[1], v[0])
-    return map
-})()
+    const map = new Map<Color, string>();
+    for (const v of DefaultColorSwatch) map.set(v[1], v[0]);
+    return map;
+})();
 export function ColorValueOption(color: Color) {
     return !DefaultColorSwatchMap.has(color) ? <option key={Color.toHexString(color)} value={color} style={{ background: `${Color.toStyle(color)}` }} >
         {Color.toRgbString(color)}
-    </option> : null
+    </option> : null;
 }

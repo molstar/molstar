@@ -22,7 +22,7 @@ export function parseCryst1(id: string, record: string): CifCategory[] {
     // 56 - 66       LString        Space group
     // 67 - 70       Integer        Z value
 
-    const get = (s: number, l: number) => (record.substr(s, l) || '').trim()
+    const get = (s: number, l: number) => (record.substr(s, l) || '').trim();
 
     const cell: CifCategory.Fields<mmCIF_Schema['cell']> = {
         entry_id: CifField.ofString(id),
@@ -41,7 +41,7 @@ export function parseCryst1(id: string, record: string): CifCategory[] {
         Int_Tables_number: CifField.ofString('?'),
         cell_setting: CifField.ofString('?'),
         space_group_name_Hall: CifField.ofString('?')
-    }
+    };
     return [CifCategory.ofFields('cell', cell), CifCategory.ofFields('symmetry', symmetry)];
 }
 
@@ -74,8 +74,8 @@ export function parseRemark350(lines: Tokens, lineStart: number, lineEnd: number
             current = PdbAssembly(id, details);
             assemblies.push(current);
         } else if (line.substr(13, 5) === 'BIOMT') {
-            const biomt = line.split(/\s+/)
-            const row = parseInt(line[18]) - 1
+            const biomt = line.split(/\s+/);
+            const row = parseInt(line[18]) - 1;
 
             if (row === 0) {
                 matrix = Mat4.identity();

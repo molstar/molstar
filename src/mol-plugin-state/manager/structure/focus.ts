@@ -65,34 +65,34 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
     }
 
     set(entry: FocusEntry) {
-        this.tryAddHistory(entry)
+        this.tryAddHistory(entry);
         if (!this.state.current || !StructureElement.Loci.areEqual(this.state.current.loci, entry.loci)) {
-            this.state.current = entry
-            this.behaviors.current.next(entry)
+            this.state.current = entry;
+            this.behaviors.current.next(entry);
         }
     }
 
     setFromLoci(anyLoci: Loci) {
-        const loci = Loci.normalize(anyLoci)
+        const loci = Loci.normalize(anyLoci);
         if (!StructureElement.Loci.is(loci) || StructureElement.Loci.isEmpty(loci)) {
-            this.clear()
-            return
+            this.clear();
+            return;
         }
 
-        this.set({ loci, label: lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false }) })
+        this.set({ loci, label: lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false }) });
     }
 
     addFromLoci(anyLoci: Loci) {
         const union = this.state.current && StructureElement.Loci.is(anyLoci)
             ? StructureElement.Loci.union(anyLoci, this.state.current.loci)
-            : anyLoci
-        this.setFromLoci(union)
+            : anyLoci;
+        this.setFromLoci(union);
     }
 
     clear() {
         if (this.state.current) {
-            this.state.current = undefined
-            this.behaviors.current.next(void 0)
+            this.state.current = undefined;
+            this.behaviors.current.next(void 0);
         }
     }
 
@@ -107,20 +107,20 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
         super({ history: [] });
 
         plugin.state.data.events.object.removed.subscribe(o => {
-            if (!PluginStateObject.Molecule.Structure.is(o.obj)) return
+            if (!PluginStateObject.Molecule.Structure.is(o.obj)) return;
 
             if (this.current?.loci.structure === o.obj.data) {
-                this.clear()
+                this.clear();
             }
 
-            const keep: FocusEntry[] = []
+            const keep: FocusEntry[] = [];
             for (const e of this.history) {
-                if (e.loci.structure === o.obj.data) keep.push(e)
+                if (e.loci.structure === o.obj.data) keep.push(e);
             }
             if (keep.length !== this.history.length) {
-                this.history.length = 0
-                this.history.push(...keep)
-                this.events.historyUpdated.next()
+                this.history.length = 0;
+                this.history.push(...keep);
+                this.events.historyUpdated.next();
             }
         });
         // plugin.state.data.events.object.updated.subscribe(e => this.onUpdate(e.ref, e.oldObj, e.obj));

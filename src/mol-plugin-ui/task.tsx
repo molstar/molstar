@@ -15,11 +15,11 @@ import { IconButton } from './controls/common';
 export class BackgroundTaskProgress extends PluginUIComponent<{ }, { tracked: OrderedMap<number, TaskManager.ProgressEvent> }> {
     componentDidMount() {
         this.subscribe(this.plugin.events.task.progress.pipe(filter(e => e.level !== 'none')), e => {
-            this.setState({ tracked: this.state.tracked.set(e.id, e) })
+            this.setState({ tracked: this.state.tracked.set(e.id, e) });
         });
         this.subscribe(this.plugin.events.task.finished, ({ id }) => {
-            this.setState({ tracked: this.state.tracked.delete(id) })
-        })
+            this.setState({ tracked: this.state.tracked.delete(id) });
+        });
     }
 
     state = { tracked: OrderedMap<number, TaskManager.ProgressEvent>() };

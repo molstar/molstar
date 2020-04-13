@@ -34,9 +34,9 @@ function getGraph(indexA: ArrayLike<number>, indexB: ArrayLike<number>, props: P
 export namespace IndexPairBonds {
     export const Descriptor: CustomPropertyDescriptor = {
         name: 'index_pair_bonds',
-    }
+    };
 
-    export const Provider = FormatPropertyProvider.create<IndexPairBonds>(Descriptor)
+    export const Provider = FormatPropertyProvider.create<IndexPairBonds>(Descriptor);
 
     export type Data = {
         pairs: {
@@ -50,12 +50,12 @@ export namespace IndexPairBonds {
     }
 
     export function fromData(data: Data) {
-        const { pairs, count } = data
-        const indexA = pairs.indexA.toArray()
-        const indexB = pairs.indexB.toArray()
-        const order = pairs.order && pairs.order.toArray()
-        const symmetryA = pairs.symmetryA && pairs.symmetryA.toArray()
-        const symmetryB = pairs.symmetryB && pairs.symmetryB.toArray()
+        const { pairs, count } = data;
+        const indexA = pairs.indexA.toArray();
+        const indexB = pairs.indexB.toArray();
+        const order = pairs.order && pairs.order.toArray();
+        const symmetryA = pairs.symmetryA && pairs.symmetryA.toArray();
+        const symmetryB = pairs.symmetryB && pairs.symmetryB.toArray();
         return getGraph(indexA, indexB, { order, symmetryA, symmetryB }, count);
     }
 }

@@ -1,5 +1,5 @@
-import * as B from 'benchmark'
-import * as Sort from '../mol-data/util'
+import * as B from 'benchmark';
+import * as Sort from '../mol-data/util';
 
 function shuffle(a: number[]) {
     for (let i = a.length - 1; i > 0; i--) {
@@ -61,7 +61,7 @@ export function runTest(size: number) {
 
     function le(x: number, y: number) { return x - y; }
 
-    function name(n: string) { return `${n} (${size} elems)` }
+    function name(n: string) { return `${n} (${size} elems)`; }
 
     // TODO: the data copying skewes the benchmark -- write a simple benchmark util that allows for a preparation step.
     suite

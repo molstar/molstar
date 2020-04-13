@@ -19,10 +19,10 @@
 
 import Mat4 from './mat4';
 import { Quat, Mat3, EPSILON } from '../3d';
-import { spline as _spline, quadraticBezier as _quadraticBezier, clamp } from '../../interpolate'
+import { spline as _spline, quadraticBezier as _quadraticBezier, clamp } from '../../interpolate';
 import { NumberArray } from '../../../mol-util/type-helpers';
 
-export { ReadonlyVec3 }
+export { ReadonlyVec3 };
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
 interface ReadonlyVec3 extends Array<number> { readonly [d: number]: number, '@type': 'vec3', length: 3 }
@@ -47,14 +47,14 @@ namespace Vec3 {
     }
 
     export function hasNaN(a: Vec3) {
-        return isNaN(a[0]) || isNaN(a[1]) || isNaN(a[2])
+        return isNaN(a[0]) || isNaN(a[1]) || isNaN(a[2]);
     }
 
     export function setNaN(out: Vec3) {
         out[0] = NaN;
         out[1] = NaN;
         out[2] = NaN;
-        return out
+        return out;
     }
 
     export function fromObj(v: { x: number, y: number, z: number }): Vec3 {
@@ -66,17 +66,17 @@ namespace Vec3 {
     }
 
     export function fromArray(v: Vec3, array: ArrayLike<number>, offset: number) {
-        v[0] = array[offset + 0]
-        v[1] = array[offset + 1]
-        v[2] = array[offset + 2]
-        return v
+        v[0] = array[offset + 0];
+        v[1] = array[offset + 1];
+        v[2] = array[offset + 2];
+        return v;
     }
 
     export function toArray(v: Vec3, out: NumberArray, offset: number) {
-        out[offset + 0] = v[0]
-        out[offset + 1] = v[1]
-        out[offset + 2] = v[2]
-        return out
+        out[offset + 0] = v[0];
+        out[offset + 1] = v[1];
+        out[offset + 2] = v[2];
+        return out;
     }
 
     export function create(x: number, y: number, z: number): Vec3 {
@@ -239,7 +239,7 @@ namespace Vec3 {
     }
 
     export function setMagnitude(out: Vec3, a: Vec3, l: number) {
-        return Vec3.scale(out, Vec3.normalize(out, a), l)
+        return Vec3.scale(out, Vec3.normalize(out, a), l);
     }
 
     /**
@@ -303,7 +303,7 @@ namespace Vec3 {
         return out;
     }
 
-    const slerpRelVec = Vec3.zero()
+    const slerpRelVec = Vec3.zero();
     export function slerp(out: Vec3, a: Vec3, b: Vec3, t: number) {
         const dot = clamp(Vec3.dot(a, b), -1, 1);
         const theta = Math.acos(dot) * t;
@@ -502,7 +502,7 @@ namespace Vec3 {
 
     /** Project `point` onto `vector` starting from `origin` */
     export function projectPointOnVector(out: Vec3, point: Vec3, vector: Vec3, origin: Vec3) {
-        sub(out, copy(out, point), origin)
+        sub(out, copy(out, point), origin);
         const scalar = dot(vector, out) / squaredMagnitude(vector);
         return add(out, scale(out, copy(out, vector), scalar), origin);
     }
@@ -512,7 +512,7 @@ namespace Vec3 {
         return scale(out, vector, scalar);
     }
 
-    const tmpProject = Vec3()
+    const tmpProject = Vec3();
     export function projectOnPlane(out: Vec3, p: Vec3, normal: Vec3) {
         projectOnVector(tmpProject, p, normal);
         return sub(out, p, tmpProject);
@@ -528,9 +528,9 @@ namespace Vec3 {
      * i.e. where the dot product is > 0
      */
     export function matchDirection(out: Vec3, a: Vec3, b: Vec3) {
-        if (Vec3.dot(a, b) > 0) Vec3.copy(out, a)
-        else Vec3.negate(out, Vec3.copy(out, a))
-        return out
+        if (Vec3.dot(a, b) > 0) Vec3.copy(out, a);
+        else Vec3.negate(out, Vec3.copy(out, a));
+        return out;
     }
 
     const triangleNormalTmpAB = zero();
@@ -546,14 +546,14 @@ namespace Vec3 {
         return `[${a[0].toPrecision(precision)} ${a[1].toPrecision(precision)} ${a[2].toPrecision(precision)}]`;
     }
 
-    export const origin: ReadonlyVec3 = Vec3.create(0, 0, 0)
+    export const origin: ReadonlyVec3 = Vec3.create(0, 0, 0);
 
-    export const unit: ReadonlyVec3 = Vec3.create(1, 1, 1)
-    export const negUnit: ReadonlyVec3 = Vec3.create(-1, -1, -1)
+    export const unit: ReadonlyVec3 = Vec3.create(1, 1, 1);
+    export const negUnit: ReadonlyVec3 = Vec3.create(-1, -1, -1);
 
-    export const unitX: ReadonlyVec3 = Vec3.create(1, 0, 0)
-    export const unitY: ReadonlyVec3 = Vec3.create(0, 1, 0)
-    export const unitZ: ReadonlyVec3 = Vec3.create(0, 0, 1)
+    export const unitX: ReadonlyVec3 = Vec3.create(1, 0, 0);
+    export const unitY: ReadonlyVec3 = Vec3.create(0, 1, 0);
+    export const unitZ: ReadonlyVec3 = Vec3.create(0, 0, 1);
 }
 
-export default Vec3
+export default Vec3;

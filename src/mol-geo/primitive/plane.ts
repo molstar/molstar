@@ -24,17 +24,17 @@ const plane: Primitive = {
         0, 2, 1,
         1, 2, 3
     ])
-}
+};
 
 const planeCage: Cage = {
     vertices: plane.vertices,
     edges: new Uint32Array([ 0, 1,  2, 3,  3, 1,  2, 0 ])
-}
+};
 
 export function Plane(): Primitive {
-    return plane
+    return plane;
 }
 
 export function PlaneCage(): Cage {
-    return planeCage
+    return planeCage;
 }

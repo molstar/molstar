@@ -15,7 +15,7 @@ import { StatefulPluginComponent } from '../../component';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MeasurementRepresentationCommonTextParams } from '../../../mol-repr/shape/loci/common';
 
-export { StructureMeasurementManager }
+export { StructureMeasurementManager };
 
 export const MeasurementGroupTag = 'measurement-group';
 
@@ -24,8 +24,8 @@ export type StructureMeasurementCell = StateObjectCell<PluginStateObject.Shape.R
 export const StructureMeasurementParams = {
     distanceUnitLabel: PD.Text('\u212B', { isEssential: true }),
     textColor: MeasurementRepresentationCommonTextParams.textColor
-}
-const DefaultStructureMeasurementOptions = PD.getDefaultValues(StructureMeasurementParams)
+};
+const DefaultStructureMeasurementOptions = PD.getDefaultValues(StructureMeasurementParams);
 export type StructureMeasurementOptions = PD.ValuesFor<typeof StructureMeasurementParams>
 
 export interface StructureMeasurementManagerState {
@@ -102,7 +102,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             .apply(StateTransforms.Representation.StructureSelectionsDistance3D, {
                 unitLabel: this.state.options.distanceUnitLabel,
                 textColor: this.state.options.textColor
-            })
+            });
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
@@ -132,7 +132,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             }, { dependsOn })
             .apply(StateTransforms.Representation.StructureSelectionsAngle3D, {
                 textColor: this.state.options.textColor
-            })
+            });
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
@@ -165,7 +165,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             }, { dependsOn })
             .apply(StateTransforms.Representation.StructureSelectionsDihedral3D, {
                 textColor: this.state.options.textColor
-            })
+            });
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
@@ -189,7 +189,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             }, { dependsOn })
             .apply(StateTransforms.Representation.StructureSelectionsLabel3D, {
                 textColor: this.state.options.textColor
-            })
+            });
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
@@ -211,7 +211,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 isTransitive: true,
                 label: 'Orientation'
             }, { dependsOn })
-            .apply(StateTransforms.Representation.StructureSelectionsOrientation3D)
+            .apply(StateTransforms.Representation.StructureSelectionsOrientation3D);
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });

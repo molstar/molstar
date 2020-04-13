@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { HashSet } from '../../../mol-data/generic'
-import { Structure, StructureElement, Unit } from '../structure'
+import { HashSet } from '../../../mol-data/generic';
+import { Structure, StructureElement, Unit } from '../structure';
 import { structureUnion } from './utils/structure-set';
 import { OrderedSet, SortedArray } from '../../../mol-data/int';
 
@@ -17,8 +17,8 @@ namespace StructureSelection {
     export interface Singletons { readonly kind: 'singletons', readonly source: Structure, readonly structure: Structure }
     export interface Sequence { readonly kind: 'sequence', readonly source: Structure, readonly structures: Structure[] }
 
-    export function Singletons(source: Structure, structure: Structure): Singletons { return { kind: 'singletons', source, structure } }
-    export function Sequence(source: Structure, structures: Structure[]): Sequence { return { kind: 'sequence', source, structures } }
+    export function Singletons(source: Structure, structure: Structure): Singletons { return { kind: 'singletons', source, structure }; }
+    export function Sequence(source: Structure, structures: Structure[]): Sequence { return { kind: 'sequence', source, structures }; }
     export function Empty(source: Structure): StructureSelection { return Singletons(source, Structure.Empty); };
 
     export function isSingleton(s: StructureSelection): s is Singletons { return s.kind === 'singletons'; }
@@ -63,7 +63,7 @@ namespace StructureSelection {
         const { unitMap } = sel.source;
 
         for (const _unit of unionStructure(sel).units) {
-            const unit = unitMap.get(_unit.id)
+            const unit = unitMap.get(_unit.id);
             if (unit === _unit) {
                 elements[elements.length] = {
                     unit,
@@ -155,4 +155,4 @@ namespace StructureSelection {
     // TODO: spatial lookup?
 }
 
-export { StructureSelection }
+export { StructureSelection };

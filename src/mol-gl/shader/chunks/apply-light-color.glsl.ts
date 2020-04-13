@@ -47,4 +47,4 @@ RE_IndirectDiffuse_Physical(irradiance, geometry, physicalMaterial, reflectedLig
 vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular;
 
 gl_FragColor = vec4(outgoingLight, color.a);
-`
+`;

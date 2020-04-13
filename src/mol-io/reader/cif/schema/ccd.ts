@@ -6,7 +6,7 @@
  * @author molstar/ciftools package
  */
 
-import { Database, Column } from '../../../../mol-data/db'
+import { Database, Column } from '../../../../mol-data/db';
 
 import Schema = Column.Schema
 
@@ -394,7 +394,7 @@ export const CCD_Schema = {
          */
         program_version: str,
     },
-}
+};
 
 export type CCD_Schema = typeof CCD_Schema;
 export interface CCD_Database extends Database<CCD_Schema> {}

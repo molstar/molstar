@@ -69,6 +69,7 @@
         "no-trailing-spaces": "error",
         "no-unsafe-finally": "warn",
         "no-var": "error",
-        "spaced-comment": "error"
+        "spaced-comment": "error",
+        "semi": "warn"
     }
 }

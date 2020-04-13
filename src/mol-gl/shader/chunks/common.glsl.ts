@@ -151,4 +151,4 @@ float unpackRGBAToDepth(const in vec4 v) {
     #define inverse3(m) inverse(m)
     #define inverse4(m) inverse(m)
 #endif
-`
+`;

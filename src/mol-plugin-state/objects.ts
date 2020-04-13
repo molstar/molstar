@@ -46,7 +46,7 @@ export namespace PluginStateObject {
     }
 
     export function CreateBehavior<T extends PluginBehavior>(type: { name: string }) {
-        return Create<T>({ ...type, typeClass: 'Behavior' })
+        return Create<T>({ ...type, typeClass: 'Behavior' });
     }
 
     export class Root extends Create({ name: 'Root', typeClass: 'Root' }) { }

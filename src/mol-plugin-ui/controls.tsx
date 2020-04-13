@@ -117,7 +117,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         // TODO: this needs to be diabled when the state is updating!
         this.subscribe(this.plugin.state.snapshots.events.changed, () => this.forceUpdate());
         this.subscribe(this.plugin.behaviors.state.isBusy, isBusy => this.setState({ isBusy }));
-        this.subscribe(this.plugin.behaviors.state.isAnimating, isBusy => this.setState({ isBusy }))
+        this.subscribe(this.plugin.behaviors.state.isAnimating, isBusy => this.setState({ isBusy }));
 
         window.addEventListener('keyup', this.keyUp, false);
     }
@@ -253,7 +253,7 @@ export class SelectionViewportControls extends PluginUIComponent {
 
     onMouseMove = (e: React.MouseEvent) => {
         // ignore mouse moves when no button is held
-        if (e.buttons === 0) e.stopPropagation()
+        if (e.buttons === 0) e.stopPropagation();
     }
 
     render() {
@@ -288,11 +288,11 @@ export class CustomStructureControls extends PluginUIComponent<{ initiallyCollap
     }
 
     render() {
-        const controls: JSX.Element[] = []
+        const controls: JSX.Element[] = [];
         this.plugin.customStructureControls.forEach((Controls, key) => {
-            controls.push(<Controls initiallyCollapsed={this.props.initiallyCollapsed} key={key} />)
-        })
-        return controls.length > 0 ? <>{controls}</> : null
+            controls.push(<Controls initiallyCollapsed={this.props.initiallyCollapsed} key={key} />);
+        });
+        return controls.length > 0 ? <>{controls}</> : null;
     }
 }
 

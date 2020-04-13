@@ -145,7 +145,7 @@ export function within(params: WithinParams): StructureQuery {
             minRadius: params.minRadius ? Math.max(0, params.minRadius) : 0,
             elementRadius: params.elementRadius!,
             invert: !!params.invert,
-        }
+        };
 
         if (ctx.minRadius === 0 && typeof params.minRadius === 'undefined') {
             return withinMaxRadiusLookup(ctx);
@@ -154,7 +154,7 @@ export function within(params: WithinParams): StructureQuery {
         } else {
             return withinMinMaxRadius(ctx);
         }
-    }
+    };
 }
 
 interface WithinContext {
@@ -323,7 +323,7 @@ export function isConnectedTo({ query, target, disjunct, invert, bondTest }: IsC
             input: ctx.inputStructure,
             disjunct,
             target: StructureSelection.unionStructure(targetSel)
-        }
+        };
 
         const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
         ctx.pushCurrentBond();
@@ -336,9 +336,9 @@ export function isConnectedTo({ query, target, disjunct, invert, bondTest }: IsC
                 ret.add(s);
             }
             if (sI % 5 === 0) ctx.throwIfTimedOut();
-        })
+        });
         ctx.popCurrentBond();
 
         return ret.getSelection();
-    }
+    };
 }

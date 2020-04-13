@@ -20,7 +20,7 @@ const BallAndStickVisuals = {
     'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Element sphere mesh', ctx, getParams, getElementSphereVisual(ctx.webgl)),
     'intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitBondParams>) => UnitsRepresentation('Intra-unit bond cylinder', ctx, getParams, IntraUnitBondVisual),
     'inter-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitBondParams>) => ComplexRepresentation('Inter-unit bond cylinder', ctx, getParams, InterUnitBondVisual),
-}
+};
 
 export const BallAndStickParams = {
     ...ElementSphereParams,
@@ -30,15 +30,15 @@ export const BallAndStickParams = {
     sizeFactor: PD.Numeric(0.15, { min: 0.01, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0.01, max: 3, step: 0.01 }),
     visuals: PD.MultiSelect(['element-sphere', 'intra-bond', 'inter-bond'], PD.objectToOptions(BallAndStickVisuals))
-}
+};
 export type BallAndStickParams = typeof BallAndStickParams
 export function getBallAndStickParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(BallAndStickParams)
+    return PD.clone(BallAndStickParams);
 }
 
 export type BallAndStickRepresentation = StructureRepresentation<BallAndStickParams>
 export function BallAndStickRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, BallAndStickParams>): BallAndStickRepresentation {
-    return Representation.createMulti('Ball & Stick', ctx, getParams, StructureRepresentationStateBuilder, BallAndStickVisuals as unknown as Representation.Def<Structure, BallAndStickParams>)
+    return Representation.createMulti('Ball & Stick', ctx, getParams, StructureRepresentationStateBuilder, BallAndStickVisuals as unknown as Representation.Def<Structure, BallAndStickParams>);
 }
 
 export const BallAndStickRepresentationProvider = StructureRepresentationProvider({
@@ -51,4 +51,4 @@ export const BallAndStickRepresentationProvider = StructureRepresentationProvide
     defaultColorTheme: { name: 'element-symbol' },
     defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
-})
+});

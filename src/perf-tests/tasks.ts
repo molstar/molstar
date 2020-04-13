@@ -1,6 +1,6 @@
-import * as B from 'benchmark'
+import * as B from 'benchmark';
 import { now } from '../mol-util/now';
-import { Scheduler } from '../mol-task/util/scheduler'
+import { Scheduler } from '../mol-task/util/scheduler';
 
 export namespace Tasks {
     export class Yielding {
@@ -93,7 +93,7 @@ export namespace Tasks {
     export function run() {
         const suite = new B.Suite();
         suite
-            .add(`yielding`, async () => { return await yielding() })
+            .add(`yielding`, async () => { return await yielding(); })
             // .add(`test yielding`, () => testYielding().then(() => { }))
             .on('cycle', (e: any) => console.log(String(e.target)))
             .run();
@@ -172,7 +172,7 @@ export namespace Tasks {
     // await Tasks.testYielding();
 
     await Tasks.awaitF();
-}())
+}());
 
 // console.time('test')
 // Tasks.yielding();

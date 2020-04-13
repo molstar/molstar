@@ -6,4 +6,4 @@ if (interior) {
         gl_FragColor.rgb *= 1.0 - uInteriorDarkening;
     }
 }
-`
+`;

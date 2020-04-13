@@ -25,71 +25,71 @@ interface StructureFocusControlsState {
 }
 
 function addSymmetryGroupEntries(entries: Map<string, FocusEntry[]>, location: StructureElement.Location, unitSymmetryGroup: Unit.SymmetryGroup) {
-    const idx = SortedArray.indexOf(location.unit.elements, location.element) as UnitIndex
+    const idx = SortedArray.indexOf(location.unit.elements, location.element) as UnitIndex;
     const base = StructureElement.Loci.extendToWholeResidues(
         StructureElement.Loci(location.structure, [
             { unit: location.unit, indices: OrderedSet.ofSingleton(idx) }
         ])
-    )
-    const name = StructureProperties.entity.pdbx_description(location).join(', ')
+    );
+    const name = StructureProperties.entity.pdbx_description(location).join(', ');
 
     for (const u of unitSymmetryGroup.units) {
         const loci = StructureElement.Loci(base.structure, [
             { unit: u, indices: base.elements[0].indices }
-        ])
+        ]);
 
-        let label = lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false, granularity: 'residue' })
-        if (!label) label = lociLabel(loci, { hidePrefix: false, htmlStyling: false })
+        let label = lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false, granularity: 'residue' });
+        if (!label) label = lociLabel(loci, { hidePrefix: false, htmlStyling: false });
         if (unitSymmetryGroup.units.length > 1) {
-            label += ` | ${loci.elements[0].unit.conformation.operator.name}`
+            label += ` | ${loci.elements[0].unit.conformation.operator.name}`;
         }
-        const item: FocusEntry = { label, category: name, loci }
+        const item: FocusEntry = { label, category: name, loci };
 
-        if (entries.has(name)) entries.get(name)!.push(item)
-        else entries.set(name, [item])
+        if (entries.has(name)) entries.get(name)!.push(item);
+        else entries.set(name, [item]);
     }
 }
 
 function getFocusEntries(structure: Structure) {
-    const entityEntries = new Map<string, FocusEntry[]>()
-    const l = StructureElement.Location.create(structure)
+    const entityEntries = new Map<string, FocusEntry[]>();
+    const l = StructureElement.Location.create(structure);
 
     for (const ug of structure.unitSymmetryGroups) {
-        l.unit = ug.units[0]
-        l.element = ug.elements[0]
-        const entityType = StructureProperties.entity.type(l)
-        const isMultiChain = Unit.Traits.is(l.unit.traits, Unit.Trait.MultiChain)
-        const isPolymer = entityType === 'non-polymer'
-        const isBranched = entityType === 'branched'
+        l.unit = ug.units[0];
+        l.element = ug.elements[0];
+        const entityType = StructureProperties.entity.type(l);
+        const isMultiChain = Unit.Traits.is(l.unit.traits, Unit.Trait.MultiChain);
+        const isPolymer = entityType === 'non-polymer';
+        const isBranched = entityType === 'branched';
 
         if (isPolymer && !isMultiChain) {
-            addSymmetryGroupEntries(entityEntries, l, ug)
+            addSymmetryGroupEntries(entityEntries, l, ug);
         } else if (isBranched || (isPolymer && isMultiChain)) {
-            const u = l.unit
-            const { index: residueIndex } = u.model.atomicHierarchy.residueAtomSegments
-            let prev = -1
+            const u = l.unit;
+            const { index: residueIndex } = u.model.atomicHierarchy.residueAtomSegments;
+            let prev = -1;
             for (let i = 0, il = u.elements.length; i < il; ++i) {
-                const eI = u.elements[i]
-                const rI = residueIndex[eI]
+                const eI = u.elements[i];
+                const rI = residueIndex[eI];
                 if(rI !== prev) {
-                    l.element = eI
-                    addSymmetryGroupEntries(entityEntries, l, ug)
-                    prev = rI
+                    l.element = eI;
+                    addSymmetryGroupEntries(entityEntries, l, ug);
+                    prev = rI;
                 }
             }
         }
     }
 
-    const entries: FocusEntry[] = []
+    const entries: FocusEntry[] = [];
     entityEntries.forEach((e, name) => {
         if (e.length === 1) {
-            entries.push({ label: `${name}: ${e[0].label}`, loci: e[0].loci })
+            entries.push({ label: `${name}: ${e[0].label}`, loci: e[0].loci });
         } else {
-            entries.push(...e)
+            entries.push(...e);
         }
-    })
+    });
 
-    return entries
+    return entries;
 }
 
 export class StructureFocusControls extends PluginUIComponent<{}, StructureFocusControlsState> {
@@ -107,20 +107,20 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
         });
 
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isBusy: v, showAction: false })
-        })
+            this.setState({ isBusy: v, showAction: false });
+        });
     }
 
     get isDisabled() {
-        return this.state.isBusy || this.actionItems.length === 0
+        return this.state.isBusy || this.actionItems.length === 0;
     }
 
     getSelectionItems = memoizeLatest((structures: ReadonlyArray<StructureRef>) => {
-        const presetItems: ActionMenu.Items[] = []
+        const presetItems: ActionMenu.Items[] = [];
         for (const s of structures) {
-            const d = s.cell.obj?.data
+            const d = s.cell.obj?.data;
             if (d) {
-                const entries = getFocusEntries(d)
+                const entries = getFocusEntries(d);
                 if (entries.length > 0) {
                     presetItems.push([
                         ActionMenu.Header(d.label, { description: d.label }),
@@ -129,7 +129,7 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
                             category: f => f.category,
                             description: f => f.label
                         })
-                    ])
+                    ]);
                 }
             }
         }
@@ -137,8 +137,8 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
     });
 
     get actionItems() {
-        const historyItems: ActionMenu.Items[] = []
-        const { history } = this.plugin.managers.structure.focus
+        const historyItems: ActionMenu.Items[] = [];
+        const { history } = this.plugin.managers.structure.focus;
         if (history.length > 0) {
             historyItems.push([
                 ActionMenu.Header('History', { description: 'Previously focused on items.' }),
@@ -147,24 +147,24 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
                     description: f => {
                         return f.category && f.label !== f.category
                             ? `${f.category} | ${f.label}`
-                            : f.label
+                            : f.label;
                     }
                 })
-            ])
+            ]);
         }
 
         const presetItems: ActionMenu.Items[] = this.getSelectionItems(this.plugin.managers.structure.hierarchy.selection.structures);
         if (presetItems.length === 1) {
-            const item = presetItems[0] as ActionMenu.Items[]
-            const header = item[0] as ActionMenu.Header
-            header.initiallyExpanded = true
+            const item = presetItems[0] as ActionMenu.Items[];
+            const header = item[0] as ActionMenu.Header;
+            header.initiallyExpanded = true;
         }
 
-        const items: ActionMenu.Items[] = []
-        if (presetItems.length > 0) items.push(...presetItems)
-        if (historyItems.length > 0) items.push(...historyItems)
+        const items: ActionMenu.Items[] = [];
+        if (presetItems.length > 0) items.push(...presetItems);
+        if (historyItems.length > 0) items.push(...historyItems);
 
-        return items
+        return items;
     }
 
     selectAction: ActionMenu.OnSelect = (item, e) => {
@@ -172,18 +172,18 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
             this.setState({ showAction: false });
             return;
         }
-        const f = item.value as FocusEntry
+        const f = item.value as FocusEntry;
         if (e?.shiftKey) {
-            this.plugin.managers.structure.focus.addFromLoci(f.loci)
+            this.plugin.managers.structure.focus.addFromLoci(f.loci);
         } else {
-            this.plugin.managers.structure.focus.set(f)
+            this.plugin.managers.structure.focus.set(f);
         }
     }
 
     toggleAction = () => this.setState({ showAction: !this.state.showAction })
 
     focus = () => {
-        const { current } = this.plugin.managers.structure.focus
+        const { current } = this.plugin.managers.structure.focus;
         if (current) this.plugin.managers.camera.focusLoci(current.loci);
     }
 
@@ -193,12 +193,12 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
     }
 
     highlightCurrent = () => {
-        const { current } = this.plugin.managers.structure.focus
+        const { current } = this.plugin.managers.structure.focus;
         if (current) this.plugin.managers.interactivity.lociHighlights.highlightOnly({ loci: current.loci }, false);
     }
 
     clearHighlights = () => {
-        this.plugin.managers.interactivity.lociHighlights.clearHighlights()
+        this.plugin.managers.interactivity.lociHighlights.clearHighlights();
     }
 
     getToggleBindingLabel() {

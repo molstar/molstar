@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from './util/chunked-array'
-export * from './util/buckets'
-export * from './util/equivalence-classes'
-export * from './util/hash-functions'
-export * from './util/sort'
-export * from './util/grouping'
-export * from './util/array'
+export * from './util/chunked-array';
+export * from './util/buckets';
+export * from './util/equivalence-classes';
+export * from './util/hash-functions';
+export * from './util/sort';
+export * from './util/grouping';
+export * from './util/array';

@@ -4,4 +4,4 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from './volume/data'
+export * from './volume/data';

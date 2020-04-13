@@ -6,7 +6,7 @@ import { Vec2 } from '../../../mol-math/linear-algebra';
 export default class PointComponent extends React.Component<any, {show: boolean}> {
     constructor(props: any) {
         super(props);
-        this.state = {show: false}
+        this.state = {show: false};
 
         this.handleHover = this.handleHover.bind(this);
         this.handleHoverOff = this.handleHoverOff.bind(this);

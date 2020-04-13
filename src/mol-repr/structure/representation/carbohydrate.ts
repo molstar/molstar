@@ -18,22 +18,22 @@ const CarbohydrateVisuals = {
     'carbohydrate-symbol': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateSymbolParams>) => ComplexRepresentation('Carbohydrate symbol mesh', ctx, getParams, CarbohydrateSymbolVisual),
     'carbohydrate-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateLinkParams>) => ComplexRepresentation('Carbohydrate link cylinder', ctx, getParams, CarbohydrateLinkVisual),
     'carbohydrate-terminal-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateTerminalLinkParams>) => ComplexRepresentation('Carbohydrate terminal link cylinder', ctx, getParams, CarbohydrateTerminalLinkVisual),
-}
+};
 
 export const CarbohydrateParams = {
     ...CarbohydrateSymbolParams,
     ...CarbohydrateLinkParams,
     ...CarbohydrateTerminalLinkParams,
     visuals: PD.MultiSelect(['carbohydrate-symbol', 'carbohydrate-link', 'carbohydrate-terminal-link'], PD.objectToOptions(CarbohydrateVisuals)),
-}
+};
 export type CarbohydrateParams = typeof CarbohydrateParams
 export function getCarbohydrateParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(CarbohydrateParams)
+    return PD.clone(CarbohydrateParams);
 }
 
 export type CarbohydrateRepresentation = StructureRepresentation<CarbohydrateParams>
 export function CarbohydrateRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateParams>): CarbohydrateRepresentation {
-    return Representation.createMulti('Carbohydrate', ctx, getParams, StructureRepresentationStateBuilder, CarbohydrateVisuals as unknown as Representation.Def<Structure, CarbohydrateParams>)
+    return Representation.createMulti('Carbohydrate', ctx, getParams, StructureRepresentationStateBuilder, CarbohydrateVisuals as unknown as Representation.Def<Structure, CarbohydrateParams>);
 }
 
 export const CarbohydrateRepresentationProvider = StructureRepresentationProvider({
@@ -46,6 +46,6 @@ export const CarbohydrateRepresentationProvider = StructureRepresentationProvide
     defaultColorTheme: { name: 'carbohydrate-symbol' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => {
-        return structure.models.reduce((a, v) => a + v.properties.saccharideComponentMap.size, 0) > 0
+        return structure.models.reduce((a, v) => a + v.properties.saccharideComponentMap.size, 0) > 0;
     }
-})
+});

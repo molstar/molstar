@@ -71,7 +71,7 @@ export const EmptyRepresentationProvider = {
     factory: () => Representation.Empty,
     getParams: () => ({}),
     defaultValues: {}
-}
+};
 
 function getTypes(list: { name: string, provider: RepresentationProvider<any, any, any> }[]) {
     return list.map(e => [e.name, e.provider.label] as [string, string]);
@@ -83,7 +83,7 @@ export class RepresentationRegistry<D, S extends Representation.State> {
     private _name = new Map<RepresentationProvider<D, any, any>, string>()
 
     get default() { return this._list[0]; }
-    get types(): [string, string][] { return getTypes(this._list) }
+    get types(): [string, string][] { return getTypes(this._list); }
 
     constructor() {};
 
@@ -92,9 +92,9 @@ export class RepresentationRegistry<D, S extends Representation.State> {
             throw new Error(`${provider.name} already registered.`);
         }
 
-        this._list.push({ name: provider.name, provider })
-        this._map.set(provider.name, provider)
-        this._name.set(provider, provider.name)
+        this._list.push({ name: provider.name, provider });
+        this._map.set(provider.name, provider);
+        this._name.set(provider, provider.name);
     }
 
     getName(provider: RepresentationProvider<D, any, any>): string {
@@ -105,7 +105,7 @@ export class RepresentationRegistry<D, S extends Representation.State> {
     remove(provider: RepresentationProvider<D, any, any>) {
         const name = provider.name;
 
-        this._list.splice(this._list.findIndex(e => e.name === name), 1)
+        this._list.splice(this._list.findIndex(e => e.name === name), 1);
         const p = this._map.get(name);
         if (p) {
             this._map.delete(name);
@@ -114,11 +114,11 @@ export class RepresentationRegistry<D, S extends Representation.State> {
     }
 
     get<P extends PD.Params>(name: string): RepresentationProvider<D, P, S> {
-        return this._map.get(name) || EmptyRepresentationProvider as unknown as RepresentationProvider<D, P, S>
+        return this._map.get(name) || EmptyRepresentationProvider as unknown as RepresentationProvider<D, P, S>;
     }
 
     get list() {
-        return this._list
+        return this._list;
     }
 
     getApplicableList(data: D) {
@@ -126,13 +126,13 @@ export class RepresentationRegistry<D, S extends Representation.State> {
     }
 
     getApplicableTypes(data: D) {
-        return getTypes(this.getApplicableList(data))
+        return getTypes(this.getApplicableList(data));
     }
 }
 
 //
 
-export { Representation }
+export { Representation };
 interface Representation<D, P extends PD.Params = {}, S extends Representation.State = Representation.State> {
     readonly label: string
     readonly updated: Subject<number>
@@ -181,23 +181,23 @@ namespace Representation {
         markerActions: MarkerActions
     }
     export function createState(): State {
-        return { visible: true, alphaFactor: 1, pickable: true, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty, transparency: Transparency.Empty, markerActions: MarkerActions.All }
+        return { visible: true, alphaFactor: 1, pickable: true, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty, transparency: Transparency.Empty, markerActions: MarkerActions.All };
     }
     export function updateState(state: State, update: Partial<State>) {
-        if (update.visible !== undefined) state.visible = update.visible
-        if (update.alphaFactor !== undefined) state.alphaFactor = update.alphaFactor
-        if (update.pickable !== undefined) state.pickable = update.pickable
-        if (update.overpaint !== undefined) state.overpaint = update.overpaint
-        if (update.transparency !== undefined) state.transparency = update.transparency
-        if (update.syncManually !== undefined) state.syncManually = update.syncManually
-        if (update.transform !== undefined) Mat4.copy(state.transform, update.transform)
-        if (update.markerActions !== undefined) state.markerActions = update.markerActions
+        if (update.visible !== undefined) state.visible = update.visible;
+        if (update.alphaFactor !== undefined) state.alphaFactor = update.alphaFactor;
+        if (update.pickable !== undefined) state.pickable = update.pickable;
+        if (update.overpaint !== undefined) state.overpaint = update.overpaint;
+        if (update.transparency !== undefined) state.transparency = update.transparency;
+        if (update.syncManually !== undefined) state.syncManually = update.syncManually;
+        if (update.transform !== undefined) Mat4.copy(state.transform, update.transform);
+        if (update.markerActions !== undefined) state.markerActions = update.markerActions;
     }
     export interface StateBuilder<S extends State> {
         create(): S
         update(state: S, update: Partial<S>): void
     }
-    export const StateBuilder: StateBuilder<State> = { create: createState, update: updateState }
+    export const StateBuilder: StateBuilder<State> = { create: createState, update: updateState };
 
     export type Any = Representation<any, any, any>
     export const Empty: Any = {
@@ -208,165 +208,165 @@ namespace Representation {
         getLoci: () => EmptyLoci,
         mark: () => false,
         destroy: () => {}
-    }
+    };
 
     export type Def<D, P extends PD.Params = {}, S extends State = State> = { [k: string]: RepresentationFactory<D, P, S> }
 
     export function createMulti<D, P extends PD.Params = {}, S extends State = State>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>, stateBuilder: StateBuilder<S>, reprDefs: Def<D, P>): Representation<D, P, S> {
-        let version = 0
-        const updated = new Subject<number>()
-        const currentState = stateBuilder.create()
-        let currentTheme = Theme.createEmpty()
+        let version = 0;
+        const updated = new Subject<number>();
+        const currentState = stateBuilder.create();
+        let currentTheme = Theme.createEmpty();
 
-        let currentParams: P
-        let currentProps: PD.Values<P>
-        let currentData: D
+        let currentParams: P;
+        let currentProps: PD.Values<P>;
+        let currentData: D;
 
-        const reprMap: { [k: number]: string } = {}
+        const reprMap: { [k: number]: string } = {};
         const reprList: Representation<D, P>[] = Object.keys(reprDefs).map((name, i) => {
-            reprMap[i] = name
-            const repr = reprDefs[name](ctx, getParams)
-            repr.setState(currentState)
-            return repr
-        })
+            reprMap[i] = name;
+            const repr = reprDefs[name](ctx, getParams);
+            repr.setState(currentState);
+            return repr;
+        });
 
         return {
             label,
             updated,
             get groupCount() {
-                let groupCount = 0
+                let groupCount = 0;
                 if (currentProps) {
-                    const { visuals } = currentProps
+                    const { visuals } = currentProps;
                     for (let i = 0, il = reprList.length; i < il; ++i) {
                         if (!visuals || visuals.includes(reprMap[i])) {
-                            groupCount += reprList[i].groupCount
+                            groupCount += reprList[i].groupCount;
                         }
                     }
                 }
-                return groupCount
+                return groupCount;
             },
             get renderObjects() {
-                const renderObjects: GraphicsRenderObject[] = []
+                const renderObjects: GraphicsRenderObject[] = [];
                 if (currentProps) {
-                    const { visuals } = currentProps
+                    const { visuals } = currentProps;
                     for (let i = 0, il = reprList.length; i < il; ++i) {
                         if (!visuals || visuals.includes(reprMap[i])) {
-                            renderObjects.push(...reprList[i].renderObjects)
+                            renderObjects.push(...reprList[i].renderObjects);
                         }
                     }
                 }
-                return renderObjects
+                return renderObjects;
             },
-            get props() { return currentProps },
-            get params() { return currentParams },
+            get props() { return currentProps; },
+            get params() { return currentParams; },
             createOrUpdate: (props: Partial<P> = {}, data?: D) => {
                 if (data && data !== currentData) {
-                    currentParams = getParams(ctx, data)
-                    currentData = data
-                    if (!currentProps) currentProps = PD.getDefaultValues(currentParams) as P
+                    currentParams = getParams(ctx, data);
+                    currentData = data;
+                    if (!currentProps) currentProps = PD.getDefaultValues(currentParams) as P;
                 }
-                const qualityProps = getQualityProps(Object.assign({}, currentProps, props), currentData)
-                Object.assign(currentProps, props, qualityProps)
+                const qualityProps = getQualityProps(Object.assign({}, currentProps, props), currentData);
+                Object.assign(currentProps, props, qualityProps);
 
-                const { visuals } = currentProps
+                const { visuals } = currentProps;
                 return Task.create(`Creating or updating '${label}' representation`, async runtime => {
                     for (let i = 0, il = reprList.length; i < il; ++i) {
                         if (!visuals || visuals.includes(reprMap[i])) {
-                            await reprList[i].createOrUpdate(currentProps, currentData).runInContext(runtime)
+                            await reprList[i].createOrUpdate(currentProps, currentData).runInContext(runtime);
                         }
                     }
-                    updated.next(version++)
-                })
+                    updated.next(version++);
+                });
             },
-            get state() { return currentState },
-            get theme() { return currentTheme },
+            get state() { return currentState; },
+            get theme() { return currentTheme; },
             getLoci: (pickingId?: PickingId) => {
-                const { visuals } = currentProps
+                const { visuals } = currentProps;
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     if (!visuals || visuals.includes(reprMap[i])) {
-                        const loci = reprList[i].getLoci(pickingId)
-                        if (!isEmptyLoci(loci)) return loci
+                        const loci = reprList[i].getLoci(pickingId);
+                        if (!isEmptyLoci(loci)) return loci;
                     }
                 }
-                return EmptyLoci
+                return EmptyLoci;
             },
             mark: (loci: ModelLoci, action: MarkerAction) => {
-                let marked = false
+                let marked = false;
                 for (let i = 0, il = reprList.length; i < il; ++i) {
-                    marked = reprList[i].mark(loci, action) || marked
+                    marked = reprList[i].mark(loci, action) || marked;
                 }
-                return marked
+                return marked;
             },
             setState: (state: Partial<S>) => {
-                stateBuilder.update(currentState, state)
+                stateBuilder.update(currentState, state);
                 for (let i = 0, il = reprList.length; i < il; ++i) {
-                    reprList[i].setState(currentState)
+                    reprList[i].setState(currentState);
                 }
             },
             setTheme: (theme: Theme) => {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
-                    reprList[i].setTheme(theme)
+                    reprList[i].setTheme(theme);
                 }
             },
             destroy() {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
-                    reprList[i].destroy()
+                    reprList[i].destroy();
                 }
             }
-        }
+        };
     }
 
     export function fromRenderObject(label: string, renderObject: GraphicsRenderObject): Representation<GraphicsRenderObject, BaseGeometry.Params> {
-        let version = 0
-        const updated = new Subject<number>()
-        const currentState = Representation.createState()
-        const currentTheme = Theme.createEmpty()
+        let version = 0;
+        const updated = new Subject<number>();
+        const currentState = Representation.createState();
+        const currentTheme = Theme.createEmpty();
 
-        const currentParams = PD.clone(BaseGeometry.Params)
-        const currentProps = PD.getDefaultValues(BaseGeometry.Params)
+        const currentParams = PD.clone(BaseGeometry.Params);
+        const currentProps = PD.getDefaultValues(BaseGeometry.Params);
 
         return {
             label,
             updated,
-            get groupCount() { return renderObject.values.uGroupCount.ref.value },
-            get renderObjects() { return [renderObject] },
-            get props() { return currentProps },
-            get params() { return currentParams },
+            get groupCount() { return renderObject.values.uGroupCount.ref.value; },
+            get renderObjects() { return [renderObject]; },
+            get props() { return currentProps; },
+            get params() { return currentParams; },
             createOrUpdate: (props: Partial<PD.Values<BaseGeometry.Params>> = {}) => {
-                const qualityProps = getQualityProps(Object.assign({}, currentProps, props))
-                Object.assign(currentProps, props, qualityProps)
+                const qualityProps = getQualityProps(Object.assign({}, currentProps, props));
+                Object.assign(currentProps, props, qualityProps);
 
                 return Task.create(`Updating '${label}' representation`, async runtime => {
                     // TODO
-                    updated.next(version++)
-                })
+                    updated.next(version++);
+                });
             },
-            get state() { return currentState },
-            get theme() { return currentTheme },
+            get state() { return currentState; },
+            get theme() { return currentTheme; },
             getLoci: () => {
                 // TODO
-                return EmptyLoci
+                return EmptyLoci;
             },
             mark: (loci: ModelLoci, action: MarkerAction) => {
                 // TODO
-                return false
+                return false;
             },
             setState: (state: Partial<State>) => {
-                if (state.visible !== undefined) Visual.setVisibility(renderObject, state.visible)
-                if (state.alphaFactor !== undefined) Visual.setAlphaFactor(renderObject, state.alphaFactor)
-                if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable)
+                if (state.visible !== undefined) Visual.setVisibility(renderObject, state.visible);
+                if (state.alphaFactor !== undefined) Visual.setAlphaFactor(renderObject, state.alphaFactor);
+                if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable);
                 if (state.overpaint !== undefined) {
                     // TODO
                 }
                 if (state.transparency !== undefined) {
                     // TODO
                 }
-                if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform)
+                if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform);
 
-                Representation.updateState(currentState, state)
+                Representation.updateState(currentState, state);
             },
             setTheme: () => { },
             destroy() { }
-        }
+        };
     }
 }

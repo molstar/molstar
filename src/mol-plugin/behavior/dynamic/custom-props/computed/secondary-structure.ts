@@ -18,7 +18,7 @@ export const SecondaryStructure = PluginBehavior.create<{ autoAttach: boolean }>
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
             let updated = (
                 this.params.autoAttach !== p.autoAttach
-            )
+            );
             this.params.autoAttach = p.autoAttach;
             this.ctx.customStructureProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
             return updated;

@@ -11,7 +11,7 @@ import { State } from './state';
 import { StateSelection, StateTransformer } from '../mol-state';
 import { StateBuilder } from './state/builder';
 
-export { StateObject, StateObjectCell }
+export { StateObject, StateObjectCell };
 
 interface StateObject<D = any, T extends StateObject.Type = StateObject.Type<any>> {
     readonly id: UUID,
@@ -44,7 +44,7 @@ namespace StateObject {
                 this.label = props && props.label || type.name;
                 this.description = props && props.description;
             }
-        }
+        };
     }
 
     export function hasTag(o: StateObject, t: string) {

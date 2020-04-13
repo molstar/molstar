@@ -185,4 +185,4 @@ namespace ChunkedArray {
     }
 }
 
-export { ChunkedArray }
+export { ChunkedArray };

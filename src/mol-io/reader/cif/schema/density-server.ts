@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Database, Column } from '../../../../mol-data/db'
+import { Database, Column } from '../../../../mol-data/db';
 
 import Schema = Column.Schema
 
@@ -29,7 +29,7 @@ export const DensityServer_Header_Schema = {
         'query_box_a': Vector(3),
         'query_box_b': Vector(3)
     }
-}
+};
 
 export const DensityServer_Data_Schema = {
     volume_data_3d_info: {
@@ -59,7 +59,7 @@ export const DensityServer_Data_Schema = {
     volume_data_3d: {
         values: float
     }
-}
+};
 
 export type DensityServer_Header_Schema = typeof DensityServer_Header_Schema;
 export interface DensityServer_Header_Database extends Database<DensityServer_Header_Schema> {}

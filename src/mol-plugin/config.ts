@@ -30,7 +30,7 @@ export const PluginConfig = {
         CanStream: item('volume-streaming.can-stream', (s: Structure, plugin: PluginContext) => {
             return s.models.length === 1 && (Model.hasDensityMap(s.models[0])
                 // the following test is to include e.g. 'updated' files from PDBe
-                || (!Model.isFromPdbArchive(s.models[0]) && s.models[0].entryId.length === 4))
+                || (!Model.isFromPdbArchive(s.models[0]) && s.models[0].entryId.length === 4));
         }),
         EmdbHeaderServer: item('volume-streaming.emdb-header-server', 'https://ftp.wwpdb.org/pub/emdb/structures'),
     },
@@ -38,7 +38,7 @@ export const PluginConfig = {
         ShowExpand: item('viewer.show-expand-button', true),
         ShowSelectionMode: item('viewer.show-selection-model-button', true)
     }
-}
+};
 
 export class PluginConfigManager {
     private _config = new Map<PluginConfigItem<any>, unknown>();

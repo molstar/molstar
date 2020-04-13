@@ -85,7 +85,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
         if (params.mode.name === 'palindrome') return { kind: 'next', state: { palindromeDirections } };
         return { kind: 'next', state: {} };
     }
-})
+});
 
 export const AnimateAssemblyUnwind = PluginStateAnimation.create({
     name: 'built-in.animate-assembly-unwind',
@@ -164,7 +164,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
         if (finished) return { kind: 'finished' };
         return { kind: 'next', state: { t: newTime } };
     }
-})
+});
 
 export const AnimateUnitsExplode = PluginStateAnimation.create({
     name: 'built-in.animate-units-explode',
@@ -223,7 +223,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
 
         return { kind: 'next', state: { t: newTime } };
     }
-})
+});
 
 export const AnimateStateInterpolation = PluginStateAnimation.create({
     name: 'built-in.animate-state-interpolation',
@@ -273,4 +273,4 @@ export const AnimateStateInterpolation = PluginStateAnimation.create({
 
         return { kind: 'next', state: { } };
     }
-})
+});

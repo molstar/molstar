@@ -4,5 +4,5 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from './linear-algebra/3d'
-export * from './linear-algebra/tensor'
+export * from './linear-algebra/3d';
+export * from './linear-algebra/tensor';

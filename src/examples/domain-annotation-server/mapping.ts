@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Table } from '../../mol-data/db'
-import { CifWriter } from '../../mol-io/writer/cif'
-import * as S from './schemas'
+import { Table } from '../../mol-data/db';
+import { CifWriter } from '../../mol-io/writer/cif';
+import * as S from './schemas';
 // import { getCategoryInstanceProvider } from './utils'
 
 export default function create(allData: any) {

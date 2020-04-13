@@ -12,7 +12,7 @@ import { StateAction } from './action';
 import { capitalize } from '../mol-util/string';
 import { StateTreeSpine } from './tree/spine';
 
-export { Transformer as StateTransformer }
+export { Transformer as StateTransformer };
 
 interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = any> {
     apply(parent: StateTransform.Ref, params?: P, props?: Partial<StateTransform.Options>): StateTransform<this>,
@@ -241,5 +241,5 @@ namespace Transformer {
         display: { name: 'Root', description: 'For internal use.' },
         apply() { throw new Error('should never be applied'); },
         update() { return UpdateResult.Unchanged; }
-    })
+    });
 }

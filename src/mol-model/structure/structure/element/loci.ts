@@ -50,23 +50,23 @@ export namespace Loci {
     }
 
     export function areEqual(a: Loci, b: Loci) {
-        if (a.structure !== b.structure) return false
-        if (a.elements.length !== b.elements.length) return false
+        if (a.structure !== b.structure) return false;
+        if (a.elements.length !== b.elements.length) return false;
         for (let i = 0, il = a.elements.length; i < il; ++i) {
-            const elementA = a.elements[i]
-            const elementB = b.elements[i]
-            if (elementA.unit.id !== elementB.unit.id) return false
-            if (!OrderedSet.areEqual(elementA.indices, elementB.indices)) return false
+            const elementA = a.elements[i];
+            const elementB = b.elements[i];
+            if (elementA.unit.id !== elementB.unit.id) return false;
+            if (!OrderedSet.areEqual(elementA.indices, elementB.indices)) return false;
         }
-        return true
+        return true;
     }
 
     export function isEmpty(loci: Loci) {
-        return size(loci) === 0
+        return size(loci) === 0;
     }
 
     export function isWholeStructure(loci: Loci) {
-        return size(loci) === loci.structure.elementCount
+        return size(loci) === loci.structure.elementCount;
     }
 
     export function size(loci: Loci) {
@@ -104,38 +104,38 @@ export namespace Loci {
         return Loci(loci.structure, [{
             unit: loci.elements[0].unit,
             indices: OrderedSet.ofSingleton(OrderedSet.start(loci.elements[0].indices))
-        }])
+        }]);
     }
 
     export function firstResidue(loci: Loci): Loci {
         if (isEmpty(loci)) return loci;
-        return extendToWholeResidues(firstElement(loci))
+        return extendToWholeResidues(firstElement(loci));
     }
 
     export function firstChain(loci: Loci): Loci {
         if (isEmpty(loci)) return loci;
-        return extendToWholeChains(firstElement(loci))
+        return extendToWholeChains(firstElement(loci));
     }
 
     export function toStructure(loci: Loci): Structure {
-        const units: Unit[] = []
+        const units: Unit[] = [];
         for (const e of loci.elements) {
-            const { unit, indices } = e
-            const elements = new Int32Array(OrderedSet.size(indices))
-            OrderedSet.forEach(indices, (v, i) => elements[i] = unit.elements[v])
-            units.push(unit.getChild(SortedArray.ofSortedArray(elements)))
+            const { unit, indices } = e;
+            const elements = new Int32Array(OrderedSet.size(indices));
+            OrderedSet.forEach(indices, (v, i) => elements[i] = unit.elements[v]);
+            units.push(unit.getChild(SortedArray.ofSortedArray(elements)));
         }
-        return Structure.create(units, { parent: loci.structure.parent })
+        return Structure.create(units, { parent: loci.structure.parent });
     }
 
     // TODO: there should be a version that property supports partitioned units
     export function remap(loci: Loci, structure: Structure): Loci {
-        if (structure === loci.structure) return loci
+        if (structure === loci.structure) return loci;
 
         const elements: Loci['elements'][0][] = [];
         loci.elements.forEach(e => {
-            if (!structure.unitMap.has(e.unit.id)) return
-            const unit = structure.unitMap.get(e.unit.id)
+            if (!structure.unitMap.has(e.unit.id)) return;
+            const unit = structure.unitMap.get(e.unit.id);
 
             const indices = OrderedSet.indexedIntersect(e.indices, e.unit.elements, unit.elements);
             if (OrderedSet.size(indices) > 0) elements.push({ unit, indices });
@@ -157,7 +157,7 @@ export namespace Loci {
         for (const e of ys.elements) {
             if (map.has(e.unit.id)) {
                 elements[elements.length] = { unit: e.unit, indices: OrderedSet.union(map.get(e.unit.id)!, e.indices) };
-                map.delete(e.unit.id)
+                map.delete(e.unit.id);
             } else {
                 elements[elements.length] = e;
             }
@@ -240,7 +240,7 @@ export namespace Loci {
 
     export function extendToWholeResidues(loci: Loci, restrictToConformation?: boolean): Loci {
         const elements: Loci['elements'][0][] = [];
-        const residueAltIds = new Set<string>()
+        const residueAltIds = new Set<string>();
 
         for (const lociElement of loci.elements) {
             if (isWholeUnit(lociElement)) {
@@ -259,22 +259,22 @@ export namespace Loci {
                 const indices = lociElement.indices, len = OrderedSet.size(indices);
                 let i = 0;
                 while (i < len) {
-                    residueAltIds.clear()
-                    const eI = unitElements[OrderedSet.getAt(indices, i)]
+                    residueAltIds.clear();
+                    const eI = unitElements[OrderedSet.getAt(indices, i)];
                     const rI = residueIndex[eI];
-                    residueAltIds.add(label_alt_id.value(eI))
+                    residueAltIds.add(label_alt_id.value(eI));
                     i++;
                     while (i < len) {
-                        const eI = unitElements[OrderedSet.getAt(indices, i)]
+                        const eI = unitElements[OrderedSet.getAt(indices, i)];
                         if (residueIndex[eI] !== rI) break;
-                        residueAltIds.add(label_alt_id.value(eI))
+                        residueAltIds.add(label_alt_id.value(eI));
                         i++;
                     }
-                    const hasSharedAltId = residueAltIds.has('')
+                    const hasSharedAltId = residueAltIds.has('');
                     for (let j = residueOffsets[rI], _j = residueOffsets[rI + 1]; j < _j; j++) {
                         const idx = OrderedSet.indexOf(unitElements, j);
                         if (idx >= 0) {
-                            const altId = label_alt_id.value(j)
+                            const altId = label_alt_id.value(j);
                             if (!restrictToConformation || hasSharedAltId || !altId || residueAltIds.has(altId)) {
                                 newIndices[newIndices.length] = idx as UnitIndex;
                             }
@@ -294,9 +294,9 @@ export namespace Loci {
 
     function getChainSegments(unit: Unit) {
         switch (unit.kind) {
-            case Unit.Kind.Atomic: return unit.model.atomicHierarchy.chainAtomSegments
-            case Unit.Kind.Spheres: return unit.model.coarseHierarchy.spheres.chainElementSegments
-            case Unit.Kind.Gaussians: return unit.model.coarseHierarchy.gaussians.chainElementSegments
+            case Unit.Kind.Atomic: return unit.model.atomicHierarchy.chainAtomSegments;
+            case Unit.Kind.Spheres: return unit.model.coarseHierarchy.spheres.chainElementSegments;
+            case Unit.Kind.Gaussians: return unit.model.coarseHierarchy.gaussians.chainElementSegments;
         }
     }
 
@@ -306,9 +306,9 @@ export namespace Loci {
 
     function makeIndexSet(newIndices: number[]): OrderedSet<UnitIndex> {
         if (newIndices.length > 12 && newIndices[newIndices.length - 1] - newIndices[0] === newIndices.length - 1) {
-            return Interval.ofRange(newIndices[0], newIndices[newIndices.length - 1])
+            return Interval.ofRange(newIndices[0], newIndices[newIndices.length - 1]);
         } else {
-            return SortedArray.ofSortedArray(newIndices)
+            return SortedArray.ofSortedArray(newIndices);
         }
     }
 
@@ -396,77 +396,77 @@ export namespace Loci {
     }
 
     function entityModelKey(location: Location) {
-        return `${location.unit.model.id}|${StructureProperties.entity.id(location)}`
+        return `${location.unit.model.id}|${StructureProperties.entity.id(location)}`;
     }
 
     export function extendToWholeEntities(loci: Loci): Loci {
-        const elements: Loci['elements'][0][] = []
-        const l = Location.create(loci.structure)
-        const entities = new Set<string>()
-        const { units } = loci.structure
+        const elements: Loci['elements'][0][] = [];
+        const l = Location.create(loci.structure);
+        const entities = new Set<string>();
+        const { units } = loci.structure;
 
         for (let i = 0, len = loci.elements.length; i < len; i++) {
-            const e = loci.elements[i]
-            l.unit = e.unit
-            l.element = e.unit.elements[0]
-            entities.add(entityModelKey(l))
+            const e = loci.elements[i];
+            l.unit = e.unit;
+            l.element = e.unit.elements[0];
+            entities.add(entityModelKey(l));
         }
 
         for (let i = 0, il = units.length; i < il; ++i) {
-            const unit = units[i]
-            l.unit = unit
-            l.element = unit.elements[0]
+            const unit = units[i];
+            l.unit = unit;
+            l.element = unit.elements[0];
             if (entities.has(entityModelKey(l))) {
-                const indices = OrderedSet.ofBounds(0, unit.elements.length) as OrderedSet<UnitIndex>
-                elements[elements.length] = { unit, indices }
+                const indices = OrderedSet.ofBounds(0, unit.elements.length) as OrderedSet<UnitIndex>;
+                elements[elements.length] = { unit, indices };
             }
         }
 
-        return Loci(loci.structure, elements)
+        return Loci(loci.structure, elements);
     }
 
     export function extendToWholeModels(loci: Loci): Loci {
-        const elements: Loci['elements'][0][] = []
-        const models = new Set<string>()
-        const { units } = loci.structure
+        const elements: Loci['elements'][0][] = [];
+        const models = new Set<string>();
+        const { units } = loci.structure;
 
         for (let i = 0, len = loci.elements.length; i < len; i++) {
-            const e = loci.elements[i]
-            models.add(e.unit.model.id)
+            const e = loci.elements[i];
+            models.add(e.unit.model.id);
         }
 
         for (let i = 0, il = units.length; i < il; ++i) {
-            const unit = units[i]
+            const unit = units[i];
             if (models.has(unit.model.id)) {
-                const indices = OrderedSet.ofBounds(0, unit.elements.length) as OrderedSet<UnitIndex>
-                elements[elements.length] = { unit, indices }
+                const indices = OrderedSet.ofBounds(0, unit.elements.length) as OrderedSet<UnitIndex>;
+                elements[elements.length] = { unit, indices };
             }
         }
 
-        return Loci(loci.structure, elements)
+        return Loci(loci.structure, elements);
     }
 
     export function extendToAllInstances(loci: Loci): Loci {
         const elements: Loci['elements'][0][] = [];
-        const byInvariantId = new Map<number, OrderedSet<UnitIndex>>()
-        const { unitSymmetryGroups, unitSymmetryGroupsIndexMap } = loci.structure
+        const byInvariantId = new Map<number, OrderedSet<UnitIndex>>();
+        const { unitSymmetryGroups, unitSymmetryGroupsIndexMap } = loci.structure;
 
         for (let i = 0, len = loci.elements.length; i < len; i++) {
-            const e = loci.elements[i]
-            const { invariantId } = e.unit
+            const e = loci.elements[i];
+            const { invariantId } = e.unit;
             if (byInvariantId.has(invariantId)) {
-                byInvariantId.set(invariantId, OrderedSet.union(e.indices, byInvariantId.get(invariantId)!))
+                byInvariantId.set(invariantId, OrderedSet.union(e.indices, byInvariantId.get(invariantId)!));
             } else {
-                byInvariantId.set(invariantId, e.indices)
+                byInvariantId.set(invariantId, e.indices);
             }
         }
 
         byInvariantId.forEach((indices, invariantId) => {
-            const { units } = unitSymmetryGroups[unitSymmetryGroupsIndexMap.get(invariantId)]
+            const { units } = unitSymmetryGroups[unitSymmetryGroupsIndexMap.get(invariantId)];
             for (let i = 0, il = units.length; i < il; ++i) {
-                elements[elements.length] = { unit: units[i], indices }
+                elements[elements.length] = { unit: units[i], indices };
             }
-        })
+        });
 
         return Loci(loci.structure, elements);
     }
@@ -505,33 +505,33 @@ export namespace Loci {
 
     const tempPos = Vec3.zero();
     export function toPositionsArray(loci: Loci, positions: NumberArray, offset = 0) {
-        let m = offset
+        let m = offset;
         for (const e of loci.elements) {
-            const { indices } = e
-            const pos = e.unit.conformation.position
-            const { elements } = e.unit
-            const indexCount = OrderedSet.size(indices)
+            const { indices } = e;
+            const pos = e.unit.conformation.position;
+            const { elements } = e.unit;
+            const indexCount = OrderedSet.size(indices);
             for (let i = 0; i < indexCount; i++) {
-                const eI = elements[OrderedSet.getAt(indices, i)]
-                pos(eI, tempPos)
-                Vec3.toArray(tempPos, positions, m + i * 3)
+                const eI = elements[OrderedSet.getAt(indices, i)];
+                pos(eI, tempPos);
+                Vec3.toArray(tempPos, positions, m + i * 3);
             }
-            m += indexCount * 3
+            m += indexCount * 3;
         }
-        return positions
+        return positions;
     }
 
     export function getPrincipalAxes(loci: Loci): PrincipalAxes {
-        const elementCount = size(loci)
-        const positions = toPositionsArray(loci, new Float32Array(3 * elementCount))
-        return PrincipalAxes.ofPositions(positions)
+        const elementCount = size(loci);
+        const positions = toPositionsArray(loci, new Float32Array(3 * elementCount));
+        return PrincipalAxes.ofPositions(positions);
     }
 
     function sourceIndex(unit: Unit, element: ElementIndex) {
         return Unit.isAtomic(unit)
             ? unit.model.atomicHierarchy.atoms.sourceIndex.value(element)
             // TODO: when implemented, this should map to the source index.
-            : element
+            : element;
     }
 
     export function toExpression(loci: Loci) {
@@ -571,22 +571,22 @@ export namespace Loci {
 
         const opGroups = new Map<string, OpData>();
         for (let i = 0, il = opData.length; i < il; ++i) {
-            const d = opData[i]
-            const hash = hash2(hashFnv32a(d.atom.ranges), hashFnv32a(d.atom.set))
-            const key = `${hash}|${d.entity ? (d.entity.modelLabel + d.entity.modelIndex) : ''}`
+            const d = opData[i];
+            const hash = hash2(hashFnv32a(d.atom.ranges), hashFnv32a(d.atom.set));
+            const key = `${hash}|${d.entity ? (d.entity.modelLabel + d.entity.modelIndex) : ''}`;
             if (opGroups.has(key)) {
-                opGroups.get(key)!.chain.opName.push(...d.chain.opName)
+                opGroups.get(key)!.chain.opName.push(...d.chain.opName);
             } else {
-                opGroups.set(key, d)
+                opGroups.set(key, d);
             }
         }
 
         const opQueries: Expression[] = [];
         opGroups.forEach(d => {
-            const { ranges, set } = d.atom
-            const { opName } = d.chain
+            const { ranges, set } = d.atom;
+            const { opName } = d.chain;
 
-            const opProp = MS.struct.atomProperty.core.operatorName()
+            const opProp = MS.struct.atomProperty.core.operatorName();
             const siProp = MS.struct.atomProperty.core.sourceIndex();
             const tests: Expression[] = [];
 
@@ -599,7 +599,7 @@ export namespace Loci {
             }
 
             if (d.entity) {
-                const { modelLabel, modelIndex } = d.entity
+                const { modelLabel, modelIndex } = d.entity;
                 opQueries.push(MS.struct.generator.atomGroups({
                     'atom-test': tests.length > 1 ? MS.core.logic.or(tests) : tests[0],
                     'chain-test': opName.length > 1
@@ -609,16 +609,16 @@ export namespace Loci {
                         MS.core.rel.eq([MS.struct.atomProperty.core.modelLabel(), modelLabel]),
                         MS.core.rel.eq([MS.struct.atomProperty.core.modelIndex(), modelIndex]),
                     ])
-                }))
+                }));
             } else {
                 opQueries.push(MS.struct.generator.atomGroups({
                     'atom-test': tests.length > 1 ? MS.core.logic.or(tests) : tests[0],
                     'chain-test': opName.length > 1
                         ? MS.core.set.has([MS.core.type.set(opName), opProp])
                         : MS.core.rel.eq([opProp, opName[0]])
-                }))
+                }));
             }
-        })
+        });
 
         return MS.struct.modifier.union([
             opQueries.length === 1
@@ -666,6 +666,6 @@ export namespace Loci {
             : {
                 atom: { set, ranges },
                 chain: { opName: [ opName ] },
-            }
+            };
     }
 }

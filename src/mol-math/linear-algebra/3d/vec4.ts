@@ -54,7 +54,7 @@ namespace Vec4 {
     }
 
     export function hasNaN(a: Vec4) {
-        return isNaN(a[0]) || isNaN(a[1]) || isNaN(a[2]) || isNaN(a[3])
+        return isNaN(a[0]) || isNaN(a[1]) || isNaN(a[2]) || isNaN(a[3]);
     }
 
     export function toArray(a: Vec4, out: NumberArray, offset: number) {
@@ -66,11 +66,11 @@ namespace Vec4 {
     }
 
     export function fromArray(a: Vec4, array: NumberArray, offset: number) {
-        a[0] = array[offset + 0]
-        a[1] = array[offset + 1]
-        a[2] = array[offset + 2]
-        a[3] = array[offset + 3]
-        return a
+        a[0] = array[offset + 0];
+        a[1] = array[offset + 1];
+        a[2] = array[offset + 2];
+        a[3] = array[offset + 3];
+        return a;
     }
 
     export function toVec3Array(a: Vec4, out: NumberArray, offset: number) {
@@ -80,11 +80,11 @@ namespace Vec4 {
     }
 
     export function fromVec3Array(a: Vec4, array: NumberArray, offset: number) {
-        a[0] = array[offset + 0]
-        a[1] = array[offset + 1]
-        a[2] = array[offset + 2]
-        a[3] = 0
-        return a
+        a[0] = array[offset + 0];
+        a[1] = array[offset + 1];
+        a[2] = array[offset + 2];
+        a[3] = 0;
+        return a;
     }
 
     export function copy(out: Vec4, a: Vec4) {
@@ -232,4 +232,4 @@ namespace Vec4 {
     }
 }
 
-export default Vec4
+export default Vec4;

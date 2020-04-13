@@ -63,7 +63,7 @@ type IsoValueParam = typeof IsoValueParam
 
 export const VolumeIsosurfaceParams = {
     isoValue: IsoValueParam
-}
+};
 export type VolumeIsosurfaceParams = typeof VolumeIsosurfaceParams
 export type VolumeIsosurfaceProps = PD.Values<VolumeIsosurfaceParams>
 
@@ -87,7 +87,7 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
 export const IsosurfaceMeshParams = {
     ...Mesh.Params,
     ...VolumeIsosurfaceParams
-}
+};
 export type IsosurfaceMeshParams = typeof IsosurfaceMeshParams
 
 export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<IsosurfaceMeshParams> {
@@ -98,10 +98,10 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
         getLoci: () => EmptyLoci,
         eachLocation: () => false,
         setUpdateState: (state: VisualUpdateState, volume: VolumeData, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
-            if (!VolumeIsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.dataStats)) state.createGeometry = true
+            if (!VolumeIsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.dataStats)) state.createGeometry = true;
         },
         geometryUtils: Mesh.Utils
-    }, materialId)
+    }, materialId);
 }
 
 //
@@ -112,10 +112,10 @@ export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume
     const wireframe = await computeMarchingCubesLines({
         isoLevel: VolumeIsoValue.toAbsolute(props.isoValue, volume.dataStats).absoluteValue,
         scalarField: volume.data
-    }, lines).runAsChild(ctx.runtime)
+    }, lines).runAsChild(ctx.runtime);
 
     const transform = VolumeData.getGridToCartesianTransform(volume);
-    Lines.transform(wireframe, transform)
+    Lines.transform(wireframe, transform);
 
     return wireframe;
 }
@@ -124,7 +124,7 @@ export const IsosurfaceWireframeParams = {
     ...Lines.Params,
     sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
     ...VolumeIsosurfaceParams
-}
+};
 export type IsosurfaceWireframeParams = typeof IsosurfaceWireframeParams
 
 export function IsosurfaceWireframeVisual(materialId: number): VolumeVisual<IsosurfaceWireframeParams> {
@@ -135,10 +135,10 @@ export function IsosurfaceWireframeVisual(materialId: number): VolumeVisual<Isos
         getLoci: () => EmptyLoci,
         eachLocation: () => false,
         setUpdateState: (state: VisualUpdateState, volume: VolumeData, newProps: PD.Values<IsosurfaceWireframeParams>, currentProps: PD.Values<IsosurfaceWireframeParams>) => {
-            if (!VolumeIsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.dataStats)) state.createGeometry = true
+            if (!VolumeIsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.dataStats)) state.createGeometry = true;
         },
         geometryUtils: Lines.Utils
-    }, materialId)
+    }, materialId);
 }
 
 //
@@ -146,23 +146,23 @@ export function IsosurfaceWireframeVisual(materialId: number): VolumeVisual<Isos
 const IsosurfaceVisuals = {
     'solid': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, IsosurfaceMeshParams>) => VolumeRepresentation('Isosurface mesh', ctx, getParams, IsosurfaceMeshVisual),
     'wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, IsosurfaceWireframeParams>) => VolumeRepresentation('Isosurface wireframe', ctx, getParams, IsosurfaceWireframeVisual),
-}
+};
 
 export const IsosurfaceParams = {
     ...IsosurfaceMeshParams,
     ...IsosurfaceWireframeParams,
     visuals: PD.MultiSelect(['solid'], PD.objectToOptions(IsosurfaceVisuals)),
-}
+};
 export type IsosurfaceParams = typeof IsosurfaceParams
 export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeData) {
     const p = PD.clone(IsosurfaceParams);
     p.isoValue = createIsoValueParam(VolumeIsoValue.relative(2), volume.dataStats);
-    return p
+    return p;
 }
 
 export type IsosurfaceRepresentation = VolumeRepresentation<IsosurfaceParams>
 export function IsosurfaceRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, IsosurfaceParams>): IsosurfaceRepresentation {
-    return Representation.createMulti('Isosurface', ctx, getParams, Representation.StateBuilder, IsosurfaceVisuals as unknown as Representation.Def<VolumeData, IsosurfaceParams>)
+    return Representation.createMulti('Isosurface', ctx, getParams, Representation.StateBuilder, IsosurfaceVisuals as unknown as Representation.Def<VolumeData, IsosurfaceParams>);
 }
 
 export const IsosurfaceRepresentationProvider = VolumeRepresentationProvider({
@@ -175,4 +175,4 @@ export const IsosurfaceRepresentationProvider = VolumeRepresentationProvider({
     defaultColorTheme: { name: 'uniform' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (volume: VolumeData) => volume.data.data.length > 0
-})
+});

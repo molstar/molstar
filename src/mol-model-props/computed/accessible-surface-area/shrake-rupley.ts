@@ -7,7 +7,7 @@
 
 import { Task, RuntimeContext } from '../../../mol-task';
 // import { BitFlags } from '../../../mol-util';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition'
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Structure, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { assignRadiusForHeavyAtoms } from './shrake-rupley/radii';
@@ -19,14 +19,14 @@ export const ShrakeRupleyComputationParams = {
     probeSize: PD.Numeric(1.4, { min: 0.1, max: 4, step: 0.01 }, { description: 'Corresponds to the size of a water molecule: 1.4 (original paper), 1.5 (occassionally used)' }),
     // buriedRasaThreshold: PD.Numeric(0.16, { min: 0.0, max: 1.0 }, { description: 'below this cutoff of relative accessible surface area a residue will be considered buried - see: Rost B, Sander C: Conservation and prediction of solvent accessibility in protein families. Proteins 1994.' }),
     nonPolymer: PD.Boolean(false, { description: 'Include non-polymer atoms as occluders.' })
-}
+};
 export type ShrakeRupleyComputationParams = typeof ShrakeRupleyComputationParams
 export type ShrakeRupleyComputationProps = PD.Values<ShrakeRupleyComputationParams>
 
 // TODO
 // - add back buried and relative asa
 
-export { AccessibleSurfaceArea }
+export { AccessibleSurfaceArea };
 
 interface AccessibleSurfaceArea {
     readonly serialResidueIndex: ArrayLike<number>
@@ -51,13 +51,13 @@ namespace AccessibleSurfaceArea {
         assignRadiusForHeavyAtoms(ctx);
         await computeArea(runtime, ctx);
 
-        const { area, serialResidueIndex } = ctx
+        const { area, serialResidueIndex } = ctx;
         return { area, serialResidueIndex };
     }
 
     function initialize(structure: Structure, props: ShrakeRupleyComputationProps): ShrakeRupleyContext {
         const { elementCount, atomicResidueCount } = structure;
-        const { probeSize, nonPolymer, numberOfSpherePoints } = props
+        const { probeSize, nonPolymer, numberOfSpherePoints } = props;
 
         return {
             structure,
@@ -69,7 +69,7 @@ namespace AccessibleSurfaceArea {
             atomRadiusType: new Int8Array(elementCount),
             serialResidueIndex: new Int32Array(elementCount),
             area: new Float32Array(atomicResidueCount)
-        }
+        };
     }
 
     /** Creates a collection of points on a sphere by the Golden Section Spiral algorithm. */
@@ -95,26 +95,26 @@ namespace AccessibleSurfaceArea {
     /** Get relative area for a given component id */
     export function normalize(compId: string, asa: number) {
         const maxAsa = MaxAsa[compId] || DefaultMaxAsa;
-        return asa / maxAsa
+        return asa / maxAsa;
     }
 
     export function getValue(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
-        const { getSerialIndex } = location.structure.root.serialMapping
-        const { area, serialResidueIndex } = accessibleSurfaceArea
-        const rSI = serialResidueIndex[getSerialIndex(location.unit, location.element)]
-        if (rSI === -1) return -1
-        return area[rSI]
+        const { getSerialIndex } = location.structure.root.serialMapping;
+        const { area, serialResidueIndex } = accessibleSurfaceArea;
+        const rSI = serialResidueIndex[getSerialIndex(location.unit, location.element)];
+        if (rSI === -1) return -1;
+        return area[rSI];
     }
 
     export function getNormalizedValue(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
-        const value = getValue(location, accessibleSurfaceArea)
-        return value === -1 ? -1 : normalize(StructureProperties.residue.label_comp_id(location), value)
+        const value = getValue(location, accessibleSurfaceArea);
+        return value === -1 ? -1 : normalize(StructureProperties.residue.label_comp_id(location), value);
     }
 
     export function getFlag(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
-        const value = getNormalizedValue(location, accessibleSurfaceArea)
+        const value = getNormalizedValue(location, accessibleSurfaceArea);
         return value === -1 ? Flag.NA :
             value < 0.16 ? Flag.Buried :
-                Flag.Accessible
+                Flag.Accessible;
     }
 }

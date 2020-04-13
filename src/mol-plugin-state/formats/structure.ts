@@ -44,6 +44,6 @@ export const DcdProvider = DataFormatProvider({
 export const BuiltInStructureFormats = [
     ['psf', PsfProvider] as const,
     ['dcd', DcdProvider] as const,
-] as const
+] as const;
 
 export type BuildInStructureFormat = (typeof BuiltInStructureFormats)[number][0]

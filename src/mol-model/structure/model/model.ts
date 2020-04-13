@@ -95,10 +95,10 @@ export namespace Model {
     export type Trajectory = ReadonlyArray<Model>
 
     export function trajectoryFromModelAndCoordinates(model: Model, coordinates: Coordinates): Trajectory {
-        const trajectory: Mutable<Model.Trajectory> = []
-        const { frames } = coordinates
+        const trajectory: Mutable<Model.Trajectory> = [];
+        const { frames } = coordinates;
         for (let i = 0, il = frames.length; i < il; ++i) {
-            const f = frames[i]
+            const f = frames[i];
             const m = {
                 ...model,
                 id: UUID.create22(),
@@ -109,106 +109,106 @@ export namespace Model {
                 customProperties: new CustomProperties(),
                 _staticPropertyData: Object.create(null),
                 _dynamicPropertyData: Object.create(null)
-            }
-            trajectory.push(m)
+            };
+            trajectory.push(m);
         }
-        return trajectory
+        return trajectory;
     }
 
     export function trajectoryFromTopologyAndCoordinates(topology: Topology, coordinates: Coordinates): Task<Trajectory> {
         return Task.create('Create Trajectory', async ctx => {
             const model = (await createModels(topology.basic, topology.sourceData, ctx))[0];
-            if (!model) throw new Error('found no model')
-            const trajectory = trajectoryFromModelAndCoordinates(model, coordinates)
-            const bondData = { pairs: topology.bonds, count: model.atomicHierarchy.atoms._rowCount }
-            const indexPairBonds = IndexPairBonds.fromData(bondData)
+            if (!model) throw new Error('found no model');
+            const trajectory = trajectoryFromModelAndCoordinates(model, coordinates);
+            const bondData = { pairs: topology.bonds, count: model.atomicHierarchy.atoms._rowCount };
+            const indexPairBonds = IndexPairBonds.fromData(bondData);
 
             let index = 0;
             for (const m of trajectory) {
-                IndexPairBonds.Provider.set(m, indexPairBonds)
+                IndexPairBonds.Provider.set(m, indexPairBonds);
                 m.trajectoryInfo.index = index++;
                 m.trajectoryInfo.size = trajectory.length;
             }
-            return trajectory
-        })
+            return trajectory;
+        });
     }
 
-    const CenterProp = '__Center__'
+    const CenterProp = '__Center__';
     export function getCenter(model: Model): Vec3 {
-        if (model._dynamicPropertyData[CenterProp]) return model._dynamicPropertyData[CenterProp]
-        const center = calcModelCenter(model.atomicConformation, model.coarseConformation)
-        model._dynamicPropertyData[CenterProp] = center
-        return center
+        if (model._dynamicPropertyData[CenterProp]) return model._dynamicPropertyData[CenterProp];
+        const center = calcModelCenter(model.atomicConformation, model.coarseConformation);
+        model._dynamicPropertyData[CenterProp] = center;
+        return center;
     }
 
     //
 
     export function isFromPdbArchive(model: Model) {
-        if (!MmcifFormat.is(model.sourceData)) return false
-        const { db } = model.sourceData.data
+        if (!MmcifFormat.is(model.sourceData)) return false;
+        const { db } = model.sourceData.data;
         return (
             db.database_2.database_id.isDefined
-        )
+        );
     }
 
     export function hasSecondaryStructure(model: Model) {
-        if (!MmcifFormat.is(model.sourceData)) return false
-        const { db } = model.sourceData.data
+        if (!MmcifFormat.is(model.sourceData)) return false;
+        const { db } = model.sourceData.data;
         return (
             db.struct_conf.id.isDefined ||
             db.struct_sheet_range.id.isDefined
-        )
+        );
     }
 
-    const tmpAngles90 = Vec3.create(1.5708, 1.5708, 1.5708) // in radians
-    const tmpLengths1 = Vec3.create(1, 1, 1)
+    const tmpAngles90 = Vec3.create(1.5708, 1.5708, 1.5708); // in radians
+    const tmpLengths1 = Vec3.create(1, 1, 1);
     export function hasCrystalSymmetry(model: Model) {
-        const spacegroup = ModelSymmetry.Provider.get(model)?.spacegroup
+        const spacegroup = ModelSymmetry.Provider.get(model)?.spacegroup;
         return !!spacegroup && !(
             spacegroup.num === 1 &&
             Vec3.equals(spacegroup.cell.anglesInRadians, tmpAngles90) &&
             Vec3.equals(spacegroup.cell.size, tmpLengths1)
-        )
+        );
     }
 
     export function isFromXray(model: Model) {
-        if (!MmcifFormat.is(model.sourceData)) return false
-        const { db } = model.sourceData.data
+        if (!MmcifFormat.is(model.sourceData)) return false;
+        const { db } = model.sourceData.data;
         for (let i = 0; i < db.exptl.method.rowCount; i++) {
-            const v = db.exptl.method.value(i).toUpperCase()
-            if (v.indexOf('DIFFRACTION') >= 0) return true
+            const v = db.exptl.method.value(i).toUpperCase();
+            if (v.indexOf('DIFFRACTION') >= 0) return true;
         }
-        return false
+        return false;
     }
 
     export function isFromEm(model: Model) {
-        if (!MmcifFormat.is(model.sourceData)) return false
-        const { db } = model.sourceData.data
+        if (!MmcifFormat.is(model.sourceData)) return false;
+        const { db } = model.sourceData.data;
         for (let i = 0; i < db.exptl.method.rowCount; i++) {
-            const v = db.exptl.method.value(i).toUpperCase()
-            if (v.indexOf('MICROSCOPY') >= 0) return true
+            const v = db.exptl.method.value(i).toUpperCase();
+            if (v.indexOf('MICROSCOPY') >= 0) return true;
         }
-        return false
+        return false;
     }
 
     export function isFromNmr(model: Model) {
-        if (!MmcifFormat.is(model.sourceData)) return false
-        const { db } = model.sourceData.data
+        if (!MmcifFormat.is(model.sourceData)) return false;
+        const { db } = model.sourceData.data;
         for (let i = 0; i < db.exptl.method.rowCount; i++) {
-            const v = db.exptl.method.value(i).toUpperCase()
-            if (v.indexOf('NMR') >= 0) return true
+            const v = db.exptl.method.value(i).toUpperCase();
+            if (v.indexOf('NMR') >= 0) return true;
         }
-        return false
+        return false;
     }
 
     export function hasXrayMap(model: Model) {
-        if (!MmcifFormat.is(model.sourceData)) return false
+        if (!MmcifFormat.is(model.sourceData)) return false;
         // Check exprimental method to exclude models solved with
         // 'ELECTRON CRYSTALLOGRAPHY' which also have structure factors
-        if (!isFromXray(model)) return false
-        const { db } = model.sourceData.data
-        const { status_code_sf } = db.pdbx_database_status
-        return status_code_sf.isDefined && status_code_sf.value(0) === 'REL'
+        if (!isFromXray(model)) return false;
+        const { db } = model.sourceData.data;
+        const { status_code_sf } = db.pdbx_database_status;
+        return status_code_sf.isDefined && status_code_sf.value(0) === 'REL';
     }
 
     /**
@@ -217,18 +217,18 @@ export namespace Model {
      * EMDB entry of type 'other EM volume'.
      */
     export function hasEmMap(model: Model) {
-        if (!MmcifFormat.is(model.sourceData)) return false
-        const { db } = model.sourceData.data
-        const { db_name, content_type } = db.pdbx_database_related
+        if (!MmcifFormat.is(model.sourceData)) return false;
+        const { db } = model.sourceData.data;
+        const { db_name, content_type } = db.pdbx_database_related;
         for (let i = 0, il = db.pdbx_database_related._rowCount; i < il; ++i) {
             if (db_name.value(i).toUpperCase() === 'EMDB' && content_type.value(i) === 'associated EM volume') {
-                return true
+                return true;
             }
         }
-        return false
+        return false;
     }
 
     export function hasDensityMap(model: Model) {
-        return hasXrayMap(model) || hasEmMap(model)
+        return hasXrayMap(model) || hasEmMap(model);
     }
 }

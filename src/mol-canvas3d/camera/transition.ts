@@ -8,7 +8,7 @@ import { Camera } from '../camera';
 import { Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { lerp } from '../../mol-math/interpolate';
 
-export { CameraTransitionManager }
+export { CameraTransitionManager };
 
 class CameraTransitionManager {
     private t = 0;
@@ -21,8 +21,8 @@ class CameraTransitionManager {
     private _target: Camera.Snapshot = Camera.createDefaultSnapshot();
     private _current = Camera.createDefaultSnapshot();
 
-    get source(): Readonly<Camera.Snapshot> { return this._source }
-    get target(): Readonly<Camera.Snapshot> { return this._target }
+    get source(): Readonly<Camera.Snapshot> { return this._source; }
+    get target(): Readonly<Camera.Snapshot> { return this._target; }
 
     apply(to: Partial<Camera.Snapshot>, durationMs: number = 0, transition?: CameraTransitionManager.TransitionFunc) {
         if (!this.inTransition || durationMs > 0) {
@@ -36,7 +36,7 @@ class CameraTransitionManager {
         Camera.copySnapshot(this._target, to);
 
         if (this._target.radius > this._target.radiusMax) {
-            this._target.radius = this._target.radiusMax
+            this._target.radius = this._target.radiusMax;
         }
 
         if (!this.inTransition && durationMs <= 0 || (typeof to.mode !== 'undefined' && to.mode !== this.camera.state.mode)) {

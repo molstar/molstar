@@ -11,4 +11,4 @@ vec4 readFromTexture (const in sampler2D tex, const in float i, const in vec2 di
     vec2 uv = (vec2(x, y) + 0.5) / dim;
     return texture2D(tex, uv);
 }
-`
+`;

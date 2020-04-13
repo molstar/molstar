@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as React from 'react'
+import * as React from 'react';
 import { NumericInput } from './common';
 import { noop } from '../../mol-util';
 
@@ -106,7 +106,7 @@ export class Slider2 extends React.Component<{
     updateMax = (v: number) => {
         let n = v;
         if (this.props.step === 1) n = Math.round(n);
-        if (n < this.state.current[0]) n = this.state.current[0]
+        if (n < this.state.current[0]) n = this.state.current[0];
         else if (n < this.props.min) n = this.props.min;
         if (n > this.props.max) n = this.props.max;
         this.props.onChange([this.state.current[0], n]);

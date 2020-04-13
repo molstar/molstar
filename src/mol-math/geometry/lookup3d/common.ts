@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Box3D } from '../primitives/box3d'
-import { Sphere3D } from '../primitives/sphere3d'
+import { Box3D } from '../primitives/box3d';
+import { Sphere3D } from '../primitives/sphere3d';
 
 export interface Result<T> {
     count: number,
@@ -33,8 +33,8 @@ export namespace Result {
             out.indices[i] = result.indices[i];
             out.squaredDistances[i] = result.squaredDistances[i];
         }
-        out.count = result.count
-        return out
+        out.count = result.count;
+        return out;
     }
 }
 

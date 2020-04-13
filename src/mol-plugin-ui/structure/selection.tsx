@@ -21,7 +21,7 @@ import { InteractivityManager } from '../../mol-plugin-state/manager/interactivi
 
 const StructureSelectionParams = {
     granularity: InteractivityManager.Params.granularity,
-}
+};
 
 // interface StructureSelectionControlsState extends CollapsableState {
 //     isEmpty: boolean,
@@ -114,11 +114,11 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         });
 
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isBusy: v, action: void 0 })
+            this.setState({ isBusy: v, action: void 0 });
         });
 
         this.subscribe(this.plugin.managers.interactivity.events.propsUpdated, () => {
-            this.forceUpdate()
+            this.forceUpdate();
         });
     }
 
@@ -127,7 +127,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
     }
 
     set = (modifier: StructureSelectionModifier, selectionQuery: StructureSelectionQuery) => {
-        this.plugin.managers.structure.selection.fromSelectionQuery(modifier, selectionQuery, false)
+        this.plugin.managers.structure.selection.fromSelectionQuery(modifier, selectionQuery, false);
     }
 
     selectQuery: ActionMenu.OnSelect = item => {
@@ -138,13 +138,13 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         const q = this.state.action! as StructureSelectionModifier;
         this.setState({ action: void 0 }, () => {
             this.set(q, item.value as StructureSelectionQuery);
-        })
+        });
     }
 
     private queriesItems: ActionMenu.Items[] = []
     private queriesVersion = -1
     get queries () {
-        const { registry } = this.plugin.query.structure
+        const { registry } = this.plugin.query.structure;
         if (registry.version !== this.queriesVersion) {
             this.queriesItems = ActionMenu.createItems(registry.list, {
                 filter: q => q !== StructureSelectionQueries.current,
@@ -152,9 +152,9 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                 category: q => q.category,
                 description: q => q.description
             });
-            this.queriesVersion = registry.version
+            this.queriesVersion = registry.version;
         }
-        return this.queriesItems
+        return this.queriesItems;
     }
 
     private showAction(q: StructureSelectionActionsControlsState['action']) {
@@ -193,7 +193,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                     <ApplyColorControls />
                 </ControlGroup>
             </div>}
-        </>
+        </>;
     }
 }
 
@@ -205,7 +205,7 @@ export class StructureSelectionStatsControls extends PluginUIComponent<{ hideOnE
 
     componentDidMount() {
         this.subscribe(this.plugin.managers.structure.selection.events.changed, () => {
-            this.forceUpdate()
+            this.forceUpdate();
         });
 
         this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, c => {
@@ -216,20 +216,20 @@ export class StructureSelectionStatsControls extends PluginUIComponent<{ hideOnE
         });
 
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isBusy: v })
-        })
+            this.setState({ isBusy: v });
+        });
     }
 
     get isDisabled() {
-        return this.state.isBusy || this.state.isEmpty
+        return this.state.isBusy || this.state.isEmpty;
     }
 
     get stats() {
-        const stats = this.plugin.managers.structure.selection.stats
+        const stats = this.plugin.managers.structure.selection.stats;
         if (stats.structureCount === 0 || stats.elementCount === 0) {
-            return 'Nothing Selected'
+            return 'Nothing Selected';
         } else {
-            return `${stripTags(stats.label)} Selected`
+            return `${stripTags(stats.label)} Selected`;
         }
     }
 
@@ -245,7 +245,7 @@ export class StructureSelectionStatsControls extends PluginUIComponent<{ hideOnE
         this.plugin.managers.interactivity.lociHighlights.clearHighlights();
         this.plugin.managers.structure.selection.entries.forEach(e => {
             this.plugin.managers.interactivity.lociHighlights.highlight({ loci: e.selection }, false);
-        })
+        });
     }
 
     clearHighlight = () => {
@@ -253,7 +253,7 @@ export class StructureSelectionStatsControls extends PluginUIComponent<{ hideOnE
     }
 
     render() {
-        const stats = this.plugin.managers.structure.selection.stats
+        const stats = this.plugin.managers.structure.selection.stats;
         const empty = stats.structureCount === 0 || stats.elementCount === 0;
 
         if (empty && this.props.hideOnEmpty) return null;
@@ -266,7 +266,7 @@ export class StructureSelectionStatsControls extends PluginUIComponent<{ hideOnE
                 </Button>
                 {!empty && <IconButton onClick={this.clear} icon='cancel' title='Clear' className='msp-form-control' flex />}
             </div>
-        </>
+        </>;
     }
 }
 

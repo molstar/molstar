@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import LinkedIndex from '../linked-index'
+import LinkedIndex from '../linked-index';
 
 describe('linked-index', () => {
     it('initial state', () => {

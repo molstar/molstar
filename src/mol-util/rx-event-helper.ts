@@ -6,7 +6,7 @@
 
 import { Subject, BehaviorSubject } from 'rxjs';
 
-export { RxEventHelper }
+export { RxEventHelper };
 
 interface RxEventHelper {
     <T>(): Subject<T>,

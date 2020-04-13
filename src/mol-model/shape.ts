@@ -4,4 +4,4 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export * from './shape/shape'
+export * from './shape/shape';

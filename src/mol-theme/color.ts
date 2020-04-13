@@ -35,7 +35,7 @@ import { OperatorHklColorThemeProvider } from './color/operator-hkl';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
-export { ColorTheme }
+export { ColorTheme };
 interface ColorTheme<P extends PD.Params> {
     readonly factory: ColorTheme.Factory<P>
     readonly granularity: ColorType
@@ -57,25 +57,25 @@ namespace ColorTheme {
 
     export type Props = { [k: string]: any }
     export type Factory<P extends PD.Params> = (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P>
-    export const EmptyFactory = () => Empty
-    const EmptyColor = Color(0xCCCCCC)
+    export const EmptyFactory = () => Empty;
+    const EmptyColor = Color(0xCCCCCC);
     export const Empty: ColorTheme<{}> = {
         factory: EmptyFactory,
         granularity: 'uniform',
         color: () => EmptyColor,
         props: {}
-    }
+    };
 
     export function areEqual(themeA: ColorTheme<any>, themeB: ColorTheme<any>) {
-        return themeA.contextHash === themeB.contextHash && themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props)
+        return themeA.contextHash === themeB.contextHash && themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props);
     }
 
     export interface Provider<P extends PD.Params = any, Id extends string = string> extends ThemeProvider<ColorTheme<P>, P, Id> { }
-    export const EmptyProvider: Provider<{}> = { name: '', label: '', category: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true }
+    export const EmptyProvider: Provider<{}> = { name: '', label: '', category: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true };
 
     export type Registry = ThemeRegistry<ColorTheme<any>>
     export function createRegistry() {
-        return new ThemeRegistry(BuiltIn as { [k: string]: Provider<any> }, EmptyProvider)
+        return new ThemeRegistry(BuiltIn as { [k: string]: Provider<any> }, EmptyProvider);
     }
 
     export const BuiltIn = {
@@ -100,7 +100,7 @@ namespace ColorTheme {
         'uncertainty': UncertaintyColorThemeProvider,
         'unit-index': UnitIndexColorThemeProvider,
         'uniform': UniformColorThemeProvider,
-    }
+    };
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn
     export type ParamValues<C extends ColorTheme.Provider<any>> = C extends ColorTheme.Provider<infer P> ? PD.Values<P> : never

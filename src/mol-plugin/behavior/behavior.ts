@@ -13,7 +13,7 @@ import { Observable } from 'rxjs';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { shallowEqualObjects } from '../../mol-util';
 
-export { PluginBehavior }
+export { PluginBehavior };
 
 interface PluginBehavior<P = unknown> {
     register(ref: StateTransform.Ref): void,
@@ -87,7 +87,7 @@ namespace PluginBehavior {
                     if (!b.data.update) return StateTransformer.UpdateResult.Unchanged;
                     const updated = await b.data.update(newParams);
                     return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
-                })
+                });
             },
             canAutoUpdate: params.canAutoUpdate
         });
@@ -108,7 +108,7 @@ namespace PluginBehavior {
             }
             // TODO can't be private due to bug with generating declerations, see https://github.com/Microsoft/TypeScript/issues/17293
             constructor(/** private */ public ctx: PluginContext) { }
-        }
+        };
     }
 
     export abstract class Handler<P = { }> implements PluginBehavior<P> {

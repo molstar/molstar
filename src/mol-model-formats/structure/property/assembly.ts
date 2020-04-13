@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Mat4, Tensor, Vec3 } from '../../../mol-math/linear-algebra'
-import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator'
-import { Assembly, OperatorGroup, OperatorGroups } from '../../../mol-model/structure/model/properties/symmetry'
-import { Queries as Q } from '../../../mol-model/structure'
+import { Mat4, Tensor, Vec3 } from '../../../mol-math/linear-algebra';
+import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator';
+import { Assembly, OperatorGroup, OperatorGroups } from '../../../mol-model/structure/model/properties/symmetry';
+import { Queries as Q } from '../../../mol-model/structure';
 import { StructureProperties } from '../../../mol-model/structure';
 import { Table } from '../../../mol-data/db';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
@@ -68,7 +68,7 @@ function operatorGroupsProvider(generators: Generator[], matrices: Matrices): ()
         }
 
         return groups;
-    }
+    };
 }
 
 function getMatrices(pdbx_struct_oper_list: StructOperList): Matrices {
@@ -116,7 +116,7 @@ function getAssemblyOperators(matrices: Matrices, operatorNames: string[][], sta
         for (let i = 0; i < op.length; i++) {
             Mat4.mul(m, m, matrices.get(op[i])!);
         }
-        index++
+        index++;
         operators[operators.length] = SymmetryOperator.create(`ASM_${index}`, m, { assembly: { id: assemblyId, operId: index, operList: op } });
     }
 

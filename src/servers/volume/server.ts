@@ -8,13 +8,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import compression from 'compression'
-import express from 'express'
-import { ConsoleLogger } from '../../mol-util/console-logger'
-import { configureServer, ServerConfig } from './config'
-import { State } from './server/state'
-import { VOLUME_SERVER_HEADER } from './server/version'
-import init from './server/web-api'
+import compression from 'compression';
+import express from 'express';
+import { ConsoleLogger } from '../../mol-util/console-logger';
+import { configureServer, ServerConfig } from './config';
+import { State } from './server/state';
+import { VOLUME_SERVER_HEADER } from './server/version';
+import init from './server/web-api';
 
 
 function setupShutdown() {

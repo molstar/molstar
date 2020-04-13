@@ -15,4 +15,4 @@ uniform sampler2D tMarker;
 #endif
 
 varying vec3 vViewPosition;
-`
+`;

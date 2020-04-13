@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from '../ordered-set'
-import Interval from '../interval'
+import OrderedSet from '../ordered-set';
+import Interval from '../interval';
 import SortedArray from '../sorted-array';
 
 describe('ordered set', () => {
@@ -122,14 +122,14 @@ describe('ordered set', () => {
         expect(OrderedSet.findRange(arr136, 0, 4)).toEqual(iB(0, 2));
         expect(OrderedSet.findRange(arr136, 2, 4)).toEqual(iB(1, 2));
         expect(OrderedSet.findRange(arr136, 2, 7)).toEqual(iB(1, 3));
-    })
+    });
 
     it('intersectionSize', () => {
         expect(OrderedSet.intersectionSize(arr136, range1_4)).toEqual(2);
         expect(OrderedSet.intersectionSize(arr12369, range1_4)).toEqual(3);
         expect(OrderedSet.intersectionSize(OrderedSet.ofSortedArray([12, 13, 16]), range1_4)).toEqual(0);
         expect(OrderedSet.intersectionSize(OrderedSet.ofSortedArray([1, 2, 4]), range1_4)).toEqual(3);
-    })
+    });
 
     testEq('union ES', OrderedSet.union(empty, singleton10), [10]);
     testEq('union ER', OrderedSet.union(empty, range1_4), [1, 2, 3, 4]);
@@ -201,5 +201,5 @@ describe('ordered set', () => {
         const int = OrderedSet.ofBounds(1, 3), set = OrderedSet.ofSortedArray([2, 3, 4]);
         expect(OrderedSet.forEach(int, (v, i, ctx) => ctx[i] = v, [] as number[])).toEqual([1, 2]);
         expect(OrderedSet.forEach(set, (v, i, ctx) => ctx[i] = v, [] as number[])).toEqual([2, 3, 4]);
-    })
+    });
 });

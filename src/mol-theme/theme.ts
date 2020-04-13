@@ -25,7 +25,7 @@ export interface ThemeDataContext {
     shape?: Shape
 }
 
-export { Theme }
+export { Theme };
 
 interface Theme {
     color: ColorTheme<any>
@@ -37,29 +37,29 @@ namespace Theme {
     type Props = { [k: string]: any }
 
     export function create(ctx: ThemeRegistryContext, data: ThemeDataContext, props: Props, theme?: Theme) {
-        theme = theme || createEmpty()
+        theme = theme || createEmpty();
 
-        const colorProps = props.colorTheme as PD.NamedParams
-        const sizeProps = props.sizeTheme as PD.NamedParams
+        const colorProps = props.colorTheme as PD.NamedParams;
+        const sizeProps = props.sizeTheme as PD.NamedParams;
 
-        theme.color = ctx.colorThemeRegistry.create(colorProps.name, data, colorProps.params)
-        theme.size = ctx.sizeThemeRegistry.create(sizeProps.name, data, sizeProps.params)
+        theme.color = ctx.colorThemeRegistry.create(colorProps.name, data, colorProps.params);
+        theme.size = ctx.sizeThemeRegistry.create(sizeProps.name, data, sizeProps.params);
 
-        return theme
+        return theme;
     }
 
     export function createEmpty(): Theme {
-        return { color: ColorTheme.Empty, size: SizeTheme.Empty }
+        return { color: ColorTheme.Empty, size: SizeTheme.Empty };
     }
 
     export async function ensureDependencies(ctx: CustomProperty.Context, theme: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
-        await theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.attach(ctx, data)
-        await theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.attach(ctx, data)
+        await theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.attach(ctx, data);
+        await theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.attach(ctx, data);
     }
 
     export function releaseDependencies(theme: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
-        theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.detach(data)
-        theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.detach(data)
+        theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.detach(data);
+        theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.detach(data);
     }
 }
 
@@ -88,15 +88,15 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
     private _map = new Map<string, ThemeProvider<T, any>>()
     private _name = new Map<ThemeProvider<T, any>, string>()
 
-    get default() { return this._list[0] }
-    get list() { return this._list }
-    get types(): [string, string, string][] { return getTypes(this._list) }
+    get default() { return this._list[0]; }
+    get list() { return this._list; }
+    get types(): [string, string, string][] { return getTypes(this._list); }
 
     constructor(builtInThemes: { [k: string]: ThemeProvider<T, any> }, private emptyProvider: ThemeProvider<T, any>) {
         objectForEach(builtInThemes, (p, k) => {
             if (p.name !== k) throw new Error(`Fix build in themes to have matching names. ${p.name} ${k}`);
-            this.add(p as any)
-        })
+            this.add(p as any);
+        });
     }
 
     private sort() {
@@ -114,14 +114,14 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
         }
 
         const name = provider.name;
-        this._list.push({ name, provider })
-        this._map.set(name, provider)
-        this._name.set(provider, name)
+        this._list.push({ name, provider });
+        this._map.set(name, provider);
+        this._name.set(provider, name);
         this.sort();
     }
 
     remove(provider: ThemeProvider<T, any>) {
-        this._list.splice(this._list.findIndex(e => e.name === provider.name), 1)
+        this._list.splice(this._list.findIndex(e => e.name === provider.name), 1);
         const p = this._map.get(provider.name);
         if (p) {
             this._map.delete(provider.name);
@@ -130,11 +130,11 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
     }
 
     has(provider: ThemeProvider<T, any>): boolean {
-        return this._map.has(provider.name)
+        return this._map.has(provider.name);
     }
 
     get<P extends PD.Params>(name: string): ThemeProvider<T, P> {
-        return this._map.get(name) || this.emptyProvider
+        return this._map.get(name) || this.emptyProvider;
     }
 
     getName(provider: ThemeProvider<T, any>): string {
@@ -144,8 +144,8 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
 
 
     create(name: string, ctx: ThemeDataContext, props = {}) {
-        const provider = this.get(name)
-        return provider.factory(ctx, { ...PD.getDefaultValues(provider.getParams(ctx)), ...props })
+        const provider = this.get(name);
+        return provider.factory(ctx, { ...PD.getDefaultValues(provider.getParams(ctx)), ...props });
     }
 
     getApplicableList(ctx: ThemeDataContext) {
@@ -153,6 +153,6 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
     }
 
     getApplicableTypes(ctx: ThemeDataContext) {
-        return getTypes(this.getApplicableList(ctx))
+        return getTypes(this.getApplicableList(ctx));
     }
 }

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Iterator from '../iterator'
+import Iterator from '../iterator';
 import { OrderedSet, Interval, Segmentation } from '../int';
 
 /** Emits a segment of length one for each element in the interval that is also in the set */
@@ -17,29 +17,29 @@ export class IntervalIterator<I extends number = number> implements Iterator<Seg
     hasNext: boolean = false;
 
     updateValue() {
-        this.value.index = this.curIndex as I
-        this.value.start = OrderedSet.findPredecessorIndex(this.set, Interval.getAt(this.interval, this.curIndex))
-        this.value.end = this.value.start + 1
+        this.value.index = this.curIndex as I;
+        this.value.start = OrderedSet.findPredecessorIndex(this.set, Interval.getAt(this.interval, this.curIndex));
+        this.value.end = this.value.start + 1;
     }
 
     move() {
         if (this.hasNext) {
-            this.updateValue()
+            this.updateValue();
             while (this.curIndex <= this.maxIndex) {
-                ++this.curIndex
-                if (OrderedSet.has(this.set, this.curIndex)) break
+                ++this.curIndex;
+                if (OrderedSet.has(this.set, this.curIndex)) break;
             }
-            this.hasNext = this.curIndex <= this.maxIndex
+            this.hasNext = this.curIndex <= this.maxIndex;
         }
         return this.value;
     }
 
     constructor(private interval: Interval<I>, private set: OrderedSet<I>) {
         if (Interval.size(interval)) {
-            this.curIndex = Interval.findPredecessorIndex(interval, OrderedSet.min(set))
-            this.maxIndex = Interval.findPredecessorIndex(interval, OrderedSet.max(set))
+            this.curIndex = Interval.findPredecessorIndex(interval, OrderedSet.min(set));
+            this.maxIndex = Interval.findPredecessorIndex(interval, OrderedSet.max(set));
         }
 
-        this.hasNext = OrderedSet.areIntersecting(this.interval, this.set)
+        this.hasNext = OrderedSet.areIntersecting(this.interval, this.set);
     }
 }

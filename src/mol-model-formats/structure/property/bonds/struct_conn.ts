@@ -5,14 +5,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from '../../../../mol-model/structure/model/model'
-import { Structure } from '../../../../mol-model/structure'
-import { BondType } from '../../../../mol-model/structure/model/types'
-import { Column, Table } from '../../../../mol-data/db'
+import { Model } from '../../../../mol-model/structure/model/model';
+import { Structure } from '../../../../mol-model/structure';
+import { BondType } from '../../../../mol-model/structure/model/types';
+import { Column, Table } from '../../../../mol-data/db';
 import { CustomPropertyDescriptor } from '../../../../mol-model/structure';
 import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { SortedArray } from '../../../../mol-data/int';
-import { CifWriter } from '../../../../mol-io/writer/cif'
+import { CifWriter } from '../../../../mol-io/writer/cif';
 import { ElementIndex, ResidueIndex } from '../../../../mol-model/structure/model/indexing';
 import { getInterBondOrderFromTable } from '../../../../mol-model/structure/model/properties/atomic/bonds';
 import { FormatPropertyProvider } from '../../common/property';
@@ -34,7 +34,7 @@ export namespace StructConn {
                     const p = Provider.get(ctx.firstModel);
                     if (!p || p.entries.length === 0) return CifWriter.Category.Empty;
 
-                    const structure = ctx.structures[0]
+                    const structure = ctx.structures[0];
 
                     const indices: number[] = [];
                     for (const e of p.entries) {
@@ -48,9 +48,9 @@ export namespace StructConn {
                 }
             }]
         }
-    }
+    };
 
-    export const Provider = FormatPropertyProvider.create<StructConn>(Descriptor)
+    export const Provider = FormatPropertyProvider.create<StructConn>(Descriptor);
 
     function hasAtom({ units }: Structure, element: ElementIndex) {
         for (let i = 0, _i = units.length; i < _i; i++) {
@@ -120,15 +120,15 @@ export namespace StructConn {
             const atomIndex = model.atomicHierarchy.index.findAtomOnResidue(residueIndex, atomName, ps.label_alt_id.value(row));
             if (atomIndex < 0) return void 0;
             return { residueIndex, atomIndex, symmetry: ps.symmetry.value(row) };
-        }
+        };
 
         const entries: StructConn.Entry[] = [];
         for (let i = 0; i < struct_conn._rowCount; i++) {
-            const partnerA = _p(i, p1)
-            const partnerB = _p(i, p2)
+            const partnerA = _p(i, p1);
+            const partnerB = _p(i, p2);
             if (partnerA === undefined || partnerB === undefined) continue;
 
-            const type = conn_type_id.value(i)
+            const type = conn_type_id.value(i);
             const orderType = (pdbx_value_order.value(i) || '').toLowerCase();
             let flags = BondType.Flag.None;
             let order = 1;
@@ -144,7 +144,7 @@ export namespace StructConn {
                         struct_conn.ptnr1_label_atom_id.value(i),
                         struct_conn.ptnr2_label_comp_id.value(i),
                         struct_conn.ptnr2_label_atom_id.value(i)
-                    )
+                    );
             }
 
             switch (type) {

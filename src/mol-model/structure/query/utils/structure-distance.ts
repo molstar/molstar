@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, Unit } from '../../structure'
+import { Structure, Unit } from '../../structure';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { QueryFn, QueryContext } from '../context';
 

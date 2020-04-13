@@ -5,10 +5,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Iterator from '../../../mol-data/iterator'
-import { Column, Table, Database, DatabaseCollection } from '../../../mol-data/db'
-import { Tensor } from '../../../mol-math/linear-algebra'
-import EncoderBase from '../encoder'
+import Iterator from '../../../mol-data/iterator';
+import { Column, Table, Database, DatabaseCollection } from '../../../mol-data/db';
+import { Tensor } from '../../../mol-math/linear-algebra';
+import EncoderBase from '../encoder';
 import { ArrayEncoder, ArrayEncoding } from '../../common/binary-cif';
 import { BinaryEncodingProvider } from './encoder/binary';
 
@@ -70,7 +70,7 @@ export namespace Field {
     }
 
     export function index(name: string) {
-        return int(name, (e, d, i) => i + 1, { typedArray: Int32Array, encoder: ArrayEncoding.by(ArrayEncoding.delta).and(ArrayEncoding.runLength).and(ArrayEncoding.integerPacking) })
+        return int(name, (e, d, i) => i + 1, { typedArray: Int32Array, encoder: ArrayEncoding.by(ArrayEncoding.delta).and(ArrayEncoding.runLength).and(ArrayEncoding.integerPacking) });
     }
 
     export class Builder<K = number, D = any, N extends string = string> {
@@ -191,13 +191,13 @@ export namespace Category {
                             field_whitelist.includes(full);
                 }
             }
-        }
+        };
     }
 
     export const DefaultFilter: Filter = {
         includeCategory(cat) { return true; },
         includeField(cat, field) { return true; }
-    }
+    };
 
     export interface Formatter {
         getFormat(categoryName: string, fieldName: string): Field.Format | undefined
@@ -205,7 +205,7 @@ export namespace Category {
 
     export const DefaultFormatter: Formatter = {
         getFormat(cat, field) { return void 0; }
-    }
+    };
 
     export function ofTable(table: Table, indices?: ArrayLike<number>): Category.Instance {
         if (indices) {
@@ -247,7 +247,7 @@ export namespace Encoder {
 
     export function writeDatabaseCollection(encoder: Encoder, collection: DatabaseCollection<Database.Schema>) {
         for (const name of Object.keys(collection)) {
-            writeDatabase(encoder, name, collection[name])
+            writeDatabase(encoder, name, collection[name]);
         }
     }
 }
@@ -269,37 +269,37 @@ function columnValueKind(k: string) {
 }
 
 function getTensorDefinitions(field: string, space: Tensor.Space) {
-    const fieldDefinitions: Field[] = []
-    const type = Field.Type.Float
-    const valueKind = columnValueKind(field)
+    const fieldDefinitions: Field[] = [];
+    const type = Field.Type.Float;
+    const valueKind = columnValueKind(field);
     if (space.rank === 1) {
-        const rows = space.dimensions[0]
+        const rows = space.dimensions[0];
         for (let i = 0; i < rows; i++) {
-            const name = `${field}[${i + 1}]`
-            fieldDefinitions.push({ name, type, value: columnTensorValue(field, i), valueKind })
+            const name = `${field}[${i + 1}]`;
+            fieldDefinitions.push({ name, type, value: columnTensorValue(field, i), valueKind });
         }
     } else if (space.rank === 2) {
-        const rows = space.dimensions[0], cols = space.dimensions[1]
+        const rows = space.dimensions[0], cols = space.dimensions[1];
         for (let i = 0; i < rows; i++) {
             for (let j = 0; j < cols; j++) {
-                const name = `${field}[${i + 1}][${j + 1}]`
-                fieldDefinitions.push({ name, type, value: columnTensorValue(field, i, j), valueKind })
+                const name = `${field}[${i + 1}][${j + 1}]`;
+                fieldDefinitions.push({ name, type, value: columnTensorValue(field, i, j), valueKind });
             }
         }
     } else if (space.rank === 3) {
-        const d0 = space.dimensions[0], d1 = space.dimensions[1], d2 = space.dimensions[2]
+        const d0 = space.dimensions[0], d1 = space.dimensions[1], d2 = space.dimensions[2];
         for (let i = 0; i < d0; i++) {
             for (let j = 0; j < d1; j++) {
                 for (let k = 0; k < d2; k++) {
-                    const name = `${field}[${i + 1}][${j + 1}][${k + 1}]`
-                    fieldDefinitions.push({ name, type, value: columnTensorValue(field, i, j, k), valueKind })
+                    const name = `${field}[${i + 1}][${j + 1}][${k + 1}]`;
+                    fieldDefinitions.push({ name, type, value: columnTensorValue(field, i, j, k), valueKind });
                 }
             }
         }
     } else {
-        throw new Error('Tensors with rank > 3 or rank 0 are currently not supported.')
+        throw new Error('Tensors with rank > 3 or rank 0 are currently not supported.');
     }
-    return fieldDefinitions
+    return fieldDefinitions;
 }
 
 function cifFieldsFromTableSchema(schema: Table.Schema) {
@@ -313,9 +313,9 @@ function cifFieldsFromTableSchema(schema: Table.Schema) {
         } else if (t.valueType === 'str') {
             fields.push({ name: k, type: Field.Type.Str, value: columnValue(k), valueKind: columnValueKind(k) });
         } else if (t.valueType === 'list') {
-            fields.push({ name: k, type: Field.Type.Str, value: columnListValue(k), valueKind: columnValueKind(k) })
+            fields.push({ name: k, type: Field.Type.Str, value: columnListValue(k), valueKind: columnValueKind(k) });
         } else if (t.valueType === 'tensor') {
-            fields.push(...getTensorDefinitions(k, t.space))
+            fields.push(...getTensorDefinitions(k, t.space));
         } else {
             throw new Error(`Unknown valueType ${t.valueType}`);
         }

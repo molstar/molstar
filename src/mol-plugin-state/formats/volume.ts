@@ -66,14 +66,14 @@ export const DscifProvider = DataFormatProvider({
     stringExtensions: ['cif'],
     binaryExtensions: ['bcif'],
     isApplicable: (info, data) => {
-        return guessCifVariant(info, data) === 'dscif' ? true : false
+        return guessCifVariant(info, data) === 'dscif' ? true : false;
     },
     parse: async (plugin, data) => {
-        const cifCell = await plugin.build().to(data).apply(StateTransforms.Data.ParseCif).commit()
+        const cifCell = await plugin.build().to(data).apply(StateTransforms.Data.ParseCif).commit();
         const b = plugin.build().to(cifCell);
         const blocks = cifCell.obj!.data.blocks.slice(1); // zero block contains query meta-data
 
-        if (blocks.length !== 1 && blocks.length !== 2) throw new Error('unknown number of blocks')
+        if (blocks.length !== 1 && blocks.length !== 2) throw new Error('unknown number of blocks');
 
         const volumes: StateObjectSelector<PluginStateObject.Volume.Data>[] = [];
         for (const block of blocks) {
@@ -97,8 +97,8 @@ export const DscifProvider = DataFormatProvider({
         }
 
         if (volumes.length > 1) {
-            const posParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: VolumeIsoValue.relative(3), alpha: 0.3 }, 'uniform', { value: ColorNames.green })
-            const negParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: VolumeIsoValue.relative(-3), alpha: 0.3 }, 'uniform', { value: ColorNames.red })
+            const posParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: VolumeIsoValue.relative(3), alpha: 0.3 }, 'uniform', { value: ColorNames.green });
+            const negParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: VolumeIsoValue.relative(-3), alpha: 0.3 }, 'uniform', { value: ColorNames.red });
             visuals[visuals.length] = tree.to(volumes[1]).apply(StateTransforms.Representation.VolumeRepresentation3D, posParams).selector;
             visuals[visuals.length] = tree.to(volumes[1]).apply(StateTransforms.Representation.VolumeRepresentation3D, negParams).selector;
         }
@@ -113,6 +113,6 @@ export const BuiltInVolumeFormats = [
     ['ccp4', Ccp4Provider] as const,
     ['dns6', Dsn6Provider] as const,
     ['dscif', DscifProvider] as const,
-] as const
+] as const;
 
 export type BuildInVolumeFormat = (typeof BuiltInVolumeFormats)[number][0]

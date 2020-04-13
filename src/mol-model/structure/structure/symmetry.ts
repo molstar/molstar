@@ -26,7 +26,7 @@ namespace StructureSymmetry {
             const assembly = Symmetry.findAssembly(models[0], asmName);
             if (!assembly) throw new Error(`Assembly '${asmName}' is not defined.`);
 
-            const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { assembly: { id: assembly.id, operId: 0, operList: [] } })
+            const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { assembly: { id: assembly.id, operId: 0, operList: [] } });
             const assembler = Structure.Builder({ coordinateSystem, label: structure.label });
 
             const queryCtx = new QueryContext(structure);
@@ -56,7 +56,7 @@ namespace StructureSymmetry {
             const models = structure.models;
             if (models.length !== 1) throw new Error('Can only build symmetry assemblies from structures based on 1 model.');
 
-            const modelCenter = Vec3()
+            const modelCenter = Vec3();
             const assembler = Structure.Builder({ label: structure.label, representativeModel: models[0] });
 
             const queryCtx = new QueryContext(structure);
@@ -70,7 +70,7 @@ namespace StructureSymmetry {
                 const { units } = StructureSelection.unionStructure(selection);
 
                 for (const { index, shift: [i, j, k] } of g.operators) {
-                    const operators = getOperatorsForIndex(symmetry, index, i, j, k, modelCenter)
+                    const operators = getOperatorsForIndex(symmetry, index, i, j, k, modelCenter);
                     for (const unit of units) {
                         for (const op of operators) {
                             assembler.addWithOperator(unit, op);
@@ -110,7 +110,7 @@ namespace StructureSymmetry {
 
         const ret: Unit.SymmetryGroup[] = [];
         for (const eqUnits of groups.groups) {
-            ret.push(Unit.SymmetryGroup(eqUnits.map(id => s.unitMap.get(id))))
+            ret.push(Unit.SymmetryGroup(eqUnits.map(id => s.unitMap.get(id))));
         }
 
         return ret;
@@ -118,16 +118,16 @@ namespace StructureSymmetry {
 
     /** Checks if transform groups are equal up to their unit's transformations */
     export function areTransformGroupsEquivalent(a: ReadonlyArray<Unit.SymmetryGroup>, b: ReadonlyArray<Unit.SymmetryGroup>) {
-        if (a.length !== b.length) return false
+        if (a.length !== b.length) return false;
         for (let i = 0, il = a.length; i < il; ++i) {
             const au = a[i].units, bu = b[i].units;
             if (au.length !== bu.length) return false;
-            if (a[i].hashCode !== b[i].hashCode) return false
+            if (a[i].hashCode !== b[i].hashCode) return false;
             for (let j = 0, _j = au.length; j < _j; j++) {
                 if (au[j].conformation !== bu[j].conformation) return false;
             }
         }
-        return true
+        return true;
     }
 }
 
@@ -140,44 +140,44 @@ function getSelector(asymIds: string[]) {
 
 function getOperatorsForIndex(symmetry: Symmetry, index: number, i: number, j: number, k: number, modelCenter: Vec3) {
     const { spacegroup, ncsOperators } = symmetry;
-    const operators: SymmetryOperator[] = []
+    const operators: SymmetryOperator[] = [];
 
-    const { toFractional } = spacegroup.cell
-    const ref = Vec3.transformMat4(Vec3(), modelCenter, toFractional)
+    const { toFractional } = spacegroup.cell;
+    const ref = Vec3.transformMat4(Vec3(), modelCenter, toFractional);
 
-    const symOp = Spacegroup.getSymmetryOperatorRef(spacegroup, index, i, j, k, ref)
+    const symOp = Spacegroup.getSymmetryOperatorRef(spacegroup, index, i, j, k, ref);
     if (ncsOperators && ncsOperators.length) {
         for (let u = 0, ul = ncsOperators.length; u < ul; ++u) {
-            const ncsOp = ncsOperators![u]
-            const matrix = Mat4.mul(Mat4(), symOp.matrix, ncsOp.matrix)
+            const ncsOp = ncsOperators![u];
+            const matrix = Mat4.mul(Mat4(), symOp.matrix, ncsOp.matrix);
             const operator = SymmetryOperator.create(`${symOp.name} ${ncsOp.name}`, matrix, {
                 assembly: symOp.assembly,
                 ncsId: ncsOp.ncsId,
                 hkl: symOp.hkl,
                 spgrOp: symOp.spgrOp
             });
-            operators.push(operator)
+            operators.push(operator);
         }
     } else {
-        operators.push(symOp)
+        operators.push(symOp);
     }
-    return operators
+    return operators;
 }
 
 function getOperatorsForRange(symmetry: Symmetry, ijkMin: Vec3, ijkMax: Vec3, modelCenter: Vec3) {
     const { spacegroup, ncsOperators } = symmetry;
-    const ncsCount = (ncsOperators && ncsOperators.length) || 0
+    const ncsCount = (ncsOperators && ncsOperators.length) || 0;
     const operators: SymmetryOperator[] = [];
 
     if (!ncsCount &&
         ijkMin[0] <= 0 && ijkMax[0] >= 0 &&
         ijkMin[1] <= 0 && ijkMax[1] >= 0 &&
         ijkMin[2] <= 0 && ijkMax[2] >= 0) {
-        operators[0] = Spacegroup.getSymmetryOperator(spacegroup, 0, 0, 0, 0)
+        operators[0] = Spacegroup.getSymmetryOperator(spacegroup, 0, 0, 0, 0);
     }
 
-    const { toFractional } = spacegroup.cell
-    const ref = Vec3.transformMat4(Vec3(), modelCenter, toFractional)
+    const { toFractional } = spacegroup.cell;
+    const ref = Vec3.transformMat4(Vec3(), modelCenter, toFractional);
 
     for (let op = 0; op < spacegroup.operators.length; op++) {
         for (let i = ijkMin[0]; i <= ijkMax[0]; i++) {
@@ -185,7 +185,7 @@ function getOperatorsForRange(symmetry: Symmetry, ijkMin: Vec3, ijkMax: Vec3, mo
                 for (let k = ijkMin[2]; k <= ijkMax[2]; k++) {
                     // check if we have added identity as the 1st operator.
                     if (!ncsCount && op === 0 && i === 0 && j === 0 && k === 0) continue;
-                    operators.push(...getOperatorsForIndex(symmetry, op, i, j, k, ref))
+                    operators.push(...getOperatorsForIndex(symmetry, op, i, j, k, ref));
                 }
             }
         }
@@ -219,8 +219,8 @@ async function _buildNCS(ctx: RuntimeContext, structure: Structure) {
     const models = structure.models;
     if (models.length !== 1) throw new Error('Can only build NCS from structures based on 1 model.');
 
-    const symmetry = ModelSymmetry.Provider.get(models[0])
-    if (!symmetry) return structure
+    const symmetry = ModelSymmetry.Provider.get(models[0]);
+    if (!symmetry) return structure;
 
     const operators = symmetry.ncsOperators;
     if (!operators || !operators.length) return structure;
@@ -231,13 +231,13 @@ async function findSymmetryRange(ctx: RuntimeContext, structure: Structure, ijkM
     const models = structure.models;
     if (models.length !== 1) throw new Error('Can only build symmetries from structures based on 1 model.');
 
-    const symmetry = ModelSymmetry.Provider.get(models[0])
-    if (!symmetry) return structure
+    const symmetry = ModelSymmetry.Provider.get(models[0]);
+    if (!symmetry) return structure;
 
     const { spacegroup } = symmetry;
     if (SpacegroupCell.isZero(spacegroup.cell)) return structure;
 
-    const modelCenter = Model.getCenter(models[0])
+    const modelCenter = Model.getCenter(models[0]);
     const operators = getOperatorsForRange(symmetry, ijkMin, ijkMax, modelCenter);
     return assembleOperators(structure, operators);
 }
@@ -246,21 +246,21 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
     const models = structure.models;
     if (models.length !== 1) throw new Error('Can only build symmetries from structures based on 1 model.');
 
-    const symmetry = ModelSymmetry.Provider.get(models[0])
-    if (!symmetry) return structure
+    const symmetry = ModelSymmetry.Provider.get(models[0]);
+    if (!symmetry) return structure;
 
     const { spacegroup } = symmetry;
     if (SpacegroupCell.isZero(spacegroup.cell)) return structure;
 
     if (ctx.shouldUpdate) await ctx.update('Initialing...');
-    const modelCenter = Model.getCenter(models[0])
+    const modelCenter = Model.getCenter(models[0]);
     const operators = getOperatorsCached333(symmetry, modelCenter);
     const lookup = structure.lookup3d;
 
     // keep track of added invariant-unit and operator combinations
-    const added = new Set<string>()
+    const added = new Set<string>();
     function hash(unit: Unit, oper: SymmetryOperator) {
-        return `${unit.invariantId}|${oper.name}`
+        return `${unit.invariantId}|${oper.name}`;
     }
 
     const assembler = Structure.Builder({ label: structure.label });
@@ -277,10 +277,10 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
                 const closeUnit = units[closeUnits.indices[uI]];
                 if (!closeUnit.lookup3d.check(center[0], center[1], center[2], boundingSphere.radius + radius)) continue;
 
-                const h = hash(unit, oper)
+                const h = hash(unit, oper);
                 if (!added.has(h)) {
                     assembler.addWithOperator(unit, oper);
-                    added.add(h)
+                    added.add(h);
                 }
             }
         }

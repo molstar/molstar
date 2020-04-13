@@ -111,7 +111,7 @@ export function getNumberType(str: string): NumberType {
 
     // string is . or -.
     if (str.charCodeAt(start) === 46 && end - start === 1) {
-        return NumberType.NaN
+        return NumberType.NaN;
     }
 
     while (start < end) {

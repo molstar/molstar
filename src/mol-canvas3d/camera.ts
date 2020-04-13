@@ -5,12 +5,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mat4, Vec3, Vec4, EPSILON } from '../mol-math/linear-algebra'
+import { Mat4, Vec3, Vec4, EPSILON } from '../mol-math/linear-algebra';
 import { Viewport, cameraProject, cameraUnproject } from './camera/util';
 import { CameraTransitionManager } from './camera/transition';
 import { BehaviorSubject } from 'rxjs';
 
-export { Camera }
+export { Camera };
 
 class Camera {
     readonly view: Mat4 = Mat4.identity();
@@ -66,8 +66,8 @@ class Camera {
         const changed = !Mat4.areEqual(this.projection, this.prevProjection, EPSILON) || !Mat4.areEqual(this.view, this.prevView, EPSILON);
 
         if (changed) {
-            Mat4.mul(this.projectionView, this.projection, this.view)
-            Mat4.invert(this.inverseProjectionView, this.projectionView)
+            Mat4.mul(this.projectionView, this.projection, this.view);
+            Mat4.invert(this.inverseProjectionView, this.projectionView);
 
             Mat4.copy(this.prevView, this.view);
             Mat4.copy(this.prevProjection, this.projection);
@@ -86,30 +86,30 @@ class Camera {
     }
 
     getTargetDistance(radius: number) {
-        const r = Math.max(radius, 0.01)
-        const { fov } = this.state
-        const { width, height } = this.viewport
-        const aspect = width / height
-        const aspectFactor = (height < width ? 1 : aspect)
-        return Math.abs((r / aspectFactor) / Math.sin(fov / 2))
+        const r = Math.max(radius, 0.01);
+        const { fov } = this.state;
+        const { width, height } = this.viewport;
+        const aspect = width / height;
+        const aspectFactor = (height < width ? 1 : aspect);
+        return Math.abs((r / aspectFactor) / Math.sin(fov / 2));
     }
 
     getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3): Partial<Camera.Snapshot> {
-        const r = Math.max(radius, 0.01)
-        const targetDistance = this.getTargetDistance(r)
+        const r = Math.max(radius, 0.01);
+        const targetDistance = this.getTargetDistance(r);
 
-        Vec3.sub(this.deltaDirection, this.target, this.position)
-        if (dir) Vec3.matchDirection(this.deltaDirection, dir, this.deltaDirection)
-        Vec3.setMagnitude(this.deltaDirection, this.deltaDirection, targetDistance)
-        Vec3.sub(this.newPosition, target, this.deltaDirection)
+        Vec3.sub(this.deltaDirection, this.target, this.position);
+        if (dir) Vec3.matchDirection(this.deltaDirection, dir, this.deltaDirection);
+        Vec3.setMagnitude(this.deltaDirection, this.deltaDirection, targetDistance);
+        Vec3.sub(this.newPosition, target, this.deltaDirection);
 
-        const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state)
-        state.target = Vec3.clone(target)
-        state.radius = r
-        state.position = Vec3.clone(this.newPosition)
-        if (up) Vec3.matchDirection(state.up, up, state.up)
+        const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state);
+        state.target = Vec3.clone(target);
+        state.radius = r;
+        state.position = Vec3.clone(this.newPosition);
+        if (up) Vec3.matchDirection(state.up, up, state.up);
 
-        return state
+        return state;
     }
 
     focus(target: Vec3, radius: number, durationMs?: number, up?: Vec3, dir?: Vec3) {
@@ -119,11 +119,11 @@ class Camera {
     }
 
     project(out: Vec4, point: Vec3) {
-        return cameraProject(out, point, this.viewport, this.projectionView)
+        return cameraProject(out, point, this.viewport, this.projectionView);
     }
 
     unproject(out: Vec3, point: Vec3) {
-        return cameraUnproject(out, point, this.viewport, this.inverseProjectionView)
+        return cameraUnproject(out, point, this.viewport, this.inverseProjectionView);
     }
 
     constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(-1, -1, 1, 1)) {
@@ -151,12 +151,12 @@ namespace Camera {
     }
 
     export function setViewOffset(out: ViewOffset, fullWidth: number, fullHeight: number, offsetX: number, offsetY: number, width: number, height: number) {
-        out.fullWidth = fullWidth
-        out.fullHeight = fullHeight
-        out.offsetX = offsetX
-        out.offsetY = offsetY
-        out.width = width
-        out.height = height
+        out.fullWidth = fullWidth;
+        out.fullHeight = fullHeight;
+        out.offsetX = offsetX;
+        out.offsetY = offsetY;
+        out.width = width;
+        out.height = height;
     }
 
     export function createDefaultSnapshot(): Snapshot {
@@ -209,90 +209,90 @@ namespace Camera {
 }
 
 function updateOrtho(camera: Camera) {
-    const { viewport, zoom, near, far, viewOffset } = camera
+    const { viewport, zoom, near, far, viewOffset } = camera;
 
-    const fullLeft = -(viewport.width - viewport.x) / 2
-    const fullRight = (viewport.width - viewport.x) / 2
-    const fullTop = (viewport.height - viewport.y) / 2
-    const fullBottom = -(viewport.height - viewport.y) / 2
+    const fullLeft = -(viewport.width - viewport.x) / 2;
+    const fullRight = (viewport.width - viewport.x) / 2;
+    const fullTop = (viewport.height - viewport.y) / 2;
+    const fullBottom = -(viewport.height - viewport.y) / 2;
 
-    const dx = (fullRight - fullLeft) / (2 * zoom)
-    const dy = (fullTop - fullBottom) / (2 * zoom)
-    const cx = (fullRight + fullLeft) / 2
-    const cy = (fullTop + fullBottom) / 2
+    const dx = (fullRight - fullLeft) / (2 * zoom);
+    const dy = (fullTop - fullBottom) / (2 * zoom);
+    const cx = (fullRight + fullLeft) / 2;
+    const cy = (fullTop + fullBottom) / 2;
 
-    let left = cx - dx
-    let right = cx + dx
-    let top = cy + dy
-    let bottom = cy - dy
+    let left = cx - dx;
+    let right = cx + dx;
+    let top = cy + dy;
+    let bottom = cy - dy;
 
     if (viewOffset.enabled) {
-        const zoomW = zoom / (viewOffset.width / viewOffset.fullWidth)
-        const zoomH = zoom / (viewOffset.height / viewOffset.fullHeight)
-        const scaleW = (fullRight - fullLeft) / viewOffset.width
-        const scaleH = (fullTop - fullBottom) / viewOffset.height
-        left += scaleW * (viewOffset.offsetX / zoomW)
-        right = left + scaleW * (viewOffset.width / zoomW)
-        top -= scaleH * (viewOffset.offsetY / zoomH)
-        bottom = top - scaleH * (viewOffset.height / zoomH)
+        const zoomW = zoom / (viewOffset.width / viewOffset.fullWidth);
+        const zoomH = zoom / (viewOffset.height / viewOffset.fullHeight);
+        const scaleW = (fullRight - fullLeft) / viewOffset.width;
+        const scaleH = (fullTop - fullBottom) / viewOffset.height;
+        left += scaleW * (viewOffset.offsetX / zoomW);
+        right = left + scaleW * (viewOffset.width / zoomW);
+        top -= scaleH * (viewOffset.offsetY / zoomH);
+        bottom = top - scaleH * (viewOffset.height / zoomH);
     }
 
     // build projection matrix
-    Mat4.ortho(camera.projection, left, right, top, bottom, near, far)
+    Mat4.ortho(camera.projection, left, right, top, bottom, near, far);
 
     // build view matrix
-    Mat4.lookAt(camera.view, camera.position, camera.target, camera.up)
+    Mat4.lookAt(camera.view, camera.position, camera.target, camera.up);
 }
 
 function updatePers(camera: Camera) {
-    const aspect = camera.viewport.width / camera.viewport.height
+    const aspect = camera.viewport.width / camera.viewport.height;
 
-    const { near, far, viewOffset } = camera
+    const { near, far, viewOffset } = camera;
 
-    let top = near * Math.tan(0.5 * camera.state.fov)
-    let height = 2 * top
-    let width = aspect * height
-    let left = -0.5 * width
+    let top = near * Math.tan(0.5 * camera.state.fov);
+    let height = 2 * top;
+    let width = aspect * height;
+    let left = -0.5 * width;
 
     if (viewOffset.enabled) {
-        left += viewOffset.offsetX * width / viewOffset.fullWidth
-        top -= viewOffset.offsetY * height / viewOffset.fullHeight
-        width *= viewOffset.width / viewOffset.fullWidth
-        height *= viewOffset.height / viewOffset.fullHeight
+        left += viewOffset.offsetX * width / viewOffset.fullWidth;
+        top -= viewOffset.offsetY * height / viewOffset.fullHeight;
+        width *= viewOffset.width / viewOffset.fullWidth;
+        height *= viewOffset.height / viewOffset.fullHeight;
     }
 
     // build projection matrix
-    Mat4.perspective(camera.projection, left, left + width, top, top - height, near, far)
+    Mat4.perspective(camera.projection, left, left + width, top, top - height, near, far);
 
     // build view matrix
-    Mat4.lookAt(camera.view, camera.position, camera.target, camera.up)
+    Mat4.lookAt(camera.view, camera.position, camera.target, camera.up);
 }
 
 function updateClip(camera: Camera) {
-    let { radius, radiusMax, mode, fog, clipFar } = camera.state
-    if (radius < 0.01) radius = 0.01
+    let { radius, radiusMax, mode, fog, clipFar } = camera.state;
+    if (radius < 0.01) radius = 0.01;
 
-    const normalizedFar = clipFar ? radius : radiusMax
-    const cameraDistance = Vec3.distance(camera.position, camera.target)
-    let near = cameraDistance - radius
-    let far = cameraDistance + normalizedFar
+    const normalizedFar = clipFar ? radius : radiusMax;
+    const cameraDistance = Vec3.distance(camera.position, camera.target);
+    let near = cameraDistance - radius;
+    let far = cameraDistance + normalizedFar;
 
-    const fogNearFactor = -(50 - fog) / 50
-    let fogNear = cameraDistance - (normalizedFar * fogNearFactor)
-    let fogFar = far
+    const fogNearFactor = -(50 - fog) / 50;
+    let fogNear = cameraDistance - (normalizedFar * fogNearFactor);
+    let fogFar = far;
 
     if (mode === 'perspective') {
         // set at least to 5 to avoid slow sphere impostor rendering
-        near = Math.max(5, near)
-        far = Math.max(5, far)
+        near = Math.max(5, near);
+        far = Math.max(5, far);
     } else {
-        near = Math.max(0, near)
-        far = Math.max(0, far)
+        near = Math.max(0, near);
+        far = Math.max(0, far);
     }
 
     if (near === far) {
         // make sure near and far are not identical to avoid Infinity in the projection matrix
-        far = near + 0.01
+        far = near + 0.01;
     }
 
     camera.near = near;

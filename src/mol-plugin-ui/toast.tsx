@@ -50,7 +50,7 @@ export class Toasts extends PluginUIComponent {
 
         const entries: PluginToastManager.Entry[] = [];
         state.entries.forEach((t, k) => entries.push(t!));
-        entries.sort(function (x, y) { return x.serialNumber - y.serialNumber; })
+        entries.sort(function (x, y) { return x.serialNumber - y.serialNumber; });
 
         return <div className='msp-toast-container'>
             {entries.map(e => <ToastEntry key={e.serialNumber} entry={e} />)}

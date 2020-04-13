@@ -30,12 +30,12 @@ export function guessCifVariant(info: FileInfo, data: Uint8Array | string): cifV
         try {
             // TODO: find a way to run msgpackDecode only once
             //      now it is run twice, here and during file parsing
-            if (msgpackDecode(data as Uint8Array).encoder.startsWith('VolumeServer')) return 'dscif'
+            if (msgpackDecode(data as Uint8Array).encoder.startsWith('VolumeServer')) return 'dscif';
         } catch { }
     } else if (info.ext === 'cif') {
-        const str = data as string
-        if (str.startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif'
-        if (str.includes('atom_site_fract_x') || str.includes('atom_site.fract_x')) return 'coreCif'
+        const str = data as string;
+        if (str.startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif';
+        if (str.includes('atom_site_fract_x') || str.includes('atom_site.fract_x')) return 'coreCif';
     }
-    return -1
+    return -1;
 }

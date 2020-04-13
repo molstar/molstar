@@ -5,11 +5,11 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { CIF, CifCategory, getCifFieldType, CifField, CifFile } from '../../mol-io/reader/cif'
-import { CifWriter, EncodingStrategyHint } from '../../mol-io/writer/cif'
-import * as util from 'util'
-import * as fs from 'fs'
-import * as zlib from 'zlib'
+import { CIF, CifCategory, getCifFieldType, CifField, CifFile } from '../../mol-io/reader/cif';
+import { CifWriter, EncodingStrategyHint } from '../../mol-io/writer/cif';
+import * as util from 'util';
+import * as fs from 'fs';
+import * as zlib from 'zlib';
 import { Progress, Task, RuntimeContext } from '../../mol-task';
 import { classifyFloatArray, classifyIntArray } from '../../mol-io/common/binary-cif';
 import { BinaryEncodingProvider } from '../../mol-io/writer/cif/encoder/binary';
@@ -27,7 +27,7 @@ const unzipAsync = util.promisify<zlib.InputType, Buffer>(zlib.unzip);
 async function readFile(ctx: RuntimeContext, filename: string): Promise<ReaderResult<CifFile>> {
     const isGz = /\.gz$/i.test(filename);
     if (filename.match(/\.bcif/)) {
-        let input = await readFileAsync(filename)
+        let input = await readFileAsync(filename);
         if (isGz) input = await unzipAsync(input);
         return await CIF.parseBinary(new Uint8Array(input)).runInContext(ctx);
     } else {
@@ -101,7 +101,7 @@ export default function convert(path: string, asText = false, hints?: EncodingSt
                 const cat = b.categories[c];
                 const fields: CifWriter.Field[] = [];
                 for (const f of cat.fieldNames) {
-                    fields.push(classify(f, cat.getField(f)!))
+                    fields.push(classify(f, cat.getField(f)!));
                     current++;
                     if (ctx.shouldUpdate) await ctx.update({ message: 'Encoding...', current, max: maxProgress });
                 }

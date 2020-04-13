@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3, Mat4 } from '../../linear-algebra'
-import { SpacegroupName, TransformData, GroupData, getSpacegroupIndex, OperatorData, SpacegroupNumber } from './tables'
+import { Vec3, Mat4 } from '../../linear-algebra';
+import { SpacegroupName, TransformData, GroupData, getSpacegroupIndex, OperatorData, SpacegroupNumber } from './tables';
 import { SymmetryOperator } from '../../geometry';
 
 interface SpacegroupCell {
@@ -44,11 +44,11 @@ namespace SpacegroupCell {
     export function create(nameOrNumber: number | string | SpacegroupName, size: Vec3, anglesInRadians: Vec3): SpacegroupCell {
         const index = getSpacegroupIndex(nameOrNumber);
         if (index < 0) {
-            console.warn(`Unknown spacegroup '${nameOrNumber}', returning a 'P 1' with cellsize [1, 1, 1]`)
+            console.warn(`Unknown spacegroup '${nameOrNumber}', returning a 'P 1' with cellsize [1, 1, 1]`);
             return Zero;
         }
 
-        const volume = size[0] * size[1] * size[2]
+        const volume = size[0] * size[1] * size[2];
 
         const alpha = anglesInRadians[0];
         const beta = anglesInRadians[1];
@@ -82,8 +82,8 @@ namespace Spacegroup {
 
     export function create(cell: SpacegroupCell): Spacegroup {
         const operators = GroupData[cell.index].map(i => getOperatorMatrix(OperatorData[i]));
-        const name = SpacegroupName[cell.index]
-        const num = SpacegroupNumber[cell.index]
+        const name = SpacegroupName[cell.index];
+        const num = SpacegroupNumber[cell.index];
         return { name, num, cell, operators };
     }
 
@@ -109,26 +109,26 @@ namespace Spacegroup {
         return SymmetryOperator.create(`${spgrOp + 1}_${5 + i}${5 + j}${5 + k}`, operator, { hkl: Vec3.create(i, j, k), spgrOp });
     }
 
-    const _translationRef = Vec3()
-    const _translationRefSymop = Vec3()
-    const _translationSymop = Vec3()
+    const _translationRef = Vec3();
+    const _translationRefSymop = Vec3();
+    const _translationSymop = Vec3();
     export function setOperatorMatrixRef(spacegroup: Spacegroup, index: number, i: number, j: number, k: number, ref: Vec3, target: Mat4) {
         Vec3.set(_ijkVec, i, j, k);
-        Vec3.floor(_translationRef, ref)
+        Vec3.floor(_translationRef, ref);
 
-        Mat4.copy(target, spacegroup.operators[index])
+        Mat4.copy(target, spacegroup.operators[index]);
 
-        Vec3.floor(_translationRefSymop, Vec3.transformMat4(_translationRefSymop, ref, target))
+        Vec3.floor(_translationRefSymop, Vec3.transformMat4(_translationRefSymop, ref, target));
 
-        Mat4.getTranslation(_translationSymop, target)
-        Vec3.sub(_translationSymop, _translationSymop, _translationRefSymop)
-        Vec3.add(_translationSymop, _translationSymop, _translationRef)
-        Vec3.add(_translationSymop, _translationSymop, _ijkVec)
+        Mat4.getTranslation(_translationSymop, target);
+        Vec3.sub(_translationSymop, _translationSymop, _translationRefSymop);
+        Vec3.add(_translationSymop, _translationSymop, _translationRef);
+        Vec3.add(_translationSymop, _translationSymop, _ijkVec);
 
-        Mat4.setTranslation(target, _translationSymop)
-        Mat4.mul(target, spacegroup.cell.fromFractional, target)
-        Mat4.mul(target, target, spacegroup.cell.toFractional)
-        return target
+        Mat4.setTranslation(target, _translationSymop);
+        Mat4.mul(target, spacegroup.cell.fromFractional, target);
+        Mat4.mul(target, target, spacegroup.cell.toFractional);
+        return target;
     }
 
     /**
@@ -152,48 +152,48 @@ namespace Spacegroup {
             formatElement(getRotation(op[0], op[4], op[8]), getShift(op[12])),
             formatElement(getRotation(op[1], op[5], op[9]), getShift(op[13])),
             formatElement(getRotation(op[2], op[6], op[10]), getShift(op[14]))
-        ].join(',')
+        ].join(',');
     }
 
     function getRotation(x: number, y: number, z: number) {
-        let r: string[] = []
-        if (x > 0) r.push('+X')
-        else if (x < 0) r.push('-X')
-        if (y > 0) r.push('+Y')
-        else if (y < 0) r.push('-Y')
-        if (z > 0) r.push('+Z')
-        else if (z < 0) r.push('-Z')
+        let r: string[] = [];
+        if (x > 0) r.push('+X');
+        else if (x < 0) r.push('-X');
+        if (y > 0) r.push('+Y');
+        else if (y < 0) r.push('-Y');
+        if (z > 0) r.push('+Z');
+        else if (z < 0) r.push('-Z');
 
         if (r.length === 1) {
-            return r[0].charAt(0) === '+' ? r[0].substr(1) : r[0]
+            return r[0].charAt(0) === '+' ? r[0].substr(1) : r[0];
         }
         if (r.length === 2) {
-            const s0 = r[0].charAt(0)
-            const s1 = r[1].charAt(0)
-            if (s0 === '+') return `${r[0].substr(1)}${r[1]}`
-            if (s1 === '+') return `${r[1].substr(1)}${r[0]}`
+            const s0 = r[0].charAt(0);
+            const s1 = r[1].charAt(0);
+            if (s0 === '+') return `${r[0].substr(1)}${r[1]}`;
+            if (s1 === '+') return `${r[1].substr(1)}${r[0]}`;
         }
-        throw new Error(`unknown rotation '${r}', ${x} ${y} ${z}`)
+        throw new Error(`unknown rotation '${r}', ${x} ${y} ${z}`);
     }
 
     function getShift(s: number) {
         switch (s) {
-            case 1 / 2: return '1/2'
-            case 1 / 4: return '1/4'
-            case 3 / 4: return '3/4'
-            case 1 / 3: return '1/3'
-            case 2 / 3: return '2/3'
-            case 1 / 6: return '1/6'
-            case 5 / 6: return '5/6'
+            case 1 / 2: return '1/2';
+            case 1 / 4: return '1/4';
+            case 3 / 4: return '3/4';
+            case 1 / 3: return '1/3';
+            case 2 / 3: return '2/3';
+            case 1 / 6: return '1/6';
+            case 5 / 6: return '5/6';
         }
-        return ''
+        return '';
     }
 
     function formatElement(rotation: string, shift: string) {
-        if (shift === '') return rotation
-        if (rotation.length > 2) return `${rotation}+${shift}`
-        return rotation.charAt(0) === '-' ? `${shift}${rotation}` : `${shift}+${rotation}`
+        if (shift === '') return rotation;
+        if (rotation.length > 2) return `${rotation}+${shift}`;
+        return rotation.charAt(0) === '-' ? `${shift}${rotation}` : `${shift}+${rotation}`;
     }
 }
 
-export { Spacegroup, SpacegroupCell }
+export { Spacegroup, SpacegroupCell };

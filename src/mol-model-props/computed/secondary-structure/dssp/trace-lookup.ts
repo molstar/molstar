@@ -12,11 +12,11 @@ import { getBoundary } from '../../../../mol-math/geometry/boundary';
 
 export function calcUnitProteinTraceLookup3D(unit: Unit.Atomic, unitProteinResidues: SortedArray<ResidueIndex>): GridLookup3D {
     const { x, y, z } = unit.model.atomicConformation;
-    const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue
-    const indices = new Uint32Array(unitProteinResidues.length)
+    const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue;
+    const indices = new Uint32Array(unitProteinResidues.length);
     for (let i = 0, il = unitProteinResidues.length; i < il; ++i) {
-        indices[i] = traceElementIndex[unitProteinResidues[i]]
+        indices[i] = traceElementIndex[unitProteinResidues[i]];
     }
-    const position = { x, y, z, indices: SortedArray.ofSortedArray(indices) }
+    const position = { x, y, z, indices: SortedArray.ofSortedArray(indices) };
     return GridLookup3D(position, getBoundary(position));
 }

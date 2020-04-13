@@ -151,7 +151,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
 
     private handleDrag(event: any) {
         if(this.selected === undefined){
-            return
+            return;
         }
 
         const pt = this.myRef.createSVGPoint();
@@ -259,7 +259,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             }
             return a[0] - b[0];
         });
-        this.setState({points})
+        this.setState({points});
         this.change(points);
     }
 
@@ -379,7 +379,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             const x2 = data[i + 1][0];
             const y2 = data[i + 1][1];
 
-            lines.push(<line key={`lineOf${i}`} x1={x1} x2={x2} y1={y1} y2={y2} stroke="#cec9ba" strokeWidth="5"/>)
+            lines.push(<line key={`lineOf${i}`} x1={x1} x2={x2} y1={y1} y2={y2} stroke="#cec9ba" strokeWidth="5"/>);
         }
 
         return lines;

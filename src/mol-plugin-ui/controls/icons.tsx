@@ -20,8 +20,8 @@ export function Icon(props: {
         case 'subtract':
         case 'intersect':
         case 'set':
-            return <SvgIcon name={props.name} title={props.title} style={props.style} />
-        default: return <FontIcon name={props.name} title={props.title} style={props.style} />
+            return <SvgIcon name={props.name} title={props.title} style={props.style} />;
+        default: return <FontIcon name={props.name} title={props.title} style={props.style} />;
     }
 }
 
@@ -73,15 +73,15 @@ function SvgIcon(props: {
 
 function getSvg(name: SvgIconName) {
     switch (name) {
-        case 'union': return <Union />
-        case 'subtract': return <Subtract />
-        case 'intersect': return <Intersect />
-        case 'set': return <Set />
+        case 'union': return <Union />;
+        case 'subtract': return <Subtract />;
+        case 'intersect': return <Intersect />;
+        case 'set': return <Set />;
     }
 }
 
-const circleLeft = <circle r="6px" id="circle-left" cy="16px" cx="12px" strokeWidth="0.5"/>
-const circleRight = <circle r="6px" id="circle-right" cy="16px" cx="20px" strokeWidth="0.5"/>
+const circleLeft = <circle r="6px" id="circle-left" cy="16px" cx="12px" strokeWidth="0.5"/>;
+const circleRight = <circle r="6px" id="circle-right" cy="16px" cx="20px" strokeWidth="0.5"/>;
 
 function Union() {
     return <svg width="32px" height="32px" viewBox="0 0 32 32">

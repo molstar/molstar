@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DensityServer_Data_Database } from '../../mol-io/reader/cif/schema/density-server'
-import { VolumeData } from '../../mol-model/volume/data'
+import { DensityServer_Data_Database } from '../../mol-io/reader/cif/schema/density-server';
+import { VolumeData } from '../../mol-model/volume/data';
 import { Task } from '../../mol-task';
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
 import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
@@ -30,7 +30,7 @@ function volumeFromDensityServerData(source: DensityServer_Data_Database): Task<
         const data = Tensor.create(tensorSpace, Tensor.Data1(values.values.toArray({ array: Float32Array })));
 
         // origin and dimensions are in "axis order" and need to be reordered
-        const origin = Vec3.ofArray(normalizeOrder(info.origin.value(0)))
+        const origin = Vec3.ofArray(normalizeOrder(info.origin.value(0)));
         const dimensions = Vec3.ofArray(normalizeOrder(info.dimensions.value(0)));
 
         return {
@@ -47,4 +47,4 @@ function volumeFromDensityServerData(source: DensityServer_Data_Database): Task<
     });
 }
 
-export { volumeFromDensityServerData }
+export { volumeFromDensityServerData };

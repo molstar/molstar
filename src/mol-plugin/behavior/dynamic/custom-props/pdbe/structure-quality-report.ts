@@ -48,11 +48,11 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
             this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
             this.ctx.managers.lociLabels.addProvider(this.labelPDBeValidation);
 
-            this.ctx.representation.structure.themes.colorThemeRegistry.add(StructureQualityReportColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(StructureQualityReportColorThemeProvider);
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
-            let updated = this.params.autoAttach !== p.autoAttach
+            let updated = this.params.autoAttach !== p.autoAttach;
             this.params.autoAttach = p.autoAttach;
             this.params.showTooltip = p.showTooltip;
             this.ctx.customModelProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
@@ -62,7 +62,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
         unregister() {
             this.ctx.customModelProperties.unregister(StructureQualityReportProvider.descriptor.name);
             this.ctx.managers.lociLabels.removeProvider(this.labelPDBeValidation);
-            this.ctx.representation.structure.themes.colorThemeRegistry.remove(StructureQualityReportColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(StructureQualityReportColorThemeProvider);
         }
     },
     params: () => ({

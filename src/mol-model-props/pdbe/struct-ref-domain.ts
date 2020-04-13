@@ -111,7 +111,7 @@ function fromPDBeJson(modelData: Model, data: any): PDBeStructRefDomain.Property
                     beg_pdbx_PDB_ins_code: map.start.author_insertion_code,
                     end_label_seq_id: map.end.residue_number,
                     end_pdbx_PDB_ins_code: map.end.author_insertion_code,
-                })
+                });
             }
         }
     }

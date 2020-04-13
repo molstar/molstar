@@ -142,10 +142,10 @@ export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer,
         if (data.tokenStart < data.tokenEnd) {
             TokenBuilder.addToken(sites.type_symbol, data);
         } else {
-            guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16)
+            guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16);
         }
     } else {
-        guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16)
+        guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16);
     }
 
     // 79 - 80        LString(2)    charge       Charge  on the atom.

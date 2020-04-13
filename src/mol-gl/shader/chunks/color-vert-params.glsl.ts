@@ -28,4 +28,4 @@ export default `
     uniform vec2 uTransparencyTexDim;
     uniform sampler2D tTransparency;
 #endif
-`
+`;

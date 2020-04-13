@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column } from '../../../../mol-data/db'
+import { Column } from '../../../../mol-data/db';
 import { AtomicHierarchy } from './atomic/hierarchy';
 import { Entities } from './common';
 import { Sequence } from '../../../sequence';
@@ -24,29 +24,29 @@ namespace StructureSequence {
         readonly sequence: Sequence
     }
 
-    const Empty: StructureSequence = { byEntityKey: {}, sequences: [] }
+    const Empty: StructureSequence = { byEntityKey: {}, sequences: [] };
 
     function merge(...entitySeqs: StructureSequence[]): StructureSequence {
-        const sequences: StructureSequence.Entity[] = []
-        const byEntityKey: { [key: number]: StructureSequence.Entity } = {}
+        const sequences: StructureSequence.Entity[] = [];
+        const byEntityKey: { [key: number]: StructureSequence.Entity } = {};
 
         for (let i = 0, il = entitySeqs.length; i < il; ++i) {
-            sequences.push(...entitySeqs[i].sequences)
-            Object.assign(byEntityKey, entitySeqs[i].byEntityKey)
+            sequences.push(...entitySeqs[i].sequences);
+            Object.assign(byEntityKey, entitySeqs[i].byEntityKey);
         }
-        return { sequences, byEntityKey }
+        return { sequences, byEntityKey };
     }
 
     export function fromHierarchy(entities: Entities, atomicHierarchy: AtomicHierarchy, coarseHierarchy: CoarseHierarchy): StructureSequence {
-        const atomic = fromAtomicHierarchy(entities, atomicHierarchy)
-        const coarse = coarseHierarchy.isDefined ? fromCoarseHierarchy(entities, coarseHierarchy) : Empty
-        return merge(atomic, coarse)
+        const atomic = fromAtomicHierarchy(entities, atomicHierarchy);
+        const coarse = coarseHierarchy.isDefined ? fromCoarseHierarchy(entities, coarseHierarchy) : Empty;
+        return merge(atomic, coarse);
     }
 
     export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy): StructureSequence {
-        const { label_comp_id, label_seq_id } = hierarchy.residues
-        const { chainAtomSegments, residueAtomSegments } = hierarchy
-        const { count, offsets } = chainAtomSegments
+        const { label_comp_id, label_seq_id } = hierarchy.residues;
+        const { chainAtomSegments, residueAtomSegments } = hierarchy;
+        const { count, offsets } = chainAtomSegments;
 
         const byEntityKey: StructureSequence['byEntityKey'] = { };
         const sequences: StructureSequence.Entity[] = [];
@@ -85,14 +85,14 @@ namespace StructureSequence {
     }
 
     export function fromCoarseHierarchy(entities: Entities, hierarchy: CoarseHierarchy): StructureSequence {
-        const spheres = fromCoarseElements(entities, hierarchy.spheres)
-        const gaussians = fromCoarseElements(entities, hierarchy.gaussians)
-        return merge(spheres, gaussians)
+        const spheres = fromCoarseElements(entities, hierarchy.spheres);
+        const gaussians = fromCoarseElements(entities, hierarchy.gaussians);
+        return merge(spheres, gaussians);
     }
 
     export function fromCoarseElements(entities: Entities, elements: CoarseElements): StructureSequence {
-        const { chainElementSegments, seq_id_begin, seq_id_end } = elements
-        const { count, offsets } = chainElementSegments
+        const { chainElementSegments, seq_id_begin, seq_id_end } = elements;
+        const { count, offsets } = chainElementSegments;
 
         const byEntityKey: StructureSequence['byEntityKey'] = { };
         const sequences: StructureSequence.Entity[] = [];
@@ -131,4 +131,4 @@ namespace StructureSequence {
     }
 }
 
-export default StructureSequence
+export default StructureSequence;

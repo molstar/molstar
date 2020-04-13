@@ -20,17 +20,17 @@ export const CrossLinkRestraint = PluginBehavior.create<{ }>({
         private provider = ModelCrossLinkRestraint.Provider
 
         register(): void {
-            this.provider.formatRegistry.add('mmCIF', crossLinkRestraintFromMmcif)
+            this.provider.formatRegistry.add('mmCIF', crossLinkRestraintFromMmcif);
 
-            this.ctx.representation.structure.themes.colorThemeRegistry.add(CrossLinkColorThemeProvider)
-            this.ctx.representation.structure.registry.add(CrossLinkRestraintRepresentationProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(CrossLinkColorThemeProvider);
+            this.ctx.representation.structure.registry.add(CrossLinkRestraintRepresentationProvider);
         }
 
         unregister() {
-            this.provider.formatRegistry.remove('mmCIF')
+            this.provider.formatRegistry.remove('mmCIF');
 
-            this.ctx.representation.structure.themes.colorThemeRegistry.remove(CrossLinkColorThemeProvider)
-            this.ctx.representation.structure.registry.remove(CrossLinkRestraintRepresentationProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(CrossLinkColorThemeProvider);
+            this.ctx.representation.structure.registry.remove(CrossLinkRestraintRepresentationProvider);
         }
     }
 });
@@ -39,5 +39,5 @@ function crossLinkRestraintFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
     const { ihm_cross_link_restraint } = model.sourceData.data.db;
     if (ihm_cross_link_restraint._rowCount === 0) return;
-    return ModelCrossLinkRestraint.fromTable(ihm_cross_link_restraint, model)
+    return ModelCrossLinkRestraint.fromTable(ihm_cross_link_restraint, model);
 }

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { RuntimeContext } from './runtime-context'
+import { RuntimeContext } from './runtime-context';
 
 export class SynchronousRuntimeContext implements RuntimeContext {
     shouldUpdate = false;

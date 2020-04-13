@@ -20,7 +20,7 @@ const XHR = typeof document === 'undefined' ? require('xhr2') as {
     readonly LOADING: number;
     readonly OPENED: number;
     readonly UNSENT: number;
-} : XMLHttpRequest
+} : XMLHttpRequest;
 
 export enum DataCompressionMethod {
     None,
@@ -66,11 +66,11 @@ export type AjaxTask = typeof ajaxGet
 
 function isDone(data: XMLHttpRequest | FileReader) {
     if (data instanceof FileReader) {
-        return data.readyState === FileReader.DONE
+        return data.readyState === FileReader.DONE;
     } else if (data instanceof XMLHttpRequest) {
-        return data.readyState === XMLHttpRequest.DONE
+        return data.readyState === XMLHttpRequest.DONE;
     }
-    throw new Error('unknown data type')
+    throw new Error('unknown data type');
 }
 
 function genericError(isDownload: boolean) {
@@ -88,7 +88,7 @@ function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, ac
             } else {
                 resolve(data);
             }
-            return
+            return;
         }
 
         let hasError = false;
@@ -113,60 +113,60 @@ function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, ac
                 hasError = true;
                 reject(e);
             }
-        }
+        };
 
         data.onload = (e: ProgressEvent) => {
             resolve(data);
-        }
+        };
     });
 }
 
 function getCompression(name: string) {
     return /\.gz$/i.test(name) ? DataCompressionMethod.Gzip :
         /\.zip$/i.test(name) ? DataCompressionMethod.Zip :
-            DataCompressionMethod.None
+            DataCompressionMethod.None;
 }
 
 async function decompress(ctx: RuntimeContext, data: Uint8Array, compression: DataCompressionMethod): Promise<Uint8Array> {
     switch (compression) {
-        case DataCompressionMethod.None: return data
-        case DataCompressionMethod.Gzip: return ungzip(ctx, data)
+        case DataCompressionMethod.None: return data;
+        case DataCompressionMethod.Gzip: return ungzip(ctx, data);
         case DataCompressionMethod.Zip:
-            const parsed = await unzip(ctx, data.buffer)
-            const names = Object.keys(parsed)
-            if (names.length !== 1) throw new Error('can only decompress zip files with a single entry')
-            return parsed[names[0]] as Uint8Array
+            const parsed = await unzip(ctx, data.buffer);
+            const names = Object.keys(parsed);
+            if (names.length !== 1) throw new Error('can only decompress zip files with a single entry');
+            return parsed[names[0]] as Uint8Array;
     }
 }
 
 async function processFile<T extends DataType>(ctx: RuntimeContext, reader: FileReader, type: T, compression: DataCompressionMethod): Promise<DataResponse<T>> {
-    const { result } = reader
+    const { result } = reader;
 
-    let data = result instanceof ArrayBuffer ? new Uint8Array(result) : result
-    if (data === null) throw new Error('no data given')
+    let data = result instanceof ArrayBuffer ? new Uint8Array(result) : result;
+    if (data === null) throw new Error('no data given');
 
     if (compression !== DataCompressionMethod.None) {
-        if (!(data instanceof Uint8Array)) throw new Error('need Uint8Array for decompression')
+        if (!(data instanceof Uint8Array)) throw new Error('need Uint8Array for decompression');
         const decompressed = await decompress(ctx, data, compression);
         if (type === 'string') {
             await ctx.update({ message: 'Decoding text...' });
-            data = utf8Read(decompressed, 0, decompressed.length)
+            data = utf8Read(decompressed, 0, decompressed.length);
         } else {
-            data = decompressed
+            data = decompressed;
         }
     }
 
     if (type === 'binary' && data instanceof Uint8Array) {
-        return data as DataResponse<T>
+        return data as DataResponse<T>;
     } else if (type === 'string' && typeof data === 'string') {
-        return data as DataResponse<T>
+        return data as DataResponse<T>;
     } else if (type === 'xml' && typeof data === 'string') {
         const parser = new DOMParser();
-        return parser.parseFromString(data, 'application/xml') as DataResponse<T>
+        return parser.parseFromString(data, 'application/xml') as DataResponse<T>;
     } else if (type === 'json' && typeof data === 'string') {
-        return JSON.parse(data) as DataResponse<T>
+        return JSON.parse(data) as DataResponse<T>;
     }
-    throw new Error(`could not get requested response data '${type}'`)
+    throw new Error(`could not get requested response data '${type}'`);
 }
 
 function readFromFileInternal<T extends DataType>(file: File, type: T): Task<DataResponse<T>> {
@@ -174,12 +174,12 @@ function readFromFileInternal<T extends DataType>(file: File, type: T): Task<Dat
     return Task.create('Read File', async ctx => {
         try {
             reader = new FileReader();
-            const compression = getCompression(file.name)
+            const compression = getCompression(file.name);
 
             if (type === 'binary' || compression !== DataCompressionMethod.None) {
-                reader.readAsArrayBuffer(file)
+                reader.readAsArrayBuffer(file);
             } else {
-                reader.readAsText(file)
+                reader.readAsText(file);
             }
 
             await ctx.update({ message: 'Opening file...', canAbort: true });
@@ -225,15 +225,15 @@ function processAjax<T extends DataType>(req: XMLHttpRequest, type: T): DataResp
         RequestPool.deposit(req);
 
         if (type === 'binary' && response instanceof ArrayBuffer) {
-            return new Uint8Array(response) as DataResponse<T>
+            return new Uint8Array(response) as DataResponse<T>;
         } else if (type === 'string' && typeof response === 'string') {
-            return response as DataResponse<T>
+            return response as DataResponse<T>;
         } else if (type === 'xml' && response instanceof XMLDocument) {
-            return response as DataResponse<T>
+            return response as DataResponse<T>;
         } else if (type === 'json' && typeof response === 'object') {
-            return response as DataResponse<T>
+            return response as DataResponse<T>;
         }
-        throw new Error(`could not get requested response data '${type}'`)
+        throw new Error(`could not get requested response data '${type}'`);
     } else {
         const status = req.statusText;
         RequestPool.deposit(req);
@@ -243,10 +243,10 @@ function processAjax<T extends DataType>(req: XMLHttpRequest, type: T): DataResp
 
 function getRequestResponseType(type: DataType): XMLHttpRequestResponseType {
     switch(type) {
-        case 'json': return 'json'
-        case 'xml': return 'document'
-        case 'string': return 'text'
-        case 'binary': return 'arraybuffer'
+        case 'json': return 'json';
+        case 'xml': return 'document';
+        case 'string': return 'text';
+        case 'binary': return 'arraybuffer';
     }
 }
 
@@ -264,7 +264,7 @@ function ajaxGetInternal<T extends DataType>(title: string | undefined, url: str
         xhttp = void 0; // guard against reuse, help garbage collector
 
         await ctx.update({ message: 'Parsing response...', canAbort: false });
-        const result = processAjax(req, type)
+        const result = processAjax(req, type);
 
         return result;
     }, () => {
@@ -325,6 +325,6 @@ async function wrapPromise<T>(index: number, id: string, p: Promise<T>): Promise
         const result = await p;
         return { kind: 'ok', result, index, id };
     } catch (error) {
-        return { kind: 'error', error, index, id }
+        return { kind: 'error', error, index, id };
     }
 }

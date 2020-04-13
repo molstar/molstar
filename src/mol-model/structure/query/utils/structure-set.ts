@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, Unit, StructureElement } from '../../structure'
+import { Structure, Unit, StructureElement } from '../../structure';
 import { SortedArray } from '../../../../mol-data/int';
 import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
 

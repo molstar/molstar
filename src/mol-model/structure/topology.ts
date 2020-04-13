@@ -4,4 +4,4 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export * from './topology/topology'
+export * from './topology/topology';

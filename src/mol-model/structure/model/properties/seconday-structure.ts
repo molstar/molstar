@@ -19,7 +19,7 @@ interface SecondaryStructure {
 }
 
 function SecondaryStructure(type: SecondaryStructure['type'], key: SecondaryStructure['key'], elements: SecondaryStructure['elements'], getIndex: SecondaryStructure['getIndex']) {
-    return { type, key, elements, getIndex }
+    return { type, key, elements, getIndex };
 }
 
 namespace SecondaryStructure {
@@ -50,4 +50,4 @@ namespace SecondaryStructure {
     }
 }
 
-export { SecondaryStructure }
+export { SecondaryStructure };

@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { mmCIF_Database, mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif'
+import { mmCIF_Database, mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { Table, Column } from '../../../../mol-data/db';
 import { EntityIndex } from '../indexing';
 
@@ -13,7 +13,7 @@ export type EntitySubtype = (
     mmCIF_Schema['entity_poly']['type']['T'] |
     mmCIF_Schema['pdbx_entity_branch']['type']['T']
 )
-export const EntitySubtype = Column.Schema.Aliased<EntitySubtype>(Column.Schema.Str(''))
+export const EntitySubtype = Column.Schema.Aliased<EntitySubtype>(Column.Schema.Str(''));
 
 export interface Entities {
     data: mmCIF_Database['entity'],

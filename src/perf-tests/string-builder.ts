@@ -1,5 +1,5 @@
-import * as B from 'benchmark'
-import SB from '../mol-util/string-builder'
+import * as B from 'benchmark';
+import SB from '../mol-util/string-builder';
 
 export namespace Test {
     function createData(n: number) {

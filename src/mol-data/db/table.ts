@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column from './column'
-import { sortArray } from '../util/sort'
+import Column from './column';
+import { sortArray } from '../util/sort';
 import { StringBuilder } from '../../mol-util';
 
 /** A collection of columns */
@@ -55,8 +55,8 @@ namespace Table {
         ret._columns = columns;
         ret._schema = schema;
         for (const k of columns) {
-            if (k in partialColumns) ret[k] = partialColumns[k]
-            else ret[k] = Column.Undefined(rowCount, schema[k])
+            if (k in partialColumns) ret[k] = partialColumns[k];
+            else ret[k] = Column.Undefined(rowCount, schema[k]);
         }
         return ret;
     }
@@ -68,7 +68,7 @@ namespace Table {
         ret._columns = columns;
         ret._schema = schema;
         for (const k of columns) {
-            ret[k] = Column.Undefined(rowCount, schema[k])
+            ret[k] = Column.Undefined(rowCount, schema[k]);
         }
         return ret;
     }
@@ -86,7 +86,7 @@ namespace Table {
                 schema: schema[k],
                 value: r => rows[r][k],
                 valueKind: r => typeof rows[r][k] === 'undefined' ? Column.ValueKind.NotPresent : Column.ValueKind.Present
-            })
+            });
         }
         return ret as R;
     }
@@ -121,11 +121,11 @@ namespace Table {
     }
 
     export function pick<S extends R, R extends Schema>(table: Table<S>, schema: R, test: (i: number) => boolean) {
-        const _view: number[] = []
+        const _view: number[] = [];
         for (let i = 0, il = table._rowCount; i < il; ++i) {
-            if (test(i)) _view.push(i)
+            if (test(i)) _view.push(i);
         }
-        return view(table, schema, _view)
+        return view(table, schema, _view);
     }
 
     export function window<S extends R, R extends Schema>(table: Table<S>, schema: R, start: number, end: number) {
@@ -144,25 +144,25 @@ namespace Table {
     export function concat<S extends R, R extends Schema>(tables: Table<S>[], schema: R) {
         const ret = Object.create(null);
         const columns = Object.keys(schema);
-        ret._rowCount = 0
+        ret._rowCount = 0;
         for (const table of tables) {
-            ret._rowCount += table._rowCount
+            ret._rowCount += table._rowCount;
         }
-        const arrays: any = {}
+        const arrays: any = {};
         for (const column of columns) {
-            arrays[column] = new Array(ret._rowCount)
+            arrays[column] = new Array(ret._rowCount);
         }
         ret._columns = columns;
         ret._schema = schema;
-        let offset = 0
+        let offset = 0;
         for (const table of tables) {
             for (const k of columns) {
-                Column.copyToArray(table[k], arrays[k], offset)
+                Column.copyToArray(table[k], arrays[k], offset);
             }
-            offset += table._rowCount
+            offset += table._rowCount;
         }
         for (const k of columns) {
-            ret[k] = Column.ofArray({ array: arrays[k], schema: schema[k] })
+            ret[k] = Column.ofArray({ array: arrays[k], schema: schema[k] });
         }
         return ret as Table<R>;
     }
@@ -224,7 +224,7 @@ namespace Table {
     /** Pick the first row for which `test` evaluates to true */
     export function pickRow<S extends Schema>(table: Table<S>, test: (i: number) => boolean) {
         for (let i = 0, il = table._rowCount; i < il; ++i) {
-            if (test(i)) return getRow(table, i)
+            if (test(i)) return getRow(table, i);
         }
     }
 
@@ -238,13 +238,13 @@ namespace Table {
     }
 
     export function toArrays<S extends Schema>(table: Table<S>) {
-        const arrays: { [k: string]: ArrayLike<any> } = {}
+        const arrays: { [k: string]: ArrayLike<any> } = {};
         const { _columns } = table;
         for (let i = 0; i < _columns.length; i++) {
-            const c = _columns[i]
+            const c = _columns[i];
             arrays[c] = table[c].toArray();
         }
-        return arrays as { [k in keyof S]: ArrayLike<S[k]['T']> }
+        return arrays as { [k in keyof S]: ArrayLike<S[k]['T']> };
     }
 
     export function formatToString<S extends Schema>(table: Table<S>) {
@@ -280,4 +280,4 @@ namespace Table {
     }
 }
 
-export default Table
+export default Table;

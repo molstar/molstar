@@ -5,30 +5,30 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { DatabaseCollection, Database, Table, Column, ColumnHelpers } from '../../../mol-data/db'
-import { Tensor } from '../../../mol-math/linear-algebra'
-import { arrayEqual } from '../../../mol-util'
-import * as Data from './data-model'
+import { DatabaseCollection, Database, Table, Column, ColumnHelpers } from '../../../mol-data/db';
+import { Tensor } from '../../../mol-math/linear-algebra';
+import { arrayEqual } from '../../../mol-util';
+import * as Data from './data-model';
 
 export namespace FieldPath {
     export function canonical(path: string) {
-        return path.replace('.', '_').replace(/\[/, '_').replace(/(\[|\])/g, '')
+        return path.replace('.', '_').replace(/\[/, '_').replace(/(\[|\])/g, '');
     }
 
     export function equal(pathA: string, pathB: string) {
-        return canonical(pathA) === canonical(pathB)
+        return canonical(pathA) === canonical(pathB);
     }
 
     export function create(category: string, field: string, asCanonical = false) {
-        const p = `${category}${field ? `.${field}` : ''}`
-        return asCanonical ? canonical(p) : p
+        const p = `${category}${field ? `.${field}` : ''}`;
+        return asCanonical ? canonical(p) : p;
     }
 }
 
 export function toDatabaseCollection<Schema extends Database.Schema>(schema: Schema, file: Data.CifFile, aliases?: Data.CifAliases): DatabaseCollection<Schema> {
-    const dbc: DatabaseCollection<Schema> = {}
+    const dbc: DatabaseCollection<Schema> = {};
     for (const data of file.blocks) {
-        dbc[data.header] = toDatabase(schema, data, aliases)
+        dbc[data.header] = toDatabase(schema, data, aliases);
     }
     return dbc;
 }
@@ -71,8 +71,8 @@ function createListColumn<T extends number | string>(schema: Column.Schema.List<
     const itemParse = schema.itemParse;
 
     const f = category.getField(key);
-    const value = f ? (row: number) => f.str(row).split(separator).map(x => itemParse(x.trim())).filter(x => !!x) : (row: number) => []
-    const toArray: Column<T[]>['toArray'] = params => ColumnHelpers.createAndFillArray(category.rowCount, value, params)
+    const value = f ? (row: number) => f.str(row).split(separator).map(x => itemParse(x.trim())).filter(x => !!x) : (row: number) => [];
+    const toArray: Column<T[]>['toArray'] = params => ColumnHelpers.createAndFillArray(category.rowCount, value, params);
 
     return {
         schema,
@@ -98,12 +98,12 @@ function createTensorColumn(schema: Column.Schema.Tensor, category: Data.CifCate
         category.fieldNames.includes(`${key}_1`) ||
         category.fieldNames.includes(`${key}_11`) ||
         category.fieldNames.includes(`${key}_111`)
-    ) ? 'underscore' : 'brackets'
+    ) ? 'underscore' : 'brackets';
 
-    const getName = Data.tensorFieldNameGetter(key, space.rank, zeroOffset, namingVariant)
+    const getName = Data.tensorFieldNameGetter(key, space.rank, zeroOffset, namingVariant);
     const first = category.getField(getName(fst, fst, fst)) || Column.Undefined(category.rowCount, schema);
     const value = (row: number) => Data.getTensor(category, space, row, getName);
-    const toArray: Column<Tensor.Data>['toArray'] = params => ColumnHelpers.createAndFillArray(category.rowCount, value, params)
+    const toArray: Column<Tensor.Data>['toArray'] = params => ColumnHelpers.createAndFillArray(category.rowCount, value, params);
 
     return {
         schema,
@@ -163,24 +163,24 @@ function createDatabase(schema: Database.Schema, frame: Data.CifFrame, aliases?:
 type FlatFrame = { [k: string]: Data.CifField }
 
 function flattenFrame(frame: Data.CifFrame): FlatFrame {
-    const flatFrame = Object.create(null)
+    const flatFrame = Object.create(null);
     for (const c of Object.keys(frame.categories)) {
         for (const f of frame.categories[c].fieldNames) {
-            const p =  FieldPath.create(c, f, true)
-            flatFrame[p] = frame.categories[c].getField(f)
+            const p =  FieldPath.create(c, f, true);
+            flatFrame[p] = frame.categories[c].getField(f);
         }
     }
-    return flatFrame
+    return flatFrame;
 }
 
 function getField(field: string, category: string, flatFrame: FlatFrame, aliases?: Data.CifAliases) {
-    const path = FieldPath.create(category, field)
-    const canonicalPath = FieldPath.canonical(path)
-    if (canonicalPath in flatFrame) return flatFrame[canonicalPath]
+    const path = FieldPath.create(category, field);
+    const canonicalPath = FieldPath.canonical(path);
+    if (canonicalPath in flatFrame) return flatFrame[canonicalPath];
     if (aliases && path in aliases) {
         for (const aliased of aliases[path]) {
-            const canonicalAliased = FieldPath.canonical(aliased)
-            if (canonicalAliased in flatFrame) return flatFrame[canonicalAliased]
+            const canonicalAliased = FieldPath.canonical(aliased);
+            if (canonicalAliased in flatFrame) return flatFrame[canonicalAliased];
         }
     }
 }
@@ -188,16 +188,16 @@ function getField(field: string, category: string, flatFrame: FlatFrame, aliases
 function createTable(key: string, schema: Table.Schema, frame: Data.CifFrame, aliases?: Data.CifAliases) {
     let cat = frame.categories[key];
     if (aliases) {
-        const flatFrame = flattenFrame(frame)
-        const fields: { [k: string]: Data.CifField } = Object.create(null)
-        const fieldNames: string[] = []
-        let rowCount = 0
+        const flatFrame = flattenFrame(frame);
+        const fields: { [k: string]: Data.CifField } = Object.create(null);
+        const fieldNames: string[] = [];
+        let rowCount = 0;
         for (const k of Object.keys(schema)) {
-            const field = getField(k, key, flatFrame, aliases)
+            const field = getField(k, key, flatFrame, aliases);
             if (field) {
-                fields[k] = field
-                fieldNames.push(k)
-                rowCount = field.rowCount
+                fields[k] = field;
+                fieldNames.push(k);
+                rowCount = field.rowCount;
             }
         }
         cat = {
@@ -207,7 +207,7 @@ function createTable(key: string, schema: Table.Schema, frame: Data.CifFrame, al
             getField(name: string) {
                 return fields[name];
             }
-        }
+        };
     }
     return new CategoryTable(cat || Data.CifCategory.empty(key), schema, !!cat);
 }

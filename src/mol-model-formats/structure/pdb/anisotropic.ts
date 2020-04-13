@@ -68,7 +68,7 @@ export function getAnisotropic(sites: AnisotropicTemplate): { [K in keyof mmCIF_
     (fields as any)['U[1][3]'] = CifField.ofNumbers(sites['U[1][3]']);
     (fields as any)['U[2][3]'] = CifField.ofNumbers(sites['U[2][3]']);
 
-    return fields
+    return fields;
 }
 
 export function addAnisotropic(sites: AnisotropicTemplate, model: string, data: Tokenizer, s: number, e: number) {
@@ -109,22 +109,22 @@ export function addAnisotropic(sites: AnisotropicTemplate, model: string, data: 
     }
 
     // 29 - 35       Integer       u[0][0]        U(1,1)
-    sites['U[1][1]'][sites.index] = fastParseInt(str, s + 28, s + 35) / 10000
+    sites['U[1][1]'][sites.index] = fastParseInt(str, s + 28, s + 35) / 10000;
 
     // 36 - 42       Integer       u[1][1]        U(2,2)
-    sites['U[2][2]'][sites.index] = fastParseInt(str, s + 35, s + 42) / 10000
+    sites['U[2][2]'][sites.index] = fastParseInt(str, s + 35, s + 42) / 10000;
 
     // 43 - 49       Integer       u[2][2]        U(3,3)
-    sites['U[3][3]'][sites.index] = fastParseInt(str, s + 42, s + 49) / 10000
+    sites['U[3][3]'][sites.index] = fastParseInt(str, s + 42, s + 49) / 10000;
 
     // 50 - 56       Integer       u[0][1]        U(1,2)
-    sites['U[1][2]'][sites.index] = fastParseInt(str, s + 49, s + 56) / 10000
+    sites['U[1][2]'][sites.index] = fastParseInt(str, s + 49, s + 56) / 10000;
 
     // 57 - 63       Integer       u[0][2]        U(1,3)
-    sites['U[1][3]'][sites.index] = fastParseInt(str, s + 56, s + 63) / 10000
+    sites['U[1][3]'][sites.index] = fastParseInt(str, s + 56, s + 63) / 10000;
 
     // 64 - 70       Integer       u[1][2]        U(2,3)
-    sites['U[2][3]'][sites.index] = fastParseInt(str, s + 63, s + 70) / 10000
+    sites['U[2][3]'][sites.index] = fastParseInt(str, s + 63, s + 70) / 10000;
 
     // 77 - 78       LString(2)    element        Element symbol, right-justified.
     if (length >= 78) {
@@ -133,10 +133,10 @@ export function addAnisotropic(sites: AnisotropicTemplate, model: string, data: 
         if (data.tokenStart < data.tokenEnd) {
             TokenBuilder.addToken(sites.type_symbol, data);
         } else {
-            guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16)
+            guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16);
         }
     } else {
-        guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16)
+        guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16);
     }
 
     // 79 - 80       LString(2)    charge         Charge on the atom.

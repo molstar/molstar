@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { SpacegroupCell, Box3D } from '../../mol-math/geometry'
-import { Tensor, Mat4, Vec3 } from '../../mol-math/linear-algebra'
+import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
+import { Tensor, Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 
 /** The basic unit cell that contains the data. */
@@ -28,7 +28,7 @@ namespace VolumeData {
         fractionalBox: Box3D.empty(),
         data: Tensor.create(Tensor.Space([1, 1, 1], [0, 1, 2]), Tensor.Data1([0])),
         dataStats: { min: 0, max: 0, mean: 0, sigma: 0 }
-    }
+    };
 
     const _scale = Mat4.zero(), _translate = Mat4.zero();
     export function getGridToCartesianTransform(volume: VolumeData) {
@@ -39,7 +39,7 @@ namespace VolumeData {
     }
 
     export function areEquivalent(volA: VolumeData, volB: VolumeData) {
-        return volA === volB
+        return volA === volB;
     }
 }
 
@@ -50,33 +50,33 @@ namespace VolumeIsoValue {
     export type Absolute = Readonly<{ kind: 'absolute', absoluteValue: number }>
 
     export function areSame(a: VolumeIsoValue, b: VolumeIsoValue, stats: VolumeData['dataStats']) {
-        return equalEps(toAbsolute(a, stats).absoluteValue, toAbsolute(b, stats).absoluteValue, stats.sigma / 100)
+        return equalEps(toAbsolute(a, stats).absoluteValue, toAbsolute(b, stats).absoluteValue, stats.sigma / 100);
     }
 
     export function absolute(value: number): Absolute { return { kind: 'absolute', absoluteValue: value }; }
     export function relative(value: number): Relative { return { kind: 'relative', relativeValue: value }; }
 
     export function calcAbsolute(stats: VolumeData['dataStats'], relativeValue: number): number {
-        return relativeValue * stats.sigma + stats.mean
+        return relativeValue * stats.sigma + stats.mean;
     }
 
     export function calcRelative(stats: VolumeData['dataStats'], absoluteValue: number): number {
-        return stats.sigma === 0 ? 0 : ((absoluteValue - stats.mean) / stats.sigma)
+        return stats.sigma === 0 ? 0 : ((absoluteValue - stats.mean) / stats.sigma);
     }
 
     export function toAbsolute(value: VolumeIsoValue, stats: VolumeData['dataStats']): Absolute {
-        return value.kind === 'absolute' ? value : { kind: 'absolute', absoluteValue: VolumeIsoValue.calcAbsolute(stats, value.relativeValue) }
+        return value.kind === 'absolute' ? value : { kind: 'absolute', absoluteValue: VolumeIsoValue.calcAbsolute(stats, value.relativeValue) };
     }
 
     export function toRelative(value: VolumeIsoValue, stats: VolumeData['dataStats']): Relative {
-        return value.kind === 'relative' ? value : { kind: 'relative', relativeValue: VolumeIsoValue.calcRelative(stats, value.absoluteValue) }
+        return value.kind === 'relative' ? value : { kind: 'relative', relativeValue: VolumeIsoValue.calcRelative(stats, value.absoluteValue) };
     }
 
     export function toString(value: VolumeIsoValue) {
         return value.kind === 'relative'
             ? `${value.relativeValue} σ`
-            : `${value.absoluteValue}`
+            : `${value.absoluteValue}`;
     }
 }
 
-export { VolumeData, VolumeIsoValue }
+export { VolumeData, VolumeIsoValue };

@@ -16,4 +16,4 @@ export const attachModelProperties: AttachModelProperties = (args) => {
         PDBe_preferredAssembly(args),
         PDBe_structRefDomain(args)
     ];
-}
+};

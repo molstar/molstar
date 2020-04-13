@@ -114,7 +114,7 @@ export function Highlight(ctx: PluginContext) {
             if (SO.Molecule.Structure.is(cell.obj)) {
                 ctx.managers.interactivity.lociHighlights.highlight({ loci: Structure.Loci(cell.obj.data) }, false);
             } else if (cell && SO.isRepresentation3D(cell.obj)) {
-                const { repr } = cell.obj.data
+                const { repr } = cell.obj.data;
                 ctx.managers.interactivity.lociHighlights.highlight({ loci: repr.getLoci(), repr }, false);
             } else if (SO.Molecule.Structure.Selections.is(cell.obj)) {
                 for (const entry of cell.obj.data) {
@@ -182,7 +182,7 @@ export function Snapshots(ctx: PluginContext) {
     PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, ({ name }) => {
         const json = JSON.stringify(ctx.state.getSnapshot(), null, 2);
         const blob = new Blob([json], {type : 'application/json;charset=utf-8'});
-        download(blob, `mol-star_state_${(name || getFormattedTime())}.json`)
+        download(blob, `mol-star_state_${(name || getFormattedTime())}.json`);
     });
 
     PluginCommands.State.Snapshots.OpenFile.subscribe(ctx, async ({ file }) => {

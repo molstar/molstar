@@ -5,11 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Task, RuntimeContext } from '../../../mol-task'
-import { Tensor } from '../../../mol-math/linear-algebra'
-import { Mesh } from '../../geometry/mesh/mesh'
-import { Index, EdgeIdInfo, CubeEdges, EdgeTable, TriTable } from './tables'
-import { defaults } from '../../../mol-util'
+import { Task, RuntimeContext } from '../../../mol-task';
+import { Tensor } from '../../../mol-math/linear-algebra';
+import { Mesh } from '../../geometry/mesh/mesh';
+import { Index, EdgeIdInfo, CubeEdges, EdgeTable, TriTable } from './tables';
+import { defaults } from '../../../mol-util';
 import { MarchinCubesBuilder, MarchinCubesMeshBuilder, MarchinCubesLinesBuilder } from './builder';
 import { Lines } from '../../geometry/lines/lines';
 
@@ -34,7 +34,7 @@ function getInputParams(params: MarchingCubesParams): MarchingCubesInputParams {
         ...params,
         bottomLeft: defaults(params.bottomLeft, [0, 0, 0] as ReadonlyArray<number>),
         topRight: defaults(params.topRight, params.scalarField.space.dimensions)
-    }
+    };
 }
 
 function getExtent(inputParams: MarchingCubesInputParams) {
@@ -42,30 +42,30 @@ function getExtent(inputParams: MarchingCubesInputParams) {
         dX: inputParams.topRight[0] - inputParams.bottomLeft[0],
         dY: inputParams.topRight[1] - inputParams.bottomLeft[1],
         dZ: inputParams.topRight[2] - inputParams.bottomLeft[2]
-    }
+    };
 }
 
 export function computeMarchingCubesMesh(params: MarchingCubesParams, mesh?: Mesh) {
     return Task.create('Marching Cubes Mesh', async ctx => {
-        const inputParams = getInputParams(params)
-        const { dX, dY, dZ } = getExtent(inputParams)
+        const inputParams = getInputParams(params);
+        const { dX, dY, dZ } = getExtent(inputParams);
         // TODO should it be configurable? Scalar fields can produce meshes with vastly different densities.
-        const vertexChunkSize = Math.min(262144, Math.max(dX * dY * dZ / 32, 1024))
-        const builder = MarchinCubesMeshBuilder(vertexChunkSize, mesh)
-        await (new MarchingCubesComputation(ctx, builder, inputParams)).run()
-        return builder.get()
+        const vertexChunkSize = Math.min(262144, Math.max(dX * dY * dZ / 32, 1024));
+        const builder = MarchinCubesMeshBuilder(vertexChunkSize, mesh);
+        await (new MarchingCubesComputation(ctx, builder, inputParams)).run();
+        return builder.get();
     });
 }
 
 export function computeMarchingCubesLines(params: MarchingCubesParams, lines?: Lines) {
     return Task.create('Marching Cubes Lines', async ctx => {
-        const inputParams = getInputParams(params)
-        const { dX, dY, dZ } = getExtent(inputParams)
+        const inputParams = getInputParams(params);
+        const { dX, dY, dZ } = getExtent(inputParams);
         // TODO should it be configurable? Scalar fields can produce meshes with vastly different densities.
-        const vertexChunkSize = Math.min(262144, Math.max(dX * dY * dZ / 32, 1024))
-        const builder = MarchinCubesLinesBuilder(vertexChunkSize, lines)
-        await (new MarchingCubesComputation(ctx, builder, inputParams)).run()
-        return builder.get()
+        const vertexChunkSize = Math.min(262144, Math.max(dX * dY * dZ / 32, 1024));
+        const builder = MarchinCubesLinesBuilder(vertexChunkSize, lines);
+        await (new MarchingCubesComputation(ctx, builder, inputParams)).run();
+        return builder.get();
     });
 }
 
@@ -81,7 +81,7 @@ class MarchingCubesComputation {
     private async doSlices() {
         let done = 0;
 
-        this.edgeFilter = 15
+        this.edgeFilter = 15;
         for (let k = this.minZ; k < this.maxZ; k++, this.edgeFilter &= ~4) {
             this.slice(k);
 
@@ -93,9 +93,9 @@ class MarchingCubesComputation {
     }
 
     private slice(k: number) {
-        this.edgeFilter |= 2
+        this.edgeFilter |= 2;
         for (let j = this.minY; j < this.maxY; j++, this.edgeFilter &= ~2) {
-            this.edgeFilter |= 1
+            this.edgeFilter |= 1;
             for (let i = this.minX; i < this.maxX; i++, this.edgeFilter &= ~1) {
                 this.state.processCell(i, j, k, this.edgeFilter);
             }
@@ -155,8 +155,8 @@ class MarchingCubesState {
         const ret = this.verticesOnEdges[edgeId];
         if (ret > 0) return ret - 1;
 
-        const sf = this.scalarField
-        const sfg = this.scalarFieldGet
+        const sf = this.scalarField;
+        const sfg = this.scalarFieldGet;
 
         const edge = CubeEdges[edgeNum];
         const a = edge.a, b = edge.b;
@@ -168,12 +168,12 @@ class MarchingCubesState {
 
         if (this.idField) {
             const u = this.idFieldGet!(this.idField, li, lj, lk);
-            const v = this.idFieldGet!(this.idField, hi, hj, hk)
+            const v = this.idFieldGet!(this.idField, hi, hj, hk);
             let a = t < 0.5 ? u : v;
             // -1 means 'no id', check if the other cell has an id
             if (a === -1) a = t < 0.5 ? v : u;
             // -2 means 'ignore this cell'
-            if (a === -2) return -1
+            if (a === -2) return -1;
             this.builder.addGroup(a);
         } else {
             this.builder.addGroup(0);
@@ -188,19 +188,19 @@ class MarchingCubesState {
 
         // TODO cache scalarField differences for slices
         // TODO make calculation optional
-        const n0x = sfg(sf, Math.max(0, li - 1), lj, lk) - sfg(sf, Math.min(this.nX - 1, li + 1), lj, lk)
-        const n0y = sfg(sf, li, Math.max(0, lj - 1), lk) - sfg(sf, li, Math.min(this.nY - 1, lj + 1), lk)
-        const n0z = sfg(sf, li, lj, Math.max(0, lk - 1)) - sfg(sf, li, lj, Math.min(this.nZ, lk + 1))
+        const n0x = sfg(sf, Math.max(0, li - 1), lj, lk) - sfg(sf, Math.min(this.nX - 1, li + 1), lj, lk);
+        const n0y = sfg(sf, li, Math.max(0, lj - 1), lk) - sfg(sf, li, Math.min(this.nY - 1, lj + 1), lk);
+        const n0z = sfg(sf, li, lj, Math.max(0, lk - 1)) - sfg(sf, li, lj, Math.min(this.nZ, lk + 1));
 
-        const n1x = sfg(sf, Math.max(0, hi - 1), hj, hk) - sfg(sf, Math.min(this.nX - 1, hi + 1), hj, hk)
-        const n1y = sfg(sf, hi, Math.max(0, hj - 1), hk) - sfg(sf, hi, Math.min(this.nY - 1, hj + 1), hk)
-        const n1z = sfg(sf, hi, hj, Math.max(0, hk - 1)) - sfg(sf, hi, hj, Math.min(this.nZ - 1, hk + 1))
+        const n1x = sfg(sf, Math.max(0, hi - 1), hj, hk) - sfg(sf, Math.min(this.nX - 1, hi + 1), hj, hk);
+        const n1y = sfg(sf, hi, Math.max(0, hj - 1), hk) - sfg(sf, hi, Math.min(this.nY - 1, hj + 1), hk);
+        const n1z = sfg(sf, hi, hj, Math.max(0, hk - 1)) - sfg(sf, hi, hj, Math.min(this.nZ - 1, hk + 1));
 
         this.builder.addNormal(
             n0x + t * (n0x - n1x),
             n0y + t * (n0y - n1y),
             n0z + t * (n0z - n1z)
-        )
+        );
 
         return id;
     }
@@ -255,7 +255,7 @@ class MarchingCubesState {
 
         const triInfo = TriTable[tableIndex];
         for (let t = 0; t < triInfo.length; t += 3) {
-            this.builder.addTriangle(this.vertList, triInfo[t], triInfo[t + 1], triInfo[t + 2], edgeFilter)
+            this.builder.addTriangle(this.vertList, triInfo[t], triInfo[t + 1], triInfo[t + 2], edgeFilter);
         }
     }
 }

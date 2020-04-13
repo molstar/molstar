@@ -5,7 +5,7 @@ import { readCifFile, getModelsAndStructure } from '../apps/structure-info/model
 import { CustomPropSymbol } from '../mol-script/language/symbol';
 import Type from '../mol-script/language/type';
 import { parseMolScript } from '../mol-script/language/parser';
-import * as util from 'util'
+import * as util from 'util';
 import { transpileMolScript } from '../mol-script/script/mol-script/symbols';
 import { formatMolScript } from '../mol-script/language/expression-formatter';
 import { StructureQualityReport, StructureQualityReportProvider } from '../mol-model-props/pdbe/structure-quality-report';
@@ -65,12 +65,12 @@ DefaultQueryRuntimeTable.addCustomProp(StructureQualityReportProvider.descriptor
 export async function testQ() {
     const frame = await readCifFile('e:/test/quick/1cbs_updated.cif');
     const { structure } = await getModelsAndStructure(frame);
-    const model = structure.models[0]
+    const model = structure.models[0];
 
     const rawData = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.entryId.toLowerCase()}`, { timeout: 1500 });
     const data = StructureQualityReport.fromJson(model, await rawData.json());
 
-    StructureQualityReportProvider.set(model, { serverUrl: '' }, data)
+    StructureQualityReportProvider.set(model, { serverUrl: '' }, data);
 
     let expr = MolScriptBuilder.struct.generator.atomGroups({
         'atom-test': MolScriptBuilder.core.rel.eq([

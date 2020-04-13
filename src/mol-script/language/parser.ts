@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MonadicParser as P } from '../../mol-util/monadic-parser'
-import Expression from './expression'
-import { MolScriptBuilder as B } from './builder'
+import { MonadicParser as P } from '../../mol-util/monadic-parser';
+import Expression from './expression';
+import { MolScriptBuilder as B } from './builder';
 
 export function parseMolScript(input: string) {
     return Language.parse(input);
@@ -42,7 +42,7 @@ namespace Language {
         export function str(value: string): Str { return { kind: 'string', value }; }
         export function symb(value: string): Symb { return { kind: 'symbol', value }; }
         export function list(bracket: '(' | '[' | '{', nodes: Expression[]): List { return { kind: 'list', bracket, nodes }; }
-        export function comment(value: string): Comment { return { kind: 'comment', value } }
+        export function comment(value: string): Comment { return { kind: 'comment', value }; }
     }
 
     const ws = P.regexp(/[\n\r\s]*/);

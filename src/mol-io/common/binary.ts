@@ -18,15 +18,15 @@ export function flipByteOrder(data: Uint8Array, bytes: number) {
     return buffer;
 }
 
-const ChunkSize = 0x7000
+const ChunkSize = 0x7000;
 export function uint8ToString(array: Uint8Array) {
     if (array.length > ChunkSize) {
-        const c = []
+        const c = [];
         for (let i = 0; i < array.length; i += ChunkSize) {
-            c.push(String.fromCharCode.apply(null, array.subarray(i, i + ChunkSize)))
+            c.push(String.fromCharCode.apply(null, array.subarray(i, i + ChunkSize)));
         }
-        return c.join('')
+        return c.join('');
     } else {
-        return String.fromCharCode.apply(null, array)
+        return String.fromCharCode.apply(null, array);
     }
 }

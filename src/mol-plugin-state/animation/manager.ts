@@ -9,7 +9,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { PluginStateAnimation } from './model';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
-export { PluginAnimationManager }
+export { PluginAnimationManager };
 
 // TODO: pause functionality (this needs to reset if the state tree changes)
 // TODO: handle unregistered animations on state restore
@@ -54,7 +54,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
             state: {},
             startedTime: -1,
             lastTime: 0
-        }
+        };
         this.triggerUpdate();
     }
 

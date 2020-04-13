@@ -67,7 +67,7 @@ export class TrajectoryHierarchyBuilder {
             if (p.isApplicable && !p.isApplicable(t, this.plugin)) continue;
 
             options.push([p.id, p.display.name]);
-            map[p.id] = p.params ? PD.Group(p.params(t, this.plugin)) : PD.EmptyGroup()
+            map[p.id] = p.params ? PD.Group(p.params(t, this.plugin)) : PD.EmptyGroup();
         }
         if (options.length === 0) return PD.MappedStatic('', { '': PD.EmptyGroup() });
         return PD.MappedStatic(options[0][0], map, { options });
@@ -82,8 +82,8 @@ export class TrajectoryHierarchyBuilder {
     }
 
     unregisterPreset(provider: TrajectoryHierarchyPresetProvider) {
-        this.providerMap.delete(provider.id)
-        arrayRemoveInPlace(this._providers, provider)
+        this.providerMap.delete(provider.id);
+        arrayRemoveInPlace(this._providers, provider);
     }
 
     applyPreset<K extends keyof PresetTrajectoryHierarchy>(parent: StateObjectRef<PluginStateObject.Molecule.Trajectory>, preset: K, params?: Partial<TrajectoryHierarchyPresetProvider.Params<PresetTrajectoryHierarchy[K]>>): Promise<TrajectoryHierarchyPresetProvider.State<PresetTrajectoryHierarchy[K]>> | undefined
@@ -101,7 +101,7 @@ export class TrajectoryHierarchyBuilder {
 
         const prms = params || (provider.params
             ? PD.getDefaultValues(provider.params(cell.obj, this.plugin) as PD.Params)
-            : {})
+            : {});
 
         const task = Task.create(`${provider.display.name}`, () => provider.apply(cell, prms, this.plugin) as Promise<any>);
         return this.plugin.runTask(task);

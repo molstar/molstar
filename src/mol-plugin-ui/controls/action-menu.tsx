@@ -21,7 +21,7 @@ export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
                 {section}
             </ControlGroup>}
             {!cmd.header && section}
-        </div>
+        </div>;
     }
 }
 
@@ -206,7 +206,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
                 isItems(this.props.items) && isItems(prevProps.items) &&
                 isHeader(this.props.items[0]) && isHeader(prevProps.items[0]) &&
                 this.props.items[0].label === prevProps.items[0].label
-            ) ? this.state.isExpanded : undefined
+            ) ? this.state.isExpanded : undefined;
             this.setState(Section.createState(this.props, isExpanded));
         }
     }
@@ -251,7 +251,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { items, onSelect, current } = this.props;
 
         if (isHeader(items)) return null;
-        if (isItem(items)) return <Action item={items} onSelect={onSelect} current={current} multiselect={this.props.multiselect} />
+        if (isItem(items)) return <Action item={items} onSelect={onSelect} current={current} multiselect={this.props.multiselect} />;
 
         const { header } = this.state;
         return <>
@@ -259,8 +259,8 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
             <div className={this.props.noOffset ? void 0 : this.props.noAccent ? 'msp-control-offset' : 'msp-accent-offset'}>
                 {(!header || this.state.isExpanded) && items.map((x, i) => {
                     if (isHeader(x)) return null;
-                    if (isItem(x)) return <Action key={i} item={x} onSelect={onSelect} current={current} multiselect={this.props.multiselect} />
-                    return <Section key={i} items={x} onSelect={onSelect} current={current} multiselect={this.props.multiselect} noAccent />
+                    if (isItem(x)) return <Action key={i} item={x} onSelect={onSelect} current={current} multiselect={this.props.multiselect} />;
+                    return <Section key={i} items={x} onSelect={onSelect} current={current} multiselect={this.props.multiselect} noAccent />;
                 })}
             </div>
         </>;
@@ -280,7 +280,7 @@ const Action: React.FC<{
         {isCurrent || item.selected ? <b>{item.label}</b> : item.label}
         {item.addOn}
     </Button>;
-}
+};
 
 function isItems(x: any): x is ActionMenu.Items[] {
     return !!x && Array.isArray(x);

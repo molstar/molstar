@@ -9,4 +9,4 @@ export default `
 #endif
 
 uniform float uSizeFactor;
-`
+`;

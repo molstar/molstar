@@ -21,7 +21,7 @@ export const NullLocationValue: LocationValue = {
     groupIndex: 0,
     instanceIndex: 0,
     isSecondary: false
-}
+};
 
 export interface LocationIterator extends Iterator<LocationValue> {
     readonly hasNext: boolean
@@ -46,57 +46,57 @@ export function LocationIterator(groupCount: number, instanceCount: number, getL
         groupIndex: 0,
         instanceIndex: 0,
         isSecondary: false
-    }
+    };
 
-    let hasNext = value.groupIndex < groupCount
-    let isNextNewInstance = false
-    let groupIndex = 0
-    let instanceIndex = 0
+    let hasNext = value.groupIndex < groupCount;
+    let isNextNewInstance = false;
+    let groupIndex = 0;
+    let instanceIndex = 0;
 
     return {
-        get hasNext () { return hasNext },
-        get isNextNewInstance () { return isNextNewInstance },
+        get hasNext () { return hasNext; },
+        get isNextNewInstance () { return isNextNewInstance; },
         groupCount,
         instanceCount,
         count: groupCount * instanceCount,
         isComplex,
         move() {
             if (hasNext) {
-                value.groupIndex = groupIndex
-                value.instanceIndex = instanceIndex
-                value.index = instanceIndex * groupCount + groupIndex
-                value.location = getLocation(groupIndex, instanceIndex)
-                value.isSecondary = isSecondary(groupIndex, instanceIndex)
-                ++groupIndex
+                value.groupIndex = groupIndex;
+                value.instanceIndex = instanceIndex;
+                value.index = instanceIndex * groupCount + groupIndex;
+                value.location = getLocation(groupIndex, instanceIndex);
+                value.isSecondary = isSecondary(groupIndex, instanceIndex);
+                ++groupIndex;
                 if (groupIndex === groupCount) {
-                    ++instanceIndex
-                    isNextNewInstance = true
-                    if (instanceIndex < instanceCount) groupIndex = 0
+                    ++instanceIndex;
+                    isNextNewInstance = true;
+                    if (instanceIndex < instanceCount) groupIndex = 0;
                 } else {
-                    isNextNewInstance = false
+                    isNextNewInstance = false;
                 }
-                hasNext = groupIndex < groupCount
+                hasNext = groupIndex < groupCount;
             }
-            return value
+            return value;
         },
         reset() {
-            value.location = NullLocation
-            value.index = 0
-            value.groupIndex = 0
-            value.instanceIndex = 0
-            value.isSecondary = false
+            value.location = NullLocation;
+            value.index = 0;
+            value.groupIndex = 0;
+            value.instanceIndex = 0;
+            value.isSecondary = false;
 
-            hasNext = value.groupIndex < groupCount
-            isNextNewInstance = false
-            groupIndex = 0
-            instanceIndex = 0
+            hasNext = value.groupIndex < groupCount;
+            isNextNewInstance = false;
+            groupIndex = 0;
+            instanceIndex = 0;
         },
         skipInstance() {
             if (hasNext && value.instanceIndex === instanceIndex) {
-                ++instanceIndex
-                groupIndex = 0
-                hasNext = instanceIndex < instanceCount
+                ++instanceIndex;
+                groupIndex = 0;
+                hasNext = instanceIndex < instanceCount;
             }
         }
-    }
+    };
 }

@@ -93,7 +93,7 @@ export const DefaultPluginSpec: PluginSpec = {
         [PluginConfig.State.DefaultServer, 'https://webchem.ncbr.muni.cz/molstar-state'],
         [PluginConfig.VolumeStreaming.DefaultServer, 'https://ds.litemol.org']
     ])
-}
+};
 
 export function createPlugin(target: HTMLElement, spec?: PluginSpec): PluginContext {
     const ctx = new PluginContext(spec || DefaultPluginSpec);

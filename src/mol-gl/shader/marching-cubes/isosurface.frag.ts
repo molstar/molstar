@@ -207,4 +207,4 @@ void main(void) {
     mat3 normalMatrix = transpose3(inverse3(mat3(uGridTransform)));
     gl_FragData[1].xyz = normalMatrix * gl_FragData[1].xyz;
 }
-`
+`;

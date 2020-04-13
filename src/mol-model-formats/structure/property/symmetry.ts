@@ -14,14 +14,14 @@ import { CustomPropertyDescriptor } from '../../../mol-model/structure';
 import { FormatPropertyProvider } from '../common/property';
 import { Table } from '../../../mol-data/db';
 
-export { ModelSymmetry }
+export { ModelSymmetry };
 
 namespace ModelSymmetry {
     export const Descriptor: CustomPropertyDescriptor = {
         name: 'model_symmetry',
     };
 
-    export const Provider = FormatPropertyProvider.create<Symmetry>(Descriptor)
+    export const Provider = FormatPropertyProvider.create<Symmetry>(Descriptor);
 
     type Data = {
         symmetry: Table<mmCIF_Schema['symmetry']>
@@ -50,14 +50,14 @@ function checkNonStandardCrystalFrame(atom_sites: Table<mmCIF_Schema['atom_sites
 function getSpacegroupNameOrNumber(symmetry: Table<mmCIF_Schema['symmetry']>) {
     const groupNumber = symmetry['Int_Tables_number'].value(0);
     const groupName = symmetry['space_group_name_H-M'].value(0);
-    if (!symmetry['Int_Tables_number'].isDefined) return groupName
-    if (!symmetry['space_group_name_H-M'].isDefined) return groupNumber
-    return groupName
+    if (!symmetry['Int_Tables_number'].isDefined) return groupName;
+    if (!symmetry['space_group_name_H-M'].isDefined) return groupNumber;
+    return groupName;
 }
 
 function getSpacegroup(symmetry: Table<mmCIF_Schema['symmetry']>, cell: Table<mmCIF_Schema['cell']>): Spacegroup {
     if (symmetry._rowCount === 0 || cell._rowCount === 0) return Spacegroup.ZeroP1;
-    const nameOrNumber = getSpacegroupNameOrNumber(symmetry)
+    const nameOrNumber = getSpacegroupNameOrNumber(symmetry);
     const spaceCell = SpacegroupCell.create(nameOrNumber,
         Vec3.create(cell.length_a.value(0), cell.length_b.value(0), cell.length_c.value(0)),
         Vec3.scale(Vec3.zero(), Vec3.create(cell.angle_alpha.value(0), cell.angle_beta.value(0), cell.angle_gamma.value(0)), Math.PI / 180));
@@ -78,7 +78,7 @@ function getNcsOperators(struct_ncs_oper: Table<mmCIF_Schema['struct_ncs_oper']>
         if (!SymmetryOperator.checkIfRotationAndTranslation(m, v)) continue;
         // ignore non-identity 'given' NCS operators
         if (struct_ncs_oper.code.value(i) === 'given' && !Mat3.isIdentity(m) && !Vec3.isZero(v)) continue;
-        const ncsId = id.value(i)
+        const ncsId = id.value(i);
         opers[opers.length] = SymmetryOperator.ofRotationAndOffset(`ncs_${ncsId}`, m, v, ncsId);
     }
     return opers;

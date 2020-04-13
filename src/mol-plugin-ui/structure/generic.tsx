@@ -37,16 +37,16 @@ export class GenericEntryListControls extends PurePluginUIComponent {
     }
 
     get customControls(): JSX.Element[] | null {
-        const controls: JSX.Element[] = []
+        const controls: JSX.Element[] = [];
         this.plugin.genericRepresentationControls.forEach((provider, key) => {
-            const [refs, labelMultiple] = provider(this.plugin.managers.structure.hierarchy.selection)
+            const [refs, labelMultiple] = provider(this.plugin.managers.structure.hierarchy.selection);
             if (refs.length > 0) {
                 controls.push(<div key={key}>
                     <GenericEntry refs={refs} labelMultiple={labelMultiple} />
-                </div>)
+                </div>);
             }
-        })
-        return controls.length > 0 ? controls : null
+        });
+        return controls.length > 0 ? controls : null;
     }
 
     render() {
@@ -55,7 +55,7 @@ export class GenericEntryListControls extends PurePluginUIComponent {
                 {this.unitcell}
                 {this.customControls}
             </div>
-        </>
+        </>;
     }
 }
 
@@ -111,7 +111,7 @@ export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<
                 continue;
             }
 
-            const l = uc.cell.obj?.data.repr.getLoci()
+            const l = uc.cell.obj?.data.repr.getLoci();
             if (l) loci.push(l);
         }
         this.plugin.managers.camera.focusLoci(loci);

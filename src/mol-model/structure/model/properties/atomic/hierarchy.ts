@@ -5,10 +5,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column, Table } from '../../../../../mol-data/db'
-import { Segmentation } from '../../../../../mol-data/int'
-import { mmCIF_Schema as mmCIF } from '../../../../../mol-io/reader/cif/schema/mmcif'
-import { ElementSymbol, MoleculeType, PolymerType } from '../../types'
+import { Column, Table } from '../../../../../mol-data/db';
+import { Segmentation } from '../../../../../mol-data/int';
+import { mmCIF_Schema as mmCIF } from '../../../../../mol-io/reader/cif/schema/mmcif';
+import { ElementSymbol, MoleculeType, PolymerType } from '../../types';
 import { ChainIndex, EntityIndex, ResidueIndex, ElementIndex } from '../../indexing';
 import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
 
@@ -100,7 +100,7 @@ export const ChainsSchema = {
      * For mmCIF files, this points to _entity.id in the ENTITY category.
      */
     label_entity_id: mmCIF.atom_site.label_entity_id
-}
+};
 export type ChainsSchema = typeof ChainsSchema
 export type Chains = Table<ChainsSchema>
 
@@ -243,6 +243,6 @@ export namespace AtomicHierarchy {
     }
 
     export function chainResidueCount(segs: AtomicSegments, cI: ChainIndex) {
-        return chainEndResidueIndexExcl(segs, cI) - chainStartResidueIndex(segs, cI)
+        return chainEndResidueIndexExcl(segs, cI) - chainStartResidueIndex(segs, cI);
     }
 }

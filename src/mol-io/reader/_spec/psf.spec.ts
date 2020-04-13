@@ -68,43 +68,43 @@ const psfString = `PSF CMAP CHEQ
       31      33      31      34      36      35      35      37
       37      38      37      39      39      40      39      41
       39      42
-`
+`;
 
 describe('psf reader', () => {
     it('basic', async () => {
         const parsed = await parsePsf(psfString).run();
 
         if (parsed.isError) {
-            throw new Error(parsed.message)
+            throw new Error(parsed.message);
         }
 
         const psfFile = parsed.result;
         const { id, title, atoms, bonds } = psfFile;
 
-        expect(id).toBe('PSF CMAP CHEQ')
+        expect(id).toBe('PSF CMAP CHEQ');
         expect(title).toEqual([
             'BETA HARPIN IN IMPLICIT SOLVENT',
             'DATE:    11/22/10     16:54: 9      CREATED BY USER: aokur'
-        ])
+        ]);
 
-        expect(atoms.atomId.value(0)).toBe(1)
-        expect(atoms.atomId.value(41)).toBe(42)
-        expect(atoms.segmentName.value(0)).toBe('ALA3')
-        expect(atoms.residueId.value(0)).toBe(1)
-        expect(atoms.residueId.value(41)).toBe(3)
-        expect(atoms.residueName.value(0)).toBe('ALA')
-        expect(atoms.atomName.value(0)).toBe('CAY')
-        expect(atoms.atomName.value(41)).toBe('HT3')
-        expect(atoms.atomType.value(0)).toBe('24')
-        expect(atoms.atomType.value(41)).toBe('3')
-        expect(atoms.charge.value(0)).toBeCloseTo(-0.270000, 0.00001)
-        expect(atoms.charge.value(41)).toBeCloseTo(0.090000, 0.00001)
-        expect(atoms.mass.value(0)).toBeCloseTo(12.0110, 0.00001)
-        expect(atoms.mass.value(41)).toBeCloseTo(1.00800, 0.00001)
+        expect(atoms.atomId.value(0)).toBe(1);
+        expect(atoms.atomId.value(41)).toBe(42);
+        expect(atoms.segmentName.value(0)).toBe('ALA3');
+        expect(atoms.residueId.value(0)).toBe(1);
+        expect(atoms.residueId.value(41)).toBe(3);
+        expect(atoms.residueName.value(0)).toBe('ALA');
+        expect(atoms.atomName.value(0)).toBe('CAY');
+        expect(atoms.atomName.value(41)).toBe('HT3');
+        expect(atoms.atomType.value(0)).toBe('24');
+        expect(atoms.atomType.value(41)).toBe('3');
+        expect(atoms.charge.value(0)).toBeCloseTo(-0.270000, 0.00001);
+        expect(atoms.charge.value(41)).toBeCloseTo(0.090000, 0.00001);
+        expect(atoms.mass.value(0)).toBeCloseTo(12.0110, 0.00001);
+        expect(atoms.mass.value(41)).toBeCloseTo(1.00800, 0.00001);
 
-        expect(bonds.atomIdA.value(0)).toBe(5)
-        expect(bonds.atomIdB.value(0)).toBe(1)
-        expect(bonds.atomIdA.value(40)).toBe(39)
-        expect(bonds.atomIdB.value(40)).toBe(42)
+        expect(bonds.atomIdA.value(0)).toBe(5);
+        expect(bonds.atomIdB.value(0)).toBe(1);
+        expect(bonds.atomIdA.value(40)).toBe(39);
+        expect(bonds.atomIdB.value(40)).toBe(42);
     });
 });

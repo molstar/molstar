@@ -177,8 +177,8 @@ export class PluginContext {
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
 
             (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas);
-            this.events.canvas3d.initialized.next()
-            this.events.canvas3d.initialized.isStopped = true // TODO is this a good way?
+            this.events.canvas3d.initialized.next();
+            this.events.canvas3d.initialized.isStopped = true; // TODO is this a good way?
             const renderer = this.canvas3d!.props.renderer;
             PluginCommands.Canvas3D.SetSettings(this, { settings: { renderer: { ...renderer, backgroundColor: Color(0xFCFBF9) } } });
             this.canvas3d!.animate();
@@ -254,7 +254,7 @@ export class PluginContext {
         let timeout: any = void 0;
         const setBusy = () => {
             isBusy.next(true);
-        }
+        };
 
         merge(this.behaviors.state.isUpdating, this.behaviors.state.isAnimating).subscribe(v => {
             const isUpdating = this.behaviors.state.isUpdating.value;
@@ -277,7 +277,7 @@ export class PluginContext {
             if (!v) {
                 this.managers.interactivity?.lociSelects.deselectAll();
             }
-        })
+        });
     }
 
     private initBuiltInBehavior() {

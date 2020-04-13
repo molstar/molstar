@@ -37,7 +37,7 @@ namespace IntClassifier {
     }
 
     type SizeInfo = { pack8: number, pack16: number, count: number }
-    function SizeInfo(): SizeInfo { return { pack8: 0, pack16: 0, count: 0 } };
+    function SizeInfo(): SizeInfo { return { pack8: 0, pack16: 0, count: 0 }; };
 
     function incSize({ limit8, limit16 }: IntColumnInfo, info: SizeInfo, value: number) {
         info.pack8 += packSize(value, limit8);

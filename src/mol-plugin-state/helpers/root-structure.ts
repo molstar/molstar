@@ -18,25 +18,25 @@ import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmet
 
 export namespace RootStructureDefinition {
     export function getParams(model?: Model, defaultValue?: 'auto' | 'deposited' | 'assembly' | 'symmetry' | 'symmetry-mates' | 'symmetry-assembly') {
-        const symmetry = model && ModelSymmetry.Provider.get(model)
+        const symmetry = model && ModelSymmetry.Provider.get(model);
 
         const assemblyIds = symmetry ? symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]) : [];
         const showSymm = !symmetry ? true : !SpacegroupCell.isZero(symmetry.spacegroup.cell);
 
-        const operatorOptions: [number, string][] = []
+        const operatorOptions: [number, string][] = [];
         if (symmetry) {
-            const { operators } = symmetry.spacegroup
+            const { operators } = symmetry.spacegroup;
             for (let i = 0, il = operators.length; i < il; i++) {
-                operatorOptions.push([i, `${i + 1}: ${Spacegroup.getOperatorXyz(operators[i])}`])
+                operatorOptions.push([i, `${i + 1}: ${Spacegroup.getOperatorXyz(operators[i])}`]);
             }
         }
 
-        const asymIdsOptions: [string, string][] = []
+        const asymIdsOptions: [string, string][] = [];
         if (model) {
             model.properties.structAsymMap.forEach(v => {
-                const label = v.id === v.auth_id ? v.id : `${v.id} [auth ${v.auth_id}]`
-                asymIdsOptions.push([v.id, label])
-            })
+                const label = v.id === v.auth_id ? v.id : `${v.id} [auth ${v.auth_id}]`;
+                asymIdsOptions.push([v.id, label]);
+            });
         }
 
         const modes = {
@@ -102,7 +102,7 @@ export namespace RootStructureDefinition {
     async function buildAssembly(plugin: PluginContext, ctx: RuntimeContext, model: Model, id?: string) {
         let asm: Assembly | undefined = void 0;
 
-        const symmetry = ModelSymmetry.Provider.get(model)
+        const symmetry = ModelSymmetry.Provider.get(model);
 
         // if no id is specified, use the 1st assembly.
         if (!id && symmetry && symmetry.assemblies.length !== 0) {
@@ -154,7 +154,7 @@ export namespace RootStructureDefinition {
     }
 
     export async function create(plugin: PluginContext, ctx: RuntimeContext, model: Model, params?: Params): Promise<SO.Molecule.Structure> {
-        const symmetry = ModelSymmetry.Provider.get(model)
+        const symmetry = ModelSymmetry.Provider.get(model);
         if (!symmetry || !params || params.name === 'deposited') {
             const s = Structure.ofModel(model);
             return new SO.Molecule.Structure(s, { label: 'Deposited', description: Structure.elementDescription(s) });
@@ -168,16 +168,16 @@ export namespace RootStructureDefinition {
             }
         }
         if (params.name === 'assembly') {
-            return buildAssembly(plugin, ctx, model, params.params.id)
+            return buildAssembly(plugin, ctx, model, params.params.id);
         }
         if (params.name === 'symmetry') {
-            return buildSymmetry(ctx, model, params.params.ijkMin, params.params.ijkMax)
+            return buildSymmetry(ctx, model, params.params.ijkMin, params.params.ijkMax);
         }
         if (params.name === 'symmetry-mates') {
-            return buildSymmetryMates(ctx, model, params.params.radius)
+            return buildSymmetryMates(ctx, model, params.params.radius);
         }
         if (params.name === 'symmetry-assembly') {
-            return buildSymmetryAssembly(ctx, model, params.params.generators, symmetry)
+            return buildSymmetryAssembly(ctx, model, params.params.generators, symmetry);
         }
 
         throw new Error(`Unknown represetation type: ${(params as any).name}`);

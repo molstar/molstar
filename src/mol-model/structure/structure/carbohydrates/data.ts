@@ -51,7 +51,7 @@ export interface Carbohydrates {
     getTerminalLinkIndices: (unit: Unit.Atomic, element: ElementIndex) => ReadonlyArray<number>
 }
 
-const EmptyArray: ReadonlyArray<any> = []
+const EmptyArray: ReadonlyArray<any> = [];
 export const EmptyCarbohydrates: Carbohydrates = {
     links: EmptyArray,
     terminalLinks: EmptyArray,
@@ -61,4 +61,4 @@ export const EmptyCarbohydrates: Carbohydrates = {
     getElementIndices: () => EmptyArray,
     getLinkIndices: () => EmptyArray,
     getTerminalLinkIndices: () => EmptyArray,
-}
+};

@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'fs';
+import * as path from 'path';
 import { FileHandle } from '../../../mol-io/common/file-handle';
 import { SimpleBuffer } from '../../../mol-io/common/simple-buffer';
 
@@ -24,7 +24,7 @@ export async function openRead(filename: string) {
             } catch (e) {
                 fs.closeSync(file);
             }
-        })
+        });
     });
 }
 
@@ -54,7 +54,7 @@ export function createFile(filename: string) {
         fs.open(filename, 'w', (err, file) => {
             if (err) rej(err);
             else res(file);
-        })
+        });
     });
 }
 

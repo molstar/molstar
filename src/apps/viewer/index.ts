@@ -7,8 +7,8 @@
 
 import '../../mol-util/polyfill';
 import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
-import './index.html'
-import './favicon.ico'
+import './index.html';
+import './favicon.ico';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginSpec } from '../../mol-plugin/spec';
@@ -16,7 +16,7 @@ import { LoadCellPackModel } from './extensions/cellpack/model';
 import { StructureFromCellpack } from './extensions/cellpack/state';
 import { DownloadStructure } from '../../mol-plugin-state/actions/structure';
 import { PluginConfig } from '../../mol-plugin/config';
-require('mol-plugin-ui/skin/light.scss')
+require('mol-plugin-ui/skin/light.scss');
 
 function getParam(name: string, regex: string): string {
     let r = new RegExp(`${name}=(${regex})[&]?`, 'i');
@@ -62,7 +62,7 @@ async function trySetSnapshot(ctx: PluginContext) {
         const url = snapshotId
             ? `https://webchem.ncbr.muni.cz/molstar-state/get/${snapshotId}`
             : snapshotUrl;
-        await PluginCommands.State.Snapshots.Fetch(ctx, { url })
+        await PluginCommands.State.Snapshots.Fetch(ctx, { url });
     } catch (e) {
         ctx.log.error('Failed to load snapshot.');
         console.warn('Failed to load snapshot', e);

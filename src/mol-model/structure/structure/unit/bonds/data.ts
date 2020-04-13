@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { BondType } from '../../../model/types'
+import { BondType } from '../../../model/types';
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
 import Unit from '../../unit';
 import StructureElement from '../../element';
@@ -37,4 +37,4 @@ namespace InterUnitBonds {
     export type BondInfo = InterUnitGraph.EdgeInfo<StructureElement.UnitIndex, InterUnitEdgeProps>
 }
 
-export { IntraUnitBonds, InterUnitBonds, InterUnitEdgeProps }
+export { IntraUnitBonds, InterUnitBonds, InterUnitEdgeProps };

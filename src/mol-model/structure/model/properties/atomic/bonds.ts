@@ -58,16 +58,16 @@ const IntraBondOrderTable = new Map([
     ['DT|C5|C6', 2],
     ['DT|C2|O2', 2],
     ['DT|C4|O4', 2]
-])
+]);
 
 /**
  * Get order for bonds in aminoacids and nucleotides assuming standard IUPAC naming
  */
 export function getIntraBondOrderFromTable (compId: string, atomId1: string, atomId2: string) {
-    [ atomId1, atomId2 ] = atomId1 < atomId2 ? [ atomId1, atomId2 ] : [ atomId2, atomId1 ]
-    if (AminoAcidNames.has(compId) && atomId1 === 'C' && atomId2 === 'O') return 2
-    if (BaseNames.has(compId) && atomId1 === 'OP1' && atomId2 === 'P') return 2
-    return IntraBondOrderTable.get(`${compId}|${atomId1}|${atomId2}`) || 1
+    [ atomId1, atomId2 ] = atomId1 < atomId2 ? [ atomId1, atomId2 ] : [ atomId2, atomId1 ];
+    if (AminoAcidNames.has(compId) && atomId1 === 'C' && atomId2 === 'O') return 2;
+    if (BaseNames.has(compId) && atomId1 === 'OP1' && atomId2 === 'P') return 2;
+    return IntraBondOrderTable.get(`${compId}|${atomId1}|${atomId2}`) || 1;
 }
 
 /**
@@ -76,7 +76,7 @@ export function getIntraBondOrderFromTable (compId: string, atomId1: string, ato
  */
 const InterBondOrderTable = new Map([
     ['LYS|NZ|RET|C15', 2] // Schiff base in Rhodopsin and Bacteriorhodopsin
-])
+]);
 
 /**
  * Get order for bonds between component assuming PDBx/mmCIF naming.
@@ -86,5 +86,5 @@ export function getInterBondOrderFromTable (compId1: string, atomId1: string, co
         [ compId1, compId2 ] = [ compId2, compId1 ];
         [ atomId1, atomId2 ] = [ atomId2, atomId1 ];
     }
-    return InterBondOrderTable.get(`${compId1}|${atomId1}|${compId2}|${atomId2}`) || 1
+    return InterBondOrderTable.get(`${compId1}|${atomId1}|${compId2}|${atomId2}`) || 1;
 }

@@ -18,7 +18,7 @@ const CrcTable = (function() {
         tab[n] = c;
     }
     return tab;
-})()
+})();
 
 function _crc(c: number, buf: Uint8Array, off: number, len: number) {
     for (let i = 0; i < len; i++)  {
@@ -33,7 +33,7 @@ export function crc(b: Uint8Array, o: number, l: number)  {
 
 export function adler(data: Uint8Array, o: number, len: number) {
     let a = 1, b = 0;
-    let off = o
+    let off = o;
     const end = o + len;
     while(off < end) {
         const eend = Math.min(off + 5552, end);

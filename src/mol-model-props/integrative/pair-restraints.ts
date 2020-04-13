@@ -6,7 +6,7 @@
 
 import { StructureElement, Unit } from '../../mol-model/structure';
 
-const emptyArray: number[] = []
+const emptyArray: number[] = [];
 
 export interface PairRestraint {
     readonly unitA: Unit,
@@ -16,7 +16,7 @@ export interface PairRestraint {
 }
 
 function getPairKey(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit) {
-    return `${indexA}|${unitA.id}|${indexB}|${unitB.id}`
+    return `${indexA}|${unitA.id}|${indexB}|${unitB.id}`;
 }
 
 export class PairRestraints<T extends PairRestraint> {
@@ -25,25 +25,25 @@ export class PairRestraints<T extends PairRestraint> {
 
     /** Indices into this.pairs */
     getPairIndices(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit): ReadonlyArray<number> {
-        const key = getPairKey(indexA, unitA, indexB, unitB)
-        return this.pairKeyIndices.get(key) || emptyArray
+        const key = getPairKey(indexA, unitA, indexB, unitB);
+        return this.pairKeyIndices.get(key) || emptyArray;
     }
 
     getPairs(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit): T[] {
-        const indices = this.getPairIndices(indexA, unitA, indexB, unitB)
-        return indices.map(idx => this.pairs[idx])
+        const indices = this.getPairIndices(indexA, unitA, indexB, unitB);
+        return indices.map(idx => this.pairs[idx]);
     }
 
     constructor(public pairs: ReadonlyArray<T>) {
-        const pairKeyIndices = new Map<string, number[]>()
+        const pairKeyIndices = new Map<string, number[]>();
         this.pairs.forEach((p, i) => {
-            const key = getPairKey(p.indexA, p.unitA, p.indexB, p.unitB)
-            const indices = pairKeyIndices.get(key)
-            if (indices) indices.push(i)
-            else pairKeyIndices.set(key, [i])
-        })
+            const key = getPairKey(p.indexA, p.unitA, p.indexB, p.unitB);
+            const indices = pairKeyIndices.get(key);
+            if (indices) indices.push(i);
+            else pairKeyIndices.set(key, [i]);
+        });
 
-        this.count = pairs.length
-        this.pairKeyIndices = pairKeyIndices
+        this.count = pairs.length;
+        this.pairKeyIndices = pairKeyIndices;
     }
 }

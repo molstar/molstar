@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task, Progress, Scheduler, MultistepTask, chunkedSubtask } from '../mol-task'
+import { Task, Progress, Scheduler, MultistepTask, chunkedSubtask } from '../mol-task';
 import { now } from '../mol-util/now';
 
 export async function test1() {
@@ -85,19 +85,19 @@ export const ms = MultistepTask('ms-task', ['step 1', 'step 2', 'step 3'], async
     await step(0);
 
     const child = Task.create('chunked', async ctx => {
-        const s = await chunkedSubtask(ctx, 25, { i: 0, current: 0, total: 125 }, processChunk, (ctx, s, p) => ctx.update('chunk test ' + p))
+        const s = await chunkedSubtask(ctx, 25, { i: 0, current: 0, total: 125 }, processChunk, (ctx, s, p) => ctx.update('chunk test ' + p));
         return s.i;
     });
 
     await child.runAsChild(ctx);
     await Scheduler.delay(250);
     await step(1);
-    await chunkedSubtask(ctx, 25, { i: 0, current: 0, total: 80 }, processChunk, (ctx, s, p) => ctx.update('chunk test ' + p))
+    await chunkedSubtask(ctx, 25, { i: 0, current: 0, total: 80 }, processChunk, (ctx, s, p) => ctx.update('chunk test ' + p));
     await Scheduler.delay(250);
     await step(2);
     await Scheduler.delay(250);
     return p.i + 3;
-})
+});
 
 
 export function abortingObserver(p: Progress) {

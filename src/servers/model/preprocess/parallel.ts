@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as path from 'path'
-import * as cluster from 'cluster'
+import * as path from 'path';
+import * as cluster from 'cluster';
 import { now } from '../../../mol-util/now';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { preprocessFile } from './preprocess';
@@ -28,9 +28,9 @@ export function runMaster(config: PreprocessConfig, entries: PreprocessEntry[]) 
             const elapsed = now() - started;
             console.log(`[${progress}/${entries.length}] in ${PerformanceMonitor.format(elapsed)} (avg ${PerformanceMonitor.format(elapsed / progress)}).`);
         } else if (msg.type === 'error') {
-            console.error(`${msg.id}: ${msg.error}`)
+            console.error(`${msg.id}: ${msg.error}`);
         }
-    }
+    };
 
     if (entries.length === 1) {
         runSingle(entries[0], config, onMessage);

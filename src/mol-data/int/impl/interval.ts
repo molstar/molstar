@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Tuple from '../tuple'
+import Tuple from '../tuple';
 
 export const Empty = Tuple.Zero;
 export function ofRange(min: number, max: number) { return max < min ? Tuple.create(min, min) : Tuple.create(min, max + 1); }
@@ -64,5 +64,5 @@ export function intersect(a: Tuple, b: Tuple) {
 }
 
 export function intersectionSize(a: Tuple, b: Tuple) {
-    return size(findRange(a, min(b), max(b)))
+    return size(findRange(a, min(b), max(b)));
 }

@@ -5,9 +5,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CifWriter } from '../../../mol-io/writer/cif'
-import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif'
-import { Structure } from '../structure'
+import { CifWriter } from '../../../mol-io/writer/cif';
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
+import { Structure } from '../structure';
 import { _atom_site } from './categories/atom_site';
 import CifCategory = CifWriter.Category
 import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
@@ -41,10 +41,10 @@ const _entity: CifCategory<CifExportContext> = {
         const indices = getUniqueEntityIndicesFromStructures(structures);
         return CifCategory.ofTable(structures[0].model.entities.data, indices);
     }
-}
+};
 
 function isWithoutSymmetry(structure: Structure) {
-    return structure.units.every(u => u.conformation.operator.isIdentity)
+    return structure.units.every(u => u.conformation.operator.isIdentity);
 }
 
 const Categories = [
@@ -97,7 +97,7 @@ export const mmCIF_Export_Filters = {
         includeCategory(name) { return name === 'atom_site'; },
         includeField(cat, field) { return _Filters.AtomSitePositionsFieldNames.has(field); }
     }
-}
+};
 
 function encodeCustomProp(customProp: CustomPropertyDescriptor, ctx: CifExportContext, encoder: CifWriter.Encoder, params: encode_mmCIF_categories_Params) {
     if (!customProp.cifExport || customProp.cifExport.categories.length === 0) return;
@@ -160,4 +160,4 @@ function to_mmCIF(name: string, structure: Structure, asBinary = false) {
     return enc.getData();
 }
 
-export default to_mmCIF
+export default to_mmCIF;

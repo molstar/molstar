@@ -7,4 +7,4 @@
 import { StateTree } from './tree/immutable';
 import { TransientTree } from './tree/transient';
 
-export { StateTree, TransientTree }
+export { StateTree, TransientTree };

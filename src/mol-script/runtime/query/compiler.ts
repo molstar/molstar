@@ -4,5 +4,5 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from './base'
-import './table'
+export * from './base';
+import './table';

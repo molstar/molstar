@@ -6,7 +6,7 @@
 
 // adapted from three.js, MIT License Copyright 2010-2018 three.js authors
 
-import { Vec3 } from '../../mol-math/linear-algebra'
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { Primitive } from './primitive';
 
 export const DefaultCylinderProps = {
@@ -19,7 +19,7 @@ export const DefaultCylinderProps = {
     bottomCap: false,
     thetaStart: 0.0,
     thetaLength: Math.PI * 2
-}
+};
 export type CylinderProps = Partial<typeof DefaultCylinderProps>
 
 export function Cylinder(props?: CylinderProps): Primitive {
@@ -45,10 +45,10 @@ export function Cylinder(props?: CylinderProps): Primitive {
         vertices: new Float32Array(vertices),
         normals: new Float32Array(normals),
         indices: new Uint32Array(indices)
-    }
+    };
 
     function generateTorso() {
-        const normal = Vec3.zero()
+        const normal = Vec3.zero();
 
         // this will be used to calculate the normal
         const slope = (radiusBottom - radiusTop) / height;

@@ -4,17 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import S from '../sorted-array'
-import I from '../interval'
+import S from '../sorted-array';
+import I from '../interval';
 
 type OrderedSetImpl = I | S
 type Nums = ArrayLike<number>
 
 export const Empty: OrderedSetImpl = I.Empty;
 
-export const ofSingleton = I.ofSingleton
-export const ofRange = I.ofRange
-export const ofBounds = I.ofBounds
+export const ofSingleton = I.ofSingleton;
+export const ofRange = I.ofRange;
+export const ofBounds = I.ofBounds;
 
 export function ofSortedArray(xs: Nums): OrderedSetImpl {
     if (!xs.length) return Empty;

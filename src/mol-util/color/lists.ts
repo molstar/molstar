@@ -202,17 +202,17 @@ export const ColorLists = {
         '',
         [ 0xBF2222, 0xFFFFFF, 0x3361E1 ]
     ),
-}
+};
 
 export type ColorListName = keyof typeof ColorLists
-export const ColorListNames = Object.keys(ColorLists)
-export const ColorListOptions = ColorListNames.map(n => [n, ColorLists[n as ColorListName].label, capitalize(ColorLists[n as ColorListName].type)] as [ColorListName, string, string])
+export const ColorListNames = Object.keys(ColorLists);
+export const ColorListOptions = ColorListNames.map(n => [n, ColorLists[n as ColorListName].label, capitalize(ColorLists[n as ColorListName].type)] as [ColorListName, string, string]);
 
-export const ColorListOptionsScale = ColorListOptions.filter(v => ColorLists[v[0]].type === 'diverging' || ColorLists[v[0]].type === 'sequential')
-export const ColorListOptionsSet = ColorListOptions.filter(v => ColorLists[v[0]].type === 'qualitative')
+export const ColorListOptionsScale = ColorListOptions.filter(v => ColorLists[v[0]].type === 'diverging' || ColorLists[v[0]].type === 'sequential');
+export const ColorListOptionsSet = ColorListOptions.filter(v => ColorLists[v[0]].type === 'qualitative');
 
 export function getColorListFromName(name: ColorListName) {
-    if (name in ColorLists) return ColorLists[name as ColorListName]
-    console.warn(`unknown color list named '${name}'`)
-    return ColorLists['red-yellow-blue']
+    if (name in ColorLists) return ColorLists[name as ColorListName];
+    console.warn(`unknown color list named '${name}'`);
+    return ColorLists['red-yellow-blue'];
 }

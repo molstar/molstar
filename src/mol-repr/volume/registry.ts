@@ -11,11 +11,11 @@ import { objectForEach } from '../../mol-util/object';
 
 export class VolumeRepresentationRegistry extends RepresentationRegistry<VolumeData, Representation.State> {
     constructor() {
-        super()
+        super();
         objectForEach(VolumeRepresentationRegistry.BuiltIn, (p, k) => {
             if (p.name !== k) throw new Error(`Fix BuiltInVolumeRepresentations to have matching names. ${p.name} ${k}`);
-            this.add(p as any)
-        })
+            this.add(p as any);
+        });
     }
 }
 
@@ -23,7 +23,7 @@ export namespace VolumeRepresentationRegistry {
     export const BuiltIn = {
         'isosurface': IsosurfaceRepresentationProvider,
         // 'direct-volume': DirectVolumeRepresentationProvider, // TODO disabled for now, needs more work
-    }
+    };
 
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn

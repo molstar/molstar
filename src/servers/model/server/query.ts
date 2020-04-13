@@ -67,7 +67,7 @@ async function resolveSingleFile(job: Job) {
                 headerMap.set(header, i);
                 header += ' ' + i;
             } else {
-                headerMap.set(header, 0)
+                headerMap.set(header, 0);
             }
 
             encoder.startDataBlock(header);
@@ -163,7 +163,7 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
         const queries = structures.map(s => entry.queryDefinition.query(entry.normalizedParams, s));
         const result: Structure[] = [];
         for (let i = 0; i < structures.length; i++) {
-            const s = await StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], { timeoutMs: Config.queryTimeoutMs }))
+            const s = await StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], { timeoutMs: Config.queryTimeoutMs }));
             if (s.elementCount > 0) result.push(s);
         }
         perf.end('query');
@@ -282,4 +282,4 @@ const _model_server_params: CifWriter.Category<JobEntry> = {
 const _model_server_stats: CifWriter.Category<Stats> = {
     name: 'model_server_stats',
     instance: (stats) => CifWriter.categoryInstance(_model_server_stats_fields, { data: stats, rowCount: 1 })
-}
+};

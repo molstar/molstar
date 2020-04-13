@@ -91,14 +91,14 @@ function getConformation(atom_site: AtomSite): AtomicConformation {
         x: atom_site.Cartn_x.toArray({ array: Float32Array }),
         y: atom_site.Cartn_y.toArray({ array: Float32Array }),
         z: atom_site.Cartn_z.toArray({ array: Float32Array }),
-    }
+    };
 }
 
 function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
     // TODO need to cast because of how TS handles type resolution for interfaces https://github.com/Microsoft/TypeScript/issues/15300
     return Table.areEqual(a.chains, b.chains)
         && Table.areEqual(a.residues, b.residues)
-        && Table.areEqual(a.atoms, b.atoms)
+        && Table.areEqual(a.atoms, b.atoms);
 }
 
 function createChainOperatorMappingAndSubstituteNames(hierarchy: AtomicData, format: ModelFormat) {
@@ -171,7 +171,7 @@ function getAtomicHierarchy(atom_site: AtomSite, sourceIndex: Column<number>, en
     const hierarchySegments: AtomicSegments = {
         residueAtomSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, Interval.ofBounds(0, atom_site._rowCount)),
         chainAtomSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, Interval.ofBounds(0, atom_site._rowCount)),
-    }
+    };
 
     const index = getAtomicIndex(hierarchyData, entities, hierarchySegments);
     const derived = getAtomicDerivedData(hierarchyData, index, chemicalComponentMap);
@@ -180,7 +180,7 @@ function getAtomicHierarchy(atom_site: AtomSite, sourceIndex: Column<number>, en
 }
 
 export function getAtomicHierarchyAndConformation(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, chemicalComponentMap: Model['properties']['chemicalComponentMap'], format: ModelFormat, previous?: Model) {
-    const { sameAsPrevious, hierarchy, chainOperatorMapping } = getAtomicHierarchy(atom_site, sourceIndex, entities, chemicalComponentMap, format, previous)
-    const conformation = getConformation(atom_site)
+    const { sameAsPrevious, hierarchy, chainOperatorMapping } = getAtomicHierarchy(atom_site, sourceIndex, entities, chemicalComponentMap, format, previous);
+    const conformation = getConformation(atom_site);
     return { sameAsPrevious, hierarchy, conformation, chainOperatorMapping };
 }

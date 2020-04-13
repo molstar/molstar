@@ -41,4 +41,4 @@ void main(){
         #include apply_fog
     #endif
 }
-`
+`;

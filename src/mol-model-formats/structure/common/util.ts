@@ -6,22 +6,22 @@
 
 import { memoize1 } from '../../../mol-util/memoize';
 
-const ChainIdAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+const ChainIdAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 function _getChainId (index: number) {
-    const n = ChainIdAlphabet.length
-    let j = index
-    let k = 0
-    let chainId = ChainIdAlphabet[j % n]
+    const n = ChainIdAlphabet.length;
+    let j = index;
+    let k = 0;
+    let chainId = ChainIdAlphabet[j % n];
     while (j >= n) {
-        j = Math.floor(j / n)
-        chainId += ChainIdAlphabet[j % n]
-        k += 1
+        j = Math.floor(j / n);
+        chainId += ChainIdAlphabet[j % n];
+        k += 1;
     }
     if (k >= 5) {
-        console.warn('getChainId overflow')
+        console.warn('getChainId overflow');
     }
-    return chainId
+    return chainId;
 }
 
-export const getChainId = memoize1(_getChainId)
+export const getChainId = memoize1(_getChainId);

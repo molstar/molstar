@@ -50,5 +50,5 @@ export function chainIndex(e: Location) {
 }
 
 export function entityIndex(l: Location) {
-    return StructureProperties.entity.key(l)
+    return StructureProperties.entity.key(l);
 }

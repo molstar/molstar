@@ -31,7 +31,7 @@ class CameraSnapshotControls extends PluginUIComponent<{ }, { name: string, desc
 
     add = () => {
         PluginCommands.Camera.Snapshots.Add(this.plugin, this.state);
-        this.setState({ name: '', description: '' })
+        this.setState({ name: '', description: '' });
     }
 
     clear = () => {
@@ -62,7 +62,7 @@ class CameraSnapshotList extends PluginUIComponent<{ }, { }> {
     remove(id: string) {
         return () => {
             PluginCommands.Camera.Snapshots.Remove(this.plugin, { id });
-        }
+        };
     }
 
     render() {

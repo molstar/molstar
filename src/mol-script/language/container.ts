@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Expression from './expression'
+import Expression from './expression';
 
 interface Container {
     source?: string,
@@ -12,4 +12,4 @@ interface Container {
     expression: Expression
 }
 
-export default Container
+export default Container;

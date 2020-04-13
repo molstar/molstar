@@ -21,29 +21,29 @@ function InflateContext(data: Uint8Array, buf?: Uint8Array) {
         BFINAL: 0,
         off: 0,
         pos: 0
-    }
+    };
 }
 type InflateContext = ReturnType<typeof InflateContext>
 
 function inflateBlocks(ctx: InflateContext, count: number) {
-    const { data, noBuf } = ctx
-    let { buf, BFINAL, off, pos } = ctx
+    const { data, noBuf } = ctx;
+    let { buf, BFINAL, off, pos } = ctx;
 
-    let iBlock = 0
+    let iBlock = 0;
 
     while(BFINAL === 0 && iBlock < count) {
         let lmap, dmap;
         let ML = 0, MD = 0;
 
         BFINAL = _bitsF(data, pos, 1);
-        iBlock += 1
+        iBlock += 1;
         const BTYPE = _bitsF(data, pos + 1, 2);
         pos += 3;
 
         if(BTYPE === 0) {
             // uncompressed block
             if((pos & 7) !== 0) pos += 8 - (pos & 7);
-            const p8 = (pos >>> 3) + 4
+            const p8 = (pos >>> 3) + 4;
             const len = data[p8 - 4] | (data[p8 - 3] << 8);
             if(noBuf) buf = _check(buf, off + len);
             buf.set(new Uint8Array(data.buffer, data.byteOffset + p8, len), off);
@@ -96,7 +96,7 @@ function inflateBlocks(ctx: InflateContext, count: number) {
             makeCodes(U.dtree, mx1);
             codes2map(U.dtree, mx1, dmap);
         } else {
-            throw new Error(`unknown BTYPE ${BTYPE}`)
+            throw new Error(`unknown BTYPE ${BTYPE}`);
         }
 
         while(true) {
@@ -118,7 +118,7 @@ function inflateBlocks(ctx: InflateContext, count: number) {
                 const dcode = dmap[_get17(data, pos) & MD];
                 pos += dcode & 15;
                 const dlit = dcode >>> 4;
-                const dbs = U.ddef[dlit]
+                const dbs = U.ddef[dlit];
                 const dst = (dbs >>> 4) + _bitsF(data, pos, dbs & 15);
                 pos += dbs & 15;
 
@@ -134,22 +134,22 @@ function inflateBlocks(ctx: InflateContext, count: number) {
         }
     }
 
-    ctx.buf = buf
-    ctx.BFINAL = BFINAL
-    ctx.off = off
-    ctx.pos = pos
+    ctx.buf = buf;
+    ctx.BFINAL = BFINAL;
+    ctx.off = off;
+    ctx.pos = pos;
 }
 
 // https://tools.ietf.org/html/rfc1951
 export async function _inflate(runtime: RuntimeContext, data: Uint8Array, buf?: Uint8Array) {
     if(data[0] === 3 && data[1] === 0) return (buf ? buf : new Uint8Array(0));
 
-    const ctx = InflateContext(data, buf)
+    const ctx = InflateContext(data, buf);
     while(ctx.BFINAL === 0) {
         if (runtime.shouldUpdate) {
-            await runtime.update({ message: 'Inflating blocks...', current: ctx.pos, max: data.length })
+            await runtime.update({ message: 'Inflating blocks...', current: ctx.pos, max: data.length });
         }
-        inflateBlocks(ctx, 100)
+        inflateBlocks(ctx, 100);
     }
     return ctx.buf.length === ctx.off ? ctx.buf : ctx.buf.slice(0, ctx.off);
 }
@@ -195,7 +195,7 @@ function _decodeTiny(lmap: NumberArray, LL: number, len: number, data: Uint8Arra
 }
 
 function _copyOut(src: number[], off: number, len: number, tree: number[]) {
-    let mx = 0, i = 0
+    let mx = 0, i = 0;
     const tl = tree.length >>> 1;
     while(i < len) {
         let v = src[i + off];

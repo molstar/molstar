@@ -22,11 +22,11 @@ import { SpacefillRepresentationProvider } from './representation/spacefill';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
     constructor() {
-        super()
+        super();
         objectForEach(StructureRepresentationRegistry.BuiltIn, (p, k) => {
             if (p.name !== k) throw new Error(`Fix BuiltInStructureRepresentations to have matching names. ${p.name} ${k}`);
-            this.add(p as any)
-        })
+            this.add(p as any);
+        });
     }
 }
 
@@ -44,7 +44,7 @@ export namespace StructureRepresentationRegistry {
         'point': PointRepresentationProvider,
         'putty': PuttyRepresentationProvider,
         'spacefill': SpacefillRepresentationProvider,
-    }
+    };
 
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn

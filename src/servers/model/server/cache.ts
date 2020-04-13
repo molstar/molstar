@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ConsoleLogger } from '../../../mol-util/console-logger'
+import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { LinkedList } from '../../../mol-data/generic';
 import { ModelServerConfig as ServerConfig } from '../config';
 

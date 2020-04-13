@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CustomStructureProperty } from '../../../../mol-model-props/common/custom-structure-property'
-import { Structure, CustomPropertyDescriptor } from '../../../../mol-model/structure'
-import { CustomProperty } from '../../../../mol-model-props/common/custom-property'
-import { ParamDefinition as PD } from '../../../../mol-util/param-definition'
+import { CustomStructureProperty } from '../../../../mol-model-props/common/custom-structure-property';
+import { Structure, CustomPropertyDescriptor } from '../../../../mol-model/structure';
+import { CustomProperty } from '../../../../mol-model-props/common/custom-property';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 
 export type CellPackInfoValue = {
     packingsCount: number
@@ -16,7 +16,7 @@ export type CellPackInfoValue = {
 
 const CellPackInfoParams = {
     info: PD.Value<CellPackInfoValue>({ packingsCount: 1, packingIndex: 0 }, { isHidden: true })
-}
+};
 type CellPackInfoParams = PD.Values<typeof CellPackInfoParams>
 
 export const CellPackInfoProvider: CustomStructureProperty.Provider<typeof CellPackInfoParams, CellPackInfoValue> = CustomStructureProperty.createProvider({
@@ -27,6 +27,6 @@ export const CellPackInfoProvider: CustomStructureProperty.Provider<typeof CellP
     getParams: (data: Structure) => CellPackInfoParams,
     isApplicable: (data: Structure) => true,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: CellPackInfoParams) => {
-        return { ...CellPackInfoParams.info.defaultValue, ...props.info }
+        return { ...CellPackInfoParams.info.defaultValue, ...props.info };
     }
-})
+});

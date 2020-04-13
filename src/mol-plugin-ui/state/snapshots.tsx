@@ -210,10 +210,10 @@ export class RemoteStateSnapshots extends PluginUIComponent<
                 });
             }
 
-            this.setState({ entries: entries.asImmutable(), isBusy: false })
+            this.setState({ entries: entries.asImmutable(), isBusy: false });
         } catch (e) {
             this.plugin.log.error('Fetching Remote Snapshots: ' + e);
-            this.setState({ entries: OrderedMap(), isBusy: false })
+            this.setState({ entries: OrderedMap(), isBusy: false });
         }
     }
 
