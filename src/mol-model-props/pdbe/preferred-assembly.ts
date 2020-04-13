@@ -15,7 +15,7 @@ export namespace PDBePreferredAssembly {
     export type Property = string
 
     export function getFirstFromModel(model: Model): Property {
-        const symmetry = ModelSymmetry.Provider.get(model)
+        const symmetry = ModelSymmetry.Provider.get(model);
         return symmetry?.assemblies.length ? symmetry.assemblies[0].id : '';
     }
 

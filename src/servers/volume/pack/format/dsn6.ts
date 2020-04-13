@@ -11,7 +11,7 @@ import { TypedArrayValueType } from '../../../../mol-io/common/typed-array';
 import { Dsn6Header } from '../../../../mol-io/reader/dsn6/schema';
 
 async function readHeader(name: string, file: FileHandle) {
-    const { header: dsn6Header, littleEndian } = await readDsn6Header(file)
+    const { header: dsn6Header, littleEndian } = await readDsn6Header(file);
 
     const header: Header = {
         name,
@@ -42,18 +42,18 @@ export async function readSlices(data: Data) {
     }
 
     const { extent, dataOffset, originalHeader } = header;
-    const sliceCount = extent[2]
+    const sliceCount = extent[2];
 
-    const { byteCount } = getDsn6Counts(originalHeader as Dsn6Header)
+    const { byteCount } = getDsn6Counts(originalHeader as Dsn6Header);
     if (byteCount > slices.maxBlockBytes) {
-        throw new Error(`dsn6 file to large, can't read ${byteCount} bytes at once, increase block size or use another file format`)
+        throw new Error(`dsn6 file to large, can't read ${byteCount} bytes at once, increase block size or use another file format`);
     }
 
-    const { buffer } = await file.readBuffer(dataOffset, byteCount)
+    const { buffer } = await file.readBuffer(dataOffset, byteCount);
     if (!(slices.values instanceof Float32Array)) {
-        throw new Error(`dsn6 reader only supports Float32Array for output values`)
+        throw new Error(`dsn6 reader only supports Float32Array for output values`);
     }
-    await parseDsn6Values(originalHeader as Dsn6Header, buffer, slices.values, header.littleEndian)
+    await parseDsn6Values(originalHeader as Dsn6Header, buffer, slices.values, header.littleEndian);
 
     slices.slicesRead += sliceCount;
     slices.sliceCount = sliceCount;
@@ -63,4 +63,4 @@ export async function readSlices(data: Data) {
     }
 }
 
-export const Dsn6Provider: Provider = { readHeader, readSlices }
+export const Dsn6Provider: Provider = { readHeader, readSlices };

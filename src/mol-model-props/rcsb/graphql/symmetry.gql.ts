@@ -22,4 +22,4 @@ query AssemblySymmetry($assembly_id: String!, $entry_id: String!) {
         }
     }
 }
-`
+`;

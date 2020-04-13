@@ -15,26 +15,26 @@ import { Boundary } from '../../../../mol-math/geometry/boundary';
 export type MolecularSurfaceProps = MolecularSurfaceCalculationProps & CommonSurfaceProps
 
 function getPositionDataAndMaxRadius(structure: Structure, unit: Unit, props: MolecularSurfaceProps) {
-    const { probeRadius } = props
-    const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, props)
-    const { indices } = position
-    const n = OrderedSet.size(indices)
-    const radii = new Float32Array(OrderedSet.end(indices))
+    const { probeRadius } = props;
+    const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, props);
+    const { indices } = position;
+    const n = OrderedSet.size(indices);
+    const radii = new Float32Array(OrderedSet.end(indices));
 
-    let maxRadius = 0
+    let maxRadius = 0;
     for (let i = 0; i < n; ++i) {
-        const j = OrderedSet.getAt(indices, i)
-        const r = radius(j)
-        if (maxRadius < r) maxRadius = r
-        radii[j] = r + probeRadius
+        const j = OrderedSet.getAt(indices, i);
+        const r = radius(j);
+        if (maxRadius < r) maxRadius = r;
+        radii[j] = r + probeRadius;
     }
 
-    return { position: { ...position, radius: radii }, boundary, maxRadius }
+    return { position: { ...position, radius: radii }, boundary, maxRadius };
 }
 
 export function computeUnitMolecularSurface(structure: Structure, unit: Unit, props: MolecularSurfaceProps) {
-    const { box } = unit.lookup3d.boundary
-    const { position, boundary, maxRadius } = getPositionDataAndMaxRadius(structure, unit, props)
+    const { box } = unit.lookup3d.boundary;
+    const { position, boundary, maxRadius } = getPositionDataAndMaxRadius(structure, unit, props);
     return Task.create('Molecular Surface', async ctx => {
         return await MolecularSurface(ctx, position, boundary, maxRadius, box, props);
     });
@@ -43,5 +43,5 @@ export function computeUnitMolecularSurface(structure: Structure, unit: Unit, pr
 //
 
 async function MolecularSurface(ctx: RuntimeContext, position: Required<PositionData>, boundary: Boundary, maxRadius: number, box: Box3D | null, props: MolecularSurfaceCalculationProps): Promise<DensityData> {
-    return calcMolecularSurface(ctx, position, boundary, maxRadius, box, props)
+    return calcMolecularSurface(ctx, position, boundary, maxRadius, box, props);
 }

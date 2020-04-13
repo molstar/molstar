@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CoarseHierarchy, CoarseConformation, CoarseElementData, CoarseSphereConformation, CoarseGaussianConformation } from '../../../mol-model/structure/model/properties/coarse'
+import { CoarseHierarchy, CoarseConformation, CoarseElementData, CoarseSphereConformation, CoarseGaussianConformation } from '../../../mol-model/structure/model/properties/coarse';
 import { Entities } from '../../../mol-model/structure/model/properties/common';
 import { Column } from '../../../mol-data/db';
 import { getCoarseKeys } from '../../../mol-model/structure/model/properties/utils/coarse-keys';
@@ -28,7 +28,7 @@ export interface CoarseData {
     ihm_gaussian_obj_site: IhmGaussianObjSite
 }
 
-export const EmptyCoarse = { hierarchy: CoarseHierarchy.Empty, conformation: void 0 as any }
+export const EmptyCoarse = { hierarchy: CoarseHierarchy.Empty, conformation: void 0 as any };
 
 export function getCoarse(data: CoarseData, properties: Model['properties']): { hierarchy: CoarseHierarchy, conformation: CoarseConformation } {
     const { ihm_sphere_obj_site, ihm_gaussian_obj_site } = data;
@@ -96,7 +96,7 @@ function getSegments(asym_id: Column<string>, seq_id_begin: Column<number>, seq_
 
     return {
         chainElementSegments: Segmentation.ofOffsets<ElementIndex, ChainIndex>(chainOffsets, Interval.ofBounds(0, asym_id.rowCount))
-    }
+    };
 }
 
 function getData(data: IhmSphereObjSite | IhmGaussianObjSite): CoarseElementData {

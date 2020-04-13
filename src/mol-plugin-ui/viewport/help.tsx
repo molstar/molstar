@@ -14,26 +14,26 @@ import { Icon } from '../controls/icons';
 import { Button } from '../controls/common';
 
 function getBindingsList(bindings: { [k: string]: Binding }) {
-    return Object.keys(bindings).map(k => [k, bindings[k]] as [string, Binding])
+    return Object.keys(bindings).map(k => [k, bindings[k]] as [string, Binding]);
 }
 
 export class BindingsHelp extends React.PureComponent<{ bindings: { [k: string]: Binding } }> {
     getBindingComponents() {
-        const bindingsList = getBindingsList(this.props.bindings)
+        const bindingsList = getBindingsList(this.props.bindings);
         return <>
             {bindingsList.map(value => {
-                const [name, binding] = value
+                const [name, binding] = value;
                 return !Binding.isEmpty(binding)
                     ? <div key={name} style={{ marginBottom: '6px' }}>
                         <b>{binding.action}</b><br /><span dangerouslySetInnerHTML={{ __html: Binding.format(binding, name) }} />
                     </div>
-                    : null
+                    : null;
             })}
-        </>
+        </>;
     }
 
     render() {
-        return <HelpText>{this.getBindingComponents()}</HelpText>
+        return <HelpText>{this.getBindingComponents()}</HelpText>;
     }
 }
 
@@ -41,7 +41,7 @@ class HelpText extends React.PureComponent {
     render() {
         return <div className='msp-help-text'>
             <div>{this.props.children}</div>
-        </div>
+        </div>;
     }
 }
 
@@ -64,7 +64,7 @@ class HelpGroup extends React.PureComponent<{ header: string, initiallyExpanded?
             {this.state.isExpanded && <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                 {this.props.children}
             </div>}
-        </div>
+        </div>;
     }
 }
 
@@ -78,11 +78,11 @@ export class ViewportHelpContent extends PluginUIComponent {
     }
 
     render() {
-        const interactionBindings: { [k: string]: Binding } = {}
+        const interactionBindings: { [k: string]: Binding } = {};
         this.plugin.spec.behaviors.forEach(b => {
-            const { bindings } = b.defaultParams
-            if (bindings) Object.assign(interactionBindings, bindings)
-        })
+            const { bindings } = b.defaultParams;
+            if (bindings) Object.assign(interactionBindings, bindings);
+        });
         return <>
             {this.plugin.canvas3d && <HelpGroup key='trackball' header='Moving in 3D'>
                 <BindingsHelp bindings={this.plugin.canvas3d.props.trackball.bindings} />
@@ -90,7 +90,7 @@ export class ViewportHelpContent extends PluginUIComponent {
             <HelpGroup key='interactions' header='Select, Highlight, Focus'>
                 <BindingsHelp bindings={interactionBindings} />
             </HelpGroup>
-        </>
+        </>;
     }
 }
 
@@ -100,21 +100,21 @@ export class HelpContent extends PluginUIComponent {
     }
 
     private formatTriggers(binding: Binding) {
-        return binding.triggers.map(t => Binding.Trigger.format(t)).join(' or ')
+        return binding.triggers.map(t => Binding.Trigger.format(t)).join(' or ');
     }
 
     private getTriggerFor(transformer: StateTransformer, name: string) {
-        const state = this.plugin.state.behaviors
-        const selections = state.select(StateSelection.Generators.ofTransformer(transformer))
-        const params = selections.length === 1 ? selections[0].params : undefined
-        const bindings = params ? params.values.bindings : {}
-        const binding: Binding = name in bindings ? bindings[name] : Binding.Empty
-        return this.formatTriggers(binding)
+        const state = this.plugin.state.behaviors;
+        const selections = state.select(StateSelection.Generators.ofTransformer(transformer));
+        const params = selections.length === 1 ? selections[0].params : undefined;
+        const bindings = params ? params.values.bindings : {};
+        const binding: Binding = name in bindings ? bindings[name] : Binding.Empty;
+        return this.formatTriggers(binding);
     }
 
     render() {
-        const selectToggleTriggers = this.getTriggerFor(SelectLoci, 'clickSelectToggle')
-        const focusTriggers = this.getTriggerFor(FocusLoci, 'clickFocus')
+        const selectToggleTriggers = this.getTriggerFor(SelectLoci, 'clickSelectToggle');
+        const focusTriggers = this.getTriggerFor(FocusLoci, 'clickFocus');
 
         // TODO: interactive help, for example for density
 
@@ -159,6 +159,6 @@ export class HelpContent extends PluginUIComponent {
 
             <HelpSection header='Mouse Controls' />
             <ViewportHelpContent />
-        </div>
+        </div>;
     }
 }

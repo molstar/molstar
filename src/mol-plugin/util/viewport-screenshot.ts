@@ -17,7 +17,7 @@ import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
 import { CameraHelperParams, CameraHelperProps } from '../../mol-canvas3d/helper/camera-helper';
 import { SetUtils } from '../../mol-util/set';
 
-export { ViewportScreenshotHelper }
+export { ViewportScreenshotHelper };
 
 namespace ViewportScreenshotHelper {
     export type ResolutionSettings = PD.Values<ReturnType<ViewportScreenshotHelper['createParams']>>['resolution']
@@ -26,7 +26,7 @@ namespace ViewportScreenshotHelper {
 
 class ViewportScreenshotHelper {
     private createParams() {
-        const max = Math.min(this.plugin.canvas3d ? this.plugin.canvas3d.webgl.maxRenderbufferSize : 4096, 4096)
+        const max = Math.min(this.plugin.canvas3d ? this.plugin.canvas3d.webgl.maxRenderbufferSize : 4096, 4096);
         return {
             resolution: PD.MappedStatic('viewport', {
                 viewport: PD.Group({}),
@@ -48,7 +48,7 @@ class ViewportScreenshotHelper {
             }),
             transparent: PD.Boolean(false),
             axes: CameraHelperParams.axes,
-        }
+        };
     }
     private _params: ReturnType<ViewportScreenshotHelper['createParams']> = void 0 as any;
     get params() {
@@ -81,7 +81,7 @@ class ViewportScreenshotHelper {
             case 'hd': return { width: 1280, height: 720 };
             case 'full-hd': return { width: 1920, height: 1080 };
             case 'ultra-hd': return { width: 3840, height: 2160 };
-            default: return { width: this.currentResolution.params.width, height: this.currentResolution.params.height }
+            default: return { width: this.currentResolution.params.width, height: this.currentResolution.params.height };
         }
     }
 
@@ -95,16 +95,16 @@ class ViewportScreenshotHelper {
             drawPass: { cameraHelper: { axes: this.axes } },
             multiSample: { mode: 'on', sampleLevel: 2 },
             postprocessing: this.plugin.canvas3d!.props.postprocessing
-        })
+        });
         return this._imagePass;
     }
 
     getFilename() {
-        const models = this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model)).map(s => s.obj!.data)
-        const uniqueIds = new Set<string>()
-        models.forEach(m => uniqueIds.add(m.entryId.toUpperCase()))
-        const idString = SetUtils.toArray(uniqueIds).join('-')
-        return `${idString || 'molstar-image'}.png`
+        const models = this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model)).map(s => s.obj!.data);
+        const uniqueIds = new Set<string>();
+        models.forEach(m => uniqueIds.add(m.entryId.toUpperCase()));
+        const idString = SetUtils.toArray(uniqueIds).join('-');
+        return `${idString || 'molstar-image'}.png`;
     }
 
     private canvas = function () {
@@ -138,7 +138,7 @@ class ViewportScreenshotHelper {
         const { width, height } = this.getSize();
         if (width <= 0 || height <= 0) return;
 
-        await ctx.update('Rendering image...')
+        await ctx.update('Rendering image...');
         this.imagePass.setProps({
             drawPass: { cameraHelper: { axes: this.axes } },
             transparentBackground: this.transparent,
@@ -146,35 +146,35 @@ class ViewportScreenshotHelper {
         });
         const imageData = this.imagePass.getImageData(width, height);
 
-        await ctx.update('Encoding image...')
-        const canvas = this.canvas
-        canvas.width = imageData.width
-        canvas.height = imageData.height
-        const canvasCtx = canvas.getContext('2d')
-        if (!canvasCtx) throw new Error('Could not create canvas 2d context')
-        canvasCtx.putImageData(imageData, 0, 0)
+        await ctx.update('Encoding image...');
+        const canvas = this.canvas;
+        canvas.width = imageData.width;
+        canvas.height = imageData.height;
+        const canvasCtx = canvas.getContext('2d');
+        if (!canvasCtx) throw new Error('Could not create canvas 2d context');
+        canvasCtx.putImageData(imageData, 0, 0);
         return;
     }
 
     private downloadTask() {
         return Task.create('Download Image', async ctx => {
             this.draw(ctx);
-            await ctx.update('Downloading image...')
-            const blob = await canvasToBlob(this.canvas, 'png')
-            download(blob, this.getFilename())
-        })
+            await ctx.update('Downloading image...');
+            const blob = await canvasToBlob(this.canvas, 'png');
+            download(blob, this.getFilename());
+        });
     }
 
     downloadCurrent() {
         return this.plugin.runTask(Task.create('Download Image', async ctx => {
-            await ctx.update('Downloading image...')
-            const blob = await canvasToBlob(this.canvas, 'png')
-            download(blob, this.getFilename())
+            await ctx.update('Downloading image...');
+            const blob = await canvasToBlob(this.canvas, 'png');
+            download(blob, this.getFilename());
         }));
     }
 
     async imageData() {
-        await this.draw(SyncRuntimeContext)
+        await this.draw(SyncRuntimeContext);
         return this.canvas.toDataURL();
     }
 

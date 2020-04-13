@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import IntTuple from '../tuple'
+import IntTuple from '../tuple';
 
 describe('int pair', () => {
     it('works', () => {
@@ -15,5 +15,5 @@ describe('int pair', () => {
                 expect(IntTuple.snd(t)).toBe(j);
             }
         }
-    })
-})
+    });
+});

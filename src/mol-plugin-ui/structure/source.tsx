@@ -34,7 +34,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
     componentDidMount() {
         this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, () => this.forceUpdate());
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isBusy: v })
+            this.setState({ isBusy: v });
         });
     }
 
@@ -97,7 +97,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             ret.push([
                 ActionMenu.Header('Models'),
                 ...current.models.map(this.item)
-            ])
+            ]);
         }
 
         if (current.trajectories.length === 1 && current.models.length === 1) {
@@ -147,9 +147,9 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             if (models.length === 1) {
                 const model = models[0].cell.obj?.data;
                 if (model?.trajectoryInfo.size! > 1) {
-                    return `${t?.cell.obj?.label} | Model ${model?.trajectoryInfo.index! + 1} of ${model?.trajectoryInfo.size}`
+                    return `${t?.cell.obj?.label} | Model ${model?.trajectoryInfo.index! + 1} of ${model?.trajectoryInfo.size}`;
                 } else {
-                    return `${t?.cell.obj?.label} | Model`
+                    return `${t?.cell.obj?.label} | Model`;
                 }
             }
 
@@ -183,7 +183,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             for (const r of (i.value as HierarchyRef[])) refs.push(r);
         }
 
-        this.plugin.managers.structure.hierarchy.updateCurrent(refs, items[0].selected ? 'remove' : 'add')
+        this.plugin.managers.structure.hierarchy.updateCurrent(refs, items[0].selected ? 'remove' : 'add');
     }
 
     toggleHierarchy = () => this.setState({ show: this.state.show !== 'hierarchy' ? 'hierarchy' : void 0 });
@@ -192,9 +192,9 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
     get presetActions() {
         const actions: ActionMenu.Item[] = [];
         const { trajectories } = this.plugin.managers.structure.hierarchy.selection;
-        if (trajectories.length !== 1) return actions
+        if (trajectories.length !== 1) return actions;
 
-        const providers = this.plugin.builders.structure.hierarchy.getPresets(trajectories[0].cell.obj)
+        const providers = this.plugin.builders.structure.hierarchy.getPresets(trajectories[0].cell.obj);
         for (const p of providers) {
             actions.push(ActionMenu.Item(p.display.name, p, { description: p.display.description }));
         }
@@ -228,7 +228,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         const params = m.cell.params?.definition;
         if (!params) return null;
 
-        return <ParameterControls params={params} values={m.cell.params?.values} onChangeValues={this.updateStructureModel} isDisabled={this.state.isBusy} />
+        return <ParameterControls params={params} values={m.cell.params?.values} onChangeValues={this.updateStructureModel} isDisabled={this.state.isBusy} />;
     }
 
     updateStructure = (params: any) => {
@@ -244,7 +244,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         const params = s.cell.params?.definition;
         if (!params || !s.cell.parent) return null;
 
-        return <UpdateTransformControl state={s.cell.parent} transform={s.cell.transform} customHeader='none' customUpdate={this.updateStructure} noMargin autoHideApply />
+        return <UpdateTransformControl state={s.cell.parent} transform={s.cell.transform} customHeader='none' customUpdate={this.updateStructure} noMargin autoHideApply />;
     }
 
     renderControls() {

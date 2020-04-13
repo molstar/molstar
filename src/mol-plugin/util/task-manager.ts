@@ -10,7 +10,7 @@ import { now } from '../../mol-util/now';
 import { CreateObservableCtx, ExecuteInContext } from '../../mol-task/execution/observable';
 import { arrayRemoveInPlace } from '../../mol-util/array';
 
-export { TaskManager }
+export { TaskManager };
 
 class TaskManager {
     private ev = RxEventHelper.create();
@@ -91,6 +91,6 @@ namespace TaskManager {
                 }
                 i++;
             }
-        })
+        });
     }
 }

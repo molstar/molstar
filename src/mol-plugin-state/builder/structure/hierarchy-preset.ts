@@ -27,10 +27,10 @@ export namespace TrajectoryHierarchyPresetProvider {
         modelProperties: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.CustomModelProperties, void 0, plugin))),
         structureProperties: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.CustomStructureProperties, void 0, plugin))),
         representationPreset: PD.Optional(PD.Text<keyof PresetStructureRepresentations>('auto' as const)),
-    })
+    });
 }
 
-const CommonParams = TrajectoryHierarchyPresetProvider.CommonParams
+const CommonParams = TrajectoryHierarchyPresetProvider.CommonParams;
 
 const DefaultParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) =>  ({
     model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin))),
@@ -46,7 +46,7 @@ const defaultPreset = TrajectoryHierarchyPresetProvider({
         description: 'Shows the first assembly or, if that is unavailable, the first deposited model.'
     },
     isApplicable: o => {
-        return true
+        return true;
     },
     params: DefaultParams,
     async apply(trajectory, params, plugin) {
@@ -79,7 +79,7 @@ const allModels = TrajectoryHierarchyPresetProvider({
         description: 'Shows all models; colored by model-index.'
     },
     isApplicable: o => {
-        return o.data.length > 1
+        return o.data.length > 1;
     },
     params: CommonParams,
     async apply(trajectory, params, plugin) {
@@ -99,7 +99,7 @@ const allModels = TrajectoryHierarchyPresetProvider({
             models.push(model);
             structures.push(structure);
 
-            const quality = structure.obj ? getStructureQuality(structure.obj.data, { elementCountFactor: tr.length }) : 'medium'
+            const quality = structure.obj ? getStructureQuality(structure.obj.data, { elementCountFactor: tr.length }) : 'medium';
             await builder.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { globalThemeName: 'model-index', quality });
         }
 
@@ -144,7 +144,7 @@ const unitcell = TrajectoryHierarchyPresetProvider({
         description: 'Shows the fully populated unitcell.'
     },
     isApplicable: o => {
-        return Model.hasCrystalSymmetry(o.data[0])
+        return Model.hasCrystalSymmetry(o.data[0]);
     },
     params: CrystalSymmetryParams,
     async apply(trajectory, params, plugin) {
@@ -159,7 +159,7 @@ const supercell = TrajectoryHierarchyPresetProvider({
         description: 'Shows the supercell, i.e. the central unitcell and all adjacent unitcells.'
     },
     isApplicable: o => {
-        return Model.hasCrystalSymmetry(o.data[0])
+        return Model.hasCrystalSymmetry(o.data[0]);
     },
     params: CrystalSymmetryParams,
     async apply(trajectory, params, plugin) {

@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import express from 'express'
-import fetch from 'node-fetch'
-import createMapping from './mapping'
+import express from 'express';
+import fetch from 'node-fetch';
+import createMapping from './mapping';
 
 async function getMappings(id: string) {
     const data = await fetch(`https://www.ebi.ac.uk/pdbe/api/mappings/${id}`);
@@ -19,7 +19,7 @@ let PORT = process.env.port || 1338;
 
 const app = express();
 
-const PREFIX = '/'
+const PREFIX = '/';
 
 app.get(`${PREFIX}/:id`, async (req, res) => {
     try {
@@ -41,7 +41,7 @@ app.get(`${PREFIX}/:id`, async (req, res) => {
 app.get(`${PREFIX}`, (req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Usage: /pdb_id, e.g. /1tqn');
-})
+});
 
 app.listen(PORT);
 

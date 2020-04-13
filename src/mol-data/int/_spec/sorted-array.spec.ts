@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Interval from '../interval'
-import SortedArray from '../sorted-array'
+import Interval from '../interval';
+import SortedArray from '../sorted-array';
 
 describe('sortedArray', () => {
     function testI(name: string, a: Interval, b: Interval) {
@@ -61,7 +61,7 @@ describe('sortedArray', () => {
 
     it('indicesOf', () => {
         compareArrays(SortedArray.indicesOf(SortedArray.ofSortedArray([10, 11, 12]), SortedArray.ofSortedArray([10, 12, 14])), [0, 2]);
-    })
+    });
 
     it('indicesOf 2', () => {
         compareArrays(
@@ -71,7 +71,7 @@ describe('sortedArray', () => {
             ),
             [1, 3, 4, 6, 7]
         );
-    })
+    });
 
     test('intersectionSize', SortedArray.intersectionSize(a1234, a2468), 2);
 
@@ -82,8 +82,8 @@ describe('sortedArray', () => {
                 SortedArray.ofSortedArray([835])
             ),
             SortedArray.ofSortedArray([830, 831, 832, 833, 834, 835, 836, 837, 838, 839, 840, 841, 842, 843])
-        )
-    })
+        );
+    });
 
     it('union2', () => {
         compareArrays(
@@ -92,8 +92,8 @@ describe('sortedArray', () => {
                 SortedArray.ofSortedArray([831])
             ),
             SortedArray.ofSortedArray([830, 831, 832, 833])
-        )
-    })
+        );
+    });
 
     it('union3ab', () => {
         compareArrays(
@@ -102,8 +102,8 @@ describe('sortedArray', () => {
                 SortedArray.ofSortedArray([836, 837, 838, 839, 840, 841, 842, 843])
             ),
             SortedArray.ofSortedArray([830, 831, 832, 833, 834, 835, 836, 837, 838, 839, 840, 841, 842, 843])
-        )
-    })
+        );
+    });
 
     it('union3ba', () => {
         compareArrays(
@@ -112,8 +112,8 @@ describe('sortedArray', () => {
                 SortedArray.ofSortedArray([830, 831, 832, 833, 834, 835])
             ),
             SortedArray.ofSortedArray([830, 831, 832, 833, 834, 835, 836, 837, 838, 839, 840, 841, 842, 843])
-        )
-    })
+        );
+    });
 
     it('union4', () => {
         compareArrays(
@@ -122,8 +122,8 @@ describe('sortedArray', () => {
                 SortedArray.ofSortedArray([2, 4, 6, 8])
             ),
             SortedArray.ofSortedArray([1, 2, 3, 4, 5, 6, 7, 8, 9])
-        )
-    })
+        );
+    });
 
     it('union5', () => {
         compareArrays(
@@ -132,8 +132,8 @@ describe('sortedArray', () => {
                 SortedArray.ofSortedArray([10, 11, 12])
             ),
             SortedArray.ofSortedArray([2, 3, 4, 10, 11, 12, 20, 21, 22])
-        )
-    })
+        );
+    });
 
     it('union6', () => {
         compareArrays(
@@ -142,8 +142,8 @@ describe('sortedArray', () => {
                 SortedArray.ofSortedArray([1751, 1752, 1753, 1754, 1755, 1756, 1757, 1758])
             ),
             SortedArray.ofSortedArray([768, 769, 770, 771, 772, 773, 774, 775, 776, 819, 820, 821, 822, 823, 824, 825, 826, 827, 828, 829, 1751, 1752, 1753, 1754, 1755, 1756, 1757, 1758, 1811, 1812, 1813, 1814, 1815, 1816, 1817, 1818, 1819])
-        )
-    })
+        );
+    });
 
     it('union7', () => {
         compareArrays(
@@ -152,13 +152,13 @@ describe('sortedArray', () => {
                 SortedArray.ofSortedArray([3769, 3790, 3794])
             ),
             SortedArray.ofSortedArray([3766, 3767, 3768, 3769, 3770, 3773, 3780, 3783, 3787, 3790, 3794, 3797])
-        )
-    })
+        );
+    });
 
     it('isSubset', () => {
         expect(SortedArray.isSubset(
             SortedArray.ofSortedArray([1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 1281, 1282, 1283, 1284, 1285, 1286, 1287, 1288, 1289, 1290, 1291, 1292, 1293, 1294, 1295]),
             SortedArray.ofSortedArray([1271, 1272, 1274, 1275, 1276, 1278, 1280, 1282, 1284, 1286, 1288, 1290, 1292, 1294])
         )).toBe(true);
-    })
+    });
 });

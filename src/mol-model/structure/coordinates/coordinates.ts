@@ -36,7 +36,7 @@ export interface Frame {
 
 //
 
-export { Time }
+export { Time };
 
 interface Time {
     value: number
@@ -44,7 +44,7 @@ interface Time {
 }
 
 function Time(value: number, unit: Time.Unit) {
-    return { value, unit }
+    return { value, unit };
 }
 
 namespace Time {
@@ -55,7 +55,7 @@ namespace Time {
 
 //
 
-export { Coordinates }
+export { Coordinates };
 
 interface Coordinates {
     readonly id: UUID
@@ -74,9 +74,9 @@ interface Coordinates {
 
 namespace Coordinates {
     export function create(frames: Frame[], deltaTime: Time, timeOffset: Time): Coordinates {
-        const elementCount = frames[0].elementCount
-        const hasVelocities = !!frames[0].velocities
-        const hasForces = !!frames[0].forces
+        const elementCount = frames[0].elementCount;
+        const hasVelocities = !!frames[0].velocities;
+        const hasForces = !!frames[0].forces;
 
         return {
             id: UUID.create22(),
@@ -86,7 +86,7 @@ namespace Coordinates {
             hasForces,
             deltaTime,
             timeOffset
-        }
+        };
     }
 
     export function getAtomicConformation(frame: Frame, atomId: Column<number>): AtomicConformation {
@@ -99,6 +99,6 @@ namespace Coordinates {
             x: frame.x,
             y: frame.y,
             z: frame.z,
-        }
+        };
     }
 }

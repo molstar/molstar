@@ -70,7 +70,7 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
 
     private handlePreview() {
         if (this.state.showPreview) {
-            this.preview()
+            this.preview();
         }
     }
 
@@ -87,19 +87,19 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
             this.plugin.helpers.viewportScreenshot!.imagePass.setProps({
                 multiSample: { mode: 'on', sampleLevel: 2 },
                 postprocessing: this.plugin.canvas3d?.props.postprocessing
-            })
+            });
             this.updateQueue.next();
-        })
+        });
 
         this.subscribe(debounceTime(250)(this.plugin.canvas3d.didDraw), () => {
             if (this.state.isDisabled) return;
             this.updateQueue.next();
-        })
+        });
 
         this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
-            this.setState({ isDisabled: v })
+            this.setState({ isDisabled: v });
             if (!v) this.updateQueue.next();
-        })
+        });
 
         this.handlePreview();
     }
@@ -128,6 +128,6 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                 <Button icon='export' onClick={this.openTab} disabled={this.state.isDisabled}>Open in new Tab</Button>
             </div>
             <ParameterControls params={this.plugin.helpers.viewportScreenshot!.params} values={this.plugin.helpers.viewportScreenshot!.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
-        </div>
+        </div>;
     }
 }

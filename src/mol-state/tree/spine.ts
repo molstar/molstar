@@ -8,7 +8,7 @@ import { State } from '../state';
 import { StateTransform } from '../transform';
 import { StateObject, StateObjectCell } from '../object';
 
-export { StateTreeSpine }
+export { StateTreeSpine };
 
 /** The tree spine allows access to ancestor of a node during reconciliation. */
 interface StateTreeSpine {
@@ -65,7 +65,7 @@ namespace StateTreeSpine {
 
     export function getRootOfType<T extends StateObject.Ctor>(state: State, t: T, ref: string): StateObject.From<T> | undefined {
         let ret: StateObjectCell | undefined = void 0;
-        let cell = state.cells.get(ref)
+        let cell = state.cells.get(ref);
         if (!cell) return void 0;
         while (true) {
             if (!cell.obj) return void 0;

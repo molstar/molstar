@@ -21,12 +21,12 @@ import { StructConn } from '../../../../../mol-model-formats/structure/property/
 
 const MAX_RADIUS = 4;
 
-const tmpDistVecA = Vec3()
-const tmpDistVecB = Vec3()
+const tmpDistVecA = Vec3();
+const tmpDistVecB = Vec3();
 function getDistance(unitA: Unit.Atomic, indexA: ElementIndex, unitB: Unit.Atomic, indexB: ElementIndex) {
-    unitA.conformation.position(indexA, tmpDistVecA)
-    unitB.conformation.position(indexB, tmpDistVecB)
-    return Vec3.distance(tmpDistVecA, tmpDistVecB)
+    unitA.conformation.position(indexA, tmpDistVecA);
+    unitB.conformation.position(indexB, tmpDistVecB);
+    return Vec3.distance(tmpDistVecA, tmpDistVecB);
 }
 
 const _imageTransform = Mat4.zero();
@@ -46,8 +46,8 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const { occupancy: occupancyB } = unitB.model.atomicConformation;
 
     const { lookup3d } = unitB;
-    const structConn = unitA.model === unitB.model && StructConn.Provider.get(unitA.model)
-    const indexPairs = unitA.model === unitB.model && IndexPairBonds.Provider.get(unitA.model)
+    const structConn = unitA.model === unitB.model && StructConn.Provider.get(unitA.model);
+    const indexPairs = unitA.model === unitB.model && IndexPairBonds.Provider.get(unitA.model);
 
     // the lookup queries need to happen in the "unitB space".
     // that means imageA = inverseOperB(operA(aI))
@@ -58,9 +58,9 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const { center: bCenter, radius: bRadius } = lookup3d.boundary.sphere;
     const testDistanceSq = (bRadius + MAX_RADIUS) * (bRadius + MAX_RADIUS);
 
-    builder.startUnitPair(unitA, unitB)
-    const symmUnitA = unitA.conformation.operator.name
-    const symmUnitB = unitB.conformation.operator.name
+    builder.startUnitPair(unitA, unitB);
+    const symmUnitA = unitA.conformation.operator.name;
+    const symmUnitB = unitB.conformation.operator.name;
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atomsA[_aI];
@@ -69,7 +69,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
         if (Vec3.squaredDistance(imageA, bCenter) > testDistanceSq) continue;
 
         if (!props.forceCompute && indexPairs) {
-            const { order, symmetryA, symmetryB } = indexPairs.edgeProps
+            const { order, symmetryA, symmetryB } = indexPairs.edgeProps;
             for (let i = indexPairs.offset[aI], il = indexPairs.offset[aI + 1]; i < il; ++i) {
                 const _bI = SortedArray.indexOf(unitA.elements, indexPairs.b[i]) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
@@ -78,15 +78,15 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
                     builder.add(_aI, _bI, { order: order[i], flag: BondType.Flag.Covalent });
                 }
             }
-            continue // assume `indexPairs` supplies all bonds
+            continue; // assume `indexPairs` supplies all bonds
         }
 
         const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.byAtomIndex.get(aI);
         if (structConnEntries && structConnEntries.length) {
             let added = false;
             for (const se of structConnEntries) {
-                const { partnerA, partnerB } = se
-                const p = partnerA.atomIndex === aI ? partnerB : partnerA
+                const { partnerA, partnerB } = se;
+                const p = partnerA.atomIndex === aI ? partnerB : partnerA;
                 const _bI = SortedArray.indexOf(unitB.elements, p.atomIndex) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
 
@@ -158,7 +158,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
         }
     }
 
-    builder.finishUnitPair()
+    builder.finishUnitPair();
 }
 
 export interface InterBondComputationProps extends BondComputationProps {
@@ -166,7 +166,7 @@ export interface InterBondComputationProps extends BondComputationProps {
 }
 
 function findBonds(structure: Structure, props: InterBondComputationProps) {
-    const builder = new InterUnitGraph.Builder<Unit.Atomic, StructureElement.UnitIndex, InterUnitEdgeProps>()
+    const builder = new InterUnitGraph.Builder<Unit.Atomic, StructureElement.UnitIndex, InterUnitEdgeProps>();
 
     if (props.noCompute) {
         // TODO add function that only adds bonds defined in structConn and avoids using
@@ -176,12 +176,12 @@ function findBonds(structure: Structure, props: InterBondComputationProps) {
     }
 
     Structure.eachUnitPair(structure, (unitA: Unit, unitB: Unit) => {
-        findPairBonds(unitA as Unit.Atomic, unitB as Unit.Atomic, props, builder)
+        findPairBonds(unitA as Unit.Atomic, unitB as Unit.Atomic, props, builder);
     }, {
         maxRadius: MAX_RADIUS,
         validUnit: (unit: Unit) => Unit.isAtomic(unit),
         validUnitPair: (unitA: Unit, unitB: Unit) => props.validUnitPair(structure, unitA, unitB)
-    })
+    });
 
     return new InterUnitBonds(builder.getMap());
 }

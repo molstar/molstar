@@ -21,36 +21,36 @@ import { Theme } from '../../../mol-theme/theme';
 import { getAltResidueLociFromId } from './util/common';
 
 function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateLinkParams>, mesh?: Mesh) {
-    const { links, elements } = structure.carbohydrates
-    const { linkSizeFactor } = props
+    const { links, elements } = structure.carbohydrates;
+    const { linkSizeFactor } = props;
 
-    const location = StructureElement.Location.create(structure)
+    const location = StructureElement.Location.create(structure);
 
     const builderProps = {
         linkCount: links.length,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
-            const l = links[edgeIndex]
-            Vec3.copy(posA, elements[l.carbohydrateIndexA].geometry.center)
-            Vec3.copy(posB, elements[l.carbohydrateIndexB].geometry.center)
+            const l = links[edgeIndex];
+            Vec3.copy(posA, elements[l.carbohydrateIndexA].geometry.center);
+            Vec3.copy(posB, elements[l.carbohydrateIndexB].geometry.center);
         },
         radius: (edgeIndex: number) => {
-            const l = links[edgeIndex]
-            const carbA = elements[l.carbohydrateIndexA]
-            const ringA = carbA.unit.rings.all[carbA.ringIndex]
-            location.unit = carbA.unit
-            location.element = carbA.unit.elements[ringA[0]]
-            return theme.size.size(location) * linkSizeFactor
+            const l = links[edgeIndex];
+            const carbA = elements[l.carbohydrateIndexA];
+            const ringA = carbA.unit.rings.all[carbA.ringIndex];
+            location.unit = carbA.unit;
+            location.element = carbA.unit.elements[ringA[0]];
+            return theme.size.size(location) * linkSizeFactor;
         },
-    }
+    };
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
+    return createLinkCylinderMesh(ctx, builderProps, props, mesh);
 }
 
 export const CarbohydrateLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
     linkSizeFactor: PD.Numeric(0.3, { min: 0, max: 3, step: 0.01 }),
-}
+};
 export type CarbohydrateLinkParams = typeof CarbohydrateLinkParams
 
 export function CarbohydrateLinkVisual(materialId: number): ComplexVisual<CarbohydrateLinkParams> {
@@ -65,58 +65,58 @@ export function CarbohydrateLinkVisual(materialId: number): ComplexVisual<Carboh
                 newProps.linkSizeFactor !== currentProps.linkSizeFactor ||
                 newProps.radialSegments !== currentProps.radialSegments ||
                 newProps.linkCap !== currentProps.linkCap
-            )
+            );
         }
-    }, materialId)
+    }, materialId);
 }
 
 function CarbohydrateLinkIterator(structure: Structure): LocationIterator {
-    const { elements, links } = structure.carbohydrates
-    const groupCount = links.length
-    const instanceCount = 1
-    const location = StructureElement.Location.create(structure)
+    const { elements, links } = structure.carbohydrates;
+    const groupCount = links.length;
+    const instanceCount = 1;
+    const location = StructureElement.Location.create(structure);
     const getLocation = (groupIndex: number) => {
-        const link = links[groupIndex]
-        const carbA = elements[link.carbohydrateIndexA]
-        const ringA = carbA.unit.rings.all[carbA.ringIndex]
-        location.unit = carbA.unit
-        location.element = carbA.unit.elements[ringA[0]]
-        return location
-    }
-    return LocationIterator(groupCount, instanceCount, getLocation, true)
+        const link = links[groupIndex];
+        const carbA = elements[link.carbohydrateIndexA];
+        const ringA = carbA.unit.rings.all[carbA.ringIndex];
+        location.unit = carbA.unit;
+        location.element = carbA.unit.elements[ringA[0]];
+        return location;
+    };
+    return LocationIterator(groupCount, instanceCount, getLocation, true);
 }
 
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
-    const { objectId, groupId } = pickingId
+    const { objectId, groupId } = pickingId;
     if (id === objectId) {
-        const { links, elements } = structure.carbohydrates
-        const l = links[groupId]
-        const carbA = elements[l.carbohydrateIndexA]
-        const carbB = elements[l.carbohydrateIndexB]
+        const { links, elements } = structure.carbohydrates;
+        const l = links[groupId];
+        const carbA = elements[l.carbohydrateIndexA];
+        const carbB = elements[l.carbohydrateIndexB];
         return StructureElement.Loci.union(
             getAltResidueLociFromId(structure, carbA.unit, carbA.residueIndex, carbA.altId),
             getAltResidueLociFromId(structure, carbB.unit, carbB.residueIndex, carbB.altId)
-        )
+        );
     }
-    return EmptyLoci
+    return EmptyLoci;
 }
 
 function eachCarbohydrateLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
-    let changed = false
-    if (!StructureElement.Loci.is(loci)) return false
-    if (!Structure.areEquivalent(loci.structure, structure)) return false
+    let changed = false;
+    if (!StructureElement.Loci.is(loci)) return false;
+    if (!Structure.areEquivalent(loci.structure, structure)) return false;
 
-    const { getLinkIndices } = structure.carbohydrates
+    const { getLinkIndices } = structure.carbohydrates;
     for (const { unit, indices } of loci.elements) {
-        if (!Unit.isAtomic(unit)) continue
+        if (!Unit.isAtomic(unit)) continue;
 
         OrderedSet.forEach(indices, v => {
             // TODO avoid duplicate calls to apply
-            const linkIndices = getLinkIndices(unit, unit.elements[v])
+            const linkIndices = getLinkIndices(unit, unit.elements[v]);
             for (let i = 0, il = linkIndices.length; i < il; ++i) {
-                if (apply(Interval.ofSingleton(linkIndices[i]))) changed = true
+                if (apply(Interval.ofSingleton(linkIndices[i]))) changed = true;
             }
-        })
+        });
     }
-    return changed
+    return changed;
 }

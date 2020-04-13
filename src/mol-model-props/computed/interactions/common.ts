@@ -4,15 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { IntAdjacencyGraph } from '../../../mol-math/graph'
-import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph'
-import { Unit } from '../../../mol-model/structure'
-import { AssignableArrayLike } from '../../../mol-util/type-helpers'
-import { Features } from './features'
-import { StructureElement } from '../../../mol-model/structure/structure'
-import { IntMap } from '../../../mol-data/int'
+import { IntAdjacencyGraph } from '../../../mol-math/graph';
+import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph';
+import { Unit } from '../../../mol-model/structure';
+import { AssignableArrayLike } from '../../../mol-util/type-helpers';
+import { Features } from './features';
+import { StructureElement } from '../../../mol-model/structure/structure';
+import { IntMap } from '../../../mol-data/int';
 
-export { InteractionsIntraContacts }
+export { InteractionsIntraContacts };
 interface InteractionsIntraContacts extends IntAdjacencyGraph<Features.FeatureIndex, InteractionsIntraContacts.Props> {
     readonly elementsIndex: InteractionsIntraContacts.ElementsIndex
 }
@@ -34,104 +34,104 @@ namespace InteractionsIntraContacts {
      * Note: assumes that feature members of a contact are non-overlapping
      */
     export function createElementsIndex(contacts: IntAdjacencyGraph<Features.FeatureIndex, Props>, features: Features, elementsCount: number) {
-        const offsets = new Int32Array(elementsCount + 1)
-        const bucketFill = new Int32Array(elementsCount)
-        const bucketSizes = new Int32Array(elementsCount)
-        const { members, offsets: featureOffsets } = features
+        const offsets = new Int32Array(elementsCount + 1);
+        const bucketFill = new Int32Array(elementsCount);
+        const bucketSizes = new Int32Array(elementsCount);
+        const { members, offsets: featureOffsets } = features;
 
         for (let i = 0, il = contacts.edgeCount * 2; i < il; ++i) {
-            const aI = contacts.a[i]
-            const bI = contacts.b[i]
-            if (aI > bI) continue
+            const aI = contacts.a[i];
+            const bI = contacts.b[i];
+            if (aI > bI) continue;
 
             for (let j = featureOffsets[aI], jl = featureOffsets[aI + 1]; j < jl; ++j) {
-                ++bucketSizes[members[j]]
+                ++bucketSizes[members[j]];
             }
             for (let j = featureOffsets[bI], jl = featureOffsets[bI + 1]; j < jl; ++j) {
-                ++bucketSizes[members[j]]
+                ++bucketSizes[members[j]];
             }
         }
 
-        let offset = 0
+        let offset = 0;
         for (let i = 0; i < elementsCount; i++) {
-            offsets[i] = offset
-            offset += bucketSizes[i]
+            offsets[i] = offset;
+            offset += bucketSizes[i];
         }
-        offsets[elementsCount] = offset
+        offsets[elementsCount] = offset;
 
-        const indices = new Int32Array(offset)
+        const indices = new Int32Array(offset);
         for (let i = 0, il = contacts.edgeCount * 2; i < il; ++i) {
-            const aI = contacts.a[i]
-            const bI = contacts.b[i]
-            if (aI > bI) continue
+            const aI = contacts.a[i];
+            const bI = contacts.b[i];
+            if (aI > bI) continue;
 
             for (let j = featureOffsets[aI], jl = featureOffsets[aI + 1]; j < jl; ++j) {
-                const m = members[j]
-                const om = offsets[m] + bucketFill[m]
-                indices[om] = i
-                ++bucketFill[m]
+                const m = members[j];
+                const om = offsets[m] + bucketFill[m];
+                indices[om] = i;
+                ++bucketFill[m];
             }
             for (let j = featureOffsets[bI], jl = featureOffsets[bI + 1]; j < jl; ++j) {
-                const m = members[j]
-                const om = offsets[m] + bucketFill[m]
-                indices[om] = i
-                ++bucketFill[m]
+                const m = members[j];
+                const om = offsets[m] + bucketFill[m];
+                indices[om] = i;
+                ++bucketFill[m];
             }
         }
 
-        return { indices, offsets }
+        return { indices, offsets };
     }
 }
 
-export { InteractionsInterContacts }
+export { InteractionsInterContacts };
 class InteractionsInterContacts extends InterUnitGraph<Unit, Features.FeatureIndex, InteractionsInterContacts.Props> {
     private readonly elementKeyIndex: Map<string, number[]>
 
     getContactIndicesForElement(index: StructureElement.UnitIndex, unit: Unit): ReadonlyArray<number> {
-        return this.elementKeyIndex.get(this.getElementKey(index, unit)) || []
+        return this.elementKeyIndex.get(this.getElementKey(index, unit)) || [];
     }
 
     private getElementKey(index: StructureElement.UnitIndex, unit: Unit): string {
-        return `${index}|${unit.id}`
+        return `${index}|${unit.id}`;
     }
 
     constructor(map: Map<number, InterUnitGraph.UnitPairEdges<Unit, Features.FeatureIndex, InteractionsInterContacts.Props>[]>, unitsFeatures: IntMap<Features>) {
-        super(map)
+        super(map);
 
-        let count = 0
-        const elementKeyIndex = new Map<string, number[]>()
+        let count = 0;
+        const elementKeyIndex = new Map<string, number[]>();
 
         const add = (index: StructureElement.UnitIndex, unit: Unit) => {
-            const vertexKey = this.getElementKey(index, unit)
-            const e = elementKeyIndex.get(vertexKey)
-            if (e === undefined) elementKeyIndex.set(vertexKey, [count])
-            else e.push(count)
-        }
+            const vertexKey = this.getElementKey(index, unit);
+            const e = elementKeyIndex.get(vertexKey);
+            if (e === undefined) elementKeyIndex.set(vertexKey, [count]);
+            else e.push(count);
+        };
 
         this.map.forEach(pairEdgesArray => {
             pairEdgesArray.forEach(pairEdges => {
                 pairEdges.connectedIndices.forEach(indexA => {
                     pairEdges.getEdges(indexA).forEach(edgeInfo => {
-                        const { unitA, unitB } = pairEdges
+                        const { unitA, unitB } = pairEdges;
 
-                        const { offsets: offsetsA, members: membersA } = unitsFeatures.get(unitA.id)
+                        const { offsets: offsetsA, members: membersA } = unitsFeatures.get(unitA.id);
                         for (let j = offsetsA[indexA], jl = offsetsA[indexA + 1]; j < jl; ++j) {
-                            add(membersA[j], unitA)
+                            add(membersA[j], unitA);
                         }
 
-                        const { indexB } = edgeInfo
-                        const { offsets: offsetsB, members: membersB } = unitsFeatures.get(unitB.id)
+                        const { indexB } = edgeInfo;
+                        const { offsets: offsetsB, members: membersB } = unitsFeatures.get(unitB.id);
                         for (let j = offsetsB[indexB], jl = offsetsB[indexB + 1]; j < jl; ++j) {
-                            add(membersB[j], unitB)
+                            add(membersB[j], unitB);
                         }
 
-                        count += 1
-                    })
-                })
-            })
-        })
+                        count += 1;
+                    });
+                });
+            });
+        });
 
-        this.elementKeyIndex = elementKeyIndex
+        this.elementKeyIndex = elementKeyIndex;
     }
 }
 namespace InteractionsInterContacts {
@@ -158,23 +158,23 @@ export const enum InteractionType {
 export function interactionTypeLabel(type: InteractionType): string {
     switch (type) {
         case InteractionType.HydrogenBond:
-            return 'Hydrogen Bond'
+            return 'Hydrogen Bond';
         case InteractionType.Hydrophobic:
-            return 'Hydrophobic Contact'
+            return 'Hydrophobic Contact';
         case InteractionType.HalogenBond:
-            return 'Halogen Bond'
+            return 'Halogen Bond';
         case InteractionType.Ionic:
-            return 'Ionic Interaction'
+            return 'Ionic Interaction';
         case InteractionType.MetalCoordination:
-            return 'Metal Coordination'
+            return 'Metal Coordination';
         case InteractionType.CationPi:
-            return 'Cation-Pi Interaction'
+            return 'Cation-Pi Interaction';
         case InteractionType.PiStacking:
-            return 'Pi Stacking'
+            return 'Pi Stacking';
         case InteractionType.WeakHydrogenBond:
-            return 'Weak Hydrogen Bond'
+            return 'Weak Hydrogen Bond';
         case InteractionType.Unknown:
-            return 'Unknown Interaction'
+            return 'Unknown Interaction';
     }
 }
 
@@ -198,33 +198,33 @@ export const enum FeatureType {
 export function featureTypeLabel(type: FeatureType): string {
     switch (type) {
         case FeatureType.None:
-            return 'None'
+            return 'None';
         case FeatureType.PositiveCharge:
-            return 'Positive Charge'
+            return 'Positive Charge';
         case FeatureType.NegativeCharge:
-            return 'Negative Charge'
+            return 'Negative Charge';
         case FeatureType.AromaticRing:
-            return 'Aromatic Ring'
+            return 'Aromatic Ring';
         case FeatureType.HydrogenDonor:
-            return 'Hydrogen Donor'
+            return 'Hydrogen Donor';
         case FeatureType.HydrogenAcceptor:
-            return 'Hydrogen Acceptor'
+            return 'Hydrogen Acceptor';
         case FeatureType.HalogenDonor:
-            return 'Halogen Donor'
+            return 'Halogen Donor';
         case FeatureType.HalogenAcceptor:
-            return 'Halogen Acceptor'
+            return 'Halogen Acceptor';
         case FeatureType.HydrophobicAtom:
-            return 'HydrophobicAtom'
+            return 'HydrophobicAtom';
         case FeatureType.WeakHydrogenDonor:
-            return 'Weak Hydrogen Donor'
+            return 'Weak Hydrogen Donor';
         case FeatureType.IonicTypePartner:
-            return 'Ionic Type Partner'
+            return 'Ionic Type Partner';
         case FeatureType.DativeBondPartner:
-            return 'Dative Bond Partner'
+            return 'Dative Bond Partner';
         case FeatureType.TransitionMetal:
-            return 'Transition Metal'
+            return 'Transition Metal';
         case FeatureType.IonicTypeMetal:
-            return 'Ionic Type Metal'
+            return 'Ionic Type Metal';
     }
 }
 
@@ -245,26 +245,26 @@ export const enum FeatureGroup {
 export function featureGroupLabel(group: FeatureGroup): string {
     switch (group) {
         case FeatureGroup.None:
-            return 'None'
+            return 'None';
         case FeatureGroup.QuaternaryAmine:
-            return 'Quaternary Amine'
+            return 'Quaternary Amine';
         case FeatureGroup.TertiaryAmine:
-            return 'Tertiary Amine'
+            return 'Tertiary Amine';
         case FeatureGroup.Sulfonium:
-            return 'Sulfonium'
+            return 'Sulfonium';
         case FeatureGroup.SulfonicAcid:
-            return 'Sulfonic Acid'
+            return 'Sulfonic Acid';
         case FeatureGroup.Sulfate:
-            return 'Sulfate'
+            return 'Sulfate';
         case FeatureGroup.Phosphate:
-            return 'Phosphate'
+            return 'Phosphate';
         case FeatureGroup.Halocarbon:
-            return 'Halocarbon'
+            return 'Halocarbon';
         case FeatureGroup.Guanidine:
-            return 'Guanidine'
+            return 'Guanidine';
         case FeatureGroup.Acetamidine:
-            return 'Acetamidine'
+            return 'Acetamidine';
         case FeatureGroup.Carboxylate:
-            return 'Carboxylate'
+            return 'Carboxylate';
     }
 }

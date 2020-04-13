@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import StructureElement from './element'
-import Unit from './unit'
+import StructureElement from './element';
+import Unit from './unit';
 import { VdwRadius } from '../model/properties/atomic';
 import { SecondaryStructureType } from '../model/types';
 import { SecondaryStructureProvider } from '../../../mol-model-props/computed/secondary-structure';
@@ -18,7 +18,7 @@ const constant = {
     true: p(l => true),
     false: p(l => false),
     zero: p(l => 0)
-}
+};
 
 function notAtomic(): never {
     throw 'Property only available for atomic models.';
@@ -55,35 +55,35 @@ const atom = {
 
     // Derived
     vdw_radius: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : VdwRadius(l.unit.model.atomicHierarchy.atoms.type_symbol.value(l.element))),
-}
+};
 
 function _compId(l: StructureElement.Location) {
-    return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])
+    return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element]);
 }
 
 function compId(l: StructureElement.Location) {
-    if (!Unit.isAtomic(l.unit)) notAtomic()
-    if (!hasMicroheterogeneity(l)) return _compId(l)
-    return l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])
+    if (!Unit.isAtomic(l.unit)) notAtomic();
+    if (!hasMicroheterogeneity(l)) return _compId(l);
+    return l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element]);
 }
 
 function seqId(l: StructureElement.Location) {
-    return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_seq_id.value(l.unit.residueIndex[l.element])
+    return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_seq_id.value(l.unit.residueIndex[l.element]);
 }
 
 function hasMicroheterogeneity(l: StructureElement.Location) {
-    if (!Unit.isAtomic(l.unit)) notAtomic()
-    const entitySeq = l.unit.model.sequence.byEntityKey[eK(l)]
-    return entitySeq && entitySeq.sequence.microHet.has(seqId(l))
+    if (!Unit.isAtomic(l.unit)) notAtomic();
+    const entitySeq = l.unit.model.sequence.byEntityKey[eK(l)];
+    return entitySeq && entitySeq.sequence.microHet.has(seqId(l));
 }
 
 function microheterogeneityCompIds(l: StructureElement.Location) {
-    if (!Unit.isAtomic(l.unit)) notAtomic()
-    const entitySeq = l.unit.model.sequence.byEntityKey[eK(l)]
+    if (!Unit.isAtomic(l.unit)) notAtomic();
+    const entitySeq = l.unit.model.sequence.byEntityKey[eK(l)];
     if (entitySeq) {
-        return entitySeq.sequence.microHet.get(seqId(l)) || [compId(l)]
+        return entitySeq.sequence.microHet.get(seqId(l)) || [compId(l)];
     } else {
-        return [compId(l)]
+        return [compId(l)];
     }
 }
 
@@ -102,17 +102,17 @@ const residue = {
     hasMicroheterogeneity: p(hasMicroheterogeneity),
     microheterogeneityCompIds: p(microheterogeneityCompIds),
     secondary_structure_type: p(l => {
-        if (!Unit.isAtomic(l.unit)) notAtomic()
-        const secStruc = SecondaryStructureProvider.get(l.structure).value?.get(l.unit.id)
-        return secStruc?.type[l.unit.residueIndex[l.element]] ?? SecondaryStructureType.Flag.NA
+        if (!Unit.isAtomic(l.unit)) notAtomic();
+        const secStruc = SecondaryStructureProvider.get(l.structure).value?.get(l.unit.id);
+        return secStruc?.type[l.unit.residueIndex[l.element]] ?? SecondaryStructureType.Flag.NA;
     }),
     secondary_structure_key: p(l => {
-        if (!Unit.isAtomic(l.unit)) notAtomic()
-        const secStruc = SecondaryStructureProvider.get(l.structure).value?.get(l.unit.id)
-        return secStruc?.key[l.unit.residueIndex[l.element]] ?? -1
+        if (!Unit.isAtomic(l.unit)) notAtomic();
+        const secStruc = SecondaryStructureProvider.get(l.structure).value?.get(l.unit.id);
+        return secStruc?.key[l.unit.residueIndex[l.element]] ?? -1;
     }),
     chem_comp_type: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.chemicalComponentMap.get(compId(l))!.type),
-}
+};
 
 const chain = {
     key: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.chainIndex[l.element]),
@@ -120,7 +120,7 @@ const chain = {
     label_asym_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.chains.label_asym_id.value(l.unit.chainIndex[l.element])),
     auth_asym_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.chains.auth_asym_id.value(l.unit.chainIndex[l.element])),
     label_entity_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.chains.label_entity_id.value(l.unit.chainIndex[l.element]))
-}
+};
 
 const coarse = {
     key: atom.key,
@@ -139,16 +139,16 @@ const coarse = {
 
     gaussian_weight: p(l => !Unit.isGaussians(l.unit) ? notCoarse('gaussians') : l.unit.coarseConformation.weight[l.element]),
     gaussian_covariance_matrix: p(l => !Unit.isGaussians(l.unit) ? notCoarse('gaussians') : l.unit.coarseConformation.covariance_matrix[l.element])
-}
+};
 
 function eK(l: StructureElement.Location) {
     switch (l.unit.kind) {
         case Unit.Kind.Atomic:
-            return l.unit.model.atomicHierarchy.index.getEntityFromChain(l.unit.chainIndex[l.element])
+            return l.unit.model.atomicHierarchy.index.getEntityFromChain(l.unit.chainIndex[l.element]);
         case Unit.Kind.Spheres:
-            return l.unit.model.coarseHierarchy.spheres.entityKey[l.element]
+            return l.unit.model.coarseHierarchy.spheres.entityKey[l.element];
         case Unit.Kind.Gaussians:
-            return l.unit.model.coarseHierarchy.gaussians.entityKey[l.element]
+            return l.unit.model.coarseHierarchy.gaussians.entityKey[l.element];
     }
 }
 
@@ -166,7 +166,7 @@ const entity = {
     pdbx_mutation: p(l => l.unit.model.entities.data.pdbx_mutation.value(eK(l))),
     pdbx_fragment: p(l => l.unit.model.entities.data.pdbx_fragment.value(eK(l))),
     pdbx_ec: p(l => l.unit.model.entities.data.pdbx_ec.value(eK(l)))
-}
+};
 
 const _emptyList: any[] = [];
 const unit = {
@@ -185,7 +185,7 @@ const unit = {
     pdbx_struct_assembly_id: p(l => l.unit.conformation.operator.assembly?.id || SymmetryOperator.DefaultName),
     pdbx_struct_oper_list_ids: p(l => l.unit.conformation.operator.assembly?.operList || _emptyList),
     struct_ncs_oper_id: p(l => l.unit.conformation.operator.ncsId),
-}
+};
 
 const StructureProperties = {
     constant,
@@ -195,7 +195,7 @@ const StructureProperties = {
     entity,
     unit,
     coarse
-}
+};
 
 type StructureProperties = typeof StructureProperties
-export default StructureProperties
+export default StructureProperties;

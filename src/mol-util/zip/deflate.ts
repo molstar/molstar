@@ -30,11 +30,11 @@ export function _deflateRaw(data: Uint8Array, out: Uint8Array, opos: number, lvl
         /* 7 */ [ 8,  32, 128,  256, 0],
         /* 8 */ [32, 128, 258, 1024, 1],
         /* 9 */ [32, 258, 258, 4096, 1] /* max compression */
-    ]
+    ];
 
     const opt = opts[lvl];
 
-    let i = 0, pos = opos << 3, cvrd = 0
+    let i = 0, pos = opos << 3, cvrd = 0;
     const dlen = data.length;
 
     if(lvl === 0) {
@@ -47,7 +47,7 @@ export function _deflateRaw(data: Uint8Array, out: Uint8Array, opos: number, lvl
         return pos >>> 3;
     }
 
-    const { lits, strt, prev } = U
+    const { lits, strt, prev } = U;
     let li = 0, lc = 0, bs = 0, ebits = 0, c = 0, nc = 0;  // last_item, literal_count, block_start
     if(dlen > 2) {
         nc = _hash(data, 0);
@@ -169,7 +169,7 @@ function _hash(data: Uint8Array, i: number) {
 
 function _writeBlock(BFINAL: number, lits: Uint32Array, li: number, ebits: number, data: Uint8Array, o0: number, l0: number, out: Uint8Array, pos: number) {
     U.lhst[256]++;
-    const [ ML, MD, MH, numl, numd, numh, lset, dset ] = getTrees()
+    const [ ML, MD, MH, numl, numd, numh, lset, dset ] = getTrees();
 
     const cstSize = (((pos + 3) & 7) === 0 ? 0 : 8 - ((pos + 3) & 7)) + 32 + (l0 << 3);
     const fxdSize = ebits + contSize(U.fltree, U.lhst) + contSize(U.fdtree, U.dhst);
@@ -209,7 +209,7 @@ function _writeBlock(BFINAL: number, lits: Uint32Array, li: number, ebits: numbe
             pos = _codeTiny(lset, U.itree, out, pos);
             pos = _codeTiny(dset, U.itree, out, pos);
         } else {
-            throw new Error(`unknown BTYPE ${BTYPE}`)
+            throw new Error(`unknown BTYPE ${BTYPE}`);
         }
 
         let off = o0;
@@ -253,9 +253,9 @@ function _copyExact(data: Uint8Array, off: number, len: number, out: Uint8Array,
 function getTrees() {
     const ML = _hufTree(U.lhst, U.ltree, 15);
     const MD = _hufTree(U.dhst, U.dtree, 15);
-    const lset: number[] = []
+    const lset: number[] = [];
     const numl = _lenCodes(U.ltree, lset);
-    const dset: number[] = []
+    const dset: number[] = [];
     const numd = _lenCodes(U.dtree, dset);
     for(let i = 0; i < lset.length; i += 2) U.ihst[lset[i]]++;
     for(let i = 0; i < dset.length; i += 2) U.ihst[dset[i]]++;

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Table from './table'
+import Table from './table';
 
 /** A collection of tables */
 type Database<Schema extends Database.Schema> = {
@@ -41,4 +41,4 @@ namespace Database {
     }
 }
 
-export default Database
+export default Database;

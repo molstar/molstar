@@ -16,34 +16,34 @@ import { StructureComponentRef } from '../manager/structure/hierarchy-state';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
 
 type OverpaintEachReprCallback = (update: StateBuilder.Root, repr: StateObjectCell<PluginStateObject.Molecule.Structure.Representation3D, StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>>, overpaint?: StateObjectCell<any, StateTransform<typeof StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle>>) => void
-const OverpaintManagerTag = 'overpaint-controls'
+const OverpaintManagerTag = 'overpaint-controls';
 
 export async function setStructureOverpaint(plugin: PluginContext, components: StructureComponentRef[], color: Color | -1, lociGetter: (structure: Structure) => StructureElement.Loci | EmptyLoci, types?: string[], alpha = 1) {
     await eachRepr(plugin, components, (update, repr, overpaintCell) => {
-        if (types && types.length > 0 && !types.includes(repr.params!.values.type.name)) return
+        if (types && types.length > 0 && !types.includes(repr.params!.values.type.name)) return;
 
-        const structure = repr.obj!.data.source.data
+        const structure = repr.obj!.data.source.data;
         // always use the root structure to get the loci so the overpaint
         // stays applicable as long as the root structure does not change
-        const loci = lociGetter(structure.root)
-        if (Loci.isEmpty(loci)) return
+        const loci = lociGetter(structure.root);
+        if (Loci.isEmpty(loci)) return;
 
         const layer = {
             bundle: StructureElement.Bundle.fromLoci(loci),
             color: color === -1 ? Color(0) : color,
             clear: color === -1
-        }
+        };
 
         if (overpaintCell) {
-            const bundleLayers = [...overpaintCell.params!.values.layers, layer]
-            const filtered = getFilteredBundle(bundleLayers, structure)
-            update.to(overpaintCell).update(Overpaint.toBundle(filtered, alpha))
+            const bundleLayers = [...overpaintCell.params!.values.layers, layer];
+            const filtered = getFilteredBundle(bundleLayers, structure);
+            update.to(overpaintCell).update(Overpaint.toBundle(filtered, alpha));
         } else {
-            const filtered = getFilteredBundle([layer], structure)
+            const filtered = getFilteredBundle([layer], structure);
             update.to(repr.transform.ref)
                 .apply(StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle, Overpaint.toBundle(filtered, alpha), { tags: OverpaintManagerTag });
         }
-    })
+    });
 }
 
 export async function clearStructureOverpaint(plugin: PluginContext, components: StructureComponentRef[], types?: string[]) {
@@ -60,8 +60,8 @@ function eachRepr(plugin: PluginContext, components: StructureComponentRef[], ca
     const update = state.build();
     for (const c of components) {
         for (const r of c.representations) {
-            const overpaint = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle, r.cell.transform.ref).withTag(OverpaintManagerTag))
-            callback(update, r.cell, overpaint[0])
+            const overpaint = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle, r.cell.transform.ref).withTag(OverpaintManagerTag));
+            callback(update, r.cell, overpaint[0]);
         }
     }
 
@@ -70,7 +70,7 @@ function eachRepr(plugin: PluginContext, components: StructureComponentRef[], ca
 
 /** filter overpaint layers for given structure */
 function getFilteredBundle(layers: Overpaint.BundleLayer[], structure: Structure) {
-    const overpaint = Overpaint.ofBundle(layers, 1, structure.root)
-    const merged = Overpaint.merge(overpaint)
-    return Overpaint.filter(merged, structure)
+    const overpaint = Overpaint.ofBundle(layers, 1, structure.root);
+    const merged = Overpaint.merge(overpaint);
+    return Overpaint.filter(merged, structure);
 }

@@ -50,22 +50,22 @@ export function getArrayDigitCount(xs: ArrayLike<number>, maxDigits: number, del
 }
 
 export function isInteger(s: string) {
-    s = s.trim()
-    const n = parseInt(s, 10)
-    return isNaN(n) ? false : n.toString() === s
+    s = s.trim();
+    const n = parseInt(s, 10);
+    return isNaN(n) ? false : n.toString() === s;
 }
 
 export function getPrecision(v: number) {
-    if (!isFinite(v)) return 0
-    let e = 1
-    let p = 0
+    if (!isFinite(v)) return 0;
+    let e = 1;
+    let p = 0;
     while (Math.round(v * e) / e !== v) {
-        e *= 10
-        ++p
+        e *= 10;
+        ++p;
     }
-    return p
+    return p;
 }
 
 export function toPrecision(v: number, precision: number) {
-    return parseFloat(v.toPrecision(precision))
+    return parseFloat(v.toPrecision(precision));
 }

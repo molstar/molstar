@@ -10,7 +10,7 @@ import { StateTransformer } from '../transformer';
 import { UUID } from '../../mol-util';
 import { arraySetRemove } from '../../mol-util/array';
 
-export { StateActionManager }
+export { StateActionManager };
 
 class StateActionManager {
     private actions: Map<StateAction['id'], StateAction> = new Map();

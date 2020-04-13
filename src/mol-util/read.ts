@@ -5,29 +5,29 @@
  */
 
 export function readFile (file: File, isBinary = false) {
-    const fileReader = new FileReader()
+    const fileReader = new FileReader();
     return new Promise<string | Uint8Array>((resolve, reject) => {
         fileReader.onerror = () => {
-            fileReader.abort()
-            reject(new DOMException('Error parsing file.'))
-        }
+            fileReader.abort();
+            reject(new DOMException('Error parsing file.'));
+        };
         fileReader.onload = () => {
-            resolve(isBinary ? new Uint8Array(fileReader.result as ArrayBuffer) : fileReader.result as string)
-        }
+            resolve(isBinary ? new Uint8Array(fileReader.result as ArrayBuffer) : fileReader.result as string);
+        };
         if (isBinary) {
-            fileReader.readAsArrayBuffer(file)
+            fileReader.readAsArrayBuffer(file);
         } else {
-            fileReader.readAsText(file)
+            fileReader.readAsText(file);
         }
-    })
+    });
 }
 
 export function readFileAsText(file: File) {
-    return readFile(file, false) as Promise<string>
+    return readFile(file, false) as Promise<string>;
 }
 
 export function readFileAsBuffer(file: File) {
-    return readFile(file, true) as Promise<Uint8Array>
+    return readFile(file, true) as Promise<Uint8Array>;
 }
 
 export async function readUrl(url: string, isBinary: boolean) {
@@ -36,9 +36,9 @@ export async function readUrl(url: string, isBinary: boolean) {
 }
 
 export function readUrlAsText(url: string) {
-    return readUrl(url, false) as Promise<string>
+    return readUrl(url, false) as Promise<string>;
 }
 
 export function readUrlAsBuffer(url: string) {
-    return readUrl(url, true) as Promise<Uint8Array>
+    return readUrl(url, true) as Promise<Uint8Array>;
 }

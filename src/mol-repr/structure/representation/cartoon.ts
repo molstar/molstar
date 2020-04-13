@@ -24,7 +24,7 @@ const CartoonVisuals = {
     'nucleotide-block': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, NucleotideBlockParams>) => UnitsRepresentation('Nucleotide block mesh', ctx, getParams, NucleotideBlockVisual),
     'nucleotide-ring': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, NucleotideRingParams>) => UnitsRepresentation('Nucleotide ring mesh', ctx, getParams, NucleotideRingVisual),
     'direction-wedge': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerDirectionParams>) => UnitsRepresentation('Polymer direction wedge', ctx, getParams, PolymerDirectionVisual)
-}
+};
 
 export const CartoonParams = {
     ...PolymerTraceParams,
@@ -34,26 +34,26 @@ export const CartoonParams = {
     ...PolymerDirectionParams,
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
     visuals: PD.MultiSelect(['polymer-trace', 'polymer-gap', 'nucleotide-block'], PD.objectToOptions(CartoonVisuals)),
-}
+};
 
 export type CartoonParams = typeof CartoonParams
 export function getCartoonParams(ctx: ThemeRegistryContext, structure: Structure) {
-    const params = PD.clone(CartoonParams)
-    let hasNucleotides = false
-    let hasGaps = false
+    const params = PD.clone(CartoonParams);
+    let hasNucleotides = false;
+    let hasGaps = false;
     structure.units.forEach(u => {
-        if (!hasNucleotides && Unit.isAtomic(u) && u.nucleotideElements.length) hasNucleotides = true
-        if (!hasGaps && u.gapElements.length) hasGaps = true
-    })
-    params.visuals.defaultValue = ['polymer-trace']
-    if (hasNucleotides) params.visuals.defaultValue.push('nucleotide-block')
-    if (hasGaps) params.visuals.defaultValue.push('polymer-gap')
-    return params
+        if (!hasNucleotides && Unit.isAtomic(u) && u.nucleotideElements.length) hasNucleotides = true;
+        if (!hasGaps && u.gapElements.length) hasGaps = true;
+    });
+    params.visuals.defaultValue = ['polymer-trace'];
+    if (hasNucleotides) params.visuals.defaultValue.push('nucleotide-block');
+    if (hasGaps) params.visuals.defaultValue.push('polymer-gap');
+    return params;
 }
 
 export type CartoonRepresentation = StructureRepresentation<CartoonParams>
 export function CartoonRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CartoonParams>): CartoonRepresentation {
-    return Representation.createMulti('Cartoon', ctx, getParams, StructureRepresentationStateBuilder, CartoonVisuals as unknown as Representation.Def<Structure, CartoonParams>)
+    return Representation.createMulti('Cartoon', ctx, getParams, StructureRepresentationStateBuilder, CartoonVisuals as unknown as Representation.Def<Structure, CartoonParams>);
 }
 
 export const CartoonRepresentationProvider = StructureRepresentationProvider({
@@ -70,4 +70,4 @@ export const CartoonRepresentationProvider = StructureRepresentationProvider({
         attach: (ctx: CustomProperty.Context, structure: Structure) => SecondaryStructureProvider.attach(ctx, structure, void 0, true),
         detach: (data) => SecondaryStructureProvider.ref(data, false)
     }
-})
+});

@@ -25,9 +25,9 @@ export class SimpleSettingsControl extends PluginUIComponent {
 
         this.subscribe(this.plugin.canvas3d!.camera.stateChanged, state => {
             if (state.radiusMax !== undefined || state.radius !== undefined) {
-                this.forceUpdate()
+                this.forceUpdate();
             }
-        })
+        });
     }
 
     render() {
@@ -35,7 +35,7 @@ export class SimpleSettingsControl extends PluginUIComponent {
         return <>
             <ParameterMappingControl mapping={SimpleSettingsMapping} />
             <ViewportHelpContent />
-        </>
+        </>;
     }
 }
 
@@ -43,7 +43,7 @@ const LayoutOptions = {
     'sequence': 'Sequence',
     'log': 'Log',
     'left': 'Left Panel'
-}
+};
 type LayoutOptions = keyof typeof LayoutOptions
 
 const SimpleSettingsParams = {
@@ -69,20 +69,20 @@ const SimpleSettingsParams = {
 type SimpleSettingsParams = typeof SimpleSettingsParams
 const SimpleSettingsMapping = ParamMapping({
     params: (ctx: PluginContext) => {
-        const params = PD.clone(SimpleSettingsParams)
-        const controls = ctx.spec.layout?.controls
+        const params = PD.clone(SimpleSettingsParams);
+        const controls = ctx.spec.layout?.controls;
         if (controls) {
-            const options: [LayoutOptions, string][] = []
-            if (controls.top !== 'none') options.push(['sequence', LayoutOptions.sequence])
-            if (controls.bottom !== 'none') options.push(['log', LayoutOptions.log])
-            if (controls.left !== 'none') options.push(['left', LayoutOptions.left])
-            params.layout.options = options
+            const options: [LayoutOptions, string][] = [];
+            if (controls.top !== 'none') options.push(['sequence', LayoutOptions.sequence]);
+            if (controls.bottom !== 'none') options.push(['log', LayoutOptions.log]);
+            if (controls.left !== 'none') options.push(['left', LayoutOptions.left]);
+            params.layout.options = options;
         }
-        return params
+        return params;
     },
     target(ctx: PluginContext) {
-        const c = ctx.spec.layout?.controls
-        const r = ctx.layout.state.regionState
+        const c = ctx.spec.layout?.controls;
+        const r = ctx.layout.state.regionState;
         const layout: SimpleSettingsParams['layout']['defaultValue'] = [];
         if (r.top !== 'hidden' && (!c || c.top !== 'none')) layout.push('sequence');
         if (r.bottom !== 'hidden' && (!c || c.bottom !== 'none')) layout.push('log');
@@ -118,11 +118,11 @@ const SimpleSettingsMapping = ParamMapping({
         canvas.camera = s.camera;
         canvas.transparentBackground = s.background.transparent;
         canvas.renderer.backgroundColor = s.background.color;
-        canvas.renderer.style = s.lighting.renderStyle
+        canvas.renderer.style = s.lighting.renderStyle;
         canvas.postprocessing.occlusion = s.lighting.occlusion;
         canvas.postprocessing.outline = s.lighting.outline;
-        canvas.cameraFog = s.lighting.fog
-        canvas.cameraClipping = s.clipping
+        canvas.cameraFog = s.lighting.fog;
+        canvas.cameraClipping = s.clipping;
 
         props.layout = s.layout;
     },
@@ -141,4 +141,4 @@ const SimpleSettingsMapping = ParamMapping({
             PluginCommands.State.SetCurrentObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
         }
     }
-})
+});

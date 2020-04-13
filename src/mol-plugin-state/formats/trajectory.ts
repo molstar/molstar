@@ -28,15 +28,15 @@ export const MmcifProvider: TrajectoryFormatProvider = {
     stringExtensions: ['cif', 'mmcif', 'mcif'],
     binaryExtensions: ['bcif'],
     isApplicable: (info, data) => {
-        if (info.ext === 'mmcif' || info.ext === 'mcif') return true
+        if (info.ext === 'mmcif' || info.ext === 'mcif') return true;
         // assume undetermined cif/bcif files are mmCIF
-        if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) === -1
-        return false
+        if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) === -1;
+        return false;
     },
     parse: async (plugin, data, params) => {
         const state = plugin.state.data;
         const cif = state.build().to(data)
-            .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
+            .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } });
         const trajectory = await cif
             .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { tags: params?.trajectoryTags })
             .commit({ revertOnError: true });
@@ -48,7 +48,7 @@ export const MmcifProvider: TrajectoryFormatProvider = {
         return { trajectory };
     },
     visuals: defaultVisuals
-}
+};
 
 export const CifCoreProvider: TrajectoryFormatProvider = {
     label: 'cifCore',
@@ -56,13 +56,13 @@ export const CifCoreProvider: TrajectoryFormatProvider = {
     category: Category,
     stringExtensions: ['cif'],
     isApplicable: (info, data) => {
-        if (info.ext === 'cif') return guessCifVariant(info, data) === 'coreCif'
-        return false
+        if (info.ext === 'cif') return guessCifVariant(info, data) === 'coreCif';
+        return false;
     },
     parse: async (plugin, data, params) => {
         const state = plugin.state.data;
         const cif = state.build().to(data)
-            .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
+            .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } });
         const trajectory = await cif
             .apply(StateTransforms.Model.TrajectoryFromCifCore, void 0, { tags: params?.trajectoryTags })
             .commit({ revertOnError: true });
@@ -73,7 +73,7 @@ export const CifCoreProvider: TrajectoryFormatProvider = {
         return { trajectory };
     },
     visuals: defaultVisuals
-}
+};
 
 function directTrajectory(transformer: StateTransformer<PluginStateObject.Data.String | PluginStateObject.Data.Binary, PluginStateObject.Molecule.Trajectory>): TrajectoryFormatProvider['parse'] {
     return async (plugin, data, params) => {
@@ -82,7 +82,7 @@ function directTrajectory(transformer: StateTransformer<PluginStateObject.Data.S
             .apply(transformer, void 0, { tags: params?.trajectoryTags })
             .commit({ revertOnError: true });
         return { trajectory };
-    }
+    };
 }
 
 export const PdbProvider: TrajectoryFormatProvider = {
@@ -92,7 +92,7 @@ export const PdbProvider: TrajectoryFormatProvider = {
     stringExtensions: ['pdb', 'ent'],
     parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB),
     visuals: defaultVisuals
-}
+};
 
 export const GroProvider: TrajectoryFormatProvider = {
     label: 'GRO',
@@ -102,7 +102,7 @@ export const GroProvider: TrajectoryFormatProvider = {
     binaryExtensions: [],
     parse: directTrajectory(StateTransforms.Model.TrajectoryFromGRO),
     visuals: defaultVisuals
-}
+};
 
 export const Provider3dg: TrajectoryFormatProvider = {
     label: '3DG',
@@ -111,7 +111,7 @@ export const Provider3dg: TrajectoryFormatProvider = {
     stringExtensions: ['3dg'],
     parse: directTrajectory(StateTransforms.Model.TrajectoryFrom3DG),
     visuals: defaultVisuals
-}
+};
 
 export const MolProvider: TrajectoryFormatProvider = {
     label: 'MOL',
@@ -120,7 +120,7 @@ export const MolProvider: TrajectoryFormatProvider = {
     stringExtensions: ['mol', 'sdf'],
     parse: directTrajectory(StateTransforms.Model.TrajectoryFromMOL),
     visuals: defaultVisuals
-}
+};
 
 
 export const BuiltInTrajectoryFormats = [
@@ -130,6 +130,6 @@ export const BuiltInTrajectoryFormats = [
     ['gro', GroProvider] as const,
     ['3dg', Provider3dg] as const,
     ['mol', MolProvider] as const
-] as const
+] as const;
 
 export type BuiltInTrajectoryFormat = (typeof BuiltInTrajectoryFormats)[number][0]

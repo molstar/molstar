@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { idFactory } from './id-factory'
+import { idFactory } from './id-factory';
 
 /** A mutable value reference. */
 interface ValueRef<T> { ref: T }
@@ -15,7 +15,7 @@ namespace ValueRef {
     export function set<T>(ref: ValueRef<T>, value: T) { ref.ref = value; return ref; }
 }
 
-const getNextId = idFactory(0, 0x7FFFFFFF)
+const getNextId = idFactory(0, 0x7FFFFFFF);
 
 /**
  * An immutable value box that also holds a version of the attribute.
@@ -59,7 +59,7 @@ namespace ValueCell {
 
     /** Updates the cell if the value is has changed, comparing by reference */
     export function updateIfChanged<T, D>(cell: ValueCell<T, D>, value: T): ValueCell<T, D> {
-        return cell.ref.value !== value ? update(cell, value) : cell
+        return cell.ref.value !== value ? update(cell, value) : cell;
     }
 }
 

@@ -33,4 +33,4 @@ void main() {
     vPosition = (aPosition - uBboxMin) / uResolution;
     gl_Position = vec4(((aPosition - uBboxMin) / uBboxSize) * 2.0 - 1.0, 1.0);
 }
-`
+`;

@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export * from './location'
-export * from './loci'
-export * from './bundle'
-export * from './stats'
-export * from './element'
+export * from './location';
+export * from './loci';
+export * from './bundle';
+export * from './stats';
+export * from './element';

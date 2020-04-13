@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Data from '../data-model'
-import { EncodedCategory, EncodedFile } from '../../../common/binary-cif'
-import Field from './field'
-import { ReaderResult as Result } from '../../result'
-import decodeMsgPack from '../../../common/msgpack/decode'
-import { Task } from '../../../../mol-task'
+import * as Data from '../data-model';
+import { EncodedCategory, EncodedFile } from '../../../common/binary-cif';
+import Field from './field';
+import { ReaderResult as Result } from '../../result';
+import decodeMsgPack from '../../../common/msgpack/decode';
+import { Task } from '../../../../mol-task';
 
 function checkVersions(min: number[], current: number[]) {
     for (let i = 0; i < 2; i++) {
@@ -33,7 +33,7 @@ function Category(data: EncodedCategory): Data.CifCategory {
             cache[name] = Field(col);
             return cache[name];
         }
-    }
+    };
 }
 
 export default function parse(data: Uint8Array) {
@@ -54,5 +54,5 @@ export default function parse(data: Uint8Array) {
         } catch (e) {
             return Result.error<Data.CifFile>('' + e);
         }
-    })
+    });
 }

@@ -22,19 +22,19 @@ export interface MarchinCubesBuilder<T> {
 }
 
 export function MarchinCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): MarchinCubesBuilder<Mesh> {
-    const triangleChunkSize = Math.min(1 << 16, vertexChunkSize * 4)
+    const triangleChunkSize = Math.min(1 << 16, vertexChunkSize * 4);
 
     const vertices = ChunkedArray.create(Float32Array, 3, vertexChunkSize, mesh && mesh.vertexBuffer.ref.value);
     const normals = ChunkedArray.create(Float32Array, 3, vertexChunkSize, mesh && mesh.normalBuffer.ref.value);
     const groups = ChunkedArray.create(Float32Array, 1, vertexChunkSize, mesh && mesh.groupBuffer.ref.value);
     const indices = ChunkedArray.create(Uint32Array, 3, triangleChunkSize, mesh && mesh.indexBuffer.ref.value);
 
-    let vertexCount = 0
-    let triangleCount = 0
+    let vertexCount = 0;
+    let triangleCount = 0;
 
     return {
         addVertex: (x: number, y: number, z: number) => {
-            ++vertexCount
+            ++vertexCount;
             return ChunkedArray.add3(vertices, x, y, z );
         },
         addNormal: (x: number, y: number, z: number) => {
@@ -44,12 +44,12 @@ export function MarchinCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): M
             ChunkedArray.add(groups, group);
         },
         addTriangle: (vertList: number[], a: number, b: number, c: number) => {
-            const i = vertList[a], j = vertList[b], k = vertList[c]
+            const i = vertList[a], j = vertList[b], k = vertList[c];
             // vertex indices <0 mean that the vertex was ignored and is not available
             // and hence we don't add a triangle when this occurs
             if (i >= 0 && j >= 0 && k >= 0) {
-                ++triangleCount
-                ChunkedArray.add3(indices, i, j, k)
+                ++triangleCount;
+                ChunkedArray.add3(indices, i, j, k);
             }
         },
         get: () => {
@@ -57,9 +57,9 @@ export function MarchinCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): M
             const nb = ChunkedArray.compact(normals, true) as Float32Array;
             const ib = ChunkedArray.compact(indices, true) as Uint32Array;
             const gb = ChunkedArray.compact(groups, true) as Float32Array;
-            return Mesh.create(vb, ib, nb, gb, vertexCount, triangleCount, mesh)
+            return Mesh.create(vb, ib, nb, gb, vertexCount, triangleCount, mesh);
         }
-    }
+    };
 }
 
 export function MarchinCubesLinesBuilder(vertexChunkSize: number, lines?: Lines): MarchinCubesBuilder<Lines> {
@@ -67,7 +67,7 @@ export function MarchinCubesLinesBuilder(vertexChunkSize: number, lines?: Lines)
     const groups = ChunkedArray.create(Float32Array, 1, vertexChunkSize);
     const indices = ChunkedArray.create(Float32Array, 2, vertexChunkSize);
 
-    let linesCount = 0
+    let linesCount = 0;
 
     return {
         addVertex: (x: number, y: number, z: number) => {
@@ -78,21 +78,21 @@ export function MarchinCubesLinesBuilder(vertexChunkSize: number, lines?: Lines)
             ChunkedArray.add(groups, group);
         },
         addTriangle: (vertList: number[], a: number, b: number, c: number, edgeFilter: number) => {
-            const i = vertList[a], j = vertList[b], k = vertList[c]
+            const i = vertList[a], j = vertList[b], k = vertList[c];
             // vertex indices <0 mean that the vertex was ignored and is not available
             // and hence we don't add a triangle when this occurs
             if (i >= 0 && j >= 0 && k >= 0) {
                 if (AllowedContours[a][b] & edgeFilter) {
-                    ++linesCount
-                    ChunkedArray.add2(indices, vertList[a], vertList[b])
+                    ++linesCount;
+                    ChunkedArray.add2(indices, vertList[a], vertList[b]);
                 }
                 if (AllowedContours[b][c] & edgeFilter) {
-                    ++linesCount
-                    ChunkedArray.add2(indices, vertList[b], vertList[c])
+                    ++linesCount;
+                    ChunkedArray.add2(indices, vertList[b], vertList[c]);
                 }
                 if (AllowedContours[a][c] & edgeFilter) {
-                    ++linesCount
-                    ChunkedArray.add2(indices, vertList[a], vertList[c])
+                    ++linesCount;
+                    ChunkedArray.add2(indices, vertList[a], vertList[c]);
                 }
             }
         },
@@ -101,18 +101,18 @@ export function MarchinCubesLinesBuilder(vertexChunkSize: number, lines?: Lines)
             const ib = ChunkedArray.compact(indices, true) as Uint32Array;
             const gb = ChunkedArray.compact(groups, true) as Float32Array;
 
-            const builder = LinesBuilder.create(linesCount, linesCount / 10, lines)
+            const builder = LinesBuilder.create(linesCount, linesCount / 10, lines);
 
             for (let i = 0; i < linesCount; ++i) {
-                const la = ib[i * 2], lb = ib[i * 2 + 1]
+                const la = ib[i * 2], lb = ib[i * 2 + 1];
                 builder.add(
                     vb[la * 3], vb[la * 3 + 1], vb[la * 3 + 2],
                     vb[lb * 3], vb[lb * 3 + 1], vb[lb * 3 + 2],
                     gb[la]
-                )
+                );
             }
 
-            return builder.getLines()
+            return builder.getLines();
         }
-    }
+    };
 }

@@ -86,7 +86,7 @@ namespace StateTransformParameters {
             initialValues,
             params,
             isEmpty: areParamsEmpty(params)
-        }
+        };
     }
 }
 
@@ -169,7 +169,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
             if (this.state.busy !== b) this.busy.next(b);
         });
         this.subscribe(this.busy, busy => {
-            if (this.state.busy !== busy) this.setState({ busy })
+            if (this.state.busy !== busy) this.setState({ busy });
         });
     }
 
@@ -229,7 +229,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
             params = <>
                 <ParamEditor info={info} a={a} b={b} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
                 {applyControl}
-            </>
+            </>;
         }
 
         const ctrl = <div className={wrapClass} style={{ marginBottom: this.props.noMargin ? 0 : void 0 }}>
@@ -257,7 +257,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
                 {this.props.simpleApply?.header}
             </Button>
             {!info.isEmpty && <ToggleButton icon='cog' label='' title='Options' toggle={this.toggleExpanded} isSelected={!this.state.isCollapsed} disabled={this.state.busy} style={{ flex: '0 0 40px', padding: 0 }} />}
-        </div>
+        </div>;
 
         if (this.state.isCollapsed) return apply;
 
@@ -270,7 +270,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         return <>
             {apply}
             <ParamEditor info={info} a={a} b={b} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
-        </>
+        </>;
     }
 
     render() {

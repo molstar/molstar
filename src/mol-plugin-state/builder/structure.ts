@@ -177,7 +177,7 @@ export class StructureBuilder {
             }
 
             return this.tryCreateComponent(structure, transformParams, key, tags);
-        }))
+        }));
     }
 
     constructor(public plugin: PluginContext) {

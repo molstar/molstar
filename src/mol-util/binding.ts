@@ -7,7 +7,7 @@
 import { ButtonsType, ModifiersKeys } from './input/input-observer';
 import { interpolate, stringToWords } from './string';
 
-export { Binding }
+export { Binding };
 
 interface Binding {
     triggers: Binding.Trigger[]
@@ -16,22 +16,22 @@ interface Binding {
 }
 
 function Binding(triggers: Binding.Trigger[], action = '', description = '') {
-    return Binding.create(triggers, action, description)
+    return Binding.create(triggers, action, description);
 }
 
 namespace Binding {
     export function create(triggers: Trigger[], action = '', description = ''): Binding {
-        return { triggers, action, description }
+        return { triggers, action, description };
     }
 
-    export const Empty: Binding = { triggers: [], action: '', description: '' }
+    export const Empty: Binding = { triggers: [], action: '', description: '' };
     export function isEmpty(binding: Binding) {
         return binding.triggers.length === 0 ||
-            binding.triggers.every(t => t.buttons === undefined && t.modifiers === undefined)
+            binding.triggers.every(t => t.buttons === undefined && t.modifiers === undefined);
     }
 
     export function match(binding: Binding, buttons: ButtonsType, modifiers: ModifiersKeys) {
-        return binding.triggers.some(t => Trigger.match(t, buttons, modifiers))
+        return binding.triggers.some(t => Trigger.match(t, buttons, modifiers));
     }
 
     export function formatTriggers(binding: Binding) {
@@ -39,8 +39,8 @@ namespace Binding {
     }
 
     export function format(binding: Binding, name = '') {
-        const help = binding.description || stringToWords(name)
-        return interpolate(help, { triggers: '<i>' + formatTriggers(binding) + '</i>' })
+        const help = binding.description || stringToWords(name);
+        return interpolate(help, { triggers: '<i>' + formatTriggers(binding) + '</i>' });
     }
 
     export interface Trigger {
@@ -49,61 +49,61 @@ namespace Binding {
     }
 
     export function Trigger(buttons?: ButtonsType, modifiers?: ModifiersKeys) {
-        return Trigger.create(buttons, modifiers)
+        return Trigger.create(buttons, modifiers);
     }
 
     export namespace Trigger {
         export function create(buttons?: ButtonsType, modifiers?: ModifiersKeys): Trigger {
-            return { buttons, modifiers }
+            return { buttons, modifiers };
         }
-        export const Empty: Trigger = {}
+        export const Empty: Trigger = {};
 
         export function match(trigger: Trigger, buttons: ButtonsType, modifiers: ModifiersKeys): boolean {
-            const { buttons: b, modifiers: m } = trigger
+            const { buttons: b, modifiers: m } = trigger;
             return b !== undefined &&
                 (b === buttons || ButtonsType.has(b, buttons)) &&
-                (!m || ModifiersKeys.areEqual(m, modifiers))
+                (!m || ModifiersKeys.areEqual(m, modifiers));
         }
 
         export function format(trigger: Trigger) {
-            const s: string[] = []
-            const b = formatButtons(trigger.buttons)
-            if (b) s.push(b)
-            const m = formatModifiers(trigger.modifiers)
-            if (m) s.push(m)
-            return s.join(' + ')
+            const s: string[] = [];
+            const b = formatButtons(trigger.buttons);
+            if (b) s.push(b);
+            const m = formatModifiers(trigger.modifiers);
+            if (m) s.push(m);
+            return s.join(' + ');
         }
     }
 }
 
-const B = ButtonsType
+const B = ButtonsType;
 
 function formatButtons(buttons?: ButtonsType) {
-    const s: string[] = []
+    const s: string[] = [];
     if (buttons === undefined) {
-        s.push('any mouse button')
+        s.push('any mouse button');
     } else if (buttons === 0) {
-        s.push('mouse hover')
+        s.push('mouse hover');
     } else {
-        if (B.has(buttons, B.Flag.Primary)) s.push('left mouse button')
-        if (B.has(buttons, B.Flag.Secondary)) s.push('right mouse button')
-        if (B.has(buttons, B.Flag.Auxilary)) s.push('wheel/middle mouse button')
-        if (B.has(buttons, B.Flag.Forth)) s.push('three fingers')
+        if (B.has(buttons, B.Flag.Primary)) s.push('left mouse button');
+        if (B.has(buttons, B.Flag.Secondary)) s.push('right mouse button');
+        if (B.has(buttons, B.Flag.Auxilary)) s.push('wheel/middle mouse button');
+        if (B.has(buttons, B.Flag.Forth)) s.push('three fingers');
     }
-    return s.join(' + ')
+    return s.join(' + ');
 }
 
 function formatModifiers(modifiers?: ModifiersKeys, verbose?: boolean) {
-    const s: string[] = []
+    const s: string[] = [];
     if (modifiers) {
-        if (modifiers.alt) s.push('alt key')
-        if (modifiers.control) s.push('control key')
-        if (modifiers.meta) s.push('meta/command key')
-        if (modifiers.shift) s.push('shift key')
+        if (modifiers.alt) s.push('alt key');
+        if (modifiers.control) s.push('control key');
+        if (modifiers.meta) s.push('meta/command key');
+        if (modifiers.shift) s.push('shift key');
 
-        if (verbose && s.length === 0) s.push('no key')
+        if (verbose && s.length === 0) s.push('no key');
     } else {
-        if (verbose) s.push('any key')
+        if (verbose) s.push('any key');
     }
-    return s.join(' + ')
+    return s.join(' + ');
 }

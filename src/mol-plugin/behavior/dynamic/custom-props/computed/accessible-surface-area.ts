@@ -24,8 +24,8 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
 
         private labelProvider = {
             label: (loci: Loci): string | undefined => {
-                if (!this.params.showTooltip) return
-                return accessibleSurfaceAreaLabel(loci)
+                if (!this.params.showTooltip) return;
+                return accessibleSurfaceAreaLabel(loci);
             }
         }
 
@@ -33,7 +33,7 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
             let updated = (
                 this.params.autoAttach !== p.autoAttach ||
                 this.params.showTooltip !== p.showTooltip
-            )
+            );
             this.params.autoAttach = p.autoAttach;
             this.params.showTooltip = p.showTooltip;
             this.ctx.customStructureProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
@@ -44,10 +44,10 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
             DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
 
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
-            this.ctx.representation.structure.themes.colorThemeRegistry.add(AccessibleSurfaceAreaColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(AccessibleSurfaceAreaColorThemeProvider);
             this.ctx.managers.lociLabels.addProvider(this.labelProvider);
-            this.ctx.query.structure.registry.add(isBuried)
-            this.ctx.query.structure.registry.add(isAccessible)
+            this.ctx.query.structure.registry.add(isBuried);
+            this.ctx.query.structure.registry.add(isAccessible);
         }
 
         unregister() {
@@ -55,10 +55,10 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
             // DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
 
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
-            this.ctx.representation.structure.themes.colorThemeRegistry.remove(AccessibleSurfaceAreaColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(AccessibleSurfaceAreaColorThemeProvider);
             this.ctx.managers.lociLabels.removeProvider(this.labelProvider);
-            this.ctx.query.structure.registry.remove(isBuried)
-            this.ctx.query.structure.registry.remove(isAccessible)
+            this.ctx.query.structure.registry.remove(isBuried);
+            this.ctx.query.structure.registry.remove(isAccessible);
         }
     },
     params: () => ({
@@ -73,32 +73,32 @@ function accessibleSurfaceAreaLabel(loci: Loci): string | undefined {
     if(loci.kind === 'element-loci') {
         if (loci.elements.length === 0) return;
 
-        const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(loci.structure).value
+        const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(loci.structure).value;
         if (!accessibleSurfaceArea || loci.structure.customPropertyDescriptors.hasReference(AccessibleSurfaceAreaProvider.descriptor)) return;
 
-        const { getSerialIndex } = loci.structure.root.serialMapping
-        const { area, serialResidueIndex } = accessibleSurfaceArea
-        const seen = new Set<number>()
-        let cummulativeArea = 0
+        const { getSerialIndex } = loci.structure.root.serialMapping;
+        const { area, serialResidueIndex } = accessibleSurfaceArea;
+        const seen = new Set<number>();
+        let cummulativeArea = 0;
 
         for (const { indices, unit } of loci.elements) {
-            const { elements } = unit
+            const { elements } = unit;
 
             OrderedSet.forEach(indices, idx => {
-                const rSI = serialResidueIndex[getSerialIndex(unit, elements[idx])]
+                const rSI = serialResidueIndex[getSerialIndex(unit, elements[idx])];
                 if (rSI !== -1 && !seen.has(rSI)) {
-                    cummulativeArea += area[rSI]
-                    seen.add(rSI)
+                    cummulativeArea += area[rSI];
+                    seen.add(rSI);
                 }
-            })
+            });
         }
-        if (seen.size === 0) return
-        const residueCount = `<small>(${seen.size} ${seen.size > 1 ? 'Residues sum' : 'Residue'})</small>`
+        if (seen.size === 0) return;
+        const residueCount = `<small>(${seen.size} ${seen.size > 1 ? 'Residues sum' : 'Residue'})</small>`;
 
         return `Accessible Surface Area ${residueCount}: ${cummulativeArea.toFixed(2)} \u212B<sup>2</sup>`;
 
     } else if(loci.kind === 'structure-loci') {
-        const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(loci.structure).value
+        const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(loci.structure).value;
         if (!accessibleSurfaceArea || loci.structure.customPropertyDescriptors.hasReference(AccessibleSurfaceAreaProvider.descriptor)) return;
 
         return `Accessible Surface Area <small>(Whole Structure)</small>: ${arraySum(accessibleSurfaceArea.area).toFixed(2)} \u212B<sup>2</sup>`;
@@ -120,9 +120,9 @@ const isBuried = StructureSelectionQuery('Buried Protein Residues', MS.struct.mo
     description: 'Select buried protein residues.',
     category: StructureSelectionCategory.Residue,
     ensureCustomProperties: (ctx, structure) => {
-        return AccessibleSurfaceAreaProvider.attach(ctx, structure)
+        return AccessibleSurfaceAreaProvider.attach(ctx, structure);
     }
-})
+});
 
 const isAccessible = StructureSelectionQuery('Accessible Protein Residues', MS.struct.modifier.union([
     MS.struct.modifier.wholeResidues([
@@ -137,6 +137,6 @@ const isAccessible = StructureSelectionQuery('Accessible Protein Residues', MS.s
     description: 'Select accessible protein residues.',
     category: StructureSelectionCategory.Residue,
     ensureCustomProperties: (ctx, structure) => {
-        return AccessibleSurfaceAreaProvider.attach(ctx, structure)
+        return AccessibleSurfaceAreaProvider.attach(ctx, structure);
     }
-})
+});

@@ -37,7 +37,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
             this.setState({
                 isHidden: !this.canEnable(),
                 description: StructureHierarchyManager.getSelectedStructuresDescription(this.plugin)
-            })
+            });
         });
         this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
             if (e.cell.transform.transformer === AssemblySymmetry3D) this.forceUpdate();
@@ -70,25 +70,25 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
     }
 
     get params() {
-        const structure = this.pivot.cell.obj?.data
-        const params = PD.clone(structure ? AssemblySymmetryProvider.getParams(structure) : AssemblySymmetryProvider.defaultParams)
-        params.serverUrl.isHidden = true
-        params.symmetryIndex.options = [[-1, 'Off'], ...params.symmetryIndex.options]
-        return params
+        const structure = this.pivot.cell.obj?.data;
+        const params = PD.clone(structure ? AssemblySymmetryProvider.getParams(structure) : AssemblySymmetryProvider.defaultParams);
+        params.serverUrl.isHidden = true;
+        params.symmetryIndex.options = [[-1, 'Off'], ...params.symmetryIndex.options];
+        return params;
     }
 
     get values() {
-        const structure = this.pivot.cell.obj?.data
+        const structure = this.pivot.cell.obj?.data;
         if (structure) {
-            return AssemblySymmetryProvider.props(structure)
+            return AssemblySymmetryProvider.props(structure);
         } else {
-            return { ...PD.getDefaultValues(AssemblySymmetryProvider.defaultParams), symmetryIndex: -1 }
+            return { ...PD.getDefaultValues(AssemblySymmetryProvider.defaultParams), symmetryIndex: -1 };
         }
     }
 
     async updateAssemblySymmetry(values: AssemblySymmetryProps) {
-        const s = this.pivot
-        const currValues = AssemblySymmetryProvider.props(s.cell.obj!.data)
+        const s = this.pivot;
+        const currValues = AssemblySymmetryProvider.props(s.cell.obj!.data);
         if (PD.areEqual(AssemblySymmetryProvider.defaultParams, currValues, values)) return;
 
         if (s.properties) {
@@ -108,17 +108,17 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
             if (values.symmetryIndex === -1) {
                 const name = components[0]?.representations[0]?.cell.transform.params?.colorTheme.name;
                 if (name === AssemblySymmetry.Tag.Cluster) {
-                    await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: 'default' })
+                    await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: 'default' });
                 }
             } else {
-                tryCreateAssemblySymmetry(this.plugin, s.cell)
-                await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: AssemblySymmetry.Tag.Cluster as any })
+                tryCreateAssemblySymmetry(this.plugin, s.cell);
+                await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: AssemblySymmetry.Tag.Cluster as any });
             }
         }
     }
 
     paramsOnChange = (options: AssemblySymmetryProps) => {
-        this.updateAssemblySymmetry(options)
+        this.updateAssemblySymmetry(options);
     }
 
     get hasAssemblySymmetry3D() {
@@ -126,13 +126,13 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
     }
 
     get enable() {
-        return !this.hasAssemblySymmetry3D && this.values.symmetryIndex !== -1
+        return !this.hasAssemblySymmetry3D && this.values.symmetryIndex !== -1;
     }
 
     get noSymmetries() {
-        const structure = this.pivot.cell.obj?.data
-        const data = structure && AssemblySymmetryDataProvider.get(structure).value
-        return data && data.filter(sym => sym.symbol !== 'C1').length === 0
+        const structure = this.pivot.cell.obj?.data;
+        const data = structure && AssemblySymmetryDataProvider.get(structure).value;
+        return data && data.filter(sym => sym.symbol !== 'C1').length === 0;
     }
 
     renderParams() {
@@ -152,5 +152,5 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
 const EnableAssemblySymmetry3D = StateAction.build({
     from: PluginStateObject.Molecule.Structure,
 })(({ a, ref, state }, plugin: PluginContext) => Task.create('Enable Assembly Symmetry', async ctx => {
-    await AssemblySymmetryPreset.apply(ref, Object.create(null), plugin)
+    await AssemblySymmetryPreset.apply(ref, Object.create(null), plugin);
 }));

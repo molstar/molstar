@@ -5,10 +5,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as argparse from 'argparse'
-import { ObjectKeys } from '../../mol-util/type-helpers'
-import { VOLUME_SERVER_HEADER, VOLUME_SERVER_VERSION } from './server/version'
-import * as fs from 'fs'
+import * as argparse from 'argparse';
+import { ObjectKeys } from '../../mol-util/type-helpers';
+import { VOLUME_SERVER_HEADER, VOLUME_SERVER_VERSION } from './server/version';
+import * as fs from 'fs';
 
 const DefaultServerConfig = {
     apiPrefix: '/VolumeServer',
@@ -16,7 +16,7 @@ const DefaultServerConfig = {
     shutdownTimeoutMinutes: 24 * 60, /* a day */
     shutdownTimeoutVarianceMinutes: 60,
     idMap: [] as [string, string][]
-}
+};
 
 function addLimitsArgs(parser: argparse.ArgumentParser) {
     parser.addArgument([ '--maxRequestBlockCount' ], {
@@ -102,7 +102,7 @@ export interface ServerJsonConfig {
 }
 
 export type ServerConfig = typeof DefaultServerConfig
-export const ServerConfig = { ...DefaultServerConfig }
+export const ServerConfig = { ...DefaultServerConfig };
 
 function setServerConfig(config: ServerConfig) {
     for (const k of ObjectKeys(ServerConfig)) {
@@ -128,9 +128,9 @@ const DefaultLimitsConfig = {
         16 * 1024 * 1024, // ~ 256*256*256
         24 * 1024 * 1024
     ]
-}
+};
 export type LimitsConfig = typeof DefaultLimitsConfig
-export const LimitsConfig = { ...DefaultLimitsConfig }
+export const LimitsConfig = { ...DefaultLimitsConfig };
 
 function setLimitsConfig(config: LimitsConfig) {
     for (const k of ObjectKeys(LimitsConfig)) {
@@ -141,8 +141,8 @@ function setLimitsConfig(config: LimitsConfig) {
 type FullServerConfig = ServerConfig & LimitsConfig
 
 function setConfig(config: FullServerConfig) {
-    setServerConfig(config)
-    setLimitsConfig(config)
+    setServerConfig(config);
+    setLimitsConfig(config);
 }
 
 const ServerConfigTemplate: FullServerConfig = {
@@ -152,7 +152,7 @@ const ServerConfigTemplate: FullServerConfig = {
         ['em', './path-to-em-data/emd-${id}.mdb']
     ] as [string, string][],
     ...DefaultLimitsConfig
-}
+};
 
 export function configureServer() {
     const parser = new argparse.ArgumentParser({
@@ -171,7 +171,7 @@ export function configureServer() {
     }
 
     try {
-        setConfig(config) // sets the config for global use
+        setConfig(config); // sets the config for global use
 
         if (config.cfg) {
             const cfg = JSON.parse(fs.readFileSync(config.cfg, 'utf8')) as FullServerConfig;
@@ -209,7 +209,7 @@ export function configureLocal() {
     }
 
     try {
-        setLimitsConfig(config) // sets the config for global use
+        setLimitsConfig(config); // sets the config for global use
 
         if (config.cfg) {
             const cfg = JSON.parse(fs.readFileSync(config.cfg, 'utf8')) as FullServerConfig;

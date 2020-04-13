@@ -21,7 +21,7 @@ export function memoizeLatest<Args extends any[], T>(f: (...args: Args) => T): (
             }
         }
         return value;
-    }
+    };
 }
 
 /** Cache all results from calls to a function with a single argument */
@@ -32,5 +32,5 @@ export function memoize1<A, T>(f: (a: A) => T): (a: A) => T {
         const v = f(a);
         cache.set(a, v);
         return v;
-    }
+    };
 }

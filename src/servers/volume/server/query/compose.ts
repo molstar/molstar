@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Data from './data-model'
-import * as Box from '../algebra/box'
-import * as Coords from '../algebra/coordinate'
+import * as Data from './data-model';
+import * as Box from '../algebra/box';
+import * as Coords from '../algebra/coordinate';
 import { createTypedArrayBufferContext, getElementByteSize, readTypedArray } from '../../../../mol-io/common/typed-array';
 
 export default async function compose(query: Data.QueryContext.Data) {
@@ -19,11 +19,11 @@ export default async function compose(query: Data.QueryContext.Data) {
 
 async function readBlock(query: Data.QueryContext.Data, coord: Coords.Grid<'Block'>, blockBox: Box.Fractional): Promise<Data.BlockData> {
     const { valueType, blockSize } = query.data.header;
-    const elementByteSize = getElementByteSize(valueType)
+    const elementByteSize = getElementByteSize(valueType);
     const numChannels = query.data.header.channels.length;
     const blockSampleCount = Box.dimensions(Box.fractionalToGrid(blockBox, query.samplingInfo.sampling.dataDomain));
     const size = numChannels * blockSampleCount[0] * blockSampleCount[1] * blockSampleCount[2];
-    const byteSize = elementByteSize * size
+    const byteSize = elementByteSize * size;
     const dataSampleCount = query.data.header.sampling[query.samplingInfo.sampling.index].sampleCount;
     const buffer = createTypedArrayBufferContext(size, valueType);
     const byteOffset = query.samplingInfo.sampling.byteOffset

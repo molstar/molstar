@@ -8,25 +8,25 @@ import { parseFloat as fastParseFloat, parseInt as fastParseInt, getNumberType, 
 
 describe('common', () => {
     it('number-parser fastParseFloat', () => {
-        expect(fastParseFloat('11.0829(23)', 0, 11)).toBe(11.0829)
+        expect(fastParseFloat('11.0829(23)', 0, 11)).toBe(11.0829);
     });
 
     it('number-parser fastParseInt', () => {
-        expect(fastParseInt('11(23)', 0, 11)).toBe(11)
+        expect(fastParseInt('11(23)', 0, 11)).toBe(11);
     });
 
     it('number-parser getNumberType', () => {
-        expect(getNumberType('11')).toBe(NumberType.Int)
-        expect(getNumberType('5E93')).toBe(NumberType.Scientific)
-        expect(getNumberType('0.42')).toBe(NumberType.Float)
-        expect(getNumberType('Foo123')).toBe(NumberType.NaN)
-        expect(getNumberType('11.0829(23)')).toBe(NumberType.NaN)
-        expect(getNumberType('1..2')).toBe(NumberType.NaN)
-        expect(getNumberType('.')).toBe(NumberType.NaN)
-        expect(getNumberType('-.')).toBe(NumberType.NaN)
-        expect(getNumberType('e')).toBe(NumberType.NaN)
-        expect(getNumberType('-e')).toBe(NumberType.NaN)
-        expect(getNumberType('1e')).toBe(NumberType.Scientific)
-        expect(getNumberType('-1e')).toBe(NumberType.Scientific)
+        expect(getNumberType('11')).toBe(NumberType.Int);
+        expect(getNumberType('5E93')).toBe(NumberType.Scientific);
+        expect(getNumberType('0.42')).toBe(NumberType.Float);
+        expect(getNumberType('Foo123')).toBe(NumberType.NaN);
+        expect(getNumberType('11.0829(23)')).toBe(NumberType.NaN);
+        expect(getNumberType('1..2')).toBe(NumberType.NaN);
+        expect(getNumberType('.')).toBe(NumberType.NaN);
+        expect(getNumberType('-.')).toBe(NumberType.NaN);
+        expect(getNumberType('e')).toBe(NumberType.NaN);
+        expect(getNumberType('-e')).toBe(NumberType.NaN);
+        expect(getNumberType('1e')).toBe(NumberType.Scientific);
+        expect(getNumberType('-1e')).toBe(NumberType.Scientific);
     });
 });

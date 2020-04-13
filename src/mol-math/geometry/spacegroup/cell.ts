@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from '../../linear-algebra'
+import { Vec3 } from '../../linear-algebra';
 
-export { Cell }
+export { Cell };
 
 interface Cell {
     readonly size: Vec3
@@ -14,10 +14,10 @@ interface Cell {
 }
 
 function Cell() {
-    return Cell.empty()
+    return Cell.empty();
 }
 
 namespace Cell {
-    export function create(size: Vec3, anglesInRadians: Vec3): Cell { return { size, anglesInRadians } }
-    export function empty(): Cell { return { size: Vec3(), anglesInRadians: Vec3() } }
+    export function create(size: Vec3, anglesInRadians: Vec3): Cell { return { size, anglesInRadians }; }
+    export function empty(): Cell { return { size: Vec3(), anglesInRadians: Vec3() }; }
 }

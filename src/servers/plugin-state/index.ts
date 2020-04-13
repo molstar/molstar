@@ -4,17 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import express from 'express'
-import compression from 'compression'
-import cors from 'cors'
-import * as bodyParser from 'body-parser'
-import * as fs from 'fs'
-import * as path from 'path'
+import express from 'express';
+import compression from 'compression';
+import cors from 'cors';
+import * as bodyParser from 'body-parser';
+import * as fs from 'fs';
+import * as path from 'path';
 import { swaggerUiIndexHandler, swaggerUiAssetsHandler } from '../common/swagger-ui';
-import { makeDir } from '../../mol-util/make-dir'
-import { getConfig } from './config'
-import { UUID } from '../../mol-util'
-import { shortcutIconLink, getSchema } from './api-schema'
+import { makeDir } from '../../mol-util/make-dir';
+import { getConfig } from './config';
+import { UUID } from '../../mol-util';
+import { shortcutIconLink, getSchema } from './api-schema';
 
 const Config = getConfig();
 
@@ -59,7 +59,7 @@ function validateIndex(index: Index) {
 
         for (const d of deletes) {
             try {
-                fs.unlinkSync(path.join(Config.working_folder, d.id + '.json'))
+                fs.unlinkSync(path.join(Config.working_folder, d.id + '.json'));
             } catch { }
         }
         return newIndex;
@@ -83,7 +83,7 @@ function remove(id: string) {
             writeIndex(index);
         } catch { }
         try {
-            fs.unlinkSync(path.join(Config.working_folder, e.id + '.json'))
+            fs.unlinkSync(path.join(Config.working_folder, e.id + '.json'));
         } catch { }
         return;
     }
@@ -93,7 +93,7 @@ function clear() {
     let index = readIndex();
     for (const e of index) {
         try {
-            fs.unlinkSync(path.join(Config.working_folder, e.id + '.json'))
+            fs.unlinkSync(path.join(Config.working_folder, e.id + '.json'));
         } catch { }
     }
     writeIndex([]);

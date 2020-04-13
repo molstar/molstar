@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from '../ordered-set'
-import Interval from '../interval'
-import Segmentation from '../segmentation'
+import OrderedSet from '../ordered-set';
+import Interval from '../interval';
+import Segmentation from '../segmentation';
 
 describe('segments', () => {
     const data = OrderedSet.ofSortedArray([4, 9, 10, 11, 14, 15, 16]);
@@ -16,12 +16,12 @@ describe('segments', () => {
 
     it('project', () => {
         const p = Segmentation.projectValue(segs, data, 4);
-        expect(p).toBe(Interval.ofBounds(0, 2))
+        expect(p).toBe(Interval.ofBounds(0, 2));
     });
 
     it('ofOffsetts', () => {
         const p = Segmentation.ofOffsets([10, 12], Interval.ofBounds(10, 14));
-        expect(p.offsets).toEqual(new Int32Array([0, 2, 4]))
+        expect(p.offsets).toEqual(new Int32Array([0, 2, 4]));
     });
 
     it('map', () => {

@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'fs';
+import * as path from 'path';
 import { Model } from '../../../../mol-model/structure';
 import { StructureQualityReportProvider, StructureQualityReport } from '../../../../mol-model-props/pdbe/structure-quality-report';
 import { fetchRetry } from '../../utils/fetch-retry';
@@ -20,19 +20,19 @@ export const PDBe_structureQualityReport: AttachModelProperty = async ({ model, 
     const PDBe_apiSourceJson = useFileSource(params)
         ? residuewise_outlier_summary.getDataFromAggregateFile(getFilePrefix(params, 'residuewise_outlier_summary'))
         : apiQueryProvider(getApiUrl(params, 'residuewise_outlier_summary', StructureQualityReport.DefaultServerUrl), cache);
-    const data = StructureQualityReport.fromJson(model, await PDBe_apiSourceJson(model))
-    return StructureQualityReportProvider.set(model, { serverUrl: StructureQualityReport.DefaultServerUrl }, data)
-}
+    const data = StructureQualityReport.fromJson(model, await PDBe_apiSourceJson(model));
+    return StructureQualityReportProvider.set(model, { serverUrl: StructureQualityReport.DefaultServerUrl }, data);
+};
 
 export const PDBe_preferredAssembly: AttachModelProperty = ({ model, params, cache }) => {
     const PDBe_apiSourceJson = apiQueryProvider(getApiUrl(params, 'preferred_assembly', 'https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary'), cache);
     return PDBePreferredAssembly.attachFromCifOrApi(model, { PDBe_apiSourceJson });
-}
+};
 
 export const PDBe_structRefDomain: AttachModelProperty = ({ model, params, cache }) => {
     const PDBe_apiSourceJson = apiQueryProvider(getApiUrl(params, 'struct_ref_domain', 'https://www.ebi.ac.uk/pdbe/api/mappings/sequence_domains'), cache);
     return PDBeStructRefDomain.attachFromCifOrApi(model, { PDBe_apiSourceJson });
-}
+};
 
 namespace residuewise_outlier_summary {
     const json = new Map<string, any>();
@@ -48,7 +48,7 @@ namespace residuewise_outlier_summary {
                 else json.set(key, JSON.parse(fs.readFileSync(fn, 'utf8')));
             }
             return json.get(key)![model.entryId.toLowerCase()] || { };
-        }
+        };
     }
 }
 
@@ -66,7 +66,7 @@ function getFilePrefix(params: any, name: string) {
 }
 
 function useFileSource(params: any) {
-    return !!getParam<boolean>(params, 'PDBe', 'UseFileSource')
+    return !!getParam<boolean>(params, 'PDBe', 'UseFileSource');
 }
 
 function apiQueryProvider(urlPrefix: string, cache: any) {
@@ -85,5 +85,5 @@ function apiQueryProvider(urlPrefix: string, cache: any) {
             ConsoleLogger.warn('Props', `Count not retrieve prop @${`${urlPrefix}/${model.entryId.toLowerCase()}`}`);
             return { };
         }
-    }
+    };
 }

@@ -23,7 +23,7 @@ import { getEntities } from './entities';
 import { getModelGroupName } from './util';
 
 export async function createModels(data: BasicData, format: ModelFormat, ctx: RuntimeContext) {
-    const properties = getProperties(data)
+    const properties = getProperties(data);
     const models = data.ihm_model_list._rowCount > 0
         ? await readIntegrative(ctx, data, properties, format)
         : await readStandard(ctx, data, properties, format);
@@ -40,7 +40,7 @@ export async function createModels(data: BasicData, format: ModelFormat, ctx: Ru
 function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, properties: Model['properties'], format: ModelFormat, previous?: Model): Model {
 
     const atomic = getAtomicHierarchyAndConformation(atom_site, sourceIndex, entities, properties.chemicalComponentMap, format, previous);
-    const modelNum = atom_site.pdbx_PDB_model_num.value(0)
+    const modelNum = atom_site.pdbx_PDB_model_num.value(0);
     if (previous && atomic.sameAsPrevious) {
         return {
             ...previous,
@@ -52,15 +52,15 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
     }
 
     const coarse = EmptyCoarse;
-    const sequence = getSequence(data, entities, atomic.hierarchy, coarse.hierarchy)
-    const atomicRanges = getAtomicRanges(atomic.hierarchy, entities, atomic.conformation, sequence)
+    const sequence = getSequence(data, entities, atomic.hierarchy, coarse.hierarchy);
+    const atomicRanges = getAtomicRanges(atomic.hierarchy, entities, atomic.conformation, sequence);
 
     const entry = data.entry.id.valueKind(0) === Column.ValueKind.Present
         ? data.entry.id.value(0) : format.name;
 
-    const label: string[] = []
-    if (entry) label.push(entry)
-    if (data.struct.title.valueKind(0) === Column.ValueKind.Present) label.push(data.struct.title.value(0))
+    const label: string[] = [];
+    if (entry) label.push(entry);
+    if (data.struct.title.valueKind(0) === Column.ValueKind.Present) label.push(data.struct.title.value(0));
 
     return {
         id: UUID.create22(),
@@ -89,17 +89,17 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
 function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Model['properties'], format: ModelFormat): Model {
     const atomic = getAtomicHierarchyAndConformation(ihm.atom_site, ihm.atom_site_sourceIndex, ihm.entities, properties.chemicalComponentMap, format);
     const coarse = getCoarse(ihm, properties);
-    const sequence = getSequence(data, ihm.entities, atomic.hierarchy, coarse.hierarchy)
-    const atomicRanges = getAtomicRanges(atomic.hierarchy, ihm.entities, atomic.conformation, sequence)
+    const sequence = getSequence(data, ihm.entities, atomic.hierarchy, coarse.hierarchy);
+    const atomicRanges = getAtomicRanges(atomic.hierarchy, ihm.entities, atomic.conformation, sequence);
 
     const entry = data.entry.id.valueKind(0) === Column.ValueKind.Present
         ? data.entry.id.value(0) : format.name;
 
-    const label: string[] = []
-    if (entry) label.push(entry)
-    if (data.struct.title.valueKind(0) === Column.ValueKind.Present) label.push(data.struct.title.value(0))
-    if (ihm.model_name) label.push(ihm.model_name)
-    if (ihm.model_group_name) label.push(ihm.model_group_name)
+    const label: string[] = [];
+    if (entry) label.push(entry);
+    if (data.struct.title.valueKind(0) === Column.ValueKind.Present) label.push(data.struct.title.value(0));
+    if (ihm.model_name) label.push(ihm.model_name);
+    if (ihm.model_group_name) label.push(ihm.model_group_name);
 
     return {
         id: UUID.create22(),
@@ -137,7 +137,7 @@ async function readStandard(ctx: RuntimeContext, data: BasicData, properties: Mo
 
     if (data.atom_site) {
         const atomCount = data.atom_site.id.rowCount;
-        const entities = getEntities(data)
+        const entities = getEntities(data);
 
         let modelStart = 0;
         while (modelStart < atomCount) {
@@ -152,7 +152,7 @@ async function readStandard(ctx: RuntimeContext, data: BasicData, properties: Mo
 }
 
 function splitTable<T extends Table<any>>(table: T, col: Column<number>) {
-    const ret = new Map<number, { table: T, start: number, end: number }>()
+    const ret = new Map<number, { table: T, start: number, end: number }>();
     const rowCount = table._rowCount;
     let modelStart = 0;
     while (modelStart < rowCount) {
@@ -171,11 +171,11 @@ function splitTable<T extends Table<any>>(table: T, col: Column<number>) {
 
 
 async function readIntegrative(ctx: RuntimeContext, data: BasicData, properties: Model['properties'], format: ModelFormat) {
-    const entities = getEntities(data)
+    const entities = getEntities(data);
     // when `atom_site.ihm_model_id` is undefined fall back to `atom_site.pdbx_PDB_model_num`
     const atom_sites_modelColumn = data.atom_site.ihm_model_id.isDefined
-        ? data.atom_site.ihm_model_id : data.atom_site.pdbx_PDB_model_num
-    const atom_sites = splitTable(data.atom_site, atom_sites_modelColumn)
+        ? data.atom_site.ihm_model_id : data.atom_site.pdbx_PDB_model_num;
+    const atom_sites = splitTable(data.atom_site, atom_sites_modelColumn);
 
     // TODO: will coarse IHM records require sorting or will we trust it?
     // ==> Probably implement a sort as as well and store the sourceIndex same as with atomSite

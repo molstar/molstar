@@ -7,4 +7,4 @@ if (uTransparentBackground == 0) {
     float fogAlpha = (1.0 - fogFactor) * gl_FragColor.a;
     gl_FragColor.a = fogAlpha;
 }
-`
+`;

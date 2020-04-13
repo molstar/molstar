@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from '../db'
+import { Column } from '../db';
 
 export interface Grouping<V, K> {
     map: Map<K, V[]>,

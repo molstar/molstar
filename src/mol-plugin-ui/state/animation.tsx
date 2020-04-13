@@ -17,7 +17,7 @@ export class AnimationControlsWrapper extends PluginUIComponent<{ }> {
         return <div className='msp-controls-section'>
             <div className='msp-section-header'><Icon name='code' /> Animations</div>
             <AnimationControls />
-        </div>
+        </div>;
     }
 }
 

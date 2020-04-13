@@ -19,7 +19,7 @@ const EllipsoidVisuals = {
     'ellipsoid-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, EllipsoidMeshParams>) => UnitsRepresentation('Ellipsoid Mesh', ctx, getParams, EllipsoidMeshVisual),
     'intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitBondParams>) => UnitsRepresentation('Intra-unit bond cylinder', ctx, getParams, IntraUnitBondVisual),
     'inter-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitBondParams>) => ComplexRepresentation('Inter-unit bond cylinder', ctx, getParams, InterUnitBondVisual),
-}
+};
 
 export const EllipsoidParams = {
     ...EllipsoidMeshParams,
@@ -30,15 +30,15 @@ export const EllipsoidParams = {
     sizeAspectRatio: PD.Numeric(0.1, { min: 0.01, max: 3, step: 0.01 }),
     linkCap: PD.Boolean(true),
     visuals: PD.MultiSelect(['ellipsoid-mesh', 'intra-bond', 'inter-bond'], PD.objectToOptions(EllipsoidVisuals)),
-}
+};
 export type EllipsoidParams = typeof EllipsoidParams
 export function getEllipsoidParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(EllipsoidParams)
+    return PD.clone(EllipsoidParams);
 }
 
 export type EllipsoidRepresentation = StructureRepresentation<EllipsoidParams>
 export function EllipsoidRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, EllipsoidParams>): EllipsoidRepresentation {
-    return Representation.createMulti('Ellipsoid', ctx, getParams, StructureRepresentationStateBuilder, EllipsoidVisuals as unknown as Representation.Def<Structure, EllipsoidParams>)
+    return Representation.createMulti('Ellipsoid', ctx, getParams, StructureRepresentationStateBuilder, EllipsoidVisuals as unknown as Representation.Def<Structure, EllipsoidParams>);
 }
 
 export const EllipsoidRepresentationProvider = StructureRepresentationProvider({
@@ -51,4 +51,4 @@ export const EllipsoidRepresentationProvider = StructureRepresentationProvider({
     defaultColorTheme: { name: 'element-symbol' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0 && structure.models.some(m => AtomSiteAnisotrop.Provider.isApplicable(m))
-})
+});

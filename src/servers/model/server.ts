@@ -5,13 +5,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import compression from 'compression'
-import express from 'express'
-import { ConsoleLogger } from '../../mol-util/console-logger'
-import { PerformanceMonitor } from '../../mol-util/performance-monitor'
-import { configureServer, ModelServerConfig as ServerConfig } from './config'
-import { initWebApi } from './server/api-web'
-import Version from './version'
+import compression from 'compression';
+import express from 'express';
+import { ConsoleLogger } from '../../mol-util/console-logger';
+import { PerformanceMonitor } from '../../mol-util/performance-monitor';
+import { configureServer, ModelServerConfig as ServerConfig } from './config';
+import { initWebApi } from './server/api-web';
+import Version from './version';
 
 function setupShutdown() {
     if (ServerConfig.shutdownTimeoutVarianceMinutes > ServerConfig.shutdownTimeoutMinutes) {

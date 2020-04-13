@@ -14,7 +14,7 @@ import { Box3D, Sphere3D } from '../geometry';
 const boundaryHelperCoarse = new BoundaryHelper('14');
 const boundaryHelperFine = new BoundaryHelper('98');
 function getBoundaryHelper(count: number) {
-    return count > 100_000 ? boundaryHelperCoarse : boundaryHelperFine
+    return count > 100_000 ? boundaryHelperCoarse : boundaryHelperFine;
 }
 
 export type Boundary = { readonly box: Box3D, readonly sphere: Sphere3D }
@@ -37,15 +37,15 @@ export function getBoundary(data: PositionData): Boundary {
         boundaryHelper.radiusPositionRadius(p, (radius && radius[i]) || 0);
     }
 
-    const sphere = boundaryHelper.getSphere()
+    const sphere = boundaryHelper.getSphere();
 
     if (!radius && OrderedSet.size(indices) <= 98) {
-        const extrema: Vec3[] = []
+        const extrema: Vec3[] = [];
         for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
             const i = OrderedSet.getAt(indices, t);
             extrema.push(Vec3.create(x[i], y[i], z[i]));
         }
-        Sphere3D.setExtrema(sphere, extrema)
+        Sphere3D.setExtrema(sphere, extrema);
     }
 
     return { box: boundaryHelper.getBox(), sphere };

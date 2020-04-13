@@ -6,7 +6,7 @@
 
 import * as ReactDOM from 'react-dom';
 import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
-import './index.html'
+import './index.html';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
@@ -28,7 +28,7 @@ import { DefaultCanvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3
 import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { download } from '../../mol-util/download';
 import { getFormattedTime } from '../../mol-util/date';
-require('../../mol-plugin-ui/skin/light.scss')
+require('../../mol-plugin-ui/skin/light.scss');
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 5;
@@ -74,7 +74,7 @@ class MolStarProteopediaWrapper {
     }
 
     private download(b: StateBuilder.To<PSO.Root>, url: string) {
-        return b.apply(StateTransforms.Data.Download, { url, isBinary: false })
+        return b.apply(StateTransforms.Data.Download, { url, isBinary: false });
     }
 
     private model(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats) {
@@ -93,7 +93,7 @@ class MolStarProteopediaWrapper {
                 name: 'assembly' as const,
                 params: { id: assemblyId || 'deposited' }
             }
-        }
+        };
 
         const s = model
             .apply(StateTransforms.Model.StructureFromModel, props, { ref: StateElements.Assembly });
@@ -185,7 +185,7 @@ class MolStarProteopediaWrapper {
         const model = this.getObj<PluginStateObject.Molecule.Model>('model');
         if (!model) return;
 
-        const info = await ModelInfo.get(this.plugin, model, checkPreferredAssembly)
+        const info = await ModelInfo.get(this.plugin, model, checkPreferredAssembly);
         this.events.modelInfo.next(info);
         return info;
     }
@@ -223,7 +223,7 @@ class MolStarProteopediaWrapper {
                     name: 'assembly' as const,
                     params: { id: asmId || 'deposited' }
                 }
-            }
+            };
             tree.to(StateElements.Assembly).update(StateTransforms.Model.StructureFromModel, p => ({ ...p, ...props }));
             await this.applyState(tree);
         }
@@ -289,10 +289,10 @@ class MolStarProteopediaWrapper {
     animate = {
         modelIndex: {
             maxFPS: 8,
-            onceForward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'forward' } } }) },
-            onceBackward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'backward' } } }) },
-            palindrome: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'palindrome', params: {} } }) },
-            loop: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'loop', params: {} } }) },
+            onceForward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'forward' } } }); },
+            onceBackward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'backward' } } }); },
+            palindrome: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'palindrome', params: {} } }); },
+            loop: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'loop', params: {} } }); },
             stop: () => this.plugin.state.animation.stop()
         }
     }
@@ -371,12 +371,35 @@ class MolStarProteopediaWrapper {
             ]);
             const surroundings = MS.struct.modifier.includeSurroundings({ 0: core, radius: 5, 'as-whole-residues': true });
 
+            const onlySurroundings = MS.struct.modifier.exceptBy({ 0: surroundings, by: core });
+
             const group = update.to(StateElements.Assembly).group(StateTransforms.Misc.CreateGroup, { label: compId }, { ref: StateElements.HetGroupFocusGroup });
 
-            group.apply(StateTransforms.Model.StructureSelectionFromExpression, { label: 'Core', expression: core }, { ref: StateElements.HetGroupFocus })
-                .apply(StateTransforms.Representation.StructureRepresentation3D, this.createCoreVisualParams());
+            const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
+
+            const coreSel = group.apply(StateTransforms.Model.StructureSelectionFromExpression, { label: 'Core', expression: core }, { ref: StateElements.HetGroupFocus });
+
+            coreSel.apply(StateTransforms.Representation.StructureRepresentation3D, createStructureRepresentationParams(this.plugin, asm.data, {
+                type: 'ball-and-stick'
+            }));
+            coreSel.apply(StateTransforms.Representation.StructureRepresentation3D, createStructureRepresentationParams(this.plugin, asm.data, {
+                type: 'label',
+                typeParams: { level: 'element' }
+            }), { tags: ['proteopedia-labels'] });
+
             group.apply(StateTransforms.Model.StructureSelectionFromExpression, { label: 'Surroundings', expression: surroundings })
-                .apply(StateTransforms.Representation.StructureRepresentation3D, this.createSurVisualParams());
+                .apply(StateTransforms.Representation.StructureRepresentation3D, createStructureRepresentationParams(this.plugin, asm.data, {
+                    type: 'ball-and-stick',
+                    color: 'uniform', colorParams: { value: ColorNames.gray },
+                    size: 'uniform', sizeParams: { value: 0.33 }
+                }));
+
+            group.apply(StateTransforms.Model.StructureSelectionFromExpression, { label: 'Surroundings (only)', expression: onlySurroundings })
+                .apply(StateTransforms.Representation.StructureRepresentation3D, createStructureRepresentationParams(this.plugin, asm.data, {
+                    type: 'label',
+                    typeParams: { level: 'residue' }
+                }), { tags: ['proteopedia-labels'] }); // the tag can later be used to toggle the labels
+
             // sel.apply(StateTransforms.Representation.StructureLabels3D, {
             //     target: { name: 'residues', params: { } },
             //     options: {
@@ -396,27 +419,27 @@ class MolStarProteopediaWrapper {
             // const position = Vec3.sub(Vec3.zero(), sphere.center, asmCenter);
             // Vec3.normalize(position, position);
             // Vec3.scaleAndAdd(position, sphere.center, position, sphere.radius);
-            const radius = Math.max(sphere.radius, 5)
+            const radius = Math.max(sphere.radius, 5);
             const snapshot = this.plugin.canvas3d!.camera.getFocus(sphere.center, radius);
             PluginCommands.Camera.SetSnapshot(this.plugin, { snapshot, durationMs: 250 });
         }
     }
 
-    private createSurVisualParams() {
-        const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
-        return createStructureRepresentationParams(this.plugin, asm.data, {
-            type: 'ball-and-stick',
-            color: 'uniform', colorParams: { value: ColorNames.gray },
-            size: 'uniform', sizeParams: { value: 0.33 }
-        });
-    }
+    // private createSurVisualParams() {
+    //     const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
+    //     return createStructureRepresentationParams(this.plugin, asm.data, {
+    //         type: 'ball-and-stick',
+    //         color: 'uniform', colorParams: { value: ColorNames.gray },
+    //         size: 'uniform', sizeParams: { value: 0.33 }
+    //     });
+    // }
 
-    private createCoreVisualParams() {
-        const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
-        return createStructureRepresentationParams(this.plugin, asm.data, {
-            type: 'ball-and-stick'
-        });
-    }
+    // private createCoreVisualParams() {
+    //     const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
+    //     return createStructureRepresentationParams(this.plugin, asm.data, {
+    //         type: 'ball-and-stick'
+    //     });
+    // }
 
     snapshot = {
         get: () => {
@@ -428,7 +451,7 @@ class MolStarProteopediaWrapper {
         download: () => {
             const json = JSON.stringify(this.plugin.state.getSnapshot(), null, 2);
             const blob = new Blob([json], {type : 'application/json;charset=utf-8'});
-            download(blob, `mol-star_state_${(name || getFormattedTime())}.json`)
+            download(blob, `mol-star_state_${(name || getFormattedTime())}.json`);
         },
         fetch: async (url: string) => {
             try {

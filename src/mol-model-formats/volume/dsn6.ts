@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { VolumeData } from '../../mol-model/volume/data'
+import { VolumeData } from '../../mol-model/volume/data';
 import { Task } from '../../mol-task';
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
 import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
@@ -15,10 +15,10 @@ import { arrayMin, arrayMax, arrayMean, arrayRms } from '../../mol-util/array';
 function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3 }): Task<VolumeData> {
     return Task.create<VolumeData>('Create Volume Data', async ctx => {
         const { header, values } = source;
-        const size = Vec3.create(header.xlen, header.ylen, header.zlen)
-        if (params && params.voxelSize) Vec3.mul(size, size, params.voxelSize)
-        const angles = Vec3.create(degToRad(header.alpha), degToRad(header.beta), degToRad(header.gamma))
-        const cell = SpacegroupCell.create('P 1', size, angles)
+        const size = Vec3.create(header.xlen, header.ylen, header.zlen);
+        if (params && params.voxelSize) Vec3.mul(size, size, params.voxelSize);
+        const angles = Vec3.create(degToRad(header.alpha), degToRad(header.beta), degToRad(header.gamma));
+        const cell = SpacegroupCell.create('P 1', size, angles);
 
         const grid = [header.xRate, header.yRate, header.zRate];
         const extent = [header.xExtent, header.yExtent, header.zExtent];
@@ -45,4 +45,4 @@ function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3 }): Task<V
     });
 }
 
-export { volumeFromDsn6 }
+export { volumeFromDsn6 };

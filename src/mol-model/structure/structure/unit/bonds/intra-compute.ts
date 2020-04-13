@@ -5,9 +5,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { BondType } from '../../../model/types'
-import { IntraUnitBonds } from './data'
-import Unit from '../../unit'
+import { BondType } from '../../../model/types';
+import { IntraUnitBonds } from './data';
+import Unit from '../../unit';
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
 import { BondComputationProps, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, getElementPairThreshold, DefaultBondComputationProps } from './common';
 import { SortedArray } from '../../../../../mol-data/int';
@@ -42,9 +42,9 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
     const { label_comp_id } = unit.model.atomicHierarchy.residues;
     const query3d = unit.lookup3d;
 
-    const structConn = StructConn.Provider.get(unit.model)
-    const component = ComponentBond.Provider.get(unit.model)
-    const indexPairs = IndexPairBonds.Provider.get(unit.model)
+    const structConn = StructConn.Provider.get(unit.model);
+    const component = ComponentBond.Provider.get(unit.model);
+    const indexPairs = IndexPairBonds.Provider.get(unit.model);
 
     const atomA: StructureElement.UnitIndex[] = [];
     const atomB: StructureElement.UnitIndex[] = [];
@@ -60,7 +60,7 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
         const aI =  atoms[_aI];
 
         if (!props.forceCompute && indexPairs) {
-            const { edgeProps } = indexPairs
+            const { edgeProps } = indexPairs;
             for (let i = indexPairs.offset[aI], il = indexPairs.offset[aI + 1]; i < il; ++i) {
                 const _bI = SortedArray.indexOf(unit.elements, indexPairs.b[i]) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
@@ -70,18 +70,18 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
                 order[order.length] = edgeProps.order[i];
                 flags[flags.length] = BondType.Flag.Covalent;
             }
-            continue // assume `indexPairs` supplies all bonds
+            continue; // assume `indexPairs` supplies all bonds
         }
 
         const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.byAtomIndex.get(aI);
         let hasStructConn = false;
         if (structConnEntries) {
             for (const se of structConnEntries) {
-                const { partnerA, partnerB } = se
+                const { partnerA, partnerB } = se;
                 // symmetry must be the same for intra-unit bonds
-                if (partnerA.symmetry !== partnerB.symmetry) continue
+                if (partnerA.symmetry !== partnerB.symmetry) continue;
 
-                const p = partnerA.atomIndex === aI ? partnerB : partnerA
+                const p = partnerA.atomIndex === aI ? partnerB : partnerA;
                 const _bI = SortedArray.indexOf(unit.elements, p.atomIndex) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
 
@@ -109,7 +109,7 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
         lastResidue = raI;
 
         const aeI = getElementIdx(type_symbol.value(aI));
-        const atomIdA = label_atom_id.value(aI)
+        const atomIdA = label_atom_id.value(aI);
         const componentPairs = componentMap ? componentMap.get(atomIdA) : void 0;
 
         const { indices, count, squaredDistances } = query3d.find(x[aI], y[aI], z[aI], MAX_RADIUS);
@@ -176,7 +176,7 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
 }
 
 function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputationProps>) {
-    const p = { ...DefaultBondComputationProps, ...props }
+    const p = { ...DefaultBondComputationProps, ...props };
     if (p.noCompute) {
         // TODO add function that only adds bonds defined in structConn of chemCompBond
         //      and avoid using unit.lookup
@@ -185,4 +185,4 @@ function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputatio
     return _computeBonds(unit, p);
 }
 
-export { computeIntraUnitBonds }
+export { computeIntraUnitBonds };

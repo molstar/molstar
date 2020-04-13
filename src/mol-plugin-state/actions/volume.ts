@@ -20,7 +20,7 @@ const DownloadDensity = StateAction.build({
     from: PluginStateObject.Root,
     display: { name: 'Download Density', description: 'Load a density from the provided source and create its default visual.' },
     params: (a, ctx: PluginContext) => {
-        const { options } = ctx.dataFormats
+        const { options } = ctx.dataFormats;
         return {
             source: PD.MappedStatic('pdb-xray', {
                 'pdb-xray': PD.Group({
@@ -57,7 +57,7 @@ const DownloadDensity = StateAction.build({
                     ['url', 'URL']
                 ]
             })
-        }
+        };
     }
 })(({ params }, plugin: PluginContext) => Task.create('Download Density', async taskCtx => {
     const src = params.source;
@@ -113,16 +113,16 @@ const DownloadDensity = StateAction.build({
     switch (src.name) {
         case 'url':
             downloadParams = src.params;
-            provider = src.params.format === 'auto' ? plugin.dataFormats.auto(getFileInfo(downloadParams.url), data.cell?.obj!) : plugin.dataFormats.get(src.params.format)
+            provider = src.params.format === 'auto' ? plugin.dataFormats.auto(getFileInfo(downloadParams.url), data.cell?.obj!) : plugin.dataFormats.get(src.params.format);
             break;
         case 'pdb-xray':
             provider = src.params.provider.server === 'pdbe'
                 ? plugin.dataFormats.get('ccp4')
-                : plugin.dataFormats.get('dsn6')
+                : plugin.dataFormats.get('dsn6');
             break;
         case 'pdb-emd-ds':
         case 'pdb-xray-ds':
-            provider = plugin.dataFormats.get('dscif')
+            provider = plugin.dataFormats.get('dscif');
             break;
         default: throw new Error(`${(src as any).name} not supported.`);
     }

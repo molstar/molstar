@@ -22,27 +22,27 @@ export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
     ...MolecularSurfaceCalculationParams,
     ...CommonSurfaceParams
-}
+};
 export type MolecularSurfaceMeshParams = typeof MolecularSurfaceMeshParams
 
 //
 
 async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceProps, mesh?: Mesh): Promise<Mesh> {
-    const { transform, field, idField } = await computeUnitMolecularSurface(structure, unit, props).runInContext(ctx.runtime)
+    const { transform, field, idField } = await computeUnitMolecularSurface(structure, unit, props).runInContext(ctx.runtime);
     const params = {
         isoLevel: props.probeRadius,
         scalarField: field,
         idField
-    }
-    const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime)
+    };
+    const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
 
-    Mesh.transform(surface, transform)
-    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface)
+    Mesh.transform(surface, transform);
+    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.probeRadius)
-    surface.setBoundingSphere(sphere)
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.probeRadius);
+    surface.setBoundingSphere(sphere);
 
-    return surface
+    return surface;
 }
 
 export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<MolecularSurfaceMeshParams> {
@@ -53,11 +53,11 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
         getLoci: getElementLoci,
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<MolecularSurfaceMeshParams>, currentProps: PD.Values<MolecularSurfaceMeshParams>) => {
-            if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
-            if (newProps.probeRadius !== currentProps.probeRadius) state.createGeometry = true
-            if (newProps.probePositions !== currentProps.probePositions) state.createGeometry = true
-            if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true
-            if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true
+            if (newProps.resolution !== currentProps.resolution) state.createGeometry = true;
+            if (newProps.probeRadius !== currentProps.probeRadius) state.createGeometry = true;
+            if (newProps.probePositions !== currentProps.probePositions) state.createGeometry = true;
+            if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
+            if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
         }
-    }, materialId)
+    }, materialId);
 }

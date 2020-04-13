@@ -16,8 +16,8 @@ const rs = [0, 0.5, 1 / 3];
 
 describe('GridLookup3d', () => {
     it('basic', () => {
-        const position = { x: xs, y: ys, z: zs, indices: OrderedSet.ofBounds(0, 3) }
-        const boundary = getBoundary(position)
+        const position = { x: xs, y: ys, z: zs, indices: OrderedSet.ofBounds(0, 3) };
+        const boundary = getBoundary(position);
         const grid = GridLookup3D(position, boundary);
 
         let r = grid.find(0, 0, 0, 0);
@@ -30,8 +30,8 @@ describe('GridLookup3d', () => {
     });
 
     it('radius', () => {
-        const position = { x: xs, y: ys, z: zs, radius: [0, 0.5, 1 / 3], indices: OrderedSet.ofBounds(0, 3) }
-        const boundary = getBoundary(position)
+        const position = { x: xs, y: ys, z: zs, radius: [0, 0.5, 1 / 3], indices: OrderedSet.ofBounds(0, 3) };
+        const boundary = getBoundary(position);
         const grid = GridLookup3D(position, boundary);
 
         let r = grid.find(0, 0, 0, 0);
@@ -44,8 +44,8 @@ describe('GridLookup3d', () => {
     });
 
     it('indexed', () => {
-        const position = { x: xs, y: ys, z: zs, indices: OrderedSet.ofSingleton(1), radius: rs }
-        const boundary = getBoundary(position)
+        const position = { x: xs, y: ys, z: zs, indices: OrderedSet.ofSingleton(1), radius: rs };
+        const boundary = getBoundary(position);
         const grid = GridLookup3D(position, boundary);
 
         let r = grid.find(0, 0, 0, 0);

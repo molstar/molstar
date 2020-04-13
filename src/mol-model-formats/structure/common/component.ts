@@ -16,20 +16,20 @@ const ProteinAtomIdsList = [
     new Set([ 'CA' ]),
     new Set([ 'C' ]),
     new Set([ 'N' ])
-]
+];
 const RnaAtomIdsList = [
     new Set([ 'P', 'O3\'', 'O3*' ]),
     new Set([ 'C4\'', 'C4*' ]),
     new Set([ 'O2\'', 'O2*', 'F2\'', 'F2*' ])
-]
+];
 const DnaAtomIdsList = [
     new Set([ 'P', 'O3\'', 'O3*' ]),
     new Set([ 'C3\'', 'C3*' ]),
     new Set([ 'O2\'', 'O2*', 'F2\'', 'F2*' ])
-]
+];
 
 const StandardComponents = (function() {
-    const map = new Map<string, Component>()
+    const map = new Map<string, Component>();
     const components: Component[] = [
         { id: 'HIS', name: 'HISTIDINE', type: 'L-peptide linking' },
         { id: 'ARG', name: 'ARGININE', type: 'L-peptide linking' },
@@ -66,10 +66,10 @@ const StandardComponents = (function() {
         { id: 'DG', name: '2\'-DEOXYGUANOSINE-5\'-MONOPHOSPHATE', type: 'DNA linking' },
         { id: 'DI', name: '2\'-DEOXYINOSINE-5\'-MONOPHOSPHATE', type: 'DNA linking' },
         { id: 'DU', name: '2\'-DEOXYURIDINE-5\'-MONOPHOSPHATE', type: 'DNA linking' },
-    ]
-    components.forEach(c => map.set(c.id, c))
-    return map
-})()
+    ];
+    components.forEach(c => map.set(c.id, c));
+    return map;
+})();
 
 export class ComponentBuilder {
     private namesMap = new Map<string, string>()
@@ -80,62 +80,62 @@ export class ComponentBuilder {
     private mon_nstd_flags: mmCIF_Schema['chem_comp']['mon_nstd_flag']['T'][] = []
 
     private set(c: Component) {
-        this.comps.set(c.id, c)
-        this.ids.push(c.id)
-        this.names.push(c.name)
-        this.types.push(c.type)
-        this.mon_nstd_flags.push(PolymerNames.has(c.id) ? 'y' : 'n')
+        this.comps.set(c.id, c);
+        this.ids.push(c.id);
+        this.names.push(c.name);
+        this.types.push(c.type);
+        this.mon_nstd_flags.push(PolymerNames.has(c.id) ? 'y' : 'n');
     }
 
     private getAtomIds(index: number) {
-        const atomIds = new Set<string>()
-        let prevSeqId = this.seqId.value(index)
+        const atomIds = new Set<string>();
+        let prevSeqId = this.seqId.value(index);
         while (index < this.seqId.rowCount) {
-            const seqId = this.seqId.value(index)
-            if (seqId !== prevSeqId) break
-            atomIds.add(this.atomId.value(index))
-            prevSeqId - seqId
-            index += 1
+            const seqId = this.seqId.value(index);
+            if (seqId !== prevSeqId) break;
+            atomIds.add(this.atomId.value(index));
+            prevSeqId - seqId;
+            index += 1;
         }
-        return atomIds
+        return atomIds;
     }
 
     private hasAtomIds (atomIds: Set<string>, atomIdsList: Set<string>[]) {
         for (let i = 0, il = atomIdsList.length; i < il; ++i) {
             if (!SetUtils.areIntersecting(atomIds, atomIdsList[i])) {
-                return false
+                return false;
             }
         }
-        return true
+        return true;
     }
 
     private getType(atomIds: Set<string>): Component['type'] {
         if (this.hasAtomIds(atomIds, ProteinAtomIdsList)) {
-            return 'peptide linking'
+            return 'peptide linking';
         } else if (this.hasAtomIds(atomIds, RnaAtomIdsList)) {
-            return 'RNA linking'
+            return 'RNA linking';
         } else if (this.hasAtomIds(atomIds, DnaAtomIdsList)) {
-            return 'DNA linking'
+            return 'DNA linking';
         } else {
-            return 'other'
+            return 'other';
         }
     }
 
-    has(compId: string) { return this.comps.has(compId) }
-    get(compId: string) { return this.comps.get(compId) }
+    has(compId: string) { return this.comps.has(compId); }
+    get(compId: string) { return this.comps.get(compId); }
 
     add(compId: string, index: number) {
         if (!this.has(compId)) {
             if (StandardComponents.has(compId)) {
-                this.set(StandardComponents.get(compId)!)
+                this.set(StandardComponents.get(compId)!);
             } else if (WaterNames.has(compId)) {
-                this.set({ id: compId, name: 'WATER', type: 'non-polymer' })
+                this.set({ id: compId, name: 'WATER', type: 'non-polymer' });
             } else {
-                const type = this.getType(this.getAtomIds(index))
-                this.set({ id: compId, name: this.namesMap.get(compId) || compId, type })
+                const type = this.getType(this.getAtomIds(index));
+                this.set({ id: compId, name: this.namesMap.get(compId) || compId, type });
             }
         }
-        return this.get(compId)!
+        return this.get(compId)!;
     }
 
     getChemCompTable() {
@@ -144,11 +144,11 @@ export class ComponentBuilder {
             name: Column.ofStringArray(this.names),
             type: Column.ofStringAliasArray(this.types),
             mon_nstd_flag: Column.ofStringAliasArray(this.mon_nstd_flags),
-        }, this.ids.length)
+        }, this.ids.length);
     }
 
     setNames(names: [string, string][]) {
-        names.forEach(n => this.namesMap.set(n[0], n[1]))
+        names.forEach(n => this.namesMap.set(n[0], n[1]));
     }
 
     constructor(private seqId: Column<number>, private atomId: Column<string>) {

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as argparse from 'argparse'
+import * as argparse from 'argparse';
 
 export interface Config {
     working_folder: string,

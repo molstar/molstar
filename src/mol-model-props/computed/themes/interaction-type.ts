@@ -6,7 +6,7 @@
 
 import { Location } from '../../../mol-model/location';
 import { Color, ColorMap } from '../../../mol-util/color';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition'
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { InteractionsProvider } from '../interactions';
 import { ThemeDataContext } from '../../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
@@ -15,8 +15,8 @@ import { TableLegend } from '../../../mol-util/legend';
 import { Interactions } from '../interactions/interactions';
 import { CustomProperty } from '../../common/custom-property';
 
-const DefaultColor = Color(0xCCCCCC)
-const Description = 'Assigns colors according the interaction type of a link.'
+const DefaultColor = Color(0xCCCCCC);
+const Description = 'Assigns colors according the interaction type of a link.';
 
 const InteractionTypeColors = ColorMap({
     HydrogenBond: 0x2B83BA,
@@ -27,7 +27,7 @@ const InteractionTypeColors = ColorMap({
     CationPi: 0xFF8000,
     PiStacking: 0x8CB366,
     WeakHydrogenBond: 0xC5DDEC,
-})
+});
 
 const InteractionTypeColorTable: [string, Color][] = [
     ['Hydrogen Bond', InteractionTypeColors.HydrogenBond],
@@ -38,61 +38,61 @@ const InteractionTypeColorTable: [string, Color][] = [
     ['Cation Pi', InteractionTypeColors.CationPi],
     ['Pi Stacking', InteractionTypeColors.PiStacking],
     ['Weak HydrogenBond', InteractionTypeColors.WeakHydrogenBond],
-]
+];
 
 function typeColor(type: InteractionType): Color {
     switch (type) {
         case InteractionType.HydrogenBond:
-            return InteractionTypeColors.HydrogenBond
+            return InteractionTypeColors.HydrogenBond;
         case InteractionType.Hydrophobic:
-            return InteractionTypeColors.Hydrophobic
+            return InteractionTypeColors.Hydrophobic;
         case InteractionType.HalogenBond:
-            return InteractionTypeColors.HalogenBond
+            return InteractionTypeColors.HalogenBond;
         case InteractionType.Ionic:
-            return InteractionTypeColors.Ionic
+            return InteractionTypeColors.Ionic;
         case InteractionType.MetalCoordination:
-            return InteractionTypeColors.MetalCoordination
+            return InteractionTypeColors.MetalCoordination;
         case InteractionType.CationPi:
-            return InteractionTypeColors.CationPi
+            return InteractionTypeColors.CationPi;
         case InteractionType.PiStacking:
-            return InteractionTypeColors.PiStacking
+            return InteractionTypeColors.PiStacking;
         case InteractionType.WeakHydrogenBond:
-            return InteractionTypeColors.WeakHydrogenBond
+            return InteractionTypeColors.WeakHydrogenBond;
         case InteractionType.Unknown:
-            return DefaultColor
+            return DefaultColor;
     }
 }
 
-export const InteractionTypeColorThemeParams = { }
+export const InteractionTypeColorThemeParams = { };
 export type InteractionTypeColorThemeParams = typeof InteractionTypeColorThemeParams
 export function getInteractionTypeColorThemeParams(ctx: ThemeDataContext) {
-    return InteractionTypeColorThemeParams // TODO return copy
+    return InteractionTypeColorThemeParams; // TODO return copy
 }
 
 export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Values<InteractionTypeColorThemeParams>): ColorTheme<InteractionTypeColorThemeParams> {
-    let color: LocationColor
+    let color: LocationColor;
 
-    const interactions = ctx.structure ? InteractionsProvider.get(ctx.structure) : undefined
-    const contextHash = interactions?.version
+    const interactions = ctx.structure ? InteractionsProvider.get(ctx.structure) : undefined;
+    const contextHash = interactions?.version;
 
     if (interactions && interactions.value) {
         color = (location: Location) => {
             if (Interactions.isLocation(location)) {
-                const { unitsContacts, contacts } = location.data.interactions
-                const { unitA, unitB, indexA, indexB } = location.element
+                const { unitsContacts, contacts } = location.data.interactions;
+                const { unitA, unitB, indexA, indexB } = location.element;
                 if (unitA === unitB) {
-                    const links = unitsContacts.get(unitA.id)
-                    const idx = links.getDirectedEdgeIndex(indexA, indexB)
-                    return typeColor(links.edgeProps.type[idx])
+                    const links = unitsContacts.get(unitA.id);
+                    const idx = links.getDirectedEdgeIndex(indexA, indexB);
+                    return typeColor(links.edgeProps.type[idx]);
                 } else {
-                    const idx = contacts.getEdgeIndex(indexA, unitA, indexB, unitB)
-                    return typeColor(contacts.edges[idx].props.type)
+                    const idx = contacts.getEdgeIndex(indexA, unitA, indexB, unitB);
+                    return typeColor(contacts.edges[idx].props.type);
                 }
             }
-            return DefaultColor
-        }
+            return DefaultColor;
+        };
     } else {
-        color = () => DefaultColor
+        color = () => DefaultColor;
     }
 
     return {
@@ -103,7 +103,7 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
         contextHash,
         description: Description,
         legend: TableLegend(InteractionTypeColorTable)
-    }
+    };
 }
 
 export const InteractionTypeColorThemeProvider: ColorTheme.Provider<InteractionTypeColorThemeParams, 'interaction-type'> = {
@@ -118,4 +118,4 @@ export const InteractionTypeColorThemeProvider: ColorTheme.Provider<InteractionT
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? InteractionsProvider.attach(ctx, data.structure, void 0, true) : Promise.resolve(),
         detach: (data) => data.structure && data.structure.customPropertyDescriptors.reference(InteractionsProvider.descriptor, false)
     }
-}
+};

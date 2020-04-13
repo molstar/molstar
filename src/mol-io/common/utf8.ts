@@ -95,13 +95,13 @@ function _utf8Read(data: Uint8Array, offset: number, length: number) {
     return str.join('');
 }
 
-const utf8Decoder = (typeof TextDecoder !== 'undefined') ? new TextDecoder() : undefined
+const utf8Decoder = (typeof TextDecoder !== 'undefined') ? new TextDecoder() : undefined;
 export function utf8Read(data: Uint8Array, offset: number, length: number) {
     if (utf8Decoder) {
-        const input = (offset || length !== data.length) ? data.subarray(offset, offset + length) : data
-        return utf8Decoder.decode(input)
+        const input = (offset || length !== data.length) ? data.subarray(offset, offset + length) : data;
+        return utf8Decoder.decode(input);
     } else {
-        return _utf8Read(data, offset, length)
+        return _utf8Read(data, offset, length);
     }
 }
 

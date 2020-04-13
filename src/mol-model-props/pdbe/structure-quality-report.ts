@@ -17,12 +17,12 @@ import Type from '../../mol-script/language/type';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/compiler';
 import { PropertyWrapper } from '../common/wrapper';
 import { CustomModelProperty } from '../common/custom-model-property';
-import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { CustomProperty } from '../common/custom-property';
 import { arraySetAdd } from '../../mol-util/array';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 
-export { StructureQualityReport }
+export { StructureQualityReport };
 
 type StructureQualityReport = PropertyWrapper<{
     issues: IndexedCustomProperty.Residue<string[]>,
@@ -30,9 +30,9 @@ type StructureQualityReport = PropertyWrapper<{
 }| undefined>
 
 namespace StructureQualityReport {
-    export const DefaultServerUrl = 'https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/'
+    export const DefaultServerUrl = 'https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/';
     export function getEntryUrl(pdbId: string, serverUrl: string) {
-        return `${serverUrl}/${pdbId.toLowerCase()}`
+        return `${serverUrl}/${pdbId.toLowerCase()}`;
     }
 
     export function isApplicable(model?: Model): boolean {
@@ -41,7 +41,7 @@ namespace StructureQualityReport {
             MmcifFormat.is(model.sourceData) &&
             (model.sourceData.data.db.database_2.database_id.isDefined ||
                 model.entryId.length === 4)
-        )
+        );
     }
 
     export const Schema = {
@@ -64,27 +64,27 @@ namespace StructureQualityReport {
     export function fromJson(model: Model, data: any) {
         const info = PropertyWrapper.createInfo();
         const issueMap = createIssueMapFromJson(model, data);
-        return { info, data: issueMap }
+        return { info, data: issueMap };
     }
 
     export async function fromServer(ctx: CustomProperty.Context, model: Model, props: StructureQualityReportProps): Promise<StructureQualityReport> {
-        const url = getEntryUrl(model.entryId, props.serverUrl)
-        const json = await ctx.fetch({ url, type: 'json' }).runInContext(ctx.runtime)
+        const url = getEntryUrl(model.entryId, props.serverUrl);
+        const json = await ctx.fetch({ url, type: 'json' }).runInContext(ctx.runtime);
         const data = json[model.entryId.toLowerCase()];
         if (!data) throw new Error('missing data');
-        return fromJson(model, data)
+        return fromJson(model, data);
     }
 
     export function fromCif(ctx: CustomProperty.Context, model: Model, props: StructureQualityReportProps): StructureQualityReport | undefined {
         let info = PropertyWrapper.tryGetInfoFromCif('pdbe_structure_quality_report', model);
-        if (!info) return
+        if (!info) return;
         const data = getCifData(model);
         const issueMap = createIssueMapFromCif(model, data.residues, data.groups);
-        return { info, data: issueMap }
+        return { info, data: issueMap };
     }
 
     export async function fromCifOrServer(ctx: CustomProperty.Context, model: Model, props: StructureQualityReportProps): Promise<StructureQualityReport> {
-        return fromCif(ctx, model, props) || fromServer(ctx, model, props)
+        return fromCif(ctx, model, props) || fromServer(ctx, model, props);
     }
 
     const _emptyArray: string[] = [];
@@ -108,13 +108,13 @@ namespace StructureQualityReport {
         return {
             residues: toTable(Schema.pdbe_structure_quality_report_issues, model.sourceData.data.frame.categories.pdbe_structure_quality_report_issues),
             groups: toTable(Schema.pdbe_structure_quality_report_issue_types, model.sourceData.data.frame.categories.pdbe_structure_quality_report_issue_types),
-        }
+        };
     }
 }
 
 export const StructureQualityReportParams = {
     serverUrl: PD.Text(StructureQualityReport.DefaultServerUrl, { description: 'JSON API Server URL' })
-}
+};
 export type StructureQualityReportParams = typeof StructureQualityReportParams
 export type StructureQualityReportProps = PD.Values<StructureQualityReportParams>
 
@@ -135,7 +135,7 @@ export const StructureQualityReportProvider: CustomModelProperty.Provider<Struct
                         return {
                             fields: _structure_quality_report_issues_fields,
                             source: ctx.models.map(data => ({ data, rowCount: data.elements.length }))
-                        }
+                        };
                     }
                 }, {
                     name: 'pdbe_structure_quality_report_issue_types',
@@ -155,10 +155,10 @@ export const StructureQualityReportProvider: CustomModelProperty.Provider<Struct
     getParams: (data: Model) => StructureQualityReportParams,
     isApplicable: (data: Model) => StructureQualityReport.isApplicable(data),
     obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<StructureQualityReportProps>) => {
-        const p = { ...PD.getDefaultValues(StructureQualityReportParams), ...props }
-        return await StructureQualityReport.fromCifOrServer(ctx, data, p)
+        const p = { ...PD.getDefaultValues(StructureQualityReportParams), ...props };
+        return await StructureQualityReport.fromCifOrServer(ctx, data, p);
     }
-})
+});
 
 const _structure_quality_report_issues_fields = CifWriter.fields<number, ReportExportContext['models'][0]>()
     .index('id')
@@ -210,7 +210,7 @@ function createExportContext(ctx: CifExportContext): ReportExportContext {
         info,
         models,
         issueTypes: Table.ofArrays(StructureQualityReport.Schema.pdbe_structure_quality_report_issue_types, { group_id, issue_type })
-    }
+    };
 }
 
 function createIssueMapFromJson(modelData: Model, data: any): StructureQualityReport['data'] | undefined {
@@ -266,7 +266,7 @@ function createIssueMapFromCif(modelData: Model,
         for (const t of issues) {
             arraySetAdd(issueTypes, t);
         }
-    })
+    });
 
     return {
         issues: IndexedCustomProperty.fromResidueMap(ret),

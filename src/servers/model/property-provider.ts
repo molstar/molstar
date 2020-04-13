@@ -4,19 +4,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as fs from 'fs'
+import * as fs from 'fs';
 import { Model } from '../../mol-model/structure';
 import { ModelServerConfig as Config } from './config';
 import { ConsoleLogger } from '../../mol-util/console-logger';
 
 // TODO enable dynamic imports again
-import * as pdbeProps from './properties/pdbe'
-import * as wwpdbProps from './properties/wwpdb'
+import * as pdbeProps from './properties/pdbe';
+import * as wwpdbProps from './properties/wwpdb';
 
 const attachModelProperties: { [k: string]: AttachModelProperties } = {
     pdbe: pdbeProps.attachModelProperties,
     wwpdb: wwpdbProps.attachModelProperties
-}
+};
 
 export interface ModelPropertyProviderConfig {
     sources: string[],
@@ -61,5 +61,5 @@ export function createModelPropertiesProvider(configOrPath: ModelPropertyProvide
             for (const e of p({ model, cache, params: config.params })) ret.push(e);
         }
         return ret;
-    }
+    };
 }

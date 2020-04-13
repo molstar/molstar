@@ -10,4 +10,4 @@ if (gl_FragColor.a >= uPickingAlphaThreshold) {
         }
     }
 }
-`
+`;

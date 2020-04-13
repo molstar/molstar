@@ -16,20 +16,20 @@ import { BasicSchema, createBasic } from './basic/schema';
 import { createModels } from './basic/parser';
 
 function getBasic(table: File3DG['table']) {
-    const entityIds = new Array<string>(table._rowCount)
-    const entityBuilder = new EntityBuilder()
+    const entityIds = new Array<string>(table._rowCount);
+    const entityBuilder = new EntityBuilder();
 
-    const seqIdStarts = table.position.toArray({ array: Uint32Array })
-    const seqIdEnds = new Uint32Array(table._rowCount)
-    const stride = seqIdStarts[1] - seqIdStarts[0]
+    const seqIdStarts = table.position.toArray({ array: Uint32Array });
+    const seqIdEnds = new Uint32Array(table._rowCount);
+    const stride = seqIdStarts[1] - seqIdStarts[0];
 
-    const objectRadius = stride / 3500
+    const objectRadius = stride / 3500;
 
     for (let i = 0, il = table._rowCount; i < il; ++i) {
-        const chr = table.chromosome.value(i)
-        const entityId = entityBuilder.getEntityId(chr, MoleculeType.DNA, chr)
-        entityIds[i] = entityId
-        seqIdEnds[i] = seqIdStarts[i] + stride - 1
+        const chr = table.chromosome.value(i);
+        const entityId = entityBuilder.getEntityId(chr, MoleculeType.DNA, chr);
+        entityIds[i] = entityId;
+        seqIdEnds[i] = seqIdStarts[i] + stride - 1;
     }
 
     const ihm_sphere_obj_site = Table.ofPartialColumns(BasicSchema.ihm_sphere_obj_site, {
@@ -46,7 +46,7 @@ function getBasic(table: File3DG['table']) {
         object_radius: Column.ofConst(objectRadius, table._rowCount, Column.Schema.float),
         rmsf: Column.ofConst(0, table._rowCount, Column.Schema.float),
         model_id: Column.ofConst(1, table._rowCount, Column.Schema.int),
-    }, table._rowCount)
+    }, table._rowCount);
 
     return createBasic({
         entity: entityBuilder.getEntityTable(),
@@ -55,18 +55,18 @@ function getBasic(table: File3DG['table']) {
             model_name: Column.ofStringArray(['3DG Model']),
         }, 1),
         ihm_sphere_obj_site
-    })
+    });
 }
 
 //
 
-export { Format3dg }
+export { Format3dg };
 
 type Format3dg = ModelFormat<File3DG>
 
 namespace Format3dg {
     export function is(x: ModelFormat): x is Format3dg {
-        return x.kind === '3dg'
+        return x.kind === '3dg';
     }
 
     export function from3dg(file3dg: File3DG): Format3dg {
@@ -77,7 +77,7 @@ namespace Format3dg {
 export function trajectoryFrom3DG(file3dg: File3DG): Task<Model.Trajectory> {
     return Task.create('Parse 3DG', async ctx => {
         const format = Format3dg.from3dg(file3dg);
-        const basic = getBasic(file3dg.table)
+        const basic = getBasic(file3dg.table);
         return createModels(basic, format, ctx);
-    })
+    });
 }

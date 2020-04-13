@@ -5,10 +5,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureQuery } from '../query'
-import { StructureSelection } from '../selection'
-import { Unit, StructureProperties as P, StructureElement } from '../../structure'
-import { Segmentation, SortedArray } from '../../../../mol-data/int'
+import { StructureQuery } from '../query';
+import { StructureSelection } from '../selection';
+import { Unit, StructureProperties as P, StructureElement } from '../../structure';
+import { Segmentation, SortedArray } from '../../../../mol-data/int';
 import { LinearGroupingBuilder } from '../utils/builders';
 import { QueryPredicate, QueryFn, QueryContextView } from '../context';
 import { UnitRing } from '../../structure/unit/rings';
@@ -53,7 +53,7 @@ export function atoms(params?: Partial<AtomsQueryParams>): StructureQuery {
         groupBy: params.groupBy || _zero,
     };
 
-    if (!params.groupBy) return atomGroupsSegmented(normalized)
+    if (!params.groupBy) return atomGroupsSegmented(normalized);
     return atomGroupsGrouped(normalized);
 }
 
@@ -126,7 +126,7 @@ function atomGroupsSegmented({ unitTest, entityTest, chainTest, residueTest, ato
                     }
                 }
             } else {
-                const { chainElementSegments } = Unit.Kind.Spheres ? model.coarseHierarchy.spheres : model.coarseHierarchy.gaussians
+                const { chainElementSegments } = Unit.Kind.Spheres ? model.coarseHierarchy.spheres : model.coarseHierarchy.gaussians;
                 const chainsIt = Segmentation.transientSegments(chainElementSegments, elements);
 
                 while (chainsIt.hasNext) {
@@ -195,7 +195,7 @@ function atomGroupsGrouped({ unitTest, entityTest, chainTest, residueTest, atomT
                     }
                 }
             } else {
-                const { chainElementSegments } = Unit.Kind.Spheres ? model.coarseHierarchy.spheres : model.coarseHierarchy.gaussians
+                const { chainElementSegments } = Unit.Kind.Spheres ? model.coarseHierarchy.spheres : model.coarseHierarchy.gaussians;
                 const chainsIt = Segmentation.transientSegments(chainElementSegments, elements);
                 while (chainsIt.hasNext) {
                     const chainSegment = chainsIt.move();
@@ -264,7 +264,7 @@ export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>, onlyAromat
         }
 
         return ret.getSelection();
-    }
+    };
 }
 
 export function querySelection(selection: StructureQuery, query: StructureQuery, inComplement: boolean = false): StructureQuery {
@@ -283,7 +283,7 @@ export function querySelection(selection: StructureQuery, query: StructureQuery,
         const result = query(ctx);
         ctx.popInputStructure();
         return StructureSelection.withInputStructure(result, ctx.inputStructure);
-    }
+    };
 }
 
 export function bondedAtomicPairs(bondTest?: QueryPredicate): StructureQuery {

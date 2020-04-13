@@ -7,7 +7,7 @@
 import { Structure } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
 import { RepresentationProvider } from '../../mol-repr/representation';
-import { StructureRepresentationRegistry } from '../../mol-repr/structure/registry'
+import { StructureRepresentationRegistry } from '../../mol-repr/structure/registry';
 import { StateTransformer } from '../../mol-state';
 import { ColorTheme } from '../../mol-theme/color';
 import { SizeTheme } from '../../mol-theme/size';
@@ -96,7 +96,7 @@ function createParamsByName(ctx: PluginContext, structure: Structure, props: Str
 }
 
 function createParamsProvider(ctx: PluginContext, structure: Structure, props: StructureRepresentationProps = {}): StateTransformer.Params<StructureRepresentation3D> {
-    const { themes: themeCtx } = ctx.representation.structure
+    const { themes: themeCtx } = ctx.representation.structure;
     const themeDataCtx = { structure };
 
     const repr = props.type || ctx.representation.structure.registry.default.provider;

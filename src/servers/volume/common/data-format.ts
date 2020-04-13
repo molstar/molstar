@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Schema from './binary-schema'
+import * as Schema from './binary-schema';
 import { FileHandle } from '../../../mol-io/common/file-handle';
 import { TypedArrayValueType } from '../../../mol-io/common/typed-array';
 
@@ -61,7 +61,7 @@ export interface Header {
 }
 
 namespace _schema {
-    const { array, obj, int, bool, float, str } = Schema
+    const { array, obj, int, bool, float, str } = Schema;
 
     export const schema = obj<Header>([
         ['formatVersion', str],

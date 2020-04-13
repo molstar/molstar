@@ -82,7 +82,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
 
     onMouseMove = (e: React.MouseEvent) => {
         // ignore mouse moves when no button is held
-        if (e.buttons === 0) e.stopPropagation()
+        if (e.buttons === 0) e.stopPropagation();
     }
 
     render() {
@@ -119,7 +119,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                     <SimpleSettingsControl />
                 </ControlGroup>
             </div>}
-        </div>
+        </div>;
     }
 }
 
@@ -131,7 +131,7 @@ export const Logo = () =>
                 <div className='msp-logo-image' />
             </div>
         </div>
-    </div>
+    </div>;
 
 interface ViewportState {
     noWebGl: boolean
@@ -148,7 +148,7 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
     };
 
     private handleLogo = () => {
-        this.setState({ showLogo: !this.plugin.canvas3d?.reprCount.value })
+        this.setState({ showLogo: !this.plugin.canvas3d?.reprCount.value });
     }
 
     private handleResize = () => {
@@ -191,7 +191,7 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
                 <p>This can be caused by an outdated browser, graphics card driver issue, or bad weather. Sometimes, just restarting the browser helps.</p>
                 <p>For a list of supported browsers, refer to <a href='http://caniuse.com/#feat=webgl' target='_blank'>http://caniuse.com/#feat=webgl</a>.</p>
             </div>
-        </div>
+        </div>;
     }
 
     render() {

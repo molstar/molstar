@@ -13,4 +13,4 @@ export const attachModelProperties: AttachModelProperties = (args) => {
     return [
         wwPDB_chemCompBond(args)
     ];
-}
+};

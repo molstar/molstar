@@ -47,12 +47,12 @@ async function getModels(mol: MolFile, ctx: RuntimeContext): Promise<Model[]> {
         pdbx_PDB_model_num: Column.ofConst(1, atoms.count, Column.Schema.int),
     }, atoms.count);
 
-    const entityBuilder = new EntityBuilder()
-    entityBuilder.setNames([['MOL', 'Unknown Entity']])
+    const entityBuilder = new EntityBuilder();
+    entityBuilder.setNames([['MOL', 'Unknown Entity']]);
     entityBuilder.getEntityId('MOL', MoleculeType.Unknown, 'A');
 
     const componentBuilder = new ComponentBuilder(seq_id, type_symbol);
-    componentBuilder.setNames([['MOL', 'Unknown Molecule']])
+    componentBuilder.setNames([['MOL', 'Unknown Molecule']]);
     componentBuilder.add('MOL', 0);
 
     const basics = createBasic({
@@ -82,7 +82,7 @@ type MolFormat = ModelFormat<MolFile>
 
 namespace MolFormat {
     export function is(x: ModelFormat): x is MolFormat {
-        return x.kind === 'mol'
+        return x.kind === 'mol';
     }
 
     export function create(mol: MolFile): MolFormat {
@@ -91,5 +91,5 @@ namespace MolFormat {
 }
 
 export function trajectoryFromMol(mol: MolFile): Task<Model.Trajectory> {
-    return Task.create('Parse MOL', ctx => getModels(mol, ctx))
+    return Task.create('Parse MOL', ctx => getModels(mol, ctx));
 }

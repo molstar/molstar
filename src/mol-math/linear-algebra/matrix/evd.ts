@@ -22,7 +22,7 @@ export namespace EVD {
             eigenValues: <any>new Float64Array(size),
             D: <any>new Float64Array(size),
             E: <any>new Float64Array(size)
-        }
+        };
     }
 
     /**

@@ -6,13 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from '../../../../mol-data/db'
-import encodeMsgPack from '../../../common/msgpack/encode'
+import { Column } from '../../../../mol-data/db';
+import encodeMsgPack from '../../../common/msgpack/encode';
 import {
     EncodedColumn, EncodedData, EncodedFile, EncodedDataBlock, EncodedCategory, ArrayEncoder, ArrayEncoding as E, VERSION
-} from '../../../common/binary-cif'
-import { Field, Category, Encoder } from '../encoder'
-import Writer from '../../writer'
+} from '../../../common/binary-cif';
+import { Field, Category, Encoder } from '../encoder';
+import Writer from '../../writer';
 import { getIncludedFields, getCategoryInstanceData, CategoryInstanceData } from './util';
 import { classifyIntArray, classifyFloatArray } from '../../../common/binary-cif/classifier';
 import { ArrayCtor } from '../../../../mol-util/type-helpers';

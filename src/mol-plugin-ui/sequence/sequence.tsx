@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as React from 'react'
+import * as React from 'react';
 import { PluginUIComponent } from '../base';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { ButtonsType, ModifiersKeys, getButtons, getModifiers, getButton } from '../../mol-util/input/input-observer';
@@ -23,7 +23,7 @@ type SequenceProps = {
 }
 
 /** Note, if this is changed, the CSS for `msp-sequence-number` needs adjustment too */
-const MaxSequenceNumberSize = 5
+const MaxSequenceNumberSize = 5;
 
 // TODO: this is somewhat inefficient and should be done using a canvas.
 export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
@@ -32,31 +32,31 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     private highlightQueue = new Subject<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>();
 
     private lociHighlightProvider = (loci: Representation.Loci, action: MarkerAction) => {
-        const changed = this.props.sequenceWrapper.markResidue(loci.loci, action)
+        const changed = this.props.sequenceWrapper.markResidue(loci.loci, action);
         if (changed) this.updateMarker();
     }
 
     private lociSelectionProvider = (loci: Representation.Loci, action: MarkerAction) => {
-        const changed = this.props.sequenceWrapper.markResidue(loci.loci, action)
+        const changed = this.props.sequenceWrapper.markResidue(loci.loci, action);
         if (changed) this.updateMarker();
     }
 
     private get sequenceNumberPeriod() {
         if (this.props.sequenceNumberPeriod !== undefined) {
-            return this.props.sequenceNumberPeriod as number
+            return this.props.sequenceNumberPeriod as number;
         }
-        if (this.props.sequenceWrapper.length > 10) return 10
-        const lastSeqNum = this.getSequenceNumber(this.props.sequenceWrapper.length - 1)
-        if (lastSeqNum.length > 1) return 5
-        return 1
+        if (this.props.sequenceWrapper.length > 10) return 10;
+        const lastSeqNum = this.getSequenceNumber(this.props.sequenceWrapper.length - 1);
+        if (lastSeqNum.length > 1) return 5;
+        return 1;
     }
 
     componentDidMount() {
-        this.plugin.managers.interactivity.lociHighlights.addProvider(this.lociHighlightProvider)
-        this.plugin.managers.interactivity.lociSelects.addProvider(this.lociSelectionProvider)
+        this.plugin.managers.interactivity.lociHighlights.addProvider(this.lociHighlightProvider);
+        this.plugin.managers.interactivity.lociSelects.addProvider(this.lociSelectionProvider);
 
         this.subscribe(debounceTime<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>(15)(this.highlightQueue), (e) => {
-            const loci = this.getLoci(e.seqIdx < 0 ? void 0 : e.seqIdx)
+            const loci = this.getLoci(e.seqIdx < 0 ? void 0 : e.seqIdx);
             this.hover(loci, e.buttons, e.button, e.modifiers);
         });
 
@@ -66,14 +66,14 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     componentWillUnmount() {
         super.componentWillUnmount();
 
-        this.plugin.managers.interactivity.lociHighlights.removeProvider(this.lociHighlightProvider)
-        this.plugin.managers.interactivity.lociSelects.removeProvider(this.lociSelectionProvider)
+        this.plugin.managers.interactivity.lociHighlights.removeProvider(this.lociHighlightProvider);
+        this.plugin.managers.interactivity.lociSelects.removeProvider(this.lociSelectionProvider);
     }
 
     getLoci(seqIdx: number | undefined) {
         if (seqIdx !== undefined) {
             const loci = this.props.sequenceWrapper.getLoci(seqIdx);
-            if (!StructureElement.Loci.isEmpty(loci)) return loci
+            if (!StructureElement.Loci.isEmpty(loci)) return loci;
         }
     }
 
@@ -83,27 +83,27 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         if (el && el.getAttribute) {
             seqIdx = el.hasAttribute('data-seqid') ? +el.getAttribute('data-seqid')! : undefined;
         }
-        return seqIdx
+        return seqIdx;
     }
 
     hover(loci: StructureElement.Loci | undefined, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
-        const ev = { current: Representation.Loci.Empty, buttons, button, modifiers }
+        const ev = { current: Representation.Loci.Empty, buttons, button, modifiers };
         if (loci !== undefined && !StructureElement.Loci.isEmpty(loci)) {
             ev.current = { loci };
         }
-        this.plugin.behaviors.interaction.hover.next(ev)
+        this.plugin.behaviors.interaction.hover.next(ev);
     }
 
     click(loci: StructureElement.Loci | undefined, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
-        const ev = { current: Representation.Loci.Empty, buttons, button, modifiers }
+        const ev = { current: Representation.Loci.Empty, buttons, button, modifiers };
         if (loci !== undefined && !StructureElement.Loci.isEmpty(loci)) {
             ev.current = { loci };
         }
-        this.plugin.behaviors.interaction.click.next(ev)
+        this.plugin.behaviors.interaction.click.next(ev);
     }
 
     contextMenu = (e: React.MouseEvent) => {
-        e.preventDefault()
+        e.preventDefault();
     }
 
     private mouseDownLoci: StructureElement.Loci | undefined = undefined
@@ -111,11 +111,11 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     mouseDown = (e: React.MouseEvent) => {
         e.stopPropagation();
 
-        const seqIdx = this.getSeqIdx(e)
-        const loci = this.getLoci(seqIdx)
-        const buttons = getButtons(e.nativeEvent)
-        const button = getButton(e.nativeEvent)
-        const modifiers = getModifiers(e.nativeEvent)
+        const seqIdx = this.getSeqIdx(e);
+        const loci = this.getLoci(seqIdx);
+        const buttons = getButtons(e.nativeEvent);
+        const button = getButton(e.nativeEvent);
+        const modifiers = getModifiers(e.nativeEvent);
 
         this.click(loci, buttons, button, modifiers);
         this.mouseDownLoci = loci;
@@ -125,20 +125,20 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         e.stopPropagation();
 
         // ignore mouse-up events without a bound loci
-        if (this.mouseDownLoci === undefined) return
+        if (this.mouseDownLoci === undefined) return;
 
-        const seqIdx = this.getSeqIdx(e)
-        const loci = this.getLoci(seqIdx)
+        const seqIdx = this.getSeqIdx(e);
+        const loci = this.getLoci(seqIdx);
 
         if (loci && !StructureElement.Loci.areEqual(this.mouseDownLoci, loci)) {
-            const buttons = getButtons(e.nativeEvent)
-            const button = getButton(e.nativeEvent)
-            const modifiers = getModifiers(e.nativeEvent)
+            const buttons = getButtons(e.nativeEvent);
+            const button = getButton(e.nativeEvent);
+            const modifiers = getModifiers(e.nativeEvent);
 
-            const ref = this.mouseDownLoci.elements[0]
-            const ext = loci.elements[0]
-            const min = Math.min(OrderedSet.min(ref.indices), OrderedSet.min(ext.indices))
-            const max = Math.max(OrderedSet.max(ref.indices), OrderedSet.max(ext.indices))
+            const ref = this.mouseDownLoci.elements[0];
+            const ext = loci.elements[0];
+            const min = Math.min(OrderedSet.min(ref.indices), OrderedSet.min(ext.indices));
+            const max = Math.max(OrderedSet.max(ref.indices), OrderedSet.max(ext.indices));
 
             const range = StructureElement.Loci(loci.structure, [{
                 unit: ref.unit,
@@ -152,7 +152,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
     private getBackgroundColor(marker: number) {
         // TODO: make marker color configurable
-        if (typeof marker === 'undefined') console.error('unexpected marker value')
+        if (typeof marker === 'undefined') console.error('unexpected marker value');
         return marker === 0 ? '' : marker % 2 === 0 ? 'rgb(51, 255, 25)' /* selected */ : 'rgb(255, 102, 153)' /* highlighted */;
     }
 
@@ -167,31 +167,31 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     private getSequenceNumberClass(seqIdx: number, seqNum: string, label: string) {
-        const classList = ['msp-sequence-number']
+        const classList = ['msp-sequence-number'];
         if (seqNum.startsWith('-')) {
-            if (label.length > 1 && seqIdx > 0) classList.push('msp-sequence-number-long-negative')
-            else classList.push('msp-sequence-number-negative')
+            if (label.length > 1 && seqIdx > 0) classList.push('msp-sequence-number-long-negative');
+            else classList.push('msp-sequence-number-negative');
         } else {
-            if (label.length > 1 && seqIdx > 0) classList.push('msp-sequence-number-long')
+            if (label.length > 1 && seqIdx > 0) classList.push('msp-sequence-number-long');
         }
-        return classList.join(' ')
+        return classList.join(' ');
     }
 
     private location = StructureElement.Location.create(void 0);
     private getSequenceNumber(seqIdx: number) {
-        let seqNum = ''
-        const loci = this.props.sequenceWrapper.getLoci(seqIdx)
+        let seqNum = '';
+        const loci = this.props.sequenceWrapper.getLoci(seqIdx);
         const l = StructureElement.Loci.getFirstLocation(loci, this.location);
         if (l) {
             if (Unit.isAtomic(l.unit)) {
-                const seqId = StructureProperties.residue.auth_seq_id(l)
-                const insCode = StructureProperties.residue.pdbx_PDB_ins_code(l)
-                seqNum = `${seqId}${insCode ? insCode : ''}`
+                const seqId = StructureProperties.residue.auth_seq_id(l);
+                const insCode = StructureProperties.residue.pdbx_PDB_ins_code(l);
+                seqNum = `${seqId}${insCode ? insCode : ''}`;
             } else if (Unit.isCoarse(l.unit)) {
-                seqNum = `${seqIdx + 1}`
+                seqNum = `${seqIdx + 1}`;
             }
         }
-        return seqNum
+        return seqNum;
     }
 
     private padSeqNum(n: string) {
@@ -199,8 +199,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         return n;
     }
     private getSequenceNumberSpan(seqIdx: number, label: string) {
-        const seqNum = this.getSequenceNumber(seqIdx)
-        return <span key={`marker-${seqIdx}`} className={this.getSequenceNumberClass(seqIdx, seqNum, label)}>{this.padSeqNum(seqNum)}</span>
+        const seqNum = this.getSequenceNumber(seqIdx);
+        return <span key={`marker-${seqIdx}`} className={this.getSequenceNumberClass(seqIdx, seqNum, label)}>{this.padSeqNum(seqNum)}</span>;
     }
 
     private updateMarker() {
@@ -235,15 +235,15 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     mouseMove = (e: React.MouseEvent) => {
         e.stopPropagation();
 
-        const buttons = getButtons(e.nativeEvent)
-        const button = getButton(e.nativeEvent)
-        const modifiers = getModifiers(e.nativeEvent)
+        const buttons = getButtons(e.nativeEvent);
+        const button = getButton(e.nativeEvent);
+        const modifiers = getModifiers(e.nativeEvent);
 
         const el = e.target as HTMLElement;
         if (!el || !el.getAttribute) {
             if (this.lastMouseOverSeqIdx === -1) return;
             this.lastMouseOverSeqIdx = -1;
-            this.highlightQueue.next({ seqIdx: -1, buttons, button, modifiers })
+            this.highlightQueue.next({ seqIdx: -1, buttons, button, modifiers });
             return;
         }
         const seqIdx = el.hasAttribute('data-seqid') ? +el.getAttribute('data-seqid')! : -1;
@@ -252,10 +252,10 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         } else {
             this.lastMouseOverSeqIdx = seqIdx;
             if (this.mouseDownLoci !== undefined) {
-                const loci = this.getLoci(seqIdx)
-                this.hover(loci, ButtonsType.Flag.None, ButtonsType.Flag.None, { ...modifiers, shift: true })
+                const loci = this.getLoci(seqIdx);
+                this.hover(loci, ButtonsType.Flag.None, ButtonsType.Flag.None, { ...modifiers, shift: true });
             } else {
-                this.highlightQueue.next({ seqIdx, buttons, button, modifiers })
+                this.highlightQueue.next({ seqIdx, buttons, button, modifiers });
             }
         }
     }
@@ -266,30 +266,30 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
         if (this.lastMouseOverSeqIdx === -1) return;
         this.lastMouseOverSeqIdx = -1;
-        const buttons = getButtons(e.nativeEvent)
-        const button = getButton(e.nativeEvent)
-        const modifiers = getModifiers(e.nativeEvent)
-        this.highlightQueue.next({ seqIdx: -1, buttons, button, modifiers })
+        const buttons = getButtons(e.nativeEvent);
+        const button = getButton(e.nativeEvent);
+        const modifiers = getModifiers(e.nativeEvent);
+        this.highlightQueue.next({ seqIdx: -1, buttons, button, modifiers });
     }
 
     render() {
-        const sw = this.props.sequenceWrapper
+        const sw = this.props.sequenceWrapper;
 
         const elems: JSX.Element[] = [];
 
         const hasNumbers = !this.props.hideSequenceNumbers, period = this.sequenceNumberPeriod;
         for (let i = 0, il = sw.length; i < il; ++i) {
-            const label = sw.residueLabel(i)
+            const label = sw.residueLabel(i);
             // add sequence number before name so the html element do not get separated by a line-break
             if (hasNumbers && i % period === 0 && i < il) {
-                elems[elems.length] = this.getSequenceNumberSpan(i, label)
+                elems[elems.length] = this.getSequenceNumberSpan(i, label);
             }
             elems[elems.length] = this.residue(i, label, sw.markerArray[i]);
         }
 
         // calling .updateMarker here is neccesary to ensure existing
         // residue spans are updated as react won't update them
-        this.updateMarker()
+        this.updateMarker();
 
         return <div
             className='msp-sequence-wrapper msp-sequence-wrapper-non-empty'

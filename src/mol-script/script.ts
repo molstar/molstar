@@ -11,12 +11,12 @@ import { StructureElement, QueryContext, StructureSelection, Structure, QueryFn,
 import { compile } from './runtime/query/compiler';
 import { MolScriptBuilder } from './language/builder';
 
-export { Script }
+export { Script };
 
 interface Script { expression: string, language: Script.Language }
 
 function Script(expression: string, language: Script.Language): Script {
-    return { expression, language }
+    return { expression, language };
 }
 
 namespace Script {
@@ -27,28 +27,28 @@ namespace Script {
     }
 
     export function areEqual(a: Script, b: Script) {
-        return a.language === b.language && a.expression === b.expression
+        return a.language === b.language && a.expression === b.expression;
     }
 
     export function toExpression(script: Script): Expression {
         switch (script.language) {
             case 'mol-script':
-                const parsed = parseMolScript(script.expression)
-                if (parsed.length === 0) throw new Error('No query')
-                return transpileMolScript(parsed[0])
+                const parsed = parseMolScript(script.expression);
+                if (parsed.length === 0) throw new Error('No query');
+                return transpileMolScript(parsed[0]);
         }
-        throw new Error('unsupported script language')
+        throw new Error('unsupported script language');
     }
 
     export function toQuery(script: Script): QueryFn<StructureSelection> {
-        const expression = toExpression(script)
+        const expression = toExpression(script);
         return compile<StructureSelection>(expression);
     }
 
     export function toLoci(script: Script, structure: Structure): StructureElement.Loci {
-        const query = toQuery(script)
-        const result = query(new QueryContext(structure))
-        return StructureSelection.toLociWithSourceUnits(result)
+        const query = toQuery(script);
+        const result = query(new QueryContext(structure));
+        return StructureSelection.toLociWithSourceUnits(result);
     }
 
     export function getStructureSelection(expr: Expression | ((builder: typeof MolScriptBuilder) => Expression), structure: Structure, options?: QueryContextOptions) {

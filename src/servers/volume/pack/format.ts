@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as File from '../common/file'
+import * as File from '../common/file';
 import { FileHandle } from '../../../mol-io/common/file-handle';
 import { Ccp4Provider } from './format/ccp4';
 import { TypedArrayBufferContext, TypedArrayValueArray, TypedArrayValueType, getElementByteSize, createTypedArrayBufferContext } from '../../../mol-io/common/typed-array';
@@ -58,7 +58,7 @@ export interface Context {
 
 export function assignSliceBuffer(data: Data, blockSizeInMB: number) {
     const { extent, valueType } = data.header;
-    const maxBlockBytes = blockSizeInMB * 1024 * 1024
+    const maxBlockBytes = blockSizeInMB * 1024 * 1024;
     const sliceSize = extent[0] * extent[1] * getElementByteSize(valueType);
     const sliceCapacity = Math.max(1, Math.floor(Math.min(maxBlockBytes, sliceSize * extent[2]) / sliceSize));
     const buffer = createTypedArrayBufferContext(sliceCapacity * extent[0] * extent[1], valueType);
@@ -95,16 +95,16 @@ export type Type = 'ccp4' | 'dsn6'
 
 export function getProviderFromType(type: Type): Provider {
     switch (type) {
-        case 'ccp4': return Ccp4Provider
-        case 'dsn6': return Dsn6Provider
+        case 'ccp4': return Ccp4Provider;
+        case 'dsn6': return Dsn6Provider;
     }
 }
 
 export async function open(name: string, filename: string, type: Type): Promise<Context> {
-    const provider = getProviderFromType(type)
+    const provider = getProviderFromType(type);
     const descriptor = await File.openRead(filename);
-    const file = FileHandle.fromDescriptor(descriptor)
+    const file = FileHandle.fromDescriptor(descriptor);
     const header = await provider.readHeader(name, file);
-    const data = { header, file, slices: void 0 as any }
+    const data = { header, file, slices: void 0 as any };
     return { data, provider };
 }

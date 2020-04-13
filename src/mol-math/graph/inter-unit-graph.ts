@@ -5,9 +5,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { UniqueArray } from '../../mol-data/generic'
+import { UniqueArray } from '../../mol-data/generic';
 
-export { InterUnitGraph }
+export { InterUnitGraph };
 
 class InterUnitGraph<Unit extends InterUnitGraph.UnitBase, VertexIndex extends number, EdgeProps extends InterUnitGraph.EdgePropsBase = {}> {
     /** Number of inter-unit edges */
@@ -25,58 +25,58 @@ class InterUnitGraph<Unit extends InterUnitGraph.UnitBase, VertexIndex extends n
 
     /** Index into this.edges */
     getEdgeIndex(indexA: VertexIndex, unitA: Unit, indexB: VertexIndex, unitB: Unit): number {
-        const edgeKey = InterUnitGraph.getEdgeKey<Unit, VertexIndex>(indexA, unitA, indexB, unitB)
-        const index = this.edgeKeyIndex.get(edgeKey)
-        return index !== undefined ? index : -1
+        const edgeKey = InterUnitGraph.getEdgeKey<Unit, VertexIndex>(indexA, unitA, indexB, unitB);
+        const index = this.edgeKeyIndex.get(edgeKey);
+        return index !== undefined ? index : -1;
     }
 
     /** Check if edge exists */
     hasEdge(indexA: VertexIndex, unitA: Unit, indexB: VertexIndex, unitB: Unit): boolean {
-        return this.getEdgeIndex(indexA, unitA, indexB, unitB) !== -1
+        return this.getEdgeIndex(indexA, unitA, indexB, unitB) !== -1;
     }
 
     /** Get inter-unit edge given a pair of indices and units */
     getEdge(indexA: VertexIndex, unitA: Unit, indexB: VertexIndex, unitB: Unit): InterUnitGraph.Edge<Unit, VertexIndex, EdgeProps> | undefined {
-        const index = this.getEdgeIndex(indexA, unitA, indexB, unitB)
-        return index !== -1 ? this.edges[index] : undefined
+        const index = this.getEdgeIndex(indexA, unitA, indexB, unitB);
+        return index !== -1 ? this.edges[index] : undefined;
     }
 
     /** Indices into this.edges */
     getEdgeIndices(index: VertexIndex, unit: Unit): ReadonlyArray<number> {
-        return this.vertexKeyIndex.get(InterUnitGraph.getVertexKey(index, unit)) || []
+        return this.vertexKeyIndex.get(InterUnitGraph.getVertexKey(index, unit)) || [];
     }
 
     constructor(protected readonly map: Map<number, InterUnitGraph.UnitPairEdges<Unit, VertexIndex, EdgeProps>[]>) {
-        let count = 0
-        const edges: (InterUnitGraph.Edge<Unit, VertexIndex, EdgeProps>)[] = []
-        const edgeKeyIndex = new Map<string, number>()
-        const vertexKeyIndex = new Map<string, number[]>()
+        let count = 0;
+        const edges: (InterUnitGraph.Edge<Unit, VertexIndex, EdgeProps>)[] = [];
+        const edgeKeyIndex = new Map<string, number>();
+        const vertexKeyIndex = new Map<string, number[]>();
 
         this.map.forEach(pairEdgesArray => {
             pairEdgesArray.forEach(pairEdges => {
-                count += pairEdges.edgeCount
+                count += pairEdges.edgeCount;
                 pairEdges.connectedIndices.forEach(indexA => {
                     pairEdges.getEdges(indexA).forEach(edgeInfo => {
-                        const { unitA, unitB } = pairEdges
+                        const { unitA, unitB } = pairEdges;
 
-                        const edgeKey = InterUnitGraph.getEdgeKey(indexA, unitA, edgeInfo.indexB, unitB)
-                        edgeKeyIndex.set(edgeKey, edges.length)
+                        const edgeKey = InterUnitGraph.getEdgeKey(indexA, unitA, edgeInfo.indexB, unitB);
+                        edgeKeyIndex.set(edgeKey, edges.length);
 
-                        const vertexKey = InterUnitGraph.getVertexKey(indexA, unitA)
-                        const e = vertexKeyIndex.get(vertexKey)
-                        if (e === undefined) vertexKeyIndex.set(vertexKey, [edges.length])
-                        else e.push(edges.length)
+                        const vertexKey = InterUnitGraph.getVertexKey(indexA, unitA);
+                        const e = vertexKeyIndex.get(vertexKey);
+                        if (e === undefined) vertexKeyIndex.set(vertexKey, [edges.length]);
+                        else e.push(edges.length);
 
-                        edges.push({ ...edgeInfo, indexA, unitA, unitB })
-                    })
-                })
-            })
-        })
+                        edges.push({ ...edgeInfo, indexA, unitA, unitB });
+                    });
+                });
+            });
+        });
 
-        this.edgeCount = count
-        this.edges = edges
-        this.edgeKeyIndex = edgeKeyIndex
-        this.vertexKeyIndex = vertexKeyIndex
+        this.edgeCount = count;
+        this.edges = edges;
+        this.edgeKeyIndex = edgeKeyIndex;
+        this.vertexKeyIndex = vertexKeyIndex;
     }
 }
 
@@ -119,11 +119,11 @@ namespace InterUnitGraph {
     }
 
     export function getEdgeKey<Unit extends UnitBase, VertexIndex extends number>(indexA: VertexIndex, unitA: Unit, indexB: VertexIndex, unitB: Unit) {
-        return `${indexA}|${unitA.id}|${indexB}|${unitB.id}`
+        return `${indexA}|${unitA.id}|${indexB}|${unitB.id}`;
     }
 
     export function getVertexKey<Unit extends UnitBase, VertexIndex extends number>(index: VertexIndex, unit: Unit) {
-        return `${index}|${unit.id}`
+        return `${index}|${unit.id}`;
     }
 
     //
@@ -146,27 +146,27 @@ namespace InterUnitGraph {
         private map = new Map<number, UnitPairEdges<Unit, VertexIndex, EdgeProps>[]>();
 
         startUnitPair(unitA: Unit, unitB: Unit) {
-            this.uA = unitA
-            this.uB = unitB
-            this.mapAB = new Map()
-            this.mapBA = new Map()
-            this.linkedA = UniqueArray.create()
-            this.linkedB = UniqueArray.create()
-            this.linkCount = 0
+            this.uA = unitA;
+            this.uB = unitB;
+            this.mapAB = new Map();
+            this.mapBA = new Map();
+            this.linkedA = UniqueArray.create();
+            this.linkedB = UniqueArray.create();
+            this.linkCount = 0;
         }
 
         finishUnitPair() {
-            if (this.linkCount === 0) return
-            addMapEntry(this.map, this.uA.id, new UnitPairEdges(this.uA, this.uB, this.linkCount, this.linkedA.array, this.mapAB))
-            addMapEntry(this.map, this.uB.id, new UnitPairEdges(this.uB, this.uA, this.linkCount, this.linkedB.array, this.mapBA))
+            if (this.linkCount === 0) return;
+            addMapEntry(this.map, this.uA.id, new UnitPairEdges(this.uA, this.uB, this.linkCount, this.linkedA.array, this.mapAB));
+            addMapEntry(this.map, this.uB.id, new UnitPairEdges(this.uB, this.uA, this.linkCount, this.linkedB.array, this.mapBA));
         }
 
         add(indexA: VertexIndex, indexB: VertexIndex, props: EdgeProps) {
-            addMapEntry(this.mapAB, indexA, { indexB, props })
-            addMapEntry(this.mapBA, indexB, { indexB: indexA, props })
-            UniqueArray.add(this.linkedA, indexA, indexA)
-            UniqueArray.add(this.linkedB, indexB, indexB)
-            this.linkCount += 1
+            addMapEntry(this.mapAB, indexA, { indexB, props });
+            addMapEntry(this.mapBA, indexB, { indexB: indexA, props });
+            UniqueArray.add(this.linkedA, indexA, indexA);
+            UniqueArray.add(this.linkedB, indexB, indexB);
+            this.linkCount += 1;
         }
 
         getMap(): Map<number, InterUnitGraph.UnitPairEdges<Unit, VertexIndex, EdgeProps>[]> {

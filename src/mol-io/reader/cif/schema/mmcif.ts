@@ -6,7 +6,7 @@
  * @author molstar/ciftools package
  */
 
-import { Database, Column } from '../../../../mol-data/db'
+import { Database, Column } from '../../../../mol-data/db';
 
 import Schema = Column.Schema
 
@@ -4679,7 +4679,7 @@ export const mmCIF_Schema = {
          */
         details: str,
     },
-}
+};
 
 export type mmCIF_Schema = typeof mmCIF_Schema;
 export interface mmCIF_Database extends Database<mmCIF_Schema> {}

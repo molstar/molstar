@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { sortArray, hash3, hash4, createRangeArray } from '../../util'
-import Interval from '../interval'
+import { sortArray, hash3, hash4, createRangeArray } from '../../util';
+import Interval from '../interval';
 
 type Nums = ArrayLike<number>
 
 
-export const Empty: Nums = []
+export const Empty: Nums = [];
 
 export function ofSingleton(v: number) { return [v]; }
 export function ofSortedArray(xs: Nums) { return xs; }
@@ -47,7 +47,7 @@ export function indexOf(xs: Nums, v: number) {
     return l === 0 ? -1 : xs[0] <= v && v <= xs[l - 1] ? binarySearchRange(xs, v, 0, l) : -1;
 }
 export function indexOfInInterval(xs: Nums, v: number, bounds: Interval) {
-    return indexOfInRange(xs, v, Interval.start(bounds), Interval.end(bounds))
+    return indexOfInRange(xs, v, Interval.start(bounds), Interval.end(bounds));
 }
 export function indexOfInRange(xs: Nums, v: number, s: number, e: number) {
     const l = xs.length;

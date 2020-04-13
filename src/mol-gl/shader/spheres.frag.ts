@@ -113,4 +113,4 @@ void main(void){
         #include apply_fog
     #endif
 }
-`
+`;

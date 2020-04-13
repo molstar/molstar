@@ -65,64 +65,64 @@ export type KindValue = {
 export type Values<S extends RenderableSchema> = { readonly [k in keyof S]: ValueCell<KindValue[S[k]['kind']]> }
 
 export function splitValues(schema: RenderableSchema, values: RenderableValues) {
-    const attributeValues: AttributeValues = {}
-    const defineValues: DefineValues = {}
-    const textureValues: TextureValues = {}
-    const uniformValues: UniformValues = {}
-    const materialUniformValues: UniformValues = {}
+    const attributeValues: AttributeValues = {};
+    const defineValues: DefineValues = {};
+    const textureValues: TextureValues = {};
+    const uniformValues: UniformValues = {};
+    const materialUniformValues: UniformValues = {};
     Object.keys(schema).forEach(k => {
-        const spec = schema[k]
-        if (spec.type === 'attribute') attributeValues[k] = values[k]
-        if (spec.type === 'define') defineValues[k] = values[k]
-        if (spec.type === 'texture') textureValues[k] = values[k]
+        const spec = schema[k];
+        if (spec.type === 'attribute') attributeValues[k] = values[k];
+        if (spec.type === 'define') defineValues[k] = values[k];
+        if (spec.type === 'texture') textureValues[k] = values[k];
         // check if k exists in values so that global uniforms are excluded here
         if (spec.type === 'uniform' && values[k] !== undefined) {
-            if (spec.isMaterial) materialUniformValues[k] = values[k]
-            else uniformValues[k] = values[k]
+            if (spec.isMaterial) materialUniformValues[k] = values[k];
+            else uniformValues[k] = values[k];
         }
-    })
-    return { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues }
+    });
+    return { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues };
 }
 
 export type Versions<T extends RenderableValues> = { [k in keyof T]: number }
 export function getValueVersions<T extends RenderableValues>(values: T) {
-    const versions: Versions<any> = {}
+    const versions: Versions<any> = {};
     Object.keys(values).forEach(k => {
-        versions[k] = values[k].ref.version
-    })
-    return versions as Versions<T>
+        versions[k] = values[k].ref.version;
+    });
+    return versions as Versions<T>;
 }
 
 //
 
 export type AttributeSpec<K extends AttributeKind> = { type: 'attribute', kind: K, itemSize: AttributeItemSize, divisor: number }
 export function AttributeSpec<K extends AttributeKind>(kind: K, itemSize: AttributeItemSize, divisor: number): AttributeSpec<K> {
-    return { type: 'attribute', kind, itemSize, divisor }
+    return { type: 'attribute', kind, itemSize, divisor };
 }
 
 export type UniformSpec<K extends UniformKind> = { type: 'uniform', kind: K, isMaterial: boolean }
 export function UniformSpec<K extends UniformKind>(kind: K, isMaterial = false): UniformSpec<K> {
-    return { type: 'uniform', kind, isMaterial }
+    return { type: 'uniform', kind, isMaterial };
 }
 
 export type TextureSpec<K extends TextureKind> = { type: 'texture', kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter }
 export function TextureSpec<K extends TextureKind>(kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter): TextureSpec<K> {
-    return { type: 'texture', kind, format, dataType, filter }
+    return { type: 'texture', kind, format, dataType, filter };
 }
 
 export type ElementsSpec<K extends ElementsKind> = { type: 'elements', kind: K }
 export function ElementsSpec<K extends ElementsKind>(kind: K): ElementsSpec<K> {
-    return { type: 'elements', kind }
+    return { type: 'elements', kind };
 }
 
 export type DefineSpec<K extends DefineKind> = { type: 'define', kind: K, options?: string[] }
 export function DefineSpec<K extends DefineKind>(kind: K, options?: string[]): DefineSpec<K> {
-    return { type: 'define', kind, options }
+    return { type: 'define', kind, options };
 }
 
 export type ValueSpec<K extends ValueKind> = { type: 'value', kind: K }
 export function ValueSpec<K extends ValueKind>(kind: K): ValueSpec<K> {
-    return { type: 'value', kind }
+    return { type: 'value', kind };
 }
 
 //
@@ -181,14 +181,14 @@ export const GlobalUniformSchema = {
 
     uHighlightColor: UniformSpec('v3'),
     uSelectColor: UniformSpec('v3'),
-} as const
+} as const;
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = Values<GlobalUniformSchema> // { [k in keyof GlobalUniformSchema]: ValueCell<any> }
 
 export const InternalSchema = {
     uObjectId: UniformSpec('i'),
     uPickable: UniformSpec('i', true),
-} as const
+} as const;
 export type InternalSchema = typeof InternalSchema
 export type InternalValues = { [k in keyof InternalSchema]: ValueCell<any> }
 
@@ -198,7 +198,7 @@ export const ColorSchema = {
     uColorTexDim: UniformSpec('v2'),
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
-} as const
+} as const;
 export type ColorSchema = typeof ColorSchema
 export type ColorValues = Values<ColorSchema>
 
@@ -209,14 +209,14 @@ export const SizeSchema = {
     tSize: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
     uSizeFactor: UniformSpec('f'),
-} as const
+} as const;
 export type SizeSchema = typeof SizeSchema
 export type SizeValues = Values<SizeSchema>
 
 export const MarkerSchema = {
     uMarkerTexDim: UniformSpec('v2'),
     tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
-} as const
+} as const;
 export type MarkerSchema = typeof MarkerSchema
 export type MarkerValues = Values<MarkerSchema>
 
@@ -224,7 +224,7 @@ export const OverpaintSchema = {
     uOverpaintTexDim: UniformSpec('v2'),
     tOverpaint: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
     dOverpaint: DefineSpec('boolean'),
-} as const
+} as const;
 export type OverpaintSchema = typeof OverpaintSchema
 export type OverpaintValues = Values<OverpaintSchema>
 
@@ -235,7 +235,7 @@ export const TransparencySchema = {
     dTransparency: DefineSpec('boolean'),
     // dTransparencyType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']), // TODO
     dTransparencyVariant: DefineSpec('string', ['single', 'multi']),
-} as const
+} as const;
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>
 
@@ -277,6 +277,6 @@ export const BaseSchema = {
     boundingSphere: ValueSpec('sphere'),
     /** bounding sphere NOT taking aTransform into account */
     invariantBoundingSphere: ValueSpec('sphere'),
-} as const
+} as const;
 export type BaseSchema = typeof BaseSchema
 export type BaseValues = Values<BaseSchema>

@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3, Mat4 } from '../../linear-algebra'
-import { PositionData } from '../common'
+import { Vec3, Mat4 } from '../../linear-algebra';
+import { PositionData } from '../common';
 import { OrderedSet } from '../../../mol-data/int';
 import { Sphere3D } from './sphere3d';
 
@@ -31,10 +31,10 @@ namespace Box3D {
     }
 
     export function fromSphere3D(out: Box3D, sphere: Sphere3D): Box3D {
-        const r = Vec3.create(sphere.radius, sphere.radius, sphere.radius)
-        Vec3.sub(out.min, sphere.center, r)
-        Vec3.add(out.max, sphere.center, r)
-        return out
+        const r = Vec3.create(sphere.radius, sphere.radius, sphere.radius);
+        Vec3.sub(out.min, sphere.center, r);
+        Vec3.add(out.max, sphere.center, r);
+        return out;
     }
 
     export function computeBounding(data: PositionData): Box3D {
@@ -51,7 +51,7 @@ namespace Box3D {
             max[1] = Math.max(y[i], max[1]);
             max[2] = Math.max(z[i], max[2]);
         }
-        return { min, max }
+        return { min, max };
     }
 
     /** Get size/extent of the box */
@@ -59,55 +59,55 @@ namespace Box3D {
         return Vec3.sub(size, box.max, box.min);
     }
 
-    const tmpSizeV = Vec3()
+    const tmpSizeV = Vec3();
     /** Get volume of the box */
     export function volume(box: Box3D): number {
-        size(tmpSizeV, box)
-        return tmpSizeV[0] * tmpSizeV[1] * tmpSizeV[2]
+        size(tmpSizeV, box);
+        return tmpSizeV[0] * tmpSizeV[1] * tmpSizeV[2];
     }
 
     export function setEmpty(box: Box3D): Box3D {
-        Vec3.set(box.min, Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
-        Vec3.set(box.max, -Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
-        return box
+        Vec3.set(box.min, Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+        Vec3.set(box.max, -Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
+        return box;
     }
 
     /** Add point to box */
     export function add(box: Box3D, point: Vec3): Box3D {
-        Vec3.min(box.min, box.min, point)
-        Vec3.max(box.max, box.max, point)
-        return box
+        Vec3.min(box.min, box.min, point);
+        Vec3.max(box.max, box.max, point);
+        return box;
     }
 
     /** Expand box by delta */
     export function expand(out: Box3D, box: Box3D, delta: Vec3): Box3D {
-        Vec3.sub(out.min, box.min, delta)
-        Vec3.add(out.max, box.max, delta)
-        return out
-    }
-
-    export function scale(out: Box3D, box: Box3D, scale: number) {
-        Vec3.scale(out.min, box.min, scale)
-        Vec3.scale(out.max, box.max, scale)
+        Vec3.sub(out.min, box.min, delta);
+        Vec3.add(out.max, box.max, delta);
         return out;
     }
 
-    const tmpTransformV = Vec3()
+    export function scale(out: Box3D, box: Box3D, scale: number) {
+        Vec3.scale(out.min, box.min, scale);
+        Vec3.scale(out.max, box.max, scale);
+        return out;
+    }
+
+    const tmpTransformV = Vec3();
     /** Transform box with a Mat4 */
     export function transform(out: Box3D, box: Box3D, m: Mat4): Box3D {
-        const [ minX, minY, minZ ] = box.min
-        const [ maxX, maxY, maxZ ] = box.max
-        setEmpty(out)
-        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, minX, minY, minZ), m))
-        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, minX, minY, maxZ), m))
-        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, minX, maxY, minZ), m))
-        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, minX, maxY, maxZ), m))
-        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, maxX, minY, minZ), m))
-        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, maxX, minY, maxZ), m))
-        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, maxX, maxY, minZ), m))
-        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, maxX, maxY, maxZ), m))
-        return out
+        const [ minX, minY, minZ ] = box.min;
+        const [ maxX, maxY, maxZ ] = box.max;
+        setEmpty(out);
+        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, minX, minY, minZ), m));
+        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, minX, minY, maxZ), m));
+        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, minX, maxY, minZ), m));
+        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, minX, maxY, maxZ), m));
+        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, maxX, minY, minZ), m));
+        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, maxX, minY, maxZ), m));
+        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, maxX, maxY, minZ), m));
+        add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, maxX, maxY, maxZ), m));
+        return out;
     }
 }
 
-export { Box3D }
+export { Box3D };

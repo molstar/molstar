@@ -4,4 +4,4 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export * from './coordinates/coordinates'
+export * from './coordinates/coordinates';

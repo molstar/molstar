@@ -56,7 +56,7 @@ namespace Quat {
     }
 
     export function hasNaN(q: Quat) {
-        return isNaN(q[0]) || isNaN(q[1]) || isNaN(q[2]) || isNaN(q[3])
+        return isNaN(q[0]) || isNaN(q[1]) || isNaN(q[2]) || isNaN(q[3]);
     }
 
     export function create(x: number, y: number, z: number, w: number) {
@@ -277,32 +277,32 @@ namespace Quat {
         return out;
     }
 
-    const fromUnitVec3Temp = Vec3()
+    const fromUnitVec3Temp = Vec3();
     /** Quaternion from two normalized unit vectors. */
     export function fromUnitVec3 (out: Quat, a: Vec3, b: Vec3) {
         // assumes a and b are normalized
-        let r = Vec3.dot(a, b) + 1
+        let r = Vec3.dot(a, b) + 1;
         if (r < EPSILON) {
             // If u and v are exactly opposite, rotate 180 degrees
             // around an arbitrary orthogonal axis. Axis normalisation
             // can happen later, when we normalise the quaternion.
-            r = 0
+            r = 0;
             if (Math.abs(a[0]) > Math.abs(a[2])) {
-                Vec3.set(fromUnitVec3Temp, -a[1], a[0], 0)
+                Vec3.set(fromUnitVec3Temp, -a[1], a[0], 0);
             } else {
-                Vec3.set(fromUnitVec3Temp, 0, -a[2], a[1])
+                Vec3.set(fromUnitVec3Temp, 0, -a[2], a[1]);
             }
         } else {
             // Otherwise, build quaternion the standard way.
-            Vec3.cross(fromUnitVec3Temp, a, b)
+            Vec3.cross(fromUnitVec3Temp, a, b);
         }
 
-        out[0] = fromUnitVec3Temp[0]
-        out[1] = fromUnitVec3Temp[1]
-        out[2] = fromUnitVec3Temp[2]
-        out[3] = r
-        normalize(out, out)
-        return out
+        out[0] = fromUnitVec3Temp[0];
+        out[1] = fromUnitVec3Temp[1];
+        out[2] = fromUnitVec3Temp[2];
+        out[3] = r;
+        normalize(out, out);
+        return out;
     }
 
     export function clone(a: Quat) {
@@ -323,11 +323,11 @@ namespace Quat {
     }
 
     export function fromArray(a: Quat, array: NumberArray, offset: number) {
-        a[0] = array[offset + 0]
-        a[1] = array[offset + 1]
-        a[2] = array[offset + 2]
-        a[3] = array[offset + 3]
-        return a
+        a[0] = array[offset + 0];
+        a[1] = array[offset + 1];
+        a[2] = array[offset + 2];
+        a[3] = array[offset + 3];
+        return a;
     }
 
     export function copy(out: Quat, a: Quat) {
@@ -442,7 +442,7 @@ namespace Quat {
         return `[${a[0].toPrecision(precision)} ${a[1].toPrecision(precision)} ${a[2].toPrecision(precision)}  ${a[3].toPrecision(precision)}]`;
     }
 
-    export const Identity: ReadonlyQuat = identity()
+    export const Identity: ReadonlyQuat = identity();
 }
 
-export default Quat
+export default Quat;

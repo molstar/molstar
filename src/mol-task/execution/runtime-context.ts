@@ -32,4 +32,4 @@ namespace RuntimeContext {
     export const Synchronous = SyncRuntimeContext;
 }
 
-export { RuntimeContext }
+export { RuntimeContext };

@@ -36,7 +36,7 @@ export const AtomSiteOperatorMappingSchema = {
         // NCS
         ncs_id: Column.Schema.Str(),
     }
-}
+};
 
 const asmValueKind = (i: number, xs: Entry[]) => typeof xs[i].operator.assembly === 'undefined' ? Column.ValueKind.NotPresent : Column.ValueKind.Present;
 const symmetryValueKind = (i: number, xs: Entry[]) => xs[i].operator.spgrOp === -1 ? Column.ValueKind.NotPresent : Column.ValueKind.Present;
@@ -55,14 +55,14 @@ const Fields = CifWriter.fields<number, Entry[], keyof (typeof AtomSiteOperatorM
     .vec('symmetry_hkl', [(i, xs) => xs[i].operator.hkl[0], (i, xs) => xs[i].operator.hkl[1], (i, xs) => xs[i].operator.hkl[2]], { valueKind: symmetryValueKind })
     // NCS
     .str('ncs_id', (i, xs) => xs[i].operator.ncsId || '', { valueKind: (i, xs) => !xs[i].operator.ncsId ? Column.ValueKind.NotPresent : Column.ValueKind.Present })
-    .getFields()
+    .getFields();
 
 const Category: CifWriter.Category<Entry[]> = {
     name: 'molstar_atom_site_operator_mapping',
     instance(entries: Entry[]) {
         return { fields: Fields, source: [{ data: entries, rowCount: entries.length }] };
     }
-}
+};
 
 interface Entry {
     label_asym_id: string,

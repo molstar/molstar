@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { RuntimeContext } from '../mol-task'
-import { GraphicsRenderObject } from '../mol-gl/render-object'
+import { RuntimeContext } from '../mol-task';
+import { GraphicsRenderObject } from '../mol-gl/render-object';
 import { PickingId } from '../mol-geo/geometry/picking';
 import { Loci, isEmptyLoci, isEveryLoci } from '../mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../mol-util/marker-action';
@@ -28,7 +28,7 @@ export interface VisualContext {
 }
 // export type VisualFactory<D, P extends PD.Params> = (ctx: VisualContext) => Visual<D, P>
 
-export { Visual }
+export { Visual };
 interface Visual<D, P extends PD.Params> {
     /** Number of addressable groups in all instances of the visual */
     readonly groupCount: number
@@ -48,103 +48,103 @@ namespace Visual {
     export type LociApply = (loci: Loci, apply: (interval: Interval) => boolean) => boolean
 
     export function setVisibility(renderObject: GraphicsRenderObject | undefined, visible: boolean) {
-        if (renderObject) renderObject.state.visible = visible
+        if (renderObject) renderObject.state.visible = visible;
     }
 
     export function setAlphaFactor(renderObject: GraphicsRenderObject | undefined, alphaFactor: number) {
-        if (renderObject) renderObject.state.alphaFactor = alphaFactor
+        if (renderObject) renderObject.state.alphaFactor = alphaFactor;
     }
 
     export function setPickable(renderObject: GraphicsRenderObject | undefined, pickable: boolean) {
-        if (renderObject) renderObject.state.pickable = pickable
+        if (renderObject) renderObject.state.pickable = pickable;
     }
 
     export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply) {
-        if (!renderObject) return false
+        if (!renderObject) return false;
 
-        const { tMarker, uGroupCount, instanceCount } = renderObject.values
-        const count = uGroupCount.ref.value * instanceCount.ref.value
-        const { array } = tMarker.ref.value
+        const { tMarker, uGroupCount, instanceCount } = renderObject.values;
+        const count = uGroupCount.ref.value * instanceCount.ref.value;
+        const { array } = tMarker.ref.value;
 
-        let changed = false
+        let changed = false;
         if (isEveryLoci(loci)) {
-            changed = applyMarkerAction(array, Interval.ofLength(count), action)
+            changed = applyMarkerAction(array, Interval.ofLength(count), action);
         } else if (!isEmptyLoci(loci)) {
-            changed = lociApply(loci, interval => applyMarkerAction(array, interval, action))
+            changed = lociApply(loci, interval => applyMarkerAction(array, interval, action));
         }
-        if (changed) ValueCell.update(tMarker, tMarker.ref.value)
-        return changed
+        if (changed) ValueCell.update(tMarker, tMarker.ref.value);
+        return changed;
     }
 
     export function setOverpaint(renderObject: GraphicsRenderObject | undefined, overpaint: Overpaint, lociApply: LociApply, clear: boolean) {
-        if (!renderObject) return
+        if (!renderObject) return;
 
-        const { tOverpaint, uGroupCount, instanceCount } = renderObject.values
-        const count = uGroupCount.ref.value * instanceCount.ref.value
+        const { tOverpaint, uGroupCount, instanceCount } = renderObject.values;
+        const count = uGroupCount.ref.value * instanceCount.ref.value;
 
         // ensure texture has right size
-        createOverpaint(overpaint.layers.length ? count : 0, renderObject.values)
-        const { array } = tOverpaint.ref.value
+        createOverpaint(overpaint.layers.length ? count : 0, renderObject.values);
+        const { array } = tOverpaint.ref.value;
 
         // clear all if requested
-        if (clear) clearOverpaint(array, 0, count)
+        if (clear) clearOverpaint(array, 0, count);
 
         for (let i = 0, il = overpaint.layers.length; i < il; ++i) {
-            const { loci, color, clear } = overpaint.layers[i]
+            const { loci, color, clear } = overpaint.layers[i];
             const apply = (interval: Interval) => {
-                const start = Interval.start(interval)
-                const end = Interval.end(interval)
+                const start = Interval.start(interval);
+                const end = Interval.end(interval);
                 return clear
                     ? clearOverpaint(array, start, end)
-                    : applyOverpaintColor(array, start, end, color, overpaint.alpha)
-            }
-            lociApply(loci, apply)
+                    : applyOverpaintColor(array, start, end, color, overpaint.alpha);
+            };
+            lociApply(loci, apply);
         }
-        ValueCell.update(tOverpaint, tOverpaint.ref.value)
+        ValueCell.update(tOverpaint, tOverpaint.ref.value);
     }
 
     export function setTransparency(renderObject: GraphicsRenderObject | undefined, transparency: Transparency, lociApply: LociApply, clear: boolean) {
-        if (!renderObject) return
+        if (!renderObject) return;
 
-        const { tTransparency, uGroupCount, instanceCount } = renderObject.values
-        const count = uGroupCount.ref.value * instanceCount.ref.value
+        const { tTransparency, uGroupCount, instanceCount } = renderObject.values;
+        const count = uGroupCount.ref.value * instanceCount.ref.value;
 
-        const { loci, value, variant } = transparency
+        const { loci, value, variant } = transparency;
 
         // ensure texture has right size and variant
-        createTransparency(value && !isEmptyLoci(loci) ? count : 0, variant, renderObject.values)
-        const { array } = tTransparency.ref.value
+        createTransparency(value && !isEmptyLoci(loci) ? count : 0, variant, renderObject.values);
+        const { array } = tTransparency.ref.value;
 
         // clear if requested
-        if (clear) clearTransparency(array, 0, count)
+        if (clear) clearTransparency(array, 0, count);
 
         const apply = (interval: Interval) => {
-            const start = Interval.start(interval)
-            const end = Interval.end(interval)
-            return applyTransparencyValue(array, start, end, value)
-        }
-        lociApply(loci, apply)
+            const start = Interval.start(interval);
+            const end = Interval.end(interval);
+            return applyTransparencyValue(array, start, end, value);
+        };
+        lociApply(loci, apply);
 
-        ValueCell.update(tTransparency, tTransparency.ref.value)
+        ValueCell.update(tTransparency, tTransparency.ref.value);
     }
 
     export function setTransform(renderObject: GraphicsRenderObject | undefined, transform?: Mat4, instanceTransforms?: Float32Array | null) {
-        if (!renderObject || (!transform && !instanceTransforms)) return
+        if (!renderObject || (!transform && !instanceTransforms)) return;
 
-        const { values } = renderObject
+        const { values } = renderObject;
         if (transform) {
-            Mat4.copy(values.matrix.ref.value, transform)
-            ValueCell.update(values.matrix, values.matrix.ref.value)
+            Mat4.copy(values.matrix.ref.value, transform);
+            ValueCell.update(values.matrix, values.matrix.ref.value);
         }
         if (instanceTransforms) {
-            values.extraTransform.ref.value.set(instanceTransforms)
-            ValueCell.update(values.extraTransform, values.extraTransform.ref.value)
+            values.extraTransform.ref.value.set(instanceTransforms);
+            ValueCell.update(values.extraTransform, values.extraTransform.ref.value);
         } else if (instanceTransforms === null) {
-            fillIdentityTransform(values.extraTransform.ref.value, values.instanceCount.ref.value)
-            ValueCell.update(values.extraTransform, values.extraTransform.ref.value)
+            fillIdentityTransform(values.extraTransform.ref.value, values.instanceCount.ref.value);
+            ValueCell.update(values.extraTransform, values.extraTransform.ref.value);
         }
-        updateTransformData(values)
-        const boundingSphere = calculateTransformBoundingSphere(values.invariantBoundingSphere.ref.value, values.aTransform.ref.value, values.instanceCount.ref.value)
-        ValueCell.update(values.boundingSphere, boundingSphere)
+        updateTransformData(values);
+        const boundingSphere = calculateTransformBoundingSphere(values.invariantBoundingSphere.ref.value, values.aTransform.ref.value, values.instanceCount.ref.value);
+        ValueCell.update(values.boundingSphere, boundingSphere);
     }
 }

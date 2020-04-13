@@ -20,13 +20,13 @@ import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
 // import { TriangularPyramid } from '../../../mol-geo/primitive/pyramid';
 
-const segmentCount = 10
+const segmentCount = 10;
 
 export const PolymerGapCylinderParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
-}
-export const DefaultPolymerGapCylinderProps = PD.getDefaultValues(PolymerGapCylinderParams)
+};
+export const DefaultPolymerGapCylinderProps = PD.getDefaultValues(PolymerGapCylinderParams);
 export type PolymerGapCylinderProps = typeof DefaultPolymerGapCylinderProps
 
 // const triangularPyramid = TriangularPyramid()
@@ -34,25 +34,25 @@ export type PolymerGapCylinderProps = typeof DefaultPolymerGapCylinderProps
 // const pd = Vec3.zero()
 
 function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerGapCylinderProps, mesh?: Mesh) {
-    const polymerGapCount = unit.gapElements.length
-    if (!polymerGapCount) return Mesh.createEmpty(mesh)
+    const polymerGapCount = unit.gapElements.length;
+    if (!polymerGapCount) return Mesh.createEmpty(mesh);
 
-    const { sizeFactor, radialSegments } = props
+    const { sizeFactor, radialSegments } = props;
 
-    const vertexCountEstimate = segmentCount * radialSegments * 2 * polymerGapCount * 2
-    const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 10, mesh)
+    const vertexCountEstimate = segmentCount * radialSegments * 2 * polymerGapCount * 2;
+    const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 10, mesh);
 
-    const pos = unit.conformation.invariantPosition
-    const pA = Vec3.zero()
-    const pB = Vec3.zero()
+    const pos = unit.conformation.invariantPosition;
+    const pA = Vec3.zero();
+    const pB = Vec3.zero();
     const cylinderProps: CylinderProps = {
         radiusTop: 1, radiusBottom: 1, topCap: true, bottomCap: true, radialSegments
-    }
+    };
 
-    let i = 0
-    const polymerGapIt = PolymerGapIterator(structure, unit)
+    let i = 0;
+    const polymerGapIt = PolymerGapIterator(structure, unit);
     while (polymerGapIt.hasNext) {
-        const { centerA, centerB } = polymerGapIt.move()
+        const { centerA, centerB } = polymerGapIt.move();
         if (centerA.element === centerB.element) {
             // TODO
             // builderState.currentGroup = i
@@ -63,33 +63,33 @@ function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure:
             // Mat4.scale(t, t, Vec3.create(0.7, 0.7, 2.5))
             // MeshBuilder.addPrimitive(builderState, t, triangularPyramid)
         } else {
-            pos(centerA.element, pA)
-            pos(centerB.element, pB)
+            pos(centerA.element, pA);
+            pos(centerB.element, pB);
 
-            cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerA) * sizeFactor
-            builderState.currentGroup = i
-            addFixedCountDashedCylinder(builderState, pA, pB, 0.5, segmentCount, cylinderProps)
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerA) * sizeFactor;
+            builderState.currentGroup = i;
+            addFixedCountDashedCylinder(builderState, pA, pB, 0.5, segmentCount, cylinderProps);
 
-            cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerB) * sizeFactor
-            builderState.currentGroup = i + 1
-            addFixedCountDashedCylinder(builderState, pB, pA, 0.5, segmentCount, cylinderProps)
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerB) * sizeFactor;
+            builderState.currentGroup = i + 1;
+            addFixedCountDashedCylinder(builderState, pB, pA, 0.5, segmentCount, cylinderProps);
         }
 
-        i += 2
+        i += 2;
     }
 
-    const m = MeshBuilder.getMesh(builderState)
+    const m = MeshBuilder.getMesh(builderState);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor)
-    m.setBoundingSphere(sphere)
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
+    m.setBoundingSphere(sphere);
 
-    return m
+    return m;
 }
 
 export const PolymerGapParams = {
     ...UnitsMeshParams,
     ...PolymerGapCylinderParams
-}
+};
 export type PolymerGapParams = typeof PolymerGapParams
 
 export function PolymerGapVisual(materialId: number): UnitsVisual<PolymerGapParams> {
@@ -103,7 +103,7 @@ export function PolymerGapVisual(materialId: number): UnitsVisual<PolymerGapPara
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.radialSegments !== currentProps.radialSegments
-            )
+            );
         }
-    }, materialId)
+    }, materialId);
 }

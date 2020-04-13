@@ -45,4 +45,4 @@ function formatTimespan(t: number, includeMsZeroes = true) {
     return `${t.toFixed(0)}ms`;
 }
 
-export { now, formatTimespan }
+export { now, formatTimespan };

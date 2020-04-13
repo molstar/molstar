@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Expression from './expression'
+import Expression from './expression';
 
 const { isLiteral, isSymbol, isArgumentsArray } = Expression;
 
@@ -107,7 +107,7 @@ function _format(e: Expression, writer: Writer) {
     }
 
     if (keys.length === 1 && isLiteral(e.args[keys[0]])) {
-        writer.whitespace()
+        writer.whitespace();
         writer.append(`:${keys[0]}`);
         writer.whitespace();
         _format(e.args[keys[0]], writer);

@@ -14,4 +14,4 @@ namespace BitFlags {
     export function hasAll<F>(flags: BitFlags<F>, toCheck: BitFlags<F>) { return !!toCheck && ((flags as any) & (toCheck as any)) === (toCheck as any); }
 }
 
-export default BitFlags
+export default BitFlags;

@@ -33,7 +33,7 @@ namespace PropertyWrapper {
                     source: [{ data: info, rowCount: 1 }]
                 };
             }
-        }
+        };
     }
 
     const _info_fields: CifWriter.Field<number, Info>[] = [
@@ -52,4 +52,4 @@ namespace PropertyWrapper {
     }
 }
 
-export { PropertyWrapper }
+export { PropertyWrapper };

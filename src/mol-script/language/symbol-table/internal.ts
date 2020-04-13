@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Type from '../type'
-import * as Struct from './structure-query'
-import { Arguments, Argument } from '../symbol'
-import { symbol } from '../helpers'
+import Type from '../type';
+import * as Struct from './structure-query';
+import { Arguments, Argument } from '../symbol';
+import { symbol } from '../helpers';
 
 const generator = {
     '@header': 'Generators',
@@ -26,9 +26,9 @@ const generator = {
     // Use with caution as this is not "state saveable"
     // This query should never be used in any State Transform!
     current: symbol(Arguments.None, Struct.Types.ElementSelectionQuery, 'Current selection provided by the query context. Avoid using this in State Transforms.')
-}
+};
 
 export default {
     '@header': 'Internal Queries',
     generator
-}
+};

@@ -7,7 +7,7 @@
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginContext } from '../../mol-plugin/context';
 
-export { PluginStateAnimation }
+export { PluginStateAnimation };
 
 // TODO: helpers for building animations (once more animations are added)
 //       for example "composite animation"

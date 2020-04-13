@@ -11,58 +11,58 @@ import { Unit } from './structure';
 import { NumberArray } from '../../mol-util/type-helpers';
 
 export function getCoarseBegCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIndex) {
-    const entityKey = unit.coarseElements.entityKey[element]
-    const seq = unit.model.sequence.byEntityKey[entityKey].sequence
-    const seq_id_begin = unit.coarseElements.seq_id_begin.value(element)
-    return seq.compId.value(seq_id_begin - 1) // 1-indexed
+    const entityKey = unit.coarseElements.entityKey[element];
+    const seq = unit.model.sequence.byEntityKey[entityKey].sequence;
+    const seq_id_begin = unit.coarseElements.seq_id_begin.value(element);
+    return seq.compId.value(seq_id_begin - 1); // 1-indexed
 }
 
 export function getElementMoleculeType(unit: Unit, element: ElementIndex): MoleculeType {
     switch (unit.kind) {
         case Unit.Kind.Atomic:
-            return unit.model.atomicHierarchy.derived.residue.moleculeType[unit.residueIndex[element]]
+            return unit.model.atomicHierarchy.derived.residue.moleculeType[unit.residueIndex[element]];
         case Unit.Kind.Spheres:
         case Unit.Kind.Gaussians:
             // TODO add unit.model.coarseHierarchy.derived.residue.moleculeType
-            const compId = getCoarseBegCompId(unit, element)
-            const cc = unit.model.properties.chemicalComponentMap.get(compId)
-            if (cc) return getMoleculeType(cc.type, compId)
+            const compId = getCoarseBegCompId(unit, element);
+            const cc = unit.model.properties.chemicalComponentMap.get(compId);
+            if (cc) return getMoleculeType(cc.type, compId);
     }
-    return MoleculeType.Unknown
+    return MoleculeType.Unknown;
 }
 
 export function getAtomicMoleculeType(model: Model, rI: ResidueIndex): MoleculeType {
-    return model.atomicHierarchy.derived.residue.moleculeType[rI]
+    return model.atomicHierarchy.derived.residue.moleculeType[rI];
 }
 
-const EmptyAtomIds = new Set<string>()
+const EmptyAtomIds = new Set<string>();
 export function getAtomIdForAtomRole(polymerType: PolymerType, atomRole: AtomRole) {
-    const p = PolymerTypeAtomRoleId[polymerType]
+    const p = PolymerTypeAtomRoleId[polymerType];
     if (p !== undefined) {
-        const a = p[atomRole]
-        if (a !== undefined) return a
+        const a = p[atomRole];
+        if (a !== undefined) return a;
     }
-    return EmptyAtomIds
+    return EmptyAtomIds;
 }
 
 export function residueLabel(model: Model, rI: number) {
-    const { residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy
-    const { label_comp_id, label_seq_id } = residues
-    const { label_asym_id } = chains
-    const cI = chainAtomSegments.index[residueAtomSegments.offsets[rI]]
-    return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`
+    const { residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
+    const { label_comp_id, label_seq_id } = residues;
+    const { label_asym_id } = chains;
+    const cI = chainAtomSegments.index[residueAtomSegments.offsets[rI]];
+    return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`;
 }
 
 export function elementLabel(model: Model, index: ElementIndex) {
-    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy
-    const { label_atom_id } = atoms
-    const { auth_seq_id, label_comp_id } = residues
-    const { auth_asym_id } = chains
+    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
+    const { label_atom_id } = atoms;
+    const { auth_seq_id, label_comp_id } = residues;
+    const { auth_asym_id } = chains;
 
-    const residueIndex = residueAtomSegments.index[index]
-    const chainIndex = chainAtomSegments.index[residueIndex]
+    const residueIndex = residueAtomSegments.index[index];
+    const chainIndex = chainAtomSegments.index[residueIndex];
 
-    return `[${label_comp_id.value(residueIndex)}]${auth_seq_id.value(residueIndex)}:${auth_asym_id.value(chainIndex)}.${label_atom_id.value(index)}`
+    return `[${label_comp_id.value(residueIndex)}]${auth_seq_id.value(residueIndex)}:${auth_asym_id.value(chainIndex)}.${label_atom_id.value(index)}`;
 }
 
 // const centerPos = Vec3.zero()
@@ -80,14 +80,14 @@ export function elementLabel(model: Model, index: ElementIndex) {
 //     return Vec3.distance(centerMin, centroid)
 // }
 
-const tmpPositionsVec = Vec3.zero()
+const tmpPositionsVec = Vec3.zero();
 export function getPositions(unit: Unit, indices: ArrayLike<number>): NumberArray {
-    const pos = unit.conformation.position
-    const positions = new Float32Array(indices.length * 3)
-    const { elements } = unit
+    const pos = unit.conformation.position;
+    const positions = new Float32Array(indices.length * 3);
+    const { elements } = unit;
     for (let i = 0, il = indices.length; i < il; ++i) {
-        pos(elements[indices[i]], tmpPositionsVec)
-        Vec3.toArray(tmpPositionsVec, positions, i * 3)
+        pos(elements[indices[i]], tmpPositionsVec);
+        Vec3.toArray(tmpPositionsVec, positions, i * 3);
     }
-    return positions
+    return positions;
 }

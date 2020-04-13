@@ -18,8 +18,8 @@ const tmpSphere = Sphere3D();
 const boundaryHelper = new BoundaryHelper('98');
 
 export function computeStructureBoundary(s: Structure): Boundary {
-    const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
-    const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
+    const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+    const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
 
     const { units } = s;
 

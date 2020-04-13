@@ -10,7 +10,7 @@ import { PluginState } from '../mol-plugin/state';
 import { StatefulPluginComponent } from './component';
 import { PluginContext } from '../mol-plugin/context';
 
-export { PluginStateSnapshotManager }
+export { PluginStateSnapshotManager };
 
 class PluginStateSnapshotManager extends StatefulPluginComponent<{
     current?: UUID | undefined,
@@ -126,7 +126,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
 
     async setRemoteSnapshot(snapshot: PluginStateSnapshotManager.RemoteSnapshot): Promise<PluginState.Snapshot | undefined> {
         this.clear();
-        const entries = List<PluginStateSnapshotManager.Entry>().asMutable()
+        const entries = List<PluginStateSnapshotManager.Entry>().asMutable();
         for (const e of snapshot.entries) {
             this.entryMap.set(e.snapshot.id, e);
             entries.push(e);

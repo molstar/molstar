@@ -30,7 +30,7 @@ export function buildStaticSuperposition(plugin: PluginContext, src: Superpositi
             const chain = await plugin.builders.structure.tryCreateComponentFromExpression(structure, chainSelection(s.auth_asym_id), `Chain ${s.auth_asym_id}`);
             if (chain) await plugin.builders.structure.representation.addRepresentation(chain, { type: 'cartoon' });
         }
-    })
+    });
 }
 
 export const StaticSuperpositionTestData: SuperpositionTestInput = [

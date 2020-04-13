@@ -5,10 +5,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Type from '../type'
-import * as Core from './core'
-import { Arguments, Argument } from '../symbol'
-import { symbol } from '../helpers'
+import Type from '../type';
+import * as Core from './core';
+import { Arguments, Argument } from '../symbol';
+import { symbol } from '../helpers';
 
 export namespace Types {
     export const ElementSymbol = Type.Value('Structure', 'ElementSymbol');
@@ -79,7 +79,7 @@ const slot = {
     '@header': 'Iteration Slots',
     element: symbol(Arguments.None, Types.ElementReference, 'A reference to the current element.'),
     elementSetReduce: symbol(Arguments.None, Type.Variable('a', Type.AnyValue, true), 'Current value of the element set reducer.')
-}
+};
 
 const generator = {
     '@header': 'Generators',
@@ -111,7 +111,7 @@ const generator = {
     }), Types.ElementSelectionQuery, 'Executes query only on atoms that are in the source selection.'),
 
     empty: symbol(Arguments.None, Types.ElementSelectionQuery, 'Nada.'),
-}
+};
 
 const modifier = {
     '@header': 'Selection Modifications',
@@ -170,7 +170,7 @@ const modifier = {
         0: Argument(Types.ElementSelectionQuery),
         property: Argument(Type.AnyValue)
     }), Types.ElementSelectionQuery, 'To each atom set in the selection, add all atoms that have the same property value that was already present in the set.')
-}
+};
 
 const filter = {
     '@header': 'Selection Filters',
@@ -210,7 +210,7 @@ const filter = {
         disjunct: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'If true, there must exist a bond to an atom that lies outside the given atom set to pass test.' }),
         invert: Argument(Type.Bool, { isOptional: true, defaultValue: false, description: 'If true, return atom sets that are not connected.' })
     }), Types.ElementSelectionQuery, 'Pick all atom sets that are connected to the target.'),
-}
+};
 
 const combinator = {
     '@header': 'Selection Combinators',
@@ -220,7 +220,7 @@ const combinator = {
         matrix: Argument(Core.Types.List(Core.Types.List(Type.Num)), { description: 'Distance matrix, represented as list of rows (num[][])). Lower triangle is min distance, upper triangle is max distance.' }),
         selections: Argument(Core.Types.List(Types.ElementSelectionQuery), { description: 'A list of held selections.' })
     }), Types.ElementSelectionQuery, 'Pick combinations of atom sets from the source sequences that are mutually within distances specified by a matrix.')
-}
+};
 
 const atomSet = {
     '@header': 'Atom Sets',
@@ -239,7 +239,7 @@ const atomSet = {
     propertySet: symbol(Arguments.Dictionary({
         0: Argument(Core.Types.ConstrainedVar),
     }), Core.Types.Set(Core.Types.ConstrainedVar), 'Returns a set with all values of the given property in the current atom set.'),
-}
+};
 
 const atomProperty = {
     '@header': 'Atom Properties',
@@ -317,7 +317,7 @@ const atomProperty = {
         isNonStandard: atomProp(Type.Bool, 'True if this is a non-standard residue.'),
         chemCompType: atomProp(Type.Str, `Type of the chemical component as defined in mmCIF.`),
     }
-}
+};
 
 const bondProperty = {
     '@header': 'Bond Properties',
@@ -327,7 +327,7 @@ const bondProperty = {
     length: bondProp(Type.Num),
     atomA: bondProp(Types.ElementReference),
     atomB: bondProp(Types.ElementReference)
-}
+};
 
 function atomProp(type: Type, description?: string) {
     return symbol(Arguments.Dictionary({ 0: Argument(Types.ElementReference, { isOptional: true, defaultValue: 'slot.current-atom' }) }), type, description);
@@ -348,4 +348,4 @@ export default {
     atomSet,
     atomProperty,
     bondProperty: bondProperty
-}
+};

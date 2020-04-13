@@ -8,7 +8,7 @@
 
 import { LinkedList } from '../mol-data/generic';
 
-export { LRUCache }
+export { LRUCache };
 
 interface LRUCache<T> {
     entries: LinkedList<LRUCache.Entry<T>>,

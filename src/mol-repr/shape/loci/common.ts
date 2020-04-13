@@ -11,4 +11,4 @@ import { ColorNames } from '../../../mol-util/color/names';
 export const MeasurementRepresentationCommonTextParams = {
     textColor: PD.Color(ColorNames.black, { isEssential: true }),
     textSize: PD.Numeric(0.5, { min: 0.1, max: 5, step: 0.1 }, { isEssential: true }),
-}
+};

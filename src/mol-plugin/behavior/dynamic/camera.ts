@@ -12,9 +12,9 @@ import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observ
 import { Binding } from '../../../mol-util/binding';
 import { PluginCommands } from '../../commands';
 
-const B = ButtonsType
-const M = ModifiersKeys
-const Trigger = Binding.Trigger
+const B = ButtonsType;
+const M = ModifiersKeys;
+const Trigger = Binding.Trigger;
 
 const DefaultFocusLociBindings = {
     clickCenterFocus: Binding([
@@ -24,14 +24,14 @@ const DefaultFocusLociBindings = {
         Trigger(B.Flag.Auxilary, M.create()),
         Trigger(B.Flag.Primary, M.create({ alt: true }))
     ], 'Camera center and focus', 'Click element using ${triggers}'),
-}
+};
 const FocusLociParams = {
     minRadius: PD.Numeric(8, { min: 1, max: 50, step: 1 }),
     extraRadius: PD.Numeric(4, { min: 1, max: 50, step: 1 }, { description: 'Value added to the bounding-sphere radius of the Loci' }),
     durationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'Camera transition duration' }),
 
     bindings: PD.Value(DefaultFocusLociBindings, { isHidden: true }),
-}
+};
 type FocusLociProps = PD.Values<typeof FocusLociParams>
 
 export const FocusLoci = PluginBehavior.create<FocusLociProps>({
@@ -47,11 +47,11 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                     : this.params.bindings.clickCenterFocus;
 
                 if (Binding.match(binding, button, modifiers)) {
-                    const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity)
+                    const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
                     if (Loci.isEmpty(loci)) {
-                        PluginCommands.Camera.Reset(this.ctx, { })
+                        PluginCommands.Camera.Reset(this.ctx, { });
                     } else {
-                        this.ctx.managers.camera.focusLoci(loci, this.params)
+                        this.ctx.managers.camera.focusLoci(loci, this.params);
                     }
                 }
             });

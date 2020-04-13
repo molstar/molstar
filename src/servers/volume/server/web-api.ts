@@ -7,20 +7,20 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as express from 'express'
+import * as express from 'express';
 
-import * as Api from './api'
-import * as Data from './query/data-model'
-import * as Coords from './algebra/coordinate'
-import { ConsoleLogger } from '../../../mol-util/console-logger'
-import { State } from './state'
+import * as Api from './api';
+import * as Data from './query/data-model';
+import * as Coords from './algebra/coordinate';
+import { ConsoleLogger } from '../../../mol-util/console-logger';
+import { State } from './state';
 import { LimitsConfig, ServerConfig } from '../config';
 import { interpolate } from '../../../mol-util/string';
 import { getSchema, shortcutIconLink } from './web-schema';
 import { swaggerUiIndexHandler, swaggerUiAssetsHandler } from '../../common/swagger-ui';
 
 export default function init(app: express.Express) {
-    app.locals.mapFile = getMapFileFn()
+    app.locals.mapFile = getMapFileFn();
     function makePath(p: string) {
         return `${ServerConfig.apiPrefix}/${p}`;
     }
@@ -55,13 +55,13 @@ function getMapFileFn() {
         'id = id.toLowerCase()',
         'switch (type.toLowerCase()) {',
         ...ServerConfig.idMap.map(mapping => {
-            const [type, path] = mapping
-            return `    case '${type}': return interpolate('${path}', { id });`
+            const [type, path] = mapping;
+            return `    case '${type}': return interpolate('${path}', { id });`;
         }),
         '    default: return void 0;',
         '}'
-    ].join('\n'))
-    return (type: string, id: string) => map(type, id, interpolate)
+    ].join('\n'));
+    return (type: string, id: string) => map(type, id, interpolate);
 }
 
 function wrapResponse(fn: string, res: express.Response) {
@@ -153,7 +153,7 @@ function getQueryParams(req: express.Request, isCell: boolean): Data.QueryParams
     const a = [+req.params.a1, +req.params.a2, +req.params.a3];
     const b = [+req.params.b1, +req.params.b2, +req.params.b3];
 
-    const detail = Math.min(Math.max(0, (+req.query.detail) | 0), LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1)
+    const detail = Math.min(Math.max(0, (+req.query.detail) | 0), LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1);
     const isCartesian = (req.query.space || '').toLowerCase() !== 'fractional';
 
     const box: Data.QueryParamsBox = isCell

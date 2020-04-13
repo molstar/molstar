@@ -74,4 +74,4 @@ void main(void) {
     // gl_FragColor = vec4(vCoordinate * 255.0, 0.0, 255.0);
     // gl_FragColor = vec4(250.0, 0.0, 0.0, 255.0);
 }
-`
+`;

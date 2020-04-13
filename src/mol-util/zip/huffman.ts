@@ -17,8 +17,8 @@ export type HufTree = {
     d: number
 }
 export function _hufTree(hst: NumberArray, tree: number[], MAXL: number) {
-    const list: HufTree[] = []
-    const hl = hst.length, tl = tree.length
+    const list: HufTree[] = [];
+    const hl = hst.length, tl = tree.length;
     for(let i = 0; i < tl; i += 2) {
         tree[i] = 0;
         tree[i + 1] = 0;

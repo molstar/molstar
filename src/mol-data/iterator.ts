@@ -117,4 +117,4 @@ namespace Iterator {
     }
 }
 
-export default Iterator
+export default Iterator;

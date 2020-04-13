@@ -18,15 +18,15 @@ export const tetrahedronIndices: ReadonlyArray<number> = [
 const tetrahedronEdges: ReadonlyArray<number> = [
     0, 1,  1, 2,  2, 0,
     0, 3,  1, 3,  2, 3,
-]
+];
 
-let tetrahedron: Primitive
+let tetrahedron: Primitive;
 export function Tetrahedron(): Primitive {
-    if (!tetrahedron) tetrahedron = createPrimitive(tetrahedronVertices, tetrahedronIndices)
-    return tetrahedron
+    if (!tetrahedron) tetrahedron = createPrimitive(tetrahedronVertices, tetrahedronIndices);
+    return tetrahedron;
 }
 
-const tetrahedronCage = createCage(tetrahedronVertices, tetrahedronEdges)
+const tetrahedronCage = createCage(tetrahedronVertices, tetrahedronEdges);
 export function TetrahedronCage(): Cage {
-    return tetrahedronCage
+    return tetrahedronCage;
 }

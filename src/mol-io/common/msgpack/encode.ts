@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { utf8ByteCount, utf8Write } from '../utf8'
+import { utf8ByteCount, utf8Write } from '../utf8';
 
 export default function encode(value: any) {
     const buffer = new ArrayBuffer(encodedSize(value));

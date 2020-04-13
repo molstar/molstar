@@ -164,7 +164,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         const mng = this.plugin.managers.structure.selection;
         mng.clear();
         for (const c of components) {
-            const loci =  Structure.toSubStructureElementLoci(c.structure.cell.obj!.data, c.cell.obj?.data!)
+            const loci =  Structure.toSubStructureElementLoci(c.structure.cell.obj!.data, c.cell.obj?.data!);
             mng.fromLoci('set', loci);
         }
     }
@@ -203,7 +203,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                 // TODO: is it ok to use just the index here? Could possible lead to ugly edge cases, but perhaps not worth the trouble to "fix".
                 const repr = c.representations[index];
                 if (!repr) continue;
-                setSubtreeVisibility(this.dataState, repr.cell.transform.ref, isHidden)
+                setSubtreeVisibility(this.dataState, repr.cell.transform.ref, isHidden);
             }
         }
     }
@@ -369,7 +369,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                 nullIfEmpty: true,
                 label: component.cell.obj?.label!
             };
-            builder.to(component.cell).update(params)
+            builder.to(component.cell).update(params);
         }
     }
 
@@ -388,7 +388,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     }
 
     constructor(public plugin: PluginContext) {
-        super({ options: PD.getDefaultValues(StructureComponentManager.OptionsParams) })
+        super({ options: PD.getDefaultValues(StructureComponentManager.OptionsParams) });
     }
 }
 
@@ -397,11 +397,11 @@ namespace StructureComponentManager {
         showHydrogens: PD.Boolean(true, { description: 'Toggle display of hydrogen atoms in representations' }),
         visualQuality: PD.Select('auto', VisualQualityOptions, { description: 'Control the visual/rendering quality of representations' }),
         interactions: PD.Group(InteractionsProvider.defaultParams, { label: 'Non-covalent Interactions' }),
-    }
+    };
     export type Options = PD.Values<typeof OptionsParams>
 
     export function getAddParams(plugin: PluginContext) {
-        const { options } = plugin.query.structure.registry
+        const { options } = plugin.query.structure.registry;
         return {
             selection: PD.Select(options[1][0], options),
             representation: getRepresentationTypesSelect(plugin, plugin.managers.structure.component.pivotStructure, [['none', '< Create Later >']]),

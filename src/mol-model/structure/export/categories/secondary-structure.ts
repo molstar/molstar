@@ -39,7 +39,7 @@ export const _struct_sheet_range: CifCategory<CifExportContext> = {
 
 function compare_ssr(x: SSElement<SecondaryStructure.Sheet>, y: SSElement<SecondaryStructure.Sheet>) {
     const a = x.element, b = y.element;
-    return a.sheet_id < b.sheet_id ? -1 : a.sheet_id === b.sheet_id ? x.start.element - y.start.element : 1
+    return a.sheet_id < b.sheet_id ? -1 : a.sheet_id === b.sheet_id ? x.start.element - y.start.element : 1;
 };
 
 const struct_conf_fields: CifField[] = [
@@ -71,8 +71,8 @@ interface SSElement<T extends SecondaryStructure.Element> {
 
 function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContext, kind: SecondaryStructure.Element['kind']) {
     // TODO: encode secondary structure for different models?
-    const secondaryStructure = ModelSecondaryStructure.Provider.get(ctx.firstModel)
-    if (!secondaryStructure) return [] as SSElement<T>[]
+    const secondaryStructure = ModelSecondaryStructure.Provider.get(ctx.firstModel);
+    if (!secondaryStructure) return [] as SSElement<T>[];
 
     const { key, elements } = secondaryStructure;
     const ssElements: SSElement<any>[] = [];
@@ -108,7 +108,7 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
                         end: StructureElement.Location.create(structure, unit, segs.offsets[prev]),
                         length: prev - start + 1,
                         element
-                    }
+                    };
                     break;
                 }
             }

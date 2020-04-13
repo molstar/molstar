@@ -7,7 +7,7 @@
 import { StateTransformer } from './transformer';
 import { UUID } from '../mol-util';
 
-export { Transform as StateTransform }
+export { Transform as StateTransform };
 
 interface Transform<T extends StateTransformer = StateTransformer> {
     readonly parent: Transform.Ref,
@@ -111,7 +111,7 @@ namespace Transform {
             dependsOn: options && options.dependsOn,
             params,
             version: UUID.create22()
-        }
+        };
     }
 
     export function withParams(t: Transform, params: any): Transform {

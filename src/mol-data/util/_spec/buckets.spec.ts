@@ -39,5 +39,5 @@ describe('buckets', () => {
 
         expect(reorder(range, xs)).toEqual([2, 1, 1, 2, 2, 3, 1]);
         expect(Array.from(bs)).toEqual([1, 3, 5]);
-    })
-})
+    });
+});

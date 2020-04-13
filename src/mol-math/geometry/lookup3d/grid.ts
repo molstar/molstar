@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Result, Lookup3D } from './common'
+import { Result, Lookup3D } from './common';
 import { Box3D } from '../primitives/box3d';
 import { Sphere3D } from '../primitives/sphere3d';
 import { PositionData } from '../common';
@@ -21,7 +21,7 @@ function GridLookup3D<T extends number = number>(data: PositionData, boundary: B
     return new GridLookup3DImpl<T>(data, boundary, cellSizeOrCount);
 }
 
-export { GridLookup3D }
+export { GridLookup3D };
 
 class GridLookup3DImpl<T extends number = number> implements GridLookup3D<T> {
     private ctx: QueryContext<T>;
@@ -53,7 +53,7 @@ class GridLookup3DImpl<T extends number = number> implements GridLookup3D<T> {
         this.ctx = createContext<T>(structure);
         this.boundary = { box: structure.boundingBox, sphere: structure.boundingSphere };
         this.buckets = { offset: structure.bucketOffset, count: structure.bucketCounts, array: structure.bucketArray };
-        this.result = this.ctx.result
+        this.result = this.ctx.result;
     }
 }
 
@@ -112,7 +112,7 @@ function _build(state: BuildState): Grid3D {
         const idx = (((x * sY) + y) * sZ) + z;
 
         if ((grid[idx] += 1) === 1) {
-            bucketCount += 1
+            bucketCount += 1;
         }
         bucketIndex[t] = idx;
     }
@@ -142,7 +142,7 @@ function _build(state: BuildState): Grid3D {
     const bucketFill = new Int32Array(bucketCount);
     const bucketArray = new Int32Array(elementCount);
     for (let i = 0; i < elementCount; i++) {
-        const bucketIdx = grid[bucketIndex[i]]
+        const bucketIdx = grid[bucketIndex[i]];
         if (bucketIdx > 0) {
             const k = bucketIdx - 1;
             bucketArray[bucketOffset[k] + bucketFill[k]] = i;
@@ -163,7 +163,7 @@ function _build(state: BuildState): Grid3D {
         expandedBox: state.expandedBox,
         boundingBox: state.boundingBox,
         boundingSphere: state.boundingSphere
-    }
+    };
 }
 
 function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | number) {
@@ -176,8 +176,8 @@ function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | 
 
     const elementCount = OrderedSet.size(indices);
 
-    const cellCount = typeof cellSizeOrCount === 'number' ? cellSizeOrCount : 32
-    const cellSize = Array.isArray(cellSizeOrCount) && cellSizeOrCount
+    const cellCount = typeof cellSizeOrCount === 'number' ? cellSizeOrCount : 32;
+    const cellSize = Array.isArray(cellSizeOrCount) && cellSizeOrCount;
 
     if (cellSize) {
         size = [Math.ceil(S[0] / cellSize[0]), Math.ceil(S[1] / cellSize[1]), Math.ceil(S[2] / cellSize[2])];
@@ -210,7 +210,7 @@ function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | 
         boundingSphere: boundary.sphere,
         elementCount,
         delta
-    }
+    };
 
     return _build(state);
 }
@@ -226,7 +226,7 @@ interface QueryContext<T extends number = number> {
 }
 
 function createContext<T extends number = number>(grid: Grid3D): QueryContext<T> {
-    return { grid, x: 0.1, y: 0.1, z: 0.1, radius: 0.1, result: Result.create(), isCheck: false }
+    return { grid, x: 0.1, y: 0.1, z: 0.1, radius: 0.1, result: Result.create(), isCheck: false };
 }
 
 function query<T extends number = number>(ctx: QueryContext<T>): boolean {

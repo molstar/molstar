@@ -20,29 +20,29 @@ import { StructConn } from './property/bonds/struct_conn';
 
 function modelSymmetryFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
-    return ModelSymmetry.fromData(model.sourceData.data.db)
+    return ModelSymmetry.fromData(model.sourceData.data.db);
 }
-ModelSymmetry.Provider.formatRegistry.add('mmCIF', modelSymmetryFromMmcif)
+ModelSymmetry.Provider.formatRegistry.add('mmCIF', modelSymmetryFromMmcif);
 
 function secondaryStructureFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
-    const { struct_conf, struct_sheet_range } = model.sourceData.data.db
-    return ModelSecondaryStructure.fromStruct(struct_conf, struct_sheet_range, model.atomicHierarchy)
+    const { struct_conf, struct_sheet_range } = model.sourceData.data.db;
+    return ModelSecondaryStructure.fromStruct(struct_conf, struct_sheet_range, model.atomicHierarchy);
 }
-ModelSecondaryStructure.Provider.formatRegistry.add('mmCIF', secondaryStructureFromMmcif)
+ModelSecondaryStructure.Provider.formatRegistry.add('mmCIF', secondaryStructureFromMmcif);
 
 function atomSiteAnisotropFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
-    const { atom_site_anisotrop } = model.sourceData.data.db
+    const { atom_site_anisotrop } = model.sourceData.data.db;
     const data = Table.ofColumns(AtomSiteAnisotrop.Schema, atom_site_anisotrop);
-    const elementToAnsiotrop = AtomSiteAnisotrop.getElementToAnsiotrop(model.atomicConformation.atomId, atom_site_anisotrop.id)
-    return { data, elementToAnsiotrop }
+    const elementToAnsiotrop = AtomSiteAnisotrop.getElementToAnsiotrop(model.atomicConformation.atomId, atom_site_anisotrop.id);
+    return { data, elementToAnsiotrop };
 }
 function atomSiteAnisotropApplicableMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return false;
-    return model.sourceData.data.db.atom_site_anisotrop.U.isDefined
+    return model.sourceData.data.db.atom_site_anisotrop.U.isDefined;
 }
-AtomSiteAnisotrop.Provider.formatRegistry.add('mmCIF', atomSiteAnisotropFromMmcif, atomSiteAnisotropApplicableMmcif)
+AtomSiteAnisotrop.Provider.formatRegistry.add('mmCIF', atomSiteAnisotropFromMmcif, atomSiteAnisotropApplicableMmcif);
 
 function componentBondFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
@@ -51,42 +51,42 @@ function componentBondFromMmcif(model: Model) {
     return {
         data: chem_comp_bond,
         entries: ComponentBond.getEntriesFromChemCompBond(chem_comp_bond)
-    }
+    };
 }
-ComponentBond.Provider.formatRegistry.add('mmCIF', componentBondFromMmcif)
+ComponentBond.Provider.formatRegistry.add('mmCIF', componentBondFromMmcif);
 
 function structConnFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
     const { struct_conn } = model.sourceData.data.db;
     if (struct_conn._rowCount === 0) return;
-    const entries = StructConn.getEntriesFromStructConn(struct_conn, model)
+    const entries = StructConn.getEntriesFromStructConn(struct_conn, model);
     return {
         data: struct_conn,
         byAtomIndex: StructConn.getAtomIndexFromEntries(entries),
         entries,
-    }
+    };
 }
-StructConn.Provider.formatRegistry.add('mmCIF', structConnFromMmcif)
+StructConn.Provider.formatRegistry.add('mmCIF', structConnFromMmcif);
 
 //
 
-export { MmcifFormat }
+export { MmcifFormat };
 
 type MmcifFormat = ModelFormat<MmcifFormat.Data>
 
 namespace MmcifFormat {
     export type Data = { db: mmCIF_Database, frame: CifFrame }
     export function is(x: ModelFormat): x is MmcifFormat {
-        return x.kind === 'mmCIF'
+        return x.kind === 'mmCIF';
     }
 
     export function fromFrame(frame: CifFrame, db?: mmCIF_Database): MmcifFormat {
-        if (!db) db = CIF.schema.mmCIF(frame)
+        if (!db) db = CIF.schema.mmCIF(frame);
         return { kind: 'mmCIF', name: db._name, data: { db, frame } };
     }
 }
 
 export function trajectoryFromMmCIF(frame: CifFrame): Task<Model.Trajectory> {
-    const format = MmcifFormat.fromFrame(frame)
+    const format = MmcifFormat.fromFrame(frame);
     return Task.create('Create mmCIF Model', ctx => createModels(format.data.db, format, ctx));
 }

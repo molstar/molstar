@@ -18,7 +18,7 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { UUID } from '../mol-util';
 import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
 import { produce } from 'immer';
-export { PluginState }
+export { PluginState };
 
 class PluginState {
     private ev = RxEventHelper.create();
@@ -88,7 +88,7 @@ class PluginState {
     }
 
     updateBehavior<T extends StateTransformer>(behavior: T, params: (old: StateTransformer.Params<T>) => (void | StateTransformer.Params<T>)) {
-        const tree = this.behaviors.build()
+        const tree = this.behaviors.build();
         if (!this.behaviors.tree.transforms.has(behavior.id)) {
             const defaultParams = behavior.createDefaultParams(void 0 as any, this.plugin);
             tree.to(PluginBehavior.getCategoryId(behavior)).apply(behavior, produce(defaultParams, params) as any, { ref: behavior.id });

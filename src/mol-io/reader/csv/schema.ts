@@ -4,4 +4,4 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export { toTable } from '../cif/schema'
+export { toTable } from '../cif/schema';

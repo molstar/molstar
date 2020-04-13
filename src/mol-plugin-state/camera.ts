@@ -9,7 +9,7 @@ import { OrderedMap } from 'immutable';
 import { UUID } from '../mol-util';
 import { StatefulPluginComponent } from './component';
 
-export { CameraSnapshotManager }
+export { CameraSnapshotManager };
 
 class CameraSnapshotManager extends StatefulPluginComponent<{ entries: OrderedMap<string, CameraSnapshotManager.Entry> }> {
     readonly events = {

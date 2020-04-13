@@ -9,7 +9,7 @@ import { Column } from '../../../mol-data/db';
 import { BasicData } from '../../../mol-model-formats/structure/basic/schema';
 import { ModelFormat } from '../../../mol-model-formats/structure/format';
 
-export { Topology }
+export { Topology };
 
 interface Topology {
     readonly id: UUID
@@ -56,6 +56,6 @@ namespace Topology {
             basic,
             sourceData: format,
             bonds
-        }
+        };
     }
 }

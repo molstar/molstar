@@ -66,7 +66,7 @@ export function JobEntry<Name extends QueryName>(definition: JobEntryDefinition<
         queryDefinition,
         normalizedParams,
         modelNums: definition.modelNums
-    }
+    };
 }
 
 export function createJob(definition: JobDefinition): Job {

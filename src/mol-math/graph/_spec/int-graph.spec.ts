@@ -39,5 +39,5 @@ describe('IntGraph', () => {
         expect(induced.vertexCount).toBe(2);
         expect(induced.edgeCount).toBe(1);
         expect(induced.edgeProps.prop[induced.getEdgeIndex(0, 1)]).toBe(11);
-    })
+    });
 });

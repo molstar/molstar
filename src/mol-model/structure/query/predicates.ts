@@ -8,7 +8,7 @@ import { QueryFn, QueryPredicate, QueryContextView } from './context';
 
 namespace Predicates {
     export interface SetLike<A> { has(v: A): boolean }
-    function isSetLike<A>(x: any): x is SetLike<A> { return !!x && !!x.has }
+    function isSetLike<A>(x: any): x is SetLike<A> { return !!x && !!x.has; }
 
     export function eq<A>(p: QueryFn<A>, value: A): QueryPredicate { return l => p(l) === value; }
     export function lt<A>(p: QueryFn<A>, value: A): QueryPredicate { return l => p(l) < value; }
@@ -59,7 +59,7 @@ namespace Predicates {
                 return l => {
                     for (let i = 0; i < count; i++) if (!ps[i]) return false;
                     return true;
-                }
+                };
             }
         }
     }
@@ -93,10 +93,10 @@ namespace Predicates {
                 return l => {
                     for (let i = 0; i < count; i++) if (ps[i]) return true;
                     return false;
-                }
+                };
             }
         }
     }
 }
 
-export default Predicates
+export default Predicates;

@@ -30,7 +30,7 @@ export namespace StructureRepresentationPresetProvider {
         ignoreHydrogens: PD.Optional(PD.Boolean(false)),
         quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
         globalThemeName: PD.Optional(PD.Text<ColorTheme.BuiltIn>(''))
-    }
+    };
     export type CommonParams = PD.ValuesFor<typeof CommonParams>
 
     export function reprBuilder(plugin: PluginContext, params: CommonParams) {
@@ -50,9 +50,9 @@ export namespace StructureRepresentationPresetProvider {
 
 type _Result = StructureRepresentationPresetProvider.Result
 
-const CommonParams = StructureRepresentationPresetProvider.CommonParams
+const CommonParams = StructureRepresentationPresetProvider.CommonParams;
 type CommonParams = StructureRepresentationPresetProvider.CommonParams
-const reprBuilder = StructureRepresentationPresetProvider.reprBuilder
+const reprBuilder = StructureRepresentationPresetProvider.reprBuilder;
 
 const auto = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-auto',
@@ -64,7 +64,7 @@ const auto = StructureRepresentationPresetProvider({
     apply(ref, params, plugin) {
         const structure = StateObjectRef.resolveAndCheck(plugin.state.data, ref)?.obj?.data;
         if (!structure) return { };
-        const size = Structure.getSize(structure)
+        const size = Structure.getSize(structure);
 
         switch (size) {
             case Structure.Size.Gigantic:
@@ -88,7 +88,7 @@ const empty = StructureRepresentationPresetProvider({
     }
 });
 
-const BuiltInPresetGroupName = 'Basic'
+const BuiltInPresetGroupName = 'Basic';
 
 const polymerAndLigand = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-polymer-and-ligand',
@@ -167,10 +167,10 @@ const coarseSurface = StructureRepresentationPresetProvider({
 
         const components = {
             polymer: await presetStaticComponent(plugin, structureCell, 'polymer')
-        }
+        };
 
         const structure = structureCell.obj!.data;
-        const size = Structure.getSize(structure)
+        const size = Structure.getSize(structure);
         const gaussianProps = Object.create(null);
         if (size === Structure.Size.Gigantic) {
             Object.assign(gaussianProps, {
@@ -178,11 +178,11 @@ const coarseSurface = StructureRepresentationPresetProvider({
                 radiusOffset: 1,
                 smoothness: 0.5,
                 visuals: ['structure-gaussian-surface-mesh']
-            })
+            });
         } else if(size === Structure.Size.Huge) {
             Object.assign(gaussianProps, {
                 smoothness: 0.5,
-            })
+            });
         }
 
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);

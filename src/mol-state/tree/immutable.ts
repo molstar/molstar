@@ -8,7 +8,7 @@ import { Map as ImmutableMap, OrderedSet } from 'immutable';
 import { StateTransform } from '../transform';
 import { TransientTree } from './transient';
 
-export { StateTree }
+export { StateTree };
 
 /**
  * An immutable tree where each node requires a unique reference.
@@ -48,7 +48,7 @@ namespace StateTree {
     export interface Dependencies extends _Map<ChildSet> { }
 
     class Impl implements StateTree {
-        get root() { return this.transforms.get(StateTransform.RootRef)! }
+        get root() { return this.transforms.get(StateTransform.RootRef)!; }
 
         asTransient(): TransientTree {
             return new TransientTree(this);

@@ -70,7 +70,7 @@ export namespace ModelInfo {
         }
 
         const preferredAssemblyId = await pref;
-        const symmetry = ModelSymmetry.Provider.get(model)
+        const symmetry = ModelSymmetry.Provider.get(model);
 
         return {
             hetResidues: hetResidues,

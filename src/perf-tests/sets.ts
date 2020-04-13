@@ -1,5 +1,5 @@
-import * as B from 'benchmark'
-import { Tuple, Segmentation, OrderedSet as OrdSet } from '../mol-data/int'
+import * as B from 'benchmark';
+import { Tuple, Segmentation, OrderedSet as OrdSet } from '../mol-data/int';
 // import { ElementSet } from 'mol-model/structure'
 
 // export namespace Iteration {
@@ -87,7 +87,7 @@ export namespace Union {
         let c = (Math.random() * 100) | 0;
         for (let i = 0; i < n; i++) {
             data[i] = c;
-            c += 1 + (Math.random() * 100) | 0
+            c += 1 + (Math.random() * 100) | 0;
         }
         return data;
     }
@@ -109,7 +109,7 @@ export namespace Union {
             set.add(a);
         }
 
-        return { ordSet: OrdSet.ofSortedArray(array), obj, set }
+        return { ordSet: OrdSet.ofSortedArray(array), obj, set };
     }
 
     function unionOS(a: OrdSet, b: OrdSet) {
@@ -133,7 +133,7 @@ export namespace Union {
         return ret;
     }
 
-    function _setAdd(this: Set<number>, x: number) { this.add(x) }
+    function _setAdd(this: Set<number>, x: number) { this.add(x); }
     function unionS(a: Set<number>, b: Set<number>) {
         const ret = new Set<number>();
         a.forEach(_setAdd, ret);
@@ -141,7 +141,7 @@ export namespace Union {
         return ret;
     }
 
-    function _setInt(this: { set: Set<number>, other: Set<number> }, x: number) { if (this.other.has(x)) this.set.add(x) }
+    function _setInt(this: { set: Set<number>, other: Set<number> }, x: number) { if (this.other.has(x)) this.set.add(x); }
     function intS(a: Set<number>, b: Set<number>) {
         if (a.size < b.size) {
             const ctx = { set: new Set<number>(), other: b };

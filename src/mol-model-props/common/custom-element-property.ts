@@ -42,12 +42,12 @@ namespace CustomElementProperty {
     }
 
     export function create<T>(builder: Builder<T>): CustomElementProperty<T> {
-        const modelProperty = createModelProperty(builder)
+        const modelProperty = createModelProperty(builder);
         return {
             propertyProvider: modelProperty,
             colorThemeProvider: builder.coloring?.getColor && createColorThemeProvider(modelProperty, builder.coloring.getColor, builder.coloring.defaultColor),
             labelProvider: builder.getLabel && createLabelProvider(modelProperty, builder.getLabel)
-        }
+        };
     }
 
     function createModelProperty<T>(builder: Builder<T>) {
@@ -61,9 +61,9 @@ namespace CustomElementProperty {
             getParams: (data: Model) => ({}),
             isApplicable: (data: Model) => !!builder.isApplicable?.(data),
             obtain: async (ctx: CustomProperty.Context, data: Model) => {
-                return await builder.getData(data, ctx)
+                return await builder.getData(data, ctx);
             }
-        })
+        });
     }
 
     function createColorThemeProvider<T>(modelProperty: CustomModelProperty.Provider<{}, Value<T>>, getColor: (p: T) => Color, defaultColor: Color): ColorTheme.Provider<{}> {
@@ -71,18 +71,18 @@ namespace CustomElementProperty {
         function Coloring(ctx: ThemeDataContext, props: {}): ColorTheme<{}> {
             let color: LocationColor;
 
-            const property = ctx.structure && modelProperty.get(ctx.structure.models[0])
-            const contextHash = property?.version
+            const property = ctx.structure && modelProperty.get(ctx.structure.models[0]);
+            const contextHash = property?.version;
 
             if (property?.value && ctx.structure) {
-                const data = property.value
+                const data = property.value;
                 color = (location: Location) => {
                     if (StructureElement.Location.is(location)) {
                         const e = data.get(location.element);
                         if (typeof e !== 'undefined') return getColor(e);
                     }
                     return defaultColor;
-                }
+                };
             } else {
                 color = () => defaultColor;
             }
@@ -109,7 +109,7 @@ namespace CustomElementProperty {
                 attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? modelProperty.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
                 detach: (data: ThemeDataContext) => data.structure && data.structure.models[0].customProperties.reference(modelProperty.descriptor, false)
             }
-        }
+        };
     }
 
     function createLabelProvider<T>(modelProperty: CustomModelProperty.Provider<{}, Value<T>>, getLabel: (p: T) => string | undefined): LociLabelProvider {
@@ -117,15 +117,15 @@ namespace CustomElementProperty {
             label: (loci: Loci) => {
                 if (loci.kind === 'element-loci') {
                     const e = loci.elements[0];
-                    if (!e || !e.unit.model.customProperties.hasReference(modelProperty.descriptor)) return
-                    const data = modelProperty.get(e.unit.model).value
-                    const element = e.unit.elements[OrderedSet.start(e.indices)]
-                    const value = data?.get(element)
-                    if (value === undefined) return
+                    if (!e || !e.unit.model.customProperties.hasReference(modelProperty.descriptor)) return;
+                    const data = modelProperty.get(e.unit.model).value;
+                    const element = e.unit.elements[OrderedSet.start(e.indices)];
+                    const value = data?.get(element);
+                    if (value === undefined) return;
                     return getLabel(value);
                 }
-                return
+                return;
             }
-        }
+        };
     }
 }

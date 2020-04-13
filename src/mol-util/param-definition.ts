@@ -78,7 +78,7 @@ export namespace ParamDefinition {
         cycle?: boolean
     }
     export function Select<T>(defaultValue: T, options: readonly (readonly [T, string] | readonly [T, string, string | undefined])[], info?: Info & { cycle?: boolean }): Select<T> {
-        return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options, cycle: info?.cycle }, info)
+        return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options, cycle: info?.cycle }, info);
     }
 
     export interface MultiSelect<E extends string, T = E[]> extends Base<T> {
@@ -98,14 +98,14 @@ export namespace ParamDefinition {
         type: 'boolean'
     }
     export function Boolean(defaultValue: boolean, info?: Info): BooleanParam {
-        return setInfo<BooleanParam>({ type: 'boolean', defaultValue }, info)
+        return setInfo<BooleanParam>({ type: 'boolean', defaultValue }, info);
     }
 
     export interface Text<T extends string = string> extends Base<T> {
         type: 'text'
     }
     export function Text<T extends string = string>(defaultValue: string = '', info?: Info): Text<T> {
-        return setInfo<Text<T>>({ type: 'text', defaultValue: defaultValue as any }, info)
+        return setInfo<Text<T>>({ type: 'text', defaultValue: defaultValue as any }, info);
     }
 
     export interface Color extends Base<ColorData> {
@@ -130,21 +130,21 @@ export namespace ParamDefinition {
         } else {
             def = defaultValue;
         }
-        return setInfo<ColorList>({ type: 'color-list', presetKind: info?.presetKind || 'all', defaultValue: def }, info)
+        return setInfo<ColorList>({ type: 'color-list', presetKind: info?.presetKind || 'all', defaultValue: def }, info);
     }
 
     export interface Vec3 extends Base<Vec3Data>, Range {
         type: 'vec3'
     }
     export function Vec3(defaultValue: Vec3Data, range?: { min?: number, max?: number, step?: number }, info?: Info): Vec3 {
-        return setInfo<Vec3>(setRange({ type: 'vec3', defaultValue }, range), info)
+        return setInfo<Vec3>(setRange({ type: 'vec3', defaultValue }, range), info);
     }
 
     export interface Mat4 extends Base<Mat4Data> {
         type: 'mat4'
     }
     export function Mat4(defaultValue: Mat4Data, info?: Info): Mat4 {
-        return setInfo<Mat4>({ type: 'mat4', defaultValue }, info)
+        return setInfo<Mat4>({ type: 'mat4', defaultValue }, info);
     }
 
     export interface FileParam extends Base<File | null> {
@@ -190,21 +190,21 @@ export namespace ParamDefinition {
         type: 'number'
     }
     export function Numeric(defaultValue: number, range?: { min?: number, max?: number, step?: number }, info?: Info): Numeric {
-        return setInfo<Numeric>(setRange({ type: 'number', defaultValue }, range), info)
+        return setInfo<Numeric>(setRange({ type: 'number', defaultValue }, range), info);
     }
 
     export interface Interval extends Base<[number, number]>, Range {
         type: 'interval'
     }
     export function Interval(defaultValue: [number, number], range?: { min?: number, max?: number, step?: number }, info?: Info): Interval {
-        return setInfo<Interval>(setRange({ type: 'interval', defaultValue }, range), info)
+        return setInfo<Interval>(setRange({ type: 'interval', defaultValue }, range), info);
     }
 
     export interface LineGraph extends Base<Vec2Data[]> {
         type: 'line-graph'
     }
     export function LineGraph(defaultValue: Vec2Data[], info?: Info): LineGraph {
-        return setInfo<LineGraph>({ type: 'line-graph', defaultValue }, info)
+        return setInfo<LineGraph>({ type: 'line-graph', defaultValue }, info);
     }
 
     export interface Group<T> extends Base<T> {
@@ -293,7 +293,7 @@ export namespace ParamDefinition {
         type: 'script'
     }
     export function Script(defaultValue: Script['defaultValue'], info?: Info): Script {
-        return setInfo<Script>({ type: 'script', defaultValue }, info)
+        return setInfo<Script>({ type: 'script', defaultValue }, info);
     }
 
     export type Any =
@@ -317,7 +317,7 @@ export namespace ParamDefinition {
     }
 
     export function getDefaultValues<T extends Params>(params: T) {
-        const d: { [k: string]: any } = {}
+        const d: { [k: string]: any } = {};
         for (const k of Object.keys(params)) {
             if (params[k].isOptional) continue;
             d[k] = params[k].defaultValue;
@@ -326,7 +326,7 @@ export namespace ParamDefinition {
     }
 
     export function clone<P extends Params>(params: P): P {
-        return deepClone(params)
+        return deepClone(params);
     }
 
     /**
@@ -417,9 +417,9 @@ export namespace ParamDefinition {
         if (a === undefined) return { ...b };
         if (b === undefined) return { ...a };
 
-        const o = Object.create(null)
+        const o = Object.create(null);
         for (const k of Object.keys(params)) {
-            o[k] = mergeParam(params[k], a[k], b[k])
+            o[k] = mergeParam(params[k], a[k], b[k]);
         }
         return o;
     }
@@ -441,7 +441,7 @@ export namespace ParamDefinition {
         } else if (typeof a === 'object' && typeof b === 'object') {
             return { ...a, ...b };
         } else {
-            return b
+            return b;
         }
     }
 
@@ -473,7 +473,7 @@ export namespace ParamDefinition {
             if (!f) {
                 ret.push([x, f === null ? x : stringToWords(x)]);
             } else {
-                ret.push([x, f(x)])
+                ret.push([x, f(x)]);
             }
         }
         return ret;
@@ -481,9 +481,9 @@ export namespace ParamDefinition {
 
     export function optionLabel<T>(param: Select<T>, value: T) {
         for (const o of param.options) {
-            if (o[0] === value) return o[1]
+            if (o[0] === value) return o[1];
         }
-        return ''
+        return '';
     }
 
     function checkDefaultKey<T>(k: T, options: readonly (readonly [T, string] | readonly [T, string, string | undefined])[]) {

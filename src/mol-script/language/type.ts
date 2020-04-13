@@ -37,4 +37,4 @@ namespace Type {
     export function oneOfValues({ values }: OneOf<any>) { return Object.keys(values).sort(); }
 }
 
-export default Type
+export default Type;

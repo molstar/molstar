@@ -5,9 +5,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import FixedColumn from '../common/text/column/fixed'
-import TokenColumn from '../common/text/column/token'
-import { Column, ColumnHelpers } from '../../../mol-data/db'
+import FixedColumn from '../common/text/column/fixed';
+import TokenColumn from '../common/text/column/token';
+import { Column, ColumnHelpers } from '../../../mol-data/db';
 
 const lines = [
     '1.123 abc',
@@ -15,7 +15,7 @@ const lines = [
     '1.1    bcd   ',
     '',
     ' 5'
-]
+];
 
 const linesData = lines.join('\n');
 
@@ -40,14 +40,14 @@ describe('fixed text column', () => {
         expect(col1.value(2)).toBe(1.1);
         expect(col1.value(3)).toBe(0);
         expect(col1.value(4)).toBe(5);
-    })
+    });
     it('str', () => {
         expect(col2.value(0)).toBe('abc');
         expect(col2.value(1)).toBe('a');
         expect(col2.value(2)).toBe('bc');
         expect(col2.value(3)).toBe('');
         expect(col2.value(4)).toBe('');
-    })
+    });
 });
 
 describe('token text column', () => {
@@ -58,7 +58,7 @@ describe('token text column', () => {
         expect(col1.value(0)).toBe(3);
         expect(col1.value(1)).toBe(2);
         expect(col1.value(2)).toBe(1);
-    })
+    });
 });
 
 describe('binary column', () => {
@@ -73,4 +73,4 @@ describe('binary column', () => {
         expect(w2.length).toBe(2);
         for (let i = 0; i < w2.length; i++) expect(w2[i]).toBe(xs[i + 2]);
     });
-})
+});

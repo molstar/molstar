@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Mat4, Vec3, Vec4, Mat3 } from './3d'
+import { Mat4, Vec3, Vec4, Mat3 } from './3d';
 
 export interface Tensor { data: Tensor.Data, space: Tensor.Space }
 
@@ -39,7 +39,7 @@ export namespace Tensor {
 
         const accessDimensions = [1];
         for (let i = 1; i < dimensions.length; i++) accessDimensions[i] = dimensions[axisOrderFastToSlow[i - 1]];
-        return { dimensions, axisOrderFastToSlow, axisOrderSlowToFast, accessDimensions, defaultCtor: ctor || Float64Array }
+        return { dimensions, axisOrderFastToSlow, axisOrderSlowToFast, accessDimensions, defaultCtor: ctor || Float64Array };
     }
 
     export function create(space: Space, data: Data): Tensor { return { space, data }; }
@@ -121,7 +121,7 @@ export namespace Tensor {
                         add: (t, i, j, x) => t[i * cols + j] += x
                     };
                 }
-                throw new Error('bad axis order')
+                throw new Error('bad axis order');
             }
             case 3: {
                 if (ao[0] === 0 && ao[1] === 1 && ao[2] === 2) { // 012 ijk
@@ -172,7 +172,7 @@ export namespace Tensor {
                         add: (t, i, j, k, x ) => t[k + j * u + i * uv] += x
                     };
                 }
-                throw new Error('bad axis order')
+                throw new Error('bad axis order');
             }
             default: return {
                 get: (t, ...c) => t[dataOffset(layout, c)],

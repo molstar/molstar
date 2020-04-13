@@ -11,14 +11,14 @@ export interface DefaultMap<K, V> extends Map<K, V> {
 
 /** A `Map` instance with a `getDefault` method added. */
 export function DefaultMap<K, V>(valueCtor: () => V) {
-    const map = new Map<K, V>() as DefaultMap<K, V>
+    const map = new Map<K, V>() as DefaultMap<K, V>;
     map.getDefault = (key: K) => {
-        if (map.has(key)) return map.get(key)!
-        const value = valueCtor()
-        map.set(key, value)
-        return value
-    }
-    return map
+        if (map.has(key)) return map.get(key)!;
+        const value = valueCtor();
+        map.set(key, value);
+        return value;
+    };
+    return map;
 }
 
 // TODO currently not working, see https://github.com/Microsoft/TypeScript/issues/10853

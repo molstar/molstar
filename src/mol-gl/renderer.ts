@@ -71,59 +71,59 @@ export const RendererParams = {
         metallic: PD.Group({}),
         plastic: PD.Group({}),
     }, { label: 'Lighting', description: 'Style in which the 3D scene is rendered/lighted' }),
-}
+};
 export type RendererProps = PD.Values<typeof RendererParams>
 
 function getStyle(props: RendererProps['style']) {
     switch (props.name) {
         case 'custom':
-            return props.params
+            return props.params;
         case 'flat':
             return {
                 lightIntensity: 0, ambientIntensity: 1,
                 metalness: 0, roughness: 0.4, reflectivity: 0.5
-            }
+            };
         case 'matte':
             return {
                 lightIntensity: 0.6, ambientIntensity: 0.4,
                 metalness: 0, roughness: 1, reflectivity: 0.5
-            }
+            };
         case 'glossy':
             return {
                 lightIntensity: 0.6, ambientIntensity: 0.4,
                 metalness: 0, roughness: 0.4, reflectivity: 0.5
-            }
+            };
         case 'metallic':
             return {
                 lightIntensity: 0.6, ambientIntensity: 0.4,
                 metalness: 0.4, roughness: 0.6, reflectivity: 0.5
-            }
+            };
         case 'plastic':
             return {
                 lightIntensity: 0.6, ambientIntensity: 0.4,
                 metalness: 0, roughness: 0.2, reflectivity: 0.5
-            }
+            };
     }
 }
 
 namespace Renderer {
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
-        const { gl, state, stats } = ctx
-        const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props)
-        const style = getStyle(p.style)
+        const { gl, state, stats } = ctx;
+        const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
+        const style = getStyle(p.style);
 
-        const viewport = Viewport()
-        const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor)
+        const viewport = Viewport();
+        const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor);
 
-        const view = Mat4()
-        const invView = Mat4()
-        const modelView = Mat4()
-        const invModelView = Mat4()
-        const invProjection = Mat4()
-        const modelViewProjection = Mat4()
-        const invModelViewProjection = Mat4()
+        const view = Mat4();
+        const invView = Mat4();
+        const modelView = Mat4();
+        const invModelView = Mat4();
+        const invProjection = Mat4();
+        const modelViewProjection = Mat4();
+        const invModelViewProjection = Mat4();
 
-        const viewOffset = Vec2()
+        const viewOffset = Vec2();
 
         const globalUniforms: GlobalUniformValues = {
             uModel: ValueCell.create(Mat4.identity()),
@@ -167,185 +167,185 @@ namespace Renderer {
 
             uHighlightColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.highlightColor)),
             uSelectColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.selectColor)),
-        }
-        const globalUniformList = Object.entries(globalUniforms)
+        };
+        const globalUniformList = Object.entries(globalUniforms);
 
-        let globalUniformsNeedUpdate = true
+        let globalUniformsNeedUpdate = true;
 
         const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: GraphicsRenderVariant) => {
-            const program = r.getProgram(variant)
+            const program = r.getProgram(variant);
             if (r.state.visible) {
                 if (state.currentProgramId !== program.id) {
                     // console.log('new program')
-                    globalUniformsNeedUpdate = true
-                    program.use()
+                    globalUniformsNeedUpdate = true;
+                    program.use();
                 }
 
                 if (globalUniformsNeedUpdate) {
                     // console.log('globalUniformsNeedUpdate')
-                    program.setUniforms(globalUniformList)
-                    globalUniformsNeedUpdate = false
+                    program.setUniforms(globalUniformList);
+                    globalUniformsNeedUpdate = false;
                 }
 
                 if (r.values.dDoubleSided) {
                     if (r.values.dDoubleSided.ref.value) {
-                        state.disable(gl.CULL_FACE)
+                        state.disable(gl.CULL_FACE);
                     } else {
-                        state.enable(gl.CULL_FACE)
+                        state.enable(gl.CULL_FACE);
                     }
                 } else {
                     // webgl default
-                    state.disable(gl.CULL_FACE)
+                    state.disable(gl.CULL_FACE);
                 }
 
                 if (r.values.dFlipSided) {
                     if (r.values.dFlipSided.ref.value) {
-                        state.frontFace(gl.CW)
-                        state.cullFace(gl.FRONT)
+                        state.frontFace(gl.CW);
+                        state.cullFace(gl.FRONT);
                     } else {
-                        state.frontFace(gl.CCW)
-                        state.cullFace(gl.BACK)
+                        state.frontFace(gl.CCW);
+                        state.cullFace(gl.BACK);
                     }
                 } else {
                     // webgl default
-                    state.frontFace(gl.CCW)
-                    state.cullFace(gl.BACK)
+                    state.frontFace(gl.CCW);
+                    state.cullFace(gl.BACK);
                 }
 
-                r.render(variant)
+                r.render(variant);
             }
-        }
+        };
 
         const render = (scene: Scene, camera: Camera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean) => {
-            ValueCell.update(globalUniforms.uModel, scene.view)
-            ValueCell.update(globalUniforms.uView, camera.view)
-            ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view))
-            ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, scene.view, camera.view))
-            ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView))
-            ValueCell.update(globalUniforms.uProjection, camera.projection)
-            ValueCell.update(globalUniforms.uInvProjection, Mat4.invert(invProjection, camera.projection))
-            ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection))
-            ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection))
+            ValueCell.update(globalUniforms.uModel, scene.view);
+            ValueCell.update(globalUniforms.uView, camera.view);
+            ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view));
+            ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, scene.view, camera.view));
+            ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView));
+            ValueCell.update(globalUniforms.uProjection, camera.projection);
+            ValueCell.update(globalUniforms.uInvProjection, Mat4.invert(invProjection, camera.projection));
+            ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection));
+            ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection));
 
-            ValueCell.update(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0)
-            ValueCell.update(globalUniforms.uViewOffset, camera.viewOffset.enabled ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2.set(viewOffset, 0, 0))
+            ValueCell.update(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
+            ValueCell.update(globalUniforms.uViewOffset, camera.viewOffset.enabled ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2.set(viewOffset, 0, 0));
 
-            ValueCell.update(globalUniforms.uCameraPosition, camera.state.position)
-            ValueCell.update(globalUniforms.uFar, camera.far)
-            ValueCell.update(globalUniforms.uNear, camera.near)
-            ValueCell.update(globalUniforms.uFogFar, camera.fogFar)
-            ValueCell.update(globalUniforms.uFogNear, camera.fogNear)
+            ValueCell.update(globalUniforms.uCameraPosition, camera.state.position);
+            ValueCell.update(globalUniforms.uFar, camera.far);
+            ValueCell.update(globalUniforms.uNear, camera.near);
+            ValueCell.update(globalUniforms.uFogFar, camera.fogFar);
+            ValueCell.update(globalUniforms.uFogNear, camera.fogNear);
 
-            ValueCell.update(globalUniforms.uTransparentBackground, transparentBackground ? 1 : 0)
+            ValueCell.update(globalUniforms.uTransparentBackground, transparentBackground ? 1 : 0);
 
-            globalUniformsNeedUpdate = true
-            state.currentRenderItemId = -1
+            globalUniformsNeedUpdate = true;
+            state.currentRenderItemId = -1;
 
-            const { renderables } = scene
+            const { renderables } = scene;
 
-            state.disable(gl.SCISSOR_TEST)
-            state.disable(gl.BLEND)
-            state.depthMask(true)
-            state.colorMask(true, true, true, true)
-            state.enable(gl.DEPTH_TEST)
+            state.disable(gl.SCISSOR_TEST);
+            state.disable(gl.BLEND);
+            state.depthMask(true);
+            state.colorMask(true, true, true, true);
+            state.enable(gl.DEPTH_TEST);
 
             if (clear) {
                 if (variant === 'color') {
-                    state.clearColor(bgColor[0], bgColor[1], bgColor[2], transparentBackground ? 0 : 1)
+                    state.clearColor(bgColor[0], bgColor[1], bgColor[2], transparentBackground ? 0 : 1);
                 } else {
-                    state.clearColor(1, 1, 1, 1)
+                    state.clearColor(1, 1, 1, 1);
                 }
-                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             }
 
             if (variant === 'color') {
                 for (let i = 0, il = renderables.length; i < il; ++i) {
-                    const r = renderables[i]
-                    if (r.state.opaque) renderObject(r, variant)
+                    const r = renderables[i];
+                    if (r.state.opaque) renderObject(r, variant);
                 }
 
-                state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE)
-                state.enable(gl.BLEND)
+                state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
+                state.enable(gl.BLEND);
                 for (let i = 0, il = renderables.length; i < il; ++i) {
-                    const r = renderables[i]
+                    const r = renderables[i];
                     if (!r.state.opaque) {
-                        state.depthMask(false)
-                        renderObject(r, variant)
+                        state.depthMask(false);
+                        renderObject(r, variant);
                     }
                 }
             } else { // picking & depth
                 for (let i = 0, il = renderables.length; i < il; ++i) {
-                    renderObject(renderables[i], variant)
+                    renderObject(renderables[i], variant);
                 }
             }
 
-            gl.finish()
-        }
+            gl.finish();
+        };
 
         return {
             clear: (transparentBackground: boolean) => {
-                state.depthMask(true)
-                state.colorMask(true, true, true, true)
-                state.clearColor(bgColor[0], bgColor[1], bgColor[2], transparentBackground ? 0 : 1)
-                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+                state.depthMask(true);
+                state.colorMask(true, true, true, true);
+                state.clearColor(bgColor[0], bgColor[1], bgColor[2], transparentBackground ? 0 : 1);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             },
             render,
 
             setProps: (props: Partial<RendererProps>) => {
                 if (props.backgroundColor !== undefined && props.backgroundColor !== p.backgroundColor) {
-                    p.backgroundColor = props.backgroundColor
-                    Color.toVec3Normalized(bgColor, p.backgroundColor)
-                    ValueCell.update(globalUniforms.uFogColor, Vec3.copy(globalUniforms.uFogColor.ref.value, bgColor))
+                    p.backgroundColor = props.backgroundColor;
+                    Color.toVec3Normalized(bgColor, p.backgroundColor);
+                    ValueCell.update(globalUniforms.uFogColor, Vec3.copy(globalUniforms.uFogColor.ref.value, bgColor));
                 }
 
                 if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== p.pickingAlphaThreshold) {
-                    p.pickingAlphaThreshold = props.pickingAlphaThreshold
-                    ValueCell.update(globalUniforms.uPickingAlphaThreshold, p.pickingAlphaThreshold)
+                    p.pickingAlphaThreshold = props.pickingAlphaThreshold;
+                    ValueCell.update(globalUniforms.uPickingAlphaThreshold, p.pickingAlphaThreshold);
                 }
 
                 if (props.interiorDarkening !== undefined && props.interiorDarkening !== p.interiorDarkening) {
-                    p.interiorDarkening = props.interiorDarkening
-                    ValueCell.update(globalUniforms.uInteriorDarkening, p.interiorDarkening)
+                    p.interiorDarkening = props.interiorDarkening;
+                    ValueCell.update(globalUniforms.uInteriorDarkening, p.interiorDarkening);
                 }
                 if (props.interiorColorFlag !== undefined && props.interiorColorFlag !== p.interiorColorFlag) {
-                    p.interiorColorFlag = props.interiorColorFlag
-                    ValueCell.update(globalUniforms.uInteriorColorFlag, p.interiorColorFlag ? 1 : 0)
+                    p.interiorColorFlag = props.interiorColorFlag;
+                    ValueCell.update(globalUniforms.uInteriorColorFlag, p.interiorColorFlag ? 1 : 0);
                 }
                 if (props.interiorColor !== undefined && props.interiorColor !== p.interiorColor) {
-                    p.interiorColor = props.interiorColor
-                    ValueCell.update(globalUniforms.uInteriorColor, Color.toVec3Normalized(globalUniforms.uInteriorColor.ref.value, p.interiorColor))
+                    p.interiorColor = props.interiorColor;
+                    ValueCell.update(globalUniforms.uInteriorColor, Color.toVec3Normalized(globalUniforms.uInteriorColor.ref.value, p.interiorColor));
                 }
 
                 if (props.highlightColor !== undefined && props.highlightColor !== p.highlightColor) {
-                    p.highlightColor = props.highlightColor
-                    ValueCell.update(globalUniforms.uHighlightColor, Color.toVec3Normalized(globalUniforms.uHighlightColor.ref.value, p.highlightColor))
+                    p.highlightColor = props.highlightColor;
+                    ValueCell.update(globalUniforms.uHighlightColor, Color.toVec3Normalized(globalUniforms.uHighlightColor.ref.value, p.highlightColor));
                 }
                 if (props.selectColor !== undefined && props.selectColor !== p.selectColor) {
-                    p.selectColor = props.selectColor
-                    ValueCell.update(globalUniforms.uSelectColor, Color.toVec3Normalized(globalUniforms.uSelectColor.ref.value, p.selectColor))
+                    p.selectColor = props.selectColor;
+                    ValueCell.update(globalUniforms.uSelectColor, Color.toVec3Normalized(globalUniforms.uSelectColor.ref.value, p.selectColor));
                 }
 
                 if (props.style !== undefined) {
-                    p.style = props.style
-                    Object.assign(style, getStyle(props.style))
-                    ValueCell.updateIfChanged(globalUniforms.uLightIntensity, style.lightIntensity)
-                    ValueCell.updateIfChanged(globalUniforms.uAmbientIntensity, style.ambientIntensity)
-                    ValueCell.updateIfChanged(globalUniforms.uMetalness, style.metalness)
-                    ValueCell.updateIfChanged(globalUniforms.uRoughness, style.roughness)
-                    ValueCell.updateIfChanged(globalUniforms.uReflectivity, style.reflectivity)
+                    p.style = props.style;
+                    Object.assign(style, getStyle(props.style));
+                    ValueCell.updateIfChanged(globalUniforms.uLightIntensity, style.lightIntensity);
+                    ValueCell.updateIfChanged(globalUniforms.uAmbientIntensity, style.ambientIntensity);
+                    ValueCell.updateIfChanged(globalUniforms.uMetalness, style.metalness);
+                    ValueCell.updateIfChanged(globalUniforms.uRoughness, style.roughness);
+                    ValueCell.updateIfChanged(globalUniforms.uReflectivity, style.reflectivity);
                 }
             },
             setViewport: (x: number, y: number, width: number, height: number) => {
-                gl.viewport(x, y, width, height)
+                gl.viewport(x, y, width, height);
                 if (x !== viewport.x || y !== viewport.y || width !== viewport.width || height !== viewport.height) {
-                    Viewport.set(viewport, x, y, width, height)
-                    ValueCell.update(globalUniforms.uViewportHeight, height)
-                    ValueCell.update(globalUniforms.uViewport, Vec4.set(globalUniforms.uViewport.ref.value, x, y, width, height))
+                    Viewport.set(viewport, x, y, width, height);
+                    ValueCell.update(globalUniforms.uViewportHeight, height);
+                    ValueCell.update(globalUniforms.uViewport, Vec4.set(globalUniforms.uViewport.ref.value, x, y, width, height));
                 }
             },
 
             get props() {
-                return p
+                return p;
             },
             get stats(): RendererStats {
                 return {
@@ -362,13 +362,13 @@ namespace Renderer {
                     drawCount: stats.drawCount,
                     instanceCount: stats.instanceCount,
                     instancedDrawCount: stats.instancedDrawCount,
-                }
+                };
             },
             dispose: () => {
                 // TODO
             }
-        }
+        };
     }
 }
 
-export default Renderer
+export default Renderer;

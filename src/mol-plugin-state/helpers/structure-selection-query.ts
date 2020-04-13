@@ -56,7 +56,7 @@ interface StructureSelectionQueryProps {
 }
 
 function StructureSelectionQuery(label: string, expression: Expression, props: StructureSelectionQueryProps = {}): StructureSelectionQuery {
-    let _query: StructureQuery
+    let _query: StructureQuery;
     return {
         label,
         expression,
@@ -65,24 +65,24 @@ function StructureSelectionQuery(label: string, expression: Expression, props: S
         isHidden: !!props.isHidden,
         referencesCurrent: !!props.referencesCurrent,
         get query() {
-            if (!_query) _query = compile<StructureSelection>(expression)
-            return _query
+            if (!_query) _query = compile<StructureSelection>(expression);
+            return _query;
         },
         ensureCustomProperties: props.ensureCustomProperties,
         async getSelection(plugin, runtime, structure) {
-            const current = plugin.managers.structure.selection.getStructure(structure)
+            const current = plugin.managers.structure.selection.getStructure(structure);
             const currentSelection = current ? StructureSelection.Singletons(structure, current) : StructureSelection.Empty(structure);
             if (props.ensureCustomProperties) {
-                await props.ensureCustomProperties({ fetch: plugin.fetch, runtime }, structure)
+                await props.ensureCustomProperties({ fetch: plugin.fetch, runtime }, structure);
             }
-            if (!_query) _query = compile<StructureSelection>(expression)
+            if (!_query) _query = compile<StructureSelection>(expression);
             return _query(new QueryContext(structure, { currentSelection }));
         }
-    }
+    };
 }
 
-const all = StructureSelectionQuery('All', MS.struct.generator.all(), { category: '' })
-const current = StructureSelectionQuery('Current Selection', MS.internal.generator.current(), { category: '', referencesCurrent: true })
+const all = StructureSelectionQuery('All', MS.struct.generator.all(), { category: '' });
+const current = StructureSelectionQuery('Current Selection', MS.internal.generator.current(), { category: '', referencesCurrent: true });
 
 const polymer = StructureSelectionQuery('Polymer', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -94,7 +94,7 @@ const polymer = StructureSelectionQuery('Polymer', MS.struct.modifier.union([
             ])
         ])
     })
-]), { category: StructureSelectionCategory.Type })
+]), { category: StructureSelectionCategory.Type });
 
 const trace = StructureSelectionQuery('Trace', MS.struct.modifier.union([
     MS.struct.combinator.merge([
@@ -114,7 +114,7 @@ const trace = StructureSelectionQuery('Trace', MS.struct.modifier.union([
             })
         ])
     ])
-]), { category: StructureSelectionCategory.Structure })
+]), { category: StructureSelectionCategory.Structure });
 
 // TODO maybe pre-calculate atom properties like backbone/sidechain
 const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
@@ -146,7 +146,7 @@ const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
             })
         ])
     ])
-]), { category: StructureSelectionCategory.Structure })
+]), { category: StructureSelectionCategory.Structure });
 
 const protein = StructureSelectionQuery('Protein', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -158,7 +158,7 @@ const protein = StructureSelectionQuery('Protein', MS.struct.modifier.union([
             ])
         ])
     })
-]), { category: StructureSelectionCategory.Type })
+]), { category: StructureSelectionCategory.Type });
 
 const nucleic = StructureSelectionQuery('Nucleic', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -170,7 +170,7 @@ const nucleic = StructureSelectionQuery('Nucleic', MS.struct.modifier.union([
             ])
         ])
     })
-]), { category: StructureSelectionCategory.Type })
+]), { category: StructureSelectionCategory.Type });
 
 const helix = StructureSelectionQuery('Helix', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -186,7 +186,7 @@ const helix = StructureSelectionQuery('Helix', MS.struct.modifier.union([
             MS.core.type.bitflags([SecondaryStructureType.Flag.Helix])
         ])
     })
-]), { category: StructureSelectionCategory.Structure })
+]), { category: StructureSelectionCategory.Structure });
 
 const beta = StructureSelectionQuery('Beta Strand/Sheet', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -202,13 +202,13 @@ const beta = StructureSelectionQuery('Beta Strand/Sheet', MS.struct.modifier.uni
             MS.core.type.bitflags([SecondaryStructureType.Flag.Beta])
         ])
     })
-]), { category: StructureSelectionCategory.Structure })
+]), { category: StructureSelectionCategory.Structure });
 
 const water = StructureSelectionQuery('Water', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'water'])
     })
-]), { category: StructureSelectionCategory.Type })
+]), { category: StructureSelectionCategory.Type });
 
 const branched = StructureSelectionQuery('Carbohydrate', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -223,20 +223,20 @@ const branched = StructureSelectionQuery('Carbohydrate', MS.struct.modifier.unio
             ])
         ])
     })
-]), { category: StructureSelectionCategory.Type })
+]), { category: StructureSelectionCategory.Type });
 
 const branchedPlusConnected = StructureSelectionQuery('Carbohydrate with Connected', MS.struct.modifier.union([
     MS.struct.modifier.includeConnected({
         0: branched.expression, 'layer-count': 1, 'as-whole-residues': true
     })
-]), { category: StructureSelectionCategory.Internal })
+]), { category: StructureSelectionCategory.Internal });
 
 const branchedConnectedOnly = StructureSelectionQuery('Connected to Carbohydrate', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: branchedPlusConnected.expression,
         by: branched.expression
     })
-]), { category: StructureSelectionCategory.Internal })
+]), { category: StructureSelectionCategory.Internal });
 
 const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
     MS.struct.combinator.merge([
@@ -270,7 +270,7 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
             })
         ])
     ]),
-]), { category: StructureSelectionCategory.Type })
+]), { category: StructureSelectionCategory.Type });
 
 // don't include branched entities as they have their own link representation
 const ligandPlusConnected = StructureSelectionQuery('Ligand with Connected', MS.struct.modifier.union([
@@ -290,14 +290,14 @@ const ligandPlusConnected = StructureSelectionQuery('Ligand with Connected', MS.
         ]),
         by: branched.expression
     })
-]), { category: StructureSelectionCategory.Internal })
+]), { category: StructureSelectionCategory.Internal });
 
 const ligandConnectedOnly = StructureSelectionQuery('Connected to Ligand', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: ligandPlusConnected.expression,
         by: ligand.expression
     })
-]), { category: StructureSelectionCategory.Internal })
+]), { category: StructureSelectionCategory.Internal });
 
 // residues connected to ligands or branched entities
 const connectedOnly = StructureSelectionQuery('Connected to Ligand or Carbohydrate', MS.struct.modifier.union([
@@ -305,7 +305,7 @@ const connectedOnly = StructureSelectionQuery('Connected to Ligand or Carbohydra
         branchedConnectedOnly.expression,
         ligandConnectedOnly.expression
     ]),
-]), { category: StructureSelectionCategory.Internal })
+]), { category: StructureSelectionCategory.Internal });
 
 const disulfideBridges = StructureSelectionQuery('Disulfide Bridges', MS.struct.modifier.union([
     MS.struct.modifier.wholeResidues([
@@ -318,7 +318,7 @@ const disulfideBridges = StructureSelectionQuery('Disulfide Bridges', MS.struct.
             })
         ])
     ])
-]), { category: StructureSelectionCategory.Bond })
+]), { category: StructureSelectionCategory.Bond });
 
 const nonStandardPolymer = StructureSelectionQuery('Non-standard Residues in Polymers', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -326,7 +326,7 @@ const nonStandardPolymer = StructureSelectionQuery('Non-standard Residues in Pol
         'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
         'residue-test': MS.ammp('isNonStandard')
     })
-]), { category: StructureSelectionCategory.Residue })
+]), { category: StructureSelectionCategory.Residue });
 
 const coarse = StructureSelectionQuery('Coarse Elements', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -334,15 +334,15 @@ const coarse = StructureSelectionQuery('Coarse Elements', MS.struct.modifier.uni
             MS.set('sphere', 'gaussian'), MS.ammp('objectPrimitive')
         ])
     })
-]), { category: StructureSelectionCategory.Type })
+]), { category: StructureSelectionCategory.Type });
 
 const ring = StructureSelectionQuery('Rings in Residues', MS.struct.modifier.union([
     MS.struct.generator.rings()
-]), { category: StructureSelectionCategory.Residue })
+]), { category: StructureSelectionCategory.Residue });
 
 const aromaticRing = StructureSelectionQuery('Aromatic Rings in Residues', MS.struct.modifier.union([
     MS.struct.generator.rings({ 'only-aromatic': true })
-]), { category: StructureSelectionCategory.Residue })
+]), { category: StructureSelectionCategory.Residue });
 
 const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B) of Selection', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
@@ -357,7 +357,7 @@ const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B) of
     description: 'Select residues within 5 \u212B of the current selection.',
     category: StructureSelectionCategory.Manipulate,
     referencesCurrent: true
-})
+});
 
 const complement = StructureSelectionQuery('Inverse / Complement of Selection', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
@@ -368,7 +368,7 @@ const complement = StructureSelectionQuery('Inverse / Complement of Selection', 
     description: 'Select everything not in the current selection.',
     category: StructureSelectionCategory.Manipulate,
     referencesCurrent: true
-})
+});
 
 const bonded = StructureSelectionQuery('Residues Bonded to Selection', MS.struct.modifier.union([
     MS.struct.modifier.includeConnected({
@@ -378,7 +378,7 @@ const bonded = StructureSelectionQuery('Residues Bonded to Selection', MS.struct
     description: 'Select residues covalently bonded to current selection.',
     category: StructureSelectionCategory.Manipulate,
     referencesCurrent: true
-})
+});
 
 const StandardAminoAcids = [
     [['HIS'], 'HISTIDINE'],
@@ -402,7 +402,7 @@ const StandardAminoAcids = [
     [['THR'], 'THREONINE'],
     [['SEC'], 'SELENOCYSTEINE'],
     [['PYL'], 'PYRROLYSINE'],
-].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][]
+].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][];
 
 const StandardNucleicBases = [
     [['A', 'DA'], 'ADENOSINE'],
@@ -411,14 +411,14 @@ const StandardNucleicBases = [
     [['G', 'DG'], 'GUANOSINE'],
     [['I', 'DI'], 'INOSINE'],
     [['U', 'DU'], 'URIDINE'],
-].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][]
+].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][];
 
 function ResidueQuery([names, label]: [string[], string], category: string) {
     return StructureSelectionQuery(`${stringToWords(label)} (${names.join(', ')})`, MS.struct.modifier.union([
         MS.struct.generator.atomGroups({
             'residue-test': MS.core.set.has([MS.set(...names), MS.ammp('auth_comp_id')])
         })
-    ]), { category })
+    ]), { category });
 }
 
 export const StructureSelectionQueries = {
@@ -447,7 +447,7 @@ export const StructureSelectionQueries = {
     surroundings,
     complement,
     bonded,
-}
+};
 
 export function applyBuiltInSelection(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, query: keyof typeof StructureSelectionQueries, customTag?: string) {
     return to.apply(StateTransforms.Model.StructureSelectionFromExpression,
@@ -461,17 +461,17 @@ export class StructureSelectionQueryRegistry {
     version = 1
 
     add(q: StructureSelectionQuery) {
-        this.list.push(q)
-        this.options.push([q, q.label, q.category])
-        this.version += 1
+        this.list.push(q);
+        this.options.push([q, q.label, q.category]);
+        this.version += 1;
     }
 
     remove(q: StructureSelectionQuery) {
-        const idx = this.list.indexOf(q)
+        const idx = this.list.indexOf(q);
         if (idx !== -1) {
-            this.list.splice(idx, 1)
-            this.options.splice(idx, 1)
-            this.version += 1
+            this.list.splice(idx, 1);
+            this.options.splice(idx, 1);
+            this.version += 1;
         }
     }
 
@@ -481,7 +481,7 @@ export class StructureSelectionQueryRegistry {
             ...Object.values(StructureSelectionQueries),
             ...StandardAminoAcids.map(v => ResidueQuery(v, StructureSelectionCategory.AminoAcid)),
             ...StandardNucleicBases.map(v => ResidueQuery(v, StructureSelectionCategory.NucleicBase))
-        )
-        this.options.push(...this.list.map(q => [q, q.label, q.category] as [StructureSelectionQuery, string, string]))
+        );
+        this.options.push(...this.list.map(q => [q, q.label, q.category] as [StructureSelectionQuery, string, string]));
     }
 }

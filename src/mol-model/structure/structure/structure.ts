@@ -5,13 +5,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { IntMap, SortedArray, Iterator, Segmentation, Interval, OrderedSet } from '../../../mol-data/int'
-import { UniqueArray } from '../../../mol-data/generic'
-import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator'
-import { Model, ElementIndex } from '../model'
+import { IntMap, SortedArray, Iterator, Segmentation, Interval, OrderedSet } from '../../../mol-data/int';
+import { UniqueArray } from '../../../mol-data/generic';
+import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator';
+import { Model, ElementIndex } from '../model';
 import { sort, arraySwap, hash1, sortArray, hashString, hashFnv32a } from '../../../mol-data/util';
-import StructureElement from './element'
-import Unit from './unit'
+import StructureElement from './element';
+import Unit from './unit';
 import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
@@ -91,7 +91,7 @@ class Structure {
     /** Count of all bonds (intra- and inter-unit) in the structure */
     get bondCount() {
         if (!this._props.bondCount) {
-            this._props.bondCount = this.interUnitBonds.edgeCount + Bond.getIntraUnitBondCount(this)
+            this._props.bondCount = this.interUnitBonds.edgeCount + Bond.getIntraUnitBondCount(this);
         }
         return this._props.bondCount;
     }
@@ -123,28 +123,28 @@ class Structure {
     /** Count of all polymer residues in the structure */
     get polymerResidueCount() {
         if (this._props.polymerResidueCount === -1) {
-            this._props.polymerResidueCount = getPolymerResidueCount(this)
+            this._props.polymerResidueCount = getPolymerResidueCount(this);
         }
         return this._props.polymerResidueCount;
     }
 
     get polymerUnitCount() {
         if (this._props.polymerUnitCount === -1) {
-            this._props.polymerUnitCount = getPolymerUnitCount(this)
+            this._props.polymerUnitCount = getPolymerUnitCount(this);
         }
         return this._props.polymerUnitCount;
     }
 
     get uniqueElementCount() {
         if (this._props.uniqueElementCount === -1) {
-            this._props.uniqueElementCount = getUniqueElementCount(this)
+            this._props.uniqueElementCount = getUniqueElementCount(this);
         }
         return this._props.uniqueElementCount;
     }
 
     get atomicResidueCount() {
         if (this._props.atomicResidueCount === -1) {
-            this._props.atomicResidueCount = getAtomicResidueCount(this)
+            this._props.atomicResidueCount = getAtomicResidueCount(this);
         }
         return this._props.atomicResidueCount;
     }
@@ -154,9 +154,9 @@ class Structure {
      * twice as many elements as polymer residues
      */
     get isCoarseGrained() {
-        const ec = this.elementCount
-        const prc = this.polymerResidueCount
-        return prc && ec ? ec / prc < 2 : false
+        const ec = this.elementCount;
+        const prc = this.polymerResidueCount;
+        return prc && ec ? ec / prc < 2 : false;
     }
 
     get isEmpty() {
@@ -171,7 +171,7 @@ class Structure {
     /** Hash based on all unit.id values in the structure, reflecting the units transformation */
     get transformHash() {
         if (this._props.transformHash !== -1) return this._props.transformHash;
-        this._props.transformHash = hashFnv32a(this.units.map(u => u.id))
+        this._props.transformHash = hashFnv32a(this.units.map(u => u.id));
         return this._props.transformHash;
     }
 
@@ -327,12 +327,12 @@ class Structure {
 
     /** The master-model, other models can have bonds to it  */
     get masterModel(): Model | undefined {
-        return this._props.masterModel
+        return this._props.masterModel;
     }
 
     /** A representative model, e.g. the first model of a trajectory */
     get representativeModel(): Model | undefined {
-        return this._props.representativeModel
+        return this._props.representativeModel;
     }
 
     hasElement(e: StructureElement.Location) {
@@ -341,7 +341,7 @@ class Structure {
     }
 
     getModelIndex(m: Model) {
-        return this.models.indexOf(m)
+        return this.models.indexOf(m);
     }
 
     private initUnits(units: ArrayLike<Unit>) {
@@ -468,56 +468,56 @@ function getUniqueAtomicResidueIndices(structure: Structure): ReadonlyMap<UUID, 
     for (const id of modelIds) {
         const array = map.get(id)!.array;
         sortArray(array);
-        ret.set(id, array)
+        ret.set(id, array);
     }
     return ret;
 }
 
 function getUniqueElementCount(structure: Structure): number {
-    const { unitSymmetryGroups } = structure
-    let uniqueElementCount = 0
+    const { unitSymmetryGroups } = structure;
+    let uniqueElementCount = 0;
     for (let i = 0, _i = unitSymmetryGroups.length; i < _i; i++) {
-        uniqueElementCount += unitSymmetryGroups[i].elements.length
+        uniqueElementCount += unitSymmetryGroups[i].elements.length;
     }
-    return uniqueElementCount
+    return uniqueElementCount;
 }
 
 function getPolymerResidueCount(structure: Structure): number {
-    const { units } = structure
-    let polymerResidueCount = 0
+    const { units } = structure;
+    let polymerResidueCount = 0;
     for (let i = 0, _i = units.length; i < _i; i++) {
         polymerResidueCount += units[i].polymerElements.length;
     }
-    return polymerResidueCount
+    return polymerResidueCount;
 }
 
 function getPolymerUnitCount(structure: Structure): number {
-    const { units } = structure
-    let polymerUnitCount = 0
+    const { units } = structure;
+    let polymerUnitCount = 0;
     for (let i = 0, _i = units.length; i < _i; i++) {
-        if (units[i].polymerElements.length > 0) polymerUnitCount += 1
+        if (units[i].polymerElements.length > 0) polymerUnitCount += 1;
     }
-    return polymerUnitCount
+    return polymerUnitCount;
 }
 
 function getAtomicResidueCount(structure: Structure): number {
-    const { units } = structure
-    let atomicResidueCount = 0
+    const { units } = structure;
+    let atomicResidueCount = 0;
     for (let i = 0, _i = units.length; i < _i; i++) {
-        const unit = units[i]
-        if (!Unit.isAtomic(unit)) continue
-        const { elements, residueIndex } = unit
-        let idx = -1
-        let prevIdx = -1
+        const unit = units[i];
+        if (!Unit.isAtomic(unit)) continue;
+        const { elements, residueIndex } = unit;
+        let idx = -1;
+        let prevIdx = -1;
         for (let j = 0, jl = elements.length; j < jl; ++j) {
-            idx = residueIndex[elements[j]]
+            idx = residueIndex[elements[j]];
             if (idx !== prevIdx) {
-                atomicResidueCount += 1
-                prevIdx = idx
+                atomicResidueCount += 1;
+                prevIdx = idx;
             }
         }
     }
-    return atomicResidueCount
+    return atomicResidueCount;
 }
 
 interface SerialMapping {
@@ -531,19 +531,19 @@ interface SerialMapping {
     getSerialIndex: (unit: Unit, element: ElementIndex) => Structure.SerialIndex
 }
 function getSerialMapping(structure: Structure): SerialMapping {
-    const { units, elementCount, unitIndexMap } = structure
-    const cumulativeUnitElementCount = new Uint32Array(units.length)
-    const unitIndices = new Uint32Array(elementCount)
-    const elementIndices = new Uint32Array(elementCount) as unknown as ElementIndex[]
+    const { units, elementCount, unitIndexMap } = structure;
+    const cumulativeUnitElementCount = new Uint32Array(units.length);
+    const unitIndices = new Uint32Array(elementCount);
+    const elementIndices = new Uint32Array(elementCount) as unknown as ElementIndex[];
     for (let i = 0, m = 0, il = units.length; i < il; ++i) {
-        cumulativeUnitElementCount[i] = m
-        const { elements } = units[i]
+        cumulativeUnitElementCount[i] = m;
+        const { elements } = units[i];
         for (let j = 0, jl = elements.length; j < jl; ++j) {
-            const mj = m + j
-            unitIndices[mj] = i
-            elementIndices[mj] = elements[j]
+            const mj = m + j;
+            unitIndices[mj] = i;
+            elementIndices[mj] = elements[j];
         }
-        m += elements.length
+        m += elements.length;
     }
     return {
         cumulativeUnitElementCount,
@@ -551,7 +551,7 @@ function getSerialMapping(structure: Structure): SerialMapping {
         elementIndices,
 
         getSerialIndex: (unit, element) => cumulativeUnitElementCount[unitIndexMap.get(unit.id)] + OrderedSet.indexOf(unit.elements, element) as Structure.SerialIndex
-    }
+    };
 }
 
 namespace Structure {
@@ -580,9 +580,9 @@ namespace Structure {
     }
 
     export function toStructureElementLoci(structure: Structure): StructureElement.Loci {
-        const elements: StructureElement.Loci['elements'][0][] = []
+        const elements: StructureElement.Loci['elements'][0][] = [];
         for (const unit of structure.units) {
-            elements.push({ unit, indices: Interval.ofBounds(0, unit.elements.length) })
+            elements.push({ unit, indices: Interval.ofBounds(0, unit.elements.length) });
         }
         return StructureElement.Loci(structure, elements);
     }
@@ -596,16 +596,16 @@ namespace Structure {
     }
 
     export function areLociEqual(a: Loci, b: Loci) {
-        return a.structure === b.structure
+        return a.structure === b.structure;
     }
 
     export function isLociEmpty(loci: Loci) {
-        return loci.structure.isEmpty
+        return loci.structure.isEmpty;
     }
 
     export function remapLoci(loci: Loci, structure: Structure) {
-        if (structure === loci.structure) return loci
-        return Loci(structure)
+        if (structure === loci.structure) return loci;
+        return Loci(structure);
     }
 
     export function create(units: ReadonlyArray<Unit>, props?: Props): Structure {
@@ -613,21 +613,21 @@ namespace Structure {
     }
 
     export function ofTrajectory(trajectory: ReadonlyArray<Model>): Structure {
-        if (trajectory.length === 0) return Empty
+        if (trajectory.length === 0) return Empty;
 
         const units: Unit[] = [];
 
-        let count = 0
+        let count = 0;
         for (let i = 0, il = trajectory.length; i < il; ++i) {
-            const structure = ofModel(trajectory[i])
+            const structure = ofModel(trajectory[i]);
             for (let j = 0, jl = structure.units.length; j < jl; ++j) {
-                const u = structure.units[j]
-                const invariantId = u.invariantId + count
-                const chainGroupId = u.chainGroupId + count
-                const newUnit = Unit.create(units.length, invariantId, chainGroupId, u.traits, u.kind, u.model, u.conformation.operator, u.elements)
-                units.push(newUnit)
+                const u = structure.units[j];
+                const invariantId = u.invariantId + count;
+                const chainGroupId = u.chainGroupId + count;
+                const newUnit = Unit.create(units.length, invariantId, chainGroupId, u.traits, u.kind, u.model, u.conformation.operator, u.elements);
+                units.push(newUnit);
             }
-            count = units.length
+            count = units.length;
         }
 
         return create(units, { representativeModel: trajectory[0], label: trajectory[0].label });
@@ -652,15 +652,15 @@ namespace Structure {
 
             // set to true for chains that consist of "single atom residues",
             // note that it assumes there are no "zero atom residues"
-            let singleAtomResidues = AtomicHierarchy.chainResidueCount(model.atomicHierarchy, c) === chains.offsets[c + 1] - chains.offsets[c]
+            let singleAtomResidues = AtomicHierarchy.chainResidueCount(model.atomicHierarchy, c) === chains.offsets[c + 1] - chains.offsets[c];
 
             // merge all consecutive "single atom chains" with same entity_id and same auth_asym_id
-            let multiChain = false
+            let multiChain = false;
             while (c + 1 < chains.count
                 && chains.offsets[c + 1] - chains.offsets[c] === 1
                 && chains.offsets[c + 2] - chains.offsets[c + 1] === 1
             ) {
-                singleAtomResidues = true
+                singleAtomResidues = true;
                 const e1 = index.getEntityFromChain(c);
                 const e2 = index.getEntityFromChain(c + 1 as ChainIndex);
                 if (e1 !== e2) break;
@@ -673,7 +673,7 @@ namespace Structure {
                 const op2 = atomicChainOperatorMappinng.get(c + 1 as ChainIndex);
                 if (op1 !== op2) break;
 
-                multiChain = true
+                multiChain = true;
                 c++;
             }
 
@@ -709,7 +709,7 @@ namespace Structure {
 
     function partitionAtomicUnitByAtom(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean, operator: SymmetryOperator) {
         const { x, y, z } = model.atomicConformation;
-        const position = { x, y, z, indices }
+        const position = { x, y, z, indices };
         const lookup = GridLookup3D(position, getBoundary(position), 8192);
         const { offset, count, array } = lookup.buckets;
 
@@ -729,23 +729,23 @@ namespace Structure {
 
     // keeps atoms of residues together
     function partitionAtomicUnitByResidue(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean, operator: SymmetryOperator) {
-        const { residueAtomSegments } = model.atomicHierarchy
+        const { residueAtomSegments } = model.atomicHierarchy;
 
-        const startIndices: number[] = []
-        const endIndices: number[] = []
+        const startIndices: number[] = [];
+        const endIndices: number[] = [];
 
-        const residueIt = Segmentation.transientSegments(residueAtomSegments, indices)
+        const residueIt = Segmentation.transientSegments(residueAtomSegments, indices);
         while (residueIt.hasNext) {
             const residueSegment = residueIt.move();
-            startIndices[startIndices.length] = indices[residueSegment.start]
-            endIndices[endIndices.length] = indices[residueSegment.end]
+            startIndices[startIndices.length] = indices[residueSegment.start];
+            endIndices[endIndices.length] = indices[residueSegment.end];
         }
 
-        const firstResidueAtomCount = endIndices[0] - startIndices[0]
-        const gridCellCount = 512 * firstResidueAtomCount
+        const firstResidueAtomCount = endIndices[0] - startIndices[0];
+        const gridCellCount = 512 * firstResidueAtomCount;
 
         const { x, y, z } = model.atomicConformation;
-        const position = { x, y, z, indices: SortedArray.ofSortedArray(startIndices) }
+        const position = { x, y, z, indices: SortedArray.ofSortedArray(startIndices) };
         const lookup = GridLookup3D(position, getBoundary(position), gridCellCount);
         const { offset, count, array } = lookup.buckets;
 
@@ -756,7 +756,7 @@ namespace Structure {
             const start = offset[i];
             const set: number[] = [];
             for (let j = 0, _j = count[i]; j < _j; j++) {
-                const k = array[start + j]
+                const k = array[start + j];
                 for (let l = startIndices[k], _l = endIndices[k]; l < _l; l++) {
                     set[set.length] = l;
                 }
@@ -807,7 +807,7 @@ namespace Structure {
         }
 
         addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set, traits: Unit.Traits, invariantId?: number): Unit {
-            if (invariantId === undefined) invariantId = this.invariantId()
+            if (invariantId === undefined) invariantId = this.invariantId();
             const chainGroupId = this.inChainGroup ? this.chainGroupId : ++this.chainGroupId;
             const unit = Unit.create(this.units.length, invariantId, chainGroupId, traits, kind, model, operator, elements);
             this.units.push(unit);
@@ -843,7 +843,7 @@ namespace Structure {
 
     /** Hash based on all unit.model conformation values in the structure */
     export function conformationHash(s: Structure) {
-        return hashString(s.units.map(u => Unit.conformationId(u)).join('|'))
+        return hashString(s.units.map(u => Unit.conformationId(u)).join('|'));
     }
 
     // TODO: there should be a version that properly supports partitioned units
@@ -869,17 +869,17 @@ namespace Structure {
         return a === b || (
             a.hashCode === b.hashCode &&
             StructureSymmetry.areTransformGroupsEquivalent(a.unitSymmetryGroups, b.unitSymmetryGroups)
-        )
+        );
     }
 
     /** Check if the structures or their parents are equivalent */
     export function areRootsEquivalent(a: Structure, b: Structure) {
-        return areEquivalent(a.root, b.root)
+        return areEquivalent(a.root, b.root);
     }
 
     /** Check if the structures or their parents are equal */
     export function areRootsEqual(a: Structure, b: Structure) {
-        return a.root === b.root
+        return a.root === b.root;
     }
 
     export class ElementLocationIterator implements Iterator<StructureElement.Location> {
@@ -970,13 +970,13 @@ namespace Structure {
     }
 
     export function elementDescription(s: Structure) {
-        return s.elementCount === 1 ? '1 element' : `${s.elementCount} elements`
+        return s.elementCount === 1 ? '1 element' : `${s.elementCount} elements`;
     }
 
     export function validUnitPair(s: Structure, a: Unit, b: Unit) {
         return s.masterModel
             ? a.model === b.model || a.model === s.masterModel || b.model === s.masterModel
-            : a.model === b.model
+            : a.model === b.model;
     }
 
     export interface EachUnitPairProps {
@@ -990,7 +990,7 @@ namespace Structure {
      * and unit pairs if within a max distance.
      */
     export function eachUnitPair(structure: Structure, callback: (unitA: Unit, unitB: Unit) => void, props: EachUnitPairProps) {
-        const { maxRadius, validUnit, validUnitPair } = props
+        const { maxRadius, validUnit, validUnitPair } = props;
         if (!structure.units.some(u => validUnit(u))) return;
 
         const lookup = structure.lookup3d;
@@ -1023,53 +1023,53 @@ namespace Structure {
         fiberResidueCount: 15,
 
         residueCountFactor: 1
-    }
+    };
     export type SizeThresholds = typeof DefaultSizeThresholds
 
     function getPolymerSymmetryGroups(structure: Structure) {
-        return structure.unitSymmetryGroups.filter(ug => ug.units[0].polymerElements.length > 0)
+        return structure.unitSymmetryGroups.filter(ug => ug.units[0].polymerElements.length > 0);
     }
 
     /**
      * Try to match fiber-like structures like 6nk4
      */
     function isFiberLike(structure: Structure, thresholds: SizeThresholds) {
-        const polymerSymmetryGroups = getPolymerSymmetryGroups(structure)
+        const polymerSymmetryGroups = getPolymerSymmetryGroups(structure);
         return (
             polymerSymmetryGroups.length === 1 &&
             polymerSymmetryGroups[0].units.length > 2 &&
             polymerSymmetryGroups[0].units[0].polymerElements.length < thresholds.fiberResidueCount
-        )
+        );
     }
 
     function hasHighSymmetry(structure: Structure, thresholds: SizeThresholds) {
-        const polymerSymmetryGroups = getPolymerSymmetryGroups(structure)
+        const polymerSymmetryGroups = getPolymerSymmetryGroups(structure);
         return (
             polymerSymmetryGroups.length >= 1 &&
             polymerSymmetryGroups[0].units.length > thresholds.highSymmetryUnitCount
-        )
+        );
     }
 
     export enum Size { Small, Medium, Large, Huge, Gigantic }
 
     export function getSize(structure: Structure, thresholds: Partial<SizeThresholds> = {}): Size {
-        const t = { ...DefaultSizeThresholds, ...thresholds }
+        const t = { ...DefaultSizeThresholds, ...thresholds };
         if (structure.polymerResidueCount >= t.largeResidueCount * t.residueCountFactor) {
             if (hasHighSymmetry(structure, t)) {
-                return Size.Huge
+                return Size.Huge;
             } else {
-                return Size.Gigantic
+                return Size.Gigantic;
             }
         } else if (isFiberLike(structure, t)) {
-            return Size.Small
+            return Size.Small;
         } else if (structure.polymerResidueCount < t.smallResidueCount * t.residueCountFactor) {
-            return Size.Small
+            return Size.Small;
         } else if (structure.polymerResidueCount < t.mediumResidueCount * t.residueCountFactor) {
-            return Size.Medium
+            return Size.Medium;
         } else {
-            return Size.Large
+            return Size.Large;
         }
     }
 }
 
-export default Structure
+export default Structure;

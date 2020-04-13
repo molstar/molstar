@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { LinkedList } from '../linked-list'
+import { LinkedList } from '../linked-list';
 
 describe('linked list', () => {
 
@@ -59,5 +59,5 @@ describe('linked list', () => {
         expect(list.last).toBe(null);
         expect(list.count).toBe(0);
         expect(toArray(list)).toEqual([]);
-    })
+    });
 });

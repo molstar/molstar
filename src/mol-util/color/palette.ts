@@ -17,17 +17,17 @@ type PaletteType = 'generate' | 'colors'
 const DefaultGetPaletteProps = {
     type: 'generate' as PaletteType,
     colorList: 'red-yellow-blue' as ColorListName
-}
+};
 type GetPaletteProps = typeof DefaultGetPaletteProps
 
 const LabelParams = {
     valueLabel: PD.Value((i: number) => `${i + 1}`, { isHidden: true }),
     minLabel: PD.Value('Start', { isHidden: true }),
     maxLabel: PD.Value('End', { isHidden: true })
-}
+};
 
 export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
-    const p = { ...DefaultGetPaletteProps, ...props }
+    const p = { ...DefaultGetPaletteProps, ...props };
     return {
         palette: PD.MappedStatic(p.type, {
             colors: PD.Group({
@@ -45,10 +45,10 @@ export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
                 ['generate', 'Generate Distinct']
             ]
         })
-    }
+    };
 }
 
-const DefaultPaletteProps = PD.getDefaultValues(getPaletteParams())
+const DefaultPaletteProps = PD.getDefaultValues(getPaletteParams());
 type PaletteProps = typeof DefaultPaletteProps
 
 export interface Palette {
@@ -57,42 +57,42 @@ export interface Palette {
 }
 
 export function getPalette(count: number, props: PaletteProps) {
-    let color: (i: number) => Color
-    let legend: ScaleLegend | TableLegend | undefined
+    let color: (i: number) => Color;
+    let legend: ScaleLegend | TableLegend | undefined;
 
     if (props.palette.name === 'colors' && props.palette.params.list.kind === 'interpolate') {
-        const { list, minLabel, maxLabel } = props.palette.params
-        const domain: [number, number] = [0, count - 1]
+        const { list, minLabel, maxLabel } = props.palette.params;
+        const domain: [number, number] = [0, count - 1];
 
         let colors = list.colors;
-        if (colors.length === 0) colors = getColorListFromName(DefaultGetPaletteProps.colorList).list
+        if (colors.length === 0) colors = getColorListFromName(DefaultGetPaletteProps.colorList).list;
 
-        const scale = ColorScale.create({ listOrName: colors, domain, minLabel, maxLabel })
-        legend = scale.legend
-        color = scale.color
+        const scale = ColorScale.create({ listOrName: colors, domain, minLabel, maxLabel });
+        legend = scale.legend;
+        color = scale.color;
     } else {
-        let colors: Color[]
+        let colors: Color[];
         if (props.palette.name === 'colors') {
             colors = props.palette.params.list.colors;
-            if (colors.length === 0) colors = getColorListFromName('dark-2').list
+            if (colors.length === 0) colors = getColorListFromName('dark-2').list;
         } else {
-            count = Math.min(count, props.palette.params.maxCount)
-            colors = distinctColors(count, props.palette.params)
+            count = Math.min(count, props.palette.params.maxCount);
+            colors = distinctColors(count, props.palette.params);
         }
         const valueLabel = props.palette.params.valueLabel || (i => '' + i);
-        const colorsLength = colors.length
-        const table: [string, Color][] = []
+        const colorsLength = colors.length;
+        const table: [string, Color][] = [];
         for (let i = 0; i < count; ++i) {
-            const j = i % colorsLength
+            const j = i % colorsLength;
             if (table[j] === undefined) {
-                table[j] = [valueLabel(i), colors[j]]
+                table[j] = [valueLabel(i), colors[j]];
             } else {
-                table[j][0] += `, ${valueLabel(i)}`
+                table[j][0] += `, ${valueLabel(i)}`;
             }
         }
-        legend = TableLegend(table)
-        color = (i: number) => colors[i % colorsLength]
+        legend = TableLegend(table);
+        color = (i: number) => colors[i % colorsLength];
     }
 
-    return { color, legend }
+    return { color, legend };
 }

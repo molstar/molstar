@@ -40,4 +40,4 @@ export default `
 
     if (ta < 0.99 && (ta < 0.01 || ta < at)) discard;
 #endif
-`
+`;

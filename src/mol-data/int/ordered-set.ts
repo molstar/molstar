@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Base from './impl/ordered-set'
-import Interval from './interval'
+import * as Base from './impl/ordered-set';
+import Interval from './interval';
 import SortedArray from './sorted-array';
 
 namespace OrderedSet {
@@ -70,16 +70,16 @@ namespace OrderedSet {
     }
 
     export function toArray<T extends number = number>(set: OrderedSet<T>): T[] {
-        const array: T[] = []
-        OrderedSet.forEach(set, v => array.push(v))
-        return array
+        const array: T[] = [];
+        OrderedSet.forEach(set, v => array.push(v));
+        return array;
     }
 
     export function toString<T extends number = number>(set: OrderedSet<T>): string {
-        return Base.toString(set)
+        return Base.toString(set);
     }
 }
 
 type OrderedSet<T extends number = number> = SortedArray<T> | Interval<T>
 
-export default OrderedSet
+export default OrderedSet;

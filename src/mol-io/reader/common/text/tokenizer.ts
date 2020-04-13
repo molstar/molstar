@@ -6,9 +6,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { chunkedSubtask, RuntimeContext } from '../../../../mol-task'
+import { chunkedSubtask, RuntimeContext } from '../../../../mol-task';
 
-export { Tokenizer }
+export { Tokenizer };
 
 interface Tokenizer {
     data: string,
@@ -45,10 +45,10 @@ namespace Tokenizer {
 
     /** Resets the state */
     export function reset (state: Tokenizer) {
-        state.position = 0
-        state.lineNumber = 1
-        state.tokenStart = 0
-        state.tokenEnd = 0
+        state.position = 0;
+        state.lineNumber = 1;
+        state.tokenStart = 0;
+        state.tokenEnd = 0;
     }
 
     /**
@@ -132,7 +132,7 @@ namespace Tokenizer {
 
     export function readAllLines(data: string) {
         const state = Tokenizer(data);
-        const tokens = TokenBuilder.create(state.data, Math.max(data.length / 80, 2))
+        const tokens = TokenBuilder.create(state.data, Math.max(data.length / 80, 2));
         while (markLine(state)) {
             TokenBuilder.add(tokens, state.tokenStart, state.tokenEnd);
         }
@@ -277,13 +277,13 @@ export namespace TokenBuilder {
     }
 
     export function create(data: string, size: number): Tokens {
-        size = Math.max(10, size)
+        size = Math.max(10, size);
         return <Builder>{
             data,
             indicesLenMinus2: (size - 2) | 0,
             count: 0,
             offset: 0,
             indices: new Uint32Array(size)
-        }
+        };
     }
 }

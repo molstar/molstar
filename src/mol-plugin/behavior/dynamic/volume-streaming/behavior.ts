@@ -27,7 +27,7 @@ import { EmptyLoci, Loci, isEmptyLoci } from '../../../../mol-model/loci';
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
 export namespace VolumeStreaming {
-    export const RootTag = 'volume-streaming-info'
+    export const RootTag = 'volume-streaming-info';
 
     export interface ChannelParams {
         isoValue: VolumeIsoValue,
@@ -54,13 +54,13 @@ export namespace VolumeStreaming {
 
     export function createParams(options: { data?: VolumeServerInfo.Data, defaultView?: ViewTypes, channelParams?: DefaultChannelParams } = { }) {
         const { data, defaultView, channelParams } = options;
-        const map = new Map<string, VolumeServerInfo.EntryData>()
-        if (data) data.entries.forEach(d => map.set(d.dataId, d))
-        const names = data ? data.entries.map(d => [d.dataId, d.dataId] as [string, string]) : []
-        const defaultKey = data ? data.entries[0].dataId : ''
+        const map = new Map<string, VolumeServerInfo.EntryData>();
+        if (data) data.entries.forEach(d => map.set(d.dataId, d));
+        const names = data ? data.entries.map(d => [d.dataId, d.dataId] as [string, string]) : [];
+        const defaultKey = data ? data.entries[0].dataId : '';
         return {
             entry: PD.Mapped<EntryParams>(defaultKey, names, name => PD.Group(createEntryParams({ entryData: map.get(name)!, defaultView, structure: data && data.structure, channelParams }))),
-        }
+        };
     }
 
     export type EntryParamDefinition = typeof createEntryParams extends (...args: any[]) => (infer T) ? T : never
@@ -113,7 +113,7 @@ export namespace VolumeStreaming {
     type ChannelsData = { [name in 'EM' | '2FO-FC' | 'FO-FC']?: VolumeData }
 
     export type ChannelType = 'em' | '2fo-fc' | 'fo-fc(+ve)' | 'fo-fc(-ve)'
-    export const ChannelTypeOptions: [ChannelType, string][] = [['em', 'em'], ['2fo-fc', '2fo-fc'], ['fo-fc(+ve)', 'fo-fc(+ve)'], ['fo-fc(-ve)', 'fo-fc(-ve)']]
+    export const ChannelTypeOptions: [ChannelType, string][] = [['em', 'em'], ['2fo-fc', '2fo-fc'], ['fo-fc(+ve)', 'fo-fc(+ve)'], ['fo-fc(-ve)', 'fo-fc(-ve)']];
     export interface ChannelInfo {
         data: VolumeData,
         color: Color,
@@ -135,7 +135,7 @@ export namespace VolumeStreaming {
         channels: Channels = {}
 
         public get info () {
-            return this.infoMap.get(this.params.entry.name)!
+            return this.infoMap.get(this.params.entry.name)!;
         }
 
         private async queryData(box?: Box3D) {
@@ -236,12 +236,12 @@ export namespace VolumeStreaming {
             });
 
             this.subscribeObservable(this.plugin.managers.structure.focus.behaviors.current, (entry) => {
-                const loci = entry ? entry.loci : EmptyLoci
+                const loci = entry ? entry.loci : EmptyLoci;
 
                 if (this.params.entry.params.view.name !== 'selection-box') {
                     this.lastLoci = loci;
                 } else {
-                    this.updateInteraction(loci)
+                    this.updateInteraction(loci);
                 }
             });
         }
@@ -256,10 +256,10 @@ export namespace VolumeStreaming {
             const root = this.getStructureRoot();
             if (!root || root.obj?.data !== parent.obj?.data) return Box3D.empty();
 
-            const extendedLoci = StructureElement.Loci.extendToWholeResidues(loci)
-            const box = StructureElement.Loci.getBoundary(extendedLoci).box
+            const extendedLoci = StructureElement.Loci.extendToWholeResidues(loci);
+            const box = StructureElement.Loci.getBoundary(extendedLoci).box;
             if (StructureElement.Loci.size(extendedLoci) === 1) {
-                Box3D.expand(box, box, Vec3.create(1, 1, 1))
+                Box3D.expand(box, box, Vec3.create(1, 1, 1));
             }
             return box;
         }
@@ -353,8 +353,8 @@ export namespace VolumeStreaming {
         constructor(public plugin: PluginContext, public data: VolumeServerInfo.Data) {
             super(plugin, {} as any);
 
-            this.infoMap = new Map<string, VolumeServerInfo.EntryData>()
-            this.data.entries.forEach(info => this.infoMap.set(info.dataId, info))
+            this.infoMap = new Map<string, VolumeServerInfo.EntryData>();
+            this.data.entries.forEach(info => this.infoMap.set(info.dataId, info));
         }
     }
 }

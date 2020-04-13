@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Impl from './impl/interval'
+import * as Impl from './impl/interval';
 
 namespace Interval {
     export const Empty: Interval = Impl.Empty as any;
@@ -60,4 +60,4 @@ namespace Interval {
 /** Interval describing a range [min, max] of values */
 interface Interval<T extends number = number> { '@type': 'int-interval' }
 
-export default Interval
+export default Interval;

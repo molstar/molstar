@@ -15,4 +15,4 @@ uniform sampler2D tTexture;
 void main(void) {
     gl_FragColor = vec4(encodeFloatRGB(texture2D(tTexture, vec2(0.5)).r), 1.0);
 }
-`
+`;

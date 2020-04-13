@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from '../iterator'
+import Iterator from '../iterator';
 
 function iteratorToArray<T>(it: Iterator<T>): T[] {
     const ret = [];

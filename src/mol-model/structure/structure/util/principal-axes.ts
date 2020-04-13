@@ -10,17 +10,17 @@ import { Vec3 } from '../../../../mol-math/linear-algebra';
 
 const tempPos = Vec3.zero();
 export function toPositionsArray(unit: Unit) {
-    const pos = unit.conformation.invariantPosition
-    const { elements } = unit
-    const positions = new Float32Array(elements.length * 3)
+    const pos = unit.conformation.invariantPosition;
+    const { elements } = unit;
+    const positions = new Float32Array(elements.length * 3);
     for (let i = 0, il = elements.length; i < il; i++) {
-        pos(elements[i], tempPos)
-        Vec3.toArray(tempPos, positions, i * 3)
+        pos(elements[i], tempPos);
+        Vec3.toArray(tempPos, positions, i * 3);
     }
-    return positions
+    return positions;
 }
 
 export function getPrincipalAxes(unit: Unit): PrincipalAxes {
-    const positions = toPositionsArray(unit)
-    return PrincipalAxes.ofPositions(positions)
+    const positions = toPositionsArray(unit);
+    return PrincipalAxes.ofPositions(positions);
 }

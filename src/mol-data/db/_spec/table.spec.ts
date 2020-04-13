@@ -5,9 +5,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as ColumnHelpers from '../column-helpers'
-import Column from '../column'
-import Table from '../table'
+import * as ColumnHelpers from '../column-helpers';
+import Column from '../column';
+import Table from '../table';
 
 describe('column', () => {
     const cc = Column.ofConst(10, 2, Column.Schema.int);
@@ -59,7 +59,7 @@ describe('column', () => {
     it('map to array', () => {
         expect(Column.mapToArray(arrWindow, x => x + 1)).toEqual([3, 4]);
     });
-})
+});
 
 describe('table', () => {
     const schema = {
@@ -125,7 +125,7 @@ describe('table', () => {
             n: Column.ofArray({ array: ['row1', 'row2'], schema: Column.Schema.str }),
         });
         const { x } = t;
-        const sorted = Table.sort(t, (i, j) => x.value(i) - x.value(j))
+        const sorted = Table.sort(t, (i, j) => x.value(i) - x.value(j));
         expect(sorted.x.toArray()).toEqual([-1, 10]);
         expect(sorted.n.toArray()).toEqual(['row2', 'row1']);
     });

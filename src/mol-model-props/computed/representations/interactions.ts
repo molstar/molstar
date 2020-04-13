@@ -18,7 +18,7 @@ import { getUnitKindsParam } from '../../../mol-repr/structure/params';
 const InteractionsVisuals = {
     'intra-unit': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InteractionsIntraUnitParams>) => UnitsRepresentation('Intra-unit interactions cylinder', ctx, getParams, InteractionsIntraUnitVisual),
     'inter-unit': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InteractionsInterUnitParams>) => ComplexRepresentation('Inter-unit interactions cylinder', ctx, getParams, InteractionsInterUnitVisual),
-}
+};
 
 export const InteractionsParams = {
     ...InteractionsIntraUnitParams,
@@ -26,15 +26,15 @@ export const InteractionsParams = {
     unitKinds: getUnitKindsParam(['atomic']),
     sizeFactor: PD.Numeric(0.2, { min: 0.01, max: 1, step: 0.01 }),
     visuals: PD.MultiSelect(['intra-unit', 'inter-unit'], PD.objectToOptions(InteractionsVisuals)),
-}
+};
 export type InteractionsParams = typeof InteractionsParams
 export function getInteractionParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(InteractionsParams)
+    return PD.clone(InteractionsParams);
 }
 
 export type InteractionRepresentation = StructureRepresentation<InteractionsParams>
 export function InteractionRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InteractionsParams>): InteractionRepresentation {
-    return Representation.createMulti('Interactions', ctx, getParams, StructureRepresentationStateBuilder, InteractionsVisuals as unknown as Representation.Def<Structure, InteractionsParams>)
+    return Representation.createMulti('Interactions', ctx, getParams, StructureRepresentationStateBuilder, InteractionsVisuals as unknown as Representation.Def<Structure, InteractionsParams>);
 }
 
 export const InteractionsRepresentationProvider = StructureRepresentationProvider({
@@ -51,4 +51,4 @@ export const InteractionsRepresentationProvider = StructureRepresentationProvide
         attach: (ctx: CustomProperty.Context, structure: Structure) => InteractionsProvider.attach(ctx, structure, void 0, true),
         detach: (data) => InteractionsProvider.ref(data, false)
     }
-})
+});

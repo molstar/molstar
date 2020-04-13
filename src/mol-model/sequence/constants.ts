@@ -39,7 +39,7 @@ const ProteinOneLetterCodes: { [name: string]: AminoAlphabet }  = {
 
     'SEC': 'U',  // as per IUPAC definition
     'PYL': 'O',  // as per IUPAC definition
-}
+};
 
 const DnaOneLetterCodes: { [name: string]: NuclecicAlphabet } = {
     'DA': 'A',
@@ -47,7 +47,7 @@ const DnaOneLetterCodes: { [name: string]: NuclecicAlphabet } = {
     'DG': 'G',
     'DT': 'T',
     'DU': 'U'
-}
+};
 
 const RnaOneLetterCodes: { [name: string]: NuclecicAlphabet } = {
     'A': 'A',
@@ -55,7 +55,7 @@ const RnaOneLetterCodes: { [name: string]: NuclecicAlphabet } = {
     'G': 'G',
     'T': 'T',
     'U': 'U'
-}
+};
 
 export function getProteinOneLetterCode(residueName: string): AminoAlphabet {
     const code = ProteinOneLetterCodes[residueName];

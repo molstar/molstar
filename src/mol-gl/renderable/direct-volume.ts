@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Renderable, RenderableState, createRenderable } from '../renderable'
+import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
 import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema, TextureSpec, ValueSpec, ElementsSpec, DefineSpec, InternalValues } from './schema';
@@ -65,17 +65,17 @@ export const DirectVolumeSchema = {
     dGridTexType: DefineSpec('string', ['2d', '3d']),
     uGridTexDim: UniformSpec('v3'),
     tGridTex: TextureSpec('texture', 'rgba', 'float', 'nearest'),
-}
+};
 export type DirectVolumeSchema = typeof DirectVolumeSchema
 export type DirectVolumeValues = Values<DirectVolumeSchema>
 
 export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: DirectVolumeValues, state: RenderableState, materialId: number): Renderable<DirectVolumeValues> {
-    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...DirectVolumeSchema }
+    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...DirectVolumeSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
         uPickable: ValueCell.create(state.pickable ? 1 : 0),
-    }
-    const shaderCode = DirectVolumeShaderCode
-    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
+    };
+    const shaderCode = DirectVolumeShaderCode;
+    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId);
     return createRenderable(renderItem, values, state);
 }

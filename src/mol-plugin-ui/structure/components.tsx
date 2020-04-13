@@ -58,7 +58,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
     };
 
     get isDisabled() {
-        return this.state.isBusy || this.state.isEmpty
+        return this.state.isBusy || this.state.isEmpty;
     }
 
     componentDidMount() {
@@ -67,7 +67,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
             isEmpty: c.structures.length === 0
         }));
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isBusy: v, action: this.state.action !== 'options' ? void 0 : 'options' })
+            this.setState({ isBusy: v, action: this.state.action !== 'options' ? void 0 : 'options' });
         });
         this.subscribe(this.plugin.state.data.events.historyUpdated, ({ state }) => {
             this.setState({ canUndo: state.canUndo });
@@ -84,7 +84,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
     hideAction = () => this.setState({ action: void 0 });
 
     get presetControls() {
-        return <ActionMenu items={this.presetActions} onSelect={this.applyPreset} />
+        return <ActionMenu items={this.presetActions} onSelect={this.applyPreset} />;
     }
 
     get presetActions() {
@@ -185,7 +185,7 @@ class ComponentOptionsControls extends PurePluginUIComponent<{ isDisabled: boole
 class ComponentListControls extends PurePluginUIComponent {
     componentDidMount() {
         this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, () => {
-            this.forceUpdate()
+            this.forceUpdate();
         });
     }
 

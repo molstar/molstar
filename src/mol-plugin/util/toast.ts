@@ -38,7 +38,7 @@ export class PluginToastManager extends StatefulPluginComponent<{
     private serialId = 0;
 
     private findByKey(key: string): PluginToastManager.Entry | undefined {
-        return this.state.entries.find(e => !!e && e.key === key)
+        return this.state.entries.find(e => !!e && e.key === key);
     }
 
     private show(toast: PluginToast) {

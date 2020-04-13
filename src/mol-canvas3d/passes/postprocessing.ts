@@ -19,8 +19,8 @@ import { DrawPass } from './draw';
 import { Camera } from '../../mol-canvas3d/camera';
 import { produce } from 'immer';
 
-import quad_vert from '../../mol-gl/shader/quad.vert'
-import postprocessing_frag from '../../mol-gl/shader/postprocessing.frag'
+import quad_vert from '../../mol-gl/shader/quad.vert';
+import postprocessing_frag from '../../mol-gl/shader/postprocessing.frag';
 
 const PostprocessingSchema = {
     ...QuadSchema,
@@ -45,7 +45,7 @@ const PostprocessingSchema = {
     uOutlineThreshold: UniformSpec('f'),
 
     dPackedDepth: DefineSpec('boolean'),
-}
+};
 
 export const PostprocessingParams = {
     occlusion: PD.MappedStatic('off', {
@@ -63,13 +63,13 @@ export const PostprocessingParams = {
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Draw outline around 3D objects' })
-}
+};
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
 
 function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture, packedDepth: boolean, props: Partial<PostprocessingProps>): PostprocessingRenderable {
-    const p = { ...PD.getDefaultValues(PostprocessingParams), ...props }
+    const p = { ...PD.getDefaultValues(PostprocessingParams), ...props };
     const values: Values<typeof PostprocessingSchema> = {
         ...QuadValues,
         tColor: ValueCell.create(colorTexture),
@@ -93,13 +93,13 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         uOutlineThreshold: ValueCell.create(p.outline.name === 'on' ? p.outline.params.threshold : 0.8),
 
         dPackedDepth: ValueCell.create(packedDepth),
-    }
+    };
 
-    const schema = { ...PostprocessingSchema }
-    const shaderCode = ShaderCode('postprocessing', quad_vert, postprocessing_frag)
-    const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
+    const schema = { ...PostprocessingSchema };
+    const shaderCode = ShaderCode('postprocessing', quad_vert, postprocessing_frag);
+    const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
 
-    return createComputeRenderable(renderItem, values)
+    return createComputeRenderable(renderItem, values);
 }
 
 export class PostprocessingPass {
@@ -108,67 +108,67 @@ export class PostprocessingPass {
     renderable: PostprocessingRenderable
 
     constructor(private webgl: WebGLContext, private camera: Camera, drawPass: DrawPass, props: Partial<PostprocessingProps>) {
-        const { gl } = webgl
-        this.target = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight)
-        this.props = { ...PD.getDefaultValues(PostprocessingParams), ...props }
-        const { colorTarget, depthTexture, packedDepth } = drawPass
-        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture, packedDepth, this.props)
+        const { gl } = webgl;
+        this.target = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight);
+        this.props = { ...PD.getDefaultValues(PostprocessingParams), ...props };
+        const { colorTarget, depthTexture, packedDepth } = drawPass;
+        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture, packedDepth, this.props);
     }
 
     get enabled() {
-        return this.props.occlusion.name === 'on' || this.props.outline.name === 'on'
+        return this.props.occlusion.name === 'on' || this.props.outline.name === 'on';
     }
 
     setSize(width: number, height: number) {
-        this.target.setSize(width, height)
-        ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height))
+        this.target.setSize(width, height);
+        ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
     }
 
     setProps(props: Partial<PostprocessingProps>) {
         this.props = produce(this.props, p => {
             if (props.occlusion !== undefined) {
-                p.occlusion.name = props.occlusion.name
-                ValueCell.updateIfChanged(this.renderable.values.dOcclusionEnable, props.occlusion.name === 'on')
+                p.occlusion.name = props.occlusion.name;
+                ValueCell.updateIfChanged(this.renderable.values.dOcclusionEnable, props.occlusion.name === 'on');
                 if (props.occlusion.name === 'on') {
-                    p.occlusion.params = { ...props.occlusion.params }
-                    ValueCell.updateIfChanged(this.renderable.values.dOcclusionKernelSize, props.occlusion.params.kernelSize)
-                    ValueCell.updateIfChanged(this.renderable.values.uOcclusionBias, props.occlusion.params.bias)
-                    ValueCell.updateIfChanged(this.renderable.values.uOcclusionRadius, props.occlusion.params.radius)
+                    p.occlusion.params = { ...props.occlusion.params };
+                    ValueCell.updateIfChanged(this.renderable.values.dOcclusionKernelSize, props.occlusion.params.kernelSize);
+                    ValueCell.updateIfChanged(this.renderable.values.uOcclusionBias, props.occlusion.params.bias);
+                    ValueCell.updateIfChanged(this.renderable.values.uOcclusionRadius, props.occlusion.params.radius);
                 }
             }
 
             if (props.outline !== undefined) {
-                p.outline.name = props.outline.name
-                ValueCell.updateIfChanged(this.renderable.values.dOutlineEnable, props.outline.name === 'on')
+                p.outline.name = props.outline.name;
+                ValueCell.updateIfChanged(this.renderable.values.dOutlineEnable, props.outline.name === 'on');
                 if (props.outline.name === 'on') {
-                    p.outline.params = { ...props.outline.params }
-                    ValueCell.updateIfChanged(this.renderable.values.uOutlineScale, props.outline.params.scale)
-                    ValueCell.updateIfChanged(this.renderable.values.uOutlineThreshold, props.outline.params.threshold)
+                    p.outline.params = { ...props.outline.params };
+                    ValueCell.updateIfChanged(this.renderable.values.uOutlineScale, props.outline.params.scale);
+                    ValueCell.updateIfChanged(this.renderable.values.uOutlineThreshold, props.outline.params.threshold);
                 }
             }
-        })
+        });
 
-        this.renderable.update()
+        this.renderable.update();
     }
 
     render(toDrawingBuffer: boolean) {
-        ValueCell.update(this.renderable.values.uFar, this.camera.far)
-        ValueCell.update(this.renderable.values.uNear, this.camera.near)
-        ValueCell.update(this.renderable.values.uFogFar, this.camera.fogFar)
-        ValueCell.update(this.renderable.values.uFogNear, this.camera.fogNear)
-        ValueCell.update(this.renderable.values.dOrthographic, this.camera.state.mode === 'orthographic' ? 1 : 0)
+        ValueCell.update(this.renderable.values.uFar, this.camera.far);
+        ValueCell.update(this.renderable.values.uNear, this.camera.near);
+        ValueCell.update(this.renderable.values.uFogFar, this.camera.fogFar);
+        ValueCell.update(this.renderable.values.uFogNear, this.camera.fogNear);
+        ValueCell.update(this.renderable.values.dOrthographic, this.camera.state.mode === 'orthographic' ? 1 : 0);
 
-        const { gl, state } = this.webgl
+        const { gl, state } = this.webgl;
         if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer()
-            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight)
+            this.webgl.unbindFramebuffer();
+            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
         } else {
-            this.target.bind()
+            this.target.bind();
         }
-        state.disable(gl.SCISSOR_TEST)
-        state.disable(gl.BLEND)
-        state.disable(gl.DEPTH_TEST)
-        state.depthMask(false)
-        this.renderable.render()
+        state.disable(gl.SCISSOR_TEST);
+        state.disable(gl.BLEND);
+        state.disable(gl.DEPTH_TEST);
+        state.depthMask(false);
+        this.renderable.render();
     }
 }

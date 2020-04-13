@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as argparse from 'argparse'
-import { ObjectKeys } from '../../mol-util/type-helpers'
-import VERSION from './version'
-import * as fs from 'fs'
+import * as argparse from 'argparse';
+import { ObjectKeys } from '../../mol-util/type-helpers';
+import VERSION from './version';
+import * as fs from 'fs';
 import { ModelPropertyProviderConfig } from './property-provider';
 
 const DefaultModelServerConfig = {
@@ -108,12 +108,12 @@ const DefaultModelServerConfig = {
     ] as ([string, string] | [string, string, ModelServerFetchFormats])[]
 };
 
-export const ModelServerFetchFormats = ['cif', 'bcif', 'cif.gz', 'bcif.gz'] as const
+export const ModelServerFetchFormats = ['cif', 'bcif', 'cif.gz', 'bcif.gz'] as const;
 export type ModelServerFetchFormats = (typeof ModelServerFetchFormats)[number]
 
 export let mapSourceAndIdToFilename: (source: string, id: string) => [string, ModelServerFetchFormats] = () => {
     throw new Error('call setupConfig & validateConfigAndSetupSourceMap to initialize this function');
-}
+};
 
 function addServerArgs(parser: argparse.ArgumentParser) {
     parser.addArgument([ '--apiPrefix' ], {
@@ -200,7 +200,7 @@ function addServerArgs(parser: argparse.ArgumentParser) {
 }
 
 export type ModelServerConfig = typeof DefaultModelServerConfig
-export const ModelServerConfig = { ...DefaultModelServerConfig }
+export const ModelServerConfig = { ...DefaultModelServerConfig };
 
 export const ModelServerConfigTemplate: ModelServerConfig = {
     ...DefaultModelServerConfig,
@@ -210,10 +210,10 @@ export const ModelServerConfigTemplate: ModelServerConfig = {
         ['pdb-cif', './path-to-text-cif/${id.substr(1, 2)}/${id}.cif'],
         ['pdb-updated', 'https://www.ebi.ac.uk/pdbe/entry-files/download/${id}_updated.cif', 'cif']
     ] as [string, string][]
-}
+};
 
 // TODO: include once properly supported
-delete ModelServerConfigTemplate.customProperties
+delete ModelServerConfigTemplate.customProperties;
 
 interface ServerJsonConfig {
     cfg?: string,
@@ -276,7 +276,7 @@ export function configureServer() {
     }
 
     try {
-        setConfig(config) // sets the config for global use
+        setConfig(config); // sets the config for global use
 
         if (config.cfg) {
             const cfg = JSON.parse(fs.readFileSync(config.cfg, 'utf8')) as ModelServerConfig;

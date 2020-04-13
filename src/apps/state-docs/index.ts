@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as _ from '../../mol-plugin-state/transforms'
+import * as _ from '../../mol-plugin-state/transforms';
 import { StateTransformer, StateObject } from '../../mol-state';
 import { StringBuilder } from '../../mol-util';
 import * as fs from 'fs';
@@ -13,7 +13,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { ParamDefinition } from '../../mol-util/param-definition';
 
 // force the transform to be evaluated
-_.StateTransforms.Data.Download.id
+_.StateTransforms.Data.Download.id;
 
 // Empty plugin context
 const ctx = new PluginContext({
@@ -32,7 +32,7 @@ function writeTransformer(t: StateTransformer) {
     StringBuilder.write(builder, `## <a name="${t.id.replace('.', '-')}"></a>${t.id} :: ${typeToString(t.definition.from)} -> ${typeToString(t.definition.to)}`);
     StringBuilder.newline(builder);
     if (t.definition.display.description) {
-        StringBuilder.write(builder, `*${t.definition.display.description}*`)
+        StringBuilder.write(builder, `*${t.definition.display.description}*`);
         StringBuilder.newline(builder);
     }
     StringBuilder.newline(builder);
@@ -48,7 +48,7 @@ function writeTransformer(t: StateTransformer) {
         StringBuilder.write(builder, `\`\`\`js\n${JSON.stringify(ParamDefinition.getDefaultValues(params), null, 2)}\n\`\`\``);
         StringBuilder.newline(builder);
     }
-    StringBuilder.write(builder, '----------------------------')
+    StringBuilder.write(builder, '----------------------------');
     StringBuilder.newline(builder);
 }
 
@@ -62,7 +62,7 @@ transformers.forEach(t => {
     StringBuilder.newline(builder);
 });
 StringBuilder.newline(builder);
-StringBuilder.write(builder, '----------------------------')
+StringBuilder.write(builder, '----------------------------');
 StringBuilder.newline(builder);
 transformers.forEach(t => writeTransformer(t));
 

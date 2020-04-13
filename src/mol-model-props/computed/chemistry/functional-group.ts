@@ -12,19 +12,19 @@ import { eachBondedAtom, bondCount, typeSymbol, bondToElementCount } from './uti
 
 function isAromatic(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     // TODO also extend unit.rings with geometry/composition-based aromaticity detection and use it here in addition
-    const { offset, edgeProps } = unit.bonds
+    const { offset, edgeProps } = unit.bonds;
     for (let i = offset[index], il = offset[index + 1]; i < il; ++i) {
-        if (BondType.is(BondType.Flag.Aromatic, edgeProps.flags[i])) return true
+        if (BondType.is(BondType.Flag.Aromatic, edgeProps.flags[i])) return true;
     }
-    return false
+    return false;
 }
 
 function bondToCarbonylCount(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    let carbonylCount = 0
+    let carbonylCount = 0;
     eachBondedAtom(structure, unit, index, (unit: Unit.Atomic, index: StructureElement.UnitIndex) => {
-        if (isCarbonyl(structure, unit, index)) carbonylCount += 1
-    })
-    return carbonylCount
+        if (isCarbonyl(structure, unit, index)) carbonylCount += 1;
+    });
+    return carbonylCount;
 }
 
 //
@@ -37,7 +37,7 @@ export function isQuaternaryAmine(structure: Structure, unit: Unit.Atomic, index
         typeSymbol(unit, index) === Elements.N &&
         bondCount(structure, unit, index) === 4 &&
         bondToElementCount(structure, unit, index, Elements.H) === 0
-    )
+    );
 }
 
 /**
@@ -48,33 +48,33 @@ export function isTertiaryAmine(structure: Structure, unit: Unit.Atomic, index: 
         typeSymbol(unit, index) === Elements.N &&
         bondCount(structure, unit, index) === 4 &&
         idealValence === 3
-    )
+    );
 }
 
 /**
  * Nitrogen in an imide
  */
 export function isImide(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    let flag = false
+    let flag = false;
     if (typeSymbol(unit, index) === Elements.N &&
         (bondCount(structure, unit, index) - bondToElementCount(structure, unit, index, Elements.H)) === 2
     ) {
-        flag = bondToCarbonylCount(structure, unit, index) === 2
+        flag = bondToCarbonylCount(structure, unit, index) === 2;
     }
-    return flag
+    return flag;
 }
 
 /**
  * Nitrogen in an amide
  */
 export function isAmide(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    let flag = false
+    let flag = false;
     if (typeSymbol(unit, index) === Elements.N &&
         (bondCount(structure, unit, index) - bondToElementCount(structure, unit, index, Elements.H)) === 2
     ) {
-        flag = bondToCarbonylCount(structure, unit, index) === 1
+        flag = bondToCarbonylCount(structure, unit, index) === 1;
     }
-    return flag
+    return flag;
 }
 
 /**
@@ -85,7 +85,7 @@ export function isSulfonium(structure: Structure, unit: Unit.Atomic, index: Stru
         typeSymbol(unit, index) === Elements.S &&
         bondCount(structure, unit, index) === 3 &&
         bondToElementCount(structure, unit, index, Elements.H) === 0
-    )
+    );
 }
 
 /**
@@ -95,7 +95,7 @@ export function isSulfonicAcid(structure: Structure, unit: Unit.Atomic, index: S
     return (
         typeSymbol(unit, index) === Elements.S &&
         bondToElementCount(structure, unit, index, Elements.O) === 3
-    )
+    );
 }
 
 /**
@@ -105,7 +105,7 @@ export function isSulfate(structure: Structure, unit: Unit.Atomic, index: Struct
     return (
         typeSymbol(unit, index) === Elements.S &&
         bondToElementCount(structure, unit, index, Elements.O) === 4
-    )
+    );
 }
 
 /**
@@ -115,7 +115,7 @@ export function isPhosphate (structure: Structure, unit: Unit.Atomic, index: Str
     return (
         typeSymbol(unit, index) === Elements.P &&
         bondToElementCount(structure, unit, index, Elements.O) === bondCount(structure, unit, index)
-    )
+    );
 }
 
 /**
@@ -126,7 +126,7 @@ export function isHalocarbon (structure: Structure, unit: Unit.Atomic, index: St
         isHalogen(typeSymbol(unit, index)) &&
         bondCount(structure, unit, index) === 1 &&
         bondToElementCount(structure, unit, index, Elements.C) === 1
-    )
+    );
 }
 
 /**
@@ -135,24 +135,24 @@ export function isHalocarbon (structure: Structure, unit: Unit.Atomic, index: St
  * TODO currently only checks intra bonds for group detection
  */
 export function isCarbonyl(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    let flag = false
+    let flag = false;
     if (typeSymbol(unit, index) === Elements.C) {
-        const { offset, edgeProps, b } = unit.bonds
+        const { offset, edgeProps, b } = unit.bonds;
         for (let i = offset[index], il = offset[index + 1]; i < il; ++i) {
             if (edgeProps.order[i] === 2 && typeSymbol(unit, b[i] as StructureElement.UnitIndex) === Elements.O) {
-                flag = true
-                break
+                flag = true;
+                break;
             }
         }
     }
-    return flag
+    return flag;
 }
 
 /**
  * Carbon in a carboxylate group
  */
 export function isCarboxylate (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    let terminalOxygenCount = 0
+    let terminalOxygenCount = 0;
     if (
         typeSymbol(unit, index) === Elements.C &&
         bondToElementCount(structure, unit, index, Elements.O) === 2 &&
@@ -163,18 +163,18 @@ export function isCarboxylate (structure: Structure, unit: Unit.Atomic, index: S
                 typeSymbol(unit, index) === Elements.O &&
                 bondCount(structure, unit, index) - bondToElementCount(structure, unit, index, Elements.H) === 1
             ) {
-                terminalOxygenCount += 1
+                terminalOxygenCount += 1;
             }
-        })
+        });
     }
-    return terminalOxygenCount === 2
+    return terminalOxygenCount === 2;
 }
 
 /**
  * Carbon in a guanidine group
  */
 export function isGuanidine (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    let terminalNitrogenCount = 0
+    let terminalNitrogenCount = 0;
     if (
         typeSymbol(unit, index) === Elements.C &&
         bondCount(structure, unit, index) === 3 &&
@@ -184,18 +184,18 @@ export function isGuanidine (structure: Structure, unit: Unit.Atomic, index: Str
             if (
                 bondCount(structure, unit, index) - bondToElementCount(structure, unit, index, Elements.H) === 1
             ) {
-                terminalNitrogenCount += 1
+                terminalNitrogenCount += 1;
             }
-        })
+        });
     }
-    return terminalNitrogenCount === 2
+    return terminalNitrogenCount === 2;
 }
 
 /**
  * Carbon in a acetamidine group
  */
 export function isAcetamidine (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    let terminalNitrogenCount = 0
+    let terminalNitrogenCount = 0;
     if (
         typeSymbol(unit, index) === Elements.C &&
         bondCount(structure, unit, index) === 3 &&
@@ -206,28 +206,28 @@ export function isAcetamidine (structure: Structure, unit: Unit.Atomic, index: S
             if (
                 bondCount(structure, unit, index) - bondToElementCount(structure, unit, index, Elements.H) === 1
             ) {
-                terminalNitrogenCount += 1
+                terminalNitrogenCount += 1;
             }
-        })
+        });
     }
-    return terminalNitrogenCount === 2
+    return terminalNitrogenCount === 2;
 }
 
-const PolarElements = new Set<ElementSymbol>([ 'N', 'O', 'S', 'F', 'CL', 'BR', 'I' ] as ElementSymbol[])
-export function isPolar(element: ElementSymbol) { return PolarElements.has(element) }
+const PolarElements = new Set<ElementSymbol>([ 'N', 'O', 'S', 'F', 'CL', 'BR', 'I' ] as ElementSymbol[]);
+export function isPolar(element: ElementSymbol) { return PolarElements.has(element); }
 
 export function hasPolarNeighbour (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    let flag = false
+    let flag = false;
     eachBondedAtom(structure, unit, index, (unit: Unit.Atomic, index: StructureElement.UnitIndex) => {
-        if (isPolar(typeSymbol(unit, index))) flag = true
-    })
-    return flag
+        if (isPolar(typeSymbol(unit, index))) flag = true;
+    });
+    return flag;
 }
 
 export function hasAromaticNeighbour (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    let flag = false
+    let flag = false;
     eachBondedAtom(structure, unit, index, (unit: Unit.Atomic, index: StructureElement.UnitIndex) => {
-        if (isAromatic(unit, index)) flag = true
-    })
-    return flag
+        if (isAromatic(unit, index)) flag = true;
+    });
+    return flag;
 }

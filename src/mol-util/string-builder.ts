@@ -140,7 +140,7 @@ namespace StringBuilder {
      * @example writeFloat(123.2123, 100) -- 2 decim
      */
     export function writeFloat(builder: StringBuilder, val: number, precisionMultiplier: number) {
-        writeSafe(builder, '' + Math.round(precisionMultiplier * val) / precisionMultiplier)
+        writeSafe(builder, '' + Math.round(precisionMultiplier * val) / precisionMultiplier);
     }
 
     export function writeFloatPadLeft(builder: StringBuilder, val: number, precisionMultiplier: number, totalWidth: number) {
@@ -158,4 +158,4 @@ namespace StringBuilder {
     }
 }
 
-export default StringBuilder
+export default StringBuilder;

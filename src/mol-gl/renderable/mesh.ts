@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Renderable, RenderableState, createRenderable } from '../renderable'
+import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, ElementsSpec, DefineSpec, Values, InternalSchema, InternalValues } from './schema';
@@ -20,18 +20,18 @@ export const MeshSchema = {
     dDoubleSided: DefineSpec('boolean'),
     dFlipSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
-} as const
+} as const;
 export type MeshSchema = typeof MeshSchema
 export type MeshValues = Values<MeshSchema>
 
 export function MeshRenderable(ctx: WebGLContext, id: number, values: MeshValues, state: RenderableState, materialId: number): Renderable<MeshValues> {
-    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...MeshSchema }
+    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...MeshSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
         uPickable: ValueCell.create(state.pickable ? 1 : 0)
-    }
-    const shaderCode = MeshShaderCode
-    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
+    };
+    const shaderCode = MeshShaderCode;
+    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId);
 
-    return createRenderable(renderItem, values, state)
+    return createRenderable(renderItem, values, state);
 }

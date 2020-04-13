@@ -22,4 +22,4 @@ vec4 texture3dFrom2dLinear(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) {
     float delta0 = abs((pos.z * gridDim.z) - zSlice0);
     return mix(color0, color1, delta0);
 }
-`
+`;

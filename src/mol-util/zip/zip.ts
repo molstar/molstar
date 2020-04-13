@@ -49,8 +49,8 @@ export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames
         const usize = readUint(data, o);
         o += 4;
 
-        const nl = readUshort(data, o)
-        const el = readUshort(data, o + 2)
+        const nl = readUshort(data, o);
+        const el = readUshort(data, o + 2);
         const cl = readUshort(data, o + 4);
         o += 6;  // name, extra, comment
         o += 8;  // disk, attribs
@@ -128,55 +128,55 @@ export async function ungzip(runtime: RuntimeContext, file: Uint8Array, buf?: Ui
     // const id1 = file[0]
     // const id2 = file[1]
     // const cm = file[2]
-    const flg = file[3]
+    const flg = file[3];
     // const mtime = readUint(file, 4)
     // const xfl = file[8]
     // const os = file[9]
 
-    let o = 10
+    let o = 10;
     if (flg & 4) { // FEXTRA
-        const xlen = readUshort(file, o)
+        const xlen = readUshort(file, o);
         // console.log('FEXTRA', xlen)
-        o += xlen
+        o += xlen;
     }
     if (flg & 8) { // FNAME
-        let zero = o
-        while(file[zero] !== 0) ++zero
+        let zero = o;
+        while(file[zero] !== 0) ++zero;
         // const name = readUTF8(file, o, zero - o)
         // console.log('FNAME', name, zero - o)
-        o = zero + 1
+        o = zero + 1;
     }
     if (flg & 16) { // FCOMMENT
-        let zero = o
-        while(file[zero] !== 0) ++zero
+        let zero = o;
+        while(file[zero] !== 0) ++zero;
         // const comment = readUTF8(file, o, zero - o)
         // console.log('FCOMMENT', comment)
-        o = zero + 1
+        o = zero + 1;
     }
 
     if (flg & 1) { // FHCRC
         // const hcrc = readUshort(file, o)
         // console.log('FHCRC', hcrc)
-        o += 2
+        o += 2;
     }
 
-    const crc32 = toInt32(readUint(file, file.length - 8))
-    const isize = readUint(file, file.length - 4)
-    if (buf === undefined) buf = new Uint8Array(isize)
+    const crc32 = toInt32(readUint(file, file.length - 8));
+    const isize = readUint(file, file.length - 4);
+    if (buf === undefined) buf = new Uint8Array(isize);
 
-    const blocks = new Uint8Array(file.buffer, file.byteOffset + o, file.length - o - 8)
+    const blocks = new Uint8Array(file.buffer, file.byteOffset + o, file.length - o - 8);
     const inflated = await inflateRaw(runtime, blocks, buf);
-    const crcValue = crc(inflated, 0, inflated.length)
+    const crcValue = crc(inflated, 0, inflated.length);
     if (crc32 !== crcValue) {
-        console.error("ungzip: checksums don't match")
+        console.error("ungzip: checksums don't match");
     }
 
-    return inflated
+    return inflated;
 }
 
 export function deflate(data: Uint8Array, opts?: { level: number }/* , buf, off*/) {
     if(opts === undefined) opts = { level: 6 };
-    let off = 0
+    let off = 0;
     const buf = new Uint8Array(50 + Math.floor(data.length * 1.1));
     buf[off] = 120;  buf[off + 1] = 156;  off += 2;
     off = _deflateRaw(data, buf, off, opts.level);
@@ -199,7 +199,7 @@ export function zip(obj: { [k: string]: Uint8Array }, noCmpr = false) {
     let tot = 0;
     const zpd: { [k: string]: { cpr: boolean, usize: number, crc: number, file: Uint8Array } } = {};
     for(const p in obj) {
-        const cpr = !_noNeed(p) && !noCmpr, buf = obj[p]
+        const cpr = !_noNeed(p) && !noCmpr, buf = obj[p];
         const crcValue = crc(buf, 0, buf.length);
         zpd[p] = {
             cpr,
@@ -212,9 +212,9 @@ export function zip(obj: { [k: string]: Uint8Array }, noCmpr = false) {
     for(const p in zpd) tot += zpd[p].file.length + 30 + 46 + 2 * sizeUTF8(p);
     tot +=  22;
 
-    const data = new Uint8Array(tot)
+    const data = new Uint8Array(tot);
     let o = 0;
-    const fof = []
+    const fof = [];
 
     for(const p in zpd) {
         const file = zpd[p];  fof.push(o);

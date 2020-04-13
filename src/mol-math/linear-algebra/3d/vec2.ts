@@ -47,7 +47,7 @@ namespace Vec2 {
     }
 
     export function hasNaN(a: Vec2) {
-        return isNaN(a[0]) || isNaN(a[1])
+        return isNaN(a[0]) || isNaN(a[1]);
     }
 
     export function toArray(a: Vec2, out: NumberArray, offset: number) {
@@ -57,9 +57,9 @@ namespace Vec2 {
     }
 
     export function fromArray(a: Vec2, array: NumberArray, offset: number) {
-        a[0] = array[offset + 0]
-        a[1] = array[offset + 1]
-        return a
+        a[0] = array[offset + 0];
+        a[1] = array[offset + 1];
+        return a;
     }
 
     export function copy(out: Vec2, a: Vec2) {
@@ -173,4 +173,4 @@ namespace Vec2 {
     }
 }
 
-export default Vec2
+export default Vec2;

@@ -12,7 +12,7 @@ import { CustomProperty } from '../common/custom-property';
 
 export const ValenceModelParams = {
     ..._ValenceModelParams
-}
+};
 export type ValenceModelParams = typeof ValenceModelParams
 export type ValenceModelProps = PD.Values<ValenceModelParams>
 
@@ -29,7 +29,7 @@ export const ValenceModelProvider: CustomStructureProperty.Provider<ValenceModel
     getParams: (data: Structure) => ValenceModelParams,
     isApplicable: (data: Structure) => true,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<ValenceModelProps>) => {
-        const p = { ...PD.getDefaultValues(ValenceModelParams), ...props }
-        return await calcValenceModel(ctx.runtime, data, p)
+        const p = { ...PD.getDefaultValues(ValenceModelParams), ...props };
+        return await calcValenceModel(ctx.runtime, data, p);
     }
-})
+});

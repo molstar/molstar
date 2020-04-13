@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ShrakeRupleyComputationParams, AccessibleSurfaceArea } from './accessible-surface-area/shrake-rupley';
 import { Structure, CustomPropertyDescriptor, Unit } from '../../mol-model/structure';
 import { CustomStructureProperty } from '../common/custom-structure-property';
@@ -16,28 +16,28 @@ import Type from '../../mol-script/language/type';
 
 export const AccessibleSurfaceAreaParams = {
     ...ShrakeRupleyComputationParams
-}
+};
 export type AccessibleSurfaceAreaParams = typeof AccessibleSurfaceAreaParams
 export type AccessibleSurfaceAreaProps = PD.Values<AccessibleSurfaceAreaParams>
 
 export const AccessibleSurfaceAreaSymbols = {
     isBuried: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'accessible-surface-area.is-buried', Type.Bool),
         ctx => {
-            if (!Unit.isAtomic(ctx.element.unit)) return false
-            const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(ctx.element.structure).value
-            if (!accessibleSurfaceArea) return false
-            return AccessibleSurfaceArea.getFlag(ctx.element, accessibleSurfaceArea) === AccessibleSurfaceArea.Flag.Buried
+            if (!Unit.isAtomic(ctx.element.unit)) return false;
+            const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(ctx.element.structure).value;
+            if (!accessibleSurfaceArea) return false;
+            return AccessibleSurfaceArea.getFlag(ctx.element, accessibleSurfaceArea) === AccessibleSurfaceArea.Flag.Buried;
         }
     ),
     isAccessible: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'accessible-surface-area.is-accessible', Type.Bool),
         ctx => {
-            if (!Unit.isAtomic(ctx.element.unit)) return false
-            const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(ctx.element.structure).value
-            if (!accessibleSurfaceArea) return false
-            return AccessibleSurfaceArea.getFlag(ctx.element, accessibleSurfaceArea) === AccessibleSurfaceArea.Flag.Accessible
+            if (!Unit.isAtomic(ctx.element.unit)) return false;
+            const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(ctx.element.structure).value;
+            if (!accessibleSurfaceArea) return false;
+            return AccessibleSurfaceArea.getFlag(ctx.element, accessibleSurfaceArea) === AccessibleSurfaceArea.Flag.Accessible;
         }
     ),
-}
+};
 
 export type AccessibleSurfaceAreaValue = AccessibleSurfaceArea
 
@@ -53,7 +53,7 @@ export const AccessibleSurfaceAreaProvider: CustomStructureProperty.Provider<Acc
     getParams: (data: Structure) => AccessibleSurfaceAreaParams,
     isApplicable: (data: Structure) => true,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<AccessibleSurfaceAreaProps>) => {
-        const p = { ...PD.getDefaultValues(AccessibleSurfaceAreaParams), ...props }
-        return await AccessibleSurfaceArea.compute(data, p).runInContext(ctx.runtime)
+        const p = { ...PD.getDefaultValues(AccessibleSurfaceAreaParams), ...props };
+        return await AccessibleSurfaceArea.compute(data, p).runInContext(ctx.runtime);
     }
-})
+});

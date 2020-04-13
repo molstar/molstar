@@ -26,4 +26,4 @@ namespace UniqueArray {
     }
 }
 
-export { UniqueArray }
+export { UniqueArray };

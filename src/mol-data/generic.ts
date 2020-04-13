@@ -4,6 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from './generic/hash-set'
-export * from './generic/linked-list'
-export * from './generic/unique-array'
+export * from './generic/hash-set';
+export * from './generic/linked-list';
+export * from './generic/unique-array';

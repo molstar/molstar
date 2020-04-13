@@ -25,7 +25,7 @@ export interface StructureHierarchy {
 }
 
 export function StructureHierarchy(): StructureHierarchy {
-    return { trajectories: [], models: [], structures: [], refs: new Map() }
+    return { trajectories: [], models: [], structures: [], refs: new Map() };
 }
 
 interface RefBase<K extends string = string, O extends StateObject = StateObject, T extends StateTransformer = StateTransformer> {
@@ -258,7 +258,7 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
 
     // Component Representation
     [(cell, state) => {
-        return !cell.state.isGhost && !!state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj)
+        return !cell.state.isGhost && !!state.currentComponent && SO.Molecule.Structure.Representation3D.is(cell.obj);
     }, (state, cell) => {
         if (state.currentComponent) {
             createOrUpdateRefList(state, cell, state.currentComponent.representations, StructureRepresentationRef, cell, state.currentComponent);
@@ -276,7 +276,7 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
             createOrUpdateRefList(state, cell, genericTarget.genericRepresentations, GenericRepresentationRef, cell, genericTarget);
         }
     }, noop],
-]
+];
 
 function isValidCell(cell?: StateObjectCell): cell is StateObjectCell {
     if (!cell || !cell?.parent || !cell.parent.cells.has(cell.transform.ref)) return false;

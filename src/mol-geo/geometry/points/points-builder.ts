@@ -23,10 +23,10 @@ export namespace PointsBuilder {
                 ChunkedArray.add(groups, group);
             },
             getPoints: () => {
-                const cb = ChunkedArray.compact(centers, true) as Float32Array
-                const gb = ChunkedArray.compact(groups, true) as Float32Array
-                return Points.create(cb, gb, centers.elementCount, points)
+                const cb = ChunkedArray.compact(centers, true) as Float32Array;
+                const gb = ChunkedArray.compact(groups, true) as Float32Array;
+                return Points.create(cb, gb, centers.elementCount, points);
             }
-        }
+        };
     }
 }

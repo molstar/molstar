@@ -32,9 +32,9 @@ const HelixTypes: {[k: string]: mmCIF_Schema['struct_conf']['conf_type_id']['T']
     8: 'HELX_LH_GA_P',
     9: 'HELX_RH_27_P', // TODO or left-handed???
     10: 'HELX_RH_PP_P', // TODO or left-handed???
-}
+};
 function getStructConfTypeId(type: string): mmCIF_Schema['struct_conf']['conf_type_id']['T'] {
-    return HelixTypes[type] || 'HELX_P'
+    return HelixTypes[type] || 'HELX_P';
 }
 
 interface PdbHelix {
@@ -54,7 +54,7 @@ interface PdbHelix {
 }
 
 export function parseHelix(lines: Tokens, lineStart: number, lineEnd: number): CifCategory {
-    const helices: PdbHelix[] = []
+    const helices: PdbHelix[] = [];
     const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1]);
 
     for (let i = lineStart; i < lineEnd; i++) {
@@ -94,16 +94,16 @@ export function parseHelix(lines: Tokens, lineStart: number, lineEnd: number): C
             helixClass: line.substr(38, 2).trim(),
             comment: line.substr(40, 30).trim(),
             length: line.substr(71, 5).trim()
-        })
+        });
     }
 
-    const beg_auth_asym_id = CifField.ofStrings(helices.map(h => h.initChainID))
-    const beg_auth_comp_id = CifField.ofStrings(helices.map(h => h.initResName))
-    const beg_auth_seq_id = CifField.ofStrings(helices.map(h => h.initSeqNum))
+    const beg_auth_asym_id = CifField.ofStrings(helices.map(h => h.initChainID));
+    const beg_auth_comp_id = CifField.ofStrings(helices.map(h => h.initResName));
+    const beg_auth_seq_id = CifField.ofStrings(helices.map(h => h.initSeqNum));
 
-    const end_auth_asym_id = CifField.ofStrings(helices.map(h => h.endChainID))
-    const end_auth_comp_id = CifField.ofStrings(helices.map(h => h.endResName))
-    const end_auth_seq_id = CifField.ofStrings(helices.map(h => h.endSeqNum))
+    const end_auth_asym_id = CifField.ofStrings(helices.map(h => h.endChainID));
+    const end_auth_comp_id = CifField.ofStrings(helices.map(h => h.endResName));
+    const end_auth_seq_id = CifField.ofStrings(helices.map(h => h.endSeqNum));
 
     const struct_conf: CifCategory.Fields<mmCIF_Schema['struct_conf']> = {
         beg_label_asym_id: beg_auth_asym_id,
@@ -161,7 +161,7 @@ interface PdbSheet {
 }
 
 export function parseSheet(lines: Tokens, lineStart: number, lineEnd: number): CifCategory {
-    const sheets: PdbSheet[] = []
+    const sheets: PdbSheet[] = [];
     const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1]);
 
     for (let i = lineStart; i < lineEnd; i++) {
@@ -227,16 +227,16 @@ export function parseSheet(lines: Tokens, lineStart: number, lineEnd: number): C
             prevChainId: line.substr(64, 1).trim(),
             prevResSeq: line.substr(65, 4).trim(),
             prevICode: line.substr(69, 1).trim(),
-        })
+        });
     }
 
-    const beg_auth_asym_id = CifField.ofStrings(sheets.map(s => s.initChainID))
-    const beg_auth_comp_id = CifField.ofStrings(sheets.map(s => s.initResName))
-    const beg_auth_seq_id = CifField.ofStrings(sheets.map(s => s.initSeqNum))
+    const beg_auth_asym_id = CifField.ofStrings(sheets.map(s => s.initChainID));
+    const beg_auth_comp_id = CifField.ofStrings(sheets.map(s => s.initResName));
+    const beg_auth_seq_id = CifField.ofStrings(sheets.map(s => s.initSeqNum));
 
-    const end_auth_asym_id = CifField.ofStrings(sheets.map(s => s.endChainID))
-    const end_auth_comp_id = CifField.ofStrings(sheets.map(s => s.endResName))
-    const end_auth_seq_id = CifField.ofStrings(sheets.map(s => s.endSeqNum))
+    const end_auth_asym_id = CifField.ofStrings(sheets.map(s => s.endChainID));
+    const end_auth_comp_id = CifField.ofStrings(sheets.map(s => s.endResName));
+    const end_auth_seq_id = CifField.ofStrings(sheets.map(s => s.endSeqNum));
 
     const struct_sheet_range: CifCategory.Fields<mmCIF_Schema['struct_sheet_range']> = {
         beg_label_asym_id: beg_auth_asym_id,

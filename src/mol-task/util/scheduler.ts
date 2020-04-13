@@ -182,7 +182,7 @@ const immediateActions = (function () {
                 clearImmediate: (handle: any) => (window as any).clearImmediate(handle)
             };
         } else {
-            return { setImmediate, clearImmediate }
+            return { setImmediate, clearImmediate };
         }
     }
     return createImmediateActions();
@@ -197,7 +197,7 @@ const Scheduler = {
     clearImmediate: immediateActions.clearImmediate,
     immediatePromise() { return new Promise<void>(resolveImmediate); },
 
-    delay<T>(timeout: number, value: T | undefined = void 0): Promise<T> { return new Promise(r => setTimeout(r, timeout, value)) }
-}
+    delay<T>(timeout: number, value: T | undefined = void 0): Promise<T> { return new Promise(r => setTimeout(r, timeout, value)); }
+};
 
-export { Scheduler }
+export { Scheduler };

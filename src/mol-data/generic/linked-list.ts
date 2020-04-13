@@ -114,4 +114,4 @@ class LinkedListImpl<T> implements LinkedList<T> {
     }
 }
 
-export { LinkedList }
+export { LinkedList };

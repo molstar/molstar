@@ -59,4 +59,4 @@ export const QuerySchemas = {
         includeCategory(name) { return AssemblyCategories.has(name); },
         includeField(cat, field) { return true; }
     }
-}
+};

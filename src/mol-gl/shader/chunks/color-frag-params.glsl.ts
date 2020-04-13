@@ -19,4 +19,4 @@ export default `
     varying float vGroup;
     varying float vTransparency;
 #endif
-`
+`;

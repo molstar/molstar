@@ -11,10 +11,10 @@ import { Table } from '../../../mol-data/db';
 export function getModelGroupName(model_id: number, data: BasicData) {
     const { ihm_model_group, ihm_model_group_link } = data;
 
-    const link = Table.pickRow(ihm_model_group_link, i => ihm_model_group_link.model_id.value(i) === model_id)
+    const link = Table.pickRow(ihm_model_group_link, i => ihm_model_group_link.model_id.value(i) === model_id);
     if (link) {
-        const group = Table.pickRow(ihm_model_group, i => ihm_model_group.id.value(i) === link.group_id)
-        if (group) return group.name
+        const group = Table.pickRow(ihm_model_group, i => ihm_model_group.id.value(i) === link.group_id);
+        if (group) return group.name;
     }
-    return ''
+    return '';
 }

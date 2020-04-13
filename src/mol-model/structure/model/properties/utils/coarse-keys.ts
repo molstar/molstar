@@ -33,19 +33,19 @@ function createLookUp(entities: Entities, chain: Map<number, Map<string, number>
         const cm = chain.get(eKey)!;
         if (!cm.has(c)) return -1 as ChainIndex;
         return cm.get(c)! as ChainIndex;
-    }
+    };
     const findSequenceKey: CoarsedElementKeys['findSequenceKey'] = (e, c, s) => {
         const eKey = getEntKey(e);
         if (eKey < 0) return -1 as ElementIndex;
         const cm = chain.get(eKey);
-        if (cm === undefined) return -1 as ElementIndex
-        const cKey = cm.get(c)
-        if (cKey === undefined) return -1 as ElementIndex
-        const sm = seq.get(cKey)!
-        const { elementIndices, seqRanges } = sm
-        const idx = SortedRanges.firstIntersectionIndex(seqRanges, OrderedSet.ofSingleton(s))
-        return (idx !== -1 ? elementIndices[idx] : -1)  as ElementIndex
-    }
+        if (cm === undefined) return -1 as ElementIndex;
+        const cKey = cm.get(c);
+        if (cKey === undefined) return -1 as ElementIndex;
+        const sm = seq.get(cKey)!;
+        const { elementIndices, seqRanges } = sm;
+        const idx = SortedRanges.firstIntersectionIndex(seqRanges, OrderedSet.ofSingleton(s));
+        return (idx !== -1 ? elementIndices[idx] : -1)  as ElementIndex;
+    };
     return { findChainKey, findSequenceKey };
 }
 
@@ -72,34 +72,34 @@ export function getCoarseKeys(data: CoarseElementData, entities: Entities): Coar
     }
 
     for (let cI = 0; cI < chainElementSegments.count; cI++) {
-        const start = chainElementSegments.offsets[cI]
+        const start = chainElementSegments.offsets[cI];
         const end = chainElementSegments.offsets[cI + 1];
-        const eK = entityKey[start]
+        const eK = entityKey[start];
 
-        chainToEntity[cI] = eK
+        chainToEntity[cI] = eK;
 
         const map = getElementSubstructureKeyMap(chainMaps, eK);
         const key = getElementKey(map, asym_id.value(start), chainCounter) as ChainIndex;
         for (let i = start; i < end; i++) chainKey[i] = key;
 
         // create seq_id map for the ranges defined by seq_id_begin and seq_id_end
-        const elementIndices: number[] = []
-        const seqRanges: number[] = []
+        const elementIndices: number[] = [];
+        const seqRanges: number[] = [];
         for (let i = start; i < end; i++) {
-            const seqStart = seq_id_begin.value(i)
-            const seqEnd = seq_id_end.value(i)
-            elementIndices.push(i)
-            seqRanges.push(seqStart, seqEnd)
+            const seqStart = seq_id_begin.value(i);
+            const seqEnd = seq_id_end.value(i);
+            elementIndices.push(i);
+            seqRanges.push(seqStart, seqEnd);
         }
-        const seqMap = { elementIndices, seqRanges: SortedRanges.ofSortedRanges(seqRanges) }
-        seqMaps.set(key, seqMap)
+        const seqMap = { elementIndices, seqRanges: SortedRanges.ofSortedRanges(seqRanges) };
+        seqMaps.set(key, seqMap);
     }
 
     const { findChainKey, findSequenceKey } = createLookUp(entities, chainMaps, seqMaps);
 
     const getEntityFromChain: CoarsedElementKeys['getEntityFromChain'] = c => {
-        return chainToEntity[c]
-    }
+        return chainToEntity[c];
+    };
 
     return { chainKey, entityKey, findSequenceKey, findChainKey, getEntityFromChain };
 }

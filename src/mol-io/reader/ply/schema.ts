@@ -27,12 +27,12 @@ export const PlyTypeByteLength = {
     'uint32': 4,
     'float32': 4,
     'float64': 8
-}
+};
 export type PlyType = keyof typeof PlyTypeByteLength
-export const PlyTypes = new Set(Object.keys(PlyTypeByteLength))
+export const PlyTypes = new Set(Object.keys(PlyTypeByteLength));
 export function PlyType(str: string) {
-    if (!PlyTypes.has(str)) throw new Error(`unknown ply type '${str}'`)
-    return str as PlyType
+    if (!PlyTypes.has(str)) throw new Error(`unknown ply type '${str}'`);
+    return str as PlyType;
 }
 
 export interface PlyFile {
@@ -42,15 +42,15 @@ export interface PlyFile {
 }
 
 export function PlyFile(elements: PlyElement[], elementNames: string[], comments: string[]): PlyFile {
-    const elementMap = new Map<string, PlyElement>()
+    const elementMap = new Map<string, PlyElement>();
     for (let i = 0, il = elementNames.length; i < il; ++i) {
-        elementMap.set(elementNames[i], elements[i])
+        elementMap.set(elementNames[i], elements[i]);
     }
     return {
         comments,
         elementNames,
         getElement: (name: string) => {
-            return elementMap.get(name)
+            return elementMap.get(name);
         }
     };
 }

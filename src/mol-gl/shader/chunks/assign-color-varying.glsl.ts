@@ -23,4 +23,4 @@ export default `
     vGroup = group;
     vTransparency = readFromTexture(tTransparency, aInstance * float(uGroupCount) + group, uTransparencyTexDim).a;
 #endif
-`
+`;

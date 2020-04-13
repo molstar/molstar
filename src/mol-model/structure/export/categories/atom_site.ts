@@ -80,7 +80,7 @@ export const _atom_site: CifCategory<CifExportContext> = {
             }))
         };
     }
-}
+};
 
 function prepostfixed(prefix: string | undefined, postfix: string | undefined, name: string) {
     if (prefix && postfix) return `${prefix}_${name}_${postfix}`;
@@ -135,7 +135,7 @@ export function chainIdFields<K, D>(getLocation: (key: K, data: D) => StructureE
     const ret = CifField.build<K, D>()
         .str(prepostfixed(prefix, postfix, `label_asym_id`), mappedProp(getLocation, P.chain.label_asym_id))
         .str(prepostfixed(prefix, postfix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id))
-        .str(prepostfixed(prefix, postfix, `auth_asym_id`), mappedProp(getLocation, P.chain.auth_asym_id))
+        .str(prepostfixed(prefix, postfix, `auth_asym_id`), mappedProp(getLocation, P.chain.auth_asym_id));
 
     addModelNum(ret, getLocation, options);
     return ret.getFields();
@@ -144,7 +144,7 @@ export function chainIdFields<K, D>(getLocation: (key: K, data: D) => StructureE
 export function entityIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement.Location, options?: IdFieldsOptions): CifField<K, D>[] {
     const prefix = options && options.prefix, postfix = options && options.postfix;
     const ret = CifField.build<K, D>()
-        .str(prepostfixed(prefix, postfix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id))
+        .str(prepostfixed(prefix, postfix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id));
 
     addModelNum(ret, getLocation, options);
     return ret.getFields();

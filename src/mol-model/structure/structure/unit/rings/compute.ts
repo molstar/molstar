@@ -187,7 +187,7 @@ function addRing(state: State, a: number, b: number) {
         if (current < 0) break;
     }
 
-    const len = leftOffset + rightOffset
+    const len = leftOffset + rightOffset;
     // rings must have at least three elements
     if (len < 3) {
         return;
@@ -348,7 +348,7 @@ export function createIndex(rings: ArrayLike<SortedArray<StructureElement.UnitIn
 
     // for each ring atom, assign all aromatic rings that it is present in
     for (let aI = 0, _aI = aromaticRings.length; aI < _aI; aI++) {
-        const rI = aromaticRings[aI]
+        const rI = aromaticRings[aI];
         const r = rings[rI];
         for (let i = 0, _i = r.length; i < _i; i++) {
             const e = r[i];

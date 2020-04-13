@@ -41,7 +41,7 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
             })
         })
     };
-}
+};
 
 type StructureFocusRepresentationProps = PD.ValuesFor<ReturnType<typeof StructureFocusRepresentationParams>>
 
@@ -53,7 +53,7 @@ export enum StructureFocusRepresentationTags {
     SurrNciRepr = 'structure-focus-surr-nci-repr'
 }
 
-const TagSet: Set<StructureFocusRepresentationTags> = new Set([StructureFocusRepresentationTags.TargetSel, StructureFocusRepresentationTags.TargetRepr, StructureFocusRepresentationTags.SurrSel, StructureFocusRepresentationTags.SurrRepr, StructureFocusRepresentationTags.SurrNciRepr])
+const TagSet: Set<StructureFocusRepresentationTags> = new Set([StructureFocusRepresentationTags.TargetSel, StructureFocusRepresentationTags.TargetRepr, StructureFocusRepresentationTags.SurrSel, StructureFocusRepresentationTags.SurrRepr, StructureFocusRepresentationTags.SurrNciRepr]);
 
 export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscribers<StructureFocusRepresentationProps> {
     private get surrLabel() { return `[Focus] Surroundings (${this.params.expandRadius} Å)`; }
@@ -125,8 +125,8 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
         const parent = this.plugin.helpers.substructureParent.get(loci.structure);
         if (!parent || !parent.obj) return;
 
-        const residueLoci = StructureElement.Loci.extendToWholeResidues(StructureElement.Loci.remap(loci, parent.obj!.data))
-        const residueBundle = StructureElement.Bundle.fromLoci(residueLoci)
+        const residueLoci = StructureElement.Loci.extendToWholeResidues(StructureElement.Loci.remap(loci, parent.obj!.data));
+        const residueBundle = StructureElement.Bundle.fromLoci(residueLoci);
 
         const surroundings = MS.struct.modifier.includeSurroundings({
             0: StructureElement.Bundle.toExpression(residueBundle),
@@ -146,8 +146,8 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
 
     register(ref: string): void {
         this.subscribeObservable(this.plugin.managers.structure.focus.behaviors.current, (entry) => {
-            if (entry) this.focus(entry.loci)
-            else this.clear(StateTransform.RootRef)
+            if (entry) this.focus(entry.loci);
+            else this.clear(StateTransform.RootRef);
         });
     }
 

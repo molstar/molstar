@@ -20,29 +20,29 @@ import { createModels } from './basic/parser';
 // TODO multi model files
 
 function getBasic(atoms: GroAtoms): BasicData {
-    const auth_atom_id = atoms.atomName
-    const auth_comp_id = atoms.residueName
+    const auth_atom_id = atoms.atomName;
+    const auth_comp_id = atoms.residueName;
 
-    const entityIds = new Array<string>(atoms.count)
-    const asymIds = new Array<string>(atoms.count)
-    const seqIds = new Uint32Array(atoms.count)
-    const ids = new Uint32Array(atoms.count)
+    const entityIds = new Array<string>(atoms.count);
+    const asymIds = new Array<string>(atoms.count);
+    const seqIds = new Uint32Array(atoms.count);
+    const ids = new Uint32Array(atoms.count);
 
-    const entityBuilder = new EntityBuilder()
-    const componentBuilder = new ComponentBuilder(atoms.residueNumber, atoms.atomName)
+    const entityBuilder = new EntityBuilder();
+    const componentBuilder = new ComponentBuilder(atoms.residueNumber, atoms.atomName);
 
-    let currentEntityId = ''
-    let currentAsymIndex = 0
-    let currentAsymId = ''
-    let currentSeqId = 0
-    let prevMoleculeType = MoleculeType.Unknown
-    let prevResidueNumber = -1
+    let currentEntityId = '';
+    let currentAsymIndex = 0;
+    let currentAsymId = '';
+    let currentSeqId = 0;
+    let prevMoleculeType = MoleculeType.Unknown;
+    let prevResidueNumber = -1;
 
     for (let i = 0, il = atoms.count; i < il; ++i) {
-        const residueNumber = atoms.residueNumber.value(i)
+        const residueNumber = atoms.residueNumber.value(i);
         if (residueNumber !== prevResidueNumber) {
-            const compId = atoms.residueName.value(i)
-            const moleculeType = getMoleculeType(componentBuilder.add(compId, i).type, compId)
+            const compId = atoms.residueName.value(i);
+            const moleculeType = getMoleculeType(componentBuilder.add(compId, i).type, compId);
 
             if (moleculeType !== prevMoleculeType || (
                 residueNumber !== prevResidueNumber + 1 && !(
@@ -50,25 +50,25 @@ function getBasic(atoms: GroAtoms): BasicData {
                     prevResidueNumber === 99999 && residueNumber === 0
                 )
             )) {
-                currentAsymId = getChainId(currentAsymIndex)
-                currentAsymIndex += 1
-                currentSeqId = 0
+                currentAsymId = getChainId(currentAsymIndex);
+                currentAsymIndex += 1;
+                currentSeqId = 0;
             }
 
-            currentEntityId = entityBuilder.getEntityId(compId, moleculeType, currentAsymId)
-            currentSeqId += 1
+            currentEntityId = entityBuilder.getEntityId(compId, moleculeType, currentAsymId);
+            currentSeqId += 1;
 
-            prevResidueNumber = residueNumber
-            prevMoleculeType = moleculeType
+            prevResidueNumber = residueNumber;
+            prevMoleculeType = moleculeType;
         }
 
-        entityIds[i] = currentEntityId
-        asymIds[i] = currentAsymId
-        seqIds[i] = currentSeqId
-        ids[i] = i
+        entityIds[i] = currentEntityId;
+        asymIds[i] = currentAsymId;
+        seqIds[i] = currentSeqId;
+        ids[i] = i;
     }
 
-    const auth_asym_id = Column.ofStringArray(asymIds)
+    const auth_asym_id = Column.ofStringArray(asymIds);
 
     const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
         auth_asym_id,
@@ -90,24 +90,24 @@ function getBasic(atoms: GroAtoms): BasicData {
         type_symbol: Column.ofStringArray(Column.mapToArray(atoms.atomName, s => guessElementSymbolString(s))),
 
         pdbx_PDB_model_num: Column.ofConst(1, atoms.count, Column.Schema.int),
-    }, atoms.count)
+    }, atoms.count);
 
     return createBasic({
         entity: entityBuilder.getEntityTable(),
         chem_comp: componentBuilder.getChemCompTable(),
         atom_site
-    })
+    });
 }
 
 //
 
-export { GroFormat }
+export { GroFormat };
 
 type GroFormat = ModelFormat<GroFile>
 
 namespace GroFormat {
     export function is(x: ModelFormat): x is GroFormat {
-        return x.kind === 'gro'
+        return x.kind === 'gro';
     }
 
     export function fromGro(gro: GroFile): GroFormat {
@@ -118,7 +118,7 @@ namespace GroFormat {
 export function trajectoryFromGRO(gro: GroFile): Task<Model.Trajectory> {
     return Task.create('Parse GRO', async ctx => {
         const format = GroFormat.fromGro(gro);
-        const basic = getBasic(gro.structures[0].atoms)
+        const basic = getBasic(gro.structures[0].atoms);
         return createModels(basic, format, ctx);
-    })
+    });
 }

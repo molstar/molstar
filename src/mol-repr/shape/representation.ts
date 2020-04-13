@@ -36,208 +36,208 @@ export interface ShapeBuilder<G extends Geometry, P extends Geometry.Params<G>> 
 }
 
 export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>>(getShape: ShapeGetter<D, G, P>, geometryUtils: GeometryUtils<G>, builder: ShapeBuilder<G, P> = {}): ShapeRepresentation<D, G, P> {
-    let version = 0
-    const updated = new Subject<number>()
-    const _state = Representation.createState()
-    const materialId = getNextMaterialId()
-    const renderObjects: GraphicsRenderObject<G['kind']>[] = []
-    let _renderObject: GraphicsRenderObject<G['kind']> | undefined
-    let _shape: Shape<G>
-    let _theme = Theme.createEmpty()
-    let currentProps: PD.Values<P> = PD.getDefaultValues(geometryUtils.Params as P) // TODO avoid casting
-    let currentParams: P
-    let locationIt: LocationIterator
+    let version = 0;
+    const updated = new Subject<number>();
+    const _state = Representation.createState();
+    const materialId = getNextMaterialId();
+    const renderObjects: GraphicsRenderObject<G['kind']>[] = [];
+    let _renderObject: GraphicsRenderObject<G['kind']> | undefined;
+    let _shape: Shape<G>;
+    let _theme = Theme.createEmpty();
+    let currentProps: PD.Values<P> = PD.getDefaultValues(geometryUtils.Params as P); // TODO avoid casting
+    let currentParams: P;
+    let locationIt: LocationIterator;
 
-    if (builder.modifyState) Representation.updateState(_state, builder.modifyState(_state))
+    if (builder.modifyState) Representation.updateState(_state, builder.modifyState(_state));
 
-    const updateState = VisualUpdateState.create()
+    const updateState = VisualUpdateState.create();
 
     function prepareUpdate(props: Partial<PD.Values<P>> = {}, shape?: Shape<G>) {
-        VisualUpdateState.reset(updateState)
+        VisualUpdateState.reset(updateState);
 
         if (!shape && !_shape) {
             // console.error('no shape given')
-            return
+            return;
         } else if (shape && !_shape) {
             // console.log('first shape')
-            updateState.createNew = true
+            updateState.createNew = true;
         } else if (shape && _shape && shape.id === _shape.id) {
             // console.log('same shape')
             // nothing to set
         } else if (shape && _shape && shape.id !== _shape.id) {
             // console.log('new shape')
-            updateState.updateTransform = true
-            updateState.createGeometry = true
+            updateState.updateTransform = true;
+            updateState.createGeometry = true;
         } else if (!shape) {
             // console.log('only props')
             // nothing to set
         } else {
-            console.warn('unexpected state')
+            console.warn('unexpected state');
         }
 
         if (updateState.updateTransform) {
-            updateState.updateColor = true
-            updateState.updateSize = true
+            updateState.updateColor = true;
+            updateState.updateSize = true;
         }
 
         if (updateState.createGeometry) {
-            updateState.updateColor = true
-            updateState.updateSize = true
+            updateState.updateColor = true;
+            updateState.updateSize = true;
         }
     }
 
     function createOrUpdate(props: Partial<PD.Values<P>> = {}, data?: D) {
-        if (builder.modifyProps) props = builder.modifyProps(props)
+        if (builder.modifyProps) props = builder.modifyProps(props);
 
         return Task.create('ShapeRepresentation.create', async runtime => {
-            const newProps = Object.assign(currentProps, props)
-            const shape = data ? await getShape(runtime, data, newProps, _shape) : undefined
+            const newProps = Object.assign(currentProps, props);
+            const shape = data ? await getShape(runtime, data, newProps, _shape) : undefined;
 
-            prepareUpdate(props, shape)
+            prepareUpdate(props, shape);
 
             if (shape) {
-                _shape = shape
-                Object.assign(_theme, Shape.getTheme(_shape))
+                _shape = shape;
+                Object.assign(_theme, Shape.getTheme(_shape));
             }
 
             if (updateState.createNew) {
-                renderObjects.length = 0 // clear list o renderObjects
-                locationIt = Shape.groupIterator(_shape)
-                const transform = Shape.createTransform(_shape.transforms)
-                const values = geometryUtils.createValues(_shape.geometry, transform, locationIt, _theme, newProps)
-                const state = geometryUtils.createRenderableState(newProps)
-                if (builder.modifyState) Object.assign(state, builder.modifyState(state))
-                Representation.updateState(_state, state)
+                renderObjects.length = 0; // clear list o renderObjects
+                locationIt = Shape.groupIterator(_shape);
+                const transform = Shape.createTransform(_shape.transforms);
+                const values = geometryUtils.createValues(_shape.geometry, transform, locationIt, _theme, newProps);
+                const state = geometryUtils.createRenderableState(newProps);
+                if (builder.modifyState) Object.assign(state, builder.modifyState(state));
+                Representation.updateState(_state, state);
 
-                _renderObject = createRenderObject(_shape.geometry.kind, values, state, materialId)
-                if (_renderObject) renderObjects.push(_renderObject) // add new renderObject to list
+                _renderObject = createRenderObject(_shape.geometry.kind, values, state, materialId);
+                if (_renderObject) renderObjects.push(_renderObject); // add new renderObject to list
             } else {
                 if (!_renderObject) {
-                    throw new Error('expected renderObject to be available')
+                    throw new Error('expected renderObject to be available');
                 }
 
                 if (updateState.updateTransform) {
                     // console.log('update transform')
-                    Shape.createTransform(_shape.transforms, _renderObject.values)
-                    locationIt = Shape.groupIterator(_shape)
-                    const { instanceCount, groupCount } = locationIt
-                    createMarkers(instanceCount * groupCount, _renderObject.values)
+                    Shape.createTransform(_shape.transforms, _renderObject.values);
+                    locationIt = Shape.groupIterator(_shape);
+                    const { instanceCount, groupCount } = locationIt;
+                    createMarkers(instanceCount * groupCount, _renderObject.values);
                 }
 
                 if (updateState.createGeometry) {
                     // console.log('update geometry')
-                    ValueCell.update(_renderObject.values.drawCount, Geometry.getDrawCount(_shape.geometry))
+                    ValueCell.update(_renderObject.values.drawCount, Geometry.getDrawCount(_shape.geometry));
                 }
 
                 if (updateState.updateTransform || updateState.createGeometry) {
                     // console.log('updateBoundingSphere')
-                    geometryUtils.updateBoundingSphere(_renderObject.values as RenderObjectValues<G['kind']>, _shape.geometry)
+                    geometryUtils.updateBoundingSphere(_renderObject.values as RenderObjectValues<G['kind']>, _shape.geometry);
                 }
 
                 if (updateState.updateColor) {
                     // console.log('update color')
-                    createColors(locationIt, _theme.color, _renderObject.values)
+                    createColors(locationIt, _theme.color, _renderObject.values);
                 }
 
                 if (updateState.updateSize) {
                     // not all geometries have size data, so check here
                     if ('uSize' in _renderObject.values) {
                         // console.log('update size')
-                        createSizes(locationIt, _theme.size, _renderObject.values as SizeData)
+                        createSizes(locationIt, _theme.size, _renderObject.values as SizeData);
                     }
                 }
 
-                geometryUtils.updateValues(_renderObject.values as RenderObjectValues<G['kind']>, newProps)
-                geometryUtils.updateRenderableState(_renderObject.state, newProps)
+                geometryUtils.updateValues(_renderObject.values as RenderObjectValues<G['kind']>, newProps);
+                geometryUtils.updateRenderableState(_renderObject.state, newProps);
             }
 
-            currentProps = newProps
+            currentProps = newProps;
             // increment version
-            updated.next(version++)
+            updated.next(version++);
         });
     }
 
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
         if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === _shape)) {
-            return apply(Interval.ofBounds(0, _shape.groupCount * _shape.transforms.length))
+            return apply(Interval.ofBounds(0, _shape.groupCount * _shape.transforms.length));
         } else {
-            return eachShapeGroup(loci, _shape, apply)
+            return eachShapeGroup(loci, _shape, apply);
         }
     }
 
     return {
         label: 'Shape geometry',
-        get groupCount () { return locationIt ? locationIt.count : 0 },
-        get props () { return currentProps },
-        get params () { return currentParams },
-        get state() { return _state },
-        get theme() { return _theme },
+        get groupCount () { return locationIt ? locationIt.count : 0; },
+        get props () { return currentProps; },
+        get params () { return currentParams; },
+        get state() { return _state; },
+        get theme() { return _theme; },
         renderObjects,
         updated,
         createOrUpdate,
         getLoci(pickingId?: PickingId) {
-            if (pickingId === undefined) return Shape.Loci(_shape)
-            const { objectId, groupId, instanceId } = pickingId
+            if (pickingId === undefined) return Shape.Loci(_shape);
+            const { objectId, groupId, instanceId } = pickingId;
             if (_renderObject && _renderObject.id === objectId) {
-                return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId), instance: instanceId }])
+                return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId), instance: instanceId }]);
             }
-            return EmptyLoci
+            return EmptyLoci;
         },
         mark(loci: Loci, action: MarkerAction) {
-            if (!MarkerActions.is(_state.markerActions, action)) return false
+            if (!MarkerActions.is(_state.markerActions, action)) return false;
             if (ShapeGroup.isLoci(loci) || Shape.isLoci(loci)) {
-                if (loci.shape !== _shape) return false
+                if (loci.shape !== _shape) return false;
             } else if (!isEveryLoci(loci)) {
-                return false
+                return false;
             }
-            return Visual.mark(_renderObject, loci, action, lociApply)
+            return Visual.mark(_renderObject, loci, action, lociApply);
         },
         setState(state: Partial<Representation.State>) {
-            if (builder.modifyState) state = builder.modifyState(state)
+            if (builder.modifyState) state = builder.modifyState(state);
 
             if (_renderObject) {
-                if (state.visible !== undefined) Visual.setVisibility(_renderObject, state.visible)
-                if (state.alphaFactor !== undefined) Visual.setAlphaFactor(_renderObject, state.alphaFactor)
-                if (state.pickable !== undefined) Visual.setPickable(_renderObject, state.pickable)
+                if (state.visible !== undefined) Visual.setVisibility(_renderObject, state.visible);
+                if (state.alphaFactor !== undefined) Visual.setAlphaFactor(_renderObject, state.alphaFactor);
+                if (state.pickable !== undefined) Visual.setPickable(_renderObject, state.pickable);
                 if (state.overpaint !== undefined) {
-                    Visual.setOverpaint(_renderObject, state.overpaint, lociApply, true)
+                    Visual.setOverpaint(_renderObject, state.overpaint, lociApply, true);
                 }
                 if (state.transparency !== undefined) {
-                    Visual.setTransparency(_renderObject, state.transparency, lociApply, true)
+                    Visual.setTransparency(_renderObject, state.transparency, lociApply, true);
                 }
-                if (state.transform !== undefined) Visual.setTransform(_renderObject, state.transform)
+                if (state.transform !== undefined) Visual.setTransform(_renderObject, state.transform);
             }
 
-            Representation.updateState(_state, state)
+            Representation.updateState(_state, state);
         },
         setTheme(theme: Theme) {
-            console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme` and `ShapeGroupSizeTheme`. Colors are taken from `Shape.getColor` and sizes from `Shape.getSize`')
+            console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme` and `ShapeGroupSizeTheme`. Colors are taken from `Shape.getColor` and sizes from `Shape.getSize`');
         },
         destroy() {
             // TODO
-            renderObjects.length = 0
-            _renderObject = undefined
+            renderObjects.length = 0;
+            _renderObject = undefined;
         }
-    }
+    };
 }
 
 function eachShapeGroup(loci: Loci, shape: Shape, apply: (interval: Interval) => boolean) {
-    if (!ShapeGroup.isLoci(loci)) return false
-    if (loci.shape !== shape) return false
-    let changed = false
-    const { groupCount } = shape
-    const { groups } = loci
+    if (!ShapeGroup.isLoci(loci)) return false;
+    if (loci.shape !== shape) return false;
+    let changed = false;
+    const { groupCount } = shape;
+    const { groups } = loci;
     for (const { ids, instance } of groups) {
         if (Interval.is(ids)) {
-            const start = instance * groupCount + Interval.start(ids)
-            const end = instance * groupCount + Interval.end(ids)
-            if (apply(Interval.ofBounds(start, end))) changed = true
+            const start = instance * groupCount + Interval.start(ids);
+            const end = instance * groupCount + Interval.end(ids);
+            if (apply(Interval.ofBounds(start, end))) changed = true;
         } else {
             for (let i = 0, _i = ids.length; i < _i; i++) {
                 const idx = instance * groupCount + ids[i];
-                if (apply(Interval.ofSingleton(idx))) changed = true
+                if (apply(Interval.ofSingleton(idx))) changed = true;
             }
         }
     }
-    return changed
+    return changed;
 }

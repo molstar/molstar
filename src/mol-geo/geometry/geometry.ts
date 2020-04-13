@@ -12,7 +12,7 @@ import { LocationIterator } from '../util/location-iterator';
 import { ColorType } from './color-data';
 import { SizeType } from './size-data';
 import { Lines } from './lines/lines';
-import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { DirectVolume } from './direct-volume/direct-volume';
 import { Color } from '../../mol-util/color';
 import { Spheres } from './spheres/spheres';
@@ -58,13 +58,13 @@ export namespace Geometry {
 
     export function getDrawCount(geometry: Geometry): number {
         switch (geometry.kind) {
-            case 'mesh': return geometry.triangleCount * 3
-            case 'points': return geometry.pointCount
-            case 'spheres': return geometry.sphereCount * 2 * 3
-            case 'text': return geometry.charCount * 2 * 3
-            case 'lines': return geometry.lineCount * 2 * 3
-            case 'direct-volume': return 12 * 3
-            case 'texture-mesh': return geometry.vertexCount
+            case 'mesh': return geometry.triangleCount * 3;
+            case 'points': return geometry.pointCount;
+            case 'spheres': return geometry.sphereCount * 2 * 3;
+            case 'text': return geometry.charCount * 2 * 3;
+            case 'lines': return geometry.lineCount * 2 * 3;
+            case 'direct-volume': return 12 * 3;
+            case 'texture-mesh': return geometry.vertexCount;
         }
     }
 
@@ -75,30 +75,30 @@ export namespace Geometry {
             case 'spheres':
             case 'text':
             case 'lines':
-                return getDrawCount(geometry) === 0 ? 0 : (arrayMax(geometry.groupBuffer.ref.value) + 1)
+                return getDrawCount(geometry) === 0 ? 0 : (arrayMax(geometry.groupBuffer.ref.value) + 1);
             case 'direct-volume':
-                return 1
+                return 1;
             case 'texture-mesh':
-                return geometry.groupCount
+                return geometry.groupCount;
         }
     }
 
     export function getUtils<G extends Geometry>(geometry: G): GeometryUtils<G> {
         // TODO avoid casting
         switch (geometry.kind) {
-            case 'mesh': return Mesh.Utils as any
-            case 'points': return Points.Utils as any
-            case 'spheres': return Spheres.Utils as any
-            case 'text': return Text.Utils as any
-            case 'lines': return Lines.Utils as any
-            case 'direct-volume': return DirectVolume.Utils as any
-            case 'texture-mesh': return TextureMesh.Utils as any
+            case 'mesh': return Mesh.Utils as any;
+            case 'points': return Points.Utils as any;
+            case 'spheres': return Spheres.Utils as any;
+            case 'text': return Text.Utils as any;
+            case 'lines': return Lines.Utils as any;
+            case 'direct-volume': return DirectVolume.Utils as any;
+            case 'texture-mesh': return TextureMesh.Utils as any;
         }
     }
 
     export function getGranularity(locationIt: LocationIterator, granularity: ColorType | SizeType) {
         // Always use 'group' granularity for 'complex' location iterators,
         // i.e. for which an instance may include multiple units
-        return granularity === 'instance' && locationIt.isComplex ? 'group' : granularity
+        return granularity === 'instance' && locationIt.isComplex ? 'group' : granularity;
     }
 }

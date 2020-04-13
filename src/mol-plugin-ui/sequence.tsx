@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as React from 'react'
+import * as React from 'react';
 import { PluginUIComponent } from './base';
 import { PluginStateObject as PSO } from '../mol-plugin-state/objects';
 import { Sequence } from './sequence/sequence';
@@ -23,165 +23,165 @@ import { elementLabel } from '../mol-theme/label';
 import { Icon } from './controls/icons';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
 
-const MaxDisplaySequenceLength = 5000
+const MaxDisplaySequenceLength = 5000;
 
 function opKey(l: StructureElement.Location) {
-    const ids = SP.unit.pdbx_struct_oper_list_ids(l)
-    const ncs = SP.unit.struct_ncs_oper_id(l)
-    const hkl = SP.unit.hkl(l)
-    const spgrOp = SP.unit.spgrOp(l)
-    return `${ids.sort().join(',')}|${ncs}|${hkl}|${spgrOp}`
+    const ids = SP.unit.pdbx_struct_oper_list_ids(l);
+    const ncs = SP.unit.struct_ncs_oper_id(l);
+    const hkl = SP.unit.hkl(l);
+    const spgrOp = SP.unit.spgrOp(l);
+    return `${ids.sort().join(',')}|${ncs}|${hkl}|${spgrOp}`;
 }
 
 function splitModelEntityId(modelEntityId: string) {
-    const [ modelIdx, entityId ] = modelEntityId.split('|')
-    return [ parseInt(modelIdx), entityId ]
+    const [ modelIdx, entityId ] = modelEntityId.split('|');
+    return [ parseInt(modelIdx), entityId ];
 }
 
 function getSequenceWrapper(state: SequenceViewState, structureSelection: StructureSelectionManager): SequenceWrapper.Any | string {
-    const { structure, modelEntityId, chainGroupId, operatorKey } = state
-    const l = StructureElement.Location.create(structure)
-    const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId)
+    const { structure, modelEntityId, chainGroupId, operatorKey } = state;
+    const l = StructureElement.Location.create(structure);
+    const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId);
 
-    const units: Unit[] = []
+    const units: Unit[] = [];
 
     for (const unit of structure.units) {
-        StructureElement.Location.set(l, structure, unit, unit.elements[0])
-        if (structure.getModelIndex(unit.model) !== modelIdx) continue
-        if (SP.entity.id(l) !== entityId) continue
-        if (unit.chainGroupId !== chainGroupId) continue
-        if (opKey(l) !== operatorKey) continue
+        StructureElement.Location.set(l, structure, unit, unit.elements[0]);
+        if (structure.getModelIndex(unit.model) !== modelIdx) continue;
+        if (SP.entity.id(l) !== entityId) continue;
+        if (unit.chainGroupId !== chainGroupId) continue;
+        if (opKey(l) !== operatorKey) continue;
 
-        units.push(unit)
+        units.push(unit);
     }
 
     if (units.length > 0) {
-        const data = { structure, units }
-        const unit = units[0]
+        const data = { structure, units };
+        const unit = units[0];
 
-        let sw: SequenceWrapper<any>
+        let sw: SequenceWrapper<any>;
         if (unit.polymerElements.length) {
-            const l = StructureElement.Location.create(structure, unit, unit.elements[0])
-            const entitySeq = unit.model.sequence.byEntityKey[SP.entity.key(l)]
+            const l = StructureElement.Location.create(structure, unit, unit.elements[0]);
+            const entitySeq = unit.model.sequence.byEntityKey[SP.entity.key(l)];
             // check if entity sequence is available
             if (entitySeq && entitySeq.sequence.length <= MaxDisplaySequenceLength) {
-                sw = new PolymerSequenceWrapper(data)
+                sw = new PolymerSequenceWrapper(data);
             } else {
-                const polymerElementCount = units.reduce((a, v) => a + v.polymerElements.length, 0)
+                const polymerElementCount = units.reduce((a, v) => a + v.polymerElements.length, 0);
                 if (Unit.isAtomic(unit) || polymerElementCount > MaxDisplaySequenceLength) {
-                    sw = new ChainSequenceWrapper(data)
+                    sw = new ChainSequenceWrapper(data);
                 } else {
-                    sw = new ElementSequenceWrapper(data)
+                    sw = new ElementSequenceWrapper(data);
                 }
             }
         } else if (Unit.isAtomic(unit)) {
-            const residueCount = units.reduce((a, v) => a + (v as Unit.Atomic).residueCount, 0)
+            const residueCount = units.reduce((a, v) => a + (v as Unit.Atomic).residueCount, 0);
             if (residueCount > MaxDisplaySequenceLength) {
-                sw = new ChainSequenceWrapper(data)
+                sw = new ChainSequenceWrapper(data);
             } else {
-                sw = new HeteroSequenceWrapper(data)
+                sw = new HeteroSequenceWrapper(data);
             }
         } else {
-            console.warn('should not happen, expecting coarse units to be polymeric')
-            sw = new ChainSequenceWrapper(data)
+            console.warn('should not happen, expecting coarse units to be polymeric');
+            sw = new ChainSequenceWrapper(data);
         }
 
-        sw.markResidue(structureSelection.getLoci(structure), MarkerAction.Select)
-        return sw
+        sw.markResidue(structureSelection.getLoci(structure), MarkerAction.Select);
+        return sw;
     } else {
-        return 'No sequence available'
+        return 'No sequence available';
     }
 }
 
 function getModelEntityOptions(structure: Structure) {
-    const options: [string, string][] = []
-    const l = StructureElement.Location.create(structure)
-    const seen = new Set<string>()
+    const options: [string, string][] = [];
+    const l = StructureElement.Location.create(structure);
+    const seen = new Set<string>();
 
     for (const unit of structure.units) {
-        StructureElement.Location.set(l, structure, unit, unit.elements[0])
-        const id = SP.entity.id(l)
-        const modelIdx = structure.getModelIndex(unit.model)
-        const key = `${modelIdx}|${id}`
-        if (seen.has(key)) continue
+        StructureElement.Location.set(l, structure, unit, unit.elements[0]);
+        const id = SP.entity.id(l);
+        const modelIdx = structure.getModelIndex(unit.model);
+        const key = `${modelIdx}|${id}`;
+        if (seen.has(key)) continue;
 
-        let description = SP.entity.pdbx_description(l).join(', ')
+        let description = SP.entity.pdbx_description(l).join(', ');
         if (structure.models.length) {
             if (structure.representativeModel) { // indicates model trajectory
-                description += ` (Model ${structure.models[modelIdx].modelNum})`
+                description += ` (Model ${structure.models[modelIdx].modelNum})`;
             } else  if (description.startsWith('Polymer ')) { // indicates generic entity name
-                description += ` (${structure.models[modelIdx].entry})`
+                description += ` (${structure.models[modelIdx].entry})`;
             }
         }
-        const label = `${id}: ${description}`
-        options.push([ key, label ])
-        seen.add(key)
+        const label = `${id}: ${description}`;
+        options.push([ key, label ]);
+        seen.add(key);
     }
 
-    if (options.length === 0) options.push(['', 'No entities'])
-    return options
+    if (options.length === 0) options.push(['', 'No entities']);
+    return options;
 }
 
 function getChainOptions(structure: Structure, modelEntityId: string) {
-    const options: [number, string][] = []
-    const l = StructureElement.Location.create(structure)
-    const seen = new Set<number>()
-    const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId)
+    const options: [number, string][] = [];
+    const l = StructureElement.Location.create(structure);
+    const seen = new Set<number>();
+    const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId);
 
     for (const unit of structure.units) {
-        StructureElement.Location.set(l, structure, unit, unit.elements[0])
-        if (structure.getModelIndex(unit.model) !== modelIdx) continue
-        if (SP.entity.id(l) !== entityId) continue
+        StructureElement.Location.set(l, structure, unit, unit.elements[0]);
+        if (structure.getModelIndex(unit.model) !== modelIdx) continue;
+        if (SP.entity.id(l) !== entityId) continue;
 
-        const id = unit.chainGroupId
-        if (seen.has(id)) continue
+        const id = unit.chainGroupId;
+        if (seen.has(id)) continue;
 
         // TODO handle special case
         // - more than one chain in a unit
-        let label = elementLabel(l, { granularity: 'chain', hidePrefix: true, htmlStyling: false })
+        let label = elementLabel(l, { granularity: 'chain', hidePrefix: true, htmlStyling: false });
 
-        options.push([ id, label ])
-        seen.add(id)
+        options.push([ id, label ]);
+        seen.add(id);
     }
 
-    if (options.length === 0) options.push([-1, 'No units'])
-    return options
+    if (options.length === 0) options.push([-1, 'No units']);
+    return options;
 }
 
 function getOperatorOptions(structure: Structure, modelEntityId: string, chainGroupId: number) {
-    const options: [string, string][] = []
-    const l = StructureElement.Location.create(structure)
-    const seen = new Set<string>()
-    const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId)
+    const options: [string, string][] = [];
+    const l = StructureElement.Location.create(structure);
+    const seen = new Set<string>();
+    const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId);
 
     for (const unit of structure.units) {
-        StructureElement.Location.set(l, structure, unit, unit.elements[0])
-        if (structure.getModelIndex(unit.model) !== modelIdx) continue
-        if (SP.entity.id(l) !== entityId) continue
-        if (unit.chainGroupId !== chainGroupId) continue
+        StructureElement.Location.set(l, structure, unit, unit.elements[0]);
+        if (structure.getModelIndex(unit.model) !== modelIdx) continue;
+        if (SP.entity.id(l) !== entityId) continue;
+        if (unit.chainGroupId !== chainGroupId) continue;
 
-        const id = opKey(l)
-        if (seen.has(id)) continue
+        const id = opKey(l);
+        if (seen.has(id)) continue;
 
-        const label = unit.conformation.operator.name
-        options.push([ id, label ])
-        seen.add(id)
+        const label = unit.conformation.operator.name;
+        options.push([ id, label ]);
+        seen.add(id);
     }
 
-    if (options.length === 0) options.push(['', 'No operators'])
-    return options
+    if (options.length === 0) options.push(['', 'No operators']);
+    return options;
 }
 
 function getStructureOptions(state: State) {
-    const options: [string, string][] = []
+    const options: [string, string][] = [];
 
-    const structures = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure))
+    const structures = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure));
     for (const s of structures) {
-        options.push([s.transform.ref, s.obj!.data.label])
+        options.push([s.transform.ref, s.obj!.data.label]);
     }
 
-    if (options.length === 0) options.push(['', 'No structure'])
-    return options
+    if (options.length === 0) options.push(['', 'No structure']);
+    return options;
 }
 
 type SequenceViewState = {
@@ -196,23 +196,23 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     state = { structure: Structure.Empty, structureRef: '', modelEntityId: '', chainGroupId: -1, operatorKey: '' }
 
     componentDidMount() {
-        if (this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState())
+        if (this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState());
 
         this.subscribe(this.plugin.events.state.object.updated, ({ ref, obj }) => {
             if (ref === this.state.structureRef && obj && obj.type === PSO.Molecule.Structure.type && obj.data !== this.state.structure) {
-                this.setState(this.getInitialState())
+                this.setState(this.getInitialState());
             }
         });
 
         this.subscribe(this.plugin.events.state.object.created, ({ obj }) => {
             if (obj && obj.type === PSO.Molecule.Structure.type) {
-                this.setState(this.getInitialState())
+                this.setState(this.getInitialState());
             }
         });
 
         this.subscribe(this.plugin.events.state.object.removed, ({ obj }) => {
             if (obj && obj.type === PSO.Molecule.Structure.type && obj.data === this.state.structure) {
-                this.setState(this.getInitialState())
+                this.setState(this.getInitialState());
             }
         });
     }
@@ -225,35 +225,35 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     }
 
     private getSequenceWrapper() {
-        return getSequenceWrapper(this.state, this.plugin.managers.structure.selection)
+        return getSequenceWrapper(this.state, this.plugin.managers.structure.selection);
     }
 
     private getInitialState(): SequenceViewState {
-        const structureRef = getStructureOptions(this.plugin.state.data)[0][0]
-        const structure = this.getStructure(structureRef)
-        let modelEntityId = getModelEntityOptions(structure)[0][0]
-        let chainGroupId = getChainOptions(structure, modelEntityId)[0][0]
-        let operatorKey = getOperatorOptions(structure, modelEntityId, chainGroupId)[0][0]
+        const structureRef = getStructureOptions(this.plugin.state.data)[0][0];
+        const structure = this.getStructure(structureRef);
+        let modelEntityId = getModelEntityOptions(structure)[0][0];
+        let chainGroupId = getChainOptions(structure, modelEntityId)[0][0];
+        let operatorKey = getOperatorOptions(structure, modelEntityId, chainGroupId)[0][0];
         if (this.state.structure && this.state.structure === structure) {
-            modelEntityId = this.state.modelEntityId
-            chainGroupId = this.state.chainGroupId
-            operatorKey = this.state.operatorKey
+            modelEntityId = this.state.modelEntityId;
+            chainGroupId = this.state.chainGroupId;
+            operatorKey = this.state.operatorKey;
         }
-        return { structure, structureRef, modelEntityId, chainGroupId, operatorKey }
+        return { structure, structureRef, modelEntityId, chainGroupId, operatorKey };
     }
 
     private get params() {
-        const { structure, modelEntityId, chainGroupId } = this.state
-        const structureOptions = getStructureOptions(this.plugin.state.data)
-        const entityOptions = getModelEntityOptions(structure)
-        const chainOptions = getChainOptions(structure, modelEntityId)
-        const operatorOptions = getOperatorOptions(structure, modelEntityId, chainGroupId)
+        const { structure, modelEntityId, chainGroupId } = this.state;
+        const structureOptions = getStructureOptions(this.plugin.state.data);
+        const entityOptions = getModelEntityOptions(structure);
+        const chainOptions = getChainOptions(structure, modelEntityId);
+        const operatorOptions = getOperatorOptions(structure, modelEntityId, chainGroupId);
         return {
             structure: PD.Select(structureOptions[0][0], structureOptions, { shortLabel: true }),
             entity: PD.Select(entityOptions[0][0], entityOptions, { shortLabel: true }),
             chain: PD.Select(chainOptions[0][0], chainOptions, { shortLabel: true, twoColumns: true, label: 'Chain' }),
             operator: PD.Select(operatorOptions[0][0], operatorOptions, { shortLabel: true, twoColumns: true })
-        }
+        };
     }
 
     private get values(): PD.Values<SequenceView['params']> {
@@ -262,33 +262,33 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
             entity: this.state.modelEntityId,
             chain: this.state.chainGroupId,
             operator: this.state.operatorKey
-        }
+        };
     }
 
     private setParamProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
-        const state = { ...this.state }
+        const state = { ...this.state };
         switch (p.name) {
             case 'structure':
-                state.structureRef = p.value
-                state.structure = this.getStructure(p.value)
-                state.modelEntityId = getModelEntityOptions(state.structure)[0][0]
-                state.chainGroupId = getChainOptions(state.structure, state.modelEntityId)[0][0]
-                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0]
-                break
+                state.structureRef = p.value;
+                state.structure = this.getStructure(p.value);
+                state.modelEntityId = getModelEntityOptions(state.structure)[0][0];
+                state.chainGroupId = getChainOptions(state.structure, state.modelEntityId)[0][0];
+                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0];
+                break;
             case 'entity':
-                state.modelEntityId = p.value
-                state.chainGroupId = getChainOptions(state.structure, state.modelEntityId)[0][0]
-                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0]
-                break
+                state.modelEntityId = p.value;
+                state.chainGroupId = getChainOptions(state.structure, state.modelEntityId)[0][0];
+                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0];
+                break;
             case 'chain':
-                state.chainGroupId = p.value
-                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0]
-                break
+                state.chainGroupId = p.value;
+                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0];
+                break;
             case 'operator':
-                state.operatorKey = p.value
-                break
+                state.operatorKey = p.value;
+                break;
         }
-        this.setState(state)
+        this.setState(state);
     }
 
     render() {
@@ -303,7 +303,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
             </div>;
         }
 
-        const sequenceWrapper = this.getSequenceWrapper()
+        const sequenceWrapper = this.getSequenceWrapper();
 
         const params = this.params;
         const values = this.values;

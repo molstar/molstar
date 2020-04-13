@@ -22,48 +22,48 @@ import { Interactions } from '../interactions/interactions';
 import { InteractionFlag } from '../interactions/common';
 
 async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<InteractionsIntraUnitParams>, mesh?: Mesh) {
-    if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
+    if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
 
-    const location = StructureElement.Location.create(structure, unit)
+    const location = StructureElement.Location.create(structure, unit);
 
-    const interactions = InteractionsProvider.get(structure).value!
-    const features = interactions.unitsFeatures.get(unit.id)
-    const contacts = interactions.unitsContacts.get(unit.id)
+    const interactions = InteractionsProvider.get(structure).value!;
+    const features = interactions.unitsFeatures.get(unit.id);
+    const contacts = interactions.unitsContacts.get(unit.id);
 
-    const { x, y, z, members, offsets } = features
-    const { edgeCount, a, b, edgeProps: { flag } } = contacts
-    const { sizeFactor } = props
-    const { matrix } = unit.conformation.operator
+    const { x, y, z, members, offsets } = features;
+    const { edgeCount, a, b, edgeProps: { flag } } = contacts;
+    const { sizeFactor } = props;
+    const { matrix } = unit.conformation.operator;
 
-    if (!edgeCount) return Mesh.createEmpty(mesh)
+    if (!edgeCount) return Mesh.createEmpty(mesh);
 
     const builderProps = {
         linkCount: edgeCount * 2,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
-            Vec3.set(posA, x[a[edgeIndex]], y[a[edgeIndex]], z[a[edgeIndex]])
-            Vec3.transformMat4(posA, posA, matrix)
-            Vec3.set(posB, x[b[edgeIndex]], y[b[edgeIndex]], z[b[edgeIndex]])
-            Vec3.transformMat4(posB, posB, matrix)
+            Vec3.set(posA, x[a[edgeIndex]], y[a[edgeIndex]], z[a[edgeIndex]]);
+            Vec3.transformMat4(posA, posA, matrix);
+            Vec3.set(posB, x[b[edgeIndex]], y[b[edgeIndex]], z[b[edgeIndex]]);
+            Vec3.transformMat4(posB, posB, matrix);
         },
         style: (edgeIndex: number) => LinkCylinderStyle.Dashed,
         radius: (edgeIndex: number) => {
-            location.element = unit.elements[members[offsets[a[edgeIndex]]]]
-            const sizeA = theme.size.size(location)
-            location.element = unit.elements[members[offsets[b[edgeIndex]]]]
-            const sizeB = theme.size.size(location)
-            return Math.min(sizeA, sizeB) * sizeFactor
+            location.element = unit.elements[members[offsets[a[edgeIndex]]]];
+            const sizeA = theme.size.size(location);
+            location.element = unit.elements[members[offsets[b[edgeIndex]]]];
+            const sizeB = theme.size.size(location);
+            return Math.min(sizeA, sizeB) * sizeFactor;
         },
         ignore: (edgeIndex: number) => flag[edgeIndex] === InteractionFlag.Filtered
-    }
+    };
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
+    return createLinkCylinderMesh(ctx, builderProps, props, mesh);
 }
 
 export const InteractionsIntraUnitParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
-}
+};
 export type InteractionsIntraUnitParams = typeof InteractionsIntraUnitParams
 
 export function InteractionsIntraUnitVisual(materialId: number): UnitsVisual<InteractionsIntraUnitParams> {
@@ -77,72 +77,72 @@ export function InteractionsIntraUnitVisual(materialId: number): UnitsVisual<Int
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.radialSegments !== currentProps.radialSegments
-            )
+            );
 
-            const interactionsHash = InteractionsProvider.get(newStructureGroup.structure).version
+            const interactionsHash = InteractionsProvider.get(newStructureGroup.structure).version;
             if ((state.info.interactionsHash as number) !== interactionsHash) {
-                state.createGeometry = true
-                state.updateTransform = true
-                state.info.interactionsHash = interactionsHash
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.info.interactionsHash = interactionsHash;
             }
         }
-    }, materialId)
+    }, materialId);
 }
 
 function getInteractionLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {
-    const { objectId, instanceId, groupId } = pickingId
+    const { objectId, instanceId, groupId } = pickingId;
     if (id === objectId) {
-        const { structure, group } = structureGroup
-        const unit = structure.unitMap.get(group.units[instanceId].id)
-        const interactions = InteractionsProvider.get(structure).value!
-        const { a, b } = interactions.unitsContacts.get(unit.id)
+        const { structure, group } = structureGroup;
+        const unit = structure.unitMap.get(group.units[instanceId].id);
+        const interactions = InteractionsProvider.get(structure).value!;
+        const { a, b } = interactions.unitsContacts.get(unit.id);
         return Interactions.Loci(structure, interactions, [
             { unitA: unit, indexA: a[groupId], unitB: unit, indexB: b[groupId] },
             { unitA: unit, indexA: b[groupId], unitB: unit, indexB: a[groupId] },
-        ])
+        ]);
     }
-    return EmptyLoci
+    return EmptyLoci;
 }
 
 function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
-    let changed = false
+    let changed = false;
     if (Interactions.isLoci(loci)) {
-        const { structure, group } = structureGroup
-        if (!Structure.areEquivalent(loci.data.structure, structure)) return false
-        const interactions = InteractionsProvider.get(structure).value!
-        if (loci.data.interactions !== interactions) return false
-        const unit = group.units[0]
-        const contacts = interactions.unitsContacts.get(unit.id)
-        const groupCount = contacts.edgeCount * 2
+        const { structure, group } = structureGroup;
+        if (!Structure.areEquivalent(loci.data.structure, structure)) return false;
+        const interactions = InteractionsProvider.get(structure).value!;
+        if (loci.data.interactions !== interactions) return false;
+        const unit = group.units[0];
+        const contacts = interactions.unitsContacts.get(unit.id);
+        const groupCount = contacts.edgeCount * 2;
         for (const e of loci.elements) {
-            const unitIdx = group.unitIndexMap.get(e.unitA.id)
+            const unitIdx = group.unitIndexMap.get(e.unitA.id);
             if (unitIdx !== undefined) {
-                const idx = contacts.getDirectedEdgeIndex(e.indexA, e.indexB)
+                const idx = contacts.getDirectedEdgeIndex(e.indexA, e.indexB);
                 if (idx !== -1) {
-                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
+                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true;
                 }
             }
         }
     }
-    return changed
+    return changed;
 }
 
 function createInteractionsIterator(structureGroup: StructureGroup): LocationIterator {
-    const { structure, group } = structureGroup
-    const unit = group.units[0]
-    const interactions = InteractionsProvider.get(structure).value!
-    const contacts = interactions.unitsContacts.get(unit.id)
-    const groupCount = contacts.edgeCount * 2
-    const instanceCount = group.units.length
-    const location = Interactions.Location(interactions, structure)
-    const { element } = location
+    const { structure, group } = structureGroup;
+    const unit = group.units[0];
+    const interactions = InteractionsProvider.get(structure).value!;
+    const contacts = interactions.unitsContacts.get(unit.id);
+    const groupCount = contacts.edgeCount * 2;
+    const instanceCount = group.units.length;
+    const location = Interactions.Location(interactions, structure);
+    const { element } = location;
     const getLocation = (groupIndex: number, instanceIndex: number) => {
-        const instanceUnit = group.units[instanceIndex]
-        element.unitA = instanceUnit
-        element.indexA = contacts.a[groupIndex]
-        element.unitB = instanceUnit
-        element.indexB = contacts.b[groupIndex]
-        return location
-    }
-    return LocationIterator(groupCount, instanceCount, getLocation)
+        const instanceUnit = group.units[instanceIndex];
+        element.unitA = instanceUnit;
+        element.indexA = contacts.a[groupIndex];
+        element.unitB = instanceUnit;
+        element.indexB = contacts.b[groupIndex];
+        return location;
+    };
+    return LocationIterator(groupCount, instanceCount, getLocation);
 }

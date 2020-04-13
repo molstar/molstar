@@ -15,19 +15,19 @@ const basic3dgString = `1(mat)	1420000	0.791377837067	10.9947291355	-13.18828976
 1(mat)	1540000	-0.458643807046	12.5985791771	-13.4701149287
 1(mat)	1560000	-0.810322906201	12.2461643989	-12.3172933413
 1(mat)	1580000	-2.08211172035	12.8886838656	-12.8742007778
-1(mat)	1600000	-3.52093948201	13.1850935438	-12.4118684428`
+1(mat)	1600000	-3.52093948201	13.1850935438	-12.4118684428`;
 
 describe('3dg reader', () => {
     it('basic', async () => {
         const parsed = await parse3DG(basic3dgString).run();
-        expect(parsed.isError).toBe(false)
+        expect(parsed.isError).toBe(false);
 
         if (parsed.isError) return;
         const { chromosome, position, x, y, z } = parsed.result.table;
-        expect(chromosome.value(0)).toBe('1(mat)')
-        expect(position.value(1)).toBe(1440000)
-        expect(x.value(5)).toBe(-0.0848245107875)
-        expect(y.value(5)).toBe(12.2624690808)
-        expect(z.value(5)).toBe(-14.354289628)
+        expect(chromosome.value(0)).toBe('1(mat)');
+        expect(position.value(1)).toBe(1440000);
+        expect(x.value(5)).toBe(-0.0848245107875);
+        expect(y.value(5)).toBe(12.2624690808);
+        expect(z.value(5)).toBe(-14.354289628);
     });
 });

@@ -5,9 +5,9 @@
  */
 
 import fetch from 'node-fetch';
-import * as fs from 'fs'
-import * as path from 'path'
-import * as argparse from 'argparse'
+import * as fs from 'fs';
+import * as path from 'path';
+import * as argparse from 'argparse';
 import { makeDir } from '../../../mol-util/make-dir';
 import { now } from '../../../mol-util/now';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
@@ -53,7 +53,7 @@ function findEntries() {
 
     const ret: { key: string, entries: string[] }[] = [];
     for (const key of keys) {
-        ret.push({ key, entries: groups.get(key)! })
+        ret.push({ key, entries: groups.get(key)! });
     }
 
     return ret;
@@ -67,7 +67,7 @@ async function process() {
     let prog = 0;
     for (const e of entries) {
         const ts = now();
-        console.log(`${prog}/${entries.length} ${e.entries.length} entries.`)
+        console.log(`${prog}/${entries.length} ${e.entries.length} entries.`);
         const data = Object.create(null);
 
         for (let ee of e.entries) {

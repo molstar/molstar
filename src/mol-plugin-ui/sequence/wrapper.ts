@@ -12,7 +12,7 @@ import { Color } from '../../mol-util/color';
 
 export type StructureUnit = { structure: Structure, units: Unit[] }
 
-export { SequenceWrapper }
+export { SequenceWrapper };
 
 abstract class SequenceWrapper<D> {
     abstract residueLabel(seqIdx: number): string
@@ -25,7 +25,7 @@ abstract class SequenceWrapper<D> {
 
     markResidue(loci: Loci, action: MarkerAction) {
         if (isEveryLoci(loci)) {
-            return applyMarkerAction(this.markerArray, Interval.ofLength(this.length), action)
+            return applyMarkerAction(this.markerArray, Interval.ofLength(this.length), action);
         } else {
             return this.mark(loci, action);
         }

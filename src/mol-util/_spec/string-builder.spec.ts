@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import SB from '../string-builder'
+import SB from '../string-builder';
 
 describe('string-builder', () => {
 
@@ -32,5 +32,5 @@ describe('string-builder', () => {
 
         expect(SB.getChunks(sb)).toEqual(['12', '3']);
         expect(SB.getString(sb)).toEqual('123');
-    })
+    });
 });

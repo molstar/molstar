@@ -6,10 +6,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from '../../../../mol-data/db'
-import StringBuilder from '../../../../mol-util/string-builder'
-import { Category, Field, Encoder } from '../encoder'
-import Writer from '../../writer'
+import { Column } from '../../../../mol-data/db';
+import StringBuilder from '../../../../mol-util/string-builder';
+import { Category, Field, Encoder } from '../encoder';
+import Writer from '../../writer';
 import { getFieldDigitCount, getIncludedFields, getCategoryInstanceData, CategoryInstanceData } from './util';
 
 export default class TextEncoder implements Encoder<string> {

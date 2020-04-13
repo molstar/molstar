@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Interval from './int/interval'
-import OrderedSet from './int/ordered-set'
-import Segmentation from './int/segmentation'
-import SortedArray from './int/sorted-array'
-import Tuple from './int/tuple'
-import LinkedIndex from './int/linked-index'
-import IntMap from './int/map'
-import Iterator from './iterator'
+import Interval from './int/interval';
+import OrderedSet from './int/ordered-set';
+import Segmentation from './int/segmentation';
+import SortedArray from './int/sorted-array';
+import Tuple from './int/tuple';
+import LinkedIndex from './int/linked-index';
+import IntMap from './int/map';
+import Iterator from './iterator';
 
-export { Interval, OrderedSet, Segmentation, SortedArray, Tuple, LinkedIndex, IntMap, Iterator }
+export { Interval, OrderedSet, Segmentation, SortedArray, Tuple, LinkedIndex, IntMap, Iterator };

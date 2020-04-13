@@ -13,7 +13,7 @@ export interface TableLegend {
     table: [ string, Color ][]
 }
 export function TableLegend(table: [ string, Color ][]): TableLegend {
-    return { kind: 'table-legend', table }
+    return { kind: 'table-legend', table };
 }
 
 export interface ScaleLegend {
@@ -23,5 +23,5 @@ export interface ScaleLegend {
     colors: Color[]
 }
 export function ScaleLegend(minLabel: string, maxLabel: string, colors: Color[]): ScaleLegend {
-    return { kind: 'scale-legend', minLabel, maxLabel, colors }
+    return { kind: 'scale-legend', minLabel, maxLabel, colors };
 }

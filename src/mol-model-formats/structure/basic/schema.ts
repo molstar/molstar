@@ -43,7 +43,7 @@ export const BasicSchema = {
     ihm_sphere_obj_site: mmCIF_Schema.ihm_sphere_obj_site,
     ihm_gaussian_obj_site: mmCIF_Schema.ihm_gaussian_obj_site,
     pdbx_unobs_or_zero_occ_residues: mmCIF_Schema.pdbx_unobs_or_zero_occ_residues,
-}
+};
 
 export interface BasicData {
     entry: Entry
@@ -65,13 +65,13 @@ export interface BasicData {
 }
 
 export function createBasic(data: Partial<BasicData>): BasicData {
-    const basic = Object.create(null)
+    const basic = Object.create(null);
     for (const name of Object.keys(BasicSchema)) {
         if (name in data) {
-            basic[name] = data[name as keyof typeof BasicSchema]
+            basic[name] = data[name as keyof typeof BasicSchema];
         } else {
-            basic[name] = Table.ofUndefinedColumns(BasicSchema[name as keyof typeof BasicSchema], 0)
+            basic[name] = Table.ofUndefinedColumns(BasicSchema[name as keyof typeof BasicSchema], 0);
         }
     }
-    return basic
+    return basic;
 }

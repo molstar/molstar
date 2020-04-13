@@ -6,11 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CifWriter } from '../../../../mol-io/writer/cif'
-import * as Data from './data-model'
-import * as Coords from '../algebra/coordinate'
-import { VOLUME_SERVER_VERSION as VERSION } from '../version'
-import * as DataFormat from '../../common/data-format'
+import { CifWriter } from '../../../../mol-io/writer/cif';
+import * as Data from './data-model';
+import * as Coords from '../algebra/coordinate';
+import { VOLUME_SERVER_VERSION as VERSION } from '../version';
+import * as DataFormat from '../../common/data-format';
 import { Column } from '../../../../mol-data/db';
 import { ArrayEncoding, ArrayEncoder } from '../../../../mol-io/common/binary-cif';
 import { TypedArrayValueType, TypedArrayValueArray } from '../../../../mol-io/common/typed-array';
@@ -103,7 +103,7 @@ const _volume_data_3d_info: CifWriter.Category<ResultContext> = {
             sampledValuesInfo: result.query.data.header.sampling[result.query.samplingInfo.sampling.index].valuesInfo[result.channelIndex]
         };
 
-        return { fields: _volume_data_3d_info_fields, source: [{ data: ctx, rowCount: 1 }] }
+        return { fields: _volume_data_3d_info_fields, source: [{ data: ctx, rowCount: 1 }] };
     }
 };
 
@@ -133,13 +133,13 @@ const _volume_data_3d: CifWriter.Category<ResultContext> = {
         } else {
             typedArray = Int8Array;
             // just encode the bytes
-            encoder = E.by(E.byteArray)
+            encoder = E.by(E.byteArray);
         }
 
         const fields = [CifWriter.Field.float('values', _volume_data_3d_number, { encoder, typedArray, digitCount: 6 })];
         return CifWriter.categoryInstance(fields, { data, rowCount: data.length });
     }
-}
+};
 
 function pickQueryBoxDimension(ctx: Data.QueryContext, e: 'a' | 'b', d: number) {
     const box = ctx.params.box;
@@ -171,12 +171,12 @@ const _density_server_result_fields = [
     queryBoxDimension('b', 0),
     queryBoxDimension('b', 1),
     queryBoxDimension('b', 2)
-]
+];
 
 const _density_server_result: CifWriter.Category<Data.QueryContext> = {
     name: 'density_server_result',
     instance: ctx => CifWriter.categoryInstance(_density_server_result_fields, { data: ctx, rowCount: 1 })
-}
+};
 
 function write(encoder: CifWriter.Encoder, query: Data.QueryContext) {
     encoder.startDataBlock('SERVER');

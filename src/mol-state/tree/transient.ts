@@ -10,7 +10,7 @@ import { StateTree } from './immutable';
 import { shallowEqual } from '../../mol-util/object';
 import { arrayEqual } from '../../mol-util/array';
 
-export { TransientTree }
+export { TransientTree };
 
 class TransientTree implements StateTree {
     transforms = this.tree.transforms as ImmutableMap<StateTransform.Ref, StateTransform>;
@@ -55,7 +55,7 @@ class TransientTree implements StateTree {
         this.dependencies = this.dependencies.asMutable();
     }
 
-    get root() { return this.transforms.get(StateTransform.RootRef)! }
+    get root() { return this.transforms.get(StateTransform.RootRef)!; }
 
     asTransient() {
         return this.asImmutable().asTransient();
@@ -188,7 +188,7 @@ class TransientTree implements StateTree {
 
         const transform = this.transforms.get(ref)!;
 
-        const withTags = StateTransform.withParams(transform, tags)
+        const withTags = StateTransform.withParams(transform, tags);
         // TODO: should this be here?
         if (arrayEqual(transform.tags, withTags.tags)) {
             return false;

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task } from '../task'
+import { Task } from '../task';
 
 interface Progress {
     root: Progress.Node,
@@ -36,4 +36,4 @@ namespace Progress {
     export function format(p: Progress) { return _format(p.root); }
 }
 
-export { Progress }
+export { Progress };

@@ -29,21 +29,21 @@ const octahedronEdges: ReadonlyArray<number> = [
     0, 2,  1, 3,  2, 1,  3, 0,
     0, 4,  1, 4,  2, 4,  3, 4,
     0, 5,  1, 5,  2, 5,  3, 5,
-]
+];
 
-let octahedron: Primitive
+let octahedron: Primitive;
 export function Octahedron(): Primitive {
-    if (!octahedron) octahedron = createPrimitive(octahedronVertices, octahedronIndices)
-    return octahedron
+    if (!octahedron) octahedron = createPrimitive(octahedronVertices, octahedronIndices);
+    return octahedron;
 }
 
-let perforatedOctahedron: Primitive
+let perforatedOctahedron: Primitive;
 export function PerforatedOctahedron(): Primitive {
-    if (!perforatedOctahedron) perforatedOctahedron = createPrimitive(octahedronVertices, perforatedOctahedronIndices)
-    return perforatedOctahedron
+    if (!perforatedOctahedron) perforatedOctahedron = createPrimitive(octahedronVertices, perforatedOctahedronIndices);
+    return perforatedOctahedron;
 }
 
-const octahedronCage = createCage(octahedronVertices, octahedronEdges)
+const octahedronCage = createCage(octahedronVertices, octahedronEdges);
 export function OctahedronCage(): Cage {
-    return octahedronCage
+    return octahedronCage;
 }

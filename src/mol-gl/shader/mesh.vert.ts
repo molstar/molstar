@@ -48,4 +48,4 @@ void main(){
     #endif
     vNormal = transformedNormal;
 }
-`
+`;

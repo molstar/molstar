@@ -8,10 +8,10 @@
  */
 
 export function toUint32(x: number) {
-    return x >>> 0
+    return x >>> 0;
 }
 export function toInt32(x: number) {
-    return x >> 0
+    return x >> 0;
 }
 
 export function readUshort(buff: Uint8Array, p: number) {
@@ -59,7 +59,7 @@ export function readUTF8(buff: Uint8Array, p: number, l: number) {
 }
 
 export function writeUTF8(buff: Uint8Array, p: number, str: string) {
-    const strl = str.length
+    const strl = str.length;
     let i = 0;
     for(let ci = 0; ci < strl; ci++) {
         const code = str.charCodeAt(ci);
@@ -87,7 +87,7 @@ export function writeUTF8(buff: Uint8Array, p: number, str: string) {
 }
 
 export function sizeUTF8(str: string) {
-    const strl = str.length
+    const strl = str.length;
     let i = 0;
     for(let ci = 0; ci < strl; ci++) {
         const code = str.charCodeAt(ci);

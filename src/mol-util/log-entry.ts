@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export { LogEntry }
+export { LogEntry };
 
 interface LogEntry {
     type: LogEntry.Type,

@@ -1,4 +1,4 @@
-import { Vec3 } from '../3d'
+import { Vec3 } from '../3d';
 
 describe('vec3', () => {
     const vec1 = [ 1, 2, 3 ] as Vec3;
@@ -11,4 +11,4 @@ describe('vec3', () => {
         expect(Vec3.angle(orthVec1, orthVec2) * 360 / (2 * Math.PI)).toBe(90.0);
         expect(Vec3.angle(vec1, vec2)).toBeCloseTo(0.666946);
     });
-})
+});

@@ -73,4 +73,4 @@ export const PluginCommands = {
         SetSettings: PluginCommand<{ settings: Partial<Canvas3DProps> | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void) }>(),
         ResetSettings: PluginCommand<{ }>()
     }
-}
+};

@@ -5,11 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as argparse from 'argparse'
-import * as util from 'util'
-import * as fs from 'fs'
-import * as zlib from 'zlib'
-import convert from './converter'
+import * as argparse from 'argparse';
+import * as util from 'util';
+import * as fs from 'fs';
+import * as zlib from 'zlib';
+import convert from './converter';
 
 require('util.promisify').shim();
 
@@ -32,7 +32,7 @@ async function write(outPath: string, res: Uint8Array) {
 }
 
 function run(args: Args) {
-    process(args.src, args.out, args.config, args.filter)
+    process(args.src, args.out, args.config, args.filter);
 }
 
 const parser = new argparse.ArgumentParser({
@@ -63,5 +63,5 @@ interface Args {
 const args: Args = parser.parseArgs();
 
 if (args) {
-    run(args)
+    run(args);
 }

@@ -1,5 +1,5 @@
 
-import { parseMol } from '../mol/parser'
+import { parseMol } from '../mol/parser';
 
 const MolString = `2244
   -OEChem-04072009073D
@@ -47,7 +47,7 @@ const MolString = `2244
  13 18  1  0  0  0  0
  13 19  1  0  0  0  0
  13 20  1  0  0  0  0
-M  END`
+M  END`;
 
 describe('mol reader', () => {
     it('basic', async () => {

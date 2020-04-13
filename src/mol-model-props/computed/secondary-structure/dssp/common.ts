@@ -30,11 +30,11 @@ export interface DSSPContext {
     bridges: Bridge[]
 }
 
-export { DSSPType }
+export { DSSPType };
 type DSSPType = BitFlags<DSSPType.Flag>
 namespace DSSPType {
-    export const is: (t: DSSPType, f: Flag) => boolean = BitFlags.has
-    export const create: (f: Flag) => DSSPType = BitFlags.create
+    export const is: (t: DSSPType, f: Flag) => boolean = BitFlags.has;
+    export const create: (f: Flag) => DSSPType = BitFlags.create;
     export const enum Flag {
         _ = 0x0,
         H = 0x1,
@@ -76,8 +76,8 @@ export class Bridge {
     type: BridgeType;
 
     constructor(p1: number, p2: number, type: BridgeType) {
-        this.partner1 = Math.min(p1, p2)
-        this.partner2 = Math.max(p1, p2)
-        this.type = type
+        this.partner1 = Math.min(p1, p2);
+        this.partner2 = Math.max(p1, p2);
+        this.type = type;
     }
 }

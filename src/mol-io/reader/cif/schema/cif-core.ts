@@ -6,7 +6,7 @@
  * @author molstar/ciftools package
  */
 
-import { Database, Column } from '../../../../mol-data/db'
+import { Database, Column } from '../../../../mol-data/db';
 
 import Schema = Column.Schema
 
@@ -707,7 +707,7 @@ export const CifCore_Schema = {
          */
         source: str,
     },
-}
+};
 
 export const CifCore_Aliases = {
     'atom_site_aniso.U': [
@@ -789,7 +789,7 @@ export const CifCore_Aliases = {
         'atom_site_aniso_U_33_esd',
         'atom_site_anisotrop_U_33_esd',
     ],
-}
+};
 
 export type CifCore_Schema = typeof CifCore_Schema;
 export interface CifCore_Database extends Database<CifCore_Schema> {}

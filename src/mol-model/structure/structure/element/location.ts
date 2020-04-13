@@ -10,7 +10,7 @@ import Unit from '../unit';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import Structure from '../structure';
 
-export { Location }
+export { Location };
 
 interface Location<U = Unit> {
     readonly kind: 'element-location',
@@ -36,15 +36,15 @@ namespace Location {
 
     export function set(a: Location, structure?: Structure, unit?: Unit, element?: ElementIndex): Location {
         if (structure) a.structure = structure;
-        if (unit) a.unit = unit
-        if (element !== undefined) a.element = element
+        if (unit) a.unit = unit;
+        if (element !== undefined) a.element = element;
         return a;
     }
 
     export function copy(out: Location, a: Location): Location {
-        out.unit = a.unit
-        out.element = a.element
-        return out
+        out.unit = a.unit;
+        out.element = a.element;
+        return out;
     }
 
     export function is(x: any): x is Location {
@@ -52,7 +52,7 @@ namespace Location {
     }
 
     export function areEqual(a: Location, b: Location) {
-        return a.unit === b.unit && a.element === b.element
+        return a.unit === b.unit && a.element === b.element;
     }
 
     const pA = Vec3.zero(), pB = Vec3.zero();

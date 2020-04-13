@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import BitFlags from '../../../mol-util/bit-flags'
+import BitFlags from '../../../mol-util/bit-flags';
 import { SaccharideCompIdMap } from '../structure/carbohydrates/constants';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { SetUtils } from '../../../mol-util/set';
@@ -132,71 +132,71 @@ export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set
         backboneEnd: new Set(['C\'', 'C*']),
         coarseBackbone: new Set(['P'])
     }
-}
+};
 
 export const ProteinBackboneAtoms = new Set([
     'CA', 'C', 'N', 'O',
     'O1', 'O2', 'OC1', 'OC2', 'OX1', 'OXT',
     'H', 'H1', 'H2', 'H3', 'HA', 'HN', 'HXT',
     'BB'
-])
+]);
 
 export const NucleicBackboneAtoms = new Set([
     'P', 'OP1', 'OP2', 'HOP2', 'HOP3',
     'O2\'', 'O3\'', 'O4\'', 'O5\'', 'C1\'', 'C2\'', 'C3\'', 'C4\'', 'C5\'',
     'H1\'', 'H2\'', 'H2\'\'', 'HO2\'', 'H3\'', 'H4\'', 'H5\'', 'H5\'\'', 'HO3\'', 'HO5\'',
     'O2*', 'O3*', 'O4*', 'O5*', 'C1*', 'C2*', 'C3*', 'C4*', 'C5*'
-])
+]);
 
 /** Chemical component type names for D-linked protein */
 export const DProteinComponentTypeNames = new Set([
     'D-PEPTIDE LINKING', 'D-PEPTIDE NH3 AMINO TERMINUS',
     'D-PEPTIDE COOH CARBOXY TERMINUS', 'D-GAMMA-PEPTIDE, C-DELTA LINKING',
     'D-BETA-PEPTIDE, C-GAMMA LINKING'
-])
+]);
 
 /** Chemical component type names for L-linked protein */
 export const LProteinComponentTypeNames = new Set([
     'L-PEPTIDE LINKING', 'L-PEPTIDE NH3 AMINO TERMINUS',
     'L-PEPTIDE COOH CARBOXY TERMINUS', 'L-GAMMA-PEPTIDE, C-DELTA LINKING',
     'L-BETA-PEPTIDE, C-GAMMA LINKING'
-])
+]);
 
 /** Chemical component type names for gamma protein, overlaps with D/L-linked */
 export const GammaProteinComponentTypeNames = new Set([
     'D-GAMMA-PEPTIDE, C-DELTA LINKING', 'L-GAMMA-PEPTIDE, C-DELTA LINKING'
-])
+]);
 
 /** Chemical component type names for beta protein, overlaps with D/L-linked */
 export const BetaProteinComponentTypeNames = new Set([
     'D-BETA-PEPTIDE, C-GAMMA LINKING', 'L-BETA-PEPTIDE, C-GAMMA LINKING'
-])
+]);
 
 /** Chemical component type names for protein termini, overlaps with D/L-linked */
 export const ProteinTerminusComponentTypeNames = new Set([
     'D-PEPTIDE NH3 AMINO TERMINUS', 'D-PEPTIDE COOH CARBOXY TERMINUS',
     'L-PEPTIDE NH3 AMINO TERMINUS', 'L-PEPTIDE COOH CARBOXY TERMINUS'
-])
+]);
 
 /** Chemical component type names for pepdite-like protein */
 export const OtherProteinComponentTypeNames = new Set([
     'PEPTIDE LINKING', 'PEPTIDE-LIKE',
-])
+]);
 
 /** Chemical component type names for protein */
 export const ProteinComponentTypeNames = SetUtils.unionMany(
     DProteinComponentTypeNames, LProteinComponentTypeNames, OtherProteinComponentTypeNames
-)
+);
 
 /** Chemical component type names for DNA */
 export const DNAComponentTypeNames = new Set([
     'DNA LINKING', 'L-DNA LINKING', 'DNA OH 5 PRIME TERMINUS', 'DNA OH 3 PRIME TERMINUS',
-])
+]);
 
 /** Chemical component type names for RNA */
 export const RNAComponentTypeNames = new Set([
     'RNA LINKING', 'L-RNA LINKING', 'RNA OH 5 PRIME TERMINUS', 'RNA OH 3 PRIME TERMINUS',
-])
+]);
 
 /** Chemical component type names for saccharide */
 export const SaccharideComponentTypeNames = new Set([
@@ -206,23 +206,23 @@ export const SaccharideComponentTypeNames = new Set([
     // the following four are marked to be deprecated in the mmCIF dictionary
     'D-SACCHARIDE 1,4 AND 1,4 LINKING', 'L-SACCHARIDE 1,4 AND 1,4 LINKING',
     'D-SACCHARIDE 1,4 AND 1,6 LINKING', 'L-SACCHARIDE 1,4 AND 1,6 LINKING',
-])
+]);
 
 /** Chemical component type names for other */
 export const OtherComponentTypeNames = new Set([
     'NON-POLYMER', 'OTHER'
-])
+]);
 
 /** Common names for water molecules */
 export const WaterNames = new Set([
     'SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP3', 'TIP4', 'SPC'
-])
+]);
 
 export const AminoAcidNamesL = new Set([
     'HIS', 'ARG', 'LYS', 'ILE', 'PHE', 'LEU', 'TRP', 'ALA', 'MET', 'PRO', 'CYS',
     'ASN', 'VAL', 'GLY', 'SER', 'GLN', 'TYR', 'ASP', 'GLU', 'THR', 'SEC', 'PYL',
     'UNK' // unknown amino acid from CCD
-])
+]);
 export const AminoAcidNamesD = new Set([
     'DAL', // D-ALANINE
     'DAR', // D-ARGININE
@@ -245,92 +245,92 @@ export const AminoAcidNamesD = new Set([
     'DVA', // D-VALINE
     'DNE' // D-NORLEUCINE
     // ???  // D-SELENOCYSTEINE
-])
-export const AminoAcidNames = SetUtils.unionMany(AminoAcidNamesL, AminoAcidNamesD)
+]);
+export const AminoAcidNames = SetUtils.unionMany(AminoAcidNamesL, AminoAcidNamesD);
 
 export const RnaBaseNames = new Set([
     'A', 'C', 'T', 'G', 'I', 'U',
     'N' // unknown RNA base from CCD
-])
+]);
 export const DnaBaseNames = new Set([
     'DA', 'DC', 'DT', 'DG', 'DI', 'DU',
     'DN' // unknown DNA base from CCD
-])
-export const PeptideBaseNames = new Set([ 'APN', 'CPN', 'TPN', 'GPN' ])
-export const PurineBaseNames = new Set([ 'A', 'G', 'I', 'DA', 'DG', 'DI', 'APN', 'GPN' ])
-export const PyrimidineBaseNames = new Set([ 'C', 'T', 'U', 'DC', 'DT', 'DU', 'CPN', 'TPN' ])
-export const BaseNames = SetUtils.unionMany(RnaBaseNames, DnaBaseNames, PeptideBaseNames)
+]);
+export const PeptideBaseNames = new Set([ 'APN', 'CPN', 'TPN', 'GPN' ]);
+export const PurineBaseNames = new Set([ 'A', 'G', 'I', 'DA', 'DG', 'DI', 'APN', 'GPN' ]);
+export const PyrimidineBaseNames = new Set([ 'C', 'T', 'U', 'DC', 'DT', 'DU', 'CPN', 'TPN' ]);
+export const BaseNames = SetUtils.unionMany(RnaBaseNames, DnaBaseNames, PeptideBaseNames);
 
-export const isPurineBase = (compId: string) => PurineBaseNames.has(compId.toUpperCase())
-export const isPyrimidineBase = (compId: string) => PyrimidineBaseNames.has(compId.toUpperCase())
+export const isPurineBase = (compId: string) => PurineBaseNames.has(compId.toUpperCase());
+export const isPyrimidineBase = (compId: string) => PyrimidineBaseNames.has(compId.toUpperCase());
 
-export const PolymerNames = SetUtils.unionMany(AminoAcidNames, BaseNames)
+export const PolymerNames = SetUtils.unionMany(AminoAcidNames, BaseNames);
 
 /** get the molecule type from component type and id */
 export function getMoleculeType(compType: string, compId: string): MoleculeType {
-    compType = compType.toUpperCase()
-    compId = compId.toUpperCase()
+    compType = compType.toUpperCase();
+    compId = compId.toUpperCase();
     if (PeptideBaseNames.has(compId)) {
-        return MoleculeType.PNA
+        return MoleculeType.PNA;
     } else if (ProteinComponentTypeNames.has(compType)) {
-        return MoleculeType.Protein
+        return MoleculeType.Protein;
     } else if (RNAComponentTypeNames.has(compType)) {
-        return MoleculeType.RNA
+        return MoleculeType.RNA;
     } else if (DNAComponentTypeNames.has(compType)) {
-        return MoleculeType.DNA
+        return MoleculeType.DNA;
     } else if (SaccharideComponentTypeNames.has(compType)) {
-        return MoleculeType.Saccharide
+        return MoleculeType.Saccharide;
     } else if (WaterNames.has(compId)) {
-        return MoleculeType.Water
+        return MoleculeType.Water;
     } else if (IonNames.has(compId)) {
-        return MoleculeType.Ion
+        return MoleculeType.Ion;
     } else if (OtherComponentTypeNames.has(compType)) {
         if (SaccharideCompIdMap.has(compId)) {
             // trust our saccharide table more than given 'non-polymer' or 'other' component type
-            return MoleculeType.Saccharide
+            return MoleculeType.Saccharide;
         } else {
-            return MoleculeType.Other
+            return MoleculeType.Other;
         }
     } else {
-        return MoleculeType.Unknown
+        return MoleculeType.Unknown;
     }
 }
 
 export function getPolymerType(compType: string, molType: MoleculeType): PolymerType {
-    compType = compType.toUpperCase()
+    compType = compType.toUpperCase();
     if (molType === MoleculeType.Protein) {
         if (GammaProteinComponentTypeNames.has(compType)) {
-            return PolymerType.GammaProtein
+            return PolymerType.GammaProtein;
         } else if (BetaProteinComponentTypeNames.has(compType)) {
-            return PolymerType.BetaProtein
+            return PolymerType.BetaProtein;
         } else if (ProteinTerminusComponentTypeNames.has(compType)) {
-            return PolymerType.NA
+            return PolymerType.NA;
         } else {
-            return PolymerType.Protein
+            return PolymerType.Protein;
         }
     } else if (molType === MoleculeType.RNA) {
-        return PolymerType.RNA
+        return PolymerType.RNA;
     } else if (molType === MoleculeType.DNA) {
-        return PolymerType.DNA
+        return PolymerType.DNA;
     } else if (molType === MoleculeType.PNA) {
-        return PolymerType.PNA
+        return PolymerType.PNA;
     } else {
-        return PolymerType.NA
+        return PolymerType.NA;
     }
 }
 
 export function getComponentType(compId: string): mmCIF_Schema['chem_comp']['type']['T'] {
-    compId = compId.toUpperCase()
+    compId = compId.toUpperCase();
     if (AminoAcidNames.has(compId)) {
-        return 'peptide linking'
+        return 'peptide linking';
     } else if (RnaBaseNames.has(compId)) {
-        return 'RNA linking'
+        return 'RNA linking';
     } else if (DnaBaseNames.has(compId)) {
-        return 'DNA linking'
+        return 'DNA linking';
     } else if (SaccharideCompIdMap.has(compId)) {
-        return 'saccharide'
+        return 'saccharide';
     } else {
-        return 'other'
+        return 'other';
     }
 }
 
@@ -349,58 +349,58 @@ export function getDefaultChemicalComponent(compId: string): ChemicalComponent {
 }
 
 export function getEntityType(compId: string): mmCIF_Schema['entity']['type']['T'] {
-    compId = compId.toUpperCase()
+    compId = compId.toUpperCase();
     if (WaterNames.has(compId)) {
-        return 'water'
+        return 'water';
     } else if (PolymerNames.has(compId)) {
-        return 'polymer'
+        return 'polymer';
     } else if (SaccharideCompIdMap.has(compId)) {
-        return 'branched'
+        return 'branched';
     } else {
-        return 'non-polymer'
+        return 'non-polymer';
     }
 }
 
 export function getEntitySubtype(compId: string, compType: string): EntitySubtype {
-    compId = compId.toUpperCase()
-    compType = compType.toUpperCase()
+    compId = compId.toUpperCase();
+    compType = compType.toUpperCase();
     if (LProteinComponentTypeNames.has(compType)) {
-        return 'polypeptide(L)'
+        return 'polypeptide(L)';
     } else if (DProteinComponentTypeNames.has(compType)) {
-        return 'polypeptide(D)'
+        return 'polypeptide(D)';
     } else if (RNAComponentTypeNames.has(compType)) {
-        return 'polyribonucleotide'
+        return 'polyribonucleotide';
     } else if (DNAComponentTypeNames.has(compType)) {
-        return 'polydeoxyribonucleotide'
+        return 'polydeoxyribonucleotide';
     } else if (SaccharideComponentTypeNames.has(compType)) {
-        return 'oligosaccharide'
+        return 'oligosaccharide';
     } else if (SaccharideCompIdMap.has(compId)) {
-        return 'oligosaccharide'
+        return 'oligosaccharide';
     } else if (PeptideBaseNames.has(compId)) {
-        return 'peptide nucleic acid'
+        return 'peptide nucleic acid';
     } else if (AminoAcidNamesL.has(compId)) {
-        return 'polypeptide(L)'
+        return 'polypeptide(L)';
     } else if (AminoAcidNamesD.has(compId)) {
-        return 'polypeptide(D)'
+        return 'polypeptide(D)';
     } else if (RnaBaseNames.has(compId)) {
-        return 'polyribonucleotide'
+        return 'polyribonucleotide';
     } else if (DnaBaseNames.has(compId)) {
-        return 'polydeoxyribonucleotide'
+        return 'polydeoxyribonucleotide';
     } else {
-        return 'other'
+        return 'other';
     }
 }
 
 export function isPolymer(moleculeType: MoleculeType) {
-    return isNucleic(moleculeType) || isProtein(moleculeType)
+    return isNucleic(moleculeType) || isProtein(moleculeType);
 }
 
 export function isNucleic(moleculeType: MoleculeType) {
-    return moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA || moleculeType === MoleculeType.PNA
+    return moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA || moleculeType === MoleculeType.PNA;
 }
 
 export function isProtein(moleculeType: MoleculeType) {
-    return moleculeType === MoleculeType.Protein
+    return moleculeType === MoleculeType.Protein;
 }
 
 /**
@@ -437,12 +437,12 @@ export const IonNames = new Set([
     'YB2', 'YH', 'YT3', 'ZCM', 'ZN', 'ZN2', 'ZN3', 'ZNO', 'ZO3',
     // additional ion names
     'OHX'
-])
+]);
 
 export type SecondaryStructureType = BitFlags<SecondaryStructureType.Flag>
 export namespace SecondaryStructureType {
-    export const is: (ss: SecondaryStructureType, f: Flag) => boolean = BitFlags.has
-    export const create: (fs: Flag) => SecondaryStructureType = BitFlags.create
+    export const is: (ss: SecondaryStructureType, f: Flag) => boolean = BitFlags.has;
+    export const create: (fs: Flag) => SecondaryStructureType = BitFlags.create;
 
     export const enum Flag {
         None = 0x0,
@@ -531,7 +531,7 @@ export namespace SecondaryStructureType {
         TURN_TY2_P: Flag.Turn | Flag.ClassicTurn | Flag.Turn2,  // type II turn (protein)
         TURN_TY3P_P: Flag.Turn | Flag.InverseTurn | Flag.Turn3,  // type III prime turn (protein)
         TURN_TY3_P: Flag.Turn | Flag.ClassicTurn | Flag.Turn3,  // type III turn (protein)
-    }
+    };
 
     export const SecondaryStructurePdb: { [value: string]: number } = {
         1: Flag.Helix | Flag.RightHanded | Flag.HelixAlpha,  // Right-handed alpha (default)
@@ -544,7 +544,7 @@ export namespace SecondaryStructureType {
         8: Flag.Helix | Flag.LeftHanded | Flag.HelixGamma,  // Left-handed gamma
         9: Flag.Helix | Flag.Helix27,  // 27 ribbon/helix
         10: Flag.Helix | Flag.HelixPolyproline,  // Polyproline
-    }
+    };
 
     export const SecondaryStructureStride: { [value: string]: number } = {
         H: Flag.Helix | Flag.HelixAlpha,  // Alpha helix
@@ -554,7 +554,7 @@ export namespace SecondaryStructureType {
         B: Flag.Beta | Flag.BetaStrand,  // Isolated bridge
         T: Flag.Turn,  // Turn
         C: Flag.NA,  // Coil (none of the above)
-    }
+    };
 
     export const SecondaryStructureDssp: { [value: string]: number } = {
         H: Flag.Helix | Flag.HelixAlpha,  // alpha-helix
@@ -564,7 +564,7 @@ export namespace SecondaryStructureType {
         I: Flag.Helix | Flag.HelixPi,  // 5 helix (pi-helix)
         T: Flag.Turn,  // hydrogen bonded turn
         S: Flag.Bend,  // bend
-    }
+    };
 }
 
 /** Maximum accessible surface area observed for amino acids. Taken from: http://dx.doi.org/10.1371/journal.pone.0080635 */
@@ -589,12 +589,12 @@ export const MaxAsa = {
     'TRP': 264.0,
     'TYR': 255.0,
     'VAL': 165.0
-}
-export const DefaultMaxAsa = 121.0
+};
+export const DefaultMaxAsa = 121.0;
 
 export type BondType = BitFlags<BondType.Flag>
 export namespace BondType {
-    export const is: (b: BondType, f: Flag) => boolean = BitFlags.has
+    export const is: (b: BondType, f: Flag) => boolean = BitFlags.has;
     export const enum Flag {
         None                 = 0x0,
         Covalent             = 0x1,
@@ -621,11 +621,11 @@ export namespace BondType {
         'disulfide': Flag.HydrogenBond,
         'aromatic': Flag.HydrogenBond,
         'computed': Flag.HydrogenBond,
-    }
+    };
     export type Names = keyof typeof Names
 
     export function isName(name: string): name is Names {
-        return name in Names
+        return name in Names;
     }
 
     export function fromName(name: Names): Flag {
@@ -640,11 +640,11 @@ export namespace BondType {
     }
 
     export function fromNames(names: Names[]): Flag {
-        let f = Flag.None
+        let f = Flag.None;
         for (let i = 0, il = names.length; i < il; ++i) {
-            f |= fromName(names[i])
+            f |= fromName(names[i]);
         }
-        return f
+        return f;
     }
 }
 
@@ -679,5 +679,5 @@ export const ResidueHydrophobicity = {
     'TRP': [ -1.85, -2.09, -0.24 ],
     'TYR': [ -0.94, -0.71, 0.23 ],
     'VAL': [ 0.07, -0.46, -0.53 ]
-}
-export const DefaultResidueHydrophobicity = [ 0.00, 0.00, 0.00 ]
+};
+export const DefaultResidueHydrophobicity = [ 0.00, 0.00, 0.00 ];

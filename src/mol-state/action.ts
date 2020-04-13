@@ -80,7 +80,7 @@ namespace StateAction {
                 const tree = state.build().to(cell.transform.ref).apply(transformer, params);
                 return state.updateTree(tree) as unknown as Task<void>;
             }
-        })
+        });
     }
 
     export namespace Builder {

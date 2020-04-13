@@ -30,7 +30,7 @@ function addEntry(entries: InfoEntryProps[], method: VolumeServerInfo.Kind, data
             ? { name: 'em', params: { isoValue: VolumeIsoValue.absolute(emDefaultContourLevel || 0) } }
             : { name: 'x-ray', params: { } },
         dataId
-    })
+    });
 }
 
 export const InitVolumeStreaming = StateAction.build({
@@ -57,10 +57,10 @@ export const InitVolumeStreaming = StateAction.build({
         return a.data.models.length === 1 && Model.hasDensityMap(a.data.models[0]);
     }
 })(({ ref, state, params }, plugin: PluginContext) => Task.create('Volume Streaming', async taskCtx => {
-    const entries: InfoEntryProps[] = []
+    const entries: InfoEntryProps[] = [];
 
     for (let i = 0, il = params.entries.length; i < il; ++i) {
-        let dataId = params.entries[i].id.toLowerCase()
+        let dataId = params.entries[i].id.toLowerCase();
         let emDefaultContourLevel: number | undefined;
 
         if (params.method === 'em') {
@@ -68,29 +68,29 @@ export const InitVolumeStreaming = StateAction.build({
             // and continue the loop
             if (!dataId.toUpperCase().startsWith('EMD')) {
                 await taskCtx.update('Getting EMDB info...');
-                const emdbIds = await getEmdbIds(plugin, taskCtx, dataId)
+                const emdbIds = await getEmdbIds(plugin, taskCtx, dataId);
                 for (let j = 0, jl = emdbIds.length; j < jl; ++j) {
-                    const emdbId = emdbIds[j]
+                    const emdbId = emdbIds[j];
                     let contourLevel: number | undefined;
                     try {
-                        contourLevel = await getContourLevel(params.options.emContourProvider, plugin, taskCtx, emdbId)
+                        contourLevel = await getContourLevel(params.options.emContourProvider, plugin, taskCtx, emdbId);
                     } catch (e) {
-                        console.info(`Could not get map info for ${emdbId}: ${e}`)
+                        console.info(`Could not get map info for ${emdbId}: ${e}`);
                         continue;
                     }
-                    addEntry(entries, params.method, emdbId, contourLevel || 0)
+                    addEntry(entries, params.method, emdbId, contourLevel || 0);
                 }
                 continue;
             }
             try {
                 emDefaultContourLevel = await getContourLevel(params.options.emContourProvider, plugin, taskCtx, dataId);
             } catch (e) {
-                console.info(`Could not get map info for ${dataId}: ${e}`)
+                console.info(`Could not get map info for ${dataId}: ${e}`);
                 continue;
             }
         }
 
-        addEntry(entries, params.method, dataId, emDefaultContourLevel || 0)
+        addEntry(entries, params.method, dataId, emDefaultContourLevel || 0);
     }
 
     const infoTree = state.build().to(ref)
@@ -161,10 +161,10 @@ const InfoEntryParams = {
         }),
         'x-ray': PD.Group({ })
     })
-}
+};
 type InfoEntryProps = PD.Values<typeof InfoEntryParams>
 
-export { CreateVolumeStreamingInfo }
+export { CreateVolumeStreamingInfo };
 type CreateVolumeStreamingInfo = typeof CreateVolumeStreamingInfo
 const CreateVolumeStreamingInfo = PluginStateTransform.BuiltIn({
     name: 'create-volume-streaming-info',
@@ -181,9 +181,9 @@ const CreateVolumeStreamingInfo = PluginStateTransform.BuiltIn({
     }
 })({
     apply: ({ a, params }, plugin: PluginContext) => Task.create('', async taskCtx => {
-        const entries: VolumeServerInfo.EntryData[] = []
+        const entries: VolumeServerInfo.EntryData[] = [];
         for (let i = 0, il = params.entries.length; i < il; ++i) {
-            const e = params.entries[i]
+            const e = params.entries[i];
             const dataId = e.dataId;
             const emDefaultContourLevel = e.source.name === 'em' ? e.source.params.isoValue : VolumeIsoValue.relative(1);
             await taskCtx.update('Getting server header...');
@@ -193,7 +193,7 @@ const CreateVolumeStreamingInfo = PluginStateTransform.BuiltIn({
                 kind: e.source.name,
                 header,
                 emDefaultContourLevel
-            })
+            });
         }
 
         const data: VolumeServerInfo.Data = {
@@ -205,7 +205,7 @@ const CreateVolumeStreamingInfo = PluginStateTransform.BuiltIn({
     })
 });
 
-export { CreateVolumeStreamingBehavior }
+export { CreateVolumeStreamingBehavior };
 type CreateVolumeStreamingBehavior = typeof CreateVolumeStreamingBehavior
 const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     name: 'create-volume-streaming-behavior',
@@ -230,9 +230,9 @@ const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
         return Task.create('Update Volume Streaming', async _ => {
             if (oldParams.entry.name !== newParams.entry.name) {
                 if ('em' in newParams.entry.params.channels) {
-                    const { emDefaultContourLevel } = b.data.infoMap.get(newParams.entry.name)!
+                    const { emDefaultContourLevel } = b.data.infoMap.get(newParams.entry.name)!;
                     if (emDefaultContourLevel) {
-                        newParams.entry.params.channels['em'].isoValue = emDefaultContourLevel
+                        newParams.entry.params.channels['em'].isoValue = emDefaultContourLevel;
                     }
                 }
             }
@@ -243,7 +243,7 @@ const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     }
 });
 
-export { VolumeStreamingVisual }
+export { VolumeStreamingVisual };
 type VolumeStreamingVisual = typeof VolumeStreamingVisual
 const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
     name: 'create-volume-streaming-visual',
@@ -261,9 +261,9 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
         const params = createVolumeProps(a.data, srcParams.channel);
 
         const provider = VolumeRepresentationRegistry.BuiltIn.isosurface;
-        const props = params.type.params || {}
-        const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams)
-        repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params))
+        const props = params.type.params || {};
+        const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams);
+        repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params));
         await repr.createOrUpdate(props, channel.data).runInContext(ctx);
         return new SO.Volume.Representation3D({ repr, source: a }, { label: `${Math.round(channel.isoValue.relativeValue * 100) / 100} σ [${srcParams.channel}]` });
     }),
@@ -276,7 +276,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
 
         const params = createVolumeProps(a.data, newParams.channel);
         const props = { ...b.data.repr.props, ...params.type.params };
-        b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params))
+        b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params));
         await b.data.repr.createOrUpdate(props, channel.data).runInContext(ctx);
         return StateTransformer.UpdateResult.Updated;
     })

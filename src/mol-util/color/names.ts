@@ -163,13 +163,13 @@ export const ColorNames = ColorMap({
     whitesmoke: 0xf5f5f5,
     yellow: 0xffff00,
     yellowgreen: 0x9acd32
-})
+});
 export type ColorNames = typeof ColorNames
 export type ColorName = keyof ColorNames
 export const ColorNamesValueMap = (function() {
-    const map = new Map<Color, ColorName>()
+    const map = new Map<Color, ColorName>();
     Object.keys(ColorNames).forEach(name => {
-        map.set(ColorNames[name as ColorName], name as ColorName)
-    })
-    return map
-})()
+        map.set(ColorNames[name as ColorName], name as ColorName);
+    });
+    return map;
+})();

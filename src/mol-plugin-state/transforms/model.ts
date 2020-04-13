@@ -95,13 +95,13 @@ const TopologyFromPsf = PluginStateTransform.BuiltIn({
 
 async function getTrajectory(ctx: RuntimeContext, obj: StateObject, coordinates: Coordinates) {
     if (obj.type === SO.Molecule.Topology.type) {
-        const topology = obj.data as Topology
+        const topology = obj.data as Topology;
         return await Model.trajectoryFromTopologyAndCoordinates(topology, coordinates).runInContext(ctx);
     } else if (obj.type === SO.Molecule.Model.type) {
-        const model = obj.data as Model
+        const model = obj.data as Model;
         return Model.trajectoryFromModelAndCoordinates(model, coordinates);
     }
-    throw new Error('no model/topology found')
+    throw new Error('no model/topology found');
 }
 
 type TrajectoryFromModelAndCoordinates = typeof TrajectoryFromModelAndCoordinates
@@ -117,7 +117,7 @@ const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
 })({
     apply({ params, dependencies }) {
         return Task.create('Create trajectory from model/topology and coordinates', async ctx => {
-            const coordinates = dependencies![params.coordinatesRef].data as Coordinates
+            const coordinates = dependencies![params.coordinatesRef].data as Coordinates;
             const trajectory = await getTrajectory(ctx, dependencies![params.modelRef], coordinates);
             const props = { label: 'Trajectory', description: `${trajectory.length} model${trajectory.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(trajectory, props);
@@ -295,7 +295,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
         if (!a) {
             return { modelIndex: PD.Numeric(0, {}, { description: 'Zero-based index of the model' }) };
         }
-        return { modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.length, step: 1 }, { description: 'Model Index' })) }
+        return { modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.length, step: 1 }, { description: 'Model Index' })) };
     }
 })({
     isApplicable: a => a.data.length > 0,
@@ -321,7 +321,7 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
             const s = Structure.ofTrajectory(a.data);
             const props = { label: 'Ensemble', description: Structure.elementDescription(s) };
             return new SO.Molecule.Structure(s, props);
-        })
+        });
     }
 });
 
@@ -339,7 +339,7 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Structure', async ctx => {
             return RootStructureDefinition.create(plugin, ctx, a.data, params && params.type);
-        })
+        });
     },
     update: ({ a, b, oldParams, newParams }) => {
         if (!b.data.models.includes(a.data)) return StateTransformer.UpdateResult.Recreate;
@@ -711,7 +711,7 @@ export const StructureComplexElementTypes = {
     'atomic-sequence': 'atomic-sequence',
     'atomic-het': 'atomic-het',
     'spheres': 'spheres'
-} as const
+} as const;
 export type StructureComplexElementTypes = keyof typeof StructureComplexElementTypes
 
 const StructureComplexElementTypeTuples = PD.objectToOptions(StructureComplexElementTypes);
@@ -781,7 +781,7 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Model,
     to: SO.Molecule.Model,
     params: (a, ctx: PluginContext) => {
-        return ctx.customModelProperties.getParams(a?.data)
+        return ctx.customModelProperties.getParams(a?.data);
     }
 })({
     apply({ a, params }, ctx: PluginContext) {
@@ -806,19 +806,19 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
     }
 });
 async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomModelProperties['createDefaultParams']>) {
-    const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch }
-    const { autoAttach, properties } = params
+    const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch };
+    const { autoAttach, properties } = params;
     for (const name of Object.keys(properties)) {
-        const property = ctx.customModelProperties.get(name)
-        const props = properties[name]
+        const property = ctx.customModelProperties.get(name);
+        const props = properties[name];
         if (autoAttach.includes(name)) {
             try {
-                await property.attach(propertyCtx, model, props, true)
+                await property.attach(propertyCtx, model, props, true);
             } catch (e) {
                 ctx.log.warn(`Error attaching model prop '${name}': ${e}`);
             }
         } else {
-            property.set(model, props)
+            property.set(model, props);
         }
     }
 }
@@ -831,7 +831,7 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: (a, ctx: PluginContext) => {
-        return ctx.customStructureProperties.getParams(a?.data.root)
+        return ctx.customStructureProperties.getParams(a?.data.root);
     }
 })({
     apply({ a, params }, ctx: PluginContext) {
@@ -856,19 +856,19 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
     }
 });
 async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomStructureProperties['createDefaultParams']>) {
-    const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch }
-    const { autoAttach, properties } = params
+    const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch };
+    const { autoAttach, properties } = params;
     for (const name of Object.keys(properties)) {
-        const property = ctx.customStructureProperties.get(name)
-        const props = properties[name]
+        const property = ctx.customStructureProperties.get(name);
+        const props = properties[name];
         if (autoAttach.includes(name)) {
             try {
-                await property.attach(propertyCtx, structure, props, true)
+                await property.attach(propertyCtx, structure, props, true);
             } catch (e) {
                 ctx.log.warn(`Error attaching structure prop '${name}': ${e}`);
             }
         } else {
-            property.set(structure, props)
+            property.set(structure, props);
         }
     }
 }
@@ -885,7 +885,7 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }) {
         return Task.create('Create shape from PLY', async ctx => {
-            const shape = await shapeFromPly(a.data, params).runInContext(ctx)
+            const shape = await shapeFromPly(a.data, params).runInContext(ctx);
             const props = { label: 'Shape' };
             return new SO.Shape.Provider(shape, props);
         });

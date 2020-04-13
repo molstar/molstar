@@ -4,19 +4,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as util from 'util'
-import * as fs from 'fs'
-import fetch from 'node-fetch'
+import * as util from 'util';
+import * as fs from 'fs';
+import fetch from 'node-fetch';
 require('util.promisify').shim();
 
-import { CIF } from '../../mol-io/reader/cif'
-import { Progress } from '../../mol-task'
+import { CIF } from '../../mol-io/reader/cif';
+import { Progress } from '../../mol-task';
 
 const readFileAsync = util.promisify(fs.readFile);
 
 async function readFile(path: string) {
     if (path.match(/\.bcif$/)) {
-        const input = await readFileAsync(path)
+        const input = await readFileAsync(path);
         const data = new Uint8Array(input.byteLength);
         for (let i = 0; i < input.byteLength; i++) data[i] = input[i];
         return data;

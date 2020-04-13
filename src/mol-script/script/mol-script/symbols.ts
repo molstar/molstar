@@ -298,7 +298,7 @@ const normalized = (function () {
         }
     }
 
-    return { symbolList, symbolMap, namedArgs: namedArgs.array, constants: constants.array }
+    return { symbolList, symbolMap, namedArgs: namedArgs.array, constants: constants.array };
 })();
 
 export const MolScriptSymbols = list;

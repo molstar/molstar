@@ -23,32 +23,32 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private readonly asymId: string
 
     private seqId(seqIdx: number) {
-        return this.sequence.seqId.value(seqIdx)
+        return this.sequence.seqId.value(seqIdx);
     }
 
     residueLabel(seqIdx: number) {
-        return this.sequence.label.value(seqIdx)
+        return this.sequence.label.value(seqIdx);
     }
 
     residueColor(seqIdx: number) {
         return this.missing.has(this.modelNum, this.asymId, this.seqId(seqIdx))
             ? ColorNames.grey
-            : ColorNames.black
+            : ColorNames.black;
     }
     residueClass(seqIdx: number) {
         return this.missing.has(this.modelNum, this.asymId, this.seqId(seqIdx))
             ? 'msp-sequence-missing'
-            : 'msp-sequence-present'
+            : 'msp-sequence-present';
     }
 
     mark(loci: Loci, action: MarkerAction): boolean {
-        let changed = false
-        const { structure } = this.data
+        let changed = false;
+        const { structure } = this.data;
         if (StructureElement.Loci.is(loci)) {
-            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
-            loci = StructureElement.Loci.remap(loci, structure)
+            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false;
+            loci = StructureElement.Loci.remap(loci, structure);
 
-            const { offset } = this.sequence
+            const { offset } = this.sequence;
             for (const e of loci.elements) {
                 if (!this.unitMap.has(e.unit.id)) continue;
 
@@ -59,10 +59,10 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
                 }
             }
         } else if (Structure.isLoci(loci)) {
-            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
-            if (applyMarkerAction(this.markerArray, this.observed, action)) changed = true
+            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false;
+            if (applyMarkerAction(this.markerArray, this.observed, action)) changed = true;
         }
-        return changed
+        return changed;
     }
 
     getLoci(seqIdx: number) {
@@ -71,28 +71,28 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     }
 
     constructor(data: StructureUnit) {
-        const l = StructureElement.Location.create(data.structure, data.units[0], data.units[0].elements[0])
-        const entitySeq = data.units[0].model.sequence.byEntityKey[SP.entity.key(l)]
+        const l = StructureElement.Location.create(data.structure, data.units[0], data.units[0].elements[0]);
+        const entitySeq = data.units[0].model.sequence.byEntityKey[SP.entity.key(l)];
 
-        const length = entitySeq.sequence.length
-        const markerArray = new Uint8Array(length)
+        const length = entitySeq.sequence.length;
+        const markerArray = new Uint8Array(length);
 
-        super(data, markerArray, length)
+        super(data, markerArray, length);
 
-        this.unitMap = new Map()
-        for (const unit of data.units) this.unitMap.set(unit.id, unit)
+        this.unitMap = new Map();
+        for (const unit of data.units) this.unitMap.set(unit.id, unit);
 
-        this.sequence = entitySeq.sequence
-        this.missing = data.units[0].model.properties.missingResidues
+        this.sequence = entitySeq.sequence;
+        this.missing = data.units[0].model.properties.missingResidues;
 
-        this.modelNum = data.units[0].model.modelNum
-        this.asymId = Unit.isAtomic(data.units[0]) ? SP.chain.label_asym_id(l) : SP.coarse.asym_id(l)
+        this.modelNum = data.units[0].model.modelNum;
+        this.asymId = Unit.isAtomic(data.units[0]) ? SP.chain.label_asym_id(l) : SP.coarse.asym_id(l);
 
-        const missing: number[] = []
+        const missing: number[] = [];
         for (let i = 0; i < length; ++i) {
-            if (this.missing.has(this.modelNum, this.asymId, this.seqId(i))) missing.push(i)
+            if (this.missing.has(this.modelNum, this.asymId, this.seqId(i))) missing.push(i);
         }
-        this.observed = OrderedSet.subtract(Interval.ofBounds(0, length),  SortedArray.ofSortedArray(missing))
+        this.observed = OrderedSet.subtract(Interval.ofBounds(0, length),  SortedArray.ofSortedArray(missing));
     }
 }
 
@@ -102,16 +102,16 @@ function createResidueQuery(chainGroupId: number, operatorName: string, label_se
             return (
                 SP.unit.chainGroupId(ctx.element) === chainGroupId &&
                 SP.unit.operator_name(ctx.element) === operatorName
-            )
+            );
         },
         residueTest: ctx => {
             if (ctx.element.unit.kind === Unit.Kind.Atomic) {
-                return SP.residue.label_seq_id(ctx.element) === label_seq_id
+                return SP.residue.label_seq_id(ctx.element) === label_seq_id;
             } else {
                 return (
                     SP.coarse.seq_id_begin(ctx.element) <= label_seq_id &&
                     SP.coarse.seq_id_end(ctx.element) >= label_seq_id
-                )
+                );
             }
         }
     });
@@ -124,7 +124,7 @@ function applyMarkerAtomic(e: StructureElement.Loci.Element, action: MarkerActio
 
     let changed = false;
     OrderedSet.forEachSegment(e.indices, i => index[elements[i]], rI => {
-        const seqId = label_seq_id.value(rI)
+        const seqId = label_seq_id.value(rI);
         changed = applyMarkerActionAtPosition(markerArray, seqId - 1 - offset, action) || changed;
     });
     return changed;

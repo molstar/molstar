@@ -5,4 +5,4 @@ export default `
 #else
     float group = aGroup;
 #endif
-`
+`;

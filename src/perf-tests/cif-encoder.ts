@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CifWriter } from '../mol-io/writer/cif'
-import * as fs from 'fs'
+import { CifWriter } from '../mol-io/writer/cif';
+import * as fs from 'fs';
 
 const category1fields: CifWriter.Field[] = [
     CifWriter.Field.str('f1', i => 'v' + i),
@@ -33,8 +33,8 @@ function testText() {
 
     const filter: CifWriter.Category.Filter = {
         includeCategory(cat) { return true; },
-        includeField(cat, field) { return !(cat === 'cat2' && field === 'e2') }
-    }
+        includeField(cat, field) { return !(cat === 'cat2' && field === 'e2'); }
+    };
 
     enc.startDataBlock('test');
     enc.setFilter(filter);
@@ -51,8 +51,8 @@ function testBinary() {
 
     const filter: CifWriter.Category.Filter = {
         includeCategory(cat) { return true; },
-        includeField(cat, field) { return !(cat === 'cat2' && field === 'e2') }
-    }
+        includeField(cat, field) { return !(cat === 'cat2' && field === 'e2'); }
+    };
 
     enc.startDataBlock('test');
     enc.setFilter(filter);

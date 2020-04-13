@@ -4,14 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column, ColumnHelpers } from '../../../../../mol-data/db'
-import { trimStr, Tokens } from '../tokenizer'
-import { parseIntSkipLeadingWhitespace, parseFloatSkipLeadingWhitespace } from '../number-parser'
+import { Column, ColumnHelpers } from '../../../../../mol-data/db';
+import { trimStr, Tokens } from '../tokenizer';
+import { parseIntSkipLeadingWhitespace, parseFloatSkipLeadingWhitespace } from '../number-parser';
 
 export default function FixedColumnProvider(lines: Tokens) {
     return function<T extends Column.Schema>(offset: number, width: number, type: T) {
         return FixedColumn(lines, offset, width, type);
-    }
+    };
 }
 
 export function FixedColumn<T extends Column.Schema>(lines: Tokens, offset: number, width: number, schema: T): Column<T['T']> {

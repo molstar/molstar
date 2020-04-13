@@ -16,4 +16,4 @@ export default `
 #endif
 
 size *= uSizeFactor;
-`
+`;

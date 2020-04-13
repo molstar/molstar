@@ -5,9 +5,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import TextEncoder from './cif/encoder/text'
-import BinaryEncoder, { BinaryEncodingProvider } from './cif/encoder/binary'
-import * as _Encoder from './cif/encoder'
+import TextEncoder from './cif/encoder/text';
+import BinaryEncoder, { BinaryEncodingProvider } from './cif/encoder/binary';
+import * as _Encoder from './cif/encoder';
 import { ArrayEncoding, ArrayEncoder } from '../common/binary-cif';
 import { CifFrame } from '../reader/cif';
 
@@ -52,7 +52,7 @@ export namespace CifWriter {
                 const ff = cat.getField(f);
                 return ff && ff.binaryEncoding ? ArrayEncoder.fromEncoding(ff.binaryEncoding) : void 0;
             }
-        }
+        };
     };
 
     export function createEncodingProviderFromJsonConfig(hints: EncodingStrategyHint[]): BinaryEncodingProvider {
@@ -65,7 +65,7 @@ export namespace CifWriter {
                     }
                 }
             }
-        }
+        };
     }
 
     function resolveEncoding(hint: EncodingStrategyHint): ArrayEncoder {

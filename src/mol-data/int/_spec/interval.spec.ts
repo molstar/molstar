@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Interval from '../interval'
+import Interval from '../interval';
 
 describe('interval', () => {
     function testI(name: string, a: Interval, b: Interval) {

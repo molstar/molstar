@@ -45,7 +45,7 @@ export class ControlGroup extends React.Component<{
             {this.state.isExpanded && <div className={groupClassName} style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                 {this.props.children}
             </div>}
-        </div>
+        </div>;
     }
 }
 
@@ -223,7 +223,7 @@ export class NumericInput extends React.PureComponent<{
             onChange={this.onChange}
             onKeyPress={this.props.onEnter || this.props.blurOnEnter ? this.onKeyPress : void 0}
             disabled={!!this.props.isDisabled}
-        />
+        />;
     }
 }
 
@@ -261,7 +261,7 @@ export function SectionHeader(props: { icon?: IconName, title: string | JSX.Elem
     return <div className='msp-section-header'>
         {props.icon && <Icon name={props.icon} />}
         {props.title} <small>{props.desc}</small>
-    </div>
+    </div>;
 }
 
 export type ButtonProps = {
@@ -322,10 +322,10 @@ export function IconButton(props: {
 }) {
     let className = `msp-btn msp-btn-icon${props.small ? '-small' : ''}${props.className ? ' ' + props.className : ''}`;
     if (typeof props.toggleState !== 'undefined') {
-        className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
+        className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`;
     }
     if (props.transparent) {
-        className += ' msp-transparent-bg'
+        className += ' msp-transparent-bg';
     }
     const iconStyle = props.small ? { fontSize: '80%' } : void 0;
 

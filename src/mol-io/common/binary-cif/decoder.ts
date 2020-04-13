@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Encoding, EncodedData } from './encoding'
+import { Encoding, EncodedData } from './encoding';
 import { IsNativeEndianLittle, flipByteOrder } from '../binary';
 
 /**
@@ -33,7 +33,7 @@ function decodeStep(data: any, encoding: Encoding): any {
                 case Encoding.IntDataType.Uint32: return uint32(data);
                 case Encoding.FloatDataType.Float32: return float32(data);
                 case Encoding.FloatDataType.Float64: return float64(data);
-                default: throw new Error('Unsupported ByteArray type.')
+                default: throw new Error('Unsupported ByteArray type.');
             }
         }
         case 'FixedPoint': return fixedPoint(data, encoding);
@@ -92,7 +92,7 @@ function fixedPoint(data: Int32Array, encoding: Encoding.FixedPoint) {
 function intervalQuantization(data: Int32Array, encoding: Encoding.IntervalQuantization) {
     let n = data.length;
     let output = getFloatArray(encoding.srcType, n);
-    let delta = (encoding.max - encoding.min) / (encoding.numSteps - 1)
+    let delta = (encoding.max - encoding.min) / (encoding.numSteps - 1);
     let min = encoding.min;
     for (let i = 0; i < n; i++) {
         output[i] = min + delta * data[i];

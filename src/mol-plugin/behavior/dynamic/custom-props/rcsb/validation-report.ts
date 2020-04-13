@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from '../../../../../mol-util/param-definition'
+import { ParamDefinition as PD } from '../../../../../mol-util/param-definition';
 import { PluginBehavior } from '../../../behavior';
 import { ValidationReport, ValidationReportProvider } from '../../../../../mol-model-props/rcsb/validation-report';
 import { RandomCoilIndexColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/random-coil-index';
@@ -34,12 +34,12 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
         private labelProvider = {
             label: (loci: Loci): string | undefined => {
-                if (!this.params.showTooltip) return
+                if (!this.params.showTooltip) return;
                 return [
                     geometryQualityLabel(loci),
                     densityFitLabel(loci),
                     randomCoilIndexLabel(loci)
-                ].filter(l => !!l).join('</br>')
+                ].filter(l => !!l).join('</br>');
             }
         }
 
@@ -50,20 +50,20 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.managers.lociLabels.addProvider(this.labelProvider);
 
-            this.ctx.representation.structure.themes.colorThemeRegistry.add(DensityFitColorThemeProvider)
-            this.ctx.representation.structure.themes.colorThemeRegistry.add(GeometryQualityColorThemeProvider)
-            this.ctx.representation.structure.themes.colorThemeRegistry.add(RandomCoilIndexColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(DensityFitColorThemeProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(GeometryQualityColorThemeProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(RandomCoilIndexColorThemeProvider);
 
-            this.ctx.representation.structure.registry.add(ClashesRepresentationProvider)
-            this.ctx.query.structure.registry.add(hasClash)
+            this.ctx.representation.structure.registry.add(ClashesRepresentationProvider);
+            this.ctx.query.structure.registry.add(hasClash);
 
-            this.ctx.builders.structure.representation.registerPreset(ValidationReportGeometryQualityPreset)
-            this.ctx.builders.structure.representation.registerPreset(ValidationReportDensityFitPreset)
-            this.ctx.builders.structure.representation.registerPreset(ValidationReportRandomCoilIndexPreset)
+            this.ctx.builders.structure.representation.registerPreset(ValidationReportGeometryQualityPreset);
+            this.ctx.builders.structure.representation.registerPreset(ValidationReportDensityFitPreset);
+            this.ctx.builders.structure.representation.registerPreset(ValidationReportRandomCoilIndexPreset);
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
-            let updated = this.params.autoAttach !== p.autoAttach
+            let updated = this.params.autoAttach !== p.autoAttach;
             this.params.autoAttach = p.autoAttach;
             this.params.showTooltip = p.showTooltip;
             this.ctx.customStructureProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
@@ -78,16 +78,16 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
             this.ctx.managers.lociLabels.removeProvider(this.labelProvider);
 
-            this.ctx.representation.structure.themes.colorThemeRegistry.remove(DensityFitColorThemeProvider)
-            this.ctx.representation.structure.themes.colorThemeRegistry.remove(GeometryQualityColorThemeProvider)
-            this.ctx.representation.structure.themes.colorThemeRegistry.remove(RandomCoilIndexColorThemeProvider)
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(DensityFitColorThemeProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(GeometryQualityColorThemeProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(RandomCoilIndexColorThemeProvider);
 
-            this.ctx.representation.structure.registry.remove(ClashesRepresentationProvider)
-            this.ctx.query.structure.registry.remove(hasClash)
+            this.ctx.representation.structure.registry.remove(ClashesRepresentationProvider);
+            this.ctx.query.structure.registry.remove(hasClash);
 
-            this.ctx.builders.structure.representation.unregisterPreset(ValidationReportGeometryQualityPreset)
-            this.ctx.builders.structure.representation.unregisterPreset(ValidationReportDensityFitPreset)
-            this.ctx.builders.structure.representation.unregisterPreset(ValidationReportRandomCoilIndexPreset)
+            this.ctx.builders.structure.representation.unregisterPreset(ValidationReportGeometryQualityPreset);
+            this.ctx.builders.structure.representation.unregisterPreset(ValidationReportDensityFitPreset);
+            this.ctx.builders.structure.representation.unregisterPreset(ValidationReportRandomCoilIndexPreset);
         }
     },
     params: () => ({
@@ -101,78 +101,78 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
 
 function geometryQualityLabel(loci: Loci): string | undefined {
     if (loci.kind === 'element-loci') {
-        if (loci.elements.length === 0) return
+        if (loci.elements.length === 0) return;
 
         if (loci.elements.length === 1 && OrderedSet.size(loci.elements[0].indices) === 1) {
-            const { unit, indices } = loci.elements[0]
+            const { unit, indices } = loci.elements[0];
 
-            const validationReport = ValidationReportProvider.get(unit.model).value
-            if (!validationReport) return
-            if (!unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) return
+            const validationReport = ValidationReportProvider.get(unit.model).value;
+            if (!validationReport) return;
+            if (!unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) return;
 
-            const { bondOutliers, angleOutliers } = validationReport
-            const eI = unit.elements[OrderedSet.start(indices)]
-            const issues = new Set<string>()
+            const { bondOutliers, angleOutliers } = validationReport;
+            const eI = unit.elements[OrderedSet.start(indices)];
+            const issues = new Set<string>();
 
-            const bonds = bondOutliers.index.get(eI)
-            if (bonds) bonds.forEach(b => issues.add(bondOutliers.data[b].tag))
+            const bonds = bondOutliers.index.get(eI);
+            if (bonds) bonds.forEach(b => issues.add(bondOutliers.data[b].tag));
 
-            const angles = angleOutliers.index.get(eI)
-            if (angles) angles.forEach(a => issues.add(angleOutliers.data[a].tag))
+            const angles = angleOutliers.index.get(eI);
+            if (angles) angles.forEach(a => issues.add(angleOutliers.data[a].tag));
 
             if (issues.size === 0) {
                 return `Geometry Quality <small>(1 Atom)</small>: no issues`;
             }
 
-            const summary: string[] = []
-            issues.forEach(name => summary.push(name))
+            const summary: string[] = [];
+            issues.forEach(name => summary.push(name));
             return `Geometry Quality <small>(1 Atom)</small>: ${summary.join(', ')}`;
         }
 
-        let hasValidationReport = false
-        const seen = new Set<number>()
-        const cummulativeIssues = new Map<string, number>()
+        let hasValidationReport = false;
+        const seen = new Set<number>();
+        const cummulativeIssues = new Map<string, number>();
 
         for (const { indices, unit } of loci.elements) {
-            const validationReport = ValidationReportProvider.get(unit.model).value
-            if (!validationReport) continue
-            if (!unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue
-            hasValidationReport = true
+            const validationReport = ValidationReportProvider.get(unit.model).value;
+            if (!validationReport) continue;
+            if (!unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue;
+            hasValidationReport = true;
 
-            const { geometryIssues } = validationReport
-            const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index
-            const { elements } = unit
+            const { geometryIssues } = validationReport;
+            const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index;
+            const { elements } = unit;
 
             OrderedSet.forEach(indices, idx => {
-                const eI = elements[idx]
+                const eI = elements[idx];
 
-                const rI = residueIndex[eI]
-                const residueKey = cantorPairing(rI, unit.id)
+                const rI = residueIndex[eI];
+                const residueKey = cantorPairing(rI, unit.id);
                 if (!seen.has(residueKey)) {
-                    const issues = geometryIssues.get(rI)
+                    const issues = geometryIssues.get(rI);
                     if (issues) {
                         issues.forEach(name => {
-                            const count = cummulativeIssues.get(name) || 0
-                            cummulativeIssues.set(name, count + 1)
-                        })
+                            const count = cummulativeIssues.get(name) || 0;
+                            cummulativeIssues.set(name, count + 1);
+                        });
                     }
-                    seen.add(residueKey)
+                    seen.add(residueKey);
                 }
-            })
+            });
         }
 
-        if (!hasValidationReport) return
+        if (!hasValidationReport) return;
 
-        const residueCount = `<small>(${seen.size} ${seen.size > 1 ? 'Residues' : 'Residue'})</small>`
+        const residueCount = `<small>(${seen.size} ${seen.size > 1 ? 'Residues' : 'Residue'})</small>`;
 
         if (cummulativeIssues.size === 0) {
             return `Geometry Quality ${residueCount}: no issues`;
         }
 
-        const summary: string[] = []
+        const summary: string[] = [];
         cummulativeIssues.forEach((count, name) => {
-            summary.push(`${name}${count > 1 ? ` \u00D7 ${count}` : ''}`)
-        })
+            summary.push(`${name}${count > 1 ? ` \u00D7 ${count}` : ''}`);
+        });
         return `Geometry Quality ${residueCount}: ${summary.join(', ')}`;
     }
 }
@@ -181,58 +181,58 @@ function densityFitLabel(loci: Loci): string | undefined {
     if (loci.kind === 'element-loci') {
         if (loci.elements.length === 0) return;
 
-        const seen = new Set<number>()
-        const rsrzSeen = new Set<number>()
-        const rsccSeen = new Set<number>()
-        let rsrzSum = 0
-        let rsccSum = 0
+        const seen = new Set<number>();
+        const rsrzSeen = new Set<number>();
+        const rsccSeen = new Set<number>();
+        let rsrzSum = 0;
+        let rsccSum = 0;
 
         for (const { indices, unit } of loci.elements) {
-            const validationReport = ValidationReportProvider.get(unit.model).value
-            if (!validationReport) continue
-            if (!unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue
+            const validationReport = ValidationReportProvider.get(unit.model).value;
+            if (!validationReport) continue;
+            if (!unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue;
 
-            const { rsrz, rscc } = validationReport
-            const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index
-            const { elements } = unit
+            const { rsrz, rscc } = validationReport;
+            const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index;
+            const { elements } = unit;
 
             OrderedSet.forEach(indices, idx => {
-                const eI = elements[idx]
-                const rI = residueIndex[eI]
+                const eI = elements[idx];
+                const rI = residueIndex[eI];
 
-                const residueKey = cantorPairing(rI, unit.id)
+                const residueKey = cantorPairing(rI, unit.id);
                 if (!seen.has(residueKey)) {
-                    const rsrzValue = rsrz.get(rI)
-                    const rsccValue = rscc.get(rI)
+                    const rsrzValue = rsrz.get(rI);
+                    const rsccValue = rscc.get(rI);
                     if (rsrzValue !== undefined) {
-                        rsrzSum += rsrzValue
-                        rsrzSeen.add(residueKey)
+                        rsrzSum += rsrzValue;
+                        rsrzSeen.add(residueKey);
                     } else if (rsccValue !== undefined) {
-                        rsccSum += rsccValue
-                        rsccSeen.add(residueKey)
+                        rsccSum += rsccValue;
+                        rsccSeen.add(residueKey);
                     }
-                    seen.add(residueKey)
+                    seen.add(residueKey);
                 }
-            })
+            });
         }
 
-        if (seen.size === 0) return
+        if (seen.size === 0) return;
 
-        const summary: string[] = []
+        const summary: string[] = [];
 
         if (rsrzSeen.size) {
-            const rsrzCount = `<small>(${rsrzSeen.size} ${rsrzSeen.size > 1 ? 'Residues avg.' : 'Residue'})</small>`
-            const rsrzAvg = rsrzSum / rsrzSeen.size
-            summary.push(`Real Space R ${rsrzCount}: ${rsrzAvg.toFixed(2)}`)
+            const rsrzCount = `<small>(${rsrzSeen.size} ${rsrzSeen.size > 1 ? 'Residues avg.' : 'Residue'})</small>`;
+            const rsrzAvg = rsrzSum / rsrzSeen.size;
+            summary.push(`Real Space R ${rsrzCount}: ${rsrzAvg.toFixed(2)}`);
         }
         if (rsccSeen.size) {
-            const rsccCount = `<small>(${rsccSeen.size} ${rsccSeen.size > 1 ? 'Residues avg.' : 'Residue'})</small>`
-            const rsccAvg = rsccSum / rsccSeen.size
-            summary.push(`Real Space Correlation Coefficient ${rsccCount}: ${rsccAvg.toFixed(2)}`)
+            const rsccCount = `<small>(${rsccSeen.size} ${rsccSeen.size > 1 ? 'Residues avg.' : 'Residue'})</small>`;
+            const rsccAvg = rsccSum / rsccSeen.size;
+            summary.push(`Real Space Correlation Coefficient ${rsccCount}: ${rsccAvg.toFixed(2)}`);
         }
 
         if (summary.length) {
-            return summary.join('</br>')
+            return summary.join('</br>');
         }
     }
 }
@@ -241,39 +241,39 @@ function randomCoilIndexLabel(loci: Loci): string | undefined {
     if (loci.kind === 'element-loci') {
         if (loci.elements.length === 0) return;
 
-        const seen = new Set<number>()
-        let sum = 0
+        const seen = new Set<number>();
+        let sum = 0;
 
         for (const { indices, unit } of loci.elements) {
-            const validationReport = ValidationReportProvider.get(unit.model).value
-            if (!validationReport) continue
-            if (!unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue
+            const validationReport = ValidationReportProvider.get(unit.model).value;
+            if (!validationReport) continue;
+            if (!unit.model.customProperties.hasReference(ValidationReportProvider.descriptor)) continue;
 
-            const { rci } = validationReport
-            const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index
-            const { elements } = unit
+            const { rci } = validationReport;
+            const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index;
+            const { elements } = unit;
 
             OrderedSet.forEach(indices, idx => {
-                const eI = elements[idx]
-                const rI = residueIndex[eI]
+                const eI = elements[idx];
+                const rI = residueIndex[eI];
 
-                const residueKey = cantorPairing(rI, unit.id)
+                const residueKey = cantorPairing(rI, unit.id);
                 if (!seen.has(residueKey)) {
-                    const rciValue = rci.get(rI)
+                    const rciValue = rci.get(rI);
                     if (rciValue !== undefined) {
-                        sum += rciValue
-                        seen.add(residueKey)
+                        sum += rciValue;
+                        seen.add(residueKey);
                     }
                 }
-            })
+            });
         }
 
-        if (seen.size === 0) return
+        if (seen.size === 0) return;
 
-        const residueCount = `<small>(${seen.size} ${seen.size > 1 ? 'Residues avg.' : 'Residue'})</small>`
-        const rciAvg = sum / seen.size
+        const residueCount = `<small>(${seen.size} ${seen.size > 1 ? 'Residues avg.' : 'Residue'})</small>`;
+        const rciAvg = sum / seen.size;
 
-        return `Random Coil Index ${residueCount}: ${rciAvg.toFixed(2)}`
+        return `Random Coil Index ${residueCount}: ${rciAvg.toFixed(2)}`;
     }
 }
 
@@ -292,9 +292,9 @@ const hasClash = StructureSelectionQuery('Residues with Clashes', MS.struct.modi
     description: 'Select residues with clashes in the wwPDB validation report.',
     category: StructureSelectionCategory.Residue,
     ensureCustomProperties: (ctx, structure) => {
-        return ValidationReportProvider.attach(ctx, structure.models[0])
+        return ValidationReportProvider.attach(ctx, structure.models[0]);
     }
-})
+});
 
 //
 
@@ -305,22 +305,22 @@ export const ValidationReportGeometryQualityPreset = StructureRepresentationPres
         description: 'Color structure based on geometry quality; show geometry clashes. Data from wwPDB Validation Report, obtained via RCSB PDB.'
     },
     isApplicable(a) {
-        return a.data.models.length === 1 && ValidationReport.isApplicable(a.data.models[0])
+        return a.data.models.length === 1 && ValidationReport.isApplicable(a.data.models[0]);
     },
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const model = structureCell?.obj?.data.model
+        const model = structureCell?.obj?.data.model;
         if (!structureCell || !model) return {};
 
         await plugin.runTask(Task.create('Validation Report', async runtime => {
-            await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model)
-        }))
+            await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model);
+        }));
 
-        const colorTheme = GeometryQualityColorThemeProvider.name as any
-        const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin)
+        const colorTheme = GeometryQualityColorThemeProvider.name as any;
+        const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin);
 
-        const clashes = await plugin.builders.structure.tryCreateComponentFromExpression(structureCell, hasClash.expression, 'clashes', { label: 'Clashes' })
+        const clashes = await plugin.builders.structure.tryCreateComponentFromExpression(structureCell, hasClash.expression, 'clashes', { label: 'Clashes' });
 
         const { update, builder, typeParams, color } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
         let clashesBallAndStick, clashesSnfg3d;
@@ -341,20 +341,20 @@ export const ValidationReportDensityFitPreset = StructureRepresentationPresetPro
         description: 'Color structure based on density fit. Data from wwPDB Validation Report, obtained via RCSB PDB.'
     },
     isApplicable(a) {
-        return a.data.models.length === 1 && ValidationReport.isApplicable(a.data.models[0]) && Model.hasXrayMap(a.data.models[0])
+        return a.data.models.length === 1 && ValidationReport.isApplicable(a.data.models[0]) && Model.hasXrayMap(a.data.models[0]);
     },
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const model = structureCell?.obj?.data.model
+        const model = structureCell?.obj?.data.model;
         if (!structureCell || !model) return {};
 
         await plugin.runTask(Task.create('Validation Report', async runtime => {
-            await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model)
-        }))
+            await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model);
+        }));
 
-        const colorTheme = DensityFitColorThemeProvider.name as any
-        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin)
+        const colorTheme = DensityFitColorThemeProvider.name as any;
+        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin);
     }
 });
 
@@ -365,19 +365,19 @@ export const ValidationReportRandomCoilIndexPreset = StructureRepresentationPres
         description: 'Color structure based on Random Coil Index. Data from wwPDB Validation Report, obtained via RCSB PDB.'
     },
     isApplicable(a) {
-        return a.data.models.length === 1 && ValidationReport.isApplicable(a.data.models[0]) && Model.isFromNmr(a.data.models[0])
+        return a.data.models.length === 1 && ValidationReport.isApplicable(a.data.models[0]) && Model.isFromNmr(a.data.models[0]);
     },
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const model = structureCell?.obj?.data.model
+        const model = structureCell?.obj?.data.model;
         if (!structureCell || !model) return {};
 
         await plugin.runTask(Task.create('Validation Report', async runtime => {
-            await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model)
-        }))
+            await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model);
+        }));
 
-        const colorTheme = RandomCoilIndexColorThemeProvider.name as any
-        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin)
+        const colorTheme = RandomCoilIndexColorThemeProvider.name as any;
+        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin);
     }
 });

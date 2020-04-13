@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column } from '../../../../../mol-data/db'
+import { Column } from '../../../../../mol-data/db';
 import { Segmentation } from '../../../../../mol-data/int';
 import { ElementIndex, ChainIndex, EntityIndex } from '../../indexing';
 import SortedRanges from '../../../../../mol-data/int/sorted-ranges';

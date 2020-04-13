@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from '../../iterator'
-import OrderedSet from '../ordered-set'
-import Interval from '../interval'
-import SortedArray from '../sorted-array'
-import Segs from '../segmentation'
+import Iterator from '../../iterator';
+import OrderedSet from '../ordered-set';
+import Interval from '../interval';
+import SortedArray from '../sorted-array';
+import Segs from '../segmentation';
 
 interface Segmentation {
     /** Segments stored as a sorted array */

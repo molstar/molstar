@@ -20,4 +20,4 @@ export const DefaultColorSwatch = ColorSwatch([
     ['purple', 0x7B64FF],
     ['magenta', 0xFA28FF],
     ['violet', 0x7D2187]
-])
+]);

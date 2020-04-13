@@ -19,7 +19,7 @@ import { StripedResidues } from './coloring';
 import { CustomToastMessage } from './controls';
 import './index.html';
 import { buildStaticSuperposition, dynamicSuperpositionTest, StaticSuperpositionTestData } from './superposition';
-require('mol-plugin-ui/skin/light.scss')
+require('mol-plugin-ui/skin/light.scss');
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }
 
@@ -62,7 +62,7 @@ class BasicWrapper {
     }
 
     setBackground(color: number) {
-        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: props => { props.renderer.backgroundColor = Color(color) } });
+        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: props => { props.renderer.backgroundColor = Color(color); } });
     }
 
     toggleSpin() {
@@ -79,10 +79,10 @@ class BasicWrapper {
     animate = {
         modelIndex: {
             maxFPS: 8,
-            onceForward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'forward' } } }) },
-            onceBackward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'backward' } } }) },
-            palindrome: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'palindrome', params: {} } }) },
-            loop: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'loop', params: {} } }) },
+            onceForward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'forward' } } }); },
+            onceBackward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'backward' } } }); },
+            palindrome: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'palindrome', params: {} } }); },
+            loop: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'loop', params: {} } }); },
             stop: () => this.plugin.state.animation.stop()
         }
     }
@@ -91,14 +91,14 @@ class BasicWrapper {
         applyStripes: async () => {
             this.plugin.dataTransaction(async () => {
                 for (const s of this.plugin.managers.structure.hierarchy.current.structures) {
-                    await this.plugin.managers.structure.component.updateRepresentationsTheme(s.components, { color: StripedResidues.propertyProvider.descriptor.name as any })
+                    await this.plugin.managers.structure.component.updateRepresentationsTheme(s.components, { color: StripedResidues.propertyProvider.descriptor.name as any });
                 }
             });
         },
         applyDefault: async () => {
             this.plugin.dataTransaction(async () => {
                 for (const s of this.plugin.managers.structure.hierarchy.current.structures) {
-                    await this.plugin.managers.structure.component.updateRepresentationsTheme(s.components, { color: 'default' })
+                    await this.plugin.managers.structure.component.updateRepresentationsTheme(s.components, { color: 'default' });
                 }
             });
         }
@@ -130,7 +130,7 @@ class BasicWrapper {
             return dynamicSuperpositionTest(this.plugin, ['1tqn', '2hhb', '4hhb'], 'HEM');
         },
         toggleValidationTooltip: () => {
-            return this.plugin.state.updateBehavior(PDBeStructureQualityReport, params => { params.showTooltip = !params.showTooltip });
+            return this.plugin.state.updateBehavior(PDBeStructureQualityReport, params => { params.showTooltip = !params.showTooltip; });
         },
         showToasts: () => {
             PluginCommands.Toast.Show(this.plugin, {

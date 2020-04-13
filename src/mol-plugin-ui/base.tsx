@@ -80,7 +80,7 @@ export type CollapsableState = {
 
 export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends PluginUIComponent<P & CollapsableProps, S & CollapsableState, SS> {
     toggleCollapsed = () => {
-        this.setState({ isCollapsed: !this.state.isCollapsed } as (S & CollapsableState))
+        this.setState({ isCollapsed: !this.state.isCollapsed } as (S & CollapsableState));
     }
 
     componentDidUpdate(prevProps: P & CollapsableProps) {
@@ -109,15 +109,15 @@ export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends Plugi
                 </Button>
             </div>
             {!this.state.isCollapsed && this.renderControls()}
-        </div>
+        </div>;
     }
 
     constructor(props: P & CollapsableProps, context?: any) {
-        super(props, context)
+        super(props, context);
 
-        const state = this.defaultState()
-        if (props.initiallyCollapsed !== undefined) state.isCollapsed = props.initiallyCollapsed
-        if (props.header !== undefined) state.header = props.header
-        this.state = state
+        const state = this.defaultState();
+        if (props.initiallyCollapsed !== undefined) state.isCollapsed = props.initiallyCollapsed;
+        if (props.header !== undefined) state.header = props.header;
+        this.state = state;
     }
 }

@@ -9,45 +9,45 @@ import { SaccharideColors, MonosaccharidesColorTable } from '../../mol-model/str
 import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
 import { Color } from '../../mol-util/color';
-import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 
-const DefaultColor = Color(0xCCCCCC)
-const Description = 'Assigns colors according to the Symbol Nomenclature for Glycans (SNFG).'
+const DefaultColor = Color(0xCCCCCC);
+const Description = 'Assigns colors according to the Symbol Nomenclature for Glycans (SNFG).';
 
-export const CarbohydrateSymbolColorThemeParams = { }
+export const CarbohydrateSymbolColorThemeParams = { };
 export type CarbohydrateSymbolColorThemeParams = typeof CarbohydrateSymbolColorThemeParams
 export function getCarbohydrateSymbolColorThemeParams(ctx: ThemeDataContext) {
-    return CarbohydrateSymbolColorThemeParams // TODO return copy
+    return CarbohydrateSymbolColorThemeParams; // TODO return copy
 }
 
 export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<CarbohydrateSymbolColorThemeParams>): ColorTheme<CarbohydrateSymbolColorThemeParams> {
-    let color: LocationColor
+    let color: LocationColor;
 
     if (ctx.structure) {
-        const { elements, getElementIndices } = ctx.structure.carbohydrates
+        const { elements, getElementIndices } = ctx.structure.carbohydrates;
 
         const getColor = (unit: Unit, index: ElementIndex) => {
-            if (!Unit.isAtomic(unit)) return DefaultColor
-            const carbs = getElementIndices(unit, index)
-            return carbs.length > 0 ? elements[carbs[0]].component.color : DefaultColor
-        }
+            if (!Unit.isAtomic(unit)) return DefaultColor;
+            const carbs = getElementIndices(unit, index);
+            return carbs.length > 0 ? elements[carbs[0]].component.color : DefaultColor;
+        };
 
         color = (location: Location, isSecondary: boolean) => {
             if (isSecondary) {
-                return SaccharideColors.Secondary
+                return SaccharideColors.Secondary;
             } else {
                 if (StructureElement.Location.is(location)) {
-                    return getColor(location.unit, location.element)
+                    return getColor(location.unit, location.element);
                 } else if (Bond.isLocation(location)) {
-                    return getColor(location.aUnit, location.aUnit.elements[location.aIndex])
+                    return getColor(location.aUnit, location.aUnit.elements[location.aIndex]);
                 }
             }
-            return DefaultColor
-        }
+            return DefaultColor;
+        };
     } else {
-        color = () => DefaultColor
+        color = () => DefaultColor;
     }
 
     return {
@@ -57,7 +57,7 @@ export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: PD.Va
         props: props,
         description: Description,
         legend: TableLegend(MonosaccharidesColorTable)
-    }
+    };
 }
 
 export const CarbohydrateSymbolColorThemeProvider: ColorTheme.Provider<CarbohydrateSymbolColorThemeParams, 'carbohydrate-symbol'> = {
@@ -68,6 +68,6 @@ export const CarbohydrateSymbolColorThemeProvider: ColorTheme.Provider<Carbohydr
     getParams: getCarbohydrateSymbolColorThemeParams,
     defaultValues: PD.getDefaultValues(CarbohydrateSymbolColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => {
-        return !!ctx.structure && ctx.structure.models.reduce((a, v) => a + v.properties.saccharideComponentMap.size, 0) > 0
+        return !!ctx.structure && ctx.structure.models.reduce((a, v) => a + v.properties.saccharideComponentMap.size, 0) > 0;
     }
-}
+};

@@ -30,8 +30,8 @@ export const EvolutionaryConservation = CustomElementProperty.create<number>({
     type: 'static',
     async getData(model: Model, ctx: CustomProperty.Context) {
         const id = model.entryId.toLowerCase();
-        const url = `https://proteopedia.org/cgi-bin/cnsrf?${id}`
-        const json = await ctx.fetch({ url, type: 'json' }).runInContext(ctx.runtime)
+        const url = `https://proteopedia.org/cgi-bin/cnsrf?${id}`;
+        const json = await ctx.fetch({ url, type: 'json' }).runInContext(ctx.runtime);
         const annotations = (json && json.residueAnnotations) || [];
 
         const conservationMap = new Map<string, number>();

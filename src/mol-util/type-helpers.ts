@@ -23,6 +23,6 @@ export type AssignableArrayLike<T> =  { [i: number]: T, length: number }
 export type NonNullableArray<T extends any[] | ReadonlyArray<any>> = T extends any[] ? NonNullable<T[0]>[] : ReadonlyArray<NonNullable<T[0]>>
 
 export function ObjectKeys<T extends object>(o: T) {
-    return Object.keys(o) as (keyof T)[]
+    return Object.keys(o) as (keyof T)[];
 }
 export interface FiniteArray<T, L extends number = number> extends ReadonlyArray<T> { length: L };

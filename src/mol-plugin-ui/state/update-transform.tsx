@@ -56,7 +56,7 @@ class UpdateTransformControl extends TransformControlBase<UpdateTransformControl
     }
 
     canAutoApply(newParams: any) {
-        const autoUpdate = this.props.transform.transformer.definition.canAutoUpdate
+        const autoUpdate = this.props.transform.transformer.definition.canAutoUpdate;
         if (!autoUpdate) return false;
 
         const { state } = this.props;
@@ -76,7 +76,7 @@ class UpdateTransformControl extends TransformControlBase<UpdateTransformControl
             if (this.props.transform.ref !== ref || this.props.state !== state) return;
             if (this.state.params !== this.props.transform.params) {
                 this._getInfo = memoizeLatest((t: StateTransform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, t));
-                this.setState({ params: this.props.transform.params, isInitial: true })
+                this.setState({ params: this.props.transform.params, isInitial: true });
             }
         });
     }

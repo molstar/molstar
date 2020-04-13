@@ -5,7 +5,7 @@
  */
 
 import { now } from '../../mol-util/now';
-import { RuntimeContext } from '../execution/runtime-context'
+import { RuntimeContext } from '../execution/runtime-context';
 
 type UniformlyChunkedFn<S> = (chunkSize: number, state: S) => number
 
@@ -43,4 +43,4 @@ async function chunkedSubtask<S>(ctx: RuntimeContext, initialChunk: number, stat
     return state;
 }
 
-export { chunkedSubtask }
+export { chunkedSubtask };

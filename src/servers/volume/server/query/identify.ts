@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Coords from '../algebra/coordinate'
-import * as Box from '../algebra/box'
-import * as Data from './data-model'
+import * as Coords from '../algebra/coordinate';
+import * as Box from '../algebra/box';
+import * as Data from './data-model';
 // import { FastMap } from '../utils/collections'
 
 /** Find a list of unique blocks+offsets that overlap with the query region. */
@@ -25,7 +25,7 @@ export default function findUniqueBlocks(data: Data.DataContext, sampling: Data.
     }
 
     const blockList = [] as Data.QueryBlock[];
-    blocks.forEach(function (this: Data.QueryBlock[], b) { this.push(b) }, blockList);
+    blocks.forEach(function (this: Data.QueryBlock[], b) { this.push(b); }, blockList);
 
     // sort the data so that the first coodinate changes the fastest
     // this is because that's how the data is laid out in the underlaying

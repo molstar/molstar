@@ -33,11 +33,11 @@ import { SizeValues } from '../../mol-gl/renderable/schema';
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
 
 function createVolumeRenderObject<G extends Geometry>(volume: VolumeData, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>, materialId: number) {
-    const { createValues, createRenderableState } = Geometry.getUtils(geometry)
-    const transform = createIdentityTransform()
-    const values = createValues(geometry, transform, locationIt, theme, props)
-    const state = createRenderableState(props)
-    return createRenderObject(geometry.kind, values, state, materialId)
+    const { createValues, createRenderableState } = Geometry.getUtils(geometry);
+    const transform = createIdentityTransform();
+    const values = createValues(geometry, transform, locationIt, theme, props);
+    const state = createRenderableState(props);
+    return createRenderObject(geometry.kind, values, state, materialId);
 }
 
 interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
@@ -54,148 +54,148 @@ interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry
 }
 
 export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geometry.Params<G>>(builder: VolumeVisualGeometryBuilder<P, G>, materialId: number): VolumeVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder
-    const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
-    const updateState = VisualUpdateState.create()
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder;
+    const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils;
+    const updateState = VisualUpdateState.create();
 
-    let renderObject: GraphicsRenderObject<G['kind']> | undefined
+    let renderObject: GraphicsRenderObject<G['kind']> | undefined;
 
-    let newProps: PD.Values<P>
-    let newTheme: Theme
-    let newVolume: VolumeData
+    let newProps: PD.Values<P>;
+    let newTheme: Theme;
+    let newVolume: VolumeData;
 
-    let currentProps: PD.Values<P> = Object.assign({}, defaultProps)
-    let currentTheme: Theme = Theme.createEmpty()
-    let currentVolume: VolumeData
+    let currentProps: PD.Values<P> = Object.assign({}, defaultProps);
+    let currentTheme: Theme = Theme.createEmpty();
+    let currentVolume: VolumeData;
 
-    let geometry: G
-    let locationIt: LocationIterator
+    let geometry: G;
+    let locationIt: LocationIterator;
 
     function prepareUpdate(theme: Theme, props: Partial<PD.Values<P>>, volume: VolumeData) {
         if (!volume && !currentVolume) {
-            throw new Error('missing volume')
+            throw new Error('missing volume');
         }
 
-        newProps = Object.assign({}, currentProps, props)
-        newTheme = theme
-        newVolume = volume
+        newProps = Object.assign({}, currentProps, props);
+        newTheme = theme;
+        newVolume = volume;
 
-        VisualUpdateState.reset(updateState)
+        VisualUpdateState.reset(updateState);
 
         if (!renderObject) {
-            updateState.createNew = true
+            updateState.createNew = true;
         } else if (!currentVolume || !VolumeData.areEquivalent(newVolume, currentVolume)) {
-            updateState.createNew = true
+            updateState.createNew = true;
         }
 
         if (updateState.createNew) {
-            updateState.createGeometry = true
-            return
+            updateState.createGeometry = true;
+            return;
         }
 
-        setUpdateState(updateState, volume, newProps, currentProps, newTheme, currentTheme)
+        setUpdateState(updateState, volume, newProps, currentProps, newTheme, currentTheme);
 
-        if (!ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
+        if (!ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true;
 
         if (updateState.createGeometry) {
-            updateState.updateColor = true
+            updateState.updateColor = true;
         }
     }
 
     function update(newGeometry?: G) {
         if (updateState.createNew) {
-            locationIt = createLocationIterator(newVolume)
+            locationIt = createLocationIterator(newVolume);
             if (newGeometry) {
-                renderObject = createVolumeRenderObject(newVolume, newGeometry, locationIt, newTheme, newProps, materialId)
+                renderObject = createVolumeRenderObject(newVolume, newGeometry, locationIt, newTheme, newProps, materialId);
             } else {
-                throw new Error('expected geometry to be given')
+                throw new Error('expected geometry to be given');
             }
         } else {
             if (!renderObject) {
-                throw new Error('expected renderObject to be available')
+                throw new Error('expected renderObject to be available');
             }
 
-            locationIt.reset()
+            locationIt.reset();
 
             if (updateState.createGeometry) {
                 if (newGeometry) {
-                    ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry))
-                    updateBoundingSphere(renderObject.values as RenderObjectValues<G['kind']>, newGeometry)
+                    ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
+                    updateBoundingSphere(renderObject.values as RenderObjectValues<G['kind']>, newGeometry);
                 } else {
-                    throw new Error('expected geometry to be given')
+                    throw new Error('expected geometry to be given');
                 }
             }
 
             if (updateState.updateSize) {
                 // not all geometries have size data, so check here
                 if ('uSize' in renderObject.values) {
-                    createSizes(locationIt, newTheme.size, renderObject.values as SizeValues)
+                    createSizes(locationIt, newTheme.size, renderObject.values as SizeValues);
                 }
             }
 
             if (updateState.updateColor) {
-                createColors(locationIt, newTheme.color, renderObject.values)
+                createColors(locationIt, newTheme.color, renderObject.values);
             }
 
-            updateValues(renderObject.values, newProps)
-            updateRenderableState(renderObject.state, newProps)
+            updateValues(renderObject.values, newProps);
+            updateRenderableState(renderObject.state, newProps);
         }
 
-        currentProps = newProps
-        currentTheme = newTheme
-        currentVolume = newVolume
-        if (newGeometry) geometry = newGeometry
+        currentProps = newProps;
+        currentTheme = newTheme;
+        currentVolume = newVolume;
+        if (newGeometry) geometry = newGeometry;
     }
 
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
         if (isEveryLoci(loci)) {
-            return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount))
+            return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
         } else {
-            return eachLocation(loci, apply)
+            return eachLocation(loci, apply);
         }
     }
 
     return {
-        get groupCount() { return locationIt ? locationIt.count : 0 },
-        get renderObject () { return renderObject },
+        get groupCount() { return locationIt ? locationIt.count : 0; },
+        get renderObject () { return renderObject; },
         async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, volume?: VolumeData) {
-            prepareUpdate(theme, props, volume || currentVolume)
+            prepareUpdate(theme, props, volume || currentVolume);
             if (updateState.createGeometry) {
-                const newGeometry = createGeometry(ctx, newVolume, newTheme, newProps, geometry)
-                return newGeometry instanceof Promise ? newGeometry.then(update) : update(newGeometry)
+                const newGeometry = createGeometry(ctx, newVolume, newTheme, newProps, geometry);
+                return newGeometry instanceof Promise ? newGeometry.then(update) : update(newGeometry);
             } else {
-                update()
+                update();
             }
         },
         getLoci(pickingId: PickingId) {
-            return renderObject ? getLoci(pickingId, renderObject.id) : EmptyLoci
+            return renderObject ? getLoci(pickingId, renderObject.id) : EmptyLoci;
         },
         mark(loci: Loci, action: MarkerAction) {
-            return Visual.mark(renderObject, loci, action, lociApply)
+            return Visual.mark(renderObject, loci, action, lociApply);
         },
         setVisibility(visible: boolean) {
-            Visual.setVisibility(renderObject, visible)
+            Visual.setVisibility(renderObject, visible);
         },
         setAlphaFactor(alphaFactor: number) {
-            Visual.setAlphaFactor(renderObject, alphaFactor)
+            Visual.setAlphaFactor(renderObject, alphaFactor);
         },
         setPickable(pickable: boolean) {
-            Visual.setPickable(renderObject, pickable)
+            Visual.setPickable(renderObject, pickable);
         },
         setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
-            Visual.setTransform(renderObject, matrix, instanceMatrices)
+            Visual.setTransform(renderObject, matrix, instanceMatrices);
         },
         setOverpaint(overpaint: Overpaint) {
-            return Visual.setOverpaint(renderObject, overpaint, lociApply, true)
+            return Visual.setOverpaint(renderObject, overpaint, lociApply, true);
         },
         setTransparency(transparency: Transparency) {
-            return Visual.setTransparency(renderObject, transparency, lociApply, true)
+            return Visual.setTransparency(renderObject, transparency, lociApply, true);
         },
         destroy() {
             // TODO
-            renderObject = undefined
+            renderObject = undefined;
         }
-    }
+    };
 }
 
 export interface VolumeRepresentation<P extends VolumeParams> extends Representation<VolumeData, P> { }
@@ -207,79 +207,79 @@ export function VolumeRepresentationProvider<P extends VolumeParams, Id extends 
 
 export const VolumeParams = {
     ...BaseGeometry.Params,
-}
+};
 export type VolumeParams = typeof VolumeParams
 
 export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (materialId: number) => VolumeVisual<P>): VolumeRepresentation<P> {
-    let version = 0
-    const updated = new Subject<number>()
-    const materialId = getNextMaterialId()
-    const renderObjects: GraphicsRenderObject[] = []
-    const _state = Representation.createState()
-    let visual: VolumeVisual<P> | undefined
+    let version = 0;
+    const updated = new Subject<number>();
+    const materialId = getNextMaterialId();
+    const renderObjects: GraphicsRenderObject[] = [];
+    const _state = Representation.createState();
+    let visual: VolumeVisual<P> | undefined;
 
-    let _volume: VolumeData
-    let _params: P
-    let _props: PD.Values<P>
-    let _theme = Theme.createEmpty()
+    let _volume: VolumeData;
+    let _params: P;
+    let _props: PD.Values<P>;
+    let _theme = Theme.createEmpty();
 
     function createOrUpdate(props: Partial<PD.Values<P>> = {}, volume?: VolumeData) {
         if (volume && volume !== _volume) {
-            _params = getParams(ctx, volume)
-            _volume = volume
-            if (!_props) _props = PD.getDefaultValues(_params)
+            _params = getParams(ctx, volume);
+            _volume = volume;
+            if (!_props) _props = PD.getDefaultValues(_params);
         }
-        _props = Object.assign({}, _props, props)
+        _props = Object.assign({}, _props, props);
 
         return Task.create('Creating or updating VolumeRepresentation', async runtime => {
-            if (!visual) visual = visualCtor(materialId)
-            const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, volume)
-            if (promise) await promise
+            if (!visual) visual = visualCtor(materialId);
+            const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, volume);
+            if (promise) await promise;
             // update list of renderObjects
-            renderObjects.length = 0
-            if (visual && visual.renderObject) renderObjects.push(visual.renderObject)
+            renderObjects.length = 0;
+            if (visual && visual.renderObject) renderObjects.push(visual.renderObject);
             // increment version
-            updated.next(version++)
+            updated.next(version++);
         });
     }
 
     function getLoci(pickingId?: PickingId) {
-        if (pickingId === undefined) return EmptyLoci // TODO add Volume.Loci when available
-        return visual ? visual.getLoci(pickingId) : EmptyLoci
+        if (pickingId === undefined) return EmptyLoci; // TODO add Volume.Loci when available
+        return visual ? visual.getLoci(pickingId) : EmptyLoci;
     }
 
     function mark(loci: Loci, action: MarkerAction) {
-        return visual ? visual.mark(loci, action) : false
+        return visual ? visual.mark(loci, action) : false;
     }
 
     function setState(state: Partial<Representation.State>) {
-        if (state.visible !== undefined && visual) visual.setVisibility(state.visible)
-        if (state.alphaFactor !== undefined && visual) visual.setAlphaFactor(state.alphaFactor)
-        if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
-        if (state.overpaint !== undefined && visual) visual.setOverpaint(state.overpaint)
-        if (state.transparency !== undefined && visual) visual.setTransparency(state.transparency)
-        if (state.transform !== undefined && visual) visual.setTransform(state.transform)
+        if (state.visible !== undefined && visual) visual.setVisibility(state.visible);
+        if (state.alphaFactor !== undefined && visual) visual.setAlphaFactor(state.alphaFactor);
+        if (state.pickable !== undefined && visual) visual.setPickable(state.pickable);
+        if (state.overpaint !== undefined && visual) visual.setOverpaint(state.overpaint);
+        if (state.transparency !== undefined && visual) visual.setTransparency(state.transparency);
+        if (state.transform !== undefined && visual) visual.setTransform(state.transform);
 
-        Representation.updateState(_state, state)
+        Representation.updateState(_state, state);
     }
 
     function setTheme(theme: Theme) {
-        _theme = theme
+        _theme = theme;
     }
 
     function destroy() {
-        if (visual) visual.destroy()
+        if (visual) visual.destroy();
     }
 
     return {
         label,
         get groupCount() {
-            return visual ? visual.groupCount : 0
+            return visual ? visual.groupCount : 0;
         },
-        get props () { return _props },
-        get params() { return _params },
-        get state() { return _state },
-        get theme() { return _theme },
+        get props () { return _props; },
+        get params() { return _params; },
+        get state() { return _state; },
+        get theme() { return _theme; },
         renderObjects,
         updated,
         createOrUpdate,
@@ -288,5 +288,5 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         getLoci,
         mark,
         destroy
-    }
+    };
 }
