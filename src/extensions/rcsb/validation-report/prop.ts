@@ -4,24 +4,24 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { CustomPropertyDescriptor, Structure, Unit } from '../../mol-model/structure';
-import { CustomProperty } from '../common/custom-property';
-import { CustomModelProperty } from '../common/custom-model-property';
-import { Model, ElementIndex, ResidueIndex } from '../../mol-model/structure/model';
-import { IntAdjacencyGraph } from '../../mol-math/graph';
-import { readFromFile } from '../../mol-util/data-source';
-import { CustomStructureProperty } from '../common/custom-structure-property';
-import { InterUnitGraph } from '../../mol-math/graph/inter-unit-graph';
-import { UnitIndex } from '../../mol-model/structure/structure/element/element';
-import { IntMap, SortedArray } from '../../mol-data/int';
-import { arrayMax } from '../../mol-util/array';
-import { equalEps } from '../../mol-math/linear-algebra/3d/common';
-import { Vec3 } from '../../mol-math/linear-algebra';
-import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
-import { QuerySymbolRuntime } from '../../mol-script/runtime/query/compiler';
-import { CustomPropSymbol } from '../../mol-script/language/symbol';
-import Type from '../../mol-script/language/type';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { CustomPropertyDescriptor, Structure, Unit } from '../../../mol-model/structure';
+import { CustomProperty } from '../../../mol-model-props/common/custom-property';
+import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
+import { Model, ElementIndex, ResidueIndex } from '../../../mol-model/structure/model';
+import { IntAdjacencyGraph } from '../../../mol-math/graph';
+import { readFromFile } from '../../../mol-util/data-source';
+import { CustomStructureProperty } from '../../../mol-model-props/common/custom-structure-property';
+import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph';
+import { UnitIndex } from '../../../mol-model/structure/structure/element/element';
+import { IntMap, SortedArray } from '../../../mol-data/int';
+import { arrayMax } from '../../../mol-util/array';
+import { equalEps } from '../../../mol-math/linear-algebra/3d/common';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
+import { QuerySymbolRuntime } from '../../../mol-script/runtime/query/compiler';
+import { CustomPropSymbol } from '../../../mol-script/language/symbol';
+import Type from '../../../mol-script/language/type';
 
 export { ValidationReport };
 

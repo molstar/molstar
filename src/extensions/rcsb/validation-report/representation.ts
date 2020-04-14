@@ -19,8 +19,8 @@ import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from '.
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { ClashesProvider, IntraUnitClashes, InterUnitClashes, ValidationReport } from '../validation-report';
-import { CustomProperty } from '../../common/custom-property';
+import { ClashesProvider, IntraUnitClashes, InterUnitClashes, ValidationReport } from './prop';
+import { CustomProperty } from '../../../mol-model-props/common/custom-property';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../../../mol-repr/structure/complex-visual';
 import { Color } from '../../../mol-util/color';
 import { MarkerActions } from '../../../mol-util/marker-action';

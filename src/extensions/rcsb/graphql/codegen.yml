@@ -1,7 +1,7 @@
 schema: https://data.rcsb.org/graphql
-documents: './src/mol-model-props/rcsb/graphql/symmetry.gql.ts'
+documents: './src/extensions/rcsb/graphql/symmetry.gql.ts'
 generates:
-  './src/mol-model-props/rcsb/graphql/types.ts':
+  './src/extensions/rcsb/graphql/types.ts':
     plugins:
       - add: '/* eslint-disable */'
       - time

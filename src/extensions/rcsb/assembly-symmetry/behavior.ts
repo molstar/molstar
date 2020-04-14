@@ -4,18 +4,18 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from '../../../../../mol-util/param-definition';
-import { AssemblySymmetryProvider, AssemblySymmetry, AssemblySymmetryDataProvider } from '../../../../../mol-model-props/rcsb/assembly-symmetry';
-import { PluginBehavior } from '../../../behavior';
-import { AssemblySymmetryParams, AssemblySymmetryRepresentation } from '../../../../../mol-model-props/rcsb/representations/assembly-symmetry';
-import { AssemblySymmetryClusterColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/assembly-symmetry-cluster';
-import { PluginStateTransform, PluginStateObject } from '../../../../../mol-plugin-state/objects';
-import { Task } from '../../../../../mol-task';
-import { PluginContext } from '../../../../context';
-import { StateTransformer, StateAction, StateObject, StateTransform, StateObjectRef } from '../../../../../mol-state';
-import { GenericRepresentationRef } from '../../../../../mol-plugin-state/manager/structure/hierarchy-state';
-import { AssemblySymmetryControls } from './ui/assembly-symmetry';
-import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../../../../mol-plugin-state/builder/structure/representation-preset';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { AssemblySymmetryProvider, AssemblySymmetry, AssemblySymmetryDataProvider } from './prop';
+import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
+import { AssemblySymmetryParams, AssemblySymmetryRepresentation } from './representation';
+import { AssemblySymmetryClusterColorThemeProvider } from './color';
+import { PluginStateTransform, PluginStateObject } from '../../../mol-plugin-state/objects';
+import { Task } from '../../../mol-task';
+import { PluginContext } from '../../../mol-plugin/context';
+import { StateTransformer, StateAction, StateObject, StateTransform, StateObjectRef } from '../../../mol-state';
+import { GenericRepresentationRef } from '../../../mol-plugin-state/manager/structure/hierarchy-state';
+import { AssemblySymmetryControls } from './ui';
+import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../../mol-plugin-state/builder/structure/representation-preset';
 
 const Tag = AssemblySymmetry.Tag;
 

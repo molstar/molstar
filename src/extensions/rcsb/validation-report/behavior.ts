@@ -4,23 +4,23 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from '../../../../../mol-util/param-definition';
-import { PluginBehavior } from '../../../behavior';
-import { ValidationReport, ValidationReportProvider } from '../../../../../mol-model-props/rcsb/validation-report';
-import { RandomCoilIndexColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/random-coil-index';
-import { GeometryQualityColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/geometry-quality';
-import { Loci } from '../../../../../mol-model/loci';
-import { OrderedSet } from '../../../../../mol-data/int';
-import { ClashesRepresentationProvider } from '../../../../../mol-model-props/rcsb/representations/validation-report-clashes';
-import { DensityFitColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/density-fit';
-import { cantorPairing } from '../../../../../mol-data/util';
-import { DefaultQueryRuntimeTable } from '../../../../../mol-script/runtime/query/compiler';
-import { StructureSelectionQuery, StructureSelectionCategory } from '../../../../../mol-plugin-state/helpers/structure-selection-query';
-import { MolScriptBuilder as MS } from '../../../../../mol-script/language/builder';
-import { Task } from '../../../../../mol-task';
-import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../../../../mol-plugin-state/builder/structure/representation-preset';
-import { StateObjectRef } from '../../../../../mol-state';
-import { Model } from '../../../../../mol-model/structure';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
+import { ValidationReport, ValidationReportProvider } from './prop';
+import { RandomCoilIndexColorThemeProvider } from './color/random-coil-index';
+import { GeometryQualityColorThemeProvider } from './color/geometry-quality';
+import { Loci } from '../../../mol-model/loci';
+import { OrderedSet } from '../../../mol-data/int';
+import { ClashesRepresentationProvider } from './representation';
+import { DensityFitColorThemeProvider } from './color/density-fit';
+import { cantorPairing } from '../../../mol-data/util';
+import { DefaultQueryRuntimeTable } from '../../../mol-script/runtime/query/compiler';
+import { StructureSelectionQuery, StructureSelectionCategory } from '../../../mol-plugin-state/helpers/structure-selection-query';
+import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
+import { Task } from '../../../mol-task';
+import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../../mol-plugin-state/builder/structure/representation-preset';
+import { StateObjectRef } from '../../../mol-state';
+import { Model } from '../../../mol-model/structure';
 
 export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'rcsb-validation-report-prop',

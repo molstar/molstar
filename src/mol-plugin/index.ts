@@ -76,8 +76,6 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.CustomProps.CrossLinkRestraint),
 
         PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport),
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry),
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBValidationReport),
     ],
     customParamEditors: [
         [CreateVolumeStreamingBehavior, VolumeStreamingCustomControls]

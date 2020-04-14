@@ -4,21 +4,21 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { AssemblySymmetryQuery, AssemblySymmetryQueryVariables } from './graphql/types';
-import query from './graphql/symmetry.gql';
+import { AssemblySymmetryQuery, AssemblySymmetryQueryVariables } from '../graphql/types';
+import query from '../graphql/symmetry.gql';
 
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { CustomPropertyDescriptor, Structure, Model, StructureSelection, QueryContext } from '../../mol-model/structure';
-import { Database as _Database, Column } from '../../mol-data/db';
-import { GraphQLClient } from '../../mol-util/graphql-client';
-import { CustomProperty } from '../common/custom-property';
-import { NonNullableArray } from '../../mol-util/type-helpers';
-import { CustomStructureProperty } from '../common/custom-structure-property';
-import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
-import { ReadonlyVec3 } from '../../mol-math/linear-algebra/3d/vec3';
-import { SetUtils } from '../../mol-util/set';
-import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
-import { compile } from '../../mol-script/runtime/query/compiler';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { CustomPropertyDescriptor, Structure, Model, StructureSelection, QueryContext } from '../../../mol-model/structure';
+import { Database as _Database, Column } from '../../../mol-data/db';
+import { GraphQLClient } from '../../../mol-util/graphql-client';
+import { CustomProperty } from '../../../mol-model-props/common/custom-property';
+import { NonNullableArray } from '../../../mol-util/type-helpers';
+import { CustomStructureProperty } from '../../../mol-model-props/common/custom-structure-property';
+import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
+import { ReadonlyVec3 } from '../../../mol-math/linear-algebra/3d/vec3';
+import { SetUtils } from '../../../mol-util/set';
+import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
+import { compile } from '../../../mol-script/runtime/query/compiler';
 
 const BiologicalAssemblyNames = new Set([
     'author_and_software_defined_assembly',

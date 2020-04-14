@@ -15,6 +15,7 @@ import { PluginSpec } from '../../mol-plugin/spec';
 import { DownloadStructure } from '../../mol-plugin-state/actions/structure';
 import { PluginConfig } from '../../mol-plugin/config';
 import { CellPack } from '../../extensions/cellpack';
+import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
 require('mol-plugin-ui/skin/light.scss');
 
 function getParam(name: string, regex: string): string {
@@ -29,7 +30,9 @@ function init() {
         actions: [...DefaultPluginSpec.actions],
         behaviors: [
             ...DefaultPluginSpec.behaviors,
-            PluginSpec.Behavior(CellPack)
+            PluginSpec.Behavior(CellPack),
+            PluginSpec.Behavior(RCSBAssemblySymmetry),
+            PluginSpec.Behavior(RCSBValidationReport),
         ],
         animations: [...DefaultPluginSpec.animations || []],
         customParamEditors: DefaultPluginSpec.customParamEditors,
