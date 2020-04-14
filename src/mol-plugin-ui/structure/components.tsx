@@ -4,19 +4,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Add, BookmarksOutlined, Delete, MoreHoriz, Tune, Undo, Visibility } from '@material-ui/icons';
 import * as React from 'react';
+import { getStructureThemeTypes } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
-import { StructureComponentRef, StructureRepresentationRef, StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
+import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
+import { StructureComponentRef, StructureRef, StructureRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { State } from '../../mol-state';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { ExpandGroup, IconButton, ToggleButton, Button } from '../controls/common';
+import { Button, ExpandGroup, IconButton, ToggleButton } from '../controls/common';
+import { Intersect, SetSvg, Subtract, Union } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
-import { getStructureThemeTypes } from '../../mol-plugin-state/helpers/structure-representation-params';
-import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
 import { GenericEntryListControls } from './generic';
 
 interface StructureComponentControlState extends CollapsableState {
@@ -115,10 +117,10 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
             : 'Some mistakes of the past can be undone.';
         return <>
             <div className='msp-flex-row'>
-                <ToggleButton icon='bookmarks' label='Preset' title='Apply a representation preset for the current structure(s).' toggle={this.togglePreset} isSelected={this.state.action === 'preset'} disabled={this.isDisabled} />
-                <ToggleButton icon='plus' label='Add' title='Add a new representation component for a selection.' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
-                <ToggleButton icon='cog' label='' title='Options that are applied to all applicable representations.' style={{ flex: '0 0 40px', padding: 0 }} toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
-                <IconButton className='msp-flex-item' flex='40px' onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} icon='back' title={undoTitle} />
+                <ToggleButton icon={BookmarksOutlined} label='Preset' title='Apply a representation preset for the current structure(s).' toggle={this.togglePreset} isSelected={this.state.action === 'preset'} disabled={this.isDisabled} />
+                <ToggleButton icon={Add} label='Add' title='Add a new representation component for a selection.' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
+                <ToggleButton icon={Tune} label='' title='Options that are applied to all applicable representations.' style={{ flex: '0 0 40px', padding: 0 }} toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
+                <IconButton svg={Undo} className='msp-flex-item' flex='40px' onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />
             </div>
             {this.state.action === 'preset' && this.presetControls}
             {this.state.action === 'add' && <div className='msp-control-offset'>
@@ -163,7 +165,7 @@ class AddComponentControls extends PurePluginUIComponent<AddComponentControlsPro
     render() {
         return <>
             <ParameterControls params={this.state.params} values={this.state.values} onChangeValues={this.paramsChanged} />
-            <Button icon='plus' title='Use Selection and optional Representation to create a new Component.' className='msp-btn-commit msp-btn-commit-on' onClick={this.apply} style={{ marginTop: '1px' }}>
+            <Button icon={Add} title='Use Selection and optional Representation to create a new Component.' className='msp-btn-commit msp-btn-commit-on' onClick={this.apply} style={{ marginTop: '1px' }}>
                 Create Component
             </Button>
         </>;
@@ -253,13 +255,13 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         if (mng.canBeModified(this.props.group[0])) {
             ret.push([
                 ActionMenu.Header('Modify by Selection'),
-                ActionMenu.Item('Include', () => mng.modifyByCurrentSelection(this.props.group, 'union'), { icon: 'union' }),
-                ActionMenu.Item('Subtract', () => mng.modifyByCurrentSelection(this.props.group, 'subtract'), { icon: 'subtract' }),
-                ActionMenu.Item('Intersect', () => mng.modifyByCurrentSelection(this.props.group, 'intersect'), { icon: 'intersect' })
+                ActionMenu.Item('Include', () => mng.modifyByCurrentSelection(this.props.group, 'union'), { icon: Union }),
+                ActionMenu.Item('Subtract', () => mng.modifyByCurrentSelection(this.props.group, 'subtract'), { icon: Subtract }),
+                ActionMenu.Item('Intersect', () => mng.modifyByCurrentSelection(this.props.group, 'intersect'), { icon: Intersect })
             ]);
         }
 
-        ret.push(ActionMenu.Item('Select This', () => mng.selectThis(this.props.group), { icon: 'set' }));
+        ret.push(ActionMenu.Item('Select This', () => mng.selectThis(this.props.group), { icon: SetSvg }));
 
         return ret;
     }
@@ -272,7 +274,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     get removeActions(): ActionMenu.Items {
         const ret = [
-            ActionMenu.Item('Remove', () => this.plugin.managers.structure.hierarchy.remove(this.props.group, true), { icon: 'remove' })
+            ActionMenu.Item('Remove', () => this.plugin.managers.structure.hierarchy.remove(this.props.group, true), { icon: Delete })
         ];
 
         const reprs = this.pivot.representations;
@@ -280,7 +282,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
             return ret;
         }
 
-        ret.push(ActionMenu.Item(`Remove Representation${reprs.length > 1 ? 's' : ''}`, () => this.plugin.managers.structure.component.removeRepresentations(this.props.group), { icon: 'remove' }));
+        ret.push(ActionMenu.Item(`Remove Representation${reprs.length > 1 ? 's' : ''}`, () => this.plugin.managers.structure.component.removeRepresentations(this.props.group), { icon: Delete }));
 
         return ret;
     }
@@ -343,9 +345,9 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
                     {label}
                     <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{reprLabel}</small>
                 </Button>
-                <IconButton onClick={this.toggleVisible} icon='visual-visibility' toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small className='msp-form-control' flex />
-                <IconButton onClick={this.toggleRemove} icon='remove' title='Remove' small toggleState={this.state.action === 'remove'} className='msp-form-control' flex />
-                <IconButton onClick={this.toggleAction} icon='dot-3' title='Actions' toggleState={this.state.action === 'action'} className='msp-form-control' flex />
+                <IconButton svg={Visibility} onClick={this.toggleVisible} toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small className='msp-form-control' flex />
+                <IconButton svg={Delete} onClick={this.toggleRemove} title='Remove' small toggleState={this.state.action === 'remove'} className='msp-form-control' flex />
+                <IconButton svg={MoreHoriz} onClick={this.toggleAction} title='Actions' toggleState={this.state.action === 'action'} className='msp-form-control' flex />
             </div>
             {this.state.action === 'remove' && <div style={{ marginBottom: '6px' }}>
                 <ActionMenu items={this.removeActions} onSelect={this.selectRemoveAction} />
@@ -384,10 +386,10 @@ class StructureRepresentationEntry extends PurePluginUIComponent<{ group: Struct
             {repr.parent && <ExpandGroup header={`${repr.obj?.label || ''} Representation`} noOffset>
                 <UpdateTransformControl state={repr.parent} transform={repr.transform} customHeader='none' customUpdate={this.update} noMargin />
             </ExpandGroup>}
-            <IconButton onClick={this.remove} icon='remove' title='Remove' small className='msp-default-bg' style={{
+            <IconButton svg={Delete} onClick={this.remove} title='Remove' small className='msp-default-bg' style={{
                 position: 'absolute', top: 0, right: '32px', lineHeight: '24px', height: '24px', textAlign: 'right', width: '44px', paddingRight: '6px'
             }} />
-            <IconButton onClick={this.toggleVisible} toggleState={!this.props.representation.cell.state.isHidden} icon='visual-visibility' title='Remove' small className='msp-default-bg' style={{
+            <IconButton svg={Visibility} onClick={this.toggleVisible} toggleState={!this.props.representation.cell.state.isHidden} title='Remove' small className='msp-default-bg' style={{
                 position: 'absolute', top: 0, right: 0, lineHeight: '24px', height: '24px', textAlign: 'right', width: '32px', paddingRight: '6px'
             }} />
         </div>;

@@ -12,6 +12,7 @@ import { State } from '../../mol-state';
 import { PurePluginUIComponent } from '../base';
 import { IconButton } from '../controls/common';
 import { UpdateTransformControl } from '../state/update-transform';
+import { Visibility, MoreHoriz } from '@material-ui/icons';
 
 export class GenericEntryListControls extends PurePluginUIComponent {
     get current() {
@@ -140,8 +141,8 @@ export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<
                 <button className='msp-form-control msp-control-button-label' title={`${label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {label} <small>{description}</small>
                 </button>
-                <IconButton className='msp-form-control' onClick={this.toggleVisibility} icon='visual-visibility' toggleState={!pivot.cell.state.isHidden} title={`${pivot.cell.state.isHidden ? 'Show' : 'Hide'}`} small flex />
-                {refs.length === 1 && <IconButton className='msp-form-control' onClick={this.toggleOptions} icon='dot-3' title='Options' toggleState={this.state.showOptions} flex />}
+                <IconButton svg={Visibility} className='msp-form-control' onClick={this.toggleVisibility} toggleState={!pivot.cell.state.isHidden} title={`${pivot.cell.state.isHidden ? 'Show' : 'Hide'}`} small flex />
+                {refs.length === 1 && <IconButton svg={MoreHoriz} className='msp-form-control' onClick={this.toggleOptions} title='Options' toggleState={this.state.showOptions} flex />}
             </div>
             {(refs.length === 1 && this.state.showOptions && pivot.cell.parent) && <>
                 <div className='msp-control-offset'>

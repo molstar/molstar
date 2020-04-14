@@ -115,6 +115,8 @@
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
+    "@material-ui/core": "^4.9.10",
+    "@material-ui/icons": "^4.9.1",
     "@types/argparse": "^1.0.38",
     "@types/benchmark": "^1.0.31",
     "@types/compression": "1.7.0",

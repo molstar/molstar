@@ -9,6 +9,7 @@ import * as React from 'react';
 import { Observable, Subscription } from 'rxjs';
 import { PluginContext } from '../mol-plugin/context';
 import { Button } from './controls/common';
+import { ArrowRight, ArrowDropDown } from '@material-ui/icons';
 
 export const PluginReactContext = React.createContext(void 0 as any as PluginContext);
 
@@ -101,7 +102,7 @@ export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends Plugi
 
         return <div className={wrapClass}>
             <div className='msp-transform-header'>
-                <Button icon={this.state.brand ? void 0 : this.state.isCollapsed ? 'expand' : 'collapse'} noOverflow onClick={this.toggleCollapsed}
+                <Button icon={this.state.brand ? void 0 : this.state.isCollapsed ? ArrowRight : ArrowDropDown} noOverflow onClick={this.toggleCollapsed}
                     className={this.state.brand ? `msp-transform-header-brand msp-transform-header-brand-${this.state.brand.accent}` : void 0} title={`Click to ${this.state.isCollapsed ? 'expand' : 'collapse'}`}>
                     {this.state.brand && <div className={`msp-accent-bg-${this.state.brand.accent}`}>{this.state.brand.name}</div>}
                     {this.state.header}

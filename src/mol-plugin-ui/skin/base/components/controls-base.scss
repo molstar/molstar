@@ -88,6 +88,38 @@
     outline: none;
 }
 
+// .msp-btn-icon, .msp-btn-icon-small {
+//     svg {
+//         display: inline-flex;
+//         vertical-align: middle;
+//         font-size: 1rem;
+//         margin-bottom: 3px;
+//     }
+// }
+
+.msp-material-icon {
+    svg {
+        display: inline-flex;
+        vertical-align: middle;
+        font-size: 1rem;
+        margin-bottom: 3px;
+    }
+}
+
+.msp-btn-block {
+    .msp-material-icon {
+        margin-left: 0;
+        margin-right: .4em;
+    }
+}
+
+.msp-btn-childless {
+    .msp-material-icon {
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
+
 .msp-btn-icon {
     border: none;
     height: $row-height;
@@ -113,7 +145,7 @@
     border: none;
     height: $row-height;
     width: 20px;
-    font-size: 85%;
+    // font-size: 85%;
     line-height: $row-height;
     padding: 0;
     text-align: center;

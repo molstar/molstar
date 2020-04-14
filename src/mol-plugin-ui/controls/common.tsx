@@ -6,14 +6,15 @@
 
 import * as React from 'react';
 import { Color } from '../../mol-util/color';
-import { IconName, Icon } from './icons';
+import { Icon } from './icons';
+import { ArrowRight, ArrowDropDown, Remove, Add } from '@material-ui/icons';
 
 export class ControlGroup extends React.Component<{
     header: string,
     initialExpanded?: boolean,
     hideExpander?: boolean,
     hideOffset?: boolean,
-    topRightIcon?: IconName,
+    topRightIcon?: React.FC,
     headerLeftMargin?: string,
     onHeaderClick?: () => void,
     noTopMargin?: boolean,
@@ -37,8 +38,8 @@ export class ControlGroup extends React.Component<{
         return <div className='msp-control-group-wrapper' style={{ position: 'relative', marginTop: this.props.noTopMargin ? 0 : void 0 }}>
             <div className='msp-control-group-header' style={{ marginLeft: this.props.headerLeftMargin }}>
                 <Button onClick={this.headerClicked}>
-                    {!this.props.hideExpander && <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />}
-                    {this.props.topRightIcon && <Icon name={this.props.topRightIcon} style={{ position: 'absolute', right: '2px', top: 0 }} />}
+                    {!this.props.hideExpander && <Icon svg={this.state.isExpanded ? ArrowRight : ArrowDropDown} />}
+                    {this.props.topRightIcon && <Icon svg={this.props.topRightIcon} style={{ position: 'absolute', right: '2px', top: 0 }} />}
                     <b>{this.props.header}</b>
                 </Button>
             </div>
@@ -198,7 +199,7 @@ export class ExpandableControlRow extends React.Component<{
                 {label}
                 <button className='msp-btn-link msp-btn-icon msp-control-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Less' : 'More'} options`}
                     style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                    <Icon name={this.state.isExpanded ? 'minus' : 'plus'} style={{ display: 'inline-block' }} />
+                    <Icon svg={this.state.isExpanded ? Remove : Add} style={{ display: 'inline-block' }} />
                 </button>
             </>} control={pivot}>
                 {this.props.colorStripe && <div className='msp-expandable-group-color-stripe' style={{ backgroundColor: Color.toStyle(this.props.colorStripe) }} />}
@@ -210,9 +211,9 @@ export class ExpandableControlRow extends React.Component<{
     }
 }
 
-export function SectionHeader(props: { icon?: IconName, title: string | JSX.Element, desc?: string }) {
+export function SectionHeader(props: { icon?: React.FC, title: string | JSX.Element, desc?: string }) {
     return <div className='msp-section-header'>
-        {props.icon && <Icon name={props.icon} />}
+        {props.icon && <Icon svg={props.icon} />}
         {props.title} <small>{props.desc}</small>
     </div>;
 }
@@ -222,7 +223,7 @@ export type ButtonProps = {
     className?: string,
     disabled?: boolean,
     title?: string,
-    icon?: IconName,
+    icon?: React.FC,
     children?: React.ReactNode,
     onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void,
     onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void,
@@ -241,6 +242,7 @@ export function Button(props: ButtonProps) {
     if (props.noOverflow) className += ' msp-no-overflow';
     if (props.flex) className += ' msp-flex-item';
     if (props.className) className += ' ' + props.className;
+    if (!props.children) className += ' msp-btn-childless';
 
     let style: React.CSSProperties | undefined = void 0;
     if (props.flex) {
@@ -254,13 +256,13 @@ export function Button(props: ButtonProps) {
 
     return <button onClick={props.onClick} title={props.title} disabled={props.disabled} style={style} className={className} data-id={props['data-id']} data-color={props['data-color']}
         onContextMenu={props.onContextMenu} onMouseEnter={props.onMouseEnter} onMouseLeave={props.onMouseLeave}>
-        {props.icon && <Icon name={props.icon} />}
+        {props.icon && <Icon svg={props.icon} />}
         {props.children}
     </button>;
 }
 
 export function IconButton(props: {
-    icon: IconName,
+    svg?: React.FC,
     small?: boolean,
     onClick: (e: React.MouseEvent<HTMLButtonElement>) => void,
     title?: string,
@@ -280,7 +282,6 @@ export function IconButton(props: {
     if (props.transparent) {
         className += ' msp-transparent-bg';
     }
-    const iconStyle = props.small ? { fontSize: '80%' } : void 0;
 
     let style: React.CSSProperties | undefined = void 0;
     if (props.flex) {
@@ -294,7 +295,7 @@ export function IconButton(props: {
     }
 
     return <button className={className} onClick={props.onClick} title={props.title} disabled={props.disabled} data-id={props['data-id']} style={style}>
-        <Icon name={props.icon} style={iconStyle} />
+        {props.svg && <Icon svg={props.svg} />}
         {props.extraContent}
     </button>;
 }
@@ -305,7 +306,7 @@ export type ToggleButtonProps = {
     disabled?: boolean,
     label?: string | JSX.Element,
     title?: string,
-    icon?: IconName,
+    icon?: React.FC,
     isSelected?: boolean,
     toggle: () => void
 }
@@ -336,7 +337,7 @@ export class ExpandGroup extends React.PureComponent<{ header: string, headerSty
         return <>
             <div className='msp-control-group-header' style={{ marginTop: this.props.marginTop !== void 0 ? this.props.marginTop : '1px', marginLeft: this.props.headerLeftMargin }}>
                 <button className='msp-btn msp-form-control msp-btn-block' onClick={this.toggleExpanded} style={this.props.headerStyle}>
-                    <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
+                    <Icon svg={this.state.isExpanded ? ArrowDropDown : ArrowRight} />
                     {this.props.header}
                 </button>
             </div>

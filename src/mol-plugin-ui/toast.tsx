@@ -10,6 +10,7 @@ import * as React from 'react';
 import { PluginUIComponent } from './base';
 import { PluginToastManager } from '../mol-plugin/util/toast';
 import { IconButton } from './controls/common';
+import { Cancel } from '@material-ui/icons';
 
 class ToastEntry extends PluginUIComponent<{ entry: PluginToastManager.Entry }> {
     private hide = () => {
@@ -32,7 +33,7 @@ class ToastEntry extends PluginUIComponent<{ entry: PluginToastManager.Entry }> 
             </div>
             <div className='msp-toast-clear'></div>
             <div className='msp-toast-hide'>
-                <IconButton onClick={this.hide} icon='abort' title='Hide' className='msp-no-hover-outline' />
+                <IconButton svg={Cancel} onClick={this.hide} title='Hide' className='msp-no-hover-outline' />
             </div>
         </div>;
     }

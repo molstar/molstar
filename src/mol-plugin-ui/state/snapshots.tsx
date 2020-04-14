@@ -16,6 +16,7 @@ import { urlCombine } from '../../mol-util/url';
 import { IconButton, SectionHeader, Button } from '../controls/common';
 import { formatTimespan } from '../../mol-util/now';
 import { PluginConfig } from '../../mol-plugin/config';
+import { ArrowUpward, SwapHoriz, Delete, ArrowDownward, CloudUpload, Save } from '@material-ui/icons';
 
 export class StateSnapshots extends PluginUIComponent<{ }> {
     downloadToFile = () => {
@@ -30,7 +31,7 @@ export class StateSnapshots extends PluginUIComponent<{ }> {
 
     render() {
         return <div>
-            <SectionHeader icon='floppy' title='Plugin State' />
+            <SectionHeader icon={Save} title='Plugin State' />
             <LocalStateSnapshots />
             <LocalStateSnapshotList />
             {this.plugin.spec.components?.remoteState !== 'none' && <RemoteStateSnapshots />}
@@ -147,10 +148,10 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
                     </small>
                 </Button>
                 <div>
-                    <IconButton data-id={e!.snapshot.id} icon='up-thin' title='Move Up' onClick={this.moveUp} small={true} />
-                    <IconButton data-id={e!.snapshot.id} icon='down-thin' title='Move Down' onClick={this.moveDown} small={true} />
-                    <IconButton data-id={e!.snapshot.id} icon='switch' title='Replace' onClick={this.replace} small={true} />
-                    <IconButton data-id={e!.snapshot.id} icon='remove' title='Remove' onClick={this.remove} small={true} />
+                    <IconButton svg={ArrowUpward} data-id={e!.snapshot.id} title='Move Up' onClick={this.moveUp} small={true} />
+                    <IconButton svg={ArrowDownward} data-id={e!.snapshot.id} title='Move Down' onClick={this.moveDown} small={true} />
+                    <IconButton svg={SwapHoriz}  data-id={e!.snapshot.id} title='Replace' onClick={this.replace} small={true} />
+                    <IconButton svg={Delete} data-id={e!.snapshot.id} title='Remove' onClick={this.remove} small={true} />
                 </div>
             </li>)}
         </ul>;
@@ -275,7 +276,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
                     this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
                 }} isDisabled={this.state.isBusy}/>
                 <div className='msp-flex-row'>
-                    <Button icon='upload' onClick={this.upload} disabled={this.state.isBusy}>Upload</Button>
+                    <Button icon={CloudUpload} onClick={this.upload} disabled={this.state.isBusy}>Upload</Button>
                     <Button onClick={this.refresh} disabled={this.state.isBusy}>Refresh</Button>
                 </div>
             </>}
@@ -319,7 +320,7 @@ class RemoteStateSnapshotList extends PurePluginUIComponent<
                     disabled={this.props.isBusy} onContextMenu={this.open} title='Click to download, right-click to open in a new tab.'>
                     {e!.name || new Date(e!.timestamp).toLocaleString()} <small>{e!.description}</small>
                 </Button>
-                {!e!.isSticky && this.props.remove && <IconButton data-id={e!.id} icon='remove' title='Remove' onClick={this.props.remove} disabled={this.props.isBusy} small />}
+                {!e!.isSticky && this.props.remove && <IconButton svg={Delete} data-id={e!.id} title='Remove' onClick={this.props.remove} disabled={this.props.isBusy} small />}
             </li>)}
         </ul>;
     }

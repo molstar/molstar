@@ -11,6 +11,7 @@ import { TaskManager } from '../mol-plugin/util/task-manager';
 import { filter } from 'rxjs/operators';
 import { Progress } from '../mol-task';
 import { IconButton } from './controls/common';
+import { Cancel } from '@material-ui/icons';
 
 export class BackgroundTaskProgress extends PluginUIComponent<{ }, { tracked: OrderedMap<number, TaskManager.ProgressEvent> }> {
     componentDidMount() {
@@ -49,7 +50,7 @@ class ProgressEntry extends PluginUIComponent<{ event: TaskManager.ProgressEvent
 
         return <div className='msp-task-state'>
             <div>
-                {root.progress.canAbort && <IconButton onClick={this.abort} icon='abort' title='Abort' />}
+                {root.progress.canAbort && <IconButton svg={Cancel} onClick={this.abort} title='Abort' />}
                 <div>
                     {root.progress.message} {pr} {subtasks}
                 </div>

@@ -4,18 +4,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginCommands } from '../mol-plugin/commands';
+import { Code, Delete } from '@material-ui/icons';
 import * as React from 'react';
-import { PluginUIComponent } from './base';
+import { PluginCommands } from '../mol-plugin/commands';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
-import { ParameterControls } from './controls/parameters';
-import { Icon } from './controls/icons';
+import { PluginUIComponent } from './base';
 import { Button, IconButton } from './controls/common';
+import { Icon } from './controls/icons';
+import { ParameterControls } from './controls/parameters';
 
 export class CameraSnapshots extends PluginUIComponent<{ }, { }> {
     render() {
         return <div>
-            <div className='msp-section-header'><Icon name='code' /> Camera Snapshots</div>
+            <div className='msp-section-header'><Icon svg={Code} /> Camera Snapshots</div>
             <CameraSnapshotControls />
             <CameraSnapshotList />
         </div>;
@@ -69,7 +70,7 @@ class CameraSnapshotList extends PluginUIComponent<{ }, { }> {
         return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
             {this.plugin.state.cameraSnapshots.state.entries.valueSeq().map(e =><li key={e!.id}>
                 <Button onClick={this.apply(e!.id)}>{e!.name || e!.timestamp} <small>{e!.description}</small></Button>
-                <IconButton icon='remove' onClick={this.remove(e!.id)} className='msp-state-list-remove-button' />
+                <IconButton svg={Delete} onClick={this.remove(e!.id)} className='msp-state-list-remove-button' />
             </li>)}
         </ul>;
     }

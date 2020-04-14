@@ -9,13 +9,14 @@ import { PluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { Icon } from '../controls/icons';
 import { Button } from '../controls/common';
+import { Code, PlayArrow } from '@material-ui/icons';
 
 export class AnimationControlsWrapper extends PluginUIComponent<{ }> {
     render() {
         const anim = this.plugin.state.animation;
         if (anim.isEmpty) return null;
         return <div className='msp-controls-section'>
-            <div className='msp-section-header'><Icon name='code' /> Animations</div>
+            <div className='msp-section-header'><Icon svg={Code} /> Animations</div>
             <AnimationControls />
         </div>;
     }
@@ -54,7 +55,7 @@ export class AnimationControls extends PluginUIComponent<{ onStart?: () => void 
             <ParameterControls params={anim.current.params} values={anim.current.paramValues} onChange={this.updateCurrentParams} isDisabled={isDisabled} />
 
             <div className='msp-flex-row'>
-                <Button icon={anim.state.animationState !== 'playing' ? void 0 : 'play'} onClick={this.startOrStop}>
+                <Button icon={anim.state.animationState !== 'playing' ? void 0 : PlayArrow} onClick={this.startOrStop}>
                     {anim.state.animationState === 'playing' ? 'Stop' : 'Start'}
                 </Button>
             </div>

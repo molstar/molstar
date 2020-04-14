@@ -8,7 +8,7 @@
 import * as React from 'react';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { Button, ControlGroup } from './common';
-import { IconName } from './icons';
+import { ArrowRight, Check, Close, ArrowDropDown } from '@material-ui/icons';
 
 export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
     hide = () => this.props.onSelect(void 0)
@@ -17,7 +17,7 @@ export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
         const cmd = this.props;
         const section = <Section items={cmd.items} onSelect={cmd.onSelect} current={cmd.current} multiselect={this.props.multiselect} noOffset={this.props.noOffset} noAccent={this.props.noAccent} />;
         return <div className={`msp-action-menu-options${cmd.header ? '' : ' msp-action-menu-options-no-header'}`}>
-            {cmd.header && <ControlGroup header={cmd.header} initialExpanded={true} hideExpander={true} hideOffset onHeaderClick={this.hide} topRightIcon='off'>
+            {cmd.header && <ControlGroup header={cmd.header} initialExpanded={true} hideExpander={true} hideOffset onHeaderClick={this.hide} topRightIcon={Close}>
                 {section}
             </ControlGroup>}
             {!cmd.header && section}
@@ -41,13 +41,13 @@ export namespace ActionMenu {
 
     export type Items =  Header | Item | Items[]
     export type Header = { kind: 'header', label: string, isIndependent?: boolean, initiallyExpanded?: boolean, description?: string }
-    export type Item = { kind: 'item', label: string, icon?: IconName, disabled?: boolean, selected?: boolean, value: unknown, addOn?: JSX.Element, description?: string }
+    export type Item = { kind: 'item', label: string, icon?: React.FC, disabled?: boolean, selected?: boolean, value: unknown, addOn?: JSX.Element, description?: string }
 
     export function Header(label: string, options?: { isIndependent?: boolean, initiallyExpanded?: boolean, description?: string }): Header {
         return options ? { kind: 'header', label, ...options } : { kind: 'header', label };
     }
 
-    export function Item(label: string, value: unknown, options?: { icon?: IconName, description?: string }): Item {
+    export function Item(label: string, value: unknown, options?: { icon?: React.FC, description?: string }): Item {
         return { kind: 'item', label, value, ...options };
     }
 
@@ -56,7 +56,7 @@ export namespace ActionMenu {
         label?: (t: T) => string,
         value?: (t: T) => any,
         category?: (t: T) => string | undefined,
-        icon?: (t: T) => IconName | undefined,
+        icon?: (t: T) => React.FC | undefined,
         selected?: (t: T) => boolean | undefined,
         addOn?: (t: T) => JSX.Element | undefined
         description?: (t: T) => string | undefined,
@@ -225,13 +225,13 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { header, hasCurrent } = this.state;
 
         return <div className='msp-flex-row msp-control-group-header'>
-            <Button icon={this.state.isExpanded ? 'collapse' : 'expand'} flex noOverflow onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}.${header?.description ? ` ${header?.description}` : ''}`}>
+            <Button icon={this.state.isExpanded ? ArrowDropDown : ArrowRight} flex noOverflow onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}.${header?.description ? ` ${header?.description}` : ''}`}>
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </Button>
-            <Button icon='check' flex onClick={this.selectAll} style={{ flex: '0 0 50px', textAlign: 'right' }}>
+            <Button icon={Check} flex onClick={this.selectAll} style={{ flex: '0 0 50px', textAlign: 'right' }}>
                 All
             </Button>
-            <Button icon='cancel' flex onClick={this.selectNone} style={{ flex: '0 0 50px', textAlign: 'right' }}>
+            <Button icon={Close} flex onClick={this.selectNone} style={{ flex: '0 0 50px', textAlign: 'right' }}>
                 None
             </Button>
         </div>;
@@ -241,7 +241,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { header, hasCurrent } = this.state;
 
         return <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
-            <Button noOverflow icon={this.state.isExpanded ? 'collapse' : 'expand'} onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}. ${header?.description ? header?.description : ''}`}>
+            <Button noOverflow icon={this.state.isExpanded ? ArrowDropDown : ArrowRight} onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}. ${header?.description ? header?.description : ''}`}>
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </Button>
         </div>;
