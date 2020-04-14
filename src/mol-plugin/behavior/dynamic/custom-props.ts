@@ -11,5 +11,3 @@ export { SecondaryStructure } from './custom-props/computed/secondary-structure'
 export { ValenceModel } from './custom-props/computed/valence-model';
 
 export { CrossLinkRestraint } from './custom-props/integrative/cross-link-restraint';
-
-export { PDBeStructureQualityReport } from './custom-props/pdbe/structure-quality-report';

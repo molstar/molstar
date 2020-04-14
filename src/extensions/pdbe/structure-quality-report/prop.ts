@@ -5,22 +5,22 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column, Table } from '../../mol-data/db';
-import { toTable } from '../../mol-io/reader/cif/schema';
-import { mmCIF_residueId_schema } from '../../mol-io/reader/cif/schema/mmcif-extras';
-import { CifWriter } from '../../mol-io/writer/cif';
-import { Model, CustomPropertyDescriptor, ResidueIndex, Unit, IndexedCustomProperty } from '../../mol-model/structure';
-import { residueIdFields } from '../../mol-model/structure/export/categories/atom_site';
-import { StructureElement, CifExportContext, Structure } from '../../mol-model/structure/structure';
-import { CustomPropSymbol } from '../../mol-script/language/symbol';
-import Type from '../../mol-script/language/type';
-import { QuerySymbolRuntime } from '../../mol-script/runtime/query/compiler';
-import { PropertyWrapper } from '../common/wrapper';
-import { CustomModelProperty } from '../common/custom-model-property';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { CustomProperty } from '../common/custom-property';
-import { arraySetAdd } from '../../mol-util/array';
-import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { Column, Table } from '../../../mol-data/db';
+import { toTable } from '../../../mol-io/reader/cif/schema';
+import { mmCIF_residueId_schema } from '../../../mol-io/reader/cif/schema/mmcif-extras';
+import { CifWriter } from '../../../mol-io/writer/cif';
+import { Model, CustomPropertyDescriptor, ResidueIndex, Unit, IndexedCustomProperty } from '../../../mol-model/structure';
+import { residueIdFields } from '../../../mol-model/structure/export/categories/atom_site';
+import { StructureElement, CifExportContext, Structure } from '../../../mol-model/structure/structure';
+import { CustomPropSymbol } from '../../../mol-script/language/symbol';
+import Type from '../../../mol-script/language/type';
+import { QuerySymbolRuntime } from '../../../mol-script/runtime/query/compiler';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { arraySetAdd } from '../../../mol-util/array';
+import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
+import { PropertyWrapper } from '../../../mol-model-props/common/wrapper';
+import { CustomProperty } from '../../../mol-model-props/common/custom-property';
+import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
 
 export { StructureQualityReport };
 

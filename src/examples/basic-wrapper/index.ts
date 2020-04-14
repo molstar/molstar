@@ -10,7 +10,6 @@ import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
 import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { PDBeStructureQualityReport } from '../../mol-plugin/behavior/dynamic/custom-props';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { Script } from '../../mol-script/script';
@@ -19,6 +18,7 @@ import { StripedResidues } from './coloring';
 import { CustomToastMessage } from './controls';
 import './index.html';
 import { buildStaticSuperposition, dynamicSuperpositionTest, StaticSuperpositionTestData } from './superposition';
+import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 require('mol-plugin-ui/skin/light.scss');
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }

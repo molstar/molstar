@@ -16,6 +16,7 @@ import { DownloadStructure } from '../../mol-plugin-state/actions/structure';
 import { PluginConfig } from '../../mol-plugin/config';
 import { CellPack } from '../../extensions/cellpack';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
+import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 require('mol-plugin-ui/skin/light.scss');
 
 function getParam(name: string, regex: string): string {
@@ -31,6 +32,7 @@ function init() {
         behaviors: [
             ...DefaultPluginSpec.behaviors,
             PluginSpec.Behavior(CellPack),
+            PluginSpec.Behavior(PDBeStructureQualityReport),
             PluginSpec.Behavior(RCSBAssemblySymmetry),
             PluginSpec.Behavior(RCSBValidationReport),
         ],
