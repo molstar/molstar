@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StateObjectRef } from '../../../../mol-state';
-import { StructureRepresentationPresetProvider, presetStaticComponent } from '../../../../mol-plugin-state/builder/structure/representation-preset';
-import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { ColorNames } from '../../../../mol-util/color/names';
+import { StateObjectRef } from '../../mol-state';
+import { StructureRepresentationPresetProvider, presetStaticComponent } from '../../mol-plugin-state/builder/structure/representation-preset';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { ColorNames } from '../../mol-util/color/names';
 import { CellPackColorThemeProvider } from './color';
 
 export const CellpackPackingPresetParams = {

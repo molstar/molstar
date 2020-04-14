@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CIF } from '../../../../mol-io/reader/cif';
-import { parsePDB } from '../../../../mol-io/reader/pdb/parser';
+import { CIF } from '../../mol-io/reader/cif';
+import { parsePDB } from '../../mol-io/reader/pdb/parser';
 
 export async function parseCif(data: string|Uint8Array) {
     const comp = CIF.parse(data);

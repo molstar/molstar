@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -12,10 +12,9 @@ import './favicon.ico';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginSpec } from '../../mol-plugin/spec';
-import { LoadCellPackModel } from './extensions/cellpack/model';
-import { StructureFromCellpack } from './extensions/cellpack/state';
 import { DownloadStructure } from '../../mol-plugin-state/actions/structure';
 import { PluginConfig } from '../../mol-plugin/config';
+import { CellPack } from '../../extensions/cellpack';
 require('mol-plugin-ui/skin/light.scss');
 
 function getParam(name: string, regex: string): string {
@@ -27,13 +26,11 @@ const hideControls = getParam('hide-controls', `[^&]+`) === '1';
 
 function init() {
     const spec: PluginSpec = {
-        actions: [
-            ...DefaultPluginSpec.actions,
-            // PluginSpec.Action(CreateJoleculeState),
-            PluginSpec.Action(LoadCellPackModel),
-            PluginSpec.Action(StructureFromCellpack),
+        actions: [...DefaultPluginSpec.actions],
+        behaviors: [
+            ...DefaultPluginSpec.behaviors,
+            PluginSpec.Behavior(CellPack)
         ],
-        behaviors: [...DefaultPluginSpec.behaviors],
         animations: [...DefaultPluginSpec.animations || []],
         customParamEditors: DefaultPluginSpec.customParamEditors,
         layout: {

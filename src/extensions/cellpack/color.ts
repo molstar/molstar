@@ -4,17 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ThemeDataContext } from '../../../../mol-theme/theme';
-import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { Color } from '../../../../mol-util/color';
-import { getPalette } from '../../../../mol-util/color/palette';
-import { ColorTheme, LocationColor } from '../../../../mol-theme/color';
-import { ScaleLegend, TableLegend } from '../../../../mol-util/legend';
-import { StructureElement, Bond } from '../../../../mol-model/structure';
-import { Location } from '../../../../mol-model/location';
+import { ThemeDataContext } from '../../mol-theme/theme';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { Color } from '../../mol-util/color';
+import { getPalette } from '../../mol-util/color/palette';
+import { ColorTheme, LocationColor } from '../../mol-theme/color';
+import { ScaleLegend, TableLegend } from '../../mol-util/legend';
+import { StructureElement, Bond } from '../../mol-model/structure';
+import { Location } from '../../mol-model/location';
 import { CellPackInfoProvider } from './property';
-import { distinctColors } from '../../../../mol-util/color/distinct';
-import { Hcl } from '../../../../mol-util/color/spaces/hcl';
+import { distinctColors } from '../../mol-util/color/distinct';
+import { Hcl } from '../../mol-util/color/spaces/hcl';
 
 
 const DefaultColor = Color(0xCCCCCC);

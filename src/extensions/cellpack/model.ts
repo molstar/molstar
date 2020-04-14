@@ -4,31 +4,30 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StateAction, StateBuilder, StateTransformer, State } from '../../../../mol-state';
-import { PluginContext } from '../../../../mol-plugin/context';
-import { PluginStateObject as PSO } from '../../../../mol-plugin-state/objects';
-import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { StateAction, StateBuilder, StateTransformer, State } from '../../mol-state';
+import { PluginContext } from '../../mol-plugin/context';
+import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Ingredient, IngredientSource, CellPacking } from './data';
 import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile } from './util';
-import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit } from '../../../../mol-model/structure';
-import { trajectoryFromMmCIF, MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
-import { trajectoryFromPDB } from '../../../../mol-model-formats/structure/pdb';
-import { Mat4, Vec3, Quat } from '../../../../mol-math/linear-algebra';
-import { SymmetryOperator } from '../../../../mol-math/geometry';
-import { Task, RuntimeContext } from '../../../../mol-task';
-import { StateTransforms } from '../../../../mol-plugin-state/transforms';
+import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit } from '../../mol-model/structure';
+import { trajectoryFromMmCIF, MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { trajectoryFromPDB } from '../../mol-model-formats/structure/pdb';
+import { Mat4, Vec3, Quat } from '../../mol-math/linear-algebra';
+import { SymmetryOperator } from '../../mol-math/geometry';
+import { Task, RuntimeContext } from '../../mol-task';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl } from './state';
-import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
-import { compile } from '../../../../mol-script/runtime/query/compiler';
-import { CifCategory, CifField } from '../../../../mol-io/reader/cif';
-import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
-import { Column } from '../../../../mol-data/db';
-import { createModels } from '../../../../mol-model-formats/structure/basic/parser';
+import { compile } from '../../mol-script/runtime/query/compiler';
+import { CifCategory, CifField } from '../../mol-io/reader/cif';
+import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
+import { Column } from '../../mol-data/db';
+import { createModels } from '../../mol-model-formats/structure/basic/parser';
 import { CellpackPackingPreset, CellpackMembranePreset } from './preset';
-import { AjaxTask } from '../../../../mol-util/data-source';
+import { AjaxTask } from '../../mol-util/data-source';
 import { CellPackInfoProvider } from './property';
-import { CellPackColorThemeProvider } from './color';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
@@ -498,7 +497,7 @@ const LoadCellPackModelParams = {
     }, { isExpanded: true }),
     preset: PD.Group({
         traceOnly: PD.Boolean(false),
-        representation: PD.Select('gaussian-surface', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'ellipsoid']))
+        representation: PD.Select('gaussian-surface', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'orientation']))
     }, { isExpanded: true })
 };
 type LoadCellPackModelParams = PD.Values<typeof LoadCellPackModelParams>
@@ -508,10 +507,6 @@ export const LoadCellPackModel = StateAction.build({
     params: LoadCellPackModelParams,
     from: PSO.Root
 })(({ state, params }, ctx: PluginContext) => Task.create('CellPack Loader', async taskCtx => {
-    if (!ctx.representation.structure.themes.colorThemeRegistry.has(CellPackColorThemeProvider)) {
-        ctx.representation.structure.themes.colorThemeRegistry.add(CellPackColorThemeProvider);
-    }
-
     if (params.source.name === 'id' && params.source.params === 'hiv_lipids.bcif') {
         await loadHivMembrane(ctx, taskCtx, state, params);
     } else {

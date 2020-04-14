@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginStateObject as PSO, PluginStateTransform } from '../../../../mol-plugin-state/objects';
-import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { Task } from '../../../../mol-task';
+import { PluginStateObject as PSO, PluginStateTransform } from '../../mol-plugin-state/objects';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { Task } from '../../mol-task';
 import { CellPack as _CellPack, Cell, CellPacking } from './data';
 import { createStructureFromCellPack } from './model';
 import { IngredientFiles } from './util';

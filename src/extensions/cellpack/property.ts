@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CustomStructureProperty } from '../../../../mol-model-props/common/custom-structure-property';
-import { Structure, CustomPropertyDescriptor } from '../../../../mol-model/structure';
-import { CustomProperty } from '../../../../mol-model-props/common/custom-property';
-import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
+import { Structure, CustomPropertyDescriptor } from '../../mol-model/structure';
+import { CustomProperty } from '../../mol-model-props/common/custom-property';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 export type CellPackInfoValue = {
     packingsCount: number

@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3, Quat, Mat4 } from '../../../../mol-math/linear-algebra';
-import { NumberArray } from '../../../../mol-util/type-helpers';
+import { Vec3, Quat, Mat4 } from '../../mol-math/linear-algebra';
+import { NumberArray } from '../../mol-util/type-helpers';
 
 interface Frame {
     t: Vec3,
