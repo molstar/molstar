@@ -5,16 +5,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Autorenew, Build, Camera, Crop, Fullscreen, Tune, Close } from '@material-ui/icons';
 import * as React from 'react';
 import { resizeCanvas } from '../mol-canvas3d/util';
 import { PluginCommands } from '../mol-plugin/commands';
+import { PluginConfig } from '../mol-plugin/config';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { PluginUIComponent } from './base';
 import { ControlGroup, IconButton } from './controls/common';
-import { SimpleSettingsControl } from './viewport/simple-settings';
 import { DownloadScreenshotControls } from './viewport/screenshot';
-import { IconName } from './controls/icons';
-import { PluginConfig } from '../mol-plugin/config';
+import { SimpleSettingsControl } from './viewport/simple-settings';
 
 interface ViewportControlsState {
     isSettingsExpanded: boolean,
@@ -76,8 +76,8 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         this.subscribe(this.plugin.behaviors.interaction.selectionMode, () => this.forceUpdate());
     }
 
-    icon(name: IconName, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
-        return <IconButton icon={name} toggleState={isOn} onClick={onClick} title={title} style={{ background: 'transparent' }} />;
+    icon(icon: React.FC, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
+        return <IconButton svg={icon} toggleState={isOn} onClick={onClick} title={title} style={{ background: 'transparent' }} />;
     }
 
     onMouseMove = (e: React.MouseEvent) => {
@@ -90,32 +90,32 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
             <div className='msp-viewport-controls-buttons'>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}
+                    {this.icon(Autorenew, this.resetCamera, 'Reset Camera')}
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon('screenshot', this.toggleScreenshotExpanded, 'Screenshot', this.state.isScreenshotExpanded)}
+                    {this.icon(Camera, this.toggleScreenshotExpanded, 'Screenshot', this.state.isScreenshotExpanded)}
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
-                    {this.plugin.config.get(PluginConfig.Viewport.ShowExpand) && this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
-                    {this.icon('settings', this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
+                    {this.icon(Build, this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
+                    {this.plugin.config.get(PluginConfig.Viewport.ShowExpand) && this.icon(Fullscreen, this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
+                    {this.icon(Tune, this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
                 </div>
                 {this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode) && <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon('mouse-plus', this.toggleSelectionMode, 'Toggle Selection Mode', this.plugin.behaviors.interaction.selectionMode.value)}
+                    {this.icon(Crop, this.toggleSelectionMode, 'Toggle Selection Mode', this.plugin.behaviors.interaction.selectionMode.value)}
                 </div>}
             </div>
             {this.state.isScreenshotExpanded && <div className='msp-viewport-controls-panel'>
                 <ControlGroup header='Screenshot' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleScreenshotExpanded}
-                    topRightIcon='off' noTopMargin>
+                    topRightIcon={Close} noTopMargin>
                     <DownloadScreenshotControls close={this.toggleScreenshotExpanded} />
                 </ControlGroup>
             </div>}
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-panel'>
                 <ControlGroup header='Settings / Controls Info' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded}
-                    topRightIcon='off' noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
+                    topRightIcon={Close} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <SimpleSettingsControl />
                 </ControlGroup>
             </div>}

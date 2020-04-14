@@ -4,21 +4,22 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { CenterFocusStrong, Clear } from '@material-ui/icons';
 import * as React from 'react';
-import { PluginUIComponent } from '../base';
-import { ToggleButton, IconButton, Button } from '../controls/common';
-import { ActionMenu } from '../controls/action-menu';
-import { StructureElement, StructureProperties, Structure, Unit } from '../../mol-model/structure';
 import { OrderedSet, SortedArray } from '../../mol-data/int';
+import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { Structure, StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { UnitIndex } from '../../mol-model/structure/structure/element/element';
 import { FocusEntry } from '../../mol-plugin-state/manager/structure/focus';
-import { lociLabel } from '../../mol-theme/label';
+import { StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { StateTransform } from '../../mol-state';
+import { lociLabel } from '../../mol-theme/label';
 import { Binding } from '../../mol-util/binding';
 import { memoizeLatest } from '../../mol-util/memoize';
-import { StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
-import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { PluginUIComponent } from '../base';
+import { ActionMenu } from '../controls/action-menu';
+import { Button, IconButton, ToggleButton } from '../controls/common';
 
 interface StructureFocusControlsState {
     isBusy: boolean
@@ -234,8 +235,8 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
                     style={{ textAlignLast: current ? 'left' : void 0 }}>
                     {label}
                 </Button>
-                {current && <IconButton onClick={this.clear} icon='cancel' title='Clear' className='msp-form-control' flex disabled={this.isDisabled} />}
-                <ToggleButton icon='book-open' title='Select a focus target to center on an show its surroundings. Hold shift to focus on multiple targets.' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
+                {current && <IconButton svg={Clear} onClick={this.clear} title='Clear' className='msp-form-control' flex disabled={this.isDisabled} />}
+                <ToggleButton icon={CenterFocusStrong} title='Select a focus target to center on an show its surroundings. Hold shift to focus on multiple targets.' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.showAction && <ActionMenu items={this.actionItems} onSelect={this.selectAction} />}
         </>;

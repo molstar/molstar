@@ -16,6 +16,7 @@ import { StructureHierarchyManager } from '../../mol-plugin-state/manager/struct
 import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { StateSelection, StateTransform } from '../../mol-state';
 import { VolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
+import { Check, Error as ErrorSvg } from '@material-ui/icons';
 
 interface VolumeStreamingControlState extends CollapsableState {
     isBusy: boolean
@@ -69,10 +70,10 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
         const rootCell = root && pivot.cell.parent.cells.get(root);
 
         const simpleApply = rootCell && rootCell.status === 'error'
-            ? { header: 'Error enabling', icon: 'alert' as const, title: rootCell.errorText }
+            ? { header: 'Error enabling', icon: ErrorSvg, title: rootCell.errorText }
             : rootCell && rootCell.obj?.data.entries.length === 0
-                ? { header: 'Error enabling', icon: 'alert' as const, title: 'No entry for streaming found' }
-                : { header: 'Enable', icon: 'check' as const, title: 'Enable' };
+                ? { header: 'Error enabling', icon: ErrorSvg, title: 'No entry for streaming found' }
+                : { header: 'Enable', icon: Check, title: 'Enable' };
 
         return <ApplyActionControl state={pivot.cell.parent} action={InitVolumeStreaming} initiallyCollapsed={true} nodeRef={pivot.cell.transform.ref} simpleApply={simpleApply} />;
     }

@@ -11,8 +11,9 @@ import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { PluginContext } from '../../mol-plugin/context';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Subject } from 'rxjs';
-import { Icon, IconName } from '../controls/icons';
-import { ExpandGroup, ToggleButton, Button } from '../controls/common';
+import { Icon } from '../controls/icons';
+import { ExpandGroup, ToggleButton, Button, IconButton } from '../controls/common';
+import { Refresh, ArrowRight, ArrowDropDown, Check, Tune } from '@material-ui/icons';
 
 export { StateTransformParameters, TransformControlBase };
 
@@ -101,7 +102,7 @@ namespace TransformControlBase {
     }
 
     export interface CommonProps {
-        simpleApply?: { header: string, icon: IconName, title?: string },
+        simpleApply?: { header: string, icon?: React.FC, title?: string },
         noMargin?: boolean,
         applyLabel?: string,
         onApply?: () => void,
@@ -194,13 +195,9 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         if (this.props.autoHideApply && (!canApply || this.canAutoApply(this.state.params))) return null;
 
         return <div className='msp-transform-apply-wrap'>
-            <button className='msp-btn msp-btn-block msp-form-control msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params'><Icon name='cw' /></button>
-            {/* {showBack && <Button className='msp-btn msp-btn-block msp-form-control msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
-                <Icon name='back' /> Back
-            </Button>}
-            <div className={`msp-transform-apply${!showBack ? ' msp-transform-apply-wider' : ''}`}> */}
+            <IconButton svg={Refresh} className='msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params' />
             <div className={`msp-transform-apply-wider`}>
-                <Button icon={canApply ? 'ok' : void 0} className={`msp-btn-commit msp-btn-commit-${canApply ? 'on' : 'off'}`} onClick={this.apply} disabled={!canApply}>
+                <Button icon={canApply ? Check : void 0} className={`msp-btn-commit msp-btn-commit-${canApply ? 'on' : 'off'}`} onClick={this.apply} disabled={!canApply}>
                     {this.props.applyLabel || this.applyText()}
                 </Button>
             </div>
@@ -235,7 +232,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         const ctrl = <div className={wrapClass} style={{ marginBottom: this.props.noMargin ? 0 : void 0 }}>
             {display !== 'none' && !this.props.wrapInExpander && <div className='msp-transform-header'>
                 <Button onClick={this.toggleExpanded} title={display.description}>
-                    {!isEmpty && <Icon name={this.state.isCollapsed ? 'expand' : 'collapse'} />}
+                    {!isEmpty && <Icon svg={this.state.isCollapsed ? ArrowRight : ArrowDropDown} />}
                     {display.name}
                 </Button>
             </div>}
@@ -256,7 +253,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
             <Button icon={this.props.simpleApply?.icon} title={this.props.simpleApply?.title} disabled={this.state.busy || !canApply} onClick={this.apply} style={{ textAlign: 'left' }}>
                 {this.props.simpleApply?.header}
             </Button>
-            {!info.isEmpty && <ToggleButton icon='cog' label='' title='Options' toggle={this.toggleExpanded} isSelected={!this.state.isCollapsed} disabled={this.state.busy} style={{ flex: '0 0 40px', padding: 0 }} />}
+            {!info.isEmpty && <ToggleButton icon={Tune} label='' title='Options' toggle={this.toggleExpanded} isSelected={!this.state.isCollapsed} disabled={this.state.busy} style={{ flex: '0 0 40px', padding: 0 }} />}
         </div>;
 
         if (this.state.isCollapsed) return apply;

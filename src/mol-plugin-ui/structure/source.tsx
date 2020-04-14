@@ -16,6 +16,7 @@ import { StructureFocusControls } from './focus';
 import { UpdateTransformControl } from '../state/update-transform';
 import { StructureSelectionStatsControls } from './selection';
 import { StateSelection } from '../../mol-state';
+import { BookmarksOutlined } from '@material-ui/icons';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
@@ -267,7 +268,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         return <>
             <div className='msp-flex-row' style={{ marginTop: '1px' }}>
                 <Button noOverflow flex onClick={this.toggleHierarchy} disabled={disabled} title={label}>{label}</Button>
-                {presets.length > 0 && <IconButton className='msp-form-control' flex='40px' onClick={this.togglePreset} icon='bookmarks' title='Apply a structure presets to the current hierarchy.' toggleState={this.state.show === 'presets'} disabled={disabled} />}
+                {presets.length > 0 && <IconButton svg={BookmarksOutlined} className='msp-form-control' flex='40px' onClick={this.togglePreset} title='Apply a structure presets to the current hierarchy.' toggleState={this.state.show === 'presets'} disabled={disabled} />}
             </div>
             {this.state.show === 'hierarchy' && <ActionMenu items={this.hierarchyItems} onSelect={this.selectHierarchy} multiselect />}
             {this.state.show === 'presets' && <ActionMenu items={presets} onSelect={this.applyPreset} />}

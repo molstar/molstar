@@ -12,6 +12,7 @@ import { SelectLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { Icon } from '../controls/icons';
 import { Button } from '../controls/common';
+import { ArrowRight, ArrowDropDown, Camera } from '@material-ui/icons';
 
 function getBindingsList(bindings: { [k: string]: Binding }) {
     return Object.keys(bindings).map(k => [k, bindings[k]] as [string, Binding]);
@@ -57,7 +58,7 @@ class HelpGroup extends React.PureComponent<{ header: string, initiallyExpanded?
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
                 <Button onClick={this.toggleExpanded}>
-                    <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />
+                    <Icon svg={this.state.isExpanded ? ArrowDropDown : ArrowRight} />
                     {this.props.header}
                 </Button>
             </div>
@@ -152,7 +153,7 @@ export class HelpContent extends PluginUIComponent {
             <HelpSection header='How-to Guides' />
             <HelpGroup header='Create an Image'>
                 <HelpText>
-                    <p>Use the <Icon name='screenshot' /> icon in the viewport to bring up the screenshot controls.</p>
+                    <p>Use the <Icon svg={Camera} /> icon in the viewport to bring up the screenshot controls.</p>
                     <p>To adjust the size of the image, use the <i>Resolution</i> dropdown.</p>
                 </HelpText>
             </HelpGroup>

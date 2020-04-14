@@ -5,8 +5,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Close, Clear, Brush } from '@material-ui/icons';
 import * as React from 'react';
 import { StructureSelectionQueries, StructureSelectionQuery } from '../../mol-plugin-state/helpers/structure-selection-query';
+import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
 import { StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { StructureSelectionModifier } from '../../mol-plugin-state/manager/structure/selection';
@@ -17,7 +19,7 @@ import { PluginUIComponent, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ControlGroup, IconButton, ToggleButton } from '../controls/common';
 import { ParameterControls, ParamOnChange, PureSelectControl } from '../controls/parameters';
-import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
+import { Union, Subtract, Intersect, SetSvg as SetSvg } from '../controls/icons';
 
 const StructureSelectionParams = {
     granularity: InteractivityManager.Params.granularity,
@@ -177,19 +179,19 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         const granularity = this.plugin.managers.interactivity.props.granularity;
         return <>
             <div className='msp-flex-row'>
-                <ToggleButton icon='union' title={ActionHeader.get('add')} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
-                <ToggleButton icon='subtract' title={ActionHeader.get('remove')} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
-                <ToggleButton icon='intersect' title={ActionHeader.get('intersect')} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
-                <ToggleButton icon='set' title={ActionHeader.get('set')} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
-                <ToggleButton icon='brush' title='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} />
+                <ToggleButton icon={Union} title={ActionHeader.get('add')} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
+                <ToggleButton icon={Subtract} title={ActionHeader.get('remove')} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
+                <ToggleButton icon={Intersect} title={ActionHeader.get('intersect')} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
+                <ToggleButton icon={SetSvg} title={ActionHeader.get('set')} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
+                <ToggleButton icon={Brush} title='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} />
                 <PureSelectControl title={`Picking Level`} param={StructureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />
-                <IconButton icon='cancel' title='Turn selection mode off' onClick={this.turnOff} />
+                <IconButton svg={Close} title='Turn selection mode off' onClick={this.turnOff} />
             </div>
             {(this.state.action && this.state.action !== 'color') && <div className='msp-selection-viewport-controls-actions'>
                 <ActionMenu header={ActionHeader.get(this.state.action as StructureSelectionModifier)} items={this.queries} onSelect={this.selectQuery} noOffset />
             </div>}
             {this.state.action === 'color' && <div className='msp-selection-viewport-controls-actions'>
-                <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor} topRightIcon='off'>
+                <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor} topRightIcon={Close}>
                     <ApplyColorControls />
                 </ControlGroup>
             </div>}
@@ -264,7 +266,7 @@ export class StructureSelectionStatsControls extends PluginUIComponent<{ hideOnE
                     style={{ textAlignLast: !empty ? 'left' : void 0 }}>
                     {this.stats}
                 </Button>
-                {!empty && <IconButton onClick={this.clear} icon='cancel' title='Clear' className='msp-form-control' flex />}
+                {!empty && <IconButton svg={Clear} onClick={this.clear} title='Clear' className='msp-form-control' flex />}
             </div>
         </>;
     }
@@ -294,7 +296,7 @@ class ApplyColorControls extends PurePluginUIComponent<ApplyColorControlsProps, 
     render() {
         return <>
             <ParameterControls params={this.params} values={this.state.values} onChangeValues={this.paramsChanged} />
-            <Button icon='brush' className='msp-btn-commit msp-btn-commit-on' onClick={this.apply} style={{ marginTop: '1px' }}>
+            <Button icon={Brush} className='msp-btn-commit msp-btn-commit-on' onClick={this.apply} style={{ marginTop: '1px' }}>
                 Apply Coloring
             </Button>
         </>;
