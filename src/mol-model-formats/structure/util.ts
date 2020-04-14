@@ -43,9 +43,10 @@ export function guessElementSymbolTokens(tokens: Tokens, str: string, start: num
     TokenBuilder.add(tokens, s, s); // no reasonable guess, add empty token
 }
 
+const reTrimSpacesAndNumbers = /^[\s\d]+|[\s\d]+$/g;
 export function guessElementSymbolString(str: string) {
     // trim spaces and numbers, convert to upper case
-    str = str.trim().toUpperCase();
+    str = str.replace(reTrimSpacesAndNumbers, '').toUpperCase();
     const l = str.length;
 
     if (l === 0) return str; // empty

@@ -20,6 +20,7 @@ import { Vec3 } from '../../mol-math/linear-algebra';
 import { ModelSymmetry } from './property/symmetry';
 import { IndexPairBonds } from './property/bonds/index-pair';
 import { AtomSiteAnisotrop } from './property/anisotropic';
+import { guessElementSymbolString } from './util';
 
 function getSpacegroupNameOrNumber(space_group: CifCore_Database['space_group']) {
     const groupNumber = space_group.IT_number.value(0);
@@ -65,9 +66,46 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
         x[i] = v[0], y[i] = v[1], z[i] = v[2];
     }
 
+    const { type_symbol, label } = db.atom_site;
+    let typeSymbol: Column<string>;
+    let formalCharge: Column<number>;
+    if (type_symbol.isDefined) {
+        const element_symbol = new Array<string>(atomCount);
+        const formal_charge = new Int8Array(atomCount);
+        for (let i = 0; i < atomCount; ++i) {
+            const ts = type_symbol.value(i);
+            const n = ts.length;
+            if (ts[n - 1] === '+') {
+                element_symbol[i] = ts.substring(0, n - 2);
+                formal_charge[i] = parseInt(ts[n - 2]);
+            } else if (ts[n - 2] === '+') {
+                element_symbol[i] = ts.substring(0, n - 2);
+                formal_charge[i] = parseInt(ts[n - 1]);
+            } else if (ts[n - 1] === '-') {
+                element_symbol[i] = ts.substring(0, n - 2);
+                formal_charge[i] = -parseInt(ts[n - 2]);
+            } else if (ts[n - 2] === '-') {
+                element_symbol[i] = ts.substring(0, n - 2);
+                formal_charge[i] = -parseInt(ts[n - 1]);
+            } else {
+                element_symbol[i] = ts;
+                formal_charge[i] = 0;
+            }
+        }
+        typeSymbol = Column.ofStringArray(element_symbol);
+        formalCharge = Column.ofIntArray(formal_charge);
+    } else {
+        const element_symbol = new Array<string>(atomCount);
+        for (let i = 0; i < atomCount; ++i) {
+            element_symbol[i] = guessElementSymbolString(label.value(i));
+        }
+        typeSymbol = Column.ofStringArray(element_symbol);
+        formalCharge = Column.Undefined(atomCount, Column.Schema.int);
+    }
+
     const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
         auth_asym_id: A,
-        auth_atom_id: db.atom_site.label,
+        auth_atom_id: label,
         auth_comp_id: MOL,
         auth_seq_id: seq_id,
         Cartn_x: Column.ofFloatArray(x),
@@ -76,13 +114,14 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
         id: Column.range(0, atomCount - 1),
 
         label_asym_id: A,
-        label_atom_id: db.atom_site.label,
+        label_atom_id: label,
         label_comp_id: MOL,
         label_seq_id: seq_id,
         label_entity_id: Column.ofConst('1', atomCount, Column.Schema.str),
 
         occupancy: db.atom_site.occupancy,
-        type_symbol: db.atom_site.type_symbol,
+        type_symbol: typeSymbol,
+        pdbx_formal_charge: formalCharge,
 
         pdbx_PDB_model_num: Column.ofConst(1, atomCount, Column.Schema.int),
     }, atomCount);
