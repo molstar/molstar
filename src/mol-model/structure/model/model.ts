@@ -160,7 +160,7 @@ export namespace Model {
         );
     }
 
-    const tmpAngles90 = Vec3.create(1.5708, 1.5708, 1.5708); // in radians
+    const tmpAngles90 = Vec3.create(1.5707963, 1.5707963, 1.5707963); // in radians
     const tmpLengths1 = Vec3.create(1, 1, 1);
     export function hasCrystalSymmetry(model: Model) {
         const spacegroup = ModelSymmetry.Provider.get(model)?.spacegroup;
