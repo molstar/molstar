@@ -19,7 +19,7 @@ import { camelCaseToWords } from '../../mol-util/string';
 import { PluginUIComponent, _Props, _State } from '../base';
 import { ActionMenu } from './action-menu';
 import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
-import { ControlGroup, ExpandGroup, IconButton, NumericInput, ToggleButton, Button, ControlRow } from './common';
+import { ControlGroup, ExpandGroup, IconButton, TextInput, ToggleButton, Button, ControlRow } from './common';
 import { Icon } from './icons';
 import { legendFor } from './legend';
 import LineGraphComponent from './line-graph/line-graph-component';
@@ -353,7 +353,7 @@ export class NumberInputControl extends React.PureComponent<ParamProps<PD.Numeri
         return <ControlRow
             title={this.props.param.description}
             label={label}
-            control={<NumericInput
+            control={<TextInput numeric
                 value={parseFloat(this.props.value.toFixed(p))} onEnter={this.props.onEnter} placeholder={placeholder}
                 isDisabled={this.props.isDisabled} onChange={this.update} />} />;
     }
@@ -724,22 +724,6 @@ export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isEx
     state = { isExpanded: false }
 
     components = {
-        0: PD.Numeric(0, undefined, { label: 'Col 0, Row 0' }),
-        1: PD.Numeric(0, undefined, { label: 'Col 0, Row 1' }),
-        2: PD.Numeric(0, undefined, { label: 'Col 0, Row 2' }),
-        3: PD.Numeric(0, undefined, { label: 'Col 0, Row 3' }),
-        4: PD.Numeric(0, undefined, { label: 'Col 1, Row 0' }),
-        5: PD.Numeric(0, undefined, { label: 'Col 1, Row 1' }),
-        6: PD.Numeric(0, undefined, { label: 'Col 1, Row 2' }),
-        7: PD.Numeric(0, undefined, { label: 'Col 1, Row 3' }),
-        8: PD.Numeric(0, undefined, { label: 'Col 2, Row 0' }),
-        9: PD.Numeric(0, undefined, { label: 'Col 2, Row 1' }),
-        10: PD.Numeric(0, undefined, { label: 'Col 2, Row 2' }),
-        11: PD.Numeric(0, undefined, { label: 'Col 2, Row 3' }),
-        12: PD.Numeric(0, undefined, { label: 'Col 3, Row 0' }),
-        13: PD.Numeric(0, undefined, { label: 'Col 3, Row 1' }),
-        14: PD.Numeric(0, undefined, { label: 'Col 3, Row 2' }),
-        15: PD.Numeric(0, undefined, { label: 'Col 3, Row 3' }),
         json: PD.Text(JSON.stringify(Mat4()), { description: 'JSON array with 4x4 matrix in a column major (j * 4 + i indexing) format' })
     }
 
@@ -763,15 +747,36 @@ export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isEx
         e.currentTarget.blur();
     }
 
+    changeValue(idx: number) {
+        return (v: number) => {
+            const m = Mat4.copy(Mat4(), this.props.value);
+            m[idx] = v;
+            this.change(m);
+        };
+    }
+
+    get grid() {
+        const v = this.props.value;
+        const rows: React.ReactNode[] = [];
+        for (let i = 0; i < 4; i++) {
+            const row: React.ReactNode[] = [];
+            for (let j = 0; j < 4; j++) {
+                row.push(<TextInput key={j} numeric delayMs={50} value={Mat4.getValue(v, i, j)} onChange={this.changeValue(4 * j + i)} className='msp-form-control' blurOnEnter={true} isDisabled={this.props.isDisabled} />);
+            }
+            rows.push(<div className='msp-flex-row' key={i}>{row}</div>);
+        }
+        return <div className='msp-parameter-matrix'>{rows}</div>;
+    }
+
     render() {
         const v = {
-            ...this.props.value,
             json: JSON.stringify(this.props.value)
         };
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         return <>
             <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{'4\u00D74 Matrix'}</button>} />
             {this.state.isExpanded && <div className='msp-control-offset'>
+                {this.grid}
                 <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} />
             </div>}
         </>;

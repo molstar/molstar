@@ -6,7 +6,7 @@
  */
 
 import * as React from 'react';
-import { NumericInput } from './common';
+import { TextInput } from './common';
 import { noop } from '../../mol-util';
 
 export class Slider extends React.Component<{
@@ -65,7 +65,7 @@ export class Slider extends React.Component<{
                     onChange={this.updateCurrent as any} onAfterChange={this.end as any} />
             </div>
             <div>
-                <NumericInput
+                <TextInput numeric delayMs={50}
                     value={this.state.current} blurOnEnter={true} onBlur={this.onManualBlur}
                     isDisabled={this.props.disabled} onChange={this.updateManually} />
             </div>
@@ -126,7 +126,7 @@ export class Slider2 extends React.Component<{
         if (step === void 0) step = 1;
         return <div className='msp-slider2'>
             <div>
-                <NumericInput
+                <TextInput numeric delayMs={50}
                     value={this.state.current[0]} onEnter={this.props.onEnter} blurOnEnter={true}
                     isDisabled={this.props.disabled} onChange={this.updateMin} />
             </div>
@@ -135,7 +135,7 @@ export class Slider2 extends React.Component<{
                     onBeforeChange={this.begin} onChange={this.updateCurrent as any} onAfterChange={this.end as any} range={true} pushable={true} />
             </div>
             <div>
-                <NumericInput
+                <TextInput numeric delayMs={50}
                     value={this.state.current[1]} onEnter={this.props.onEnter} blurOnEnter={true}
                     isDisabled={this.props.disabled} onChange={this.updateMax} />
             </div>

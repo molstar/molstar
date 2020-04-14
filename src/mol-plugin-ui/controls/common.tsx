@@ -64,7 +64,8 @@ export interface TextInputProps<T> {
     blurOnEnter?: boolean,
     blurOnEscape?: boolean,
     isDisabled?: boolean,
-    placeholder?: string
+    placeholder?: string,
+    numeric?: boolean
 }
 
 interface TextInputState {
@@ -116,15 +117,21 @@ export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>
     onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
 
-        if (this.props.isValid && !this.props.isValid(value)) {
+        let isInvalid = (this.props.isValid && !this.props.isValid(value)) || (this.props.numeric && Number.isNaN(+value));
+        if (isInvalid) {
             this.clearTimeout();
             this.setState({ value });
             return;
         }
 
-        const converted = (this.props.toValue || _id)(value);
-        const formatted = (this.props.fromValue || _id)(converted);
-        this.setState({ value: formatted }, () => this.triggerChanged(formatted, converted));
+        if (this.props.numeric) {
+            this.setState({ value }, () => this.triggerChanged(value, +value as any));
+        } else {
+            const converted = (this.props.toValue || _id)(value);
+            const formatted = (this.props.fromValue || _id)(converted);
+            this.setState({ value: formatted }, () => this.triggerChanged(formatted, converted));
+        }
+
     }
 
     onKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -166,62 +173,6 @@ export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>
             onChange={this.onChange}
             onKeyPress={this.props.onEnter || this.props.blurOnEnter || this.props.blurOnEscape ? this.onKeyPress : void 0}
             onKeyDown={this.props.blurOnEscape ? this.onKeyUp : void 0}
-            disabled={!!this.props.isDisabled}
-        />;
-    }
-}
-
-// TODO: replace this with parametrized TextInput
-export class NumericInput extends React.PureComponent<{
-    value: number,
-    onChange: (v: number) => void,
-    onEnter?: () => void,
-    onBlur?: () => void,
-    blurOnEnter?: boolean,
-    isDisabled?: boolean,
-    placeholder?: string
-}, { value: string }> {
-    state = { value: '0' };
-    input = React.createRef<HTMLInputElement>();
-
-    onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = +e.target.value;
-        this.setState({ value: e.target.value }, () => {
-            if (!Number.isNaN(value) && value !== this.props.value) {
-                this.props.onChange(value);
-            }
-        });
-    }
-
-    onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if ((e.keyCode === 13 || e.charCode === 13)) {
-            if (this.props.blurOnEnter && this.input.current) {
-                this.input.current.blur();
-            }
-            if (this.props.onEnter) this.props.onEnter();
-        }
-        e.stopPropagation();
-    }
-
-    onBlur = () => {
-        this.setState({ value: '' + this.props.value });
-        if (this.props.onBlur) this.props.onBlur();
-    }
-
-    static getDerivedStateFromProps(props: { value: number }, state: { value: string }) {
-        const value = +state.value;
-        if (Number.isNaN(value) || value === props.value) return null;
-        return { value: '' + props.value };
-    }
-
-    render() {
-        return <input type='text'
-            ref={this.input}
-            onBlur={this.onBlur}
-            value={this.state.value}
-            placeholder={this.props.placeholder}
-            onChange={this.onChange}
-            onKeyPress={this.props.onEnter || this.props.blurOnEnter ? this.onKeyPress : void 0}
             disabled={!!this.props.isDisabled}
         />;
     }

@@ -531,6 +531,12 @@
     }
 }
 
+.msp-parameter-matrix {
+    input {
+        flex: 1 1 auto;
+    }
+}
+
 @mixin type-class-border($name, $color) {
     .msp-type-class-#{$name} {
         border-left-color: $color;
