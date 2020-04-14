@@ -251,7 +251,7 @@ export namespace VolumeStreaming {
                 return Box3D.empty();
             }
 
-            const parent = this.plugin.helpers.substructureParent.get(loci.structure);
+            const parent = this.plugin.helpers.substructureParent.get(loci.structure, true);
             if (!parent) return Box3D.empty();
             const root = this.getStructureRoot();
             if (!root || root.obj?.data !== parent.obj?.data) return Box3D.empty();

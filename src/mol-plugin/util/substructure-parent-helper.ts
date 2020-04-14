@@ -16,11 +16,23 @@ class SubstructureParentHelper {
     private root = new Map<Structure, { ref: string, count: number }>();
     private tracked = new Map<string, Structure>();
 
+    private getDecorator(root: string): string {
+        const tree = this.plugin.state.data.tree;
+        const children = tree.children.get(root);
+        if (children.size !== 1) return root;
+        const child = children.first();
+        if (tree.transforms.get(child).transformer.definition.isDecorator) {
+            return this.getDecorator(child);
+        }
+        return root;
+    }
+
     /** Returns the root node of given structure if existing, takes decorators into account */
     get(s: Structure, ignoreDecorators = false): StateObjectCell<PluginStateObject.Molecule.Structure> | undefined {
         const r = this.root.get(s);
         if (!r) return;
-        return this.plugin.state.data.cells.get(r.ref);
+        if (ignoreDecorators) return this.plugin.state.data.cells.get(r.ref);
+        return this.plugin.state.data.cells.get(this.getDecorator(r.ref));
     }
 
     private addMapping(state: State, ref: string, obj: StateObject) {

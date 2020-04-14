@@ -121,11 +121,13 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
         return PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
     }
 
-    private async focus(loci: StructureElement.Loci) {
-        const parent = this.plugin.helpers.substructureParent.get(loci.structure);
+    private async focus(sourceLoci: StructureElement.Loci) {
+        const parent = this.plugin.helpers.substructureParent.get(sourceLoci.structure);
         if (!parent || !parent.obj) return;
 
-        const residueLoci = StructureElement.Loci.extendToWholeResidues(StructureElement.Loci.remap(loci, parent.obj!.data));
+        const loci = StructureElement.Loci.remap(sourceLoci, parent.obj!.data);
+
+        const residueLoci = StructureElement.Loci.extendToWholeResidues(loci);
         const residueBundle = StructureElement.Bundle.fromLoci(residueLoci);
 
         const surroundings = MS.struct.modifier.includeSurroundings({
