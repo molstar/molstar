@@ -124,6 +124,7 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
         pdbx_formal_charge: formalCharge,
 
         pdbx_PDB_model_num: Column.ofConst(1, atomCount, Column.Schema.int),
+        B_iso_or_equiv: db.atom_site.U_iso_or_equiv,
     }, atomCount);
 
     const name = (
