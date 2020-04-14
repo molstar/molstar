@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { OrderedSet } from '../../../../../mol-data/int';
-import { StructureQualityReport, StructureQualityReportProvider } from '../../../../../mol-model-props/pdbe/structure-quality-report';
-import { StructureQualityReportColorThemeProvider } from '../../../../../mol-model-props/pdbe/themes/structure-quality-report';
-import { Loci } from '../../../../../mol-model/loci';
-import { StructureElement } from '../../../../../mol-model/structure';
-import { ParamDefinition as PD } from '../../../../../mol-util/param-definition';
-import { PluginBehavior } from '../../../behavior';
+import { OrderedSet } from '../../../mol-data/int';
+import { StructureQualityReport, StructureQualityReportProvider } from './prop';
+import { StructureQualityReportColorThemeProvider } from './color';
+import { Loci } from '../../../mol-model/loci';
+import { StructureElement } from '../../../mol-model/structure';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
 
 export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'pdbe-structure-quality-report-prop',

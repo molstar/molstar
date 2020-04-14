@@ -7,13 +7,13 @@
 import { ThemeDataContext } from '../../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { AssemblySymmetryProvider, AssemblySymmetry } from '../assembly-symmetry';
+import { AssemblySymmetryProvider, AssemblySymmetry } from './prop';
 import { Color } from '../../../mol-util/color';
 import { Unit, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { Location } from '../../../mol-model/location';
 import { ScaleLegend, TableLegend } from '../../../mol-util/legend';
 import { getPalette, getPaletteParams } from '../../../mol-util/color/palette';
-import { CustomProperty } from '../../common/custom-property';
+import { CustomProperty } from '../../../mol-model-props/common/custom-property';
 
 const DefaultColor = Color(0xCCCCCC);
 

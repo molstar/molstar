@@ -97,7 +97,7 @@ and navigate to `build/viewer`
 
 **GraphQL schemas**
 
-    ./node_modules/.bin/graphql-codegen -c ./data/rcsb-graphql/codegen.yml
+    ./node_modules/.bin/graphql-codegen -c ./src/extensions/rcsb/graphql/codegen.yml
 
 ### Other scripts
 **Create chem comp bond table**
@@ -115,7 +115,7 @@ and navigate to `build/viewer`
 **Convert any CIF to BinaryCIF**
 
     node lib/servers/model/preprocess -i file.cif -ob file.bcif
-    
+
 To see all available commands, use ``node lib/servers/model/preprocess -h``.
 
 Or

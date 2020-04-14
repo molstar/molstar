@@ -8,7 +8,7 @@ import { Column, Table } from '../../mol-data/db';
 import { toTable } from '../../mol-io/reader/cif/schema';
 import { CifWriter } from '../../mol-io/writer/cif';
 import { Model, CustomPropertyDescriptor } from '../../mol-model/structure';
-import { PropertyWrapper } from '../common/wrapper';
+import { PropertyWrapper } from '../../mol-model-props/common/wrapper';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 
 export namespace PDBeStructRefDomain {

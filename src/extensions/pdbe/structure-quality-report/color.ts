@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StructureQualityReport, StructureQualityReportProvider } from '../../../mol-model-props/pdbe/structure-quality-report';
+import { StructureQualityReport, StructureQualityReportProvider } from './prop';
 import { Location } from '../../../mol-model/location';
 import { StructureElement } from '../../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
@@ -12,7 +12,7 @@ import { ThemeDataContext } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
 import { TableLegend } from '../../../mol-util/legend';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { CustomProperty } from '../../common/custom-property';
+import { CustomProperty } from '../../../mol-model-props/common/custom-property';
 
 const ValidationColors = [
     Color.fromRgb(170, 170, 170), // not applicable

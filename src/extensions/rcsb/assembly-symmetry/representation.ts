@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { AssemblySymmetryValue, AssemblySymmetryProvider, AssemblySymmetry } from '../assembly-symmetry';
+import { AssemblySymmetryValue, AssemblySymmetryProvider, AssemblySymmetry } from './prop';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Vec3, Mat4, Mat3 } from '../../../mol-math/linear-algebra';
 import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';

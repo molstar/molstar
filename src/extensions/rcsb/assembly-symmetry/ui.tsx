@@ -5,17 +5,17 @@
  */
 
 import * as React from 'react';
-import { CollapsableState, CollapsableControls } from '../../../../../../mol-plugin-ui/base';
-import { ApplyActionControl } from '../../../../../../mol-plugin-ui/state/apply-action';
-import { InitAssemblySymmetry3D, AssemblySymmetry3D, AssemblySymmetryPreset, tryCreateAssemblySymmetry } from '../assembly-symmetry';
-import { AssemblySymmetryProvider,  AssemblySymmetryProps, AssemblySymmetryDataProvider, AssemblySymmetry } from '../../../../../../mol-model-props/rcsb/assembly-symmetry';
-import { ParameterControls } from '../../../../../../mol-plugin-ui/controls/parameters';
-import { ParamDefinition as PD } from '../../../../../../mol-util/param-definition';
-import { StructureHierarchyManager } from '../../../../../../mol-plugin-state/manager/structure/hierarchy';
-import { StateAction, StateSelection } from '../../../../../../mol-state';
-import { PluginStateObject } from '../../../../../../mol-plugin-state/objects';
-import { PluginContext } from '../../../../../context';
-import { Task } from '../../../../../../mol-task';
+import { CollapsableState, CollapsableControls } from '../../../mol-plugin-ui/base';
+import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
+import { InitAssemblySymmetry3D, AssemblySymmetry3D, AssemblySymmetryPreset, tryCreateAssemblySymmetry } from './behavior';
+import { AssemblySymmetryProvider,  AssemblySymmetryProps, AssemblySymmetryDataProvider, AssemblySymmetry } from './prop';
+import { ParameterControls } from '../../../mol-plugin-ui/controls/parameters';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { StructureHierarchyManager } from '../../../mol-plugin-state/manager/structure/hierarchy';
+import { StateAction, StateSelection } from '../../../mol-state';
+import { PluginStateObject } from '../../../mol-plugin-state/objects';
+import { PluginContext } from '../../../mol-plugin/context';
+import { Task } from '../../../mol-task';
 import { Check } from '@material-ui/icons';
 
 interface AssemblySymmetryControlState extends CollapsableState {

@@ -1,7 +1,7 @@
 /* eslint-disable */
 export type Maybe<T> = T | null;
 
-// Generated in 2020-04-08T16:22:40-07:00
+// Generated in 2020-04-14T16:35:00-07:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {

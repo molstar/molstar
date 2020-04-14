@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ThemeDataContext } from '../../../mol-theme/theme';
-import { ColorTheme, LocationColor } from '../../../mol-theme/color';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { Color, ColorScale } from '../../../mol-util/color';
-import { StructureElement, Model } from '../../../mol-model/structure';
-import { Location } from '../../../mol-model/location';
-import { CustomProperty } from '../../common/custom-property';
-import { ValidationReportProvider, ValidationReport } from '../validation-report';
+import { ThemeDataContext } from '../../../../mol-theme/theme';
+import { ColorTheme, LocationColor } from '../../../../mol-theme/color';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { Color, ColorScale } from '../../../../mol-util/color';
+import { StructureElement, Model } from '../../../../mol-model/structure';
+import { Location } from '../../../../mol-model/location';
+import { CustomProperty } from '../../../../mol-model-props/common/custom-property';
+import { ValidationReportProvider, ValidationReport } from '../prop';
 
 const DefaultColor = Color(0xCCCCCC);
 

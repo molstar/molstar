@@ -8,7 +8,7 @@ import { parseMolScript } from '../mol-script/language/parser';
 import * as util from 'util';
 import { transpileMolScript } from '../mol-script/script/mol-script/symbols';
 import { formatMolScript } from '../mol-script/language/expression-formatter';
-import { StructureQualityReport, StructureQualityReportProvider } from '../mol-model-props/pdbe/structure-quality-report';
+import { StructureQualityReport, StructureQualityReportProvider } from '../extensions/pdbe/structure-quality-report/prop';
 import fetch from 'node-fetch';
 
 // import Examples from 'mol-script/script/mol-script/examples'
