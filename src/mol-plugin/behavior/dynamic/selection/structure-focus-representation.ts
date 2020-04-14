@@ -26,11 +26,11 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         expandRadius: PD.Numeric(5, { min: 1, max: 10, step: 1 }),
         targetParams: PD.Group(reprParams, {
             label: 'Target',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'uniform' })
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.17 } })
         }),
         surroundingsParams: PD.Group(reprParams, {
             label: 'Surroundings',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', color: 'element-symbol', size: 'uniform' })
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', color: 'element-symbol', size: 'physical', typeParams: { sizeFactor: 0.16 } })
         }),
         nciParams: PD.Group(reprParams, {
             label: 'Non-covalent Int.',
