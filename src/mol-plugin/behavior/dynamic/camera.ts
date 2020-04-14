@@ -47,12 +47,15 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                     : this.params.bindings.clickCenterFocus;
 
                 if (Binding.match(binding, button, modifiers)) {
-                    const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
-                    if (Loci.isEmpty(loci)) {
+                    if (Loci.isEmpty(current.loci)) {
                         PluginCommands.Camera.Reset(this.ctx, { });
-                    } else {
-                        this.ctx.managers.camera.focusLoci(loci, this.params);
+                        return;
                     }
+
+                    // The focus is handled in structure-focus-representation
+                    // TODO: is there a better solution?
+                    // const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
+                    // this.ctx.managers.camera.focusLoci(loci, this.params);
                 }
             });
         }
