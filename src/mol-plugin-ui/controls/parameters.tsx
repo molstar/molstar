@@ -205,7 +205,7 @@ export class ParamHelp<L extends LegendData> extends React.PureComponent<{ legen
 
         return <div className='msp-help-text'>
             <div>
-                <div className='msp-help-description'><Icon svg={HelpOutline} />{description}</div>
+                <div className='msp-help-description'><Icon svg={HelpOutline} inline />{description}</div>
                 {Legend && <div className='msp-help-legend'><Legend legend={legend} /></div>}
             </div>
         </div>;

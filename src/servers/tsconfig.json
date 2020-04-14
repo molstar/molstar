@@ -9,16 +9,15 @@
         "noUnusedLocals": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true,
-        "module": "esnext",
+        "module": "CommonJS",
         "esModuleInterop": true,
         "moduleResolution": "node",
         "importHelpers": true,
         "noEmitHelpers": true,
         "jsx": "react",
         "lib": [ "es6", "dom", "esnext.asynciterable", "es2016" ],
-        "rootDir": "src",
-        "outDir": "lib"
+        "rootDir": "../../src",
+        "outDir": "../../lib/servers"
     },
-    "include": [ "src/**/*" ],
-    "exclude": [ "src/servers/**/*" ]
+    "include": [ "**/*" ]
 }

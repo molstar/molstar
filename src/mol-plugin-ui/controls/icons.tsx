@@ -11,10 +11,12 @@ export function Icon(props: {
     svg?: React.FC,
     // name?: IconName | undefined,
     style?: React.CSSProperties,
-    title?: string
+    title?: string,
+    /** Adds right margin to the icon */
+    inline?: boolean
 }) {
     if (!props.svg) return null;
-    return <span className='msp-icon msp-material-icon' title={props.title} style={props.style}><props.svg /></span>;
+    return <span className={`msp-icon msp-material-icon${props.inline ? ' msp-icon-inline' : ''}`} title={props.title} style={props.style}><props.svg /></span>;
 }
 
 //
