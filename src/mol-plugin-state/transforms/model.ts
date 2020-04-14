@@ -416,8 +416,8 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
         }, { label: 'Kind' })
     }
 })({
-    canAutoUpdate() {
-        return true;
+    canAutoUpdate({ newParams }) {
+        return newParams.transform.name !== 'matrix';
     },
     apply({ a, params }) {
         // TODO: optimze

@@ -22,6 +22,8 @@ export interface StructureHierarchy {
     models: ModelRef[],
     structures: StructureRef[],
     refs: Map<StateTransform.Ref, HierarchyRef>
+    // TODO: might be needed in the future
+    // decorators: Map<StateTransform.Ref, StateTransform>,
 }
 
 export function StructureHierarchy(): StructureHierarchy {
@@ -37,7 +39,7 @@ interface RefBase<K extends string = string, O extends StateObject = StateObject
 export type HierarchyRef =
     | TrajectoryRef
     | ModelRef | ModelPropertiesRef | ModelUnitcellRef
-    | StructureRef | StructurePropertiesRef | StructureVolumeStreamingRef | StructureComponentRef | StructureRepresentationRef
+    | StructureRef | StructurePropertiesRef | StructureTransformRef | StructureVolumeStreamingRef | StructureComponentRef | StructureRepresentationRef
     | GenericRepresentationRef
 
 export interface TrajectoryRef extends RefBase<'trajectory', SO.Molecule.Trajectory> {
@@ -79,6 +81,7 @@ function ModelUnitcellRef(cell: StateObjectCell<SO.Shape.Representation3D>, mode
 export interface StructureRef extends RefBase<'structure', SO.Molecule.Structure> {
     model?: ModelRef,
     properties?: StructurePropertiesRef,
+    transform?: StructureTransformRef,
     components: StructureComponentRef[],
     genericRepresentations?: GenericRepresentationRef[],
     volumeStreaming?: StructureVolumeStreamingRef
@@ -94,6 +97,14 @@ export interface StructurePropertiesRef extends RefBase<'structure-properties', 
 
 function StructurePropertiesRef(cell: StateObjectCell<SO.Molecule.Structure>, structure: StructureRef): StructurePropertiesRef {
     return { kind: 'structure-properties', cell, version: cell.transform.version, structure };
+}
+
+export interface StructureTransformRef extends RefBase<'structure-transform', SO.Molecule.Structure, StateTransforms['Model']['TransformStructureConformation']> {
+    structure: StructureRef
+}
+
+function StructureTransformRef(cell: StateObjectCell<SO.Molecule.Structure>, structure: StructureRef): StructureTransformRef {
+    return { kind: 'structure-transform', cell, version: cell.transform.version, structure };
 }
 
 export interface StructureVolumeStreamingRef extends RefBase<'structure-volume-streaming', VolumeStreaming, CreateVolumeStreamingBehavior> {
@@ -237,6 +248,10 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
         if (!state.currentStructure) return false;
         state.currentStructure.properties = createOrUpdateRef(state, cell, StructurePropertiesRef, cell, state.currentStructure);
     }, noop],
+    [isTransformer(StateTransforms.Model.TransformStructureConformation), (state, cell) => {
+        if (!state.currentStructure) return false;
+        state.currentStructure.transform = createOrUpdateRef(state, cell, StructureTransformRef, cell, state.currentStructure);
+    }, noop],
 
     // Volume Streaming
     [isType(VolumeStreaming), (state, cell) => {
@@ -300,16 +315,33 @@ function _doPreOrder(ctx: VisitorCtx, root: StateTransform) {
     if (!isValidCell(cell)) return;
 
     let onLeave: undefined | ((state: BuildState) => any) = void 0;
+    let end = false;
     for (const [test, f, l] of Mapping) {
         if (test(cell, state)) {
             const cont = f(state, cell);
             if (cont === false) {
-                return;
+                end = true;
+                break;
             }
             onLeave = l;
             break;
         }
     }
+
+    // TODO: might be needed in the future
+    // const { currentComponent, currentModel, currentStructure, currentTrajectory } = ctx.state;
+    // const inTrackedSubtree = currentComponent || currentModel || currentStructure || currentTrajectory;
+
+    // if (inTrackedSubtree && cell.transform.transformer.definition.isDecorator) {
+    //     const ref = cell.transform.ref;
+    //     const old = ctx.state.oldHierarchy.decorators.get(ref);
+    //     if (old && old.version !== cell.transform.version) {
+    //         ctx.state.changed = true;
+    //     }
+    //     ctx.state.hierarchy.decorators.set(cell.transform.ref, cell.transform);
+    // }
+
+    if (end) return;
 
     const children = ctx.tree.children.get(root.ref);
     if (children && children.size) {

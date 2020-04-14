@@ -97,6 +97,8 @@ export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>
     }
 
     raiseOnChange = () => {
+        if (this.pendingValue === void 0) return;
+
         this.props.onChange(this.pendingValue!);
         this.pendingValue = void 0;
     }

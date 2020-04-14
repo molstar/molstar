@@ -254,6 +254,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         const pivot = selection.structures[0];
         const t = StateSelection.tryFindDecorator(this.plugin.state.data, pivot.cell.transform.ref, StateTransforms.Model.TransformStructureConformation);
         if (!t) return;
+
         return <ExpandGroup header={`Conformation Transform`}>
             <UpdateTransformControl state={t.parent!} transform={t.transform} customHeader='none' noMargin autoHideApply />
         </ExpandGroup>;

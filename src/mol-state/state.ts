@@ -449,8 +449,7 @@ interface UpdateContext {
 
 async function update(ctx: UpdateContext) {
     // if only a single node was added/updated, we can skip potentially expensive diffing
-    const fastTrack = !!(ctx.errorFree && ctx.editInfo && ctx.editInfo.count === 1 && ctx.editInfo.lastUpdate && ctx.editInfo.sourceTree === ctx.oldTree);
-
+    const fastTrack = !!(ctx.editInfo && ctx.editInfo.count === 1 && ctx.editInfo.lastUpdate && ctx.editInfo.sourceTree === ctx.oldTree);
     let deletes: StateTransform.Ref[], deletedObjects: (StateObject | undefined)[] = [], roots: StateTransform.Ref[];
 
     if (fastTrack) {
@@ -572,10 +571,12 @@ function findUpdateRoots(cells: Map<StateTransform.Ref, StateObjectCell>, tree: 
 
 function findUpdateRootsVisitor(n: StateTransform, _: any, s: { roots: Ref[], cells: Map<Ref, StateObjectCell> }) {
     const cell = s.cells.get(n.ref);
-    if (!cell || cell.transform.version !== n.version || cell.status === 'error') {
-        if (cell?.status !== 'error') s.roots.push(n.ref);
+    if (!cell || cell.transform.version !== n.version) {
+        s.roots.push(n.ref);
         return false;
     }
+    if (cell.status === 'error') return false;
+
     // nothing below a Null object can be an update root
     if (cell && cell.obj === StateObject.Null) return false;
     return true;
