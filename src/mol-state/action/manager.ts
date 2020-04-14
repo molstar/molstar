@@ -9,12 +9,19 @@ import { StateObject, StateObjectCell } from '../object';
 import { StateTransformer } from '../transformer';
 import { UUID } from '../../mol-util';
 import { arraySetRemove } from '../../mol-util/array';
+import { RxEventHelper } from '../../mol-util/rx-event-helper';
 
 export { StateActionManager };
 
 class StateActionManager {
+    private ev = RxEventHelper.create();
     private actions: Map<StateAction['id'], StateAction> = new Map();
     private fromTypeIndex = new Map<StateObject.Type, StateAction[]>();
+
+    readonly events = {
+        added: this.ev<undefined>(),
+        removed: this.ev<undefined>(),
+    }
 
     add(actionOrTransformer: StateAction | StateTransformer) {
         const action = StateTransformer.is(actionOrTransformer) ? actionOrTransformer.toAction() : actionOrTransformer;
@@ -30,6 +37,8 @@ class StateActionManager {
                 this.fromTypeIndex.set(t.type, [action]);
             }
         }
+
+        this.events.added.next();
 
         return this;
     }
@@ -52,6 +61,8 @@ class StateActionManager {
             arraySetRemove(xs, action);
             if (xs.length === 0) this.fromTypeIndex.delete(t.type);
         }
+
+        this.events.removed.next();
 
         return this;
     }
@@ -82,5 +93,9 @@ class StateActionManager {
             }
         }
         return ret;
+    }
+
+    dispose() {
+        this.ev.dispose();
     }
 }

@@ -138,6 +138,7 @@ class State {
 
     dispose() {
         this.ev.dispose();
+        this.actions.dispose();
     }
 
     /**

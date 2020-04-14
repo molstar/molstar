@@ -26,6 +26,9 @@ export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRe
             if (current.ref !== ref || current.state !== state) return;
             this.forceUpdate();
         });
+
+        this.subscribe(this.plugin.state.data.actions.events.added, () => this.forceUpdate());
+        this.subscribe(this.plugin.state.data.actions.events.removed, () => this.forceUpdate());
     }
 
     render() {
