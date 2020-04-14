@@ -9,7 +9,6 @@ import { parse3DG } from '../../mol-io/reader/3dg/parser';
 import { parseDcd } from '../../mol-io/reader/dcd/parser';
 import { parseGRO } from '../../mol-io/reader/gro/parser';
 import { parsePDB } from '../../mol-io/reader/pdb/parser';
-import { SymmetryOperator } from '../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { shapeFromPly } from '../../mol-model-formats/shape/ply';
 import { trajectoryFrom3DG } from '../../mol-model-formats/structure/3dg';
@@ -49,7 +48,6 @@ export { TrajectoryFrom3DG };
 export { ModelFromTrajectory };
 export { StructureFromTrajectory };
 export { StructureFromModel };
-export { StructureCoordinateSystem };
 export { TransformStructureConformation };
 export { StructureSelectionFromExpression };
 export { MultiStructureSelectionFromExpression };
@@ -350,52 +348,52 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
 
 const _translation = Vec3(), _m = Mat4(), _n = Mat4();
 
-type StructureCoordinateSystem = typeof StructureCoordinateSystem
-const StructureCoordinateSystem = PluginStateTransform.BuiltIn({
-    name: 'structure-coordinate-system',
-    display: { name: 'Coordinate System' },
-    isDecorator: true,
-    from: SO.Molecule.Structure,
-    to: SO.Molecule.Structure,
-    params: {
-        transform: PD.MappedStatic('components', {
-            components: PD.Group({
-                axis: PD.Vec3(Vec3.create(1, 0, 0)),
-                angle: PD.Numeric(0, { min: -180, max: 180, step: 0.1 }),
-                translation: PD.Vec3(Vec3.create(0, 0, 0)),
-            }, { isFlat: true }),
-            matrix: PD.Group({
-                data: PD.Mat4(Mat4.identity()),
-                transpose: PD.Boolean(false)
-            }, { isFlat: true })
-        }, { label: 'Kind' })
-    }
-})({
-    canAutoUpdate({ newParams }) {
-        return newParams.transform.name === 'components';
-    },
-    apply({ a, params }) {
-        // TODO: optimze
+// type StructureCoordinateSystem = typeof StructureCoordinateSystem
+// const StructureCoordinateSystem = PluginStateTransform.BuiltIn({
+//     name: 'structure-coordinate-system',
+//     display: { name: 'Coordinate System' },
+//     isDecorator: true,
+//     from: SO.Molecule.Structure,
+//     to: SO.Molecule.Structure,
+//     params: {
+//         transform: PD.MappedStatic('components', {
+//             components: PD.Group({
+//                 axis: PD.Vec3(Vec3.create(1, 0, 0)),
+//                 angle: PD.Numeric(0, { min: -180, max: 180, step: 0.1 }),
+//                 translation: PD.Vec3(Vec3.create(0, 0, 0)),
+//             }, { isFlat: true }),
+//             matrix: PD.Group({
+//                 data: PD.Mat4(Mat4.identity()),
+//                 transpose: PD.Boolean(false)
+//             }, { isFlat: true })
+//         }, { label: 'Kind' })
+//     }
+// })({
+//     canAutoUpdate({ newParams }) {
+//         return newParams.transform.name === 'components';
+//     },
+//     apply({ a, params }) {
+//         // TODO: optimze
 
-        const transform = Mat4();
+//         const transform = Mat4();
 
-        if (params.transform.name === 'components') {
-            const { axis, angle, translation } = params.transform.params;
-            const center = a.data.boundary.sphere.center;
-            Mat4.fromTranslation(_m, Vec3.negate(_translation, center));
-            Mat4.fromTranslation(_n, Vec3.add(_translation, center, translation));
-            const rot = Mat4.fromRotation(Mat4(), Math.PI / 180 * angle, Vec3.normalize(Vec3(), axis));
-            Mat4.mul3(transform, _n, rot, _m);
-        } else if (params.transform.name === 'matrix') {
-            Mat4.copy(transform, params.transform.params.data);
-            if (params.transform.params.transpose) Mat4.transpose(transform, transform);
-        }
+//         if (params.transform.name === 'components') {
+//             const { axis, angle, translation } = params.transform.params;
+//             const center = a.data.boundary.sphere.center;
+//             Mat4.fromTranslation(_m, Vec3.negate(_translation, center));
+//             Mat4.fromTranslation(_n, Vec3.add(_translation, center, translation));
+//             const rot = Mat4.fromRotation(Mat4(), Math.PI / 180 * angle, Vec3.normalize(Vec3(), axis));
+//             Mat4.mul3(transform, _n, rot, _m);
+//         } else if (params.transform.name === 'matrix') {
+//             Mat4.copy(transform, params.transform.params.data);
+//             if (params.transform.params.transpose) Mat4.transpose(transform, transform);
+//         }
 
-        // TODO: compose with parent's coordinate system
-        a.data.coordinateSystem = SymmetryOperator.create('CS', transform);
-        return new SO.Molecule.Structure(a.data, { label: a.label, description: `${a.description} [Transformed]` });
-    }
-});
+//         // TODO: compose with parent's coordinate system
+//         a.data.coordinateSystem = SymmetryOperator.create('CS', transform);
+//         return new SO.Molecule.Structure(a.data, { label: a.label, description: `${a.description} [Transformed]` });
+//     }
+// });
 
 type TransformStructureConformation = typeof TransformStructureConformation
 const TransformStructureConformation = PluginStateTransform.BuiltIn({
@@ -423,6 +421,7 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }) {
         // TODO: optimze
+        // TODO: think of ways how to fast-track changes to this for animations
 
         const transform = Mat4();
 

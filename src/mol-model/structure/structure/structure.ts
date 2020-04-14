@@ -204,14 +204,15 @@ class Structure {
         return this._props.parent;
     }
 
-    get coordinateSystem() {
-        // TODO: do not use SymmetryOperator for this?
-        // TODO: figure out a good way to compose this
-        return this.parent?.coordinateSystem || this._props.coordinateSystem;
-    }
-
-    set coordinateSystem(op: SymmetryOperator) {
-        this._props.coordinateSystem = op;
+    /**
+     * Conformation transformation that was applied to every unit of this structure.
+     *
+     * Coordinate system applies to the *current* structure only.
+     * A parent structure can have a different coordinate system and thefore it has to be composed "manualy"
+     * by the consumer.
+     */
+    get coordinateSystem(): SymmetryOperator {
+        return this._props.coordinateSystem;
     }
 
     get label() {

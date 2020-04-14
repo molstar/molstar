@@ -128,11 +128,11 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, params);
             repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, params));
 
-            // TODO: build this into representation?
-            if (!a.data.coordinateSystem.isIdentity) {
-                (cache as any)['transform'] = a.data.coordinateSystem;
-                repr.setState({ transform: a.data.coordinateSystem.matrix });
-            }
+            // // TODO: build this into representation?
+            // if (!a.data.coordinateSystem.isIdentity) {
+            //     (cache as any)['transform'] = a.data.coordinateSystem;
+            //     repr.setState({ transform: a.data.coordinateSystem.matrix });
+            // }
 
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
@@ -154,11 +154,11 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, newParams);
             b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, newParams));
 
-            // TODO: build this into representation?
-            if ((cache as any)['transform'] !== a.data.coordinateSystem) {
-                (cache as any)['transform'] = a.data.coordinateSystem;
-                b.data.repr.setState({ transform: a.data.coordinateSystem.matrix });
-            }
+            // // TODO: build this into representation?
+            // if ((cache as any)['transform'] !== a.data.coordinateSystem) {
+            //     (cache as any)['transform'] = a.data.coordinateSystem;
+            //     b.data.repr.setState({ transform: a.data.coordinateSystem.matrix });
+            // }
 
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.data.source = a;
