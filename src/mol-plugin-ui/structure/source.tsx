@@ -10,11 +10,12 @@ import { HierarchyRef, ModelRef, TrajectoryRef } from '../../mol-plugin-state/ma
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { CollapsableControls, CollapsableState } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { Button, IconButton } from '../controls/common';
+import { Button, IconButton, ExpandGroup } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 import { StructureFocusControls } from './focus';
 import { UpdateTransformControl } from '../state/update-transform';
 import { StructureSelectionStatsControls } from './selection';
+import { StateSelection } from '../../mol-state';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
@@ -247,6 +248,17 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         return <UpdateTransformControl state={s.cell.parent} transform={s.cell.transform} customHeader='none' customUpdate={this.updateStructure} noMargin autoHideApply />;
     }
 
+    get transform() {
+        const { selection } = this.plugin.managers.structure.hierarchy;
+        if (selection.structures.length !== 1) return null;
+        const pivot = selection.structures[0];
+        const t = StateSelection.tryFindDecorator(this.plugin.state.data, pivot.cell.transform.ref, StateTransforms.Model.TransformStructureConformation);
+        if (!t) return;
+        return <ExpandGroup header={`Conformation Transform`}>
+            <UpdateTransformControl state={t.parent!} transform={t.transform} customHeader='none' noMargin autoHideApply />
+        </ExpandGroup>;
+    }
+
     renderControls() {
         const disabled = this.state.isBusy || this.isEmpty;
         const presets = this.presetActions;
@@ -260,6 +272,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             {this.state.show === 'presets' && <ActionMenu items={presets} onSelect={this.applyPreset} />}
             {this.modelIndex}
             {this.structureType}
+            {this.transform}
 
             <div style={{ marginTop: '6px' }}>
                 <StructureFocusControls />

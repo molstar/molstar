@@ -331,6 +331,16 @@ namespace StateSelection {
             s.refs.push(n);
         }
     }
+
+    export function tryFindDecorator<T extends StateTransformer>(state: State, root: StateTransform.Ref, transformer: T): StateObjectCell<StateTransformer.To<T>, StateTransform<T>> | undefined {
+        const t = state.transforms.get(root);
+        if (t.transformer === transformer) return state.cells.get(root)! as any;
+
+        const children = state.tree.children.get(root);
+        if (children.size !== 1) return;
+        const first = children.first();
+        if (state.transforms.get(first).transformer.definition.isDecorator) return tryFindDecorator(state, first, transformer);
+    }
 }
 
 export { StateSelection };
