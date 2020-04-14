@@ -788,7 +788,7 @@ namespace Structure {
 
         const cs = s.coordinateSystem;
         const newCS = SymmetryOperator.compose(SymmetryOperator.create(cs.name, transform, cs), cs);
-        return new Structure(units, { parent: s, coordinateSystem: newCS });
+        return new Structure(units, { parent: s.parent, coordinateSystem: newCS });
     }
 
     export class StructureBuilder {
