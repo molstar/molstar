@@ -4,19 +4,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginCommands } from '../../mol-plugin/commands';
-import * as React from 'react';
-import { PluginUIComponent, PurePluginUIComponent } from '../base';
-import { shallowEqualObjects } from '../../mol-util';
+import { ArrowDownward, ArrowUpward, CloudUpload, DeleteOutlined, Save, SwapHoriz } from '@material-ui/icons';
 import { OrderedMap } from 'immutable';
-import { ParameterControls } from '../controls/parameters';
-import { ParamDefinition as PD} from '../../mol-util/param-definition';
-import { PluginState } from '../../mol-plugin/state';
-import { urlCombine } from '../../mol-util/url';
-import { IconButton, SectionHeader, Button } from '../controls/common';
-import { formatTimespan } from '../../mol-util/now';
+import * as React from 'react';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
-import { ArrowUpward, SwapHoriz, Delete, ArrowDownward, CloudUpload, Save } from '@material-ui/icons';
+import { PluginState } from '../../mol-plugin/state';
+import { shallowEqualObjects } from '../../mol-util';
+import { formatTimespan } from '../../mol-util/now';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { urlCombine } from '../../mol-util/url';
+import { PluginUIComponent, PurePluginUIComponent } from '../base';
+import { Button, IconButton, SectionHeader } from '../controls/common';
+import { ParameterControls } from '../controls/parameters';
 
 export class StateSnapshots extends PluginUIComponent<{ }> {
     downloadToFile = () => {
@@ -151,7 +151,7 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
                     <IconButton svg={ArrowUpward} data-id={e!.snapshot.id} title='Move Up' onClick={this.moveUp} small={true} />
                     <IconButton svg={ArrowDownward} data-id={e!.snapshot.id} title='Move Down' onClick={this.moveDown} small={true} />
                     <IconButton svg={SwapHoriz}  data-id={e!.snapshot.id} title='Replace' onClick={this.replace} small={true} />
-                    <IconButton svg={Delete} data-id={e!.snapshot.id} title='Remove' onClick={this.remove} small={true} />
+                    <IconButton svg={DeleteOutlined} data-id={e!.snapshot.id} title='Remove' onClick={this.remove} small={true} />
                 </div>
             </li>)}
         </ul>;
@@ -320,7 +320,7 @@ class RemoteStateSnapshotList extends PurePluginUIComponent<
                     disabled={this.props.isBusy} onContextMenu={this.open} title='Click to download, right-click to open in a new tab.'>
                     {e!.name || new Date(e!.timestamp).toLocaleString()} <small>{e!.description}</small>
                 </Button>
-                {!e!.isSticky && this.props.remove && <IconButton svg={Delete} data-id={e!.id} title='Remove' onClick={this.props.remove} disabled={this.props.isBusy} small />}
+                {!e!.isSticky && this.props.remove && <IconButton svg={DeleteOutlined} data-id={e!.id} title='Remove' onClick={this.props.remove} disabled={this.props.isBusy} small />}
             </li>)}
         </ul>;
     }

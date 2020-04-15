@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Code, Delete } from '@material-ui/icons';
+import { Code, DeleteOutlined } from '@material-ui/icons';
 import * as React from 'react';
 import { PluginCommands } from '../mol-plugin/commands';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -70,7 +70,7 @@ class CameraSnapshotList extends PluginUIComponent<{ }, { }> {
         return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
             {this.plugin.state.cameraSnapshots.state.entries.valueSeq().map(e =><li key={e!.id}>
                 <Button onClick={this.apply(e!.id)}>{e!.name || e!.timestamp} <small>{e!.description}</small></Button>
-                <IconButton svg={Delete} onClick={this.remove(e!.id)} className='msp-state-list-remove-button' />
+                <IconButton svg={DeleteOutlined} onClick={this.remove(e!.id)} className='msp-state-list-remove-button' />
             </li>)}
         </ul>;
     }

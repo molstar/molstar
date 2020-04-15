@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ArrowDownward, ArrowUpward, BookmarksOutlined, Delete, MoreHoriz, HelpOutline, Check, Clear, ArrowRight, ArrowDropDown } from '@material-ui/icons';
+import { ArrowDownward, ArrowDropDown, ArrowRight, ArrowUpward, BookmarksOutlined, Check, Clear, DeleteOutlined, HelpOutline, MoreHoriz } from '@material-ui/icons';
 import * as React from 'react';
 import { Mat4, Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { PluginContext } from '../../mol-plugin/context';
@@ -1092,7 +1092,7 @@ class ObjectListItem extends React.PureComponent<ObjectListItemProps, { isExpand
                 <div>
                     <IconButton svg={ArrowDownward} title='Move Up' onClick={this.moveUp} small={true} />
                     <IconButton svg={ArrowUpward} title='Move Down' onClick={this.moveDown} small={true} />
-                    <IconButton svg={Delete} title='Remove' onClick={this.remove} small={true} />
+                    <IconButton svg={DeleteOutlined} title='Remove' onClick={this.remove} small={true} />
                 </div>
             </div>
             {this.state.isExpanded && <div className='msp-control-offset'>

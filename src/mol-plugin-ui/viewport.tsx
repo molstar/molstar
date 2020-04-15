@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Autorenew, Build, Camera, Crop, Fullscreen, Tune, Close } from '@material-ui/icons';
+import { Autorenew, BuildOutlined, CameraAltOutlined, Close, Crop, Fullscreen, Tune } from '@material-ui/icons';
 import * as React from 'react';
 import { resizeCanvas } from '../mol-canvas3d/util';
 import { PluginCommands } from '../mol-plugin/commands';
@@ -94,11 +94,11 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon(Camera, this.toggleScreenshotExpanded, 'Screenshot', this.state.isScreenshotExpanded)}
+                    {this.icon(CameraAltOutlined, this.toggleScreenshotExpanded, 'Screenshot', this.state.isScreenshotExpanded)}
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon(Build, this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
+                    {this.icon(BuildOutlined, this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
                     {this.plugin.config.get(PluginConfig.Viewport.ShowExpand) && this.icon(Fullscreen, this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
                     {this.icon(Tune, this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
                 </div>

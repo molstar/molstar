@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ArrowDropDown, ArrowRight, Delete, Home, Visibility, Close } from '@material-ui/icons';
+import { ArrowDropDown, ArrowRight, Close, DeleteOutlined, Home, VisibilityOutlined, VisibilityOffOutlined } from '@material-ui/icons';
 import * as React from 'react';
 import { debounceTime, filter } from 'rxjs/operators';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
@@ -299,8 +299,8 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         const cellState = cell.state;
 
         const expand = <IconButton svg={cellState.isCollapsed ? ArrowRight : ArrowDropDown} flex='20px' disabled={disabled} onClick={this.toggleExpanded} transparent className='msp-no-hover-outline' style={{ visibility: children.size > 0 ? 'visible' : 'hidden' }} />;
-        const remove = !cell.state.isLocked ? <IconButton svg={Delete} onClick={this.remove} disabled={disabled} small toggleState={false} /> : void 0;
-        const visibility = <IconButton svg={Visibility} toggleState={!cellState.isHidden} disabled={disabled} small onClick={this.toggleVisible} />;
+        const remove = !cell.state.isLocked ? <IconButton svg={DeleteOutlined} onClick={this.remove} disabled={disabled} small toggleState={false} /> : void 0;
+        const visibility = <IconButton svg={cellState.isHidden ? VisibilityOffOutlined : VisibilityOutlined} toggleState={false} disabled={disabled} small onClick={this.toggleVisible} />;
 
         const marginStyle: React.CSSProperties = {
             marginLeft: `${this.props.depth * 8}px`

@@ -4,20 +4,20 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { AccountTree, DeleteOutlined, HelpOutline, Home, Save, Tune } from '@material-ui/icons';
 import * as React from 'react';
-import { PluginUIComponent } from './base';
-import { StateTree } from './state/tree';
-import { IconButton, SectionHeader } from './controls/common';
-import { StateObjectActions } from './state/actions';
-import { StateTransform } from '../mol-state';
-import { PluginCommands } from '../mol-plugin/commands';
-import { ParameterControls } from './controls/parameters';
 import { Canvas3DParams } from '../mol-canvas3d/canvas3d';
-import { ParamDefinition as PD } from '../mol-util/param-definition';
-import { StateSnapshots, RemoteStateSnapshots } from './state/snapshots';
-import { HelpContent } from './viewport/help';
+import { PluginCommands } from '../mol-plugin/commands';
 import { LeftPanelTabName } from '../mol-plugin/layout';
-import { Home, HelpOutline, Save, Tune, Delete, AccountTree } from '@material-ui/icons';
+import { StateTransform } from '../mol-state';
+import { ParamDefinition as PD } from '../mol-util/param-definition';
+import { PluginUIComponent } from './base';
+import { IconButton, SectionHeader } from './controls/common';
+import { ParameterControls } from './controls/parameters';
+import { StateObjectActions } from './state/actions';
+import { RemoteStateSnapshots, StateSnapshots } from './state/snapshots';
+import { StateTree } from './state/tree';
+import { HelpContent } from './viewport/help';
 
 export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTabName }> {
     state = { tab: this.plugin.behaviors.layout.leftPanelTabName.value };
@@ -165,6 +165,6 @@ export class RemoveAllButton extends PluginUIComponent<{ }> {
     render() {
         const count = this.plugin.state.data.tree.children.get(StateTransform.RootRef).size;
         if (count === 0) return null;
-        return <IconButton svg={Delete} onClick={this.remove} title={'Remove All'} style={{ display: 'inline-block' }} small className='msp-no-hover-outline' transparent />;
+        return <IconButton svg={DeleteOutlined} onClick={this.remove} title={'Remove All'} style={{ display: 'inline-block' }} small className='msp-no-hover-outline' transparent />;
     }
 }

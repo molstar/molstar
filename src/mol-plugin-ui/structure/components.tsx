@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Add, BookmarksOutlined, Delete, MoreHoriz, Tune, Undo, Visibility } from '@material-ui/icons';
+import { Add, BookmarksOutlined, Delete, DeleteOutlined, MoreHoriz, Tune, Restore, VisibilityOutlined, VisibilityOffOutlined } from '@material-ui/icons';
 import * as React from 'react';
 import { getStructureThemeTypes } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
@@ -120,7 +120,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
                 <ToggleButton icon={BookmarksOutlined} label='Preset' title='Apply a representation preset for the current structure(s).' toggle={this.togglePreset} isSelected={this.state.action === 'preset'} disabled={this.isDisabled} />
                 <ToggleButton icon={Add} label='Add' title='Add a new representation component for a selection.' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
                 <ToggleButton icon={Tune} label='' title='Options that are applied to all applicable representations.' style={{ flex: '0 0 40px', padding: 0 }} toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.isDisabled} />
-                <IconButton svg={Undo} className='msp-flex-item' flex='40px' onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />
+                <IconButton svg={Restore} className='msp-flex-item' flex='40px' onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />
             </div>
             {this.state.action === 'preset' && this.presetControls}
             {this.state.action === 'add' && <div className='msp-control-offset'>
@@ -345,8 +345,8 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
                     {label}
                     <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{reprLabel}</small>
                 </Button>
-                <IconButton svg={Visibility} onClick={this.toggleVisible} toggleState={!cell.state.isHidden} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small className='msp-form-control' flex />
-                <IconButton svg={Delete} onClick={this.toggleRemove} title='Remove' small toggleState={this.state.action === 'remove'} className='msp-form-control' flex />
+                <IconButton svg={cell.state.isHidden ? VisibilityOffOutlined : VisibilityOutlined} toggleState={false} onClick={this.toggleVisible} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small className='msp-form-control' flex />
+                <IconButton svg={DeleteOutlined} onClick={this.toggleRemove} title='Remove' small toggleState={this.state.action === 'remove'} className='msp-form-control' flex />
                 <IconButton svg={MoreHoriz} onClick={this.toggleAction} title='Actions' toggleState={this.state.action === 'action'} className='msp-form-control' flex />
             </div>
             {this.state.action === 'remove' && <div style={{ marginBottom: '6px' }}>
@@ -386,11 +386,11 @@ class StructureRepresentationEntry extends PurePluginUIComponent<{ group: Struct
             {repr.parent && <ExpandGroup header={`${repr.obj?.label || ''} Representation`} noOffset>
                 <UpdateTransformControl state={repr.parent} transform={repr.transform} customHeader='none' customUpdate={this.update} noMargin />
             </ExpandGroup>}
-            <IconButton svg={Delete} onClick={this.remove} title='Remove' small className='msp-default-bg' style={{
-                position: 'absolute', top: 0, right: '32px', lineHeight: '24px', height: '24px', textAlign: 'right', width: '44px', paddingRight: '6px'
+            <IconButton svg={DeleteOutlined} onClick={this.remove} title='Remove' small className='msp-default-bg' toggleState={false} style={{
+                position: 'absolute', top: 0, right: '32px', lineHeight: '24px', height: '24px', textAlign: 'right', width: '44px', paddingRight: '6px', background: 'none'
             }} />
-            <IconButton svg={Visibility} onClick={this.toggleVisible} toggleState={!this.props.representation.cell.state.isHidden} title='Remove' small className='msp-default-bg' style={{
-                position: 'absolute', top: 0, right: 0, lineHeight: '24px', height: '24px', textAlign: 'right', width: '32px', paddingRight: '6px'
+            <IconButton svg={this.props.representation.cell.state.isHidden ? VisibilityOffOutlined : VisibilityOutlined} toggleState={false} onClick={this.toggleVisible} title='Toggle Visibility' small className='msp-default-bg' style={{
+                position: 'absolute', top: 0, right: 0, lineHeight: '24px', height: '24px', textAlign: 'right', width: '32px', paddingRight: '6px', background: 'none'
             }} />
         </div>;
     }
