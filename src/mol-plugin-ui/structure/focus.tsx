@@ -58,6 +58,8 @@ function getFocusEntries(structure: Structure) {
     const l = StructureElement.Location.create(structure);
 
     for (const ug of structure.unitSymmetryGroups) {
+        if (!Unit.isAtomic(ug.units[0])) continue;
+
         l.unit = ug.units[0];
         l.element = ug.elements[0];
         const isMultiChain = Unit.Traits.is(l.unit.traits, Unit.Trait.MultiChain);
