@@ -537,6 +537,13 @@
     }
 }
 
+.msp-btn-apply-simple {
+    text-align: left;
+    .msp-icon {
+        margin-right: 10px;
+    }
+}
+
 @mixin type-class-border($name, $color) {
     .msp-type-class-#{$name} {
         border-left-color: $color;

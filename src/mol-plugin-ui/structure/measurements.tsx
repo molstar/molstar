@@ -171,7 +171,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
     render() {
         return <>
             <div className='msp-flex-row'>
-                <ToggleButton icon={Add} label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.state.isBusy} style={{ textAlign: 'left' }} />
+                <ToggleButton icon={Add} label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.state.isBusy} className='msp-btn-apply-simple' />
                 <ToggleButton icon={Tune} label='' title='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.action === 'add' && this.add()}

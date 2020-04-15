@@ -241,8 +241,8 @@ export function Button(props: ButtonProps) {
     if (!props.inline) className += ' msp-btn-block';
     if (props.noOverflow) className += ' msp-no-overflow';
     if (props.flex) className += ' msp-flex-item';
-    if (props.className) className += ' ' + props.className;
     if (!props.children) className += ' msp-btn-childless';
+    if (props.className) className += ' ' + props.className;
 
     let style: React.CSSProperties | undefined = void 0;
     if (props.flex) {

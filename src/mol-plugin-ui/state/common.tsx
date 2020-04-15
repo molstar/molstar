@@ -248,8 +248,9 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     renderSimple() {
         const info = this.getInfo();
         const canApply = this.canApply();
+
         const apply = <div className='msp-flex-row'>
-            <Button icon={this.props.simpleApply?.icon} title={this.props.simpleApply?.title} disabled={this.state.busy || !canApply} onClick={this.apply} style={{ textAlign: 'left' }}>
+            <Button icon={this.props.simpleApply?.icon} title={this.props.simpleApply?.title} disabled={this.state.busy || !canApply} onClick={this.apply} className='msp-btn-apply-simple'>
                 {this.props.simpleApply?.header}
             </Button>
             {!info.isEmpty && <ToggleButton icon={Tune} label='' title='Options' toggle={this.toggleExpanded} isSelected={!this.state.isCollapsed} disabled={this.state.busy} style={{ flex: '0 0 40px', padding: 0 }} />}
