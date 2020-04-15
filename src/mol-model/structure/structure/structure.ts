@@ -798,6 +798,9 @@ namespace Structure {
         private chainGroupId = -1;
         private inChainGroup = false;
 
+        private p = Vec3();
+        private singleElementUnits = new Map<string, Unit>();
+
         beginChainGroup() {
             this.chainGroupId++;
             this.inChainGroup = true;
@@ -811,14 +814,28 @@ namespace Structure {
             if (invariantId === undefined) invariantId = this.invariantId();
             const chainGroupId = this.inChainGroup ? this.chainGroupId : ++this.chainGroupId;
             const unit = Unit.create(this.units.length, invariantId, chainGroupId, traits, kind, model, operator, elements);
+            return this.add(unit);
+        }
+
+        private add(unit: Unit) {
+            // this is to avoid adding many identical single atom units,
+            // for example, from 'degenerate' spacegroups
+            // - Diamond (COD 9008564)
+            if (unit.elements.length === 1) {
+                unit.conformation.position(unit.elements[0], this.p);
+                const hash = [unit.invariantId, this.p[0], this.p[1], this.p[2]].join('|');
+                if (this.singleElementUnits.has(hash)) {
+                    return this.singleElementUnits.get(hash)!;
+                } else {
+                    this.singleElementUnits.set(hash, unit);
+                }
+            }
             this.units.push(unit);
             return unit;
         }
 
         addWithOperator(unit: Unit, operator: SymmetryOperator): Unit {
-            const newUnit = unit.applyOperator(this.units.length, operator);
-            this.units.push(newUnit);
-            return newUnit;
+            return this.add(unit.applyOperator(this.units.length, operator));
         }
 
         getStructure(): Structure {
