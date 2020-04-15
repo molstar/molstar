@@ -119,7 +119,9 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
         label_seq_id: seq_id,
         label_entity_id: Column.ofConst('1', atomCount, Column.Schema.str),
 
-        occupancy: db.atom_site.occupancy,
+        occupancy: db.atom_site.occupancy.isDefined
+            ? db.atom_site.occupancy
+            : Column.ofConst(1, atomCount, Column.Schema.float),
         type_symbol: typeSymbol,
         pdbx_formal_charge: formalCharge,
 

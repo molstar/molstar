@@ -44,6 +44,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const { label_comp_id: label_comp_idB, auth_seq_id: auth_seq_idB } = unitB.model.atomicHierarchy.residues;
     const { occupancy: occupancyA } = unitA.model.atomicConformation;
     const { occupancy: occupancyB } = unitB.model.atomicConformation;
+    const hasOccupancy = occupancyA.isDefined && occupancyB.isDefined;
 
     const { lookup3d } = unitB;
     const structConn = unitA.model === unitB.model && StructConn.Provider.get(unitA.model);
@@ -124,7 +125,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             // TODO: is this condition good enough?
             // - It works for cases like 3WQJ (label_asym_id: I) which have partial occupancy.
             // - Does NOT work for cases like 1RB8 (DC 7) with full occupancy.
-            if (occupancyB.value(bI) < 1 && occA < 1)  {
+            if (hasOccupancy && occupancyB.value(bI) < 1 && occA < 1)  {
                 if (auth_seq_idA.value(aI) === auth_seq_idB.value(bI)) {
                     continue;
                 }
