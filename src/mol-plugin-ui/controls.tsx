@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Build, NavigateBefore, NavigateNext, PlayArrow, SkipPrevious, Stop, Subscriptions } from '@material-ui/icons';
+import { Build, NavigateBefore, NavigateNext, PlayArrow, SkipPrevious, Stop, SubscriptionsOutlined } from '@material-ui/icons';
 import * as React from 'react';
 import { UpdateTrajectory } from '../mol-plugin-state/actions/structure';
 import { LociLabel } from '../mol-plugin-state/manager/loci-label';
@@ -83,26 +83,12 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
         action: UpdateTrajectory.create({ action: 'advance', by: 1 })
     });
 
-    // stopAnimation = () => {
-    //     this.plugin.state.animation.stop();
-    // }
-
-    // playAnimation = () => {
-    //     const anim = this.plugin.state.animation;
-    //     if (anim.state.params.current === AnimateModelIndex.name) {
-    //         anim.start();
-    //     } else {
-    //         anim.play(AnimateModelIndex, ParamDefinition.getDefaultValues(AnimateModelIndex.params(this.plugin) as any as ParamDefinition.Params))
-    //     }
-    // }
-
     render() {
         const isAnimating = this.plugin.behaviors.state.isAnimating.value;
 
         if (!this.state.show || (isAnimating && !this.state.label)) return null;
 
         return <div className='msp-traj-controls'>
-            {/* <IconButton icon={isAnimating ? 'stop' : 'play'} title={isAnimating ? 'Stop' : 'Play'} onClick={isAnimating ? this.stopAnimation : this.playAnimation} /> */}
             {!isAnimating && <IconButton svg={SkipPrevious} title='First Model' onClick={this.reset} disabled={isAnimating} />}
             {!isAnimating && <IconButton svg={NavigateBefore} title='Previous Model' onClick={this.prev} disabled={isAnimating} />}
             {!isAnimating && <IconButton svg={NavigateNext} title='Next Model' onClick={this.next} disabled={isAnimating} />}
@@ -236,8 +222,8 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
         return <div className='msp-animation-viewport-controls'>
             <div>
                 <div className='msp-semi-transparent-background' />
-                <IconButton svg={isAnimating || isPlaying ? Stop : Subscriptions} transparent title={isAnimating ? 'Stop' : 'Select Animation'}
-                    onClick={isAnimating || isPlaying ? this.stop : this.toggleExpanded}
+                <IconButton svg={isAnimating || isPlaying ? Stop : SubscriptionsOutlined} transparent title={isAnimating ? 'Stop' : 'Select Animation'}
+                    onClick={isAnimating || isPlaying ? this.stop : this.toggleExpanded} toggleState={this.state.isExpanded}
                     disabled={isAnimating || isPlaying ? false : this.state.isBusy || this.state.isPlaying || this.state.isEmpty} />
             </div>
             {(this.state.isExpanded && !this.state.isBusy) && <div className='msp-animation-viewport-controls-select'>

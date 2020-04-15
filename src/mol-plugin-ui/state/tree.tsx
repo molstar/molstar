@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ArrowDropDown, ArrowRight, Close, DeleteOutlined, Home, VisibilityOutlined, VisibilityOffOutlined } from '@material-ui/icons';
+import { ArrowDropDown, ArrowRight, Close, DeleteOutlined, HomeOutlined, VisibilityOffOutlined, VisibilityOutlined } from '@material-ui/icons';
 import * as React from 'react';
 import { debounceTime, filter } from 'rxjs/operators';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
@@ -44,7 +44,7 @@ export class StateTree extends PluginUIComponent<{ state: State }, { showActions
         if (this.state.showActions) {
             return <div style={{ margin: '10px', cursor: 'default' }}>
                 <p>Nothing to see here.</p>
-                <p>Structures can be loaded from the <Icon svg={Home} /> tab.</p>
+                <p>Structures can be loaded from the <Icon svg={HomeOutlined} /> tab.</p>
             </div>;
         }
         return <StateTreeNode cell={this.props.state.cells.get(ref)!} depth={0} />;

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ArrowDownward, ArrowUpward, CloudUpload, DeleteOutlined, Save, SwapHoriz } from '@material-ui/icons';
+import { ArrowDownward, ArrowUpward, CloudUpload, DeleteOutlined, SwapHoriz, SaveOutlined } from '@material-ui/icons';
 import { OrderedMap } from 'immutable';
 import * as React from 'react';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -31,7 +31,7 @@ export class StateSnapshots extends PluginUIComponent<{ }> {
 
     render() {
         return <div>
-            <SectionHeader icon={Save} title='Plugin State' />
+            <SectionHeader icon={SaveOutlined} title='Plugin State' />
             <LocalStateSnapshots />
             <LocalStateSnapshotList />
             {this.plugin.spec.components?.remoteState !== 'none' && <RemoteStateSnapshots />}

@@ -7,20 +7,8 @@
 import * as React from 'react';
 import { PluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
-import { Icon } from '../controls/icons';
 import { Button } from '../controls/common';
-import { Code, PlayArrow } from '@material-ui/icons';
-
-export class AnimationControlsWrapper extends PluginUIComponent<{ }> {
-    render() {
-        const anim = this.plugin.state.animation;
-        if (anim.isEmpty) return null;
-        return <div className='msp-controls-section'>
-            <div className='msp-section-header'><Icon svg={Code} /> Animations</div>
-            <AnimationControls />
-        </div>;
-    }
-}
+import { PlayArrow } from '@material-ui/icons';
 
 export class AnimationControls extends PluginUIComponent<{ onStart?: () => void }> {
     componentDidMount() {

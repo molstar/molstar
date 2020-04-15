@@ -189,7 +189,6 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     }
 
     renderApply() {
-        // const showBack = this.isUpdate() && !(this.state.busy || this.state.isInitial);
         const canApply = this.canApply();
 
         if (this.props.autoHideApply && (!canApply || this.canAutoApply(this.state.params))) return null;

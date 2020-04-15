@@ -5,11 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { ArrowDropDown, ArrowRight } from '@material-ui/icons';
 import * as React from 'react';
 import { Observable, Subscription } from 'rxjs';
 import { PluginContext } from '../mol-plugin/context';
 import { Button } from './controls/common';
-import { ArrowRight, ArrowDropDown } from '@material-ui/icons';
 
 export const PluginReactContext = React.createContext(void 0 as any as PluginContext);
 
@@ -76,7 +76,7 @@ export type CollapsableState = {
     header: string,
     description?: string,
     isHidden?: boolean,
-    brand?: { name: string, accent: 'cyan' | 'red' | 'gray' | 'green' | 'purple' | 'blue' | 'orange' }
+    brand?: { name: string, /* svg?: React.FC, */ accent: 'cyan' | 'red' | 'gray' | 'green' | 'purple' | 'blue' | 'orange' }
 }
 
 export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends PluginUIComponent<P & CollapsableProps, S & CollapsableState, SS> {
@@ -105,6 +105,7 @@ export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends Plugi
                 <Button icon={this.state.brand ? void 0 : this.state.isCollapsed ? ArrowRight : ArrowDropDown} noOverflow onClick={this.toggleCollapsed}
                     className={this.state.brand ? `msp-transform-header-brand msp-transform-header-brand-${this.state.brand.accent}` : void 0} title={`Click to ${this.state.isCollapsed ? 'expand' : 'collapse'}`}>
                     {this.state.brand && <div className={`msp-accent-bg-${this.state.brand.accent}`}>{this.state.brand.name}</div>}
+                    {/* {this.state.brand?.svg && <Icon svg={this.state.brand?.svg} inline />} */}
                     {this.state.header}
                     <small style={{ margin: '0 6px' }}>{this.state.isCollapsed ? '' : this.state.description}</small>
                 </Button>
