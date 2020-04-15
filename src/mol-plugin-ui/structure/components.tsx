@@ -16,7 +16,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ExpandGroup, IconButton, ToggleButton } from '../controls/common';
-import { Intersect, SetSvg, Subtract, Union } from '../controls/icons';
+import { Intersect, SetSvg, Subtract, Union, CubeSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 import { GenericEntryListControls } from './generic';
@@ -27,7 +27,12 @@ interface StructureComponentControlState extends CollapsableState {
 
 export class StructureComponentControls extends CollapsableControls<{}, StructureComponentControlState> {
     protected defaultState(): StructureComponentControlState {
-        return { header: 'Representation', isCollapsed: false, isDisabled: false, brand: { name: 'Rpr', accent: 'blue' } };
+        return {
+            header: 'Representation',
+            isCollapsed: false,
+            isDisabled: false,
+            brand: { accent: 'blue', svg: CubeSvg }
+        };
     }
 
     componentDidMount() {

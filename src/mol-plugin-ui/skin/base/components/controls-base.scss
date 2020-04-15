@@ -107,14 +107,14 @@
 }
 
 .msp-btn-block {
-    .msp-material-icon {
+    > .msp-material-icon {
         margin-left: 0;
         margin-right: .4em;
     }
 }
 
 .msp-btn-childless {
-    .msp-material-icon {
+    > .msp-material-icon {
         margin-left: 0;
         margin-right: 0;
     }

@@ -18,7 +18,7 @@ import { FiniteArray } from '../../mol-util/type-helpers';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ExpandGroup, IconButton, ToggleButton } from '../controls/common';
-import { Icon, SetSvg } from '../controls/icons';
+import { Icon, SetSvg, RulerSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 
@@ -29,7 +29,7 @@ export class StructureMeasurementsControls extends CollapsableControls {
         return {
             isCollapsed: false,
             header: 'Measurements',
-            brand: { name: 'Msr', accent: 'gray' as const }
+            brand: { accent: 'gray' as const, svg: RulerSvg }
         };
     }
 

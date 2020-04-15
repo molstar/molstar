@@ -16,7 +16,7 @@ import { StateAction, StateSelection } from '../../../mol-state';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { PluginContext } from '../../../mol-plugin/context';
 import { Task } from '../../../mol-task';
-import { Check } from '@material-ui/icons';
+import { Check, Extension } from '@material-ui/icons';
 
 interface AssemblySymmetryControlState extends CollapsableState {
     isBusy: boolean
@@ -29,7 +29,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
             isCollapsed: false,
             isBusy: false,
             isHidden: true,
-            brand: { name: 'Sym', accent: 'cyan' }
+            brand: { accent: 'cyan', svg: Extension }
         };
     }
 

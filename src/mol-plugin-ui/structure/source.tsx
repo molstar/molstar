@@ -17,6 +17,7 @@ import { UpdateTransformControl } from '../state/update-transform';
 import { StructureSelectionStatsControls } from './selection';
 import { StateSelection } from '../../mol-state';
 import { BookmarksOutlined } from '@material-ui/icons';
+import { MoleculeSvg } from '../controls/icons';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
@@ -29,7 +30,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             header: 'Structure',
             isCollapsed: false,
             isBusy: false,
-            brand: { name: 'Str', accent: 'purple' }
+            brand: { accent: 'purple', svg: MoleculeSvg }
         };
     }
 
