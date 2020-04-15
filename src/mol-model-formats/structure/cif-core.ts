@@ -97,6 +97,7 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
     } else {
         const element_symbol = new Array<string>(atomCount);
         for (let i = 0; i < atomCount; ++i) {
+            // TODO can take as is if type_symbol not given?
             element_symbol[i] = guessElementSymbolString(label.value(i));
         }
         typeSymbol = Column.ofStringArray(element_symbol);
