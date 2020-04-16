@@ -18,6 +18,7 @@ import * as DSN6 from '../../mol-io/reader/dsn6/parser';
 import * as PLY from '../../mol-io/reader/ply/parser';
 import { parsePsf } from '../../mol-io/reader/psf/parser';
 import { isTypedArray } from '../../mol-data/db/column-helpers';
+import { AssetManager } from '../../mol-plugin/util/asset-manager';
 
 export { Download };
 type Download = typeof Download
@@ -149,10 +150,26 @@ const ReadFile = PluginStateTransform.BuiltIn({
                 plugin.log.error('No file(s) selected');
                 return StateObject.Null;
             }
-            const data = await readFromFile(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
-            return p.isBinary
+
+            let file: File;
+            if (AssetManager.isItem(p.file)) {
+                if (!plugin.managers.asset.has(p.file.id)) {
+                    throw new Error(`No asset found for '${p.file.name}'`);
+                }
+                file = plugin.managers.asset.get(p.file.id)!;
+                // will be added again below with new id
+                plugin.managers.asset.remove(p.file.id);
+            } else {
+                file = p.file;
+            }
+
+            const data = await readFromFile(file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
+            const o = p.isBinary
                 ? new SO.Data.Binary(data as Uint8Array, { label: p.label ? p.label : p.file.name })
                 : new SO.Data.String(data as string, { label: p.label ? p.label : p.file.name });
+
+            plugin.managers.asset.set(o.id, file);
+            return o;
         });
     },
     update({ oldParams, newParams, b }) {

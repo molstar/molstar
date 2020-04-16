@@ -53,6 +53,7 @@ import { TaskManager } from './util/task-manager';
 import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
+import { AssetManager } from './util/asset-manager';
 
 export class PluginContext {
     runTask = <T>(task: Task<T>) => this.tasks.run(task);
@@ -150,7 +151,8 @@ export class PluginContext {
         interactivity: void 0 as any as InteractivityManager,
         camera: new CameraManager(this),
         lociLabels: void 0 as any as LociLabelManager,
-        toast: new PluginToastManager(this)
+        toast: new PluginToastManager(this),
+        asset: new AssetManager(this)
     } as const
 
     readonly customModelProperties = new CustomProperty.Registry<Model>();
