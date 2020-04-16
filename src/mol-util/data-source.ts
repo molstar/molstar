@@ -28,13 +28,14 @@ export enum DataCompressionMethod {
     Zip,
 }
 
-type DataType = 'json' | 'xml' | 'string' | 'binary'
+type DataType = 'json' | 'xml' | 'string' | 'binary' | 'zip'
 type DataValue = 'string' | any | XMLDocument | Uint8Array
 type DataResponse<T extends DataType> =
     T extends 'json' ? any :
         T extends 'xml' ? XMLDocument :
             T extends 'string' ? string :
-                T extends 'binary' ? Uint8Array : never
+                T extends 'binary' ? Uint8Array :
+                    T extends 'zip' ? { [k: string]: Uint8Array } : never
 
 export interface AjaxGetParams<T extends DataType = 'string'> {
     url: string,
@@ -158,6 +159,8 @@ async function processFile<T extends DataType>(ctx: RuntimeContext, reader: File
 
     if (type === 'binary' && data instanceof Uint8Array) {
         return data as DataResponse<T>;
+    } else if (type === 'zip' && data instanceof Uint8Array) {
+        return await unzip(ctx, data.buffer) as DataResponse<T>;
     } else if (type === 'string' && typeof data === 'string') {
         return data as DataResponse<T>;
     } else if (type === 'xml' && typeof data === 'string') {
@@ -174,9 +177,10 @@ function readFromFileInternal<T extends DataType>(file: File, type: T): Task<Dat
     return Task.create('Read File', async ctx => {
         try {
             reader = new FileReader();
-            const compression = getCompression(file.name);
+            // unzipping for type 'zip' handled explicitly in `processFile`
+            const compression = type === 'zip' ? DataCompressionMethod.None : getCompression(file.name);
 
-            if (type === 'binary' || compression !== DataCompressionMethod.None) {
+            if (type === 'binary' || type === 'zip' || compression !== DataCompressionMethod.None) {
                 reader.readAsArrayBuffer(file);
             } else {
                 reader.readAsText(file);
@@ -224,7 +228,7 @@ function processAjax<T extends DataType>(req: XMLHttpRequest, type: T): DataResp
         const { response } = req;
         RequestPool.deposit(req);
 
-        if (type === 'binary' && response instanceof ArrayBuffer) {
+        if ((type === 'binary' || type === 'zip') && response instanceof ArrayBuffer) {
             return new Uint8Array(response) as DataResponse<T>;
         } else if (type === 'string' && typeof response === 'string') {
             return response as DataResponse<T>;
@@ -247,6 +251,7 @@ function getRequestResponseType(type: DataType): XMLHttpRequestResponseType {
         case 'xml': return 'document';
         case 'string': return 'text';
         case 'binary': return 'arraybuffer';
+        case 'zip': return 'arraybuffer';
     }
 }
 
