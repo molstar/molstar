@@ -10,7 +10,7 @@
 import { Task, RuntimeContext } from '../mol-task';
 import { unzip, ungzip } from './zip/zip';
 import { utf8Read } from '../mol-io/common/utf8';
-import { AssetManager } from './assets';
+import { AssetManager, Asset } from './assets';
 
 // polyfill XMLHttpRequest in node.js
 const XHR = typeof document === 'undefined' ? require('xhr2') as {
@@ -281,23 +281,19 @@ function ajaxGetInternal<T extends DataType>(title: string | undefined, url: str
     });
 }
 
-export type AjaxGetManyEntry<T> = { kind: 'ok', id: string, result: T } | { kind: 'error', id: string, error: any }
-export async function ajaxGetMany(ctx: RuntimeContext, sources: { id: string, url: string, isBinary?: boolean, body?: string, canFail?: boolean }[], maxConcurrency: number, assetManager?: AssetManager) {
+export type AjaxGetManyEntry = { kind: 'ok', id: string, result: Asset.Wrapper<'string' | 'binary'> } | { kind: 'error', id: string, error: any }
+export async function ajaxGetMany(ctx: RuntimeContext, assetManager: AssetManager, sources: { id: string, url: Asset.Url, isBinary?: boolean, canFail?: boolean }[], maxConcurrency: number) {
     const len = sources.length;
-    const slots: AjaxGetManyEntry<string | Uint8Array>[] = new Array(sources.length);
+    const slots: AjaxGetManyEntry[] = new Array(sources.length);
 
     await ctx.update({ message: 'Downloading...', current: 0, max: len });
-    let promises: Promise<AjaxGetManyEntry<any> & { index: number }>[] = [], promiseKeys: number[] = [];
+    let promises: Promise<AjaxGetManyEntry & { index: number }>[] = [], promiseKeys: number[] = [];
     let currentSrc = 0;
     for (let _i = Math.min(len, maxConcurrency); currentSrc < _i; currentSrc++) {
         const current = sources[currentSrc];
 
-        if (assetManager) {
-            promises.push(wrapPromise(currentSrc, current.id,
-                assetManager.resolve({ url: current.url, body: current.body }, current.isBinary ? 'binary' : 'string').runAsChild(ctx)));
-        } else {
-            promises.push(wrapPromise(currentSrc, current.id, ajaxGet({ url: current.url, type: current.isBinary ? 'binary' : 'string' }).runAsChild(ctx)));
-        }
+        promises.push(wrapPromise(currentSrc, current.id,
+            assetManager.resolve(current.url, current.isBinary ? 'binary' : 'string').runAsChild(ctx)));
         promiseKeys.push(currentSrc);
     }
 
@@ -319,7 +315,8 @@ export async function ajaxGetMany(ctx: RuntimeContext, sources: { id: string, ur
         promiseKeys = promiseKeys.filter(_filterRemoveIndex, idx);
         if (currentSrc < len) {
             const current = sources[currentSrc];
-            promises.push(wrapPromise(currentSrc, current.id, ajaxGet({ url: current.url, type: current.isBinary ? 'binary' : 'string', body: current.body }).runAsChild(ctx)));
+            const asset = assetManager.resolve(current.url, current.isBinary ? 'binary' : 'string').runAsChild(ctx);
+            promises.push(wrapPromise(currentSrc, current.id, asset));
             promiseKeys.push(currentSrc);
             currentSrc++;
         }
@@ -332,7 +329,7 @@ function _filterRemoveIndex(this: number, _: any, i: number) {
     return this !== i;
 }
 
-async function wrapPromise<T>(index: number, id: string, p: Promise<T>): Promise<AjaxGetManyEntry<T> & { index: number }> {
+async function wrapPromise(index: number, id: string, p: Promise<Asset.Wrapper<'string' | 'binary'>>): Promise<AjaxGetManyEntry & { index: number }> {
     try {
         const result = await p;
         return { kind: 'ok', result, index, id };

@@ -28,6 +28,7 @@ import { DefaultCanvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3
 import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { download } from '../../mol-util/download';
 import { getFormattedTime } from '../../mol-util/date';
+import { Asset } from '../../mol-util/assets';
 require('../../mol-plugin-ui/skin/light.scss');
 
 class MolStarProteopediaWrapper {
@@ -74,7 +75,7 @@ class MolStarProteopediaWrapper {
     }
 
     private download(b: StateBuilder.To<PSO.Root>, url: string) {
-        return b.apply(StateTransforms.Data.Download, { url, isBinary: false });
+        return b.apply(StateTransforms.Data.Download, { url: Asset.Url(url), isBinary: false });
     }
 
     private model(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats) {

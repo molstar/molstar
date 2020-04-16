@@ -181,6 +181,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'color-list': return ColorListControl;
         case 'vec3': return Vec3Control;
         case 'mat4': return Mat4Control;
+        case 'url': return UrlControl;
         case 'file': return FileControl;
         case 'file-list': return FileListControl;
         case 'select': return SelectControl;
@@ -783,6 +784,33 @@ export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isEx
                 <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} />
             </div>}
         </>;
+    }
+}
+
+export class UrlControl extends SimpleParam<PD.UrlParam> {
+    onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if (value !== this.props.value.url) {
+            this.update(Asset.Url(value));
+        }
+    }
+
+    onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if ((e.keyCode === 13 || e.charCode === 13)) {
+            if (this.props.onEnter) this.props.onEnter();
+        }
+        e.stopPropagation();
+    }
+
+    renderControl() {
+        const placeholder = this.props.param.label || camelCaseToWords(this.props.name);
+        return <input type='text'
+            value={this.props.value.url || ''}
+            placeholder={placeholder}
+            onChange={this.onChange}
+            onKeyPress={this.props.onEnter ? this.onKeyPress : void 0}
+            disabled={this.props.isDisabled}
+        />;
     }
 }
 

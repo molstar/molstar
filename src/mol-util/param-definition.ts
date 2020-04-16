@@ -148,6 +148,15 @@ export namespace ParamDefinition {
         return setInfo<Mat4>({ type: 'mat4', defaultValue }, info);
     }
 
+    export interface UrlParam extends Base<Asset.Url> {
+        type: 'url'
+    }
+    export function Url(url: string | { url: string, body?: string }, info?: Info): UrlParam {
+        const defaultValue = typeof url === 'string' ? Asset.Url(url) : Asset.Url(url.url, { body: url.body });
+        const ret = setInfo<UrlParam>({ type: 'url', defaultValue }, info);
+        return ret;
+    }
+
     export interface FileParam extends Base<Asset.File | null> {
         type: 'file'
         accept?: string
@@ -298,7 +307,7 @@ export namespace ParamDefinition {
     }
 
     export type Any =
-        | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Mat4 | Numeric | FileParam | FileListParam | Interval | LineGraph
+        | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Mat4 | Numeric | FileParam | UrlParam | FileListParam | Interval | LineGraph
         | ColorList | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList
 
     export type Params = { [k: string]: Any }

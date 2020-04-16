@@ -16,6 +16,7 @@ import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { CustomModelProperties, CustomStructureProperties, TrajectoryFromModelAndCoordinates } from '../transforms/model';
+import { Asset } from '../../mol-util/assets';
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => PD.Group({
     type: RootStructureDefinition.getParams(void 0, 'auto').type,
@@ -65,7 +66,7 @@ const DownloadStructure = StateAction.build({
                     options
                 }, { isFlat: true, label: 'PubChem', description: 'Loads 3D conformer from PubChem.' }),
                 'url': PD.Group({
-                    url: PD.Text(''),
+                    url: PD.Url(''),
                     format: PD.Select<BuiltInTrajectoryFormat>('mmcif', PD.arrayToOptions(BuiltInTrajectoryFormats.map(f => f[0]), f => f)),
                     isBinary: PD.Boolean(false),
                     options
@@ -160,7 +161,7 @@ function getDownloadParams(src: string, url: (id: string) => string, label: (id:
     const ids = src.split(',').map(id => id.trim()).filter(id => !!id && (id.length >= 4 || /^[1-9][0-9]*$/.test(id)));
     const ret: StateTransformer.Params<Download>[] = [];
     for (const id of ids) {
-        ret.push({ url: url(id), isBinary, label: label(id) });
+        ret.push({ url: Asset.Url(url(id)), isBinary, label: label(id) });
     }
     return ret;
 }

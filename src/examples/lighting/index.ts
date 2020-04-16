@@ -10,6 +10,7 @@ import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajecto
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import './index.html';
+import { Asset } from '../../mol-util/assets';
 require('mol-plugin-ui/skin/light.scss');
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }
@@ -101,7 +102,7 @@ class LightingDemo {
     async load({ url, format = 'mmcif', isBinary = false, assemblyId = '' }: LoadParams) {
         await this.plugin.clear();
 
-        const data = await this.plugin.builders.data.download({ url, isBinary }, { state: { isGhost: true } });
+        const data = await this.plugin.builders.data.download({ url: Asset.Url(url), isBinary }, { state: { isGhost: true } });
         const trajectory = await this.plugin.builders.structure.parseTrajectory(data, format);
         const model = await this.plugin.builders.structure.createModel(trajectory);
         const structure = await this.plugin.builders.structure.createStructure(model, assemblyId ? { name: 'assembly', params: { id: assemblyId } } : { name: 'deposited', params: { } });

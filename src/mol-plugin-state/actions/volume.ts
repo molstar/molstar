@@ -13,6 +13,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { Download } from '../transforms/data';
 import { DataFormatProvider } from '../formats/provider';
+import { Asset } from '../../mol-util/assets';
 
 export { DownloadDensity };
 type DownloadDensity = typeof DownloadDensity
@@ -45,7 +46,7 @@ const DownloadDensity = StateAction.build({
                     detail: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { label: 'Detail' }),
                 }, { isFlat: true }),
                 'url': PD.Group({
-                    url: PD.Text(''),
+                    url: PD.Url(''),
                     isBinary: PD.Boolean(false),
                     format: PD.Select('auto', options),
                 }, { isFlat: true })
@@ -70,37 +71,37 @@ const DownloadDensity = StateAction.build({
             break;
         case 'pdb-xray':
             downloadParams = src.params.provider.server === 'pdbe' ? {
-                url: src.params.type === '2fofc'
+                url: Asset.Url(src.params.type === '2fofc'
                     ? `http://www.ebi.ac.uk/pdbe/coordinates/files/${src.params.provider.id.toLowerCase()}.ccp4`
-                    : `http://www.ebi.ac.uk/pdbe/coordinates/files/${src.params.provider.id.toLowerCase()}_diff.ccp4`,
+                    : `http://www.ebi.ac.uk/pdbe/coordinates/files/${src.params.provider.id.toLowerCase()}_diff.ccp4`),
                 isBinary: true,
                 label: `PDBe X-ray map: ${src.params.provider.id}`
             } : {
-                url: src.params.type === '2fofc'
+                url: Asset.Url(src.params.type === '2fofc'
                     ? `https://edmaps.rcsb.org/maps/${src.params.provider.id.toLowerCase()}_2fofc.dsn6`
-                    : `https://edmaps.rcsb.org/maps/${src.params.provider.id.toLowerCase()}_fofc.dsn6`,
+                    : `https://edmaps.rcsb.org/maps/${src.params.provider.id.toLowerCase()}_fofc.dsn6`),
                 isBinary: true,
                 label: `RCSB X-ray map: ${src.params.provider.id}`
             };
             break;
         case 'pdb-emd-ds':
             downloadParams = src.params.provider.server === 'pdbe' ? {
-                url: `https://www.ebi.ac.uk/pdbe/densities/emd/${src.params.provider.id.toLowerCase()}/cell?detail=${src.params.detail}`,
+                url: Asset.Url(`https://www.ebi.ac.uk/pdbe/densities/emd/${src.params.provider.id.toLowerCase()}/cell?detail=${src.params.detail}`),
                 isBinary: true,
                 label: `PDBe EMD Density Server: ${src.params.provider.id}`
             } : {
-                url: `https://maps.rcsb.org/em/${src.params.provider.id.toLowerCase()}/cell?detail=${src.params.detail}`,
+                url: Asset.Url(`https://maps.rcsb.org/em/${src.params.provider.id.toLowerCase()}/cell?detail=${src.params.detail}`),
                 isBinary: true,
                 label: `RCSB PDB EMD Density Server: ${src.params.provider.id}`
             };
             break;
         case 'pdb-xray-ds':
             downloadParams = src.params.provider.server === 'pdbe' ? {
-                url: `https://www.ebi.ac.uk/pdbe/densities/x-ray/${src.params.provider.id.toLowerCase()}/cell?detail=${src.params.detail}`,
+                url: Asset.Url(`https://www.ebi.ac.uk/pdbe/densities/x-ray/${src.params.provider.id.toLowerCase()}/cell?detail=${src.params.detail}`),
                 isBinary: true,
                 label: `PDBe X-ray Density Server: ${src.params.provider.id}`
             } : {
-                url: `https://maps.rcsb.org/x-ray/${src.params.provider.id.toLowerCase()}/cell?detail=${src.params.detail}`,
+                url: Asset.Url(`https://maps.rcsb.org/x-ray/${src.params.provider.id.toLowerCase()}/cell?detail=${src.params.detail}`),
                 isBinary: true,
                 label: `RCSB PDB X-ray Density Server: ${src.params.provider.id}`
             };
@@ -113,7 +114,7 @@ const DownloadDensity = StateAction.build({
     switch (src.name) {
         case 'url':
             downloadParams = src.params;
-            provider = src.params.format === 'auto' ? plugin.dataFormats.auto(getFileInfo(downloadParams.url), data.cell?.obj!) : plugin.dataFormats.get(src.params.format);
+            provider = src.params.format === 'auto' ? plugin.dataFormats.auto(getFileInfo(downloadParams.url.url), data.cell?.obj!) : plugin.dataFormats.get(src.params.format);
             break;
         case 'pdb-xray':
             provider = src.params.provider.server === 'pdbe'

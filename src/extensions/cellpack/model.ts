@@ -395,7 +395,7 @@ async function loadMembrane(name: string, plugin: PluginContext, runtime: Runtim
         const file = ingredientFiles[fname];
         b = b.apply(StateTransforms.Data.ReadFile, { file: Asset.File(file), isBinary: true, label: file.name }, { state: { isGhost: true } });
     } else {
-        const url = `${params.baseUrl}/membranes/${name}.bcif`;
+        const url = Asset.Url(`${params.baseUrl}/membranes/${name}.bcif`);
         b = b.apply(StateTransforms.Data.Download, { url, isBinary: true, label: name }, { state: { isGhost: true } });
     }
 
@@ -412,7 +412,7 @@ async function loadMembrane(name: string, plugin: PluginContext, runtime: Runtim
 }
 
 async function loadHivMembrane(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
-    const url = `${params.baseUrl}/membranes/hiv_lipids.bcif`;
+    const url = Asset.Url(`${params.baseUrl}/membranes/hiv_lipids.bcif`);
     const membrane = await state.build().toRoot()
         .apply(StateTransforms.Data.Download, { label: 'hiv_lipids', url, isBinary: true }, { state: { isGhost: true } })
         .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
@@ -431,7 +431,7 @@ async function loadHivMembrane(plugin: PluginContext, runtime: RuntimeContext, s
 async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
     let cellPackJson: StateBuilder.To<PSO.Format.Json, StateTransformer<PSO.Data.String, PSO.Format.Json>>;
     if (params.source.name === 'id') {
-        const url = getCellPackModelUrl(params.source.params, params.baseUrl);
+        const url = Asset.Url(getCellPackModelUrl(params.source.params, params.baseUrl));
         cellPackJson = state.build().toRoot()
             .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.source.params }, { state: { isGhost: true } });
     } else {

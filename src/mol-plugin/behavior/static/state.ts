@@ -5,22 +5,20 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginCommands } from '../../commands';
-import { PluginContext } from '../../context';
-import { StateTree, StateTransform, State } from '../../../mol-state';
-import { PluginStateSnapshotManager } from '../../../mol-plugin-state/snapshots';
-import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
-import { getFormattedTime } from '../../../mol-util/date';
-import { readFromFile } from '../../../mol-util/data-source';
-import { download } from '../../../mol-util/download';
+import { utf8ByteCount, utf8Write } from '../../../mol-io/common/utf8';
 import { Structure } from '../../../mol-model/structure';
-import { urlCombine } from '../../../mol-util/url';
-import { PluginConfig } from '../../config';
-import { zip } from '../../../mol-util/zip/zip';
-import { utf8Write, utf8ByteCount } from '../../../mol-io/common/utf8';
+import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
+import { PluginStateSnapshotManager } from '../../../mol-plugin-state/snapshots';
+import { State, StateTransform, StateTree } from '../../../mol-state';
+import { readFromFile } from '../../../mol-util/data-source';
+import { getFormattedTime } from '../../../mol-util/date';
+import { download } from '../../../mol-util/download';
 import { objectForEach } from '../../../mol-util/object';
-import { UUID } from '../../../mol-util';
-import { Asset } from '../../../mol-util/assets';
+import { urlCombine } from '../../../mol-util/url';
+import { zip } from '../../../mol-util/zip/zip';
+import { PluginCommands } from '../../commands';
+import { PluginConfig } from '../../config';
+import { PluginContext } from '../../context';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -201,10 +199,10 @@ export function Snapshots(ctx: PluginContext) {
 
             const assets: any[] = [];
 
+            // TODO: there can be duplicate entries: check for this?
             for (const { asset, file } of ctx.managers.asset.assets) {
-                const id = Asset.isFile(asset) ? asset.id : UUID.create22();
-                assets.push([id, asset]);
-                zipDataObj[`assets/${id}`] = new Uint8Array(await file.arrayBuffer());
+                assets.push([asset.id, asset]);
+                zipDataObj[`assets/${asset.id}`] = new Uint8Array(await file.arrayBuffer());
             }
 
             if (assets.length > 0) {

@@ -17,6 +17,7 @@ import { PluginConfig } from '../../mol-plugin/config';
 import { CellPack } from '../../extensions/cellpack';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
+import { Asset } from '../../mol-util/assets';
 require('mol-plugin-ui/skin/light.scss');
 
 function getParam(name: string, regex: string): string {
@@ -88,7 +89,7 @@ async function tryLoadFromUrl(ctx: PluginContext) {
             source: {
                 name: 'url',
                 params: {
-                    url,
+                    url: Asset.Url(url),
                     format: format as any,
                     isBinary,
                     options: params.source.params.options,

@@ -15,6 +15,7 @@ import { compile } from '../../mol-script/runtime/query/compiler';
 import { StateObjectRef } from '../../mol-state';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { Asset } from '../../mol-util/assets';
 
 export type SuperpositionTestInput = {
     pdbId: string,
@@ -97,7 +98,7 @@ async function siteVisual(plugin: PluginContext, s: StateObjectRef<PSO.Molecule.
 }
 
 async function loadStructure(plugin: PluginContext, url: string, format: BuiltInTrajectoryFormat, assemblyId?: string) {
-    const data = await plugin.builders.data.download({ url });
+    const data = await plugin.builders.data.download({ url: Asset.Url(url) });
     const trajectory = await plugin.builders.structure.parseTrajectory(data, format);
     const model = await plugin.builders.structure.createModel(trajectory);
     const structure = await plugin.builders.structure.createStructure(model, assemblyId ? { name: 'assembly', params: { id: assemblyId } } : void 0);

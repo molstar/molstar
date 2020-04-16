@@ -32,6 +32,7 @@ export { ParseDsn6 };
 export { ImportString };
 export { ImportJson };
 export { ParseJson };
+
 type Download = typeof Download
 const Download = PluginStateTransform.BuiltIn({
     name: 'download',
@@ -39,29 +40,27 @@ const Download = PluginStateTransform.BuiltIn({
     from: [SO.Root],
     to: [SO.Data.String, SO.Data.Binary],
     params: {
-        url: PD.Text('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', { description: 'Resource URL. Must be the same domain or support CORS.' }),
+        url: PD.Url('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', { description: 'Resource URL. Must be the same domain or support CORS.' }),
         label: PD.Optional(PD.Text('')),
-        isBinary: PD.Optional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' })),
-        body: PD.Optional(PD.Text(''))
+        isBinary: PD.Optional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' }))
     }
 })({
-    apply({ params: p }, plugin: PluginContext) {
+    apply({ params: p, cache }, plugin: PluginContext) {
         return Task.create('Download', async ctx => {
-            const data = await plugin.managers.asset.resolve(Asset.Url(p.url, { body: p.body }), p.isBinary ? 'binary' : 'string').runInContext(ctx);
+            const asset = await plugin.managers.asset.resolve(p.url, p.isBinary ? 'binary' : 'string').runInContext(ctx);
+            (cache as any).asset = asset;
             return p.isBinary
-                ? new SO.Data.Binary(data as Uint8Array, { label: p.label ? p.label : p.url })
-                : new SO.Data.String(data as string, { label: p.label ? p.label : p.url });
+                ? new SO.Data.Binary(asset.data as Uint8Array, { label: p.label ? p.label : p.url.url })
+                : new SO.Data.String(asset.data as string, { label: p.label ? p.label : p.url.url });
         });
     },
-    dispose({ params: p }, plugin: PluginContext) {
-        if (p) {
-            plugin.managers.asset.release(Asset.Url(p.url, { body: p.body }));
-        }
+    dispose({ cache }) {
+        ((cache as any)?.asset as Asset.Wrapper | undefined)?.dispose();
     },
     update({ oldParams, newParams, b }) {
         if (oldParams.url !== newParams.url || oldParams.isBinary !== newParams.isBinary) return StateTransformer.UpdateResult.Recreate;
         if (oldParams.label !== newParams.label) {
-            b.label = newParams.label || newParams.url;
+            b.label = newParams.label || newParams.url.url;
             return StateTransformer.UpdateResult.Updated;
         }
         return StateTransformer.UpdateResult.Unchanged;
@@ -77,35 +76,39 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
     params: {
         sources: PD.ObjectList({
             id: PD.Text('', { label: 'Unique ID' }),
-            url: PD.Text('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', { description: 'Resource URL. Must be the same domain or support CORS.' }),
+            url: PD.Url('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', { description: 'Resource URL. Must be the same domain or support CORS.' }),
             isBinary: PD.Optional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' })),
-            body: PD.Optional(PD.Text('')),
             canFail: PD.Optional(PD.Boolean(false, { description: 'Indicate whether the download can fail and not be included in the blob as a result.' }))
         }, e => `${e.id}: ${e.url}`),
         maxConcurrency: PD.Optional(PD.Numeric(4, { min: 1, max: 12, step: 1 }, { description: 'The maximum number of concurrent downloads.' }))
     }
 })({
-    apply({ params }, plugin: PluginContext) {
+    apply({ params, cache }, plugin: PluginContext) {
         return Task.create('Download Blob', async ctx => {
             const entries: SO.Data.BlobEntry[] = [];
-            const data = await ajaxGetMany(ctx, params.sources, params.maxConcurrency || 4, plugin.managers.asset);
+            const data = await ajaxGetMany(ctx, plugin.managers.asset, params.sources, params.maxConcurrency || 4);
+
+            const assets: Asset.Wrapper[] = [];
 
             for (let i = 0; i < data.length; i++) {
                 const r = data[i], src = params.sources[i];
                 if (r.kind === 'error') plugin.log.warn(`Download ${r.id} (${src.url}) failed: ${r.error}`);
                 else {
+                    assets.push(r.result);
                     entries.push(src.isBinary
-                        ? { id: r.id, kind: 'binary', data: r.result as Uint8Array }
-                        : { id: r.id, kind: 'string', data: r.result as string });
+                        ? { id: r.id, kind: 'binary', data: r.result.data as Uint8Array }
+                        : { id: r.id, kind: 'string', data: r.result.data as string });
                 }
             }
+            (cache as any).assets = assets;
             return new SO.Data.Blob(entries, { label: 'Data Blob', description: `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}` });
         });
     },
-    dispose({ params }, plugin: PluginContext) {
-        if (!params) return;
-        for (const s of params.sources) {
-            plugin.managers.asset.release({ url: s.url, body: s.body });
+    dispose({ cache }, plugin: PluginContext) {
+        const assets: Asset.Wrapper[] | undefined = (cache as any)?.assets;
+        if (!assets) return;
+        for (const a of assets) {
+            a.dispose();
         }
     }
     // TODO: ??
@@ -163,25 +166,24 @@ const ReadFile = PluginStateTransform.BuiltIn({
         isBinary: PD.Optional(PD.Boolean(false, { description: 'If true, open file as as binary (string otherwise)' }))
     }
 })({
-    apply({ params: p }, plugin: PluginContext) {
+    apply({ params: p, cache }, plugin: PluginContext) {
         return Task.create('Open File', async ctx => {
             if (p.file === null) {
                 plugin.log.error('No file(s) selected');
                 return StateObject.Null;
             }
 
-            const data = await plugin.managers.asset.resolve(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
+            const asset = await plugin.managers.asset.resolve(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
+            (cache as any).asset = asset;
             const o = p.isBinary
-                ? new SO.Data.Binary(data as Uint8Array, { label: p.label ? p.label : p.file.name })
-                : new SO.Data.String(data as string, { label: p.label ? p.label : p.file.name });
+                ? new SO.Data.Binary(asset.data as Uint8Array, { label: p.label ? p.label : p.file.name })
+                : new SO.Data.String(asset.data as string, { label: p.label ? p.label : p.file.name });
 
             return o;
         });
     },
-    dispose({ params }, plugin: PluginContext) {
-        if (params?.file) {
-            plugin.managers.asset.release(params.file);
-        }
+    dispose({ cache }) {
+        ((cache as any)?.asset as Asset.Wrapper | undefined)?.dispose();
     },
     update({ oldParams, newParams, b }) {
         if (oldParams.label !== newParams.label) {
