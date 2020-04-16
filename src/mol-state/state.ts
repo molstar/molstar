@@ -477,7 +477,9 @@ async function update(ctx: UpdateContext) {
 
         for (let i = deletes.length - 1; i >= 0; i--) {
             const cell = ctx.cells.get(deletes[i]);
-            cell?.transform.transformer.definition.dispose?.({ b: cell.obj, params: cell.transform.params, cache: cell.cache }, ctx.parent.globalContext);
+            if (cell) {
+                dispose(cell.transform, cell.obj, cell?.transform.params, cell.cache, ctx.parent.globalContext);
+            }
         }
 
         for (const d of deletes) {
@@ -866,8 +868,10 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
         return { ref: currentRef, action: 'created', obj };
     } else {
         const oldParams = current.params.values;
+        const oldCache = current.cache;
         const newParams = params.values;
         current.params = params;
+
 
         const updateKind = !!current.obj && current.obj !== StateObject.Null
             ? await updateObject(ctx, current, transform.transformer, parent, current.obj!, oldParams, newParams)
@@ -876,7 +880,10 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
         switch (updateKind) {
             case StateTransformer.UpdateResult.Recreate: {
                 const oldObj = current.obj;
+                dispose(transform, oldObj, oldParams, oldCache, ctx.parent.globalContext);
+
                 const newObj = await createObject(ctx, current, transform.transformer, parent, newParams);
+
                 updateTag(newObj, transform);
                 current.obj = newObj;
                 return { ref: currentRef, action: 'replaced', oldObj, obj: newObj };
@@ -885,6 +892,8 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
                 updateTag(current.obj, transform);
                 return { ref: currentRef, action: 'updated', obj: current.obj! };
             case StateTransformer.UpdateResult.Null: {
+                dispose(transform, current.obj, oldParams, oldCache, ctx.parent.globalContext);
+
                 current.obj = StateObject.Null;
                 return { ref: currentRef, action: 'updated', obj: current.obj! };
             }
@@ -892,6 +901,14 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
                 return { action: 'none' };
         }
     }
+}
+
+function dispose(transform: StateTransform, b: StateObject | undefined, params: any, cache: any, globalContext: any) {
+    transform.transformer.definition.dispose?.({
+        b: b !== StateObject.Null ? b : void 0,
+        params,
+        cache
+    }, globalContext);
 }
 
 function updateTag(obj: StateObject | undefined, transform: StateTransform) {

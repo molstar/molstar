@@ -103,7 +103,16 @@ namespace Transformer {
         /** Parameter interpolation */
         interpolate?(src: P, target: P, t: number, globalCtx: unknown): P
 
-        /** Cleanup resources */
+        /**
+         * Cleanup resources
+         *
+         * Automatically called on deleting an object and on recreating it
+         * (i.e. when update returns UpdateResult.Recreate or UpdateResult.Null)
+         *
+         * Not called on UpdateResult.Updated because the resources might not
+         * have been invalidated. In this case, the possible cleanup has to be handled
+         * manually.
+         */
         dispose?(params: DisposeParams<B, P>, globalCtx: unknown): void
 
         /** Custom conversion to and from JSON */

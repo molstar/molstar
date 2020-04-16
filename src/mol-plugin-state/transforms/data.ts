@@ -88,7 +88,7 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
     apply({ params }, plugin: PluginContext) {
         return Task.create('Download Blob', async ctx => {
             const entries: SO.Data.BlobEntry[] = [];
-            const data = await ajaxGetMany(ctx, params.sources, params.maxConcurrency || 4);
+            const data = await ajaxGetMany(ctx, params.sources, params.maxConcurrency || 4, plugin.managers.asset);
 
             for (let i = 0; i < data.length; i++) {
                 const r = data[i], src = params.sources[i];
@@ -102,6 +102,12 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
             return new SO.Data.Blob(entries, { label: 'Data Blob', description: `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}` });
         });
     },
+    dispose({ params }, plugin: PluginContext) {
+        if (!params) return;
+        for (const s of params.sources) {
+            plugin.managers.asset.release({ url: s.url, body: s.body });
+        }
+    }
     // TODO: ??
     // update({ oldParams, newParams, b }) {
     //     return 0 as any;
