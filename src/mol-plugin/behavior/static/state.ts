@@ -197,7 +197,7 @@ export function Snapshots(ctx: PluginContext) {
                 'state.json': state
             };
 
-            const assets: any[] = [];
+            const assets: [UUID, Asset][] = [];
 
             // TODO: there can be duplicate entries: check for this?
             for (const { asset, file } of ctx.managers.asset.assets) {
