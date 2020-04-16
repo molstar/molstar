@@ -18,6 +18,7 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { UUID } from '../mol-util';
 import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
 import { produce } from 'immer';
+import { StructureFocusSnapshot } from '../mol-plugin-state/manager/structure/focus';
 export { PluginState };
 
 class PluginState {
@@ -45,6 +46,7 @@ class PluginState {
             cameraSnapshots: p.cameraSnapshots ? this.cameraSnapshots.getStateSnapshot() : void 0,
             canvas3d: p.canvas3d ? { props: this.plugin.canvas3d?.props } : void 0,
             interactivity: p.interactivity ? { props: this.plugin.managers.interactivity.props } : void 0,
+            structureFocus: this.plugin.managers.structure.focus.getSnapshot(),
             durationInMs: params && params.durationInMs
         };
     }
@@ -59,6 +61,9 @@ class PluginState {
         }
         if (snapshot.interactivity) {
             if (snapshot.interactivity.props) this.plugin.managers.interactivity.setProps(snapshot.interactivity.props);
+        }
+        if (snapshot.structureFocus) {
+            this.plugin.managers.structure.focus.setSnapshot(snapshot.structureFocus);
         }
         if (snapshot.cameraSnapshots) this.cameraSnapshots.setStateSnapshot(snapshot.cameraSnapshots);
         if (snapshot.animation) {
@@ -158,6 +163,7 @@ namespace PluginState {
         interactivity?: {
             props?: InteractivityManager.Props
         },
+        structureFocus?: StructureFocusSnapshot,
         durationInMs?: number
     }
 }

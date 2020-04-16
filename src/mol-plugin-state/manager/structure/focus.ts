@@ -8,15 +8,25 @@
 import { StatefulPluginComponent } from '../../component';
 import { PluginContext } from '../../../mol-plugin/context';
 import { arrayRemoveAtInPlace } from '../../../mol-util/array';
-import { StructureElement } from '../../../mol-model/structure';
+import { StructureElement, Structure } from '../../../mol-model/structure';
 import { Loci } from '../../../mol-model/loci';
 import { lociLabel } from '../../../mol-theme/label';
 import { PluginStateObject } from '../../objects';
+import { StateSelection } from '../../../mol-state';
 
 export type FocusEntry = {
     label: string
     loci: StructureElement.Loci
     category?: string
+}
+
+export interface StructureFocusSnapshot {
+    current?: {
+        label: string
+        ref: string
+        bundle: StructureElement.Bundle
+        category?: string
+    }
 }
 
 interface StructureFocusManagerState {
@@ -96,6 +106,35 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
         }
     }
 
+    getSnapshot(): StructureFocusSnapshot {
+        if (!this.current) return {};
+
+        const node = this.plugin.helpers.substructureParent.get(this.current.loci.structure);
+        const ref = node?.transform.ref;
+        if (!ref) return {};
+
+        return {
+            current: {
+                label: this.current.label,
+                ref,
+                bundle: StructureElement.Bundle.fromLoci(this.current.loci),
+                category: this.current.category
+            }
+        };
+    }
+
+    setSnapshot(snapshot: StructureFocusSnapshot) {
+        console.log(snapshot);
+        if (!snapshot.current) return;
+
+        const { label, ref, bundle, category } = snapshot.current;
+        const structure = this.plugin.state.data.select(StateSelection.Generators.byRef(ref))[0]?.obj?.data as Structure;
+        if (!structure) return;
+
+        const loci = StructureElement.Bundle.toLoci(bundle, structure);
+        this.set({ label, loci, category });
+    }
+
     // this.subscribeObservable(this.plugin.events.state.object.updated, o => {
     //     if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || !StructureElement.Loci.is(lastLoci)) return;
     //     if (lastLoci.structure === o.oldObj.data) {
@@ -103,7 +142,7 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
     //     }
     // });
 
-    constructor(plugin: PluginContext) {
+    constructor(private plugin: PluginContext) {
         super({ history: [] });
 
         plugin.state.data.events.object.removed.subscribe(o => {
