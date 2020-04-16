@@ -19,6 +19,8 @@ import { zip } from '../../../mol-util/zip/zip';
 import { PluginCommands } from '../../commands';
 import { PluginConfig } from '../../config';
 import { PluginContext } from '../../context';
+import { UUID } from '../../../mol-util';
+import { Asset } from '../../../mol-util/assets';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
