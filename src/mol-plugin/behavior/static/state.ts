@@ -199,7 +199,7 @@ export function Snapshots(ctx: PluginContext) {
                 'state.json': state
             };
 
-            const assets: any[] = [];
+            const assets: [UUID, Asset][] = [];
 
             for (const { asset, file } of ctx.managers.asset.assets) {
                 const id = Asset.isFile(asset) ? asset.id : UUID.create22();
