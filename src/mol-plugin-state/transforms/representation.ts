@@ -141,11 +141,12 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     update({ a, b, oldParams, newParams, cache }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
+            if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
+
+            // dispose isn't called on update so we need to handle it manually
             const oldProvider = plugin.representation.structure.registry.get(oldParams.type.name);
             if (oldProvider.ensureCustomProperties) oldProvider.ensureCustomProperties.detach(a.data);
             Theme.releaseDependencies(plugin.representation.structure.themes, { structure: a.data }, oldParams);
-
-            if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
 
             const provider = plugin.representation.structure.registry.get(newParams.type.name);
             const propertyCtx = { runtime: ctx, fetch: plugin.fetch };
