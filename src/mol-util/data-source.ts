@@ -10,6 +10,7 @@
 import { Task, RuntimeContext } from '../mol-task';
 import { unzip, ungzip } from './zip/zip';
 import { utf8Read } from '../mol-io/common/utf8';
+import { AssetManager } from './assets';
 
 // polyfill XMLHttpRequest in node.js
 const XHR = typeof document === 'undefined' ? require('xhr2') as {
@@ -281,7 +282,7 @@ function ajaxGetInternal<T extends DataType>(title: string | undefined, url: str
 }
 
 export type AjaxGetManyEntry<T> = { kind: 'ok', id: string, result: T } | { kind: 'error', id: string, error: any }
-export async function ajaxGetMany(ctx: RuntimeContext, sources: { id: string, url: string, isBinary?: boolean, body?: string, canFail?: boolean }[], maxConcurrency: number) {
+export async function ajaxGetMany(ctx: RuntimeContext, sources: { id: string, url: string, isBinary?: boolean, body?: string, canFail?: boolean }[], maxConcurrency: number, assetManager?: AssetManager) {
     const len = sources.length;
     const slots: AjaxGetManyEntry<string | Uint8Array>[] = new Array(sources.length);
 
@@ -290,7 +291,13 @@ export async function ajaxGetMany(ctx: RuntimeContext, sources: { id: string, ur
     let currentSrc = 0;
     for (let _i = Math.min(len, maxConcurrency); currentSrc < _i; currentSrc++) {
         const current = sources[currentSrc];
-        promises.push(wrapPromise(currentSrc, current.id, ajaxGet({ url: current.url, type: current.isBinary ? 'binary' : 'string' }).runAsChild(ctx)));
+
+        if (assetManager) {
+            promises.push(wrapPromise(currentSrc, current.id,
+                assetManager.resolve({ url: current.url, body: current.body }, current.isBinary ? 'binary' : 'string').runAsChild(ctx)));
+        } else {
+            promises.push(wrapPromise(currentSrc, current.id, ajaxGet({ url: current.url, type: current.isBinary ? 'binary' : 'string' }).runAsChild(ctx)));
+        }
         promiseKeys.push(currentSrc);
     }
 
