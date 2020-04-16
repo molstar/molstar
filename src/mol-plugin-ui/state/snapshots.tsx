@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ArrowDownward, ArrowUpward, CloudUpload, DeleteOutlined, SwapHoriz, SaveOutlined } from '@material-ui/icons';
+import { ArrowDownward, ArrowUpward, CloudUpload, DeleteOutlined, SwapHoriz, SaveOutlined, GetApp } from '@material-ui/icons';
 import { OrderedMap } from 'immutable';
 import * as React from 'react';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -19,8 +19,12 @@ import { Button, IconButton, SectionHeader } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 
 export class StateSnapshots extends PluginUIComponent<{ }> {
-    downloadToFile = () => {
-        PluginCommands.State.Snapshots.DownloadToFile(this.plugin, { });
+    downloadToFileJson = () => {
+        PluginCommands.State.Snapshots.DownloadToFile(this.plugin, { type: 'json' });
+    }
+
+    downloadToFileZip = () => {
+        PluginCommands.State.Snapshots.DownloadToFile(this.plugin, { type: 'zip' });
     }
 
     open = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,9 +41,10 @@ export class StateSnapshots extends PluginUIComponent<{ }> {
             {this.plugin.spec.components?.remoteState !== 'none' && <RemoteStateSnapshots />}
 
             <div className='msp-flex-row' style={{ marginTop: '10px' }}>
-                <Button onClick={this.downloadToFile}>Download JSON</Button>
+                <Button icon={GetApp} onClick={this.downloadToFileJson}>JSON</Button>
+                <Button icon={GetApp} onClick={this.downloadToFileZip}>ZIP</Button>
                 <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
-                    {'Open JSON'} <input onChange={this.open} type='file' multiple={false} accept='.json' />
+                    {'Open'} <input onChange={this.open} type='file' multiple={false} accept='.json,.zip' />
                 </div>
             </div>
         </div>;

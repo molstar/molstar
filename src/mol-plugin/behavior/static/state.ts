@@ -16,6 +16,10 @@ import { download } from '../../../mol-util/download';
 import { Structure } from '../../../mol-model/structure';
 import { urlCombine } from '../../../mol-util/url';
 import { PluginConfig } from '../../config';
+import { zip } from '../../../mol-util/zip/zip';
+import { utf8Write, utf8ByteCount } from '../../../mol-io/common/utf8';
+import { objectForEach } from '../../../mol-util/object';
+import { UUID } from '../../../mol-util';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -179,19 +183,55 @@ export function Snapshots(ctx: PluginContext) {
         await ctx.state.snapshots.setRemoteSnapshot(json.data);
     });
 
-    PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, ({ name }) => {
-        const json = JSON.stringify(ctx.state.getSnapshot(), null, 2);
-        const blob = new Blob([json], {type : 'application/json;charset=utf-8'});
-        download(blob, `mol-star_state_${(name || getFormattedTime())}.json`);
+    PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, async ({ name, type }) => {
+        const json = JSON.stringify(ctx.state.getSnapshot(), ctx.managers.asset.replacer, 2);
+        name = `mol-star_state_${(name || getFormattedTime())}`;
+
+        if (type === 'json') {
+            const blob = new Blob([json], {type : 'application/json;charset=utf-8'});
+            download(blob, `${name}.json`);
+        } else {
+            const state = new Uint8Array(utf8ByteCount(json));
+            utf8Write(state, 0, json);
+
+            const zipDataObj: { [k: string]: Uint8Array } = {
+                'state.json': state
+            };
+            for (const [file, id] of ctx.managers.asset.list) {
+
+                zipDataObj[`${id}/${file.name}`] = new Uint8Array(await file.arrayBuffer());
+            }
+            const zipFile = zip(zipDataObj);
+
+            const blob = new Blob([zipFile], {type : 'application/zip'});
+            download(blob, `${name}.zip`);
+        }
     });
 
     PluginCommands.State.Snapshots.OpenFile.subscribe(ctx, async ({ file }) => {
         try {
-            const data = await readFromFile(file, 'string').run();
-            const snapshot = JSON.parse(data as string);
-            return ctx.state.setSnapshot(snapshot);
+            if (file.name.toLowerCase().endsWith('json')) {
+                const data = await readFromFile(file, 'string').run();
+                const snapshot = JSON.parse(data);
+                return ctx.state.setSnapshot(snapshot);
+            } else {
+                const data = await readFromFile(file, 'zip').run();
+                objectForEach(data, (v, k) => {
+                    if (k === 'state.json') return;
+
+                    const slash = k.indexOf('/');
+                    const id = k.substring(0, slash) as UUID;
+                    const name = k.substring(slash + 1);
+                    const file = new File([v], name);
+                    ctx.managers.asset.set(id, file);
+                });
+                const stateFile = new File([data['state.json']], 'state.json');
+                const stateData = await readFromFile(stateFile, 'string').run();
+                const snapshot = JSON.parse(stateData);
+                return ctx.state.setSnapshot(snapshot);
+            }
         } catch (e) {
-            ctx.log.error(`Reading JSON state: ${e}`);
+            ctx.log.error(`Reading state: ${e}`);
         }
     });
 }
