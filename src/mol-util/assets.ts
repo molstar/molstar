@@ -92,14 +92,3 @@ class AssetManager {
 function getUrlKey(asset: Asset.Url) {
     return asset.body ? `${asset.url}_${asset.body || ''}` : asset.url;
 }
-
-namespace AssetManager {
-    export type Item = { kind: 'asset-item', id: UUID, name: string };
-    export function Item(id: UUID, name: string): Item {
-        return { kind: 'asset-item', id, name };
-    }
-
-    export function isItem(x?: any): x is Item {
-        return !!x && x?.kind === 'asset-item';
-    }
-}
