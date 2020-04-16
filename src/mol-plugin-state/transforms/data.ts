@@ -5,22 +5,33 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginStateTransform } from '../objects';
-import { PluginStateObject as SO } from '../objects';
-import { Task } from '../../mol-task';
-import { CIF } from '../../mol-io/reader/cif';
-import { PluginContext } from '../../mol-plugin/context';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StateTransformer, StateObject } from '../../mol-state';
-import { readFromFile, ajaxGetMany } from '../../mol-util/data-source';
+import { isTypedArray } from '../../mol-data/db/column-helpers';
 import * as CCP4 from '../../mol-io/reader/ccp4/parser';
+import { CIF } from '../../mol-io/reader/cif';
 import * as DSN6 from '../../mol-io/reader/dsn6/parser';
 import * as PLY from '../../mol-io/reader/ply/parser';
 import { parsePsf } from '../../mol-io/reader/psf/parser';
-import { isTypedArray } from '../../mol-data/db/column-helpers';
-import { AssetManager } from '../../mol-plugin/util/asset-manager';
+import { PluginContext } from '../../mol-plugin/context';
+import { StateObject, StateTransformer } from '../../mol-state';
+import { Task } from '../../mol-task';
+import { ajaxGetMany } from '../../mol-util/data-source';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { PluginStateObject as SO, PluginStateTransform } from '../objects';
+import { Asset } from '../../mol-util/assets';
 
 export { Download };
+export { DownloadBlob };
+export { RawData };
+export { ReadFile };
+export { ParseBlob };
+export { ParseCif };
+export { ParsePsf };
+export { ParsePly };
+export { ParseCcp4 };
+export { ParseDsn6 };
+export { ImportString };
+export { ImportJson };
+export { ParseJson };
 type Download = typeof Download
 const Download = PluginStateTransform.BuiltIn({
     name: 'download',
@@ -34,13 +45,18 @@ const Download = PluginStateTransform.BuiltIn({
         body: PD.Optional(PD.Text(''))
     }
 })({
-    apply({ params: p }, globalCtx: PluginContext) {
+    apply({ params: p }, plugin: PluginContext) {
         return Task.create('Download', async ctx => {
-            const data = await globalCtx.fetch({ url: p.url, type: p.isBinary ? 'binary' : 'string', body: p.body }).runInContext(ctx);
+            const data = await plugin.managers.asset.resolve(Asset.Url(p.url, { body: p.body }), p.isBinary ? 'binary' : 'string').runInContext(ctx);
             return p.isBinary
                 ? new SO.Data.Binary(data as Uint8Array, { label: p.label ? p.label : p.url })
                 : new SO.Data.String(data as string, { label: p.label ? p.label : p.url });
         });
+    },
+    dispose({ params: p }, plugin: PluginContext) {
+        if (p) {
+            plugin.managers.asset.release(Asset.Url(p.url, { body: p.body }));
+        }
     },
     update({ oldParams, newParams, b }) {
         if (oldParams.url !== newParams.url || oldParams.isBinary !== newParams.isBinary) return StateTransformer.UpdateResult.Recreate;
@@ -52,7 +68,6 @@ const Download = PluginStateTransform.BuiltIn({
     }
 });
 
-export { DownloadBlob };
 type DownloadBlob = typeof DownloadBlob
 const DownloadBlob = PluginStateTransform.BuiltIn({
     name: 'download-blob',
@@ -99,7 +114,6 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
     // }
 });
 
-export { RawData };
 type RawData = typeof RawData
 const RawData = PluginStateTransform.BuiltIn({
     name: 'raw-data',
@@ -131,7 +145,6 @@ const RawData = PluginStateTransform.BuiltIn({
     }
 });
 
-export { ReadFile };
 type ReadFile = typeof ReadFile
 const ReadFile = PluginStateTransform.BuiltIn({
     name: 'read-file',
@@ -151,26 +164,18 @@ const ReadFile = PluginStateTransform.BuiltIn({
                 return StateObject.Null;
             }
 
-            let file: File;
-            if (AssetManager.isItem(p.file)) {
-                if (!plugin.managers.asset.has(p.file.id)) {
-                    throw new Error(`No asset found for '${p.file.name}'`);
-                }
-                file = plugin.managers.asset.get(p.file.id)!;
-                // will be added again below with new id
-                plugin.managers.asset.remove(p.file.id);
-            } else {
-                file = p.file;
-            }
-
-            const data = await readFromFile(file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
+            const data = await plugin.managers.asset.resolve(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
             const o = p.isBinary
                 ? new SO.Data.Binary(data as Uint8Array, { label: p.label ? p.label : p.file.name })
                 : new SO.Data.String(data as string, { label: p.label ? p.label : p.file.name });
 
-            plugin.managers.asset.set(o.id, file);
             return o;
         });
+    },
+    dispose({ params }, plugin: PluginContext) {
+        if (params?.file) {
+            plugin.managers.asset.release(params.file);
+        }
     },
     update({ oldParams, newParams, b }) {
         if (oldParams.label !== newParams.label) {
@@ -182,7 +187,6 @@ const ReadFile = PluginStateTransform.BuiltIn({
     isSerializable: () => ({ isSerializable: false, reason: 'Cannot serialize user loaded files.' })
 });
 
-export { ParseBlob };
 type ParseBlob = typeof ParseBlob
 const ParseBlob = PluginStateTransform.BuiltIn({
     name: 'parse-blob',
@@ -226,7 +230,6 @@ const ParseBlob = PluginStateTransform.BuiltIn({
     // }
 });
 
-export { ParseCif };
 type ParseCif = typeof ParseCif
 const ParseCif = PluginStateTransform.BuiltIn({
     name: 'parse-cif',
@@ -243,7 +246,6 @@ const ParseCif = PluginStateTransform.BuiltIn({
     }
 });
 
-export { ParsePsf };
 type ParsePsf = typeof ParsePsf
 const ParsePsf = PluginStateTransform.BuiltIn({
     name: 'parse-psf',
@@ -260,7 +262,6 @@ const ParsePsf = PluginStateTransform.BuiltIn({
     }
 });
 
-export { ParsePly };
 type ParsePly = typeof ParsePly
 const ParsePly = PluginStateTransform.BuiltIn({
     name: 'parse-ply',
@@ -277,7 +278,6 @@ const ParsePly = PluginStateTransform.BuiltIn({
     }
 });
 
-export { ParseCcp4 };
 type ParseCcp4 = typeof ParseCcp4
 const ParseCcp4 = PluginStateTransform.BuiltIn({
     name: 'parse-ccp4',
@@ -294,7 +294,6 @@ const ParseCcp4 = PluginStateTransform.BuiltIn({
     }
 });
 
-export { ParseDsn6 };
 type ParseDsn6 = typeof ParseDsn6
 const ParseDsn6 = PluginStateTransform.BuiltIn({
     name: 'parse-dsn6',
@@ -311,7 +310,6 @@ const ParseDsn6 = PluginStateTransform.BuiltIn({
     }
 });
 
-export { ImportString };
 type ImportString = typeof ImportString
 const ImportString = PluginStateTransform.BuiltIn({
     name: 'import-string',
@@ -337,7 +335,6 @@ const ImportString = PluginStateTransform.BuiltIn({
     isSerializable: () => ({ isSerializable: false, reason: 'Cannot serialize user imported strings.' })
 });
 
-export { ImportJson };
 type ImportJson = typeof ImportJson
 const ImportJson = PluginStateTransform.BuiltIn({
     name: 'import-json',
@@ -363,7 +360,6 @@ const ImportJson = PluginStateTransform.BuiltIn({
     isSerializable: () => ({ isSerializable: false, reason: 'Cannot serialize user imported JSON.' })
 });
 
-export { ParseJson };
 type ParseJson = typeof ParseJson
 const ParseJson = PluginStateTransform.BuiltIn({
     name: 'parse-json',

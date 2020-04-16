@@ -25,6 +25,7 @@ import { Icon } from './icons';
 import { legendFor } from './legend';
 import LineGraphComponent from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
+import { Asset } from '../../mol-util/assets';
 
 export type ParameterControlsCategoryFilter = string | null | (string | null)[]
 
@@ -787,7 +788,7 @@ export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isEx
 
 export class FileControl extends React.PureComponent<ParamProps<PD.FileParam>> {
     change(value: File) {
-        this.props.onChange({ name: this.props.name, param: this.props.param, value });
+        this.props.onChange({ name: this.props.name, param: this.props.param, value: Asset.File(value) });
     }
 
     onChangeFile = (e: React.ChangeEvent<HTMLInputElement>) => {

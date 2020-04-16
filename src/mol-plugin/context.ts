@@ -53,7 +53,7 @@ import { TaskManager } from './util/task-manager';
 import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
-import { AssetManager } from './util/asset-manager';
+import { AssetManager } from '../mol-util/assets';
 
 export class PluginContext {
     runTask = <T>(task: Task<T>) => this.tasks.run(task);
@@ -152,7 +152,7 @@ export class PluginContext {
         camera: new CameraManager(this),
         lociLabels: void 0 as any as LociLabelManager,
         toast: new PluginToastManager(this),
-        asset: new AssetManager(this)
+        asset: new AssetManager()
     } as const
 
     readonly customModelProperties = new CustomProperty.Registry<Model>();

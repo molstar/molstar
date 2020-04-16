@@ -28,6 +28,7 @@ import { createModels } from '../../mol-model-formats/structure/basic/parser';
 import { CellpackPackingPreset, CellpackMembranePreset } from './preset';
 import { AjaxTask } from '../../mol-util/data-source';
 import { CellPackInfoProvider } from './property';
+import { Asset } from '../../mol-util/assets';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
@@ -392,7 +393,7 @@ async function loadMembrane(name: string, plugin: PluginContext, runtime: Runtim
     let b = state.build().toRoot();
     if (fname in ingredientFiles) {
         const file = ingredientFiles[fname];
-        b = b.apply(StateTransforms.Data.ReadFile, { file, isBinary: true, label: file.name }, { state: { isGhost: true } });
+        b = b.apply(StateTransforms.Data.ReadFile, { file: Asset.File(file), isBinary: true, label: file.name }, { state: { isGhost: true } });
     } else {
         const url = `${params.baseUrl}/membranes/${name}.bcif`;
         b = b.apply(StateTransforms.Data.Download, { url, isBinary: true, label: name }, { state: { isGhost: true } });

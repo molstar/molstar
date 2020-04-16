@@ -20,6 +20,7 @@ import { zip } from '../../../mol-util/zip/zip';
 import { utf8Write, utf8ByteCount } from '../../../mol-io/common/utf8';
 import { objectForEach } from '../../../mol-util/object';
 import { UUID } from '../../../mol-util';
+import { Asset } from '../../../mol-util/assets';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -184,7 +185,7 @@ export function Snapshots(ctx: PluginContext) {
     });
 
     PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, async ({ name, type }) => {
-        const json = JSON.stringify(ctx.state.getSnapshot(), ctx.managers.asset.replacer, 2);
+        const json = JSON.stringify(ctx.state.getSnapshot(), null, 2);
         name = `mol-star_state_${(name || getFormattedTime())}`;
 
         if (type === 'json') {
@@ -197,10 +198,22 @@ export function Snapshots(ctx: PluginContext) {
             const zipDataObj: { [k: string]: Uint8Array } = {
                 'state.json': state
             };
-            for (const [file, id] of ctx.managers.asset.list) {
 
-                zipDataObj[`${id}/${file.name}`] = new Uint8Array(await file.arrayBuffer());
+            const assets: any[] = [];
+
+            for (const { asset, file } of ctx.managers.asset.assets) {
+                const id = Asset.isFile(asset) ? asset.id : UUID.create22();
+                assets.push([id, asset]);
+                zipDataObj[`assets/${id}`] = new Uint8Array(await file.arrayBuffer());
             }
+
+            if (assets.length > 0) {
+                const index = JSON.stringify(assets, null, 2);
+                const data = new Uint8Array(utf8ByteCount(index));
+                utf8Write(data, 0, index);
+                zipDataObj['assets.json'] = data;
+            }
+
             const zipFile = zip(zipDataObj);
 
             const blob = new Blob([zipFile], {type : 'application/zip'});
@@ -211,22 +224,30 @@ export function Snapshots(ctx: PluginContext) {
     PluginCommands.State.Snapshots.OpenFile.subscribe(ctx, async ({ file }) => {
         try {
             if (file.name.toLowerCase().endsWith('json')) {
-                const data = await readFromFile(file, 'string').run();
+                const data = await ctx.runTask(readFromFile(file, 'string'));
                 const snapshot = JSON.parse(data);
                 return ctx.state.setSnapshot(snapshot);
             } else {
-                const data = await readFromFile(file, 'zip').run();
-                objectForEach(data, (v, k) => {
-                    if (k === 'state.json') return;
+                const data = await ctx.runTask(readFromFile(file, 'zip'));
+                const assets = Object.create(null);
 
-                    const slash = k.indexOf('/');
-                    const id = k.substring(0, slash) as UUID;
-                    const name = k.substring(slash + 1);
-                    const file = new File([v], name);
-                    ctx.managers.asset.set(id, file);
+                objectForEach(data, (v, k) => {
+                    if (k === 'state.json' || k === 'assets.json') return;
+                    const name = k.substring(k.indexOf('/') + 1);
+                    assets[name] = new File([v], name);
                 });
                 const stateFile = new File([data['state.json']], 'state.json');
-                const stateData = await readFromFile(stateFile, 'string').run();
+                const stateData = await ctx.runTask(readFromFile(stateFile, 'string'));
+
+                if (data['assets.json']) {
+                    const file = new File([data['assets.json']], 'assets.json');
+                    const json = JSON.parse(await ctx.runTask(readFromFile(file, 'string')));
+
+                    for (const [id, asset] of json) {
+                        ctx.managers.asset.set(asset, assets[id]);
+                    }
+                }
+
                 const snapshot = JSON.parse(stateData);
                 return ctx.state.setSnapshot(snapshot);
             }

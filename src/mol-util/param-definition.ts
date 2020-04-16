@@ -13,6 +13,7 @@ import { Script as ScriptData } from '../mol-script/script';
 import { Legend } from './legend';
 import { stringToWords } from './string';
 import { getColorListFromName, ColorListName } from './color/lists';
+import { Asset } from './assets';
 
 export namespace ParamDefinition {
     export interface Info {
@@ -147,7 +148,7 @@ export namespace ParamDefinition {
         return setInfo<Mat4>({ type: 'mat4', defaultValue }, info);
     }
 
-    export interface FileParam extends Base<File | null> {
+    export interface FileParam extends Base<Asset.File | null> {
         type: 'file'
         accept?: string
     }

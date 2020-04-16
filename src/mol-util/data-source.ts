@@ -28,9 +28,9 @@ export enum DataCompressionMethod {
     Zip,
 }
 
-type DataType = 'json' | 'xml' | 'string' | 'binary' | 'zip'
-type DataValue = 'string' | any | XMLDocument | Uint8Array
-type DataResponse<T extends DataType> =
+export type DataType = 'json' | 'xml' | 'string' | 'binary' | 'zip'
+export type DataValue = 'string' | any | XMLDocument | Uint8Array
+export type DataResponse<T extends DataType> =
     T extends 'json' ? any :
         T extends 'xml' ? XMLDocument :
             T extends 'string' ? string :

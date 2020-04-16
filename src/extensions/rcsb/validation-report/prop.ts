@@ -111,8 +111,9 @@ namespace ValidationReport {
     }
 
     export async function open(ctx: CustomProperty.Context, model: Model, props: FileSourceProps): Promise<ValidationReport> {
-        if (props.input === null) throw new Error('No file given');
-        const xml = await readFromFile(props.input, 'xml').runInContext(ctx.runtime);
+        // TODO: this should use the asset manager and release the file "somehow"
+        if (!(props.input?.file instanceof File)) throw new Error('No file given');
+        const xml = await readFromFile(props.input.file, 'xml').runInContext(ctx.runtime);
         return fromXml(xml, model);
     }
 
