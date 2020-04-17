@@ -96,7 +96,7 @@ class LocalStateSnapshots extends PluginUIComponent<
             <ParameterControls params={LocalStateSnapshots.Params} values={this.state.params} onEnter={this.add} onChange={p => {
                 const params = { ...this.state.params, [p.name]: p.value };
                 this.setState({ params } as any);
-                this.plugin.state.snapshots.currentGetSnapshotParams = params.options;
+                this.plugin.managers.snapshot.currentGetSnapshotParams = params.options;
             }}/>
 
             <div className='msp-flex-row'>
@@ -109,7 +109,7 @@ class LocalStateSnapshots extends PluginUIComponent<
 
 class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.snapshots.changed, () => this.forceUpdate());
+        this.subscribe(this.plugin.managers.snapshot.events.changed, () => this.forceUpdate());
     }
 
     apply = (e: React.MouseEvent<HTMLElement>) => {
@@ -139,13 +139,13 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
     replace = (e: React.MouseEvent<HTMLElement>) => {
         const id = e.currentTarget.getAttribute('data-id');
         if (!id) return;
-        PluginCommands.State.Snapshots.Replace(this.plugin, { id, params: this.plugin.state.snapshots.currentGetSnapshotParams });
+        PluginCommands.State.Snapshots.Replace(this.plugin, { id, params: this.plugin.managers.snapshot.currentGetSnapshotParams });
     }
 
     render() {
-        const current = this.plugin.state.snapshots.state.current;
+        const current = this.plugin.managers.snapshot.state.current;
         return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
-            {this.plugin.state.snapshots.state.entries.map(e => <li key={e!.snapshot.id}>
+            {this.plugin.managers.snapshot.state.entries.map(e => <li key={e!.snapshot.id}>
                 <Button data-id={e!.snapshot.id} onClick={this.apply}>
                     <span style={{ fontWeight: e!.snapshot.id === current ? 'bold' : void 0}}>
                         {e!.name || new Date(e!.timestamp).toLocaleString()}</span> <small>
@@ -227,11 +227,11 @@ export class RemoteStateSnapshots extends PluginUIComponent<
         this.setState({ isBusy: true });
         this.plugin.config.set(PluginConfig.State.CurrentServer, this.state.params.options.serverUrl);
 
-        if (this.plugin.state.snapshots.state.entries.size === 0) {
+        if (this.plugin.managers.snapshot.state.entries.size === 0) {
             await PluginCommands.State.Snapshots.Add(this.plugin, {
                 name: this.state.params.name,
                 description: this.state.params.options.description,
-                params: this.plugin.state.snapshots.currentGetSnapshotParams
+                params: this.plugin.managers.snapshot.currentGetSnapshotParams
             });
         }
 

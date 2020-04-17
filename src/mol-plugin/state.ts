@@ -8,8 +8,6 @@ import { State, StateTransform, StateTransformer } from '../mol-state';
 import { PluginStateObject as SO } from '../mol-plugin-state/objects';
 import { Camera } from '../mol-canvas3d/camera';
 import { PluginBehavior } from './behavior';
-import { CameraSnapshotManager } from '../mol-plugin-state/camera';
-import { PluginStateSnapshotManager } from '../mol-plugin-state/snapshots';
 import { RxEventHelper } from '../mol-util/rx-event-helper';
 import { Canvas3DProps } from '../mol-canvas3d/canvas3d';
 import { PluginCommands } from './commands';
@@ -27,8 +25,6 @@ class PluginState {
     readonly data: State;
     readonly behaviors: State;
     readonly animation: PluginAnimationManager;
-    readonly cameraSnapshots = new CameraSnapshotManager();
-    readonly snapshots: PluginStateSnapshotManager;
 
     getSnapshot(params?: PluginState.GetSnapshotParams): PluginState.Snapshot {
         const p = { ...PluginState.DefaultGetSnapshotParams, ...params };
@@ -43,7 +39,6 @@ class PluginState {
                 transitionStyle: p.cameraTranstion.name,
                 transitionDurationInMs: (params && params.cameraTranstion && params.cameraTranstion.name === 'animate') ? params.cameraTranstion.params.durationInMs : undefined
             } : void 0,
-            cameraSnapshots: p.cameraSnapshots ? this.cameraSnapshots.getStateSnapshot() : void 0,
             canvas3d: p.canvas3d ? { props: this.plugin.canvas3d?.props } : void 0,
             interactivity: p.interactivity ? { props: this.plugin.managers.interactivity.props } : void 0,
             structureFocus: this.plugin.managers.structure.focus.getSnapshot(),
@@ -65,7 +60,6 @@ class PluginState {
         if (snapshot.structureFocus) {
             this.plugin.managers.structure.focus.setSnapshot(snapshot.structureFocus);
         }
-        if (snapshot.cameraSnapshots) this.cameraSnapshots.setStateSnapshot(snapshot.cameraSnapshots);
         if (snapshot.animation) {
             this.animation.setSnapshot(snapshot.animation);
         }
@@ -107,12 +101,10 @@ class PluginState {
         this.ev.dispose();
         this.data.dispose();
         this.behaviors.dispose();
-        this.cameraSnapshots.dispose();
         this.animation.dispose();
     }
 
     constructor(private plugin: import('./context').PluginContext) {
-        this.snapshots = new PluginStateSnapshotManager(plugin);
         this.data = State.create(new SO.Root({ }), { runTask: plugin.runTask, globalContext: plugin });
         this.behaviors = State.create(new PluginBehavior.Root({ }), { runTask: plugin.runTask, globalContext: plugin, rootState: { isLocked: true } });
 
@@ -156,7 +148,6 @@ namespace PluginState {
             transitionStyle: CameraTransitionStyle,
             transitionDurationInMs?: number
         },
-        cameraSnapshots?: CameraSnapshotManager.StateSnapshot,
         canvas3d?: {
             props?: Canvas3DProps
         },

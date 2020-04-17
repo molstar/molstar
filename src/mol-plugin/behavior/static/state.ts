@@ -5,22 +5,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { utf8ByteCount, utf8Write } from '../../../mol-io/common/utf8';
 import { Structure } from '../../../mol-model/structure';
+import { PluginStateSnapshotManager } from '../../../mol-plugin-state/manager/snapshots';
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
-import { PluginStateSnapshotManager } from '../../../mol-plugin-state/snapshots';
 import { State, StateTransform, StateTree } from '../../../mol-state';
-import { readFromFile } from '../../../mol-util/data-source';
 import { getFormattedTime } from '../../../mol-util/date';
 import { download } from '../../../mol-util/download';
-import { objectForEach } from '../../../mol-util/object';
 import { urlCombine } from '../../../mol-util/url';
-import { zip } from '../../../mol-util/zip/zip';
 import { PluginCommands } from '../../commands';
 import { PluginConfig } from '../../config';
 import { PluginContext } from '../../context';
-import { UUID } from '../../../mol-util';
-import { Asset } from '../../../mol-util/assets';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -143,28 +137,28 @@ export function Snapshots(ctx: PluginContext) {
     ctx.config.set(PluginConfig.State.CurrentServer, ctx.config.get(PluginConfig.State.DefaultServer));
 
     PluginCommands.State.Snapshots.Clear.subscribe(ctx, () => {
-        ctx.state.snapshots.clear();
+        ctx.managers.snapshot.clear();
     });
 
     PluginCommands.State.Snapshots.Remove.subscribe(ctx, ({ id }) => {
-        ctx.state.snapshots.remove(id);
+        ctx.managers.snapshot.remove(id);
     });
 
     PluginCommands.State.Snapshots.Add.subscribe(ctx, ({ name, description, params }) => {
         const entry = PluginStateSnapshotManager.Entry(ctx.state.getSnapshot(params), { name, description });
-        ctx.state.snapshots.add(entry);
+        ctx.managers.snapshot.add(entry);
     });
 
     PluginCommands.State.Snapshots.Replace.subscribe(ctx, ({ id, params }) => {
-        ctx.state.snapshots.replace(id, ctx.state.getSnapshot(params));
+        ctx.managers.snapshot.replace(id, ctx.state.getSnapshot(params));
     });
 
     PluginCommands.State.Snapshots.Move.subscribe(ctx, ({ id, dir }) => {
-        ctx.state.snapshots.move(id, dir);
+        ctx.managers.snapshot.move(id, dir);
     });
 
     PluginCommands.State.Snapshots.Apply.subscribe(ctx, ({ id }) => {
-        const snapshot = ctx.state.snapshots.setCurrent(id);
+        const snapshot = ctx.managers.snapshot.setCurrent(id);
         if (!snapshot) return;
         return ctx.state.setSnapshot(snapshot);
     });
@@ -175,84 +169,22 @@ export function Snapshots(ctx: PluginContext) {
             mode: 'cors',
             referrer: 'no-referrer',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(ctx.state.snapshots.getRemoteSnapshot({ name, description, playOnLoad }))
+            body: JSON.stringify(ctx.managers.snapshot.getRemoteSnapshot({ name, description, playOnLoad }))
         }) as any as Promise<void>;
     });
 
     PluginCommands.State.Snapshots.Fetch.subscribe(ctx, async ({ url }) => {
         const json = await ctx.runTask(ctx.fetch({ url, type: 'json' })); //  fetch(url, { referrer: 'no-referrer' });
-        await ctx.state.snapshots.setRemoteSnapshot(json.data);
+        await ctx.managers.snapshot.setRemoteSnapshot(json.data);
     });
 
     PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, async ({ name, type }) => {
-        const json = JSON.stringify(ctx.state.getSnapshot(), null, 2);
-        name = `mol-star_state_${(name || getFormattedTime())}`;
-
-        if (type === 'json') {
-            const blob = new Blob([json], {type : 'application/json;charset=utf-8'});
-            download(blob, `${name}.json`);
-        } else {
-            const state = new Uint8Array(utf8ByteCount(json));
-            utf8Write(state, 0, json);
-
-            const zipDataObj: { [k: string]: Uint8Array } = {
-                'state.json': state
-            };
-
-            const assets: [UUID, Asset][] = [];
-
-            // TODO: there can be duplicate entries: check for this?
-            for (const { asset, file } of ctx.managers.asset.assets) {
-                assets.push([asset.id, asset]);
-                zipDataObj[`assets/${asset.id}`] = new Uint8Array(await file.arrayBuffer());
-            }
-
-            if (assets.length > 0) {
-                const index = JSON.stringify(assets, null, 2);
-                const data = new Uint8Array(utf8ByteCount(index));
-                utf8Write(data, 0, index);
-                zipDataObj['assets.json'] = data;
-            }
-
-            const zipFile = zip(zipDataObj);
-
-            const blob = new Blob([zipFile], {type : 'application/zip'});
-            download(blob, `${name}.zip`);
-        }
+        const filename = `mol-star_state_${(name || getFormattedTime())}.${type === 'json' ? 'molj' : 'molx'}`;
+        const data = await ctx.managers.snapshot.serialize(type);
+        download(data, `${filename}`);
     });
 
-    PluginCommands.State.Snapshots.OpenFile.subscribe(ctx, async ({ file }) => {
-        try {
-            if (file.name.toLowerCase().endsWith('json')) {
-                const data = await ctx.runTask(readFromFile(file, 'string'));
-                const snapshot = JSON.parse(data);
-                return ctx.state.setSnapshot(snapshot);
-            } else {
-                const data = await ctx.runTask(readFromFile(file, 'zip'));
-                const assets = Object.create(null);
-
-                objectForEach(data, (v, k) => {
-                    if (k === 'state.json' || k === 'assets.json') return;
-                    const name = k.substring(k.indexOf('/') + 1);
-                    assets[name] = new File([v], name);
-                });
-                const stateFile = new File([data['state.json']], 'state.json');
-                const stateData = await ctx.runTask(readFromFile(stateFile, 'string'));
-
-                if (data['assets.json']) {
-                    const file = new File([data['assets.json']], 'assets.json');
-                    const json = JSON.parse(await ctx.runTask(readFromFile(file, 'string')));
-
-                    for (const [id, asset] of json) {
-                        ctx.managers.asset.set(asset, assets[id]);
-                    }
-                }
-
-                const snapshot = JSON.parse(stateData);
-                return ctx.state.setSnapshot(snapshot);
-            }
-        } catch (e) {
-            ctx.log.error(`Reading state: ${e}`);
-        }
+    PluginCommands.State.Snapshots.OpenFile.subscribe(ctx, ({ file }) => {
+        return ctx.managers.snapshot.open(file);
     });
 }

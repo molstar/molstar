@@ -234,7 +234,7 @@ export const AnimateStateInterpolation = PluginStateAnimation.create({
     initialState: () => ({ }),
     async apply(animState, t, ctx) {
 
-        const snapshots = ctx.plugin.state.snapshots.state.entries;
+        const snapshots = ctx.plugin.managers.snapshot.state.entries;
         if (snapshots.size < 2) return { kind: 'finished' };
 
         // const totalTime = (snapshots.size - 1) * ctx.params.transtionDurationInMs;

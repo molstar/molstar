@@ -54,6 +54,7 @@ import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { AssetManager } from '../mol-util/assets';
+import { PluginStateSnapshotManager } from '../mol-plugin-state/manager/snapshots';
 
 export class PluginContext {
     runTask = <T>(task: Task<T>) => this.tasks.run(task);
@@ -76,9 +77,7 @@ export class PluginContext {
                 created: merge(this.state.data.events.object.created, this.state.behaviors.events.object.created),
                 removed: merge(this.state.data.events.object.removed, this.state.behaviors.events.object.removed),
                 updated: merge(this.state.data.events.object.updated, this.state.behaviors.events.object.updated)
-            },
-            cameraSnapshots: this.state.cameraSnapshots.events,
-            snapshots: this.state.snapshots.events,
+            }
         },
         log: this.ev<LogEntry>(),
         task: this.tasks.events,
@@ -150,6 +149,7 @@ export class PluginContext {
         },
         interactivity: void 0 as any as InteractivityManager,
         camera: new CameraManager(this),
+        snapshot: new PluginStateSnapshotManager(this),
         lociLabels: void 0 as any as LociLabelManager,
         toast: new PluginToastManager(this),
         asset: new AssetManager()

@@ -1,14 +1,19 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { List } from 'immutable';
-import { UUID } from '../mol-util';
-import { PluginState } from '../mol-plugin/state';
-import { StatefulPluginComponent } from './component';
-import { PluginContext } from '../mol-plugin/context';
+import { UUID } from '../../mol-util';
+import { PluginState } from '../../mol-plugin/state';
+import { StatefulPluginComponent } from '../component';
+import { PluginContext } from '../../mol-plugin/context';
+import { utf8ByteCount, utf8Write } from '../../mol-io/common/utf8';
+import { Asset } from '../../mol-util/assets';
+import { zip } from '../../mol-util/zip/zip';
+import { readFromFile } from '../../mol-util/data-source';
+import { objectForEach } from '../../mol-util/object';
 
 export { PluginStateSnapshotManager };
 
@@ -165,6 +170,75 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
             },
             entries: this.state.entries.valueSeq().toArray()
         };
+    }
+
+    async serialize(type: 'json' | 'zip' = 'json') {
+        const json = JSON.stringify(this.plugin.state.getSnapshot(), null, 2);
+
+        if (type === 'json') {
+            return new Blob([json], {type : 'application/json;charset=utf-8'});
+        } else {
+            const state = new Uint8Array(utf8ByteCount(json));
+            utf8Write(state, 0, json);
+
+            const zipDataObj: { [k: string]: Uint8Array } = {
+                'state.json': state
+            };
+
+            const assets: [UUID, Asset][] = [];
+
+            // TODO: there can be duplicate entries: check for this?
+            for (const { asset, file } of this.plugin.managers.asset.assets) {
+                assets.push([asset.id, asset]);
+                zipDataObj[`assets/${asset.id}`] = new Uint8Array(await file.arrayBuffer());
+            }
+
+            if (assets.length > 0) {
+                const index = JSON.stringify(assets, null, 2);
+                const data = new Uint8Array(utf8ByteCount(index));
+                utf8Write(data, 0, index);
+                zipDataObj['assets.json'] = data;
+            }
+
+            const zipFile = zip(zipDataObj);
+            return new Blob([zipFile], {type : 'application/zip'});
+        }
+    }
+
+    async open(file: File) {
+        try {
+            const fn = file.name.toLowerCase();
+            if (fn.endsWith('json') || fn.endsWith('molj')) {
+                const data = await this.plugin.runTask(readFromFile(file, 'string'));
+                const snapshot = JSON.parse(data);
+                return this.plugin.state.setSnapshot(snapshot);
+            } else {
+                const data = await this.plugin.runTask(readFromFile(file, 'zip'));
+                const assets = Object.create(null);
+
+                objectForEach(data, (v, k) => {
+                    if (k === 'state.json' || k === 'assets.json') return;
+                    const name = k.substring(k.indexOf('/') + 1);
+                    assets[name] = new File([v], name);
+                });
+                const stateFile = new File([data['state.json']], 'state.json');
+                const stateData = await this.plugin.runTask(readFromFile(stateFile, 'string'));
+
+                if (data['assets.json']) {
+                    const file = new File([data['assets.json']], 'assets.json');
+                    const json = JSON.parse(await this.plugin.runTask(readFromFile(file, 'string')));
+
+                    for (const [id, asset] of json) {
+                        this.plugin.managers.asset.set(asset, assets[id]);
+                    }
+                }
+
+                const snapshot = JSON.parse(stateData);
+                return this.plugin.state.setSnapshot(snapshot);
+            }
+        } catch (e) {
+            this.plugin.log.error(`Reading state: ${e}`);
+        }
     }
 
     private timeoutHandle: any = void 0;

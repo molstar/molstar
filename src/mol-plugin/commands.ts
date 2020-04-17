@@ -61,13 +61,7 @@ export const PluginCommands = {
     Camera: {
         Reset: PluginCommand<{ durationMs?: number, snapshot?: Partial<Camera.Snapshot> }>(),
         SetSnapshot: PluginCommand<{ snapshot: Partial<Camera.Snapshot>, durationMs?: number }>(),
-        Focus: PluginCommand<{ center: Vec3, radius: number, durationMs?: number }>(),
-        Snapshots: {
-            Add: PluginCommand<{ name?: string, description?: string }>(),
-            Remove: PluginCommand<{ id: string }>(),
-            Apply: PluginCommand<{ id: string }>(),
-            Clear: PluginCommand<{}>(),
-        }
+        Focus: PluginCommand<{ center: Vec3, radius: number, durationMs?: number }>()
     },
     Canvas3D: {
         SetSettings: PluginCommand<{ settings: Partial<Canvas3DProps> | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void) }>(),

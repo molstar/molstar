@@ -102,7 +102,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
 
     componentDidMount() {
         // TODO: this needs to be diabled when the state is updating!
-        this.subscribe(this.plugin.state.snapshots.events.changed, () => this.forceUpdate());
+        this.subscribe(this.plugin.managers.snapshot.events.changed, () => this.forceUpdate());
         this.subscribe(this.plugin.behaviors.state.isBusy, isBusy => this.setState({ isBusy }));
         this.subscribe(this.plugin.behaviors.state.isAnimating, isBusy => this.setState({ isBusy }));
 
@@ -116,7 +116,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
 
     keyUp = (e: KeyboardEvent) => {
         if (!e.ctrlKey || this.state.isBusy || e.target !== document.body) return;
-        const snapshots = this.plugin.state.snapshots;
+        const snapshots = this.plugin.managers.snapshot;
         if (e.keyCode === 37) { // left
             if (snapshots.state.isPlaying) snapshots.stop();
             this.prev();
@@ -148,23 +148,23 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
     }
 
     prev = () => {
-        const s = this.plugin.state.snapshots;
+        const s = this.plugin.managers.snapshot;
         const id = s.getNextId(s.state.current, -1);
         if (id) this.update(id);
     }
 
     next = () => {
-        const s = this.plugin.state.snapshots;
+        const s = this.plugin.managers.snapshot;
         const id = s.getNextId(s.state.current, 1);
         if (id) this.update(id);
     }
 
     togglePlay = () => {
-        this.plugin.state.snapshots.togglePlay();
+        this.plugin.managers.snapshot.togglePlay();
     }
 
     render() {
-        const snapshots = this.plugin.state.snapshots;
+        const snapshots = this.plugin.managers.snapshot;
         const count = snapshots.state.entries.size;
 
         if (count < 2 || !this.state.show) {
@@ -193,8 +193,8 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
     state = { isEmpty: true, isExpanded: false, isBusy: false, isAnimating: false, isPlaying: false };
 
     componentDidMount() {
-        this.subscribe(this.plugin.state.snapshots.events.changed, () => {
-            if (this.plugin.state.snapshots.state.isPlaying) this.setState({ isPlaying: true, isExpanded: false });
+        this.subscribe(this.plugin.managers.snapshot.events.changed, () => {
+            if (this.plugin.managers.snapshot.state.isPlaying) this.setState({ isPlaying: true, isExpanded: false });
             else this.setState({ isPlaying: false });
         });
         this.subscribe(this.plugin.behaviors.state.isBusy, isBusy => {
@@ -209,12 +209,12 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
     stop = () => {
         this.plugin.state.animation.stop();
-        this.plugin.state.snapshots.stop();
+        this.plugin.managers.snapshot.stop();
     }
 
     render() {
         // if (!this.state.show) return null;
-        const isPlaying = this.plugin.state.snapshots.state.isPlaying;
+        const isPlaying = this.plugin.managers.snapshot.state.isPlaying;
         if (isPlaying || this.state.isEmpty) return null;
 
         const isAnimating = this.state.isAnimating;
