@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Autorenew, BuildOutlined, CameraAltOutlined, Close, Crop, Fullscreen, Tune, CameraOutlined } from '@material-ui/icons';
+import { Autorenew, BuildOutlined, CameraOutlined, Close, Crop, Fullscreen, Tune } from '@material-ui/icons';
 import * as React from 'react';
 import { resizeCanvas } from '../mol-canvas3d/util';
 import { PluginCommands } from '../mol-plugin/commands';

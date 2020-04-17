@@ -17,6 +17,7 @@ import { SequenceView } from './sequence';
 import { BackgroundTaskProgress } from './task';
 import { Toasts } from './toast';
 import { Viewport, ViewportControls } from './viewport';
+import { PluginCommands } from '../mol-plugin/commands';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
@@ -61,7 +62,7 @@ class Layout extends PluginUIComponent {
 
     get layoutVisibilityClassName() {
         const layout = this.plugin.layout.state;
-        const controls = (this.plugin.spec.layout && this.plugin.spec.layout.controls) || { };
+        const controls = (this.plugin.spec.layout && this.plugin.spec.layout.controls) || {};
 
         const classList: string[] = [];
         if (controls.top === 'none' || !layout.showControls || layout.regionState.top === 'hidden') {
@@ -98,12 +99,38 @@ class Layout extends PluginUIComponent {
         return classList.join(' ');
     }
 
+    onDrop = (ev: React.DragEvent<HTMLDivElement>) => {
+        ev.preventDefault();
+
+        let file: File | undefined | null;
+        if (ev.dataTransfer.items) {
+            // Use DataTransferItemList interface to access the file(s)
+            for (let i = 0; i < ev.dataTransfer.items.length; i++) {
+                if (ev.dataTransfer.items[i].kind !== 'file') continue;
+                file = ev.dataTransfer.items[i].getAsFile();
+                break;
+            }
+        } else {
+            file = ev.dataTransfer.files[0];
+        }
+        if (!file) return;
+
+        const fn = file?.name.toLowerCase() || '';
+        if (fn.endsWith('molx') || fn.endsWith('molj')) {
+            PluginCommands.State.Snapshots.OpenFile(this.plugin, { file });
+        }
+    }
+
+    onDragOver = (ev: React.DragEvent<HTMLDivElement>) => {
+        ev.preventDefault();
+    }
+
     render() {
         const layout = this.plugin.layout.state;
-        const controls = this.plugin.spec.layout?.controls || { };
+        const controls = this.plugin.spec.layout?.controls || {};
         const viewport = this.plugin.spec.components?.viewport?.view || DefaultViewport;
 
-        return <div className='msp-plugin'>
+        return <div className='msp-plugin' onDrop={this.onDrop} onDragOver={this.onDragOver}>
             <div className={this.layoutClassName}>
                 <div className={this.layoutVisibilityClassName}>
                     {this.region('main', viewport)}
