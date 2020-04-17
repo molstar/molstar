@@ -33,7 +33,7 @@ require('../../mol-plugin-ui/skin/light.scss');
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 5;
-    static VERSION_MINOR = 0;
+    static VERSION_MINOR = 1;
 
     private _ev = RxEventHelper.create();
 
@@ -74,8 +74,8 @@ class MolStarProteopediaWrapper {
         return this.plugin.state.data;
     }
 
-    private download(b: StateBuilder.To<PSO.Root>, url: string) {
-        return b.apply(StateTransforms.Data.Download, { url: Asset.Url(url), isBinary: false });
+    private download(b: StateBuilder.To<PSO.Root>, url: string, isBinary: boolean) {
+        return b.apply(StateTransforms.Data.Download, { url: Asset.Url(url), isBinary });
     }
 
     private model(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats) {
@@ -195,8 +195,8 @@ class MolStarProteopediaWrapper {
         return PluginCommands.State.Update(this.plugin, { state: this.plugin.state.data, tree });
     }
 
-    private loadedParams: LoadParams = { url: '', format: 'cif', assemblyId: '' };
-    async load({ url, format = 'cif', assemblyId = 'deposited', representationStyle }: LoadParams) {
+    private loadedParams: LoadParams = { url: '', format: 'cif', isBinary: false, assemblyId: '' };
+    async load({ url, format = 'cif', assemblyId = 'deposited', isBinary = false, representationStyle }: LoadParams) {
         let loadType: 'full' | 'update' = 'full';
 
         const state = this.plugin.state.data;
@@ -209,7 +209,7 @@ class MolStarProteopediaWrapper {
 
         if (loadType === 'full') {
             await PluginCommands.State.RemoveObject(this.plugin, { state, ref: state.tree.root.ref });
-            const modelTree = this.model(this.download(state.build().toRoot(), url), format);
+            const modelTree = this.model(this.download(state.build().toRoot(), url, isBinary), format);
             await this.applyState(modelTree);
             const info = await this.doInfo(true);
             const asmId = (assemblyId === 'preferred' && info && info.preferredAssemblyId) || assemblyId;

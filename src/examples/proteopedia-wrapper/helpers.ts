@@ -84,6 +84,7 @@ export type SupportedFormats = 'cif' | 'pdb'
 export interface LoadParams {
     url: string,
     format?: SupportedFormats,
+    isBinary?: boolean,
     assemblyId?: string,
     representationStyle?: RepresentationStyle
 }
