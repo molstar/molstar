@@ -38,12 +38,12 @@ const DownloadStructure = StateAction.build({
                 'pdb': PD.Group({
                     provider: PD.Group({
                         id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
-                        server: PD.MappedStatic('rcsb', {
+                        server: PD.MappedStatic('pdbe', {
                             'rcsb': PD.Group({
                                 encoding: PD.Select('bcif', [['cif', 'cif'], ['bcif', 'bcif']] as ['cif' | 'bcif', string][]),
                             }, { label: 'RCSB PDB', isFlat: true }),
                             'pdbe': PD.Group({
-                                variant: PD.Select('updated', [['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'archival', string][]),
+                                variant: PD.Select('updated-bcif', [['updated-bcif', 'Updated (bcif)'], ['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'archival', string][]),
                             }, { label: 'PDBe', isFlat: true }),
                         }),
                     }, { pivot: 'id' }),
@@ -90,7 +90,9 @@ const DownloadStructure = StateAction.build({
             downloadParams = src.params.provider.server.name === 'pdbe'
                 ? src.params.provider.server.params.variant === 'updated'
                     ? getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}_updated.cif`, id => `PDBe: ${id} (updated cif)`, false)
-                    : getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}.cif`, id => `PDBe: ${id} (cif)`, false)
+                    : src.params.provider.server.params.variant === 'updated-bcif'
+                        ? getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/entry-files/download/${id.toLowerCase()}.bcif`, id => `PDBe: ${id} (updated cif)`, true)
+                        : getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}.cif`, id => `PDBe: ${id} (cif)`, false)
                 : src.params.provider.server.params.encoding === 'cif'
                     ? getDownloadParams(src.params.provider.id, id => `https://files.rcsb.org/download/${id.toUpperCase()}.cif`, id => `RCSB: ${id} (cif)`, false)
                     : getDownloadParams(src.params.provider.id, id => `https://models.rcsb.org/${id.toUpperCase()}.bcif`, id => `RCSB: ${id} (bcif)`, true);
