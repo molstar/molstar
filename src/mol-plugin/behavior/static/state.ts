@@ -30,17 +30,17 @@ export function registerDefault(ctx: PluginContext) {
 }
 
 export function SyncBehaviors(ctx: PluginContext) {
-    ctx.events.state.object.created.subscribe(o => {
+    ctx.state.events.object.created.subscribe(o => {
         if (!SO.isBehavior(o.obj)) return;
         o.obj.data.register(o.ref);
     });
 
-    ctx.events.state.object.removed.subscribe(o => {
+    ctx.state.events.object.removed.subscribe(o => {
         if (!SO.isBehavior(o.obj)) return;
         o.obj.data.unregister();
     });
 
-    ctx.events.state.object.updated.subscribe(o => {
+    ctx.state.events.object.updated.subscribe(o => {
         if (o.action === 'recreate') {
             if (o.oldObj && SO.isBehavior(o.oldObj)) o.oldObj.data.unregister();
             if (o.obj && SO.isBehavior(o.obj)) o.obj.data.register(o.ref);

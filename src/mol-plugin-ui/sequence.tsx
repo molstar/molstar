@@ -199,19 +199,19 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     componentDidMount() {
         if (this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState());
 
-        this.subscribe(this.plugin.events.state.object.updated, ({ ref, obj }) => {
+        this.subscribe(this.plugin.state.events.object.updated, ({ ref, obj }) => {
             if (ref === this.state.structureRef && obj && obj.type === PSO.Molecule.Structure.type && obj.data !== this.state.structure) {
                 this.setState(this.getInitialState());
             }
         });
 
-        this.subscribe(this.plugin.events.state.object.created, ({ obj }) => {
+        this.subscribe(this.plugin.state.events.object.created, ({ obj }) => {
             if (obj && obj.type === PSO.Molecule.Structure.type) {
                 this.setState(this.getInitialState());
             }
         });
 
-        this.subscribe(this.plugin.events.state.object.removed, ({ obj }) => {
+        this.subscribe(this.plugin.state.events.object.removed, ({ obj }) => {
             if (obj && obj.type === PSO.Molecule.Structure.type && obj.data === this.state.structure) {
                 this.setState(this.getInitialState());
             }

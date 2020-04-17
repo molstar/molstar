@@ -64,7 +64,7 @@ export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<
     state = { showOptions: false }
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
             if (State.ObjectEvent.isCell(e, this.pivot?.cell)) this.forceUpdate();
         });
     }

@@ -41,7 +41,7 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
                 description: StructureHierarchyManager.getSelectedStructuresDescription(this.plugin)
             });
         });
-        this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
             if (StateTransform.hasTag(e.cell.transform, VolumeStreaming.RootTag)) this.forceUpdate();
         });
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {

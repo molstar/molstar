@@ -211,7 +211,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
     state = { showUpdate: false }
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
             this.forceUpdate();
         });
     }

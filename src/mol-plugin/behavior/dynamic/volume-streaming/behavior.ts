@@ -221,14 +221,14 @@ export namespace VolumeStreaming {
         register(ref: string): void {
             this.ref = ref;
 
-            this.subscribeObservable(this.plugin.events.state.object.removed, o => {
+            this.subscribeObservable(this.plugin.state.events.object.removed, o => {
                 if (!PluginStateObject.Molecule.Structure.is(o.obj) || !StructureElement.Loci.is(this.lastLoci)) return;
                 if (this.lastLoci.structure === o.obj.data) {
                     this.lastLoci = EmptyLoci;
                 }
             });
 
-            this.subscribeObservable(this.plugin.events.state.object.updated, o => {
+            this.subscribeObservable(this.plugin.state.events.object.updated, o => {
                 if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || !StructureElement.Loci.is(this.lastLoci)) return;
                 if (this.lastLoci.structure === o.oldObj.data) {
                     this.lastLoci = EmptyLoci;

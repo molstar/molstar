@@ -69,18 +69,6 @@ export class PluginContext {
     readonly commands = new PluginCommandManager();
 
     readonly events = {
-        state: {
-            cell: {
-                stateUpdated: merge(this.state.data.events.cell.stateUpdated, this.state.behaviors.events.cell.stateUpdated),
-                created: merge(this.state.data.events.cell.created, this.state.behaviors.events.cell.created),
-                removed: merge(this.state.data.events.cell.removed, this.state.behaviors.events.cell.removed),
-            },
-            object: {
-                created: merge(this.state.data.events.object.created, this.state.behaviors.events.object.created),
-                removed: merge(this.state.data.events.object.removed, this.state.behaviors.events.object.removed),
-                updated: merge(this.state.data.events.object.updated, this.state.behaviors.events.object.updated)
-            }
-        },
         log: this.ev<LogEntry>(),
         task: this.tasks.events,
         canvas3d: {
@@ -246,8 +234,8 @@ export class PluginContext {
         this.tasks.dispose();
         this.layout.dispose();
 
-        objectForEach(this.managers, m => (m as any).dispose?.());
-        objectForEach(this.managers.structure, m => (m as any).dispose?.());
+        objectForEach(this.managers, m => (m as any)?.dispose?.());
+        objectForEach(this.managers.structure, m => (m as any)?.dispose?.());
 
         this.disposed = true;
     }

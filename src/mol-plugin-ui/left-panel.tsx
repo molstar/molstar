@@ -146,11 +146,11 @@ class FullSettings extends PluginUIComponent {
 
 class RemoveAllButton extends PluginUIComponent<{ }> {
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.cell.created, e => {
+        this.subscribe(this.plugin.state.events.cell.created, e => {
             if (e.cell.transform.parent === StateTransform.RootRef) this.forceUpdate();
         });
 
-        this.subscribe(this.plugin.events.state.cell.removed, e => {
+        this.subscribe(this.plugin.state.events.cell.removed, e => {
             if (e.parent === StateTransform.RootRef) this.forceUpdate();
         });
     }

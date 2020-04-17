@@ -218,7 +218,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
             if (State.ObjectEvent.isCell(e, this.pivot.cell)) this.forceUpdate();
         });
     }
@@ -378,7 +378,7 @@ class StructureRepresentationEntry extends PurePluginUIComponent<{ group: Struct
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
             if (State.ObjectEvent.isCell(e, this.props.representation.cell)) this.forceUpdate();
         });
     }

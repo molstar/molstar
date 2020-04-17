@@ -135,7 +135,7 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
         this.set({ label, loci, category });
     }
 
-    // this.subscribeObservable(this.plugin.events.state.object.updated, o => {
+    // this.subscribeObservable(this.plugin.state.events.object.updated, o => {
     //     if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || !StructureElement.Loci.is(lastLoci)) return;
     //     if (lastLoci.structure === o.oldObj.data) {
     //         lastLoci = EmptyLoci;

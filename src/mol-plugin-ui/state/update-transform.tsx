@@ -72,7 +72,7 @@ class UpdateTransformControl extends TransformControlBase<UpdateTransformControl
 
         if (this.props.toggleCollapsed) this.subscribe(this.props.toggleCollapsed, () => this.setState({ isCollapsed: !this.state.isCollapsed }));
 
-        this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
+        this.subscribe(this.plugin.state.events.object.updated, ({ ref, state }) => {
             if (this.props.transform.ref !== ref || this.props.state !== state) return;
             if (this.state.params !== this.props.transform.params) {
                 this._getInfo = memoizeLatest((t: StateTransform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, t));
@@ -100,7 +100,7 @@ class UpdateTransformControl extends TransformControlBase<UpdateTransformControl
 
 class TransformUpdaterControl extends PluginUIComponent<{ nodeRef: string, initiallyCollapsed?: boolean, header?: StateTransformer.Definition['display'] }> {
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
+        this.subscribe(this.plugin.state.events.object.updated, ({ ref, state }) => {
             if (this.props.nodeRef !== ref || this.plugin.state.data !== state) return;
             this.forceUpdate();
         });

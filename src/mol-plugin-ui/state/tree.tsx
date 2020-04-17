@@ -22,11 +22,11 @@ export class StateTree extends PluginUIComponent<{ state: State }, { showActions
     state = { showActions: true };
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.cell.created, e => {
+        this.subscribe(this.plugin.state.events.cell.created, e => {
             if (e.cell.transform.parent === StateTransform.RootRef) this.forceUpdate();
         });
 
-        this.subscribe(this.plugin.events.state.cell.removed, e => {
+        this.subscribe(this.plugin.state.events.cell.removed, e => {
             if (e.parent === StateTransform.RootRef) this.forceUpdate();
         });
     }
@@ -61,7 +61,7 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
             if (this.props.cell === e.cell && this.is(e) && e.state.cells.has(this.ref)) {
                 if (this.state.isCollapsed !== !!e.cell.state.isCollapsed
                     || this.state.isNull !== StateTreeNode.isNull(e.cell)
@@ -71,13 +71,13 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
             }
         });
 
-        this.subscribe(this.plugin.events.state.cell.created, e => {
+        this.subscribe(this.plugin.state.events.cell.created, e => {
             if (this.props.cell.parent === e.state && this.ref === e.cell.transform.parent) {
                 this.forceUpdate();
             }
         });
 
-        this.subscribe(this.plugin.events.state.cell.removed, e => {
+        this.subscribe(this.plugin.state.events.cell.removed, e => {
             if (this.props.cell.parent === e.state && this.ref === e.parent) {
                 this.forceUpdate();
             }
@@ -157,7 +157,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.cell.stateUpdated.pipe(filter(e => this.is(e)), debounceTime(33)), e => {
+        this.subscribe(this.plugin.state.events.cell.stateUpdated.pipe(filter(e => this.is(e)), debounceTime(33)), e => {
             this.forceUpdate();
         });
 

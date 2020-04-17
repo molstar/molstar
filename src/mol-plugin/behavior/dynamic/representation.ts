@@ -145,10 +145,10 @@ export const SelectLoci = PluginBehavior.create({
             });
             this.ctx.managers.interactivity.lociSelects.addProvider(this.lociMarkProvider);
 
-            this.subscribeObservable(this.ctx.events.state.object.created, ({ ref }) => this.applySelectMark(ref));
+            this.subscribeObservable(this.ctx.state.events.object.created, ({ ref }) => this.applySelectMark(ref));
 
             // re-apply select-mark to all representation of an updated structure
-            this.subscribeObservable(this.ctx.events.state.object.updated, ({ ref }) => {
+            this.subscribeObservable(this.ctx.state.events.object.updated, ({ ref }) => {
                 const cell = this.ctx.state.data.cells.get(ref);
                 if (cell && SO.Molecule.Structure.is(cell.obj)) {
                     const reprs = this.ctx.state.data.select(StateSelection.Generators.ofType(SO.Molecule.Structure.Representation3D, ref));

@@ -16,6 +16,7 @@ import { UUID } from '../mol-util';
 import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
 import { produce } from 'immer';
 import { StructureFocusSnapshot } from '../mol-plugin-state/manager/structure/focus';
+import { merge } from 'rxjs';
 
 export { PluginState };
 
@@ -24,6 +25,19 @@ class PluginState {
 
     readonly data: State;
     readonly behaviors: State;
+
+    readonly events = {
+        cell: {
+            stateUpdated: merge(this.data.events.cell.stateUpdated, this.behaviors.events.cell.stateUpdated),
+            created: merge(this.data.events.cell.created, this.behaviors.events.cell.created),
+            removed: merge(this.data.events.cell.removed, this.behaviors.events.cell.removed),
+        },
+        object: {
+            created: merge(this.data.events.object.created, this.behaviors.events.object.created),
+            removed: merge(this.data.events.object.removed, this.behaviors.events.object.removed),
+            updated: merge(this.data.events.object.updated, this.behaviors.events.object.updated)
+        }
+    } as const
 
     getSnapshot(params?: PluginState.GetSnapshotParams): PluginState.Snapshot {
         const p = { ...PluginState.DefaultGetSnapshotParams, ...params };

@@ -22,7 +22,7 @@ export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRe
         //     this.setState(createStateObjectActionSelectState(this.props));
         // });
 
-        this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
+        this.subscribe(this.plugin.state.events.object.updated, ({ ref, state }) => {
             const current = this.current;
             if (current.ref !== ref || current.state !== state) return;
             this.forceUpdate();
