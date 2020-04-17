@@ -221,7 +221,7 @@
                     var l = document.createElement('button');
                     l.innerText = r.name;
                     l.onclick = function () {
-                        PluginWrapper.hetGroups.focusFirst(r.name);
+                        PluginWrapper.hetGroups.focusFirst(r.name, { doNotLabelWaters: true });
                     };
                     div.appendChild(l);
                 });

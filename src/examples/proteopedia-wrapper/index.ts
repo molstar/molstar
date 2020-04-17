@@ -33,7 +33,7 @@ require('../../mol-plugin-ui/skin/light.scss');
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 5;
-    static VERSION_MINOR = 1;
+    static VERSION_MINOR = 2;
 
     private _ev = RxEventHelper.create();
 
@@ -354,11 +354,9 @@ class MolStarProteopediaWrapper {
             PluginCommands.State.Update(this.plugin, { state: this.state, tree: update });
             PluginCommands.Camera.Reset(this.plugin, { });
         },
-        focusFirst: async (compId: string) => {
+        focusFirst: async (compId: string, options?: { hideLabels: boolean, doNotLabelWaters: boolean }) => {
             if (!this.state.transforms.has(StateElements.Assembly)) return;
             await PluginCommands.Camera.Reset(this.plugin, { });
-
-            // const asm = (this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure).data;
 
             const update = this.state.build();
 
@@ -372,13 +370,10 @@ class MolStarProteopediaWrapper {
             ]);
             const surroundings = MS.struct.modifier.includeSurroundings({ 0: core, radius: 5, 'as-whole-residues': true });
 
-            const onlySurroundings = MS.struct.modifier.exceptBy({ 0: surroundings, by: core });
-
             const group = update.to(StateElements.Assembly).group(StateTransforms.Misc.CreateGroup, { label: compId }, { ref: StateElements.HetGroupFocusGroup });
-
             const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
-
             const coreSel = group.apply(StateTransforms.Model.StructureSelectionFromExpression, { label: 'Core', expression: core }, { ref: StateElements.HetGroupFocus });
+
 
             coreSel.apply(StateTransforms.Representation.StructureRepresentation3D, createStructureRepresentationParams(this.plugin, asm.data, {
                 type: 'ball-and-stick'
@@ -395,52 +390,30 @@ class MolStarProteopediaWrapper {
                     size: 'uniform', sizeParams: { value: 0.33 }
                 }));
 
-            group.apply(StateTransforms.Model.StructureSelectionFromExpression, { label: 'Surroundings (only)', expression: onlySurroundings })
-                .apply(StateTransforms.Representation.StructureRepresentation3D, createStructureRepresentationParams(this.plugin, asm.data, {
-                    type: 'label',
-                    typeParams: { level: 'residue' }
-                }), { tags: ['proteopedia-labels'] }); // the tag can later be used to toggle the labels
+            if (!options?.hideLabels) {
+                // Labels
+                const waters = MS.struct.generator.atomGroups({
+                    'entity-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.entityType(), 'water']),
+                });
+                const exclude = options?.doNotLabelWaters ? MS.struct.combinator.merge([core, waters]) : core;
+                const onlySurroundings = MS.struct.modifier.exceptBy({ 0: surroundings, by: exclude });
 
-            // sel.apply(StateTransforms.Representation.StructureLabels3D, {
-            //     target: { name: 'residues', params: { } },
-            //     options: {
-            //         ...ParamDefinition.getDefaultValues(Text.Params),
-            //         background: true,
-            //         backgroundMargin: 0.2,
-            //         backgroundColor: ColorNames.snow,
-            //         backgroundOpacity: 0.9,
-            //     }
-            // });
+                group.apply(StateTransforms.Model.StructureSelectionFromExpression, { label: 'Surroundings (only)', expression: onlySurroundings })
+                    .apply(StateTransforms.Representation.StructureRepresentation3D, createStructureRepresentationParams(this.plugin, asm.data, {
+                        type: 'label',
+                        typeParams: { level: 'residue' }
+                    }), { tags: ['proteopedia-labels'] }); // the tag can later be used to toggle the labels
+            }
 
             await PluginCommands.State.Update(this.plugin, { state: this.state, tree: update });
 
             const focus = (this.state.select(StateElements.HetGroupFocus)[0].obj as PluginStateObject.Molecule.Structure).data;
             const sphere = focus.boundary.sphere;
-            // const asmCenter = asm.boundary.sphere.center;
-            // const position = Vec3.sub(Vec3.zero(), sphere.center, asmCenter);
-            // Vec3.normalize(position, position);
-            // Vec3.scaleAndAdd(position, sphere.center, position, sphere.radius);
             const radius = Math.max(sphere.radius, 5);
             const snapshot = this.plugin.canvas3d!.camera.getFocus(sphere.center, radius);
             PluginCommands.Camera.SetSnapshot(this.plugin, { snapshot, durationMs: 250 });
         }
     }
-
-    // private createSurVisualParams() {
-    //     const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
-    //     return createStructureRepresentationParams(this.plugin, asm.data, {
-    //         type: 'ball-and-stick',
-    //         color: 'uniform', colorParams: { value: ColorNames.gray },
-    //         size: 'uniform', sizeParams: { value: 0.33 }
-    //     });
-    // }
-
-    // private createCoreVisualParams() {
-    //     const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
-    //     return createStructureRepresentationParams(this.plugin, asm.data, {
-    //         type: 'ball-and-stick'
-    //     });
-    // }
 
     snapshot = {
         get: () => {
