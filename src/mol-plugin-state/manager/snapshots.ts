@@ -283,7 +283,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     togglePlay() {
         if (this.state.isPlaying) {
             this.stop();
-            this.plugin.state.animation.stop();
+            this.plugin.managers.animation.stop();
         } else {
             this.play();
         }

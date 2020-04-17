@@ -6,7 +6,7 @@
 
 import { StatefulPluginComponent } from '../component';
 import { PluginContext } from '../../mol-plugin/context';
-import { PluginStateAnimation } from './model';
+import { PluginStateAnimation } from '../animation/model';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 export { PluginAnimationManager };

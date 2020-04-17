@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -8,23 +8,22 @@ import { State, StateTransform, StateTransformer } from '../mol-state';
 import { PluginStateObject as SO } from '../mol-plugin-state/objects';
 import { Camera } from '../mol-canvas3d/camera';
 import { PluginBehavior } from './behavior';
-import { RxEventHelper } from '../mol-util/rx-event-helper';
 import { Canvas3DProps } from '../mol-canvas3d/canvas3d';
 import { PluginCommands } from './commands';
-import { PluginAnimationManager } from '../mol-plugin-state/animation/manager';
+import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { UUID } from '../mol-util';
 import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
 import { produce } from 'immer';
 import { StructureFocusSnapshot } from '../mol-plugin-state/manager/structure/focus';
+
 export { PluginState };
 
 class PluginState {
-    private ev = RxEventHelper.create();
+    private get animation() { return this.plugin.managers.animation; }
 
     readonly data: State;
     readonly behaviors: State;
-    readonly animation: PluginAnimationManager;
 
     getSnapshot(params?: PluginState.GetSnapshotParams): PluginState.Snapshot {
         const p = { ...PluginState.DefaultGetSnapshotParams, ...params };
@@ -76,11 +75,6 @@ class PluginState {
         }
     }
 
-    applyTransform(state: State, a: StateTransform.Ref, transformer: StateTransformer, params: any) {
-        const tree = state.build().to(a).apply(transformer, params);
-        return PluginCommands.State.Update(this.plugin, { state, tree });
-    }
-
     updateTransform(state: State, a: StateTransform.Ref, params: any, canUndo?: string | boolean) {
         const tree = state.build().to(a).update(params);
         return PluginCommands.State.Update(this.plugin, { state, tree, options: { canUndo } });
@@ -98,7 +92,6 @@ class PluginState {
     }
 
     dispose() {
-        this.ev.dispose();
         this.data.dispose();
         this.behaviors.dispose();
         this.animation.dispose();
@@ -107,14 +100,10 @@ class PluginState {
     constructor(private plugin: import('./context').PluginContext) {
         this.data = State.create(new SO.Root({ }), { runTask: plugin.runTask, globalContext: plugin });
         this.behaviors = State.create(new PluginBehavior.Root({ }), { runTask: plugin.runTask, globalContext: plugin, rootState: { isLocked: true } });
-
-        this.animation = new PluginAnimationManager(plugin);
     }
 }
 
 namespace PluginState {
-    export type Kind = 'data' | 'behavior'
-
     export type CameraTransitionStyle = 'instant' | 'animate'
     export const GetSnapshotParams = {
         durationInMs: PD.Numeric(1500, { min: 100, max: 15000, step: 100 }, { label: 'Duration in ms' }),
@@ -125,8 +114,6 @@ namespace PluginState {
         canvas3d: PD.Boolean(true),
         interactivity: PD.Boolean(true),
         camera: PD.Boolean(true),
-        // TODO: make camera snapshots same as the StateSnapshots with "child states?"
-        cameraSnapshots: PD.Boolean(false),
         cameraTranstion: PD.MappedStatic('animate', {
             animate: PD.Group({
                 durationInMs: PD.Numeric(250, { min: 100, max: 5000, step: 500 }, { label: 'Duration in ms' }),

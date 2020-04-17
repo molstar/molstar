@@ -55,6 +55,8 @@ import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { AssetManager } from '../mol-util/assets';
 import { PluginStateSnapshotManager } from '../mol-plugin-state/manager/snapshots';
+import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
+import { objectForEach } from '../mol-util/object';
 
 export class PluginContext {
     runTask = <T>(task: Task<T>) => this.tasks.run(task);
@@ -149,6 +151,7 @@ export class PluginContext {
         },
         interactivity: void 0 as any as InteractivityManager,
         camera: new CameraManager(this),
+        animation: new PluginAnimationManager(this),
         snapshot: new PluginStateSnapshotManager(this),
         lociLabels: void 0 as any as LociLabelManager,
         toast: new PluginToastManager(this),
@@ -242,6 +245,10 @@ export class PluginContext {
         this.state.dispose();
         this.tasks.dispose();
         this.layout.dispose();
+
+        objectForEach(this.managers, m => (m as any).dispose?.());
+        objectForEach(this.managers.structure, m => (m as any).dispose?.());
+
         this.disposed = true;
     }
 
@@ -326,7 +333,7 @@ export class PluginContext {
     private initAnimations() {
         if (!this.spec.animations) return;
         for (const anim of this.spec.animations) {
-            this.state.animation.register(anim);
+            this.managers.animation.register(anim);
         }
     }
 

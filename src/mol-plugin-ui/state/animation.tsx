@@ -12,19 +12,19 @@ import { PlayArrow } from '@material-ui/icons';
 
 export class AnimationControls extends PluginUIComponent<{ onStart?: () => void }> {
     componentDidMount() {
-        this.subscribe(this.plugin.state.animation.events.updated, () => this.forceUpdate());
+        this.subscribe(this.plugin.managers.animation.events.updated, () => this.forceUpdate());
     }
 
     updateParams: ParamOnChange = p => {
-        this.plugin.state.animation.updateParams({ [p.name]: p.value });
+        this.plugin.managers.animation.updateParams({ [p.name]: p.value });
     }
 
     updateCurrentParams: ParamOnChange = p => {
-        this.plugin.state.animation.updateCurrentParams({ [p.name]: p.value });
+        this.plugin.managers.animation.updateCurrentParams({ [p.name]: p.value });
     }
 
     startOrStop = () => {
-        const anim = this.plugin.state.animation;
+        const anim = this.plugin.managers.animation;
         if (anim.state.animationState === 'playing') anim.stop();
         else {
             if (this.props.onStart) this.props.onStart();
@@ -33,7 +33,7 @@ export class AnimationControls extends PluginUIComponent<{ onStart?: () => void 
     }
 
     render() {
-        const anim = this.plugin.state.animation;
+        const anim = this.plugin.managers.animation;
         if (anim.isEmpty) return null;
 
         const isDisabled = anim.state.animationState === 'playing';
