@@ -56,7 +56,7 @@ class PluginState {
             canvas3d: p.canvas3d ? { props: this.plugin.canvas3d?.props } : void 0,
             interactivity: p.interactivity ? { props: this.plugin.managers.interactivity.props } : void 0,
             structureFocus: this.plugin.managers.structure.focus.getSnapshot(),
-            durationInMs: params && params.durationInMs
+            durationInMs: p?.durationInMs
         };
     }
 

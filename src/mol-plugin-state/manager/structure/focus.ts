@@ -124,7 +124,6 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
     }
 
     setSnapshot(snapshot: StructureFocusSnapshot) {
-        console.log(snapshot);
         if (!snapshot.current) return;
 
         const { label, ref, bundle, category } = snapshot.current;

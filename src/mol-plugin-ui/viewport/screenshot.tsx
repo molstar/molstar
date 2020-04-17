@@ -145,10 +145,10 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                 <Button icon={Launch} onClick={this.openTab} disabled={this.state.isDisabled}>Open in new Tab</Button>
             </div>
             <ParameterControls params={this.plugin.helpers.viewportScreenshot!.params} values={this.plugin.helpers.viewportScreenshot!.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
-            <ExpandGroup header='State Snapshot' accent>
+            <ExpandGroup header='State Snapshot'>
                 <StateExportImportControls />
-                <div className='msp-help-description' style={{ padding: '10px'}}>
-                    <Icon svg={Warning} /> This is an experimental feature and states stored today might not be openable in an upcoming version.
+                <div className='msp-help-text' style={{ padding: '10px'}}>
+                    <Icon svg={Warning} /> This is an experimental feature and stored states might not be openable in a future version.
                 </div>
             </ExpandGroup>
         </div>;

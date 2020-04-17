@@ -129,7 +129,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         return this.state.entries.get(idx).snapshot.id;
     }
 
-    async setRemoteSnapshot(snapshot: PluginStateSnapshotManager.RemoteSnapshot): Promise<PluginState.Snapshot | undefined> {
+    async setStateSnapshot(snapshot: PluginStateSnapshotManager.StateSnapshot): Promise<PluginState.Snapshot | undefined> {
         this.clear();
         const entries = List<PluginStateSnapshotManager.Entry>().asMutable();
         for (const e of snapshot.entries) {
@@ -157,8 +157,21 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         return next;
     }
 
-    getRemoteSnapshot(options?: { name?: string, description?: string, playOnLoad?: boolean }): PluginStateSnapshotManager.RemoteSnapshot {
+    private syncCurrent(options?: { name?: string, description?: string, params?: PluginState.GetSnapshotParams }) {
+        const snapshot = this.plugin.state.getSnapshot(options?.params);
+        if (this.state.entries.size === 0 || !this.state.current) {
+            this.add(PluginStateSnapshotManager.Entry(snapshot, { name: options?.name, description: options?.description }));
+        } else {
+            this.replace(this.state.current, snapshot);
+        }
+    }
+
+    getStateSnapshot(options?: { name?: string, description?: string, playOnLoad?: boolean, params?: PluginState.GetSnapshotParams }): PluginStateSnapshotManager.StateSnapshot {
         // TODO: diffing and all that fancy stuff
+
+        // TODO: the options need to be handled better, particularky options.params
+        this.syncCurrent(options);
+
         return {
             timestamp: +new Date(),
             name: options && options.name,
@@ -173,7 +186,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     }
 
     async serialize(type: 'json' | 'zip' = 'json') {
-        const json = JSON.stringify(this.plugin.state.getSnapshot(), null, 2);
+        const json = JSON.stringify(this.getStateSnapshot(), null, 2);
 
         if (type === 'json') {
             return new Blob([json], {type : 'application/json;charset=utf-8'});
@@ -234,7 +247,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                 }
 
                 const snapshot = JSON.parse(stateData);
-                return this.plugin.state.setSnapshot(snapshot);
+                return this.setStateSnapshot(snapshot);
             }
         } catch (e) {
             this.plugin.log.error(`Reading state: ${e}`);
@@ -312,7 +325,7 @@ namespace PluginStateSnapshotManager {
         return { timestamp: +new Date(), snapshot, ...params };
     }
 
-    export interface RemoteSnapshot {
+    export interface StateSnapshot {
         timestamp: number,
         name?: string,
         description?: string,

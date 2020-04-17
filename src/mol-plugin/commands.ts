@@ -34,7 +34,7 @@ export const PluginCommands = {
             Apply: PluginCommand<{ id: string }>(),
             Clear: PluginCommand<{}>(),
 
-            Upload: PluginCommand<{ name?: string, description?: string, playOnLoad?: boolean, serverUrl: string }>(),
+            Upload: PluginCommand<{ name?: string, description?: string, playOnLoad?: boolean, serverUrl: string, params?: PluginState.GetSnapshotParams }>(),
             Fetch: PluginCommand<{ url: string }>(),
 
             DownloadToFile: PluginCommand<{ name?: string, type: 'json' | 'zip' }>(),

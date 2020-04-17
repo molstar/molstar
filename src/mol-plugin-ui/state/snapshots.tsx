@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ArrowDownward, ArrowUpward, CloudUpload, DeleteOutlined, SwapHoriz, SaveOutlined, GetApp } from '@material-ui/icons';
+import { ArrowDownward, ArrowUpward, CloudUpload, DeleteOutlined, GetApp, OpenInBrowser, SaveOutlined, SwapHoriz } from '@material-ui/icons';
 import { OrderedMap } from 'immutable';
 import * as React from 'react';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -16,6 +16,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { urlCombine } from '../../mol-util/url';
 import { PluginUIComponent, PurePluginUIComponent } from '../base';
 import { Button, IconButton, SectionHeader } from '../controls/common';
+import { Icon } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 
 export class StateSnapshots extends PluginUIComponent<{}> {
@@ -50,10 +51,14 @@ export class StateExportImportControls extends PluginUIComponent {
 
     render() {
         return <div className='msp-flex-row'>
-            <Button icon={GetApp} onClick={this.downloadToFileJson} title='Save state description'>Base</Button>
-            <Button icon={GetApp} onClick={this.downloadToFileZip} title='Save state including the data as zip.'>All</Button>
+            <Button icon={GetApp} onClick={this.downloadToFileJson} title='Save the state description. Input data are loaded using the provided sources. Does not work if local files are used as input.'>
+                Base
+            </Button>
+            <Button icon={GetApp} onClick={this.downloadToFileZip} title='Save the state including the input data.'>
+                Full
+            </Button>
             <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
-                {'Open'} <input onChange={this.open} type='file' multiple={false} accept='.json,.zip' />
+                <Icon svg={OpenInBrowser} inline /> Open <input onChange={this.open} type='file' multiple={false} accept='.json,.zip' />
             </div>
         </div>;
     }
@@ -152,20 +157,19 @@ class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
 
     render() {
         const current = this.plugin.managers.snapshot.state.current;
-        return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
-            {this.plugin.managers.snapshot.state.entries.map(e => <li key={e!.snapshot.id}>
-                <Button data-id={e!.snapshot.id} onClick={this.apply}>
+        return <ul style={{ listStyle: 'none', marginTop: '1px' }} className='msp-state-list'>
+            {this.plugin.managers.snapshot.state.entries.map(e => <li key={e!.snapshot.id} className='msp-flex-row'>
+                <Button data-id={e!.snapshot.id} onClick={this.apply} className='msp-no-overflow'>
+                    {(console.log(e!.snapshot.durationInMs), false)}
                     <span style={{ fontWeight: e!.snapshot.id === current ? 'bold' : void 0 }}>
                         {e!.name || new Date(e!.timestamp).toLocaleString()}</span> <small>
                         {`${e!.snapshot.durationInMs ? formatTimespan(e!.snapshot.durationInMs, false) + `${e!.description ? ', ' : ''}` : ''}${e!.description ? e!.description : ''}`}
                     </small>
                 </Button>
-                <div>
-                    <IconButton svg={ArrowUpward} data-id={e!.snapshot.id} title='Move Up' onClick={this.moveUp} small={true} />
-                    <IconButton svg={ArrowDownward} data-id={e!.snapshot.id} title='Move Down' onClick={this.moveDown} small={true} />
-                    <IconButton svg={SwapHoriz} data-id={e!.snapshot.id} title='Replace' onClick={this.replace} small={true} />
-                    <IconButton svg={DeleteOutlined} data-id={e!.snapshot.id} title='Remove' onClick={this.remove} small={true} />
-                </div>
+                <IconButton svg={ArrowUpward} data-id={e!.snapshot.id} title='Move Up' onClick={this.moveUp} flex='20px' />
+                <IconButton svg={ArrowDownward} data-id={e!.snapshot.id} title='Move Down' onClick={this.moveDown} flex='20px' />
+                <IconButton svg={SwapHoriz} data-id={e!.snapshot.id} title='Replace' onClick={this.replace} flex='20px' />
+                <IconButton svg={DeleteOutlined} data-id={e!.snapshot.id} title='Remove' onClick={this.remove} flex='20px' />
             </li>)}
         </ul>;
     }
@@ -235,20 +239,14 @@ export class RemoteStateSnapshots extends PluginUIComponent<
         this.setState({ isBusy: true });
         this.plugin.config.set(PluginConfig.State.CurrentServer, this.state.params.options.serverUrl);
 
-        if (this.plugin.managers.snapshot.state.entries.size === 0) {
-            await PluginCommands.State.Snapshots.Add(this.plugin, {
-                name: this.state.params.name,
-                description: this.state.params.options.description,
-                params: this.plugin.managers.snapshot.currentGetSnapshotParams
-            });
-        }
-
         await PluginCommands.State.Snapshots.Upload(this.plugin, {
             name: this.state.params.name,
             description: this.state.params.options.description,
             playOnLoad: this.state.params.options.playOnLoad,
-            serverUrl: this.state.params.options.serverUrl
+            serverUrl: this.state.params.options.serverUrl,
+            params: this.plugin.managers.snapshot.currentGetSnapshotParams
         });
+
         this.setState({ isBusy: false });
         this.plugin.log.message('Snapshot uploaded.');
         this.refresh();

@@ -163,19 +163,19 @@ export function Snapshots(ctx: PluginContext) {
         return ctx.state.setSnapshot(snapshot);
     });
 
-    PluginCommands.State.Snapshots.Upload.subscribe(ctx, ({ name, description, playOnLoad, serverUrl }) => {
+    PluginCommands.State.Snapshots.Upload.subscribe(ctx, ({ name, description, playOnLoad, serverUrl, params }) => {
         return fetch(urlCombine(serverUrl, `set?name=${encodeURIComponent(name || '')}&description=${encodeURIComponent(description || '')}`), {
             method: 'POST',
             mode: 'cors',
             referrer: 'no-referrer',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(ctx.managers.snapshot.getRemoteSnapshot({ name, description, playOnLoad }))
+            body: JSON.stringify(ctx.managers.snapshot.getStateSnapshot({ name, description, playOnLoad, params }))
         }) as any as Promise<void>;
     });
 
     PluginCommands.State.Snapshots.Fetch.subscribe(ctx, async ({ url }) => {
         const json = await ctx.runTask(ctx.fetch({ url, type: 'json' })); //  fetch(url, { referrer: 'no-referrer' });
-        await ctx.managers.snapshot.setRemoteSnapshot(json.data);
+        await ctx.managers.snapshot.setStateSnapshot(json.data);
     });
 
     PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, async ({ name, type }) => {
