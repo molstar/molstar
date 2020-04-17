@@ -29,7 +29,7 @@ export const CrossLinkRestraintProvider: CustomStructureProperty.Provider<{}, Cr
     getParams: (data: Structure) => ({}),
     isApplicable: (data: Structure) => data.models.some(m => !!ModelCrossLinkRestraint.Provider.get(m)),
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<{}>) => {
-        return extractCrossLinkRestraints(data);
+        return { value: extractCrossLinkRestraints(data) };
     }
 });
 

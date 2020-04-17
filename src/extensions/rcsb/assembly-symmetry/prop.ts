@@ -57,21 +57,23 @@ export namespace AssemblySymmetry {
         );
     }
 
-    export async function fetch(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<AssemblySymmetryDataValue> {
-        if (!isApplicable(structure)) return [];
+    export async function fetch(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<CustomProperty.Data<AssemblySymmetryDataValue>> {
+        if (!isApplicable(structure)) return { value: [] };
 
-        const client = new GraphQLClient(props.serverUrl, ctx.fetch);
+        const client = new GraphQLClient(props.serverUrl, ctx.assetManager);
         const variables: AssemblySymmetryQueryVariables = {
             assembly_id: structure.units[0].conformation.operator.assembly?.id || 'deposited',
             entry_id: structure.units[0].model.entryId
         };
-        const result = await client.request<AssemblySymmetryQuery>(ctx.runtime, query, variables);
+        const result = await client.request(ctx.runtime, query, variables);
+        let value: AssemblySymmetryDataValue = [];
 
-        if (!result.assembly?.rcsb_struct_symmetry) {
+        if (!result.data.assembly?.rcsb_struct_symmetry) {
             console.error('expected `rcsb_struct_symmetry` field');
-            return [];
+        } else {
+            value = result.data.assembly.rcsb_struct_symmetry as AssemblySymmetryDataValue;
         }
-        return result.assembly.rcsb_struct_symmetry as AssemblySymmetryDataValue;
+        return { value, assets: [result] };
     }
 
     /** Returns the index of the first non C1 symmetry or -1 */
@@ -194,6 +196,6 @@ export const AssemblySymmetryProvider: CustomStructureProperty.Provider<Assembly
         const assemblySymmetryData = AssemblySymmetryDataProvider.get(data).value;
         const assemblySymmetry = assemblySymmetryData?.[p.symmetryIndex];
         if (!assemblySymmetry) new Error(`No assembly symmetry found for index ${p.symmetryIndex}`);
-        return assemblySymmetry;
+        return { value: assemblySymmetry };
     }
 });

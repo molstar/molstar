@@ -463,7 +463,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
 
         const structure = packing.obj?.data;
         if (structure) {
-            await CellPackInfoProvider.attach({ fetch: plugin.fetch, runtime }, structure, {
+            await CellPackInfoProvider.attach({ runtime, assetManager: plugin.managers.asset }, structure, {
                 info: { packingsCount: packings.length, packingIndex: i }
             });
         }

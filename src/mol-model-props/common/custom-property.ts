@@ -9,16 +9,17 @@ import { CustomPropertyDescriptor } from '../../mol-model/structure';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ValueBox } from '../../mol-util';
 import { OrderedMap } from 'immutable';
-
-type AjaxTask = import('../../mol-util/data-source').AjaxTask
+import { AssetManager, Asset } from '../../mol-util/assets';
 
 export { CustomProperty };
 
 namespace CustomProperty {
     export interface Context {
         runtime: RuntimeContext
-        fetch: AjaxTask
+        assetManager: AssetManager
     }
+
+    export type Data<V> = { value: V, assets?: Asset.Wrapper[] }
 
     export interface Container<P, V> {
         readonly props: P

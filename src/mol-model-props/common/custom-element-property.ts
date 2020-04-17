@@ -27,11 +27,12 @@ interface CustomElementProperty<T> {
 
 namespace CustomElementProperty {
     export type Value<T> = Map<ElementIndex, T>
+    export type Data<T> = CustomProperty.Data<Value<T>>
 
     export interface Builder<T> {
         label: string
         name: string
-        getData(model: Model, ctx?: CustomProperty.Context): Value<T> | Promise<Value<T>>
+        getData(model: Model, ctx?: CustomProperty.Context): Data<T> | Promise<Data<T>>
         coloring?: {
             getColor: (p: T) => Color
             defaultColor: Color

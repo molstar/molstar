@@ -304,6 +304,9 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
         const label = `Model ${model.modelNum}`;
         const description = a.data.length === 1 ? undefined : `of ${a.data.length}`;
         return new SO.Molecule.Model(model, { label, description });
+    },
+    dispose({ b }) {
+        b?.data.customProperties.dispose();
     }
 });
 
@@ -320,6 +323,9 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
             const props = { label: 'Ensemble', description: Structure.elementDescription(s) };
             return new SO.Molecule.Structure(s, props);
         });
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
     }
 });
 
@@ -343,6 +349,9 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
         if (!b.data.models.includes(a.data)) return StateTransformer.UpdateResult.Recreate;
         if (!deepEqual(oldParams, newParams)) return StateTransformer.UpdateResult.Recreate;
         return StateTransformer.UpdateResult.Unchanged;
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
     }
 });
 
@@ -439,6 +448,9 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
 
         const s = Structure.transform(a.data, transform);
         return new SO.Molecule.Structure(s, { label: a.label, description: `${a.description} [Transformed]` });
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
     }
     // interpolate(src, tar, t) {
     //     // TODO: optimize
@@ -489,6 +501,9 @@ const StructureSelectionFromExpression = PluginStateTransform.BuiltIn({
 
         StructureQueryHelper.updateStructureObject(b, selection, newParams.label);
         return StateTransformer.UpdateResult.Updated;
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
     }
 });
 
@@ -650,6 +665,9 @@ const StructureSelectionFromScript = PluginStateTransform.BuiltIn({
         const selection = StructureQueryHelper.updateStructure(entry, a.data);
         StructureQueryHelper.updateStructureObject(b, selection, newParams.label);
         return StateTransformer.UpdateResult.Updated;
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
     }
 });
 
@@ -698,6 +716,9 @@ const StructureSelectionFromBundle = PluginStateTransform.BuiltIn({
         b.description = Structure.elementDescription(s);
         b.data = s;
         return StateTransformer.UpdateResult.Updated;
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
     }
 });
 
@@ -761,6 +782,9 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
 
         if (s.elementCount === 0) return StateObject.Null;
         return new SO.Molecule.Structure(s, { label, description: Structure.elementDescription(s) });
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
     }
 });
 
@@ -777,6 +801,9 @@ const StructureComponent = PluginStateTransform.BuiltIn({
     },
     update: ({ a, b, oldParams, newParams, cache }) => {
         return updateStructureComponent(a.data, b, oldParams, newParams, cache as any);
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
     }
 });
 
@@ -810,10 +837,13 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
             await attachModelProps(a.data, ctx, taskCtx, newParams);
             return StateTransformer.UpdateResult.Updated;
         });
+    },
+    dispose({ b }) {
+        b?.data.customProperties.dispose();
     }
 });
 async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomModelProperties['createDefaultParams']>) {
-    const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch };
+    const propertyCtx = { runtime: taskCtx, assetManager: ctx.managers.asset };
     const { autoAttach, properties } = params;
     for (const name of Object.keys(properties)) {
         const property = ctx.customModelProperties.get(name);
@@ -860,10 +890,13 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
             await attachStructureProps(a.data.root, ctx, taskCtx, newParams);
             return StateTransformer.UpdateResult.Updated;
         });
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
     }
 });
 async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomStructureProperties['createDefaultParams']>) {
-    const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch };
+    const propertyCtx = { runtime: taskCtx, assetManager: ctx.managers.asset };
     const { autoAttach, properties } = params;
     for (const name of Object.keys(properties)) {
         const property = ctx.customStructureProperties.get(name);

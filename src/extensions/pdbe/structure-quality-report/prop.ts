@@ -21,6 +21,7 @@ import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { PropertyWrapper } from '../../../mol-model-props/common/wrapper';
 import { CustomProperty } from '../../../mol-model-props/common/custom-property';
 import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
+import { Asset } from '../../../mol-util/assets';
 
 export { StructureQualityReport };
 
@@ -67,12 +68,12 @@ namespace StructureQualityReport {
         return { info, data: issueMap };
     }
 
-    export async function fromServer(ctx: CustomProperty.Context, model: Model, props: StructureQualityReportProps): Promise<StructureQualityReport> {
-        const url = getEntryUrl(model.entryId, props.serverUrl);
-        const json = await ctx.fetch({ url, type: 'json' }).runInContext(ctx.runtime);
-        const data = json[model.entryId.toLowerCase()];
+    export async function fromServer(ctx: CustomProperty.Context, model: Model, props: StructureQualityReportProps): Promise<CustomProperty.Data<StructureQualityReport>> {
+        const url = Asset.getUrlAsset(ctx.assetManager, getEntryUrl(model.entryId, props.serverUrl));
+        const json = await ctx.assetManager.resolve(url, 'json').runInContext(ctx.runtime);
+        const data = json.data[model.entryId.toLowerCase()];
         if (!data) throw new Error('missing data');
-        return fromJson(model, data);
+        return { value: fromJson(model, data), assets: [json] };
     }
 
     export function fromCif(ctx: CustomProperty.Context, model: Model, props: StructureQualityReportProps): StructureQualityReport | undefined {
@@ -83,8 +84,9 @@ namespace StructureQualityReport {
         return { info, data: issueMap };
     }
 
-    export async function fromCifOrServer(ctx: CustomProperty.Context, model: Model, props: StructureQualityReportProps): Promise<StructureQualityReport> {
-        return fromCif(ctx, model, props) || fromServer(ctx, model, props);
+    export async function fromCifOrServer(ctx: CustomProperty.Context, model: Model, props: StructureQualityReportProps): Promise<CustomProperty.Data<StructureQualityReport>> {
+        const cif = fromCif(ctx, model, props);
+        return cif ? { value: cif } : fromServer(ctx, model, props);
     }
 
     const _emptyArray: string[] = [];

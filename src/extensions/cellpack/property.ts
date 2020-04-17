@@ -27,6 +27,8 @@ export const CellPackInfoProvider: CustomStructureProperty.Provider<typeof CellP
     getParams: (data: Structure) => CellPackInfoParams,
     isApplicable: (data: Structure) => true,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: CellPackInfoParams) => {
-        return { ...CellPackInfoParams.info.defaultValue, ...props.info };
+        return {
+            value: { ...CellPackInfoParams.info.defaultValue, ...props.info }
+        };
     }
 });

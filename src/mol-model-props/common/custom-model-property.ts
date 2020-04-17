@@ -20,7 +20,7 @@ namespace CustomModelProperty {
         readonly defaultParams: Params
         readonly getParams: (data: Model) => Params
         readonly isApplicable: (data: Model) => boolean
-        readonly obtain: (ctx: CustomProperty.Context, data: Model, props: PD.Values<Params>) => Promise<Value>
+        readonly obtain: (ctx: CustomProperty.Context, data: Model, props: PD.Values<Params>) => Promise<CustomProperty.Data<Value>>
         readonly type: 'static' | 'dynamic'
     }
 
@@ -56,8 +56,9 @@ namespace CustomModelProperty {
                 const property = get(data);
                 const p = PD.merge(builder.defaultParams, property.props, props);
                 if (property.data.value && PD.areEqual(builder.defaultParams, property.props, p)) return;
-                const value = await builder.obtain(ctx, data, p);
+                const { value, assets } = await builder.obtain(ctx, data, p);
                 data.customProperties.add(builder.descriptor);
+                data.customProperties.assets(builder.descriptor, assets);
                 set(data, p, value);
             },
             ref: (data: Model, add: boolean) => data.customProperties.reference(builder.descriptor, add),
@@ -68,6 +69,8 @@ namespace CustomModelProperty {
                 if (!PD.areEqual(builder.defaultParams, property.props, p)) {
                     // this invalidates property.value
                     set(data, p, undefined);
+                    // dispose of assets
+                    data.customProperties.assets(builder.descriptor);
                 }
             },
             props: (data: Model) => get(data).props,

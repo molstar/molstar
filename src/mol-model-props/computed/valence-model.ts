@@ -30,6 +30,6 @@ export const ValenceModelProvider: CustomStructureProperty.Provider<ValenceModel
     isApplicable: (data: Structure) => true,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<ValenceModelProps>) => {
         const p = { ...PD.getDefaultValues(ValenceModelParams), ...props };
-        return await calcValenceModel(ctx.runtime, data, p);
+        return { value: await calcValenceModel(ctx.runtime, data, p) };
     }
 });

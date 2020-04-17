@@ -9,6 +9,7 @@ import { CustomElementProperty } from '../../mol-model-props/common/custom-eleme
 import { Model, ElementIndex, ResidueIndex } from '../../mol-model/structure';
 import { Color } from '../../mol-util/color';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
+import { Asset } from '../../mol-util/assets';
 
 const EvolutionaryConservationPalette: Color[] = [
     [255, 255, 129], // insufficient
@@ -30,9 +31,9 @@ export const EvolutionaryConservation = CustomElementProperty.create<number>({
     type: 'static',
     async getData(model: Model, ctx: CustomProperty.Context) {
         const id = model.entryId.toLowerCase();
-        const url = `https://proteopedia.org/cgi-bin/cnsrf?${id}`;
-        const json = await ctx.fetch({ url, type: 'json' }).runInContext(ctx.runtime);
-        const annotations = (json && json.residueAnnotations) || [];
+        const url = Asset.getUrlAsset(ctx.assetManager, `https://proteopedia.org/cgi-bin/cnsrf?${id}`);
+        const json = await ctx.assetManager.resolve(url, 'json').runInContext(ctx.runtime);
+        const annotations = json.data?.residueAnnotations || [];
 
         const conservationMap = new Map<string, number>();
 
@@ -58,7 +59,7 @@ export const EvolutionaryConservation = CustomElementProperty.create<number>({
             }
         }
 
-        return map;
+        return { value: map, assets: [json] };
     },
     coloring: {
         getColor(e: number) {
@@ -68,7 +69,7 @@ export const EvolutionaryConservation = CustomElementProperty.create<number>({
         defaultColor: EvolutionaryConservationDefaultColor
     },
     getLabel(e) {
-        if (e === 10) return `Evolutionary Conservation: InsufficientData`;
+        if (e === 10) return `Evolutionary Conservation: Insufficient Data`;
         return e ? `Evolutionary Conservation: ${e}` : void 0;
     }
 });

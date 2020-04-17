@@ -18,7 +18,7 @@ export const StripedResidues = CustomElementProperty.create<number>({
         for (let i = 0, _i = model.atomicHierarchy.atoms._rowCount; i < _i; i++) {
             map.set(i as ElementIndex, residueIndex[i] % 2);
         }
-        return map;
+        return { value: map };
     },
     coloring: {
         getColor(e) { return e === 0 ? Color(0xff0000) : Color(0x0000ff); },

@@ -73,7 +73,7 @@ function StructureSelectionQuery(label: string, expression: Expression, props: S
             const current = plugin.managers.structure.selection.getStructure(structure);
             const currentSelection = current ? StructureSelection.Singletons(structure, current) : StructureSelection.Empty(structure);
             if (props.ensureCustomProperties) {
-                await props.ensureCustomProperties({ fetch: plugin.fetch, runtime }, structure);
+                await props.ensureCustomProperties({ runtime, assetManager: plugin.managers.asset }, structure);
             }
             if (!_query) _query = compile<StructureSelection>(expression);
             return _query(new QueryContext(structure, { currentSelection }));

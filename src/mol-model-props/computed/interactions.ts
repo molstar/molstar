@@ -30,6 +30,6 @@ export const InteractionsProvider: CustomStructureProperty.Provider<Interactions
     isApplicable: (data: Structure) => true,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<InteractionsProps>) => {
         const p = { ...PD.getDefaultValues(InteractionsParams), ...props };
-        return await computeInteractions(ctx, data, p);
+        return { value: await computeInteractions(ctx, data, p) };
     }
 });

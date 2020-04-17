@@ -54,6 +54,6 @@ export const AccessibleSurfaceAreaProvider: CustomStructureProperty.Provider<Acc
     isApplicable: (data: Structure) => true,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<AccessibleSurfaceAreaProps>) => {
         const p = { ...PD.getDefaultValues(AccessibleSurfaceAreaParams), ...props };
-        return await AccessibleSurfaceArea.compute(data, p).runInContext(ctx.runtime);
+        return { value: await AccessibleSurfaceArea.compute(data, p).runInContext(ctx.runtime) };
     }
 });

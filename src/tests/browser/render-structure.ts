@@ -25,7 +25,7 @@ import { InteractionsRepresentationProvider } from '../../mol-model-props/comput
 import { InteractionsProvider } from '../../mol-model-props/computed/interactions';
 import { SecondaryStructureProvider } from '../../mol-model-props/computed/secondary-structure';
 import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
-import { ajaxGet } from '../../mol-util/data-source';
+import { AssetManager } from '../../mol-util/assets';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -117,7 +117,7 @@ function getGaussianSurfaceRepr() {
 }
 
 async function init() {
-    const ctx = { runtime: SyncRuntimeContext, fetch: ajaxGet };
+    const ctx = { runtime: SyncRuntimeContext, assetManager: new AssetManager() };
 
     const cif = await downloadFromPdb('3pqr');
     const models = await getModels(cif);

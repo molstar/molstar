@@ -57,8 +57,8 @@ export const SecondaryStructureProvider: CustomStructureProperty.Provider<Second
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<SecondaryStructureProps>) => {
         const p = { ...PD.getDefaultValues(SecondaryStructureParams), ...props };
         switch (p.type.name) {
-            case 'dssp': return await computeDssp(data, p.type.params);
-            case 'model': return await computeModel(data);
+            case 'dssp': return { value: await computeDssp(data, p.type.params) };
+            case 'model': return { value: await computeModel(data) };
         }
     }
 });

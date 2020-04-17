@@ -1,13 +1,15 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { CifWriter } from '../../../mol-io/writer/cif';
 import { CifExportContext } from '../export/mmcif';
 import { QuerySymbolRuntime } from '../../../mol-script/runtime/query/compiler';
 import { UUID } from '../../../mol-util';
+import { Asset } from '../../../mol-util/assets';
 
 export { CustomPropertyDescriptor, CustomProperties };
 
@@ -42,6 +44,7 @@ class CustomProperties {
     private _list: CustomPropertyDescriptor[] = [];
     private _set = new Set<CustomPropertyDescriptor>();
     private _refs = new Map<CustomPropertyDescriptor, number>();
+    private _assets = new Map<CustomPropertyDescriptor, Asset.Wrapper[]>();
 
     get all(): ReadonlyArray<CustomPropertyDescriptor> {
         return this._list;
@@ -55,11 +58,7 @@ class CustomProperties {
     }
 
     reference(desc: CustomPropertyDescriptor<any>, add: boolean) {
-        let refs = this._refs.get(desc);
-        if (refs === void 0) {
-            refs = 0;
-            this._refs.set(desc, refs);
-        }
+        let refs = this._refs.get(desc) || 0;
         refs += add ? 1 : -1;
         this._refs.set(desc, Math.max(refs, 0));
     }
@@ -70,5 +69,22 @@ class CustomProperties {
 
     has(desc: CustomPropertyDescriptor<any>): boolean {
         return this._set.has(desc);
+    }
+
+    /** Sets assets for a prop, disposes of existing assets for that prop */
+    assets(desc: CustomPropertyDescriptor<any>, assets?: Asset.Wrapper[]) {
+        const prevAssets = this._assets.get(desc);
+        if (prevAssets) {
+            for (const a of prevAssets) a.dispose();
+        }
+        if (assets) this._assets.set(desc, assets);
+        else this._assets.delete(desc);
+    }
+
+    /** Disposes of all assets of all props */
+    dispose() {
+        this._assets.forEach(assets => {
+            for (const a of assets) a.dispose();
+        });
     }
 }

@@ -120,7 +120,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params, cache }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
-            const propertyCtx = { runtime: ctx, fetch: plugin.fetch };
+            const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
             const provider = plugin.representation.structure.registry.get(params.type.name);
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
             const props = params.type.params || {};
@@ -149,7 +149,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             Theme.releaseDependencies(plugin.representation.structure.themes, { structure: a.data }, oldParams);
 
             const provider = plugin.representation.structure.registry.get(newParams.type.name);
-            const propertyCtx = { runtime: ctx, fetch: plugin.fetch };
+            const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
             const props = { ...b.data.repr.props, ...newParams.type.params };
             await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, newParams);
@@ -524,7 +524,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
-            const propertyCtx = { runtime: ctx, fetch: plugin.fetch };
+            const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
             const provider = plugin.representation.volume.registry.get(params.type.name);
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
             const props = params.type.params || {};

@@ -20,7 +20,7 @@ namespace CustomStructureProperty {
         readonly defaultParams: Params
         readonly getParams: (data: Structure) => Params
         readonly isApplicable: (data: Structure) => boolean
-        readonly obtain: (ctx: CustomProperty.Context, data: Structure, props: PD.Values<Params>) => Promise<Value>
+        readonly obtain: (ctx: CustomProperty.Context, data: Structure, props: PD.Values<Params>) => Promise<CustomProperty.Data<Value>>
         readonly type: 'root' | 'local'
     }
 
@@ -58,8 +58,9 @@ namespace CustomStructureProperty {
                 const property = get(data);
                 const p = PD.merge(builder.defaultParams, rootProps, props);
                 if (property.data.value && PD.areEqual(builder.defaultParams, property.props, p)) return;
-                const value = await builder.obtain(ctx, data, p);
+                const { value, assets } = await builder.obtain(ctx, data, p);
                 data.customPropertyDescriptors.add(builder.descriptor);
+                data.customPropertyDescriptors.assets(builder.descriptor, assets);
                 set(data, p, value);
             },
             ref: (data: Structure, add: boolean) => data.customPropertyDescriptors.reference(builder.descriptor, add),
@@ -71,6 +72,8 @@ namespace CustomStructureProperty {
                 if (!PD.areEqual(builder.defaultParams, property.props, p)) {
                     // this invalidates property.value
                     set(data, p, value);
+                    // dispose of assets
+                    data.customPropertyDescriptors.assets(builder.descriptor);
                 }
             },
             props: (data: Structure) => get(data).props,

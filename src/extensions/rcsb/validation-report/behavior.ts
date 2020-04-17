@@ -314,7 +314,7 @@ export const ValidationReportGeometryQualityPreset = StructureRepresentationPres
         if (!structureCell || !model) return {};
 
         await plugin.runTask(Task.create('Validation Report', async runtime => {
-            await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model);
+            await ValidationReportProvider.attach({ runtime, assetManager: plugin.managers.asset }, model);
         }));
 
         const colorTheme = GeometryQualityColorThemeProvider.name as any;
@@ -350,7 +350,7 @@ export const ValidationReportDensityFitPreset = StructureRepresentationPresetPro
         if (!structureCell || !model) return {};
 
         await plugin.runTask(Task.create('Validation Report', async runtime => {
-            await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model);
+            await ValidationReportProvider.attach({ runtime, assetManager: plugin.managers.asset }, model);
         }));
 
         const colorTheme = DensityFitColorThemeProvider.name as any;
@@ -374,7 +374,7 @@ export const ValidationReportRandomCoilIndexPreset = StructureRepresentationPres
         if (!structureCell || !model) return {};
 
         await plugin.runTask(Task.create('Validation Report', async runtime => {
-            await ValidationReportProvider.attach({ fetch: plugin.fetch, runtime }, model);
+            await ValidationReportProvider.attach({ runtime, assetManager: plugin.managers.asset }, model);
         }));
 
         const colorTheme = RandomCoilIndexColorThemeProvider.name as any;

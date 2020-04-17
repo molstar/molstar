@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -7,6 +7,7 @@
  */
 
 import { RuntimeContext } from '../mol-task';
+import { AssetManager, Asset } from './assets';
 
 type Variables = { [key: string]: any }
 
@@ -42,44 +43,33 @@ export class ClientError extends Error {
         this.request = request;
 
         // this is needed as Safari doesn't support .captureStackTrace
-        /* tslint:disable-next-line */
         if (typeof Error.captureStackTrace === 'function') {
             Error.captureStackTrace(this, ClientError);
         }
     }
 
     private static extractMessage (response: GraphQLResponse): string {
-        try {
-            return response.errors![0].message;
-        } catch (e) {
-            return `GraphQL Error (Code: ${response.status})`;
-        }
+        return response.errors ? response.errors[0].message : `GraphQL Error (Code: ${response.status})`;
     }
 }
 
 export class GraphQLClient {
-    constructor(private url: string, private fetch: import('../mol-util/data-source').AjaxTask) {
-        this.url = url;
-    }
+    constructor(private url: string, private assetManager: AssetManager) { }
 
-    async request<T extends any>(ctx: RuntimeContext, query: string, variables?: Variables): Promise<T> {
+    async request(ctx: RuntimeContext, query: string, variables?: Variables): Promise<Asset.Wrapper<'json'>> {
 
-        const body = JSON.stringify({
-            query,
-            variables: variables ? variables : undefined,
-        });
+        const body = JSON.stringify({ query, variables }, null, 2);
+        const url = Asset.getUrlAsset(this.assetManager, this.url, body);
+        const result = await this.assetManager.resolve(url, 'json').runInContext(ctx);
 
-        const resultStr = await this.fetch({ url: this.url, body }).runInContext(ctx);
-        const result = JSON.parse(resultStr);
-
-        if (!result.errors && result.data) {
-            return result.data;
+        if (!result.data.errors && result.data.data) {
+            return {
+                data: result.data.data,
+                dispose: result.dispose
+            };
         } else {
-            const errorResult = typeof result === 'string' ? { error: result } : result;
-            throw new ClientError(
-                { ...errorResult },
-                { query, variables },
-            );
+            const errorResult = typeof result.data === 'string' ? { error: result.data } : result.data;
+            throw new ClientError({ ...errorResult }, { query, variables });
         }
     }
 }

@@ -10,7 +10,6 @@ import { CustomProperty } from '../../../mol-model-props/common/custom-property'
 import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
 import { Model, ElementIndex, ResidueIndex } from '../../../mol-model/structure/model';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
-import { readFromFile } from '../../../mol-util/data-source';
 import { CustomStructureProperty } from '../../../mol-model-props/common/custom-structure-property';
 import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph';
 import { UnitIndex } from '../../../mol-model/structure/structure/element/element';
@@ -22,6 +21,7 @@ import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { QuerySymbolRuntime } from '../../../mol-script/runtime/query/compiler';
 import { CustomPropSymbol } from '../../../mol-script/language/symbol';
 import Type from '../../../mol-script/language/type';
+import { Asset } from '../../../mol-util/assets';
 
 export { ValidationReport };
 
@@ -104,20 +104,19 @@ namespace ValidationReport {
         return parseValidationReportXml(xml, model);
     }
 
-    export async function fetch(ctx: CustomProperty.Context, model: Model, props: ServerSourceProps): Promise<ValidationReport> {
-        const url = getEntryUrl(model.entryId, props.baseUrl);
-        const xml = await ctx.fetch({ url, type: 'xml' }).runInContext(ctx.runtime);
-        return fromXml(xml, model);
+    export async function fetch(ctx: CustomProperty.Context, model: Model, props: ServerSourceProps): Promise<CustomProperty.Data<ValidationReport>> {
+        const url = Asset.getUrlAsset(ctx.assetManager, getEntryUrl(model.entryId, props.baseUrl));
+        const xml = await ctx.assetManager.resolve(url, 'xml').runInContext(ctx.runtime);
+        return { value: fromXml(xml.data, model), assets: [xml] };
     }
 
-    export async function open(ctx: CustomProperty.Context, model: Model, props: FileSourceProps): Promise<ValidationReport> {
-        // TODO: this should use the asset manager and release the file "somehow"
-        if (!(props.input?.file instanceof File)) throw new Error('No file given');
-        const xml = await readFromFile(props.input.file, 'xml').runInContext(ctx.runtime);
-        return fromXml(xml, model);
+    export async function open(ctx: CustomProperty.Context, model: Model, props: FileSourceProps): Promise<CustomProperty.Data<ValidationReport>> {
+        if (props.input === null) throw new Error('No file given');
+        const xml = await ctx.assetManager.resolve(props.input, 'xml').runInContext(ctx.runtime);
+        return { value: fromXml(xml.data, model), assets: [xml] };
     }
 
-    export async function obtain(ctx: CustomProperty.Context, model: Model, props: ValidationReportProps): Promise<ValidationReport> {
+    export async function obtain(ctx: CustomProperty.Context, model: Model, props: ValidationReportProps): Promise<CustomProperty.Data<ValidationReport>> {
         switch(props.source.name) {
             case 'file': return open(ctx, model, props.source.params);
             case 'server': return fetch(ctx, model, props.source.params);
@@ -319,7 +318,9 @@ export const ClashesProvider: CustomStructureProperty.Provider<{}, Clashes> = Cu
     obtain: async (ctx: CustomProperty.Context, data: Structure) => {
         await ValidationReportProvider.attach(ctx, data.models[0]);
         const validationReport = ValidationReportProvider.get(data.models[0]).value!;
-        return createClashes(data, validationReport.clashes);
+        return {
+            value: createClashes(data, validationReport.clashes)
+        };
     }
 });
 
