@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Autorenew, BuildOutlined, CameraAltOutlined, Close, Crop, Fullscreen, Tune } from '@material-ui/icons';
+import { Autorenew, BuildOutlined, CameraAltOutlined, Close, Crop, Fullscreen, Tune, CameraOutlined } from '@material-ui/icons';
 import * as React from 'react';
 import { resizeCanvas } from '../mol-canvas3d/util';
 import { PluginCommands } from '../mol-plugin/commands';
@@ -94,7 +94,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon(CameraAltOutlined, this.toggleScreenshotExpanded, 'Screenshot', this.state.isScreenshotExpanded)}
+                    {this.icon(CameraOutlined, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
@@ -108,7 +108,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </div>}
             </div>
             {this.state.isScreenshotExpanded && <div className='msp-viewport-controls-panel'>
-                <ControlGroup header='Screenshot' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleScreenshotExpanded}
+                <ControlGroup header='Screenshot / State Snapshot' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleScreenshotExpanded}
                     topRightIcon={Close} noTopMargin>
                     <DownloadScreenshotControls close={this.toggleScreenshotExpanded} />
                 </ControlGroup>

@@ -18,7 +18,22 @@ import { PluginUIComponent, PurePluginUIComponent } from '../base';
 import { Button, IconButton, SectionHeader } from '../controls/common';
 import { ParameterControls } from '../controls/parameters';
 
-export class StateSnapshots extends PluginUIComponent<{ }> {
+export class StateSnapshots extends PluginUIComponent<{}> {
+    render() {
+        return <div>
+            <SectionHeader icon={SaveOutlined} title='Plugin State' />
+            <LocalStateSnapshots />
+            <LocalStateSnapshotList />
+            {this.plugin.spec.components?.remoteState !== 'none' && <RemoteStateSnapshots />}
+
+            <div style={{ marginTop: '10px' }}>
+                <StateExportImportControls />
+            </div>
+        </div>;
+    }
+}
+
+export class StateExportImportControls extends PluginUIComponent {
     downloadToFileJson = () => {
         PluginCommands.State.Snapshots.DownloadToFile(this.plugin, { type: 'json' });
     }
@@ -34,25 +49,18 @@ export class StateSnapshots extends PluginUIComponent<{ }> {
     }
 
     render() {
-        return <div>
-            <SectionHeader icon={SaveOutlined} title='Plugin State' />
-            <LocalStateSnapshots />
-            <LocalStateSnapshotList />
-            {this.plugin.spec.components?.remoteState !== 'none' && <RemoteStateSnapshots />}
-
-            <div className='msp-flex-row' style={{ marginTop: '10px' }}>
-                <Button icon={GetApp} onClick={this.downloadToFileJson}>JSON</Button>
-                <Button icon={GetApp} onClick={this.downloadToFileZip}>ZIP</Button>
-                <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
-                    {'Open'} <input onChange={this.open} type='file' multiple={false} accept='.json,.zip' />
-                </div>
+        return <div className='msp-flex-row'>
+            <Button icon={GetApp} onClick={this.downloadToFileJson} title='Save state description'>Base</Button>
+            <Button icon={GetApp} onClick={this.downloadToFileZip} title='Save state including the data as zip.'>All</Button>
+            <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
+                {'Open'} <input onChange={this.open} type='file' multiple={false} accept='.json,.zip' />
             </div>
         </div>;
     }
 }
 
 class LocalStateSnapshots extends PluginUIComponent<
-{ },
+{},
 { params: PD.Values<typeof LocalStateSnapshots.Params> }> {
 
     state = { params: PD.getDefaultValues(LocalStateSnapshots.Params) };
@@ -97,7 +105,7 @@ class LocalStateSnapshots extends PluginUIComponent<
                 const params = { ...this.state.params, [p.name]: p.value };
                 this.setState({ params } as any);
                 this.plugin.managers.snapshot.currentGetSnapshotParams = params.options;
-            }}/>
+            }} />
 
             <div className='msp-flex-row'>
                 <Button onClick={this.add}>Save</Button>
@@ -107,7 +115,7 @@ class LocalStateSnapshots extends PluginUIComponent<
     }
 }
 
-class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
+class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
     componentDidMount() {
         this.subscribe(this.plugin.managers.snapshot.events.changed, () => this.forceUpdate());
     }
@@ -147,7 +155,7 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
         return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
             {this.plugin.managers.snapshot.state.entries.map(e => <li key={e!.snapshot.id}>
                 <Button data-id={e!.snapshot.id} onClick={this.apply}>
-                    <span style={{ fontWeight: e!.snapshot.id === current ? 'bold' : void 0}}>
+                    <span style={{ fontWeight: e!.snapshot.id === current ? 'bold' : void 0 }}>
                         {e!.name || new Date(e!.timestamp).toLocaleString()}</span> <small>
                         {`${e!.snapshot.durationInMs ? formatTimespan(e!.snapshot.durationInMs, false) + `${e!.description ? ', ' : ''}` : ''}${e!.description ? e!.description : ''}`}
                     </small>
@@ -155,7 +163,7 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
                 <div>
                     <IconButton svg={ArrowUpward} data-id={e!.snapshot.id} title='Move Up' onClick={this.moveUp} small={true} />
                     <IconButton svg={ArrowDownward} data-id={e!.snapshot.id} title='Move Down' onClick={this.moveDown} small={true} />
-                    <IconButton svg={SwapHoriz}  data-id={e!.snapshot.id} title='Replace' onClick={this.replace} small={true} />
+                    <IconButton svg={SwapHoriz} data-id={e!.snapshot.id} title='Replace' onClick={this.replace} small={true} />
                     <IconButton svg={DeleteOutlined} data-id={e!.snapshot.id} title='Remove' onClick={this.remove} small={true} />
                 </div>
             </li>)}
@@ -200,7 +208,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
             this.setState({ isBusy: true });
             this.plugin.config.set(PluginConfig.State.CurrentServer, this.state.params.options.serverUrl);
 
-            const json = (await this.plugin.runTask<RemoteEntry[]>(this.plugin.fetch({ url: this.serverUrl('list'), type: 'json'  }))) || [];
+            const json = (await this.plugin.runTask<RemoteEntry[]>(this.plugin.fetch({ url: this.serverUrl('list'), type: 'json' }))) || [];
 
             json.sort((a, b) => {
                 if (a.isSticky === b.isSticky) return a.timestamp - b.timestamp;
@@ -279,7 +287,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
             {!this.props.listOnly && <>
                 <ParameterControls params={this.Params} values={this.state.params} onEnter={this.upload} onChange={p => {
                     this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
-                }} isDisabled={this.state.isBusy}/>
+                }} isDisabled={this.state.isBusy} />
                 <div className='msp-flex-row'>
                     <Button icon={CloudUpload} onClick={this.upload} disabled={this.state.isBusy}>Upload</Button>
                     <Button onClick={this.refresh} disabled={this.state.isBusy}>Refresh</Button>
@@ -292,7 +300,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
             {this.props.listOnly && <>
                 <ParameterControls params={this.ListOnlyParams} values={this.state.params} onEnter={this.upload} onChange={p => {
                     this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
-                }} isDisabled={this.state.isBusy}/>
+                }} isDisabled={this.state.isBusy} />
                 <div className='msp-flex-row'>
                     <Button onClick={this.refresh} disabled={this.state.isBusy}>Refresh</Button>
                 </div>
@@ -303,7 +311,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
 
 class RemoteStateSnapshotList extends PurePluginUIComponent<
 { entries: OrderedMap<string, RemoteEntry>, serverUrl: string, isBusy: boolean, fetch: (e: React.MouseEvent<HTMLElement>) => void, remove?: (e: React.MouseEvent<HTMLElement>) => void },
-{ }> {
+{}> {
 
     open = async (e: React.MouseEvent<HTMLElement>) => {
         const id = e.currentTarget.getAttribute('data-id');
@@ -320,7 +328,7 @@ class RemoteStateSnapshotList extends PurePluginUIComponent<
 
     render() {
         return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
-            {this.props.entries.valueSeq().map(e =><li key={e!.id} className='msp-flex-row'>
+            {this.props.entries.valueSeq().map(e => <li key={e!.id} className='msp-flex-row'>
                 <Button data-id={e!.id} onClick={this.props.fetch}
                     disabled={this.props.isBusy} onContextMenu={this.open} title='Click to download, right-click to open in a new tab.'>
                     {e!.name || new Date(e!.timestamp).toLocaleString()} <small>{e!.description}</small>

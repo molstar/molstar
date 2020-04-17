@@ -17,14 +17,15 @@ import { InteractivityManager } from '../mol-plugin-state/manager/interactivity'
 import { produce } from 'immer';
 import { StructureFocusSnapshot } from '../mol-plugin-state/manager/structure/focus';
 import { merge } from 'rxjs';
+import { PluginContext } from './context';
 
 export { PluginState };
 
 class PluginState {
     private get animation() { return this.plugin.managers.animation; }
 
-    readonly data: State;
-    readonly behaviors: State;
+    readonly data = State.create(new SO.Root({ }), { runTask: this.plugin.runTask, globalContext: this.plugin });
+    readonly behaviors = State.create(new PluginBehavior.Root({ }), { runTask: this.plugin.runTask, globalContext: this.plugin, rootState: { isLocked: true } });
 
     readonly events = {
         cell: {
@@ -111,9 +112,7 @@ class PluginState {
         this.animation.dispose();
     }
 
-    constructor(private plugin: import('./context').PluginContext) {
-        this.data = State.create(new SO.Root({ }), { runTask: plugin.runTask, globalContext: plugin });
-        this.behaviors = State.create(new PluginBehavior.Root({ }), { runTask: plugin.runTask, globalContext: plugin, rootState: { isLocked: true } });
+    constructor(private plugin: PluginContext) {
     }
 }
 

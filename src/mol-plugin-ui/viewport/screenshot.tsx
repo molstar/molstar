@@ -12,9 +12,12 @@ import { PluginUIComponent } from '../base';
 import { debounceTime } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { ViewportScreenshotHelper } from '../../mol-plugin/util/viewport-screenshot';
-import { Button } from '../controls/common';
+import { Button, ExpandGroup } from '../controls/common';
 import { CameraHelperProps } from '../../mol-canvas3d/helper/camera-helper';
-import { GetApp, Launch } from '@material-ui/icons';
+import { GetApp, Launch, Warning } from '@material-ui/icons';
+import { PluginCommands } from '../../mol-plugin/commands';
+import { Icon } from '../controls/icons';
+import { StateExportImportControls } from '../state/snapshots';
 
 interface ImageControlsState {
     showPreview: boolean
@@ -118,6 +121,19 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
         }
     }
 
+    downloadToFileJson = () => {
+        PluginCommands.State.Snapshots.DownloadToFile(this.plugin, { type: 'json' });
+    }
+
+    downloadToFileZip = () => {
+        PluginCommands.State.Snapshots.DownloadToFile(this.plugin, { type: 'zip' });
+    }
+
+    open = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || !e.target.files![0]) return;
+        PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: e.target.files![0] });
+    }
+
     render() {
         return <div>
             <div className='msp-image-preview'>
@@ -129,6 +145,12 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                 <Button icon={Launch} onClick={this.openTab} disabled={this.state.isDisabled}>Open in new Tab</Button>
             </div>
             <ParameterControls params={this.plugin.helpers.viewportScreenshot!.params} values={this.plugin.helpers.viewportScreenshot!.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
+            <ExpandGroup header='State Snapshot' accent>
+                <StateExportImportControls />
+                <div className='msp-help-description' style={{ padding: '10px'}}>
+                    <Icon svg={Warning} /> This is an experimental feature and states stored today might not be openable in an upcoming version.
+                </div>
+            </ExpandGroup>
         </div>;
     }
 }

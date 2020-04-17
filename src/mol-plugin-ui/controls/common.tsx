@@ -328,7 +328,7 @@ export class ToggleButton extends React.PureComponent<ToggleButtonProps> {
     }
 }
 
-export class ExpandGroup extends React.PureComponent<{ header: string, headerStyle?: React.CSSProperties, initiallyExpanded?: boolean, noOffset?: boolean, marginTop?: 0 | string, headerLeftMargin?: string }, { isExpanded: boolean }> {
+export class ExpandGroup extends React.PureComponent<{ header: string, headerStyle?: React.CSSProperties, initiallyExpanded?: boolean, accent?: boolean, noOffset?: boolean, marginTop?: 0 | string, headerLeftMargin?: string }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initiallyExpanded };
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
@@ -344,7 +344,7 @@ export class ExpandGroup extends React.PureComponent<{ header: string, headerSty
             {this.state.isExpanded &&
                 (this.props.noOffset
                     ? this.props.children
-                    : <div className='msp-control-offset'>
+                    : <div className={this.props.accent ? 'msp-accent-offset' : 'msp-control-offset'}>
                         {this.props.children}
                     </div>)}
         </>;
