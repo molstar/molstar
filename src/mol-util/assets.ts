@@ -44,27 +44,51 @@ namespace Asset {
 
         }
     }
+
+    export function getUrl(url: string | Url) {
+        return typeof url === 'string' ? url : url.url;
+    }
+
+    export function getUrlAsset(url: string | Url, manager: AssetManager) {
+        if (typeof url === 'string') {
+            const asset = manager.tryFindUrl(url);
+            return asset || Url(url);
+        }
+        return url;
+    }
 }
 
 class AssetManager {
     // TODO: add URL based ref-counted cache?
     // TODO: when serializing, check for duplicates?
 
-    private _assets = new Map<string, { asset: Asset, file: File }>();
+    private _assets = new Map<string, { asset: Asset, file: File, refCount: number }>();
 
     get assets() {
         return iterableToArray(this._assets.values());
     }
 
+    tryFindUrl(url: string, body?: string): Asset.Url | undefined {
+        const assets = this.assets.values();
+        while (true) {
+            const v = assets.next();
+            if (v.done) return;
+            const asset = v.value.asset;
+            if (Asset.isUrl(asset) && asset.url === url && (asset.body || '') === (body || '')) return asset;
+        }
+    }
+
     set(asset: Asset, file: File) {
-        this._assets.set(asset.id, { asset, file });
+        this._assets.set(asset.id, { asset, file, refCount: 0 });
     }
 
     resolve<T extends DataType>(asset: Asset, type: T, store = true): Task<Asset.Wrapper<T>> {
         if (Asset.isUrl(asset)) {
             return Task.create(`Download ${asset.title || asset.url}`, async ctx => {
                 if (this._assets.has(asset.id)) {
-                    return new Asset.Wrapper(await readFromFile(this._assets.get(asset.id)!.file, type).runInContext(ctx), asset, this);
+                    const entry = this._assets.get(asset.id)!;
+                    entry.refCount++;
+                    return new Asset.Wrapper(await readFromFile(entry.file, type).runInContext(ctx), asset, this);
                 }
 
                 if (!store) {
@@ -73,19 +97,21 @@ class AssetManager {
 
                 const data = await ajaxGet({ ...asset, type: 'binary' }).runInContext(ctx);
                 const file = new File([data], 'raw-data');
-                this._assets.set(asset.id, { asset, file });
+                this._assets.set(asset.id, { asset, file, refCount: 1 });
                 return new Asset.Wrapper(await readFromFile(file, type).runInContext(ctx), asset, this);
             });
         } else {
             return Task.create(`Read ${asset.name}`, async ctx => {
                 if (this._assets.has(asset.id)) {
-                    return new Asset.Wrapper(await readFromFile(this._assets.get(asset.id)!.file, type).runInContext(ctx), asset, this);
+                    const entry = this._assets.get(asset.id)!;
+                    entry.refCount++;
+                    return new Asset.Wrapper(await readFromFile(entry.file, type).runInContext(ctx), asset, this);
                 }
                 if (!(asset.file instanceof File)) {
                     throw new Error(`Cannot resolve file asset '${asset.name}' (${asset.id})`);
                 }
                 if (store) {
-                    this._assets.set(asset.id, { asset, file: asset.file });
+                    this._assets.set(asset.id, { asset, file: asset.file, refCount: 1 });
                 }
                 return new Asset.Wrapper(await readFromFile(asset.file, type).runInContext(ctx), asset, this);
             });
@@ -93,6 +119,9 @@ class AssetManager {
     }
 
     release(asset: Asset) {
-        this._assets.delete(asset.id);
+        const entry = this._assets.get(asset.id);
+        if (!entry) return;
+        entry.refCount--;
+        if (entry.refCount <= 0) this._assets.delete(asset.id);
     }
 }

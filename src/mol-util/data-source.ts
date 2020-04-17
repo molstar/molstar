@@ -282,7 +282,7 @@ function ajaxGetInternal<T extends DataType>(title: string | undefined, url: str
 }
 
 export type AjaxGetManyEntry = { kind: 'ok', id: string, result: Asset.Wrapper<'string' | 'binary'> } | { kind: 'error', id: string, error: any }
-export async function ajaxGetMany(ctx: RuntimeContext, assetManager: AssetManager, sources: { id: string, url: Asset.Url, isBinary?: boolean, canFail?: boolean }[], maxConcurrency: number) {
+export async function ajaxGetMany(ctx: RuntimeContext, assetManager: AssetManager, sources: { id: string, url: Asset.Url | string, isBinary?: boolean, canFail?: boolean }[], maxConcurrency: number) {
     const len = sources.length;
     const slots: AjaxGetManyEntry[] = new Array(sources.length);
 
@@ -293,7 +293,7 @@ export async function ajaxGetMany(ctx: RuntimeContext, assetManager: AssetManage
         const current = sources[currentSrc];
 
         promises.push(wrapPromise(currentSrc, current.id,
-            assetManager.resolve(current.url, current.isBinary ? 'binary' : 'string').runAsChild(ctx)));
+            assetManager.resolve(Asset.getUrlAsset(current.url, assetManager), current.isBinary ? 'binary' : 'string').runAsChild(ctx)));
         promiseKeys.push(currentSrc);
     }
 
@@ -315,7 +315,7 @@ export async function ajaxGetMany(ctx: RuntimeContext, assetManager: AssetManage
         promiseKeys = promiseKeys.filter(_filterRemoveIndex, idx);
         if (currentSrc < len) {
             const current = sources[currentSrc];
-            const asset = assetManager.resolve(current.url, current.isBinary ? 'binary' : 'string').runAsChild(ctx);
+            const asset = assetManager.resolve(Asset.getUrlAsset(current.url, assetManager), current.isBinary ? 'binary' : 'string').runAsChild(ctx);
             promises.push(wrapPromise(currentSrc, current.id, asset));
             promiseKeys.push(currentSrc);
             currentSrc++;

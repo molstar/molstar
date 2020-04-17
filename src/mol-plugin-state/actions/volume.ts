@@ -114,7 +114,7 @@ const DownloadDensity = StateAction.build({
     switch (src.name) {
         case 'url':
             downloadParams = src.params;
-            provider = src.params.format === 'auto' ? plugin.dataFormats.auto(getFileInfo(downloadParams.url.url), data.cell?.obj!) : plugin.dataFormats.get(src.params.format);
+            provider = src.params.format === 'auto' ? plugin.dataFormats.auto(getFileInfo(Asset.getUrl(downloadParams.url)), data.cell?.obj!) : plugin.dataFormats.get(src.params.format);
             break;
         case 'pdb-xray':
             provider = src.params.provider.server === 'pdbe'

@@ -790,7 +790,7 @@ export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isEx
 export class UrlControl extends SimpleParam<PD.UrlParam> {
     onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        if (value !== this.props.value.url) {
+        if (value !== Asset.getUrl(this.props.value || '')) {
             this.update(Asset.Url(value));
         }
     }
@@ -805,7 +805,7 @@ export class UrlControl extends SimpleParam<PD.UrlParam> {
     renderControl() {
         const placeholder = this.props.param.label || camelCaseToWords(this.props.name);
         return <input type='text'
-            value={this.props.value.url || ''}
+            value={Asset.getUrl(this.props.value || '')}
             placeholder={placeholder}
             onChange={this.onChange}
             onKeyPress={this.props.onEnter ? this.onKeyPress : void 0}

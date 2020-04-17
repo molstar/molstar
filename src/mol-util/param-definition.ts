@@ -148,7 +148,7 @@ export namespace ParamDefinition {
         return setInfo<Mat4>({ type: 'mat4', defaultValue }, info);
     }
 
-    export interface UrlParam extends Base<Asset.Url> {
+    export interface UrlParam extends Base<Asset.Url | string> {
         type: 'url'
     }
     export function Url(url: string | { url: string, body?: string }, info?: Info): UrlParam {

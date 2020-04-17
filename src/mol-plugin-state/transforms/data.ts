@@ -47,11 +47,12 @@ const Download = PluginStateTransform.BuiltIn({
 })({
     apply({ params: p, cache }, plugin: PluginContext) {
         return Task.create('Download', async ctx => {
-            const asset = await plugin.managers.asset.resolve(p.url, p.isBinary ? 'binary' : 'string').runInContext(ctx);
+            let url = Asset.getUrlAsset(p.url, plugin.managers.asset);
+            const asset = await plugin.managers.asset.resolve(url, p.isBinary ? 'binary' : 'string').runInContext(ctx);
             (cache as any).asset = asset;
             return p.isBinary
-                ? new SO.Data.Binary(asset.data as Uint8Array, { label: p.label ? p.label : p.url.url })
-                : new SO.Data.String(asset.data as string, { label: p.label ? p.label : p.url.url });
+                ? new SO.Data.Binary(asset.data as Uint8Array, { label: p.label ? p.label : url.url })
+                : new SO.Data.String(asset.data as string, { label: p.label ? p.label : url.url });
         });
     },
     dispose({ cache }) {
@@ -60,7 +61,7 @@ const Download = PluginStateTransform.BuiltIn({
     update({ oldParams, newParams, b }) {
         if (oldParams.url !== newParams.url || oldParams.isBinary !== newParams.isBinary) return StateTransformer.UpdateResult.Recreate;
         if (oldParams.label !== newParams.label) {
-            b.label = newParams.label || newParams.url.url;
+            b.label = newParams.label || ((typeof newParams.url === 'string') ? newParams.url : newParams.url.url);
             return StateTransformer.UpdateResult.Updated;
         }
         return StateTransformer.UpdateResult.Unchanged;
