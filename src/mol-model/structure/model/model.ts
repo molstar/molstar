@@ -147,7 +147,8 @@ export namespace Model {
         if (!MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
         return (
-            db.database_2.database_id.isDefined
+            db.database_2.database_id.isDefined ||
+            model.entryId.length === 4
         );
     }
 

@@ -17,7 +17,6 @@ import { IntMap, SortedArray } from '../../../mol-data/int';
 import { arrayMax } from '../../../mol-util/array';
 import { equalEps } from '../../../mol-math/linear-algebra/3d/common';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { QuerySymbolRuntime } from '../../../mol-script/runtime/query/compiler';
 import { CustomPropSymbol } from '../../../mol-script/language/symbol';
 import Type from '../../../mol-script/language/type';
@@ -92,12 +91,7 @@ namespace ValidationReport {
     }
 
     export function isApplicable(model?: Model): boolean {
-        return (
-            !!model &&
-            MmcifFormat.is(model.sourceData) &&
-            (model.sourceData.data.db.database_2.database_id.isDefined ||
-                model.entryId.length === 4)
-        );
+        return !!model && Model.isFromPdbArchive(model);
     }
 
     export function fromXml(xml: XMLDocument, model: Model): ValidationReport {

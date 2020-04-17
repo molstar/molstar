@@ -37,12 +37,7 @@ namespace StructureQualityReport {
     }
 
     export function isApplicable(model?: Model): boolean {
-        return (
-            !!model &&
-            MmcifFormat.is(model.sourceData) &&
-            (model.sourceData.data.db.database_2.database_id.isDefined ||
-                model.entryId.length === 4)
-        );
+        return !!model && Model.isFromPdbArchive(model);
     }
 
     export const Schema = {
