@@ -154,7 +154,7 @@ function getQueryParams(req: express.Request, isCell: boolean): Data.QueryParams
     const b = [+req.params.b1, +req.params.b2, +req.params.b3];
 
     const detail = Math.min(Math.max(0, (+req.query.detail) | 0), LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1);
-    const isCartesian = (req.query.space || '').toLowerCase() !== 'fractional';
+    const isCartesian = (req.query.space as string || '').toLowerCase() !== 'fractional';
 
     const box: Data.QueryParamsBox = isCell
         ? { kind: 'Cell' }
@@ -162,7 +162,7 @@ function getQueryParams(req: express.Request, isCell: boolean): Data.QueryParams
             ? { kind: 'Cartesian', a: Coords.cartesian(a[0], a[1], a[2]), b: Coords.cartesian(b[0], b[1], b[2]) }
             : { kind: 'Fractional', a: Coords.fractional(a[0], a[1], a[2]), b: Coords.fractional(b[0], b[1], b[2]) });
 
-    const asBinary = (req.query.encoding || '').toLowerCase() !== 'cif';
+    const asBinary = (req.query.encoding as string || '').toLowerCase() !== 'cif';
     const sourceFilename = req.app.locals.mapFile(req.params.source, req.params.id)!;
 
     return {
