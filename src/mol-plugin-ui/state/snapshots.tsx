@@ -44,9 +44,12 @@ export class StateExportImportControls extends PluginUIComponent {
     }
 
     open = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files || !e.target.files![0]) return;
+        if (!e.target.files || !e.target.files[0]) {
+            this.plugin.log.error('No state file selected');
+            return;
+        }
 
-        PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: e.target.files![0] });
+        PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: e.target.files[0] });
     }
 
     render() {
@@ -58,7 +61,7 @@ export class StateExportImportControls extends PluginUIComponent {
                 Full
             </Button>
             <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
-                <Icon svg={OpenInBrowser} inline /> Open <input onChange={this.open} type='file' multiple={false} accept='.json,.zip' />
+                <Icon svg={OpenInBrowser} inline /> Open <input onChange={this.open} type='file' multiple={false} accept='.molx,.molj' />
             </div>
         </div>;
     }
