@@ -35,24 +35,28 @@ namespace Asset {
         return x?.kind === 'file';
     }
 
-    export class Wrapper<T extends DataType = DataType> {
-        dispose() {
-            this.manager.release(this.asset);
-        }
+    export interface Wrapper<T extends DataType = DataType> {
+        readonly data: DataResponse<T>
+        dispose: () => void
+    }
 
-        constructor(public readonly data: DataResponse<T>, private asset: Asset, private manager: AssetManager) {
-
-        }
+    export function Wrapper<T extends DataType = DataType>(data: DataResponse<T>, asset: Asset, manager: AssetManager) {
+        return {
+            data,
+            dispose: () => {
+                manager.release(asset);
+            }
+        };
     }
 
     export function getUrl(url: string | Url) {
         return typeof url === 'string' ? url : url.url;
     }
 
-    export function getUrlAsset(url: string | Url, manager: AssetManager) {
+    export function getUrlAsset(manager: AssetManager, url: string | Url, body?: string) {
         if (typeof url === 'string') {
-            const asset = manager.tryFindUrl(url);
-            return asset || Url(url);
+            const asset = manager.tryFindUrl(url, body);
+            return asset || Url(url, { body });
         }
         return url;
     }
@@ -88,24 +92,24 @@ class AssetManager {
                 if (this._assets.has(asset.id)) {
                     const entry = this._assets.get(asset.id)!;
                     entry.refCount++;
-                    return new Asset.Wrapper(await readFromFile(entry.file, type).runInContext(ctx), asset, this);
+                    return Asset.Wrapper(await readFromFile(entry.file, type).runInContext(ctx), asset, this);
                 }
 
                 if (!store) {
-                    return new Asset.Wrapper(await ajaxGet({ ...asset, type }).runInContext(ctx), asset, this);
+                    return Asset.Wrapper(await ajaxGet({ ...asset, type }).runInContext(ctx), asset, this);
                 }
 
                 const data = await ajaxGet({ ...asset, type: 'binary' }).runInContext(ctx);
                 const file = new File([data], 'raw-data');
                 this._assets.set(asset.id, { asset, file, refCount: 1 });
-                return new Asset.Wrapper(await readFromFile(file, type).runInContext(ctx), asset, this);
+                return Asset.Wrapper(await readFromFile(file, type).runInContext(ctx), asset, this);
             });
         } else {
             return Task.create(`Read ${asset.name}`, async ctx => {
                 if (this._assets.has(asset.id)) {
                     const entry = this._assets.get(asset.id)!;
                     entry.refCount++;
-                    return new Asset.Wrapper(await readFromFile(entry.file, type).runInContext(ctx), asset, this);
+                    return Asset.Wrapper(await readFromFile(entry.file, type).runInContext(ctx), asset, this);
                 }
                 if (!(asset.file instanceof File)) {
                     throw new Error(`Cannot resolve file asset '${asset.name}' (${asset.id})`);
@@ -113,7 +117,7 @@ class AssetManager {
                 if (store) {
                     this._assets.set(asset.id, { asset, file: asset.file, refCount: 1 });
                 }
-                return new Asset.Wrapper(await readFromFile(asset.file, type).runInContext(ctx), asset, this);
+                return Asset.Wrapper(await readFromFile(asset.file, type).runInContext(ctx), asset, this);
             });
         }
     }

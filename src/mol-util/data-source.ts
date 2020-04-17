@@ -293,7 +293,7 @@ export async function ajaxGetMany(ctx: RuntimeContext, assetManager: AssetManage
         const current = sources[currentSrc];
 
         promises.push(wrapPromise(currentSrc, current.id,
-            assetManager.resolve(Asset.getUrlAsset(current.url, assetManager), current.isBinary ? 'binary' : 'string').runAsChild(ctx)));
+            assetManager.resolve(Asset.getUrlAsset(assetManager, current.url), current.isBinary ? 'binary' : 'string').runAsChild(ctx)));
         promiseKeys.push(currentSrc);
     }
 
@@ -315,7 +315,7 @@ export async function ajaxGetMany(ctx: RuntimeContext, assetManager: AssetManage
         promiseKeys = promiseKeys.filter(_filterRemoveIndex, idx);
         if (currentSrc < len) {
             const current = sources[currentSrc];
-            const asset = assetManager.resolve(Asset.getUrlAsset(current.url, assetManager), current.isBinary ? 'binary' : 'string').runAsChild(ctx);
+            const asset = assetManager.resolve(Asset.getUrlAsset(assetManager, current.url), current.isBinary ? 'binary' : 'string').runAsChild(ctx);
             promises.push(wrapPromise(currentSrc, current.id, asset));
             promiseKeys.push(currentSrc);
             currentSrc++;
