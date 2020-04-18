@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { List } from 'immutable';
@@ -14,6 +15,7 @@ import { Asset } from '../../mol-util/assets';
 import { zip } from '../../mol-util/zip/zip';
 import { readFromFile } from '../../mol-util/data-source';
 import { objectForEach } from '../../mol-util/object';
+import { PLUGIN_VERSION } from '../../mol-plugin/version';
 
 export { PluginStateSnapshotManager };
 
@@ -130,6 +132,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     }
 
     async setStateSnapshot(snapshot: PluginStateSnapshotManager.StateSnapshot): Promise<PluginState.Snapshot | undefined> {
+        if (snapshot.version !== PLUGIN_VERSION) {
+            // TODO
+            console.warn('state snapshot version mismatch');
+        }
+
         this.clear();
         const entries = List<PluginStateSnapshotManager.Entry>().asMutable();
         for (const e of snapshot.entries) {
@@ -174,6 +181,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
 
         return {
             timestamp: +new Date(),
+            version: PLUGIN_VERSION,
             name: options && options.name,
             description: options && options.description,
             current: this.state.current,
@@ -224,7 +232,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
             if (fn.endsWith('json') || fn.endsWith('molj')) {
                 const data = await this.plugin.runTask(readFromFile(file, 'string'));
                 const snapshot = JSON.parse(data);
-                return this.plugin.state.setSnapshot(snapshot);
+                return this.setStateSnapshot(snapshot);
             } else {
                 const data = await this.plugin.runTask(readFromFile(file, 'zip'));
                 const assets = Object.create(null);
@@ -327,6 +335,7 @@ namespace PluginStateSnapshotManager {
 
     export interface StateSnapshot {
         timestamp: number,
+        version: string,
         name?: string,
         description?: string,
         current: UUID | undefined,
