@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ArrowDownward, ArrowUpward, CloudUpload, DeleteOutlined, GetApp, OpenInBrowser, SaveOutlined, SwapHoriz } from '@material-ui/icons';
+import { Add, ArrowDownward, ArrowUpward, CloudUpload, DeleteOutlined, GetApp, OpenInBrowser, SaveOutlined, SwapHoriz, Refresh } from '@material-ui/icons';
 import { OrderedMap } from 'immutable';
 import * as React from 'react';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -15,7 +15,7 @@ import { formatTimespan } from '../../mol-util/now';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { urlCombine } from '../../mol-util/url';
 import { PluginUIComponent, PurePluginUIComponent } from '../base';
-import { Button, IconButton, SectionHeader } from '../controls/common';
+import { Button, ExpandGroup, IconButton, SectionHeader } from '../controls/common';
 import { Icon } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 
@@ -23,13 +23,21 @@ export class StateSnapshots extends PluginUIComponent<{}> {
     render() {
         return <div>
             <SectionHeader icon={SaveOutlined} title='Plugin State' />
+
+            <div style={{ marginBottom: '10px' }}>
+                <ExpandGroup header='Save Options' initiallyExpanded={false}>
+                    <LocalStateSnapshotParams />
+                </ExpandGroup>
+            </div>
+
             <LocalStateSnapshots />
             <LocalStateSnapshotList />
+
+            <SectionHeader title='Save as File' accent='blue' />
+            <StateExportImportControls />
+
             {this.plugin.spec.components?.remoteState !== 'none' && <RemoteStateSnapshots />}
 
-            <div style={{ marginTop: '10px' }}>
-                <StateExportImportControls />
-            </div>
         </div>;
     }
 }
@@ -67,36 +75,34 @@ export class StateExportImportControls extends PluginUIComponent {
     }
 }
 
+export class LocalStateSnapshotParams extends PluginUIComponent {
+    componentDidMount() {
+        this.subscribe(this.plugin.state.snapshotParams, () => this.forceUpdate());
+    }
+
+    render() {
+        return <ParameterControls params={PluginState.SnapshotParams} values={this.plugin.state.snapshotParams.value} onChangeValues={this.plugin.state.setSnapshotParams} />;
+    }
+}
+
 class LocalStateSnapshots extends PluginUIComponent<
 {},
 { params: PD.Values<typeof LocalStateSnapshots.Params> }> {
-
     state = { params: PD.getDefaultValues(LocalStateSnapshots.Params) };
 
     static Params = {
         name: PD.Text(),
-        options: PD.Group({
-            description: PD.Text(),
-            ...PluginState.GetSnapshotParams
-        })
+        description: PD.Text()
     };
 
     add = () => {
         PluginCommands.State.Snapshots.Add(this.plugin, {
             name: this.state.params.name,
-            description: this.state.params.options.description,
-            params: this.state.params.options
-        });
-        this.setState({
-            params: {
-                name: '',
-                options: {
-                    ...this.state.params.options,
-                    description: ''
-                }
-            }
+            description: this.state.params.description
         });
     }
+
+    updateParams = (params: PD.Values<typeof LocalStateSnapshots.Params>) => this.setState({ params });
 
     clear = () => {
         PluginCommands.State.Snapshots.Clear(this.plugin, {});
@@ -107,17 +113,11 @@ class LocalStateSnapshots extends PluginUIComponent<
     }
 
     render() {
-        // TODO: proper styling
         return <div>
-            <ParameterControls params={LocalStateSnapshots.Params} values={this.state.params} onEnter={this.add} onChange={p => {
-                const params = { ...this.state.params, [p.name]: p.value };
-                this.setState({ params } as any);
-                this.plugin.managers.snapshot.currentGetSnapshotParams = params.options;
-            }} />
-
+            <ParameterControls params={LocalStateSnapshots.Params} values={this.state.params} onEnter={this.add} onChangeValues={this.updateParams} />
             <div className='msp-flex-row'>
-                <Button onClick={this.add}>Save</Button>
-                <Button onClick={this.clear}>Clear</Button>
+                <IconButton onClick={this.clear} svg={DeleteOutlined} title='Remove All' />
+                <Button onClick={this.add} icon={Add} style={{ textAlign: 'right' }} commit>Add</Button>
             </div>
         </div>;
     }
@@ -155,12 +155,12 @@ class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
     replace = (e: React.MouseEvent<HTMLElement>) => {
         const id = e.currentTarget.getAttribute('data-id');
         if (!id) return;
-        PluginCommands.State.Snapshots.Replace(this.plugin, { id, params: this.plugin.managers.snapshot.currentGetSnapshotParams });
+        PluginCommands.State.Snapshots.Replace(this.plugin, { id });
     }
 
     render() {
         const current = this.plugin.managers.snapshot.state.current;
-        return <ul style={{ listStyle: 'none', marginTop: '1px' }} className='msp-state-list'>
+        return <ul style={{ listStyle: 'none', marginTop: '10px' }} className='msp-state-list'>
             {this.plugin.managers.snapshot.state.entries.map(e => <li key={e!.snapshot.id} className='msp-flex-row'>
                 <Button data-id={e!.snapshot.id} onClick={this.apply} className='msp-no-overflow'>
                     {(console.log(e!.snapshot.durationInMs), false)}
@@ -246,8 +246,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
             name: this.state.params.name,
             description: this.state.params.options.description,
             playOnLoad: this.state.params.options.playOnLoad,
-            serverUrl: this.state.params.options.serverUrl,
-            params: this.plugin.managers.snapshot.currentGetSnapshotParams
+            serverUrl: this.state.params.options.serverUrl
         });
 
         this.setState({ isBusy: false });
@@ -283,29 +282,29 @@ export class RemoteStateSnapshots extends PluginUIComponent<
 
     render() {
         return <>
-            <SectionHeader title='Remote States' />
+            <SectionHeader title='Remote States' accent='blue' />
 
             {!this.props.listOnly && <>
                 <ParameterControls params={this.Params} values={this.state.params} onEnter={this.upload} onChange={p => {
                     this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
                 }} isDisabled={this.state.isBusy} />
                 <div className='msp-flex-row'>
-                    <Button icon={CloudUpload} onClick={this.upload} disabled={this.state.isBusy}>Upload</Button>
-                    <Button onClick={this.refresh} disabled={this.state.isBusy}>Refresh</Button>
+                    <IconButton onClick={this.refresh} disabled={this.state.isBusy} svg={Refresh} />
+                    <Button icon={CloudUpload} onClick={this.upload} disabled={this.state.isBusy} commit>Upload</Button>
                 </div>
             </>}
 
             <RemoteStateSnapshotList entries={this.state.entries} isBusy={this.state.isBusy} serverUrl={this.state.params.options.serverUrl}
                 fetch={this.fetch} remove={this.props.listOnly ? void 0 : this.remove} />
 
-            {this.props.listOnly && <>
+            {this.props.listOnly && <div style={{ marginTop: '10px' }}>
                 <ParameterControls params={this.ListOnlyParams} values={this.state.params} onEnter={this.upload} onChange={p => {
                     this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
                 }} isDisabled={this.state.isBusy} />
                 <div className='msp-flex-row'>
-                    <Button onClick={this.refresh} disabled={this.state.isBusy}>Refresh</Button>
+                    <Button onClick={this.refresh} disabled={this.state.isBusy} icon={Refresh}>Refresh</Button>
                 </div>
-            </>}
+            </div>}
         </>;
     }
 }
@@ -328,7 +327,7 @@ class RemoteStateSnapshotList extends PurePluginUIComponent<
     }
 
     render() {
-        return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
+        return <ul style={{ listStyle: 'none', marginTop: '10px' }} className='msp-state-list'>
             {this.props.entries.valueSeq().map(e => <li key={e!.id} className='msp-flex-row'>
                 <Button data-id={e!.id} onClick={this.props.fetch}
                     disabled={this.props.isBusy} onContextMenu={this.open} title='Click to download, right-click to open in a new tab.'>

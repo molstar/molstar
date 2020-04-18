@@ -9,6 +9,8 @@ import { Color } from '../../mol-util/color';
 import { Icon } from './icons';
 import { ArrowRight, ArrowDropDown, Remove, Add } from '@material-ui/icons';
 
+export type ColorAccent = 'cyan' | 'red' | 'gray' | 'green' | 'purple' | 'blue' | 'orange'
+
 export class ControlGroup extends React.Component<{
     header: string,
     initialExpanded?: boolean,
@@ -211,8 +213,8 @@ export class ExpandableControlRow extends React.Component<{
     }
 }
 
-export function SectionHeader(props: { icon?: React.FC, title: string | JSX.Element, desc?: string }) {
-    return <div className='msp-section-header'>
+export function SectionHeader(props: { icon?: React.FC, title: string | JSX.Element, desc?: string, accent?: ColorAccent }) {
+    return <div className={`msp-section-header${props.accent ? ' msp-transform-header-brand-' + props.accent : ''}` }>
         {props.icon && <Icon svg={props.icon} />}
         {props.title} <small>{props.desc}</small>
     </div>;
@@ -224,6 +226,7 @@ export type ButtonProps = {
     disabled?: boolean,
     title?: string,
     icon?: React.FC,
+    commit?: boolean | 'on' | 'off'
     children?: React.ReactNode,
     onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void,
     onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void,
@@ -241,6 +244,8 @@ export function Button(props: ButtonProps) {
     if (!props.inline) className += ' msp-btn-block';
     if (props.noOverflow) className += ' msp-no-overflow';
     if (props.flex) className += ' msp-flex-item';
+    if (props.commit === 'on' || props.commit) className += ' msp-btn-commit msp-btn-commit-on';
+    if (props.commit === 'off') className += ' msp-btn-commit msp-btn-commit-off';
     if (!props.children) className += ' msp-btn-childless';
     if (props.className) className += ' ' + props.className;
 

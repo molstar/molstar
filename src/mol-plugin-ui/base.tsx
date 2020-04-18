@@ -8,7 +8,7 @@
 import * as React from 'react';
 import { Observable, Subscription } from 'rxjs';
 import { PluginContext } from '../mol-plugin/context';
-import { Button } from './controls/common';
+import { Button, ColorAccent } from './controls/common';
 import { ArrowRight, ArrowDropDown } from '@material-ui/icons';
 import { Icon } from './controls/icons';
 
@@ -77,7 +77,7 @@ export type CollapsableState = {
     header: string,
     description?: string,
     isHidden?: boolean,
-    brand?: { svg?: React.FC, accent: 'cyan' | 'red' | 'gray' | 'green' | 'purple' | 'blue' | 'orange' }
+    brand?: { svg?: React.FC, accent: ColorAccent }
 }
 
 export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends PluginUIComponent<P & CollapsableProps, S & CollapsableState, SS> {

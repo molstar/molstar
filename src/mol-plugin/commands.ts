@@ -27,14 +27,14 @@ export const PluginCommands = {
         ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
 
         Snapshots: {
-            Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.GetSnapshotParams }>(),
-            Replace: PluginCommand<{ id: string, params?: PluginState.GetSnapshotParams }>(),
+            Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.SnapshotParams }>(),
+            Replace: PluginCommand<{ id: string, params?: PluginState.SnapshotParams }>(),
             Move: PluginCommand<{ id: string, dir: -1 | 1 }>(),
             Remove: PluginCommand<{ id: string }>(),
             Apply: PluginCommand<{ id: string }>(),
             Clear: PluginCommand<{}>(),
 
-            Upload: PluginCommand<{ name?: string, description?: string, playOnLoad?: boolean, serverUrl: string, params?: PluginState.GetSnapshotParams }>(),
+            Upload: PluginCommand<{ name?: string, description?: string, playOnLoad?: boolean, serverUrl: string, params?: PluginState.SnapshotParams }>(),
             Fetch: PluginCommand<{ url: string }>(),
 
             DownloadToFile: PluginCommand<{ name?: string, type: 'json' | 'zip' }>(),

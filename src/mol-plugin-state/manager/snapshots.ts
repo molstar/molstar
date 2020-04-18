@@ -33,8 +33,6 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         changed: this.ev()
     };
 
-    currentGetSnapshotParams: PluginState.GetSnapshotParams = PluginState.DefaultGetSnapshotParams as any;
-
     getIndex(e: PluginStateSnapshotManager.Entry) {
         return this.state.entries.indexOf(e);
     }
@@ -164,7 +162,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         return next;
     }
 
-    private syncCurrent(options?: { name?: string, description?: string, params?: PluginState.GetSnapshotParams }) {
+    private syncCurrent(options?: { name?: string, description?: string, params?: PluginState.SnapshotParams }) {
         const snapshot = this.plugin.state.getSnapshot(options?.params);
         if (this.state.entries.size === 0 || !this.state.current) {
             this.add(PluginStateSnapshotManager.Entry(snapshot, { name: options?.name, description: options?.description }));
@@ -173,10 +171,8 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         }
     }
 
-    getStateSnapshot(options?: { name?: string, description?: string, playOnLoad?: boolean, params?: PluginState.GetSnapshotParams }): PluginStateSnapshotManager.StateSnapshot {
+    getStateSnapshot(options?: { name?: string, description?: string, playOnLoad?: boolean, params?: PluginState.SnapshotParams }): PluginStateSnapshotManager.StateSnapshot {
         // TODO: diffing and all that fancy stuff
-
-        // TODO: the options need to be handled better, particularky options.params
         this.syncCurrent(options);
 
         return {

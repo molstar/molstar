@@ -169,7 +169,7 @@ export function Snapshots(ctx: PluginContext) {
             mode: 'cors',
             referrer: 'no-referrer',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(ctx.managers.snapshot.getStateSnapshot({ name, description, playOnLoad, params }))
+            body: JSON.stringify(ctx.managers.snapshot.getStateSnapshot({ name, description, playOnLoad }))
         }) as any as Promise<void>;
     });
 

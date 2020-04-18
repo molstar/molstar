@@ -18,10 +18,11 @@ import { produce } from 'immer';
 import { StructureFocusSnapshot } from '../mol-plugin-state/manager/structure/focus';
 import { merge } from 'rxjs';
 import { PluginContext } from './context';
+import { PluginComponent } from '../mol-plugin-state/component';
 
 export { PluginState };
 
-class PluginState {
+class PluginState extends PluginComponent {
     private get animation() { return this.plugin.managers.animation; }
 
     readonly data = State.create(new SO.Root({ }), { runTask: this.plugin.runTask, globalContext: this.plugin });
@@ -38,10 +39,16 @@ class PluginState {
             removed: merge(this.data.events.object.removed, this.behaviors.events.object.removed),
             updated: merge(this.data.events.object.updated, this.behaviors.events.object.updated)
         }
-    } as const
+    } as const;
 
-    getSnapshot(params?: PluginState.GetSnapshotParams): PluginState.Snapshot {
-        const p = { ...PluginState.DefaultGetSnapshotParams, ...params };
+    readonly snapshotParams = this.ev.behavior<PluginState.SnapshotParams>(PluginState.DefaultSnapshotParams);
+
+    setSnapshotParams = (params?: PluginState.SnapshotParams) => {
+        this.snapshotParams.next({ ...PluginState.DefaultSnapshotParams, ...params });
+    }
+
+    getSnapshot(params?: PluginState.SnapshotParams): PluginState.Snapshot {
+        const p = { ...this.snapshotParams.value, ...params };
         return {
             id: UUID.create22(),
             data: p.data ? this.data.getSnapshot() : void 0,
@@ -50,8 +57,8 @@ class PluginState {
             startAnimation: p.startAnimation ? !!p.startAnimation : void 0,
             camera: p.camera ? {
                 current: this.plugin.canvas3d!.camera.getSnapshot(),
-                transitionStyle: p.cameraTranstion.name,
-                transitionDurationInMs: (params && params.cameraTranstion && params.cameraTranstion.name === 'animate') ? params.cameraTranstion.params.durationInMs : undefined
+                transitionStyle: p.cameraTranstion!.name,
+                transitionDurationInMs: p?.cameraTranstion?.name === 'animate' ? p.cameraTranstion.params.durationInMs : void 0
             } : void 0,
             canvas3d: p.canvas3d ? { props: this.plugin.canvas3d?.props } : void 0,
             interactivity: p.interactivity ? { props: this.plugin.managers.interactivity.props } : void 0,
@@ -107,18 +114,20 @@ class PluginState {
     }
 
     dispose() {
+        super.dispose();
         this.data.dispose();
         this.behaviors.dispose();
         this.animation.dispose();
     }
 
     constructor(private plugin: PluginContext) {
+        super();
     }
 }
 
 namespace PluginState {
     export type CameraTransitionStyle = 'instant' | 'animate'
-    export const GetSnapshotParams = {
+    export const SnapshotParams = {
         durationInMs: PD.Numeric(1500, { min: 100, max: 15000, step: 100 }, { label: 'Duration in ms' }),
         data: PD.Boolean(true),
         behavior: PD.Boolean(false),
@@ -134,8 +143,8 @@ namespace PluginState {
             instant: PD.Group({ })
         }, { options: [['animate', 'Animate'], ['instant', 'Instant']] })
     };
-    export type GetSnapshotParams = Partial<PD.Values<typeof GetSnapshotParams>>
-    export const DefaultGetSnapshotParams = PD.getDefaultValues(GetSnapshotParams);
+    export type SnapshotParams = Partial<PD.Values<typeof SnapshotParams>>
+    export const DefaultSnapshotParams = PD.getDefaultValues(SnapshotParams);
 
     export interface Snapshot {
         id: UUID,

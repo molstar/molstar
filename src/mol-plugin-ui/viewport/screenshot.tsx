@@ -17,7 +17,7 @@ import { CameraHelperProps } from '../../mol-canvas3d/helper/camera-helper';
 import { GetApp, Launch, Warning } from '@material-ui/icons';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { Icon } from '../controls/icons';
-import { StateExportImportControls } from '../state/snapshots';
+import { StateExportImportControls, LocalStateSnapshotParams } from '../state/snapshots';
 
 interface ImageControlsState {
     showPreview: boolean
@@ -147,6 +147,9 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
             <ParameterControls params={this.plugin.helpers.viewportScreenshot!.params} values={this.plugin.helpers.viewportScreenshot!.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
             <ExpandGroup header='State Snapshot'>
                 <StateExportImportControls />
+                <ExpandGroup header='Save Options' initiallyExpanded={false} noOffset>
+                    <LocalStateSnapshotParams />
+                </ExpandGroup>
                 <div className='msp-help-text' style={{ padding: '10px'}}>
                     <Icon svg={Warning} /> This is an experimental feature and stored states might not be openable in a future version.
                 </div>
