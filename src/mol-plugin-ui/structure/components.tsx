@@ -4,19 +4,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Add, BookmarksOutlined, Delete, DeleteOutlined, MoreHoriz, Tune, Restore, VisibilityOutlined, VisibilityOffOutlined } from '@material-ui/icons';
+import { Add, BookmarksOutlined, Delete, DeleteOutlined, MoreHoriz, Restore, Tune, VisibilityOffOutlined, VisibilityOutlined } from '@material-ui/icons';
 import * as React from 'react';
 import { getStructureThemeTypes } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
 import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
-import { StructureComponentRef, StructureRef, StructureRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
+import { StructureComponentRef, StructureRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { State } from '../../mol-state';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ExpandGroup, IconButton, ToggleButton } from '../controls/common';
-import { Intersect, SetSvg, Subtract, Union, CubeSvg } from '../controls/icons';
+import { CubeSvg, Intersect, SetSvg, Subtract, Union } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 import { GenericEntryListControls } from './generic';
@@ -129,7 +129,7 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
             </div>
             {this.state.action === 'preset' && this.presetControls}
             {this.state.action === 'add' && <div className='msp-control-offset'>
-                <AddComponentControls structures={this.plugin.managers.structure.component.currentStructures} onApply={this.hideAction} />
+                <AddComponentControls onApply={this.hideAction} />
             </div>}
             {this.state.action === 'options' && <div className='msp-control-offset'><ComponentOptionsControls isDisabled={this.isDisabled} /></div>}
         </>;
@@ -142,30 +142,37 @@ interface AddComponentControlsState {
 }
 
 interface AddComponentControlsProps {
-    structures: ReadonlyArray<StructureRef>,
+    forSelection?: boolean,
     onApply: () => void
 }
 
-class AddComponentControls extends PurePluginUIComponent<AddComponentControlsProps, AddComponentControlsState> {
+export class AddComponentControls extends PurePluginUIComponent<AddComponentControlsProps, AddComponentControlsState> {
     createState(): AddComponentControlsState {
-        const params = StructureComponentManager.getAddParams(this.plugin);
+        const params = StructureComponentManager.getAddParams(this.plugin, this.props.forSelection
+            ? { allowNone: false, hideSelection: true }
+            : void 0);
         return { params, values: ParamDefinition.getDefaultValues(params) };
     }
 
     state = this.createState();
 
+    get selectedStructures() {
+        return this.plugin.managers.structure.component.currentStructures;
+    }
+
     apply = () => {
-        this.plugin.managers.structure.component.add(this.state.values, this.props.structures);
+        const target = this.props.forSelection ? this.plugin.managers.structure.hierarchy.getStructuresWithSelection() : this.selectedStructures;
         this.props.onApply();
+        this.plugin.managers.structure.component.add(this.state.values, target);
     }
 
     paramsChanged = (values: any) => this.setState({ values })
 
-    componentDidUpdate(prevProps: AddComponentControlsProps) {
-        if (this.props.structures !== prevProps.structures) {
-            this.setState(this.createState());
-        }
-    }
+    // componentDidUpdate(prevProps: AddComponentControlsProps) {
+    //     if (this.props.structures !== prevProps.structures) {
+    //         this.setState(this.createState());
+    //     }
+    // }
 
     render() {
         return <>

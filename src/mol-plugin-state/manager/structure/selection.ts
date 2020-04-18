@@ -21,6 +21,7 @@ import { StatefulPluginComponent } from '../../component';
 import { StructureSelectionQuery } from '../../helpers/structure-selection-query';
 import { PluginStateObject } from '../../objects';
 import { UUID } from '../../../mol-util';
+import { StructureRef } from './hierarchy-state';
 
 interface StructureSelectionManagerState {
     entries: Map<string, SelectionEntry>,
@@ -246,6 +247,13 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         const entry = this.getEntry(structure);
         if (!entry) return;
         return entry.structure;
+    }
+
+    structureHasSelection(structure: StructureRef) {
+        const s = structure.cell?.obj?.data;
+        if (!s) return false;
+        const entry = this.getEntry(s);
+        return !!entry && !StructureElement.Loci.isEmpty(entry.selection);
     }
 
     has(loci: Loci) {

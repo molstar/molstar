@@ -400,11 +400,18 @@ namespace StructureComponentManager {
     };
     export type Options = PD.Values<typeof OptionsParams>
 
-    export function getAddParams(plugin: PluginContext) {
+    export function getAddParams(plugin: PluginContext, params?: { pivot?: StructureRef, allowNone: boolean, hideSelection?: boolean, defaultSelection?: StructureSelectionQuery }) {
         const { options } = plugin.query.structure.registry;
+        params = {
+            pivot: plugin.managers.structure.component.pivotStructure,
+            allowNone: true,
+            hideSelection: false,
+            defaultSelection: StructureSelectionQueries.current,
+            ...params
+        };
         return {
-            selection: PD.Select(options[1][0], options),
-            representation: getRepresentationTypesSelect(plugin, plugin.managers.structure.component.pivotStructure, [['none', '< Create Later >']]),
+            selection: PD.Select(options[1][0], options, { isHidden: params?.hideSelection }),
+            representation: getRepresentationTypesSelect(plugin, params?.pivot, params?.allowNone ? [['none', '< Create Later >']] : []),
             label: PD.Text('')
         };
     }

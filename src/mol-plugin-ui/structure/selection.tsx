@@ -19,77 +19,18 @@ import { PluginUIComponent, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ControlGroup, IconButton, ToggleButton } from '../controls/common';
 import { ParameterControls, ParamOnChange, PureSelectControl } from '../controls/parameters';
-import { Union, Subtract, Intersect, SetSvg as SetSvg } from '../controls/icons';
+import { Union, Subtract, Intersect, SetSvg as SetSvg, CubeSvg } from '../controls/icons';
+import { AddComponentControls } from './components';
 
 const StructureSelectionParams = {
     granularity: InteractivityManager.Params.granularity,
 };
 
-// interface StructureSelectionControlsState extends CollapsableState {
-//     isEmpty: boolean,
-//     isBusy: boolean,
-// }
-
-// export class StructureSelectionControls<P, S extends StructureSelectionControlsState> extends CollapsableControls<P, S> {
-//     componentDidMount() {
-//         this.subscribe(this.plugin.managers.structure.selection.events.changed, () => {
-//             this.forceUpdate()
-//         });
-
-//         this.subscribe(this.plugin.managers.interactivity.events.propsUpdated, () => {
-//             this.forceUpdate()
-//         });
-
-//         this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, c => {
-//             const isEmpty = c.structures.length === 0;
-//             if (this.state.isEmpty !== isEmpty) {
-//                 this.setState({ isEmpty });
-//             }
-//         });
-//     }
-
-//     get isDisabled() {
-//         return this.state.isBusy || this.state.isEmpty
-//     }
-
-//     setProps = (props: any) => {
-//         this.plugin.managers.interactivity.setProps(props);
-//     }
-
-//     get values () {
-//         return {
-//             granularity: this.plugin.managers.interactivity.props.granularity,
-//         }
-//     }
-
-//     defaultState() {
-//         return {
-//             isCollapsed: false,
-//             header: 'Selection',
-
-//             isEmpty: true,
-//             isBusy: false,
-
-//             brand: { name: 'Sel', accent: 'red' }
-//         } as S
-//     }
-
-//     renderControls() {
-//         return <>
-//             {/* <ParameterControls params={StructureSelectionParams} values={this.values} onChangeValues={this.setProps} />
-//             <StructureSelectionActionsControls /> */}
-//             <StructureSelectionStatsControls />
-//             {/* <div style={{ margin: '6px 0' }}>
-//             </div> */}
-//         </>
-//     }
-// }
-
 interface StructureSelectionActionsControlsState {
     isEmpty: boolean,
     isBusy: boolean,
 
-    action?: StructureSelectionModifier | 'color'
+    action?: StructureSelectionModifier | 'color' | 'add-repr'
 }
 
 const ActionHeader = new Map<StructureSelectionModifier, string>([
@@ -109,7 +50,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
 
     componentDidMount() {
         this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, c => {
-            const isEmpty = c.structures.length === 0;
+            const isEmpty = c.hierarchy.structures.length === 0;
             if (this.state.isEmpty !== isEmpty) {
                 this.setState({ isEmpty });
             }
@@ -168,6 +109,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
     toggleIntersect = this.showAction('intersect')
     toggleSet = this.showAction('set')
     toggleColor = this.showAction('color')
+    toggleAddRepr = this.showAction('add-repr')
 
     setGranuality: ParamOnChange = ({ value }) => {
         this.plugin.managers.interactivity.setProps({ granularity: value });
@@ -184,15 +126,21 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                 <ToggleButton icon={Intersect} title={ActionHeader.get('intersect')} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
                 <ToggleButton icon={SetSvg} title={ActionHeader.get('set')} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
                 <ToggleButton icon={Brush} title='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} />
+                <ToggleButton icon={CubeSvg} title='Create Representation' toggle={this.toggleAddRepr} isSelected={this.state.action === 'add-repr'} disabled={this.isDisabled} />
                 <PureSelectControl title={`Picking Level`} param={StructureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />
                 <IconButton svg={Close} title='Turn selection mode off' onClick={this.turnOff} />
             </div>
-            {(this.state.action && this.state.action !== 'color') && <div className='msp-selection-viewport-controls-actions'>
+            {(this.state.action && this.state.action !== 'color' && this.state.action !== 'add-repr') && <div className='msp-selection-viewport-controls-actions'>
                 <ActionMenu header={ActionHeader.get(this.state.action as StructureSelectionModifier)} items={this.queries} onSelect={this.selectQuery} noOffset />
             </div>}
             {this.state.action === 'color' && <div className='msp-selection-viewport-controls-actions'>
                 <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor} topRightIcon={Close}>
                     <ApplyColorControls />
+                </ControlGroup>
+            </div>}
+            {this.state.action === 'add-repr' && <div className='msp-selection-viewport-controls-actions'>
+                <ControlGroup header='Add Representation' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleAddRepr} topRightIcon={Close}>
+                    <AddComponentControls onApply={this.toggleAddRepr} forSelection />
                 </ControlGroup>
             </div>}
         </>;

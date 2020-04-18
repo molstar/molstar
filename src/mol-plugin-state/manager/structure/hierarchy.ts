@@ -68,6 +68,17 @@ export class StructureHierarchyManager extends PluginComponent {
         return this.state.selection;
     }
 
+    getStructuresWithSelection() {
+        const xs = this.plugin.managers.structure.hierarchy.current.structures;
+        const ret: StructureRef[] = [];
+        for (const s of xs) {
+            if (this.plugin.managers.structure.selection.structureHasSelection(s)) {
+                ret.push(s);
+            }
+        }
+        return ret;
+    }
+
     private syncCurrent<T extends HierarchyRef>(all: ReadonlyArray<T>, added: Set<StateTransform.Ref>): T[] {
         const current = this.seletionSet;
         const newCurrent: T[] = [];
