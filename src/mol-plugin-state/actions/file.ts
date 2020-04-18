@@ -10,7 +10,6 @@ import { Task } from '../../mol-task';
 import { getFileInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
-import { Asset } from '../../mol-util/assets';
 
 export const OpenFiles = StateAction.build({
     display: { name: 'Open Files', description: 'Load one or more files and optionally create default visuals' },
@@ -31,12 +30,11 @@ export const OpenFiles = StateAction.build({
             plugin.log.error('No file(s) selected');
             return;
         }
-        for (let i = 0, il = params.files.length; i < il; ++i) {
+        for (const file of params.files) {
             try {
-                const file = params.files[i];
-                const info = getFileInfo(file);
+                const info = getFileInfo(file.file!);
                 const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
-                const { data } = await plugin.builders.data.readFile({ file: Asset.File(file), isBinary });
+                const { data } = await plugin.builders.data.readFile({ file, isBinary });
                 const provider = params.format === 'auto'
                     ? plugin.dataFormats.auto(info, data.cell?.obj!)
                     : plugin.dataFormats.get(params.format);

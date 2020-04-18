@@ -167,7 +167,7 @@ export namespace ParamDefinition {
         return ret;
     }
 
-    export interface FileListParam extends Base<FileList | null> {
+    export interface FileListParam extends Base<Asset.File[] | null> {
         type: 'file-list'
         accept?: string
     }

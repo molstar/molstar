@@ -834,7 +834,13 @@ export class FileControl extends React.PureComponent<ParamProps<PD.FileParam>> {
 
 export class FileListControl extends React.PureComponent<ParamProps<PD.FileListParam>> {
     change(value: FileList) {
-        this.props.onChange({ name: this.props.name, param: this.props.param, value });
+        const files: Asset.File[] = [];
+        if (value) {
+            for (let i = 0, il = value.length; i < il; ++i) {
+                files.push(Asset.File(value[i]));
+            }
+        }
+        this.props.onChange({ name: this.props.name, param: this.props.param, value: files });
     }
 
     onChangeFileList = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -846,8 +852,8 @@ export class FileListControl extends React.PureComponent<ParamProps<PD.FileListP
 
         const names: string[] = [];
         if (value) {
-            for (let i = 0, il = value.length; i < il; ++i) {
-                names.push(value[i].name);
+            for (const file of value) {
+                names.push(file.name);
             }
         }
         const label = names.length === 0
