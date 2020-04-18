@@ -228,7 +228,12 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
             if (fn.endsWith('json') || fn.endsWith('molj')) {
                 const data = await this.plugin.runTask(readFromFile(file, 'string'));
                 const snapshot = JSON.parse(data);
-                return this.setStateSnapshot(snapshot);
+
+                if (PluginStateSnapshotManager.isStateSnapshot(snapshot)) {
+                    return this.setStateSnapshot(snapshot);
+                } else {
+                    this.plugin.state.setSnapshot(snapshot);
+                }
             } else {
                 const data = await this.plugin.runTask(readFromFile(file, 'zip'));
                 const assets = Object.create(null);
@@ -327,6 +332,11 @@ namespace PluginStateSnapshotManager {
 
     export function Entry(snapshot: PluginState.Snapshot, params: {name?: string, description?: string }): Entry {
         return { timestamp: +new Date(), snapshot, ...params };
+    }
+
+    export function isStateSnapshot(x?: any): x is StateSnapshot {
+        const s = x as StateSnapshot;
+        return !!s && !!s.timestamp && !!s.entries;
     }
 
     export interface StateSnapshot {

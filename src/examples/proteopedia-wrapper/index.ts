@@ -33,7 +33,7 @@ require('../../mol-plugin-ui/skin/light.scss');
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 5;
-    static VERSION_MINOR = 2;
+    static VERSION_MINOR = 3;
 
     private _ev = RxEventHelper.create();
 
@@ -195,6 +195,7 @@ class MolStarProteopediaWrapper {
         return PluginCommands.State.Update(this.plugin, { state: this.plugin.state.data, tree });
     }
 
+    private emptyLoadedParams: LoadParams = { url: '', format: 'cif', isBinary: false, assemblyId: '' };
     private loadedParams: LoadParams = { url: '', format: 'cif', isBinary: false, assemblyId: '' };
     async load({ url, format = 'cif', assemblyId = 'deposited', isBinary = false, representationStyle }: LoadParams) {
         let loadType: 'full' | 'update' = 'full';
@@ -265,26 +266,7 @@ class MolStarProteopediaWrapper {
 
     camera = {
         toggleSpin: () => this.toggleSpin(),
-        resetPosition: () => PluginCommands.Camera.Reset(this.plugin, { }),
-        // setClip: (options?: { distance?: number, near?: number, far?: number }) => {
-        //     if (!options) {
-        //         PluginCommands.Canvas3D.SetSettings(this.plugin, {
-        //             settings: {
-        //                 cameraClipDistance: DefaultCanvas3DParams.cameraClipDistance,
-        //                 clip: DefaultCanvas3DParams.clip
-        //             }
-        //         });
-        //         return;
-        //     }
-
-        //     options = options || { };
-        //     const props = this.plugin.canvas3d.props;
-        //     const clipNear = typeof options.near === 'undefined' ? props.clip[0] : options.near;
-        //     const clipFar = typeof options.far === 'undefined' ? props.clip[1] : options.far;
-        //     PluginCommands.Canvas3D.SetSettings(this.plugin, {
-        //         settings: { cameraClipDistance: options.distance, clip: [clipNear, clipFar] }
-        //     });
-        // }
+        resetPosition: () => PluginCommands.Camera.Reset(this.plugin, { })
     }
 
     animate = {
@@ -305,11 +287,6 @@ class MolStarProteopediaWrapper {
             }
 
             const state = this.state;
-
-            // const visuals = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Structure.Representation3D).filter(c => c.transform.transformer === StateTransforms.Representation.StructureRepresentation3D));
-            // for (const v of visuals) {
-            // }
-
             const tree = state.build();
             const colorTheme = { name: EvolutionaryConservation.propertyProvider.descriptor.name, params: this.plugin.representation.structure.themes.colorThemeRegistry.get(EvolutionaryConservation.propertyProvider.descriptor.name).defaultValues };
 
@@ -427,11 +404,11 @@ class MolStarProteopediaWrapper {
             const blob = new Blob([json], {type : 'application/json;charset=utf-8'});
             download(blob, `mol-star_state_${(name || getFormattedTime())}.json`);
         },
-        fetch: async (url: string) => {
+        fetch: async (url: string, type: 'molj' | 'molx' = 'molj') => {
             try {
-                const snapshot = await this.plugin.runTask(this.plugin.fetch({ url, type: 'json' }));
-                // TODO: is this OK to test for snapshots from server?
-                await this.plugin.state.setSnapshot(snapshot?.data?.entries?.[0]?.snapshot || snapshot);
+                const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'binary' }));
+                this.loadedParams = { ...this.emptyLoadedParams };
+                await this.plugin.managers.snapshot.open(new File([data], `state.${type}`));
             } catch (e) {
                 console.log(e);
             }
