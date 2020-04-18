@@ -143,16 +143,19 @@ export namespace Model {
 
     //
 
-    export function isFromPdbArchive(model: Model) {
+    export function isFromPdbArchive(model: Model): boolean {
         if (!MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
         return (
             db.database_2.database_id.isDefined ||
-            model.entryId.length === 4
+            // 4 character PDB id
+            model.entryId.match(/^[1-9][a-z0-9]{3,3}$/i) !== null ||
+            // long PDB id
+            model.entryId.match(/^pdb_[0-9]{4,4}[1-9][a-z0-9]{3,3}$/i) !== null
         );
     }
 
-    export function hasSecondaryStructure(model: Model) {
+    export function hasSecondaryStructure(model: Model): boolean {
         if (!MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
         return (
@@ -163,7 +166,7 @@ export namespace Model {
 
     const tmpAngles90 = Vec3.create(1.5707963, 1.5707963, 1.5707963); // in radians
     const tmpLengths1 = Vec3.create(1, 1, 1);
-    export function hasCrystalSymmetry(model: Model) {
+    export function hasCrystalSymmetry(model: Model): boolean {
         const spacegroup = ModelSymmetry.Provider.get(model)?.spacegroup;
         return !!spacegroup && !(
             spacegroup.num === 1 &&
@@ -172,7 +175,7 @@ export namespace Model {
         );
     }
 
-    export function isFromXray(model: Model) {
+    export function isFromXray(model: Model): boolean {
         if (!MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
         for (let i = 0; i < db.exptl.method.rowCount; i++) {
@@ -182,7 +185,7 @@ export namespace Model {
         return false;
     }
 
-    export function isFromEm(model: Model) {
+    export function isFromEm(model: Model): boolean {
         if (!MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
         for (let i = 0; i < db.exptl.method.rowCount; i++) {
@@ -192,7 +195,7 @@ export namespace Model {
         return false;
     }
 
-    export function isFromNmr(model: Model) {
+    export function isFromNmr(model: Model): boolean {
         if (!MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
         for (let i = 0; i < db.exptl.method.rowCount; i++) {
@@ -202,7 +205,7 @@ export namespace Model {
         return false;
     }
 
-    export function hasXrayMap(model: Model) {
+    export function hasXrayMap(model: Model): boolean {
         if (!MmcifFormat.is(model.sourceData)) return false;
         // Check exprimental method to exclude models solved with
         // 'ELECTRON CRYSTALLOGRAPHY' which also have structure factors
@@ -217,7 +220,7 @@ export namespace Model {
      * like 6TEK which are solved with 'X-RAY DIFFRACTION' but have an related
      * EMDB entry of type 'other EM volume'.
      */
-    export function hasEmMap(model: Model) {
+    export function hasEmMap(model: Model): boolean {
         if (!MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
         const { db_name, content_type } = db.pdbx_database_related;
@@ -229,7 +232,20 @@ export namespace Model {
         return false;
     }
 
-    export function hasDensityMap(model: Model) {
-        return hasXrayMap(model) || hasEmMap(model);
+    export function hasDensityMap(model: Model): boolean {
+        if (!MmcifFormat.is(model.sourceData)) return false;
+        const { db } = model.sourceData.data;
+        return (
+            hasXrayMap(model) || hasEmMap(model) || (
+                // check if from pdb archive but missing relevant meta data
+                isFromPdbArchive(model) &&
+                !db.pdbx_database_related.db_name.isDefined &&
+                !db.pdbx_database_status.status_code_sf.isDefined && (
+                    !db.exptl.method.isDefined ||
+                    isFromXray(model) ||
+                    isFromEm(model)
+                )
+            )
+        );
     }
 }
