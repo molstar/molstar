@@ -23,6 +23,7 @@ import { StateSelection } from '../../../../mol-state';
 import { StructureElement, Structure } from '../../../../mol-model/structure';
 import { PluginContext } from '../../../context';
 import { EmptyLoci, Loci, isEmptyLoci } from '../../../../mol-model/loci';
+import { Asset } from '../../../../mol-util/assets';
 
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
@@ -126,7 +127,7 @@ export namespace VolumeStreaming {
     export type DefaultChannelParams = { [name in ChannelType]?: Partial<ChannelParams> }
 
     export class Behavior extends PluginBehavior.WithSubscribers<Params> {
-        private cache = LRUCache.create<ChannelsData>(25);
+        private cache = LRUCache.create<{ data: ChannelsData, asset: Asset.Wrapper }>(25);
         public params: Params = {} as any;
         private lastLoci: StructureElement.Loci | EmptyLoci = EmptyLoci;
         private ref: string = '';
@@ -151,18 +152,16 @@ export namespace VolumeStreaming {
             }
             url += `?detail=${this.params.entry.params.detailLevel}`;
 
-            let data = LRUCache.get(this.cache, url);
-            if (data) {
-                return data;
-            }
+            const entry = LRUCache.get(this.cache, url);
+            if (entry) return entry.data;
 
-            const cif = await this.plugin.runTask(this.plugin.fetch({ url, type: 'binary' }));
-            data = await this.parseCif(cif as Uint8Array);
-            if (!data) {
-                return;
-            }
+            const urlAsset = Asset.getUrlAsset(this.plugin.managers.asset, url);
+            const asset = await this.plugin.runTask(this.plugin.managers.asset.resolve(urlAsset, 'binary'));
+            const data = await this.parseCif(asset.data);
+            if (!data) return;
 
-            LRUCache.set(this.cache, url, data);
+            const removed = LRUCache.set(this.cache, url, { data, asset });
+            if (removed) removed.asset.dispose();
             return data;
         }
 
@@ -244,6 +243,14 @@ export namespace VolumeStreaming {
                     this.updateInteraction(loci);
                 }
             });
+        }
+
+        unregister() {
+            let entry = this.cache.entries.first;
+            while (entry) {
+                entry.value.data.asset.dispose();
+                entry = entry.next;
+            }
         }
 
         private getBoxFromLoci(loci: StructureElement.Loci | EmptyLoci): Box3D {
