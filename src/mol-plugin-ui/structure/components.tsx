@@ -149,7 +149,7 @@ interface AddComponentControlsProps {
 export class AddComponentControls extends PurePluginUIComponent<AddComponentControlsProps, AddComponentControlsState> {
     createState(): AddComponentControlsState {
         const params = StructureComponentManager.getAddParams(this.plugin, this.props.forSelection
-            ? { allowNone: false, hideSelection: true }
+            ? { allowNone: false, hideSelection: true, checkExisting: this.props.forSelection }
             : void 0);
         return { params, values: ParamDefinition.getDefaultValues(params) };
     }
@@ -161,18 +161,12 @@ export class AddComponentControls extends PurePluginUIComponent<AddComponentCont
     }
 
     apply = () => {
-        const target = this.props.forSelection ? this.plugin.managers.structure.hierarchy.getStructuresWithSelection() : this.selectedStructures;
+        const structures = this.props.forSelection ? this.plugin.managers.structure.hierarchy.getStructuresWithSelection() : this.selectedStructures;
         this.props.onApply();
-        this.plugin.managers.structure.component.add(this.state.values, target);
+        this.plugin.managers.structure.component.add(this.state.values, structures);
     }
 
     paramsChanged = (values: any) => this.setState({ values })
-
-    // componentDidUpdate(prevProps: AddComponentControlsProps) {
-    //     if (this.props.structures !== prevProps.structures) {
-    //         this.setState(this.createState());
-    //     }
-    // }
 
     render() {
         return <>

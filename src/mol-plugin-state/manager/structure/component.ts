@@ -6,11 +6,11 @@
 
 import { VisualQualityOptions } from '../../../mol-geo/geometry/base';
 import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
-import { Structure, StructureElement } from '../../../mol-model/structure';
-import { structureAreIntersecting, structureIntersect, structureSubtract, structureUnion } from '../../../mol-model/structure/query/utils/structure-set';
+import { Structure, StructureElement, StructureSelection } from '../../../mol-model/structure';
+import { structureAreEqual, structureAreIntersecting, structureIntersect, structureSubtract, structureUnion } from '../../../mol-model/structure/query/utils/structure-set';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginContext } from '../../../mol-plugin/context';
-import { StateBuilder, StateTransformer } from '../../../mol-state';
+import { StateBuilder, StateObjectRef, StateTransformer } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { ColorTheme } from '../../../mol-theme/color';
 import { SizeTheme } from '../../../mol-theme/size';
@@ -308,6 +308,24 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         }, { canUndo: 'Add Representation' });
     }
 
+    private tryFindComponent(structure: StructureRef, selection: StructureSelectionQuery) {
+        if (structure.components.length === 0) return;
+
+        return this.plugin.runTask(Task.create('Find Component', async taskCtx => {
+
+            const data = structure.cell.obj?.data;
+            if (!data) return;
+            const sel = StructureSelection.unionStructure(await selection.getSelection(this.plugin, taskCtx, data));
+
+            for (const c of structure.components) {
+                const comp = c.cell.obj?.data;
+                if (!comp || !c.cell.parent) continue;
+
+                if (structureAreEqual(sel, comp)) return c.cell;
+            }
+        }));
+    }
+
     async add(params: StructureComponentManager.AddParams, structures?: ReadonlyArray<StructureRef>) {
         return this.plugin.dataTransaction(async () => {
             const xs = structures || this.currentStructures;
@@ -319,9 +337,18 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
 
             const componentKey = UUID.create22();
             for (const s of xs) {
-                const component = await this.plugin.builders.structure.tryCreateComponentFromSelection(s.cell, params.selection, componentKey, {
-                    label: params.label || (params.selection === StructureSelectionQueries.current ? 'Custom Selection' : ''),
-                });
+                let component: StateObjectRef | undefined = void 0;
+
+                if (params.options.checkExisting) {
+                    component = await this.tryFindComponent(s, params.selection);
+                }
+
+                if (!component) {
+                    component = await this.plugin.builders.structure.tryCreateComponentFromSelection(s.cell, params.selection, componentKey, {
+                        label: params.options.label || (params.selection === StructureSelectionQueries.current ? 'Custom Selection' : ''),
+                    });
+                }
+
                 if (params.representation === 'none' || !component) continue;
                 await this.plugin.builders.structure.representation.addRepresentation(component, {
                     type: this.plugin.representation.structure.registry.get(params.representation),
@@ -400,22 +427,26 @@ namespace StructureComponentManager {
     };
     export type Options = PD.Values<typeof OptionsParams>
 
-    export function getAddParams(plugin: PluginContext, params?: { pivot?: StructureRef, allowNone: boolean, hideSelection?: boolean, defaultSelection?: StructureSelectionQuery }) {
+    export function getAddParams(plugin: PluginContext, params?: { pivot?: StructureRef, allowNone: boolean, hideSelection?: boolean, checkExisting?: boolean, defaultSelection?: StructureSelectionQuery }) {
         const { options } = plugin.query.structure.registry;
         params = {
             pivot: plugin.managers.structure.component.pivotStructure,
             allowNone: true,
             hideSelection: false,
+            checkExisting: false,
             defaultSelection: StructureSelectionQueries.current,
             ...params
         };
         return {
             selection: PD.Select(options[1][0], options, { isHidden: params?.hideSelection }),
             representation: getRepresentationTypesSelect(plugin, params?.pivot, params?.allowNone ? [['none', '< Create Later >']] : []),
-            label: PD.Text('')
+            options: PD.Group({
+                label: PD.Text(''),
+                checkExisting: PD.Boolean(!!params?.checkExisting, { help: () => ({ description: 'Checks if a selection with the specifield elements already exists to avoid creating duplicate components.' }) }),
+            })
         };
     }
-    export type AddParams = { selection: StructureSelectionQuery, label: string, representation: string }
+    export type AddParams = { selection: StructureSelectionQuery, options: { checkExisting: boolean, label: string }, representation: string }
 
     export function getColorParams(plugin: PluginContext, pivot: StructureRef | StructureComponentRef | undefined) {
         return {

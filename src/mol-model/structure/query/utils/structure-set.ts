@@ -40,6 +40,22 @@ function buildUnion(this: StructureSubsetBuilder, elements: StructureElement.Set
     this.setUnit(id, elements);
 }
 
+export function structureAreEqual(sA: Structure, sB: Structure): boolean {
+    if (sA === sB) return true;
+
+    if (sA.units.length !== sB.units.length) return false;
+
+    const aU = sA.units, bU = sB.unitMap;
+    for (let i = 0, _i = aU.length; i < _i; i++) {
+        const u = aU[i];
+        if (!bU.has(u.id)) return false;
+        const v = bU.get(u.id);
+        if (!SortedArray.areEqual(u.elements, v.elements)) return false;
+    }
+
+    return true;
+}
+
 export function structureAreIntersecting(sA: Structure, sB: Structure): boolean {
     if (sA === sB) return true;
 
