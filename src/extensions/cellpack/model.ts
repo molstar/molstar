@@ -26,36 +26,48 @@ import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
 import { Column } from '../../mol-data/db';
 import { createModels } from '../../mol-model-formats/structure/basic/parser';
 import { CellpackPackingPreset, CellpackMembranePreset } from './preset';
-import { AjaxTask } from '../../mol-util/data-source';
-import { CellPackInfoProvider } from './property';
-import { Asset } from '../../mol-util/assets';
+import { Asset, AssetManager } from '../../mol-util/assets';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
 }
 
-async function getModel(id: string, model_id: number, baseUrl: string, file?: File) {
+async function getModel(assetManager: AssetManager, id: string, model_id: number, baseUrl: string, file?: Asset.File) {
     let model: Model;
+    let assets: Asset.Wrapper[] = [];
     if (file) {
-        const text = await file.text();
         if (file.name.endsWith('.cif')) {
-            const cif = (await parseCif(text)).blocks[0];
+            const text = await assetManager.resolve(file, 'string').run();
+            assets.push(text);
+            const cif = (await parseCif(text.data)).blocks[0];
+            model = (await trajectoryFromMmCIF(cif).run())[model_id];
+        } else if (file.name.endsWith('.bcif')) {
+            const binary = await assetManager.resolve(file, 'binary').run();
+            assets.push(binary);
+            const cif = (await parseCif(binary.data)).blocks[0];
             model = (await trajectoryFromMmCIF(cif).run())[model_id];
         } else if (file.name.endsWith('.pdb')) {
-            const pdb = await parsePDBfile(text, id);
-
+            const text = await assetManager.resolve(file, 'string').run();
+            assets.push(text);
+            const pdb = await parsePDBfile(text.data, id);
             model = (await trajectoryFromPDB(pdb).run())[model_id];
         } else {
             throw new Error(`unsupported file type '${file.name}'`);
         }
     } else if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
-        const cif = await getFromPdb(id);
-        model = (await trajectoryFromMmCIF(cif).run())[model_id];
+        const { mmcif, asset } = await getFromPdb(id, assetManager);
+        assets.push(asset);
+        model = (await trajectoryFromMmCIF(mmcif).run())[model_id];
     } else {
-        const pdb = await getFromCellPackDB(id, baseUrl);
-        model = (await trajectoryFromPDB(pdb).run())[model_id];
+        const data = await getFromCellPackDB(id, baseUrl, assetManager);
+        assets.push(data.asset);
+        if ('pdb' in data) {
+            model = (await trajectoryFromPDB(data.pdb).run())[model_id];
+        } else {
+            model = (await trajectoryFromMmCIF(data.mmcif).run())[model_id];
+        }
     }
-    return model;
+    return { model, assets };
 }
 
 async function getStructure(model: Model, source: IngredientSource, props: { assembly?: string } = {}) {
@@ -261,7 +273,7 @@ async function getCurve(name: string, ingredient: Ingredient, transforms: Mat4[]
     return getStructure(curveModel, ingredient.source);
 }
 
-async function getIngredientStructure(ingredient: Ingredient, baseUrl: string, ingredientFiles: IngredientFiles) {
+async function getIngredientStructure(assetManager: AssetManager, ingredient: Ingredient, baseUrl: string, ingredientFiles: IngredientFiles) {
     const { name, source, results, nbCurve } = ingredient;
     if (source.pdb === 'None') return;
 
@@ -277,11 +289,12 @@ async function getIngredientStructure(ingredient: Ingredient, baseUrl: string, i
 
     // model id in case structure is NMR
     const model_id = (ingredient.source.model) ? parseInt(ingredient.source.model) : 0;
-    const model = await getModel(source.pdb || name, model_id, baseUrl, file);
+    const { model, assets } = await getModel(assetManager, source.pdb || name, model_id, baseUrl, file);
     if (!model) return;
 
+    let structure: Structure;
     if (nbCurve) {
-        return getCurve(name, ingredient, getCurveTransforms(ingredient), model);
+        structure = await getCurve(name, ingredient, getCurveTransforms(ingredient), model);
     } else {
         let bu: string|undefined = source.bu ? source.bu : undefined;
         if (bu){
@@ -291,7 +304,7 @@ async function getIngredientStructure(ingredient: Ingredient, baseUrl: string, i
                 bu = bu.slice(2);
             }
         }
-        let structure = await getStructure(model, source, { assembly: bu });
+        structure = await getStructure(model, source, { assembly: bu });
         // transform with offset and pcp
         let legacy: boolean = true;
         if (ingredient.offset || ingredient.principalAxis){
@@ -319,18 +332,24 @@ async function getIngredientStructure(ingredient: Ingredient, baseUrl: string, i
                 }
             }
         }
-        return getAssembly(getResultTransforms(results, legacy), structure);
+        structure = getAssembly(getResultTransforms(results, legacy), structure);
     }
+
+    return { structure, assets };
 }
 
-export function createStructureFromCellPack(packing: CellPacking, baseUrl: string, ingredientFiles: IngredientFiles) {
+export function createStructureFromCellPack(assetManager: AssetManager, packing: CellPacking, baseUrl: string, ingredientFiles: IngredientFiles) {
     return Task.create('Create Packing Structure', async ctx => {
         const { ingredients, name } = packing;
+        const assets: Asset.Wrapper[] = [];
         const structures: Structure[] = [];
         for (const iName in ingredients) {
             if (ctx.shouldUpdate) await ctx.update(iName);
-            const s = await getIngredientStructure(ingredients[iName], baseUrl, ingredientFiles);
-            if (s) structures.push(s);
+            const ingredientStructure = await getIngredientStructure(assetManager, ingredients[iName], baseUrl, ingredientFiles);
+            if (ingredientStructure) {
+                structures.push(ingredientStructure.structure);
+                assets.push(...ingredientStructure.assets);
+            }
         }
 
         if (ctx.shouldUpdate) await ctx.update(`${name} - units`);
@@ -348,22 +367,22 @@ export function createStructureFromCellPack(packing: CellPacking, baseUrl: strin
         }
 
         if (ctx.shouldUpdate) await ctx.update(`${name} - structure`);
-        const s = builder.getStructure();
-        for( let i = 0, il = s.models.length; i < il; ++i) {
-            const { trajectoryInfo } = s.models[i];
+        const structure = builder.getStructure();
+        for( let i = 0, il = structure.models.length; i < il; ++i) {
+            const { trajectoryInfo } = structure.models[i];
             trajectoryInfo.size = il;
             trajectoryInfo.index = i;
         }
-        return s;
+        return { structure, assets };
     });
 }
 
-async function handleHivRna(ctx: { runtime: RuntimeContext, fetch: AjaxTask }, packings: CellPacking[], baseUrl: string) {
+async function handleHivRna(plugin: PluginContext, packings: CellPacking[], baseUrl: string) {
     for (let i = 0, il = packings.length; i < il; ++i) {
         if (packings[i].name === 'HIV1_capsid_3j3q_PackInner_0_1_0') {
-            const url = `${baseUrl}/extras/rna_allpoints.json`;
-            const data = await ctx.fetch({ url, type: 'string' }).runInContext(ctx.runtime);
-            const { points } = await (new Response(data)).json() as { points: number[] };
+            const url = Asset.getUrlAsset(plugin.managers.asset, `${baseUrl}/extras/rna_allpoints.json`);
+            const json = await plugin.runTask(plugin.managers.asset.resolve(url, 'json', false));
+            const points = json.data.points as number[];
 
             const curve0: Vec3[] = [];
             for (let j = 0, jl = points.length; j < jl; j += 3) {
@@ -380,22 +399,23 @@ async function handleHivRna(ctx: { runtime: RuntimeContext, fetch: AjaxTask }, p
     }
 }
 
-async function loadMembrane(name: string, plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
-    const fname: string  = `${name}.bcif`;
-    let ingredientFiles: IngredientFiles = {};
+async function loadMembrane(plugin: PluginContext, name: string, state: State, params: LoadCellPackModelParams) {
+    let file: Asset.File | undefined = undefined;
     if (params.ingredients.files !== null) {
-        for (let i = 0, il = params.ingredients.files.length; i < il; ++i) {
-            const file = params.ingredients.files.item(i);
-            if (file) ingredientFiles[file.name] = file;
+        const fileName = `${name}.bcif`;
+        for (const f of params.ingredients.files) {
+            if (fileName === f.name) {
+                file = f;
+                break;
+            }
         }
     }
 
     let b = state.build().toRoot();
-    if (fname in ingredientFiles) {
-        const file = ingredientFiles[fname];
-        b = b.apply(StateTransforms.Data.ReadFile, { file: Asset.File(file), isBinary: true, label: file.name }, { state: { isGhost: true } });
+    if (file) {
+        b = b.apply(StateTransforms.Data.ReadFile, { file, isBinary: true, label: file.name }, { state: { isGhost: true } });
     } else {
-        const url = Asset.Url(`${params.baseUrl}/membranes/${name}.bcif`);
+        const url = Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/membranes/${name}.bcif`);
         b = b.apply(StateTransforms.Data.Download, { url, isBinary: true, label: name }, { state: { isGhost: true } });
     }
 
@@ -403,35 +423,18 @@ async function loadMembrane(name: string, plugin: PluginContext, runtime: Runtim
         .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.StructureFromModel)
-        .commit();
+        .commit({ revertOnError: true });
 
     const membraneParams = {
         representation: params.preset.representation,
     };
-    await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
-}
-
-async function loadHivMembrane(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
-    const url = Asset.Url(`${params.baseUrl}/membranes/hiv_lipids.bcif`);
-    const membrane = await state.build().toRoot()
-        .apply(StateTransforms.Data.Download, { label: 'hiv_lipids', url, isBinary: true }, { state: { isGhost: true } })
-        .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.StructureFromModel)
-        .commit();
-
-    const membraneParams = {
-        representation: params.preset.representation,
-    };
-
     await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
 }
 
 async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
     let cellPackJson: StateBuilder.To<PSO.Format.Json, StateTransformer<PSO.Data.String, PSO.Format.Json>>;
     if (params.source.name === 'id') {
-        const url = Asset.Url(getCellPackModelUrl(params.source.params, params.baseUrl));
+        const url = Asset.getUrlAsset(plugin.managers.asset, getCellPackModelUrl(params.source.params, params.baseUrl));
         cellPackJson = state.build().toRoot()
             .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.source.params }, { state: { isGhost: true } });
     } else {
@@ -451,7 +454,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
     const cellPackObject = await state.updateTree(cellPackBuilder).runInContext(runtime);
     const { packings } = cellPackObject.obj!.data;
 
-    await handleHivRna({ runtime, fetch: plugin.fetch }, packings, params.baseUrl);
+    await handleHivRna(plugin, packings, params.baseUrl);
 
     for (let i = 0, il = packings.length; i < il; ++i) {
         const p = { packing: i, baseUrl: params.baseUrl, ingredientFiles: params.ingredients.files };
@@ -461,20 +464,13 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             .apply(StructureFromCellpack, p)
             .commit({ revertOnError: true });
 
-        const structure = packing.obj?.data;
-        if (structure) {
-            await CellPackInfoProvider.attach({ runtime, assetManager: plugin.managers.asset }, structure, {
-                info: { packingsCount: packings.length, packingIndex: i }
-            });
-        }
-
         const packingParams = {
             traceOnly: params.preset.traceOnly,
             representation: params.preset.representation,
         };
         await CellpackPackingPreset.apply(packing, packingParams, plugin);
         if ( packings[i].location === 'surface' ){
-            await loadMembrane(packings[i].name, plugin, runtime, state, params);
+            await loadMembrane(plugin, packings[i].name, state, params);
         }
     }
 }
@@ -494,7 +490,7 @@ const LoadCellPackModelParams = {
     }, { options: [['id', 'Id'], ['file', 'File']] }),
     baseUrl: PD.Text(DefaultCellPackBaseUrl),
     ingredients : PD.Group({
-        files: PD.FileList({ accept: '.cif,.pdb' })
+        files: PD.FileList({ accept: '.cif,.bcif,.pdb' })
     }, { isExpanded: true }),
     preset: PD.Group({
         traceOnly: PD.Boolean(false),
@@ -509,7 +505,7 @@ export const LoadCellPackModel = StateAction.build({
     from: PSO.Root
 })(({ state, params }, ctx: PluginContext) => Task.create('CellPack Loader', async taskCtx => {
     if (params.source.name === 'id' && params.source.params === 'hiv_lipids.bcif') {
-        await loadHivMembrane(ctx, taskCtx, state, params);
+        await loadMembrane(ctx, 'hiv_lipids', state, params);
     } else {
         await loadPackings(ctx, taskCtx, state, params);
     }

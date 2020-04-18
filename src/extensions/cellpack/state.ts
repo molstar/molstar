@@ -10,6 +10,9 @@ import { Task } from '../../mol-task';
 import { CellPack as _CellPack, Cell, CellPacking } from './data';
 import { createStructureFromCellPack } from './model';
 import { IngredientFiles } from './util';
+import { Asset } from '../../mol-util/assets';
+import { PluginContext } from '../../mol-plugin/context';
+import { CellPackInfoProvider } from './property';
 
 export const DefaultCellPackBaseUrl = 'https://mesoscope.scripps.edu/data/cellPACK_data/cellPACK_database_1.1.0/';
 
@@ -51,33 +54,44 @@ const StructureFromCellpack = PluginStateTransform.BuiltIn({
     from: CellPack,
     to: PSO.Molecule.Structure,
     params: a => {
-        if (!a) {
-            return {
-                packing: PD.Numeric(0, {}, { description: 'Packing Index' }),
-                baseUrl: PD.Text(DefaultCellPackBaseUrl),
-                ingredientFiles: PD.FileList({ accept: '.cif,.pdb' })
-            };
-        }
-        const options = a.data.packings.map((d, i) => [i, d.name] as [number, string]);
+        const options = a ? a.data.packings.map((d, i) => [i, d.name] as const) : [];
         return {
             packing: PD.Select(0, options),
             baseUrl: PD.Text(DefaultCellPackBaseUrl),
-            ingredientFiles: PD.FileList({ accept: '.cif,.pdb' })
+            ingredientFiles: PD.FileList({ accept: '.cif,.bcif,.pdb' })
         };
     }
 })({
-    apply({ a, params }) {
+    apply({ a, params, cache }, plugin: PluginContext) {
         return Task.create('Structure from CellPack', async ctx => {
             const packing = a.data.packings[params.packing];
             const ingredientFiles: IngredientFiles = {};
             if (params.ingredientFiles !== null) {
-                for (let i = 0, il = params.ingredientFiles.length; i < il; ++i) {
-                    const file = params.ingredientFiles.item(i);
-                    if (file) ingredientFiles[file.name] = file;
+                for (const file of params.ingredientFiles) {
+                    ingredientFiles[file.name] = file;
                 }
             }
-            const structure = await createStructureFromCellPack(packing, params.baseUrl, ingredientFiles).runInContext(ctx);
+            const { structure, assets } = await createStructureFromCellPack(plugin.managers.asset, packing, params.baseUrl, ingredientFiles).runInContext(ctx);
+
+            await CellPackInfoProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset }, structure, {
+                info: { packingsCount: a.data.packings.length, packingIndex: params.packing }
+            });
+
+            (cache as any).assets = assets;
             return new PSO.Molecule.Structure(structure, { label: packing.name });
         });
+    },
+    dispose({ b, cache }) {
+        const assets = (cache as any).assets as Asset.Wrapper[];
+        if(assets) {
+            for (const a of assets) a.dispose();
+        }
+
+        if (b) {
+            b.data.customPropertyDescriptors.dispose();
+            for (const m of b.data.models) {
+                m.customProperties.dispose();
+            }
+        }
     }
 });
