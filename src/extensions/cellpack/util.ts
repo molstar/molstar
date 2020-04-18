@@ -7,6 +7,8 @@
 import { CIF } from '../../mol-io/reader/cif';
 import { parsePDB } from '../../mol-io/reader/pdb/parser';
 import { AssetManager, Asset } from '../../mol-util/assets';
+import { Structure } from '../../mol-model/structure';
+import { Vec3 } from '../../mol-math/linear-algebra';
 
 export async function parseCif(data: string|Uint8Array) {
     const comp = CIF.parse(data);
@@ -50,3 +52,22 @@ export async function getFromCellPackDB(id: string, baseUrl: string, assetManage
 }
 
 export type IngredientFiles = { [name: string]: Asset.File }
+
+//
+
+export function getStructureMean(structure: Structure) {
+    let xSum = 0, ySum = 0, zSum = 0;
+    for (let i = 0, il = structure.units.length; i < il; ++i) {
+        const unit = structure.units[i];
+        const { elements } = unit;
+        const { x, y, z } = unit.conformation;
+        for (let j = 0, jl = elements.length; j < jl; ++j) {
+            const eI = elements[j];
+            xSum += x(eI);
+            ySum += y(eI);
+            zSum += z(eI);
+        }
+    }
+    const { elementCount } = structure;
+    return Vec3.create(xSum / elementCount, ySum / elementCount, zSum / elementCount);
+}

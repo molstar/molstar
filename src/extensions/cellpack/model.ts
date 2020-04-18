@@ -9,7 +9,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Ingredient, IngredientSource, CellPacking } from './data';
-import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile } from './util';
+import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile, getStructureMean } from './util';
 import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit } from '../../mol-model/structure';
 import { trajectoryFromMmCIF, MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../mol-model-formats/structure/pdb';
@@ -308,13 +308,11 @@ async function getIngredientStructure(assetManager: AssetManager, ingredient: In
         // transform with offset and pcp
         let legacy: boolean = true;
         if (ingredient.offset || ingredient.principalAxis){
-            // center the structure
             legacy = false;
-            const boundary = structure.boundary;
-            let structureCenter: Vec3 = Vec3.zero();
-            Vec3.negate(structureCenter, boundary.sphere.center);
+            const structureMean = getStructureMean(structure);
+            Vec3.negate(structureMean, structureMean);
             const m1: Mat4 = Mat4.identity();
-            Mat4.setTranslation(m1, structureCenter);
+            Mat4.setTranslation(m1, structureMean);
             structure = Structure.transform(structure, m1);
             if (ingredient.offset){
                 if (!Vec3.exactEquals(ingredient.offset, Vec3.zero())){
