@@ -146,7 +146,7 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
             </div>
             <ParameterControls params={this.plugin.helpers.viewportScreenshot!.params} values={this.plugin.helpers.viewportScreenshot!.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
             <ExpandGroup header='State Snapshot'>
-                <StateExportImportControls />
+                <StateExportImportControls onAction={this.props.close} />
                 <ExpandGroup header='Save Options' initiallyExpanded={false} noOffset>
                     <LocalStateSnapshotParams />
                 </ExpandGroup>

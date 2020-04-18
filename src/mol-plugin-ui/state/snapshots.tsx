@@ -42,12 +42,14 @@ export class StateSnapshots extends PluginUIComponent<{}> {
     }
 }
 
-export class StateExportImportControls extends PluginUIComponent {
+export class StateExportImportControls extends PluginUIComponent<{ onAction?: () => void }> {
     downloadToFileJson = () => {
+        this.props.onAction?.();
         PluginCommands.State.Snapshots.DownloadToFile(this.plugin, { type: 'json' });
     }
 
     downloadToFileZip = () => {
+        this.props.onAction?.();
         PluginCommands.State.Snapshots.DownloadToFile(this.plugin, { type: 'zip' });
     }
 
@@ -57,6 +59,7 @@ export class StateExportImportControls extends PluginUIComponent {
             return;
         }
 
+        this.props.onAction?.();
         PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: e.target.files[0] });
     }
 
