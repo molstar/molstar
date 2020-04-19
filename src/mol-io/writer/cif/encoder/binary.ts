@@ -28,6 +28,8 @@ export default class BinaryEncoder implements Encoder<Uint8Array> {
     private filter: Category.Filter = Category.DefaultFilter;
     private formatter: Category.Formatter = Category.DefaultFormatter;
 
+    readonly isBinary = true;
+
     binaryEncodingProvider: BinaryEncodingProvider | undefined = void 0;
 
     setFilter(filter?: Category.Filter) {

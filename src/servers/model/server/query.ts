@@ -163,7 +163,7 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
         const queries = structures.map(s => entry.queryDefinition.query(entry.normalizedParams, s));
         const result: Structure[] = [];
         for (let i = 0; i < structures.length; i++) {
-            const s = await StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], { timeoutMs: Config.queryTimeoutMs }));
+            const s = StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], { timeoutMs: Config.queryTimeoutMs }));
             if (s.elementCount > 0) result.push(s);
         }
         perf.end('query');
@@ -178,9 +178,9 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
         encoder.writeCategory(_model_server_result, entry);
         encoder.writeCategory(_model_server_params, entry);
 
-        if (entry.queryDefinition.filter) encoder.setFilter(entry.queryDefinition.filter);
-        if (result.length > 0) encode_mmCIF_categories(encoder, result);
-        if (entry.queryDefinition.filter) encoder.setFilter();
+        if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter(entry.queryDefinition.filter);
+        if (result.length > 0) encode_mmCIF_categories(encoder, result, { copyAllCategories: entry.copyAllCategories });
+        if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter();
         perf.end('encode');
 
         const stats: Stats = {

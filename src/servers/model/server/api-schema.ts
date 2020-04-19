@@ -52,7 +52,7 @@ function getPaths() {
     const queryManyExample: MultipleQuerySpec = {
         queries: [
             { entryId: '1cbs', query: 'residueInteraction', params: { atom_site: [{ label_comp_id: 'REA' }], radius: 5 } },
-            { entryId: '1tqn', query: 'full' }
+            { entryId: '1tqn', query: 'full', copy_all_categories: true }
         ],
         encoding: 'cif',
         asTarGz: false
@@ -174,7 +174,12 @@ function getParamInfo(info: QueryParamInfo) {
         description: info.description,
         required: !!info.required,
         schema: {
-            type: info.type === QueryParamType.String ? 'string' : info.type === QueryParamType.Integer ? 'integer' : 'number',
+            type: info.type === QueryParamType.String
+                ? 'string' : info.type === QueryParamType.Integer
+                    ? 'integer'
+                    : info.type === QueryParamType.Boolean
+                        ? 'boolean'
+                        : 'number',
             enum: info.supportedValues ? info.supportedValues : void 0,
             default: info.defaultValue
         },

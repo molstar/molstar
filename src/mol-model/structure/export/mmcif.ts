@@ -13,16 +13,21 @@ import CifCategory = CifWriter.Category
 import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
 import { _chem_comp, _pdbx_chem_comp_identifier, _pdbx_nonpoly_scheme } from './categories/misc';
 import { Model } from '../model';
-import { getUniqueEntityIndicesFromStructures, copy_mmCif_category } from './categories/utils';
+import { getUniqueEntityIndicesFromStructures, copy_mmCif_category, copy_source_mmCifCategory } from './categories/utils';
 import { _struct_asym, _entity_poly, _entity_poly_seq } from './categories/sequence';
 import { CustomPropertyDescriptor } from '../common/custom-property';
 import { atom_site_operator_mapping } from './categories/atom_site_operator_mapping';
+import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 
 export interface CifExportContext {
     structures: Structure[],
     firstModel: Model,
     cache: any
 }
+
+export type CifExportCategoryInfo =
+    | [CifWriter.Category, any /** context */, CifWriter.Encoder.WriteCategoryOptions]
+    | [CifWriter.Category, any /** context */]
 
 export namespace CifExportContext {
     export function create(structures: Structure | Structure[]): CifExportContext {
@@ -99,8 +104,8 @@ export const mmCIF_Export_Filters = {
     }
 };
 
-function encodeCustomProp(customProp: CustomPropertyDescriptor, ctx: CifExportContext, encoder: CifWriter.Encoder, params: encode_mmCIF_categories_Params) {
-    if (!customProp.cifExport || customProp.cifExport.categories.length === 0) return;
+function getCustomPropCategories(customProp: CustomPropertyDescriptor, ctx: CifExportContext, params?: encode_mmCIF_categories_Params): CifExportCategoryInfo[] {
+    if (!customProp.cifExport || customProp.cifExport.categories.length === 0) return [];
 
     const prefix = customProp.cifExport.prefix;
     const cats = customProp.cifExport.categories;
@@ -114,14 +119,21 @@ function encodeCustomProp(customProp: CustomPropertyDescriptor, ctx: CifExportCo
             ctx.cache[propId + '__ctx'] = propCtx;
         }
     }
+
+    const ret: CifExportCategoryInfo[] = [];
     for (const cat of cats) {
-        if (params.skipCategoryNames && params.skipCategoryNames.has(cat.name)) continue;
+        if (params?.skipCategoryNames?.has(cat.name)) continue;
         if (cat.name.indexOf(prefix) !== 0) throw new Error(`Custom category '${cat.name}' name must start with prefix '${prefix}.'`);
-        encoder.writeCategory(cat, propCtx);
+        ret.push([cat, propCtx]);
     }
+    return ret;
 }
 
-type encode_mmCIF_categories_Params = { skipCategoryNames?: Set<string>, exportCtx?: CifExportContext }
+type encode_mmCIF_categories_Params = {
+    skipCategoryNames?: Set<string>,
+    exportCtx?: CifExportContext,
+    copyAllCategories?: boolean
+}
 
 /** Doesn't start a data block */
 export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: Structure | Structure[], params?: encode_mmCIF_categories_Params) {
@@ -129,29 +141,94 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: 
     const models = first.models;
     if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
 
-    const _params = params || { };
-    const ctx: CifExportContext = params && params.exportCtx ? params.exportCtx : CifExportContext.create(structures);
+    const ctx: CifExportContext = params?.exportCtx || CifExportContext.create(structures);
 
+    if (params?.copyAllCategories && MmcifFormat.is(models[0].sourceData)) {
+        encode_mmCIF_categories_copyAll(encoder, ctx);
+    } else {
+        console.log('default');
+        encode_mmCIF_categories_default(encoder, ctx, params);
+    }
+}
+
+function encode_mmCIF_categories_default(encoder: CifWriter.Encoder, ctx: CifExportContext, params?: encode_mmCIF_categories_Params) {
     for (const cat of Categories) {
-        if (_params.skipCategoryNames && _params.skipCategoryNames.has(cat.name)) continue;
+        if (params?.skipCategoryNames && params?.skipCategoryNames.has(cat.name)) continue;
         encoder.writeCategory(cat, ctx);
     }
 
-    if ((!_params.skipCategoryNames || !_params.skipCategoryNames.has('atom_site')) && encoder.isCategoryIncluded('atom_site')) {
-        atom_site_operator_mapping(encoder, ctx);
+    if (!params?.skipCategoryNames?.has('atom_site') && encoder.isCategoryIncluded('atom_site')) {
+        const info = atom_site_operator_mapping(ctx);
+        if (info) encoder.writeCategory(info[0], info[1], info[2]);
     }
 
-    for (const customProp of models[0].customProperties.all) {
-        encodeCustomProp(customProp, ctx, encoder, _params);
+    const _params = params || { };
+    for (const customProp of ctx.firstModel.customProperties.all) {
+        for (const [cat, propCtx] of getCustomPropCategories(customProp, ctx, _params)) {
+            encoder.writeCategory(cat, propCtx);
+        }
     }
 
-    const structureCustomProps = new Set<CustomPropertyDescriptor>();
     for (const s of ctx.structures) {
         if (!s.hasCustomProperties) continue;
-        for (const p of s.customPropertyDescriptors.all) structureCustomProps.add(p);
+        for (const customProp of s.customPropertyDescriptors.all) {
+            for (const [cat, propCtx] of getCustomPropCategories(customProp, ctx, _params)) {
+                encoder.writeCategory(cat, propCtx);
+            }
+        }
     }
-    structureCustomProps.forEach(customProp => encodeCustomProp(customProp, ctx, encoder, _params));
 }
+
+function encode_mmCIF_categories_copyAll(encoder: CifWriter.Encoder, ctx: CifExportContext) {
+    const providedCategories = new Map<string, CifExportCategoryInfo>();
+
+    for (const cat of Categories) {
+        providedCategories.set(cat.name, [cat, ctx]);
+    }
+
+    const mapping = atom_site_operator_mapping(ctx);
+    if (mapping) providedCategories.set(mapping[0].name, mapping);
+
+    for (const customProp of ctx.firstModel.customProperties.all) {
+        for (const info of getCustomPropCategories(customProp, ctx)) {
+            providedCategories.set(info[0].name, info);
+        }
+    }
+
+    for (const s of ctx.structures) {
+        if (!s.hasCustomProperties) continue;
+        for (const customProp of s.customPropertyDescriptors.all) {
+            for (const info of getCustomPropCategories(customProp, ctx)) {
+                providedCategories.set(info[0].name, info);
+            }
+        }
+    }
+
+    const handled = new Set<string>();
+
+    const data = (ctx.firstModel.sourceData as MmcifFormat).data;
+    for (const catName of data.frame.categoryNames) {
+        handled.add(catName);
+
+        if (providedCategories.has(catName)) {
+            const info = providedCategories.get(catName)!;
+            encoder.writeCategory(info[0], info[1], info[2]);
+        } else {
+            if ((data.db as any)[catName]) {
+                const cat = copy_mmCif_category(catName as any);
+                encoder.writeCategory(cat, ctx);
+            } else {
+                const cat = copy_source_mmCifCategory(encoder, ctx, data.frame.categories[catName]);
+                if (cat) encoder.writeCategory(cat);
+            }
+        }
+    }
+
+    providedCategories.forEach((info, name) => {
+        if (!handled.has(name)) encoder.writeCategory(info[0], info[1], info[2]);
+    });
+}
+
 
 function to_mmCIF(name: string, structure: Structure, asBinary = false) {
     const enc = CifWriter.createEncoder({ binary: asBinary });

@@ -13,11 +13,11 @@ import { Job, JobEntry, JobManager } from './jobs';
 import { resolveJob } from './query';
 import { StructureCache } from './structure-wrapper';
 
-
 export type Entry<Q extends QueryName = QueryName> = {
     input: string,
     query: Q,
     modelNums?: number[],
+    copyAllCategories?: boolean,
     params?: QueryParams<Q>,
 }
 
@@ -43,6 +43,7 @@ export async function runLocal(input: LocalInput) {
                 queryName: q.query,
                 queryParams: q.params || { },
                 modelNums: q.modelNums,
+                copyAllCategories: !!q.copyAllCategories
             })),
             writer: job.asTarGz
                 ? new TarballFileResultWriter(job.output, job.gzipLevel)

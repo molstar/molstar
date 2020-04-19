@@ -11,7 +11,8 @@ export interface MultipleQueryEntry<Name extends QueryName = QueryName> {
     entryId: string,
     query: Name,
     params?: QueryParams<Name>,
-    model_nums?: number[]
+    model_nums?: number[],
+    copy_all_categories?: boolean
 }
 
 export interface MultipleQuerySpec {

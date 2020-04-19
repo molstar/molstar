@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+export default `<!DOCTYPE html>
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>${title}</title>
-        <link rel="stylesheet" type="text/css" href="${apiPrefix}/swagger-ui.css" >
-        ${shortcutIconLink}
+        <title>\${title}</title>
+        <link rel="stylesheet" type="text/css" href="\${apiPrefix}/swagger-ui.css" >
+        \${shortcutIconLink}
 
         <style>
             html
@@ -30,8 +30,8 @@
     <body>
         <div id="swagger-ui"></div>
 
-        <script src="${apiPrefix}/swagger-ui-bundle.js"> </script>
-        <script src="${apiPrefix}/swagger-ui-standalone-preset.js"> </script>
+        <script src="\${apiPrefix}/swagger-ui-bundle.js"> </script>
+        <script src="\${apiPrefix}/swagger-ui-standalone-preset.js"> </script>
         <script>
             function HidePlugin() {
                 // this plugin overrides some components to return nothing
@@ -44,7 +44,7 @@
             }
             window.onload = function () {
                 var ui = SwaggerUIBundle({
-                    url: '${openapiJsonUrl}',
+                    url: '\${openapiJsonUrl}',
                     validatorUrl: null,
                     docExpansion: 'list',
                     dom_id: '#swagger-ui',
@@ -63,4 +63,4 @@
             }
         </script>
     </body>
-</html>
+</html>`;

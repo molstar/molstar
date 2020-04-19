@@ -40,7 +40,8 @@ export interface JobEntry {
 
     queryDefinition: QueryDefinition,
     normalizedParams: any,
-    modelNums?: number[]
+    modelNums?: number[],
+    copyAllCategories: boolean
 }
 
 interface JobEntryDefinition<Name extends QueryName> {
@@ -48,7 +49,8 @@ interface JobEntryDefinition<Name extends QueryName> {
     entryId: string,
     queryName: Name,
     queryParams: QueryParams<Name>,
-    modelNums?: number[]
+    modelNums?: number[],
+    copyAllCategories: boolean
 }
 
 export function JobEntry<Name extends QueryName>(definition: JobEntryDefinition<Name>): JobEntry {
@@ -65,7 +67,8 @@ export function JobEntry<Name extends QueryName>(definition: JobEntryDefinition<
         entryId: definition.entryId,
         queryDefinition,
         normalizedParams,
-        modelNums: definition.modelNums
+        modelNums: definition.modelNums,
+        copyAllCategories: !!definition.copyAllCategories
     };
 }
 

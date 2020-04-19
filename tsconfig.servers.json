@@ -16,8 +16,8 @@
         "noEmitHelpers": true,
         "jsx": "react",
         "lib": [ "es6", "dom", "esnext.asynciterable", "es2016" ],
-        "rootDir": "../../src",
-        "outDir": "../../lib/servers"
+        "rootDir": "src",
+        "outDir": "lib/servers"
     },
-    "include": [ "**/*" ]
+    "include": [ "src/servers/**/*" ]
 }

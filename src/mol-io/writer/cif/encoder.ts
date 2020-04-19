@@ -108,6 +108,11 @@ export namespace Field {
             return this;
         }
 
+        add(field: Field<K, D>) {
+            this.fields.push(field);
+            return this;
+        }
+
         getFields() { return this.fields; }
     }
 
@@ -222,6 +227,8 @@ export namespace Category {
 }
 
 export interface Encoder<T = string | Uint8Array> extends EncoderBase {
+    readonly isBinary: boolean,
+
     setFilter(filter?: Category.Filter): void,
     isCategoryIncluded(name: string): boolean,
     setFormatter(formatter?: Category.Formatter): void,

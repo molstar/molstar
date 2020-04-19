@@ -19,6 +19,8 @@ export default class TextEncoder implements Encoder<string> {
     private filter: Category.Filter = Category.DefaultFilter;
     private formatter: Category.Formatter = Category.DefaultFormatter;
 
+    readonly isBinary = false;
+
     binaryEncodingProvider = void 0;
 
     setFilter(filter?: Category.Filter) {

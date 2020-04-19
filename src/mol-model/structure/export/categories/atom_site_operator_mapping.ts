@@ -6,17 +6,20 @@
 
 import { SymmetryOperator } from '../../../../mol-math/geometry';
 import { CifExportContext } from '../mmcif';
-import { StructureElement, StructureProperties as P } from '../../structure';
+import { StructureElement, StructureProperties as P, CifExportCategoryInfo } from '../../structure';
 import Unit from '../../structure/unit';
 import { Segmentation } from '../../../../mol-data/int';
 import { CifWriter } from '../../../../mol-io/writer/cif';
 import { Column } from '../../../../mol-data/db';
 
-export function atom_site_operator_mapping(encoder: CifWriter.Encoder, ctx: CifExportContext) {
+
+export function atom_site_operator_mapping(ctx: CifExportContext): CifExportCategoryInfo | undefined {
     const entries = getEntries(ctx);
     if (entries.length === 0) return;
-    encoder.writeCategory(Category, entries, { ignoreFilter: true });
+    return [Category, entries, { ignoreFilter: true }];
 }
+
+export const AtomSiteOperatorMappingCategoryName = 'molstar_atom_site_operator_mapping';
 
 export const AtomSiteOperatorMappingSchema = {
     molstar_atom_site_operator_mapping: {

@@ -13,6 +13,7 @@ export enum QueryParamType {
     JSON,
     String,
     Integer,
+    Boolean,
     Float
 }
 
@@ -44,12 +45,14 @@ export interface QueryDefinition<Params = any> {
 export const CommonQueryParamsInfo: QueryParamInfo[] = [
     { name: 'model_nums', type: QueryParamType.String, description: `A comma-separated list of model ids (i.e. 1,2). If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field.` },
     { name: 'encoding', type: QueryParamType.String, defaultValue: 'cif', description: `Determines the output encoding (text based 'CIF' or binary 'BCIF').`, supportedValues: ['cif', 'bcif'] },
+    { name: 'copy_all_categories', type: QueryParamType.Boolean, defaultValue: false, description: 'If true, copy all categories from the input file.' },
     { name: 'data_source', type: QueryParamType.String, defaultValue: '', description: 'Allows to control how the provided data source ID maps to input file (as specified by the server instance config).' }
 ];
 
 export interface CommonQueryParamsInfo {
     model_nums?: number[],
     encoding?: 'cif' | 'bcif',
+    copy_all_categories?: boolean
     data_source?: string
 }
 
@@ -234,6 +237,7 @@ function _normalizeQueryParams(params: { [p: string]: string }, paramList: Query
                 case QueryParamType.String: el = value; break;
                 case QueryParamType.Integer: el = parseInt(value); break;
                 case QueryParamType.Float: el = parseFloat(value); break;
+                case QueryParamType.Boolean: el = Boolean(+value); break;
             }
 
             if (p.validation) p.validation(el);
@@ -260,6 +264,7 @@ export function normalizeRestCommonParams(params: any): CommonQueryParamsInfo {
     return {
         model_nums: params.model_nums ? ('' + params.model_nums).split(',').map(n => n.trim()).filter(n => !!n).map(n => +n) : void 0,
         data_source: params.data_source,
+        copy_all_categories: Boolean(params.copy_all_categories),
         encoding: ('' + params.encoding).toLocaleLowerCase() === 'bcif' ? 'bcif' : 'cif'
     };
 }

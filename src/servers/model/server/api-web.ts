@@ -63,7 +63,8 @@ function mapQuery(app: express.Express, queryName: string, queryDefinition: Quer
                 entryId,
                 queryName: queryName as any,
                 queryParams,
-                modelNums: commonParams.model_nums
+                modelNums: commonParams.model_nums,
+                copyAllCategories: !!commonParams.copy_all_categories
             })],
             writer: createResultWriter(res, commonParams.encoding === 'bcif', entryId, queryName),
             options: { binary: commonParams.encoding === 'bcif' }
@@ -134,7 +135,8 @@ function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
             entryId: q.entryId,
             queryName: q.query,
             queryParams: q.params || { },
-            modelNums: q.model_nums
+            modelNums: q.model_nums,
+            copyAllCategories: !!q.copy_all_categories
         })),
         writer,
         options: { binary: spec.encoding?.toLowerCase() === 'bcif', tarball: spec.asTarGz }

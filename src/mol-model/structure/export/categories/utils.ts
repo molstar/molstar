@@ -14,6 +14,7 @@ import { sortArray } from '../../../../mol-data/util';
 import { CifWriter } from '../../../../mol-io/writer/cif';
 import { CifExportContext } from '../mmcif';
 import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
+import { CifCategory, CifField, getCifFieldType } from '../../../../mol-io/reader/cif';
 
 export function getModelMmCifCategory<K extends keyof mmCIF_Schema>(model: Model, name: K): mmCIF_Database[K] | undefined {
     if (!MmcifFormat.is(model.sourceData)) return;
@@ -58,4 +59,41 @@ export function copy_mmCif_category(name: keyof mmCIF_Schema, condition?: (struc
             return CifWriter.Category.ofTable(table);
         }
     };
+}
+
+export function copy_source_mmCifCategory(encoder: CifWriter.Encoder, ctx: CifExportContext, category: CifCategory): CifWriter.Category<CifExportContext> | undefined {
+    if (!MmcifFormat.is(ctx.firstModel.sourceData)) return;
+
+    const fs = CifWriter.fields<number, undefined>();
+    if (encoder.isBinary) {
+        for (const f of category.fieldNames) {
+            // TODO: this could be optimized
+            const field = classifyField(f, category.getField(f)!);
+            fs.add(field);
+        }
+    } else {
+        for (const f of category.fieldNames) {
+            const field = category.getField(f)!;
+            fs.str(f, row => field.str(row));
+        }
+    }
+
+    const fields = fs.getFields();
+    return {
+        name: category.name,
+        instance() {
+            return { fields, source: [{ data: void 0, rowCount: category.rowCount }] };
+        }
+    };
+}
+
+function classifyField(name: string, field: CifField): CifWriter.Field {
+    const type = getCifFieldType(field);
+    if (type['@type'] === 'str') {
+        return { name, type: CifWriter.Field.Type.Str, value: field.str, valueKind: field.valueKind };
+    } else if (type['@type'] === 'float') {
+        return CifWriter.Field.float(name, field.float, { valueKind: field.valueKind, typedArray: Float64Array });
+    } else {
+        return CifWriter.Field.int(name, field.int, { valueKind: field.valueKind, typedArray: Int32Array });
+    }
 }
