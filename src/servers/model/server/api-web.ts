@@ -124,7 +124,7 @@ function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
         : createResultWriter(res, spec.encoding?.toLowerCase() === 'bcif');
 
     if (spec.queries.length > ModelServerConfig.maxQueryManyQueries) {
-        writer.doError(403, `query-many queries limit (${ModelServerConfig.maxQueryManyQueries}) exceeded.`);
+        writer.doError(400, `query-many queries limit (${ModelServerConfig.maxQueryManyQueries}) exceeded.`);
         return;
     }
 
