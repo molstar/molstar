@@ -5,7 +5,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MoreHoriz, VisibilityOutlined, VisibilityOffOutlined } from '@material-ui/icons';
+import MoreHoriz from '@material-ui/icons/MoreHoriz';
+import VisibilityOutlined from '@material-ui/icons/VisibilityOutlined';
+import VisibilityOffOutlined from '@material-ui/icons/VisibilityOffOutlined';
 import * as React from 'react';
 import { HierarchyRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { PluginCommands } from '../../mol-plugin/commands';

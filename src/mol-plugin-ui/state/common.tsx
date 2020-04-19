@@ -13,7 +13,11 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Subject } from 'rxjs';
 import { Icon } from '../controls/icons';
 import { ExpandGroup, ToggleButton, Button, IconButton } from '../controls/common';
-import { Refresh, ArrowRight, ArrowDropDown, Check, Tune } from '@material-ui/icons';
+import Refresh from '@material-ui/icons/Refresh';
+import ArrowRight from '@material-ui/icons/ArrowRight';
+import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
+import Check from '@material-ui/icons/Check';
+import Tune from '@material-ui/icons/Tune';
 
 export { StateTransformParameters, TransformControlBase };
 

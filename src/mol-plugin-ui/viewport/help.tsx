@@ -12,7 +12,9 @@ import { SelectLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { Icon } from '../controls/icons';
 import { Button } from '../controls/common';
-import { ArrowRight, ArrowDropDown, Camera } from '@material-ui/icons';
+import ArrowRight from '@material-ui/icons/ArrowRight';
+import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
+import Camera from '@material-ui/icons/Camera';
 
 function getBindingsList(bindings: { [k: string]: Binding }) {
     return Object.keys(bindings).map(k => [k, bindings[k]] as [string, Binding]);

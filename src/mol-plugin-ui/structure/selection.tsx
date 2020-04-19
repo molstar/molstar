@@ -5,7 +5,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Close, Clear, Brush } from '@material-ui/icons';
+import Close from '@material-ui/icons/Close';
+import Clear from '@material-ui/icons/Clear';
+import Brush from '@material-ui/icons/Brush';
 import * as React from 'react';
 import { StructureSelectionQueries, StructureSelectionQuery } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';

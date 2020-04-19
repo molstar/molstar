@@ -4,7 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Add, ArrowDownward, ArrowUpward, CloudUpload, DeleteOutlined, GetApp, OpenInBrowser, SaveOutlined, SwapHoriz, Refresh } from '@material-ui/icons';
+import Add from '@material-ui/icons/Refresh';
+import ArrowDownward from '@material-ui/icons/ArrowDownward';
+import ArrowUpward from '@material-ui/icons/ArrowUpward';
+import CloudUpload from '@material-ui/icons/CloudUpload';
+import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
+import GetApp from '@material-ui/icons/GetApp';
+import OpenInBrowser from '@material-ui/icons/OpenInBrowser';
+import SaveOutlined from '@material-ui/icons/SaveOutlined';
+import SwapHoriz from '@material-ui/icons/SwapHoriz';
+import Refresh from '@material-ui/icons/Refresh';
 import { OrderedMap } from 'immutable';
 import * as React from 'react';
 import { PluginCommands } from '../../mol-plugin/commands';

@@ -5,7 +5,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Add, ArrowDownward, ArrowUpward, DeleteOutlined, HelpOutline, MoreHoriz, RemoveOutlined, Tune, VisibilityOutlined, VisibilityOffOutlined } from '@material-ui/icons';
+import Add from '@material-ui/icons/Add';
+import ArrowDownward from '@material-ui/icons/ArrowDownward';
+import ArrowUpward from '@material-ui/icons/ArrowUpward';
+import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
+import HelpOutline from '@material-ui/icons/HelpOutline';
+import MoreHoriz from '@material-ui/icons/MoreHoriz';
+import RemoveOutlined from '@material-ui/icons/RemoveOutlined';
+import Tune from '@material-ui/icons/Tune';
+import VisibilityOutlined from '@material-ui/icons/VisibilityOutlined';
+import VisibilityOffOutlined from '@material-ui/icons/VisibilityOffOutlined';
 import * as React from 'react';
 import { Loci } from '../../mol-model/loci';
 import { StructureElement } from '../../mol-model/structure';

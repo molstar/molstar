@@ -10,7 +10,7 @@ import * as React from 'react';
 import { PluginUIComponent } from './base';
 import { PluginToastManager } from '../mol-plugin/util/toast';
 import { IconButton } from './controls/common';
-import { Cancel } from '@material-ui/icons';
+import Cancel from '@material-ui/icons/Cancel';
 
 class ToastEntry extends PluginUIComponent<{ entry: PluginToastManager.Entry }> {
     private hide = () => {

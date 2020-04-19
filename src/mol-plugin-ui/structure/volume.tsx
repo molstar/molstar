@@ -16,7 +16,9 @@ import { StructureHierarchyManager } from '../../mol-plugin-state/manager/struct
 import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { StateSelection, StateTransform } from '../../mol-state';
 import { VolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
-import { Check, Error as ErrorSvg, BlurOn } from '@material-ui/icons';
+import Check from '@material-ui/icons/Check';
+import ErrorSvg from '@material-ui/icons/Error';
+import BlurOn from '@material-ui/icons/BlurOn';
 
 interface VolumeStreamingControlState extends CollapsableState {
     isBusy: boolean

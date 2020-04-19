@@ -9,7 +9,7 @@ import { State } from '../../mol-state';
 import { PluginUIComponent } from '../base';
 import { Icon } from '../controls/icons';
 import { ApplyActionControl } from './apply-action';
-import { Code } from '@material-ui/icons';
+import Code from '@material-ui/icons/Code';
 
 export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRef: string, hideHeader?: boolean, initiallyCollapsed?: boolean, alwaysExpandFirst?: boolean }> {
     get current() {

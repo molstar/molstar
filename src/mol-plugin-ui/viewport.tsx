@@ -5,7 +5,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Autorenew, BuildOutlined, CameraOutlined, Close, Crop, Fullscreen, Tune } from '@material-ui/icons';
+import Autorenew from '@material-ui/icons/Autorenew';
+import BuildOutlined from '@material-ui/icons/BuildOutlined';
+import CameraOutlined from '@material-ui/icons/CameraOutlined';
+import Close from '@material-ui/icons/Close';
+import Crop from '@material-ui/icons/Crop';
+import Fullscreen from '@material-ui/icons/Fullscreen';
+import Tune from '@material-ui/icons/Tune';
 import * as React from 'react';
 import { resizeCanvas } from '../mol-canvas3d/util';
 import { PluginCommands } from '../mol-plugin/commands';

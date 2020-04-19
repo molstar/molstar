@@ -4,7 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Add, BookmarksOutlined, Delete, DeleteOutlined, MoreHoriz, Restore, Tune, VisibilityOffOutlined, VisibilityOutlined } from '@material-ui/icons';
+import Add from '@material-ui/icons/Add';
+import BookmarksOutlined from '@material-ui/icons/BookmarksOutlined';
+import Delete from '@material-ui/icons/Delete';
+import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
+import MoreHoriz from '@material-ui/icons/MoreHoriz';
+import Restore from '@material-ui/icons/Restore';
+import Tune from '@material-ui/icons/Tune';
+import VisibilityOffOutlined from '@material-ui/icons/VisibilityOffOutlined';
+import VisibilityOutlined from '@material-ui/icons/VisibilityOutlined';
 import * as React from 'react';
 import { getStructureThemeTypes } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';

@@ -4,7 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ArrowDropDown, ArrowRight, Close, DeleteOutlined, HomeOutlined, VisibilityOffOutlined, VisibilityOutlined } from '@material-ui/icons';
+import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
+import ArrowRight from '@material-ui/icons/ArrowRight';
+import Close from '@material-ui/icons/Close';
+import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
+import HomeOutlined from '@material-ui/icons/HomeOutlined';
+import VisibilityOffOutlined from '@material-ui/icons/VisibilityOffOutlined';
+import VisibilityOutlined from '@material-ui/icons/VisibilityOutlined';
 import * as React from 'react';
 import { debounceTime, filter } from 'rxjs/operators';
 import { PluginStateObject } from '../../mol-plugin-state/objects';

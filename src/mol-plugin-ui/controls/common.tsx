@@ -7,7 +7,10 @@
 import * as React from 'react';
 import { Color } from '../../mol-util/color';
 import { Icon } from './icons';
-import { ArrowRight, ArrowDropDown, Remove, Add } from '@material-ui/icons';
+import ArrowRight from '@material-ui/icons/ArrowRight';
+import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
+import Remove from '@material-ui/icons/Remove';
+import Add from '@material-ui/icons/Add';
 
 export type ColorAccent = 'cyan' | 'red' | 'gray' | 'green' | 'purple' | 'blue' | 'orange'
 

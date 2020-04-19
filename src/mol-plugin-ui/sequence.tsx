@@ -22,7 +22,7 @@ import { ElementSequenceWrapper } from './sequence/element';
 import { elementLabel } from '../mol-theme/label';
 import { Icon } from './controls/icons';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
-import { HelpOutline } from '@material-ui/icons';
+import HelpOutline from '@material-ui/icons/HelpOutline';
 
 const MaxDisplaySequenceLength = 5000;
 

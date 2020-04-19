@@ -4,7 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CenterFocusStrong, Clear } from '@material-ui/icons';
+import CenterFocusStrong from '@material-ui/icons/CenterFocusStrong';
+import Clear from '@material-ui/icons/Clear';
 import * as React from 'react';
 import { OrderedSet, SortedArray } from '../../mol-data/int';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';

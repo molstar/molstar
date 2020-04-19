@@ -8,7 +8,7 @@ import * as React from 'react';
 import { PluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { Button } from '../controls/common';
-import { PlayArrow } from '@material-ui/icons';
+import PlayArrow from '@material-ui/icons/PlayArrow';
 
 export class AnimationControls extends PluginUIComponent<{ onStart?: () => void }> {
     componentDidMount() {

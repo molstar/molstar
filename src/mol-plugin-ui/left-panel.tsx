@@ -4,7 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { AccountTreeOutlined, DeleteOutlined, HelpOutline, HomeOutlined, SaveOutlined, Tune } from '@material-ui/icons';
+import AccountTreeOutlined from '@material-ui/icons/AccountTreeOutlined';
+import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
+import HelpOutline from '@material-ui/icons/HelpOutline';
+import HomeOutlined from '@material-ui/icons/HomeOutlined';
+import SaveOutlined from '@material-ui/icons/SaveOutlined';
+import Tune from '@material-ui/icons/Tune';
 import * as React from 'react';
 import { Canvas3DParams } from '../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../mol-plugin/commands';

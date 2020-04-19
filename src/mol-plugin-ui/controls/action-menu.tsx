@@ -8,7 +8,10 @@
 import * as React from 'react';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { Button, ControlGroup } from './common';
-import { ArrowRight, Check, Close, ArrowDropDown } from '@material-ui/icons';
+import ArrowRight from '@material-ui/icons/ArrowRight';
+import Check from '@material-ui/icons/Check';
+import Close from '@material-ui/icons/Close';
+import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
 
 export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
     hide = () => this.props.onSelect(void 0)

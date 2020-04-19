@@ -16,7 +16,7 @@ import { StructureFocusControls } from './focus';
 import { UpdateTransformControl } from '../state/update-transform';
 import { StructureSelectionStatsControls } from './selection';
 import { StateSelection } from '../../mol-state';
-import { BookmarksOutlined } from '@material-ui/icons';
+import BookmarksOutlined from '@material-ui/icons/BookmarksOutlined';
 import { MoleculeSvg } from '../controls/icons';
 
 interface StructureSourceControlState extends CollapsableState {

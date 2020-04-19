@@ -5,7 +5,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ArrowDownward, ArrowDropDown, ArrowRight, ArrowUpward, BookmarksOutlined, Check, Clear, DeleteOutlined, HelpOutline, MoreHoriz } from '@material-ui/icons';
+import ArrowDownward from '@material-ui/icons/ArrowDownward';
+import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
+import ArrowRight from '@material-ui/icons/ArrowRight';
+import ArrowUpward from '@material-ui/icons/ArrowUpward';
+import BookmarksOutlined from '@material-ui/icons/BookmarksOutlined';
+import Check from '@material-ui/icons/Check';
+import Clear from '@material-ui/icons/Clear';
+import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
+import HelpOutline from '@material-ui/icons/HelpOutline';
+import MoreHoriz from '@material-ui/icons/MoreHoriz';
 import * as React from 'react';
 import { Mat4, Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { PluginContext } from '../../mol-plugin/context';

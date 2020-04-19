@@ -9,7 +9,8 @@ import * as React from 'react';
 import { Observable, Subscription } from 'rxjs';
 import { PluginContext } from '../mol-plugin/context';
 import { Button, ColorAccent } from './controls/common';
-import { ArrowRight, ArrowDropDown } from '@material-ui/icons';
+import ArrowRight from '@material-ui/icons/ArrowRight';
+import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
 import { Icon } from './controls/icons';
 
 export const PluginReactContext = React.createContext(void 0 as any as PluginContext);

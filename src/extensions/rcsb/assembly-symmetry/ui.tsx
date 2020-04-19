@@ -16,7 +16,8 @@ import { StateAction, StateSelection } from '../../../mol-state';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { PluginContext } from '../../../mol-plugin/context';
 import { Task } from '../../../mol-task';
-import { Check, Extension } from '@material-ui/icons';
+import Check from '@material-ui/icons/Check';
+import Extension from '@material-ui/icons/Extension';
 
 interface AssemblySymmetryControlState extends CollapsableState {
     isBusy: boolean

@@ -5,7 +5,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Build, NavigateBefore, NavigateNext, PlayArrow, SkipPrevious, Stop, SubscriptionsOutlined } from '@material-ui/icons';
+import Build from '@material-ui/icons/Build';
+import NavigateBefore from '@material-ui/icons/NavigateBefore';
+import NavigateNext from '@material-ui/icons/NavigateNext';
+import PlayArrow from '@material-ui/icons/PlayArrow';
+import SkipPrevious from '@material-ui/icons/SkipPrevious';
+import Stop from '@material-ui/icons/Stop';
+import SubscriptionsOutlined from '@material-ui/icons/SubscriptionsOutlined';
 import * as React from 'react';
 import { UpdateTrajectory } from '../mol-plugin-state/actions/structure';
 import { LociLabel } from '../mol-plugin-state/manager/loci-label';
