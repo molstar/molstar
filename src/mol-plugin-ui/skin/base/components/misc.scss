@@ -427,7 +427,7 @@
     position: relative;
     // display: inline-block;
     margin: $control-spacing auto 0 auto;
-    width: 332px;
+    width: 400px;
     line-height: $row-height;
 
     &-actions {
@@ -444,7 +444,7 @@
     select.msp-form-control {
         padding: 0 5px;
         text-align: center;
-        background: none;
+        background: $msp-form-control-background;
         flex: 0 0 80px;
         text-overflow: ellipsis;
     }
