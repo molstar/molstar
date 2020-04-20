@@ -178,9 +178,9 @@ export function Snapshots(ctx: PluginContext) {
         await ctx.managers.snapshot.setStateSnapshot(json.data);
     });
 
-    PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, async ({ name, type }) => {
+    PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, async ({ name, type, params }) => {
         const filename = `mol-star_state_${(name || getFormattedTime())}.${type === 'json' ? 'molj' : 'molx'}`;
-        const data = await ctx.managers.snapshot.serialize(type);
+        const data = await ctx.managers.snapshot.serialize({ type, params });
         download(data, `${filename}`);
     });
 
