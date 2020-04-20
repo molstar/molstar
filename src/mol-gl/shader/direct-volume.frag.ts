@@ -41,7 +41,7 @@ uniform int uPickable;
 
 #if defined(dColorType_uniform)
     uniform vec3 uColor;
-#elif defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance)
+#elif defined(dColorType_varying)
     uniform vec2 uColorTexDim;
     uniform sampler2D tColor;
 #endif
@@ -114,23 +114,23 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                 tmp = ((prevValue - uIsoValue) / ((prevValue - uIsoValue) - (value - uIsoValue)));
                 isoPos = mix(pos - step, pos, tmp);
 
-                #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
+                #if defined(dRenderVariant_pick)
                     if (uAlpha < uPickingAlphaThreshold)
                         discard; // ignore so the element below can be picked
                     if (uPickable == 0)
                         return vec4(0.0, 0.0, 0.0, 1.0); // set to empty picking id
                 #endif
 
-                #if defined(dColorType_objectPicking)
+                #if defined(dRenderVariant_pickObject)
                     return vec4(encodeFloatRGB(float(uObjectId)), 1.0);
-                #elif defined(dColorType_instancePicking)
+                #elif defined(dRenderVariant_pickInstance)
                     return vec4(encodeFloatRGB(instance), 1.0);
-                #elif defined(dColorType_groupPicking)
+                #elif defined(dRenderVariant_pickGroup)
                     float group = floor(decodeFloatRGB(textureGroup(isoPos).rgb) + 0.5);
                     return vec4(encodeFloatRGB(group), 1.0);
-                #elif defined(dColorType_depth)
+                #elif defined(dRenderVariant_depth)
                     return packDepthToRGBA(gl_FragCoord.z); // TODO calculate isosurface depth
-                #else
+                #elif defined(dRenderVariant_color)
                     // compute gradient by central differences
                     gradient.x = textureVal(isoPos - dx).a - textureVal(isoPos + dx).a;
                     gradient.y = textureVal(isoPos - dy).a - textureVal(isoPos + dy).a;

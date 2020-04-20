@@ -1,4 +1,20 @@
 export default `
+// TODO find a better place for these convenience defines
+
+#if defined(dRenderVariant_pickObject) || defined(dRenderVariant_pickInstance) || defined(dRenderVariant_pickGroup)
+    #define dRenderVariant_pick
+#endif
+
+#if defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance)
+    #define dColorType_texture
+#endif
+
+#if defined(dColorType_attribute) || defined(dColorType_texture)
+    #define dColorType_varying
+#endif
+
+//
+
 #define PI 3.14159265
 #define RECIPROCAL_PI 0.31830988618
 #define EPSILON 1e-6

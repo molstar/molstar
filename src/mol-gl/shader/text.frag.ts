@@ -56,11 +56,11 @@ void main(){
         gl_FragColor = material;
     }
 
-    #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
+    #if defined(dRenderVariant_pick)
         #include check_picking_alpha
-    #elif defined(dColorType_depth)
+    #elif defined(dRenderVariant_depth)
         gl_FragColor = material;
-    #else
+    #elif defined(dRenderVariant_color)
         #include apply_marker_color
         #include apply_fog
     #endif

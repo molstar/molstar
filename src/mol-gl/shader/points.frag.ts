@@ -22,12 +22,12 @@ const float radius = 0.5;
 void main(){
     #include assign_material_color
 
-    #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
+    #if defined(dRenderVariant_pick)
         #include check_picking_alpha
         gl_FragColor = material;
-    #elif defined(dColorType_depth)
+    #elif defined(dRenderVariant_depth)
         gl_FragColor = material;
-    #else
+    #elif defined(dRenderVariant_color)
         gl_FragColor = material;
 
         #ifdef dPointFilledCircle
