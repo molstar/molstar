@@ -6,7 +6,7 @@
  */
 
 import Close from '@material-ui/icons/Close';
-import Clear from '@material-ui/icons/Clear';
+import CancelOutlined from '@material-ui/icons/CancelOutlined';
 import Brush from '@material-ui/icons/Brush';
 import * as React from 'react';
 import { StructureSelectionQueries, StructureSelectionQuery } from '../../mol-plugin-state/helpers/structure-selection-query';
@@ -130,7 +130,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                 <ToggleButton icon={Brush} title='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} />
                 <ToggleButton icon={CubeSvg} title='Create Representation' toggle={this.toggleAddRepr} isSelected={this.state.action === 'add-repr'} disabled={this.isDisabled} />
                 <PureSelectControl title={`Picking Level`} param={StructureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />
-                <IconButton svg={Close} title='Turn selection mode off' onClick={this.turnOff} />
+                <IconButton svg={CancelOutlined} title='Turn selection mode off' onClick={this.turnOff} />
             </div>
             {(this.state.action && this.state.action !== 'color' && this.state.action !== 'add-repr') && <div className='msp-selection-viewport-controls-actions'>
                 <ActionMenu header={ActionHeader.get(this.state.action as StructureSelectionModifier)} items={this.queries} onSelect={this.selectQuery} noOffset />
@@ -216,7 +216,7 @@ export class StructureSelectionStatsControls extends PluginUIComponent<{ hideOnE
                     style={{ textAlignLast: !empty ? 'left' : void 0 }}>
                     {this.stats}
                 </Button>
-                {!empty && <IconButton svg={Clear} onClick={this.clear} title='Clear' className='msp-form-control' flex />}
+                {!empty && <IconButton svg={CancelOutlined} onClick={this.clear} title='Clear' className='msp-form-control' flex />}
             </div>
         </>;
     }

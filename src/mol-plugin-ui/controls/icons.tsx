@@ -29,8 +29,8 @@ export function MoleculeSvg() { return _molecule; }
 export function RulerSvg() { return _ruler; }
 export function CubeSvg() { return _cube; }
 
-const circleLeft = <circle r="6px" id="circle-left" cy="12px" cx="8px" strokeWidth="0.5" />;
-const circleRight = <circle r="6px" id="circle-right" cy="12px" cx="16px" strokeWidth="0.5" />;
+const circleLeft = <circle r="6px" id="circle-left" cy="12px" cx="8px" strokeWidth="1" />;
+const circleRight = <circle r="6px" id="circle-right" cy="12px" cx="16px" strokeWidth="1" />;
 
 const _union = <svg width="24px" height="24px" viewBox="0 0 24 24">
     <defs>

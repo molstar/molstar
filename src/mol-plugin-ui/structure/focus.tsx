@@ -5,7 +5,7 @@
  */
 
 import CenterFocusStrong from '@material-ui/icons/CenterFocusStrong';
-import Clear from '@material-ui/icons/Clear';
+import CancelOutlined from '@material-ui/icons/CancelOutlined';
 import * as React from 'react';
 import { OrderedSet, SortedArray } from '../../mol-data/int';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
@@ -238,7 +238,7 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
                     style={{ textAlignLast: current ? 'left' : void 0 }}>
                     {label}
                 </Button>
-                {current && <IconButton svg={Clear} onClick={this.clear} title='Clear' className='msp-form-control' flex disabled={this.isDisabled} />}
+                {current && <IconButton svg={CancelOutlined} onClick={this.clear} title='Clear' className='msp-form-control' flex disabled={this.isDisabled} />}
                 <ToggleButton icon={CenterFocusStrong} title='Select a focus target to center on an show its surroundings. Hold shift to focus on multiple targets.' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.showAction && <ActionMenu items={this.actionItems} onSelect={this.selectAction} />}
