@@ -320,12 +320,10 @@ async function getIngredientStructure(assetManager: AssetManager, ingredient: In
         structure = await getStructure(model, source, { assembly: bu });
         // transform with offset and pcp
         let legacy: boolean = true;
-        console.log(name);
         if (ingredient.offset || ingredient.principalAxis){
             legacy = false;
             const structureMean = getStructureMean(structure);
             Vec3.negate(structureMean, structureMean);
-            console.log(structureMean);
             const m1: Mat4 = Mat4.identity();
             Mat4.setTranslation(m1, structureMean);
             structure = Structure.transform(structure, m1);
@@ -335,7 +333,6 @@ async function getIngredientStructure(assetManager: AssetManager, ingredient: In
                     Mat4.setTranslation(m, ingredient.offset);
                     structure = Structure.transform(structure, m);
                 }
-                console.log(ingredient.offset);
             }
             if (ingredient.principalAxis){
                 if (!Vec3.exactEquals(ingredient.principalAxis, Vec3.unitZ)){
@@ -344,7 +341,6 @@ async function getIngredientStructure(assetManager: AssetManager, ingredient: In
                     const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q);
                     structure = Structure.transform(structure, m);
                 }
-                console.log(ingredient.offset);
             }
         }
         structure = getAssembly(getResultTransforms(results, legacy), structure);
