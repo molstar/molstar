@@ -33,7 +33,7 @@ require('../../mol-plugin-ui/skin/light.scss');
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 5;
-    static VERSION_MINOR = 3;
+    static VERSION_MINOR = 4;
 
     private _ev = RxEventHelper.create();
 
@@ -393,16 +393,15 @@ class MolStarProteopediaWrapper {
     }
 
     snapshot = {
-        get: () => {
-            return this.plugin.state.getSnapshot();
+        get: (params?: PluginState.SnapshotParams) => {
+            return this.plugin.state.getSnapshot(params);
         },
         set: (snapshot: PluginState.Snapshot) => {
             return this.plugin.state.setSnapshot(snapshot);
         },
-        download: () => {
-            const json = JSON.stringify(this.plugin.state.getSnapshot(), null, 2);
-            const blob = new Blob([json], {type : 'application/json;charset=utf-8'});
-            download(blob, `mol-star_state_${(name || getFormattedTime())}.json`);
+        download: async (type: 'molj' | 'molx' = 'molj', params?: PluginState.SnapshotParams) => {
+            const data = await this.plugin.managers.snapshot.serialize({ type, params });
+            download(data, `mol-star_state_${(name || getFormattedTime())}.${type}`);
         },
         fetch: async (url: string, type: 'molj' | 'molx' = 'molj') => {
             try {

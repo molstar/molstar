@@ -176,16 +176,19 @@
 
             var snapshot;
             addControl('Set Snapshot', () => {
-                snapshot = PluginWrapper.snapshot.get();
-                // could use JSON.stringify(snapshot) and upload the data
+                // const options = { data: true, behavior: false, animation: false, interactivity: false, canvas3d: false, camera: false, cameraTransition: false };
+                snapshot = PluginWrapper.plugin.state.getSnapshot(/** options */);
                 // console.log(JSON.stringify(snapshot, null, 2));
             });
             addControl('Restore Snapshot', () => {
                 if (!snapshot) return;
                 PluginWrapper.snapshot.set(snapshot);
             });
-            addControl('Download Snapshot', () => {
-                snapshot = PluginWrapper.snapshot.download();
+            addControl('Download State', () => {
+                snapshot = PluginWrapper.snapshot.download('molj');
+            });
+            addControl('Download Session', () => {
+                snapshot = PluginWrapper.snapshot.download('molx');
             });
 
             ////////////////////////////////////////////////////////

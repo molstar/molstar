@@ -8,11 +8,13 @@
 import Close from '@material-ui/icons/Close';
 import CancelOutlined from '@material-ui/icons/CancelOutlined';
 import Brush from '@material-ui/icons/Brush';
+import Restore from '@material-ui/icons/Restore';
+import Remove from '@material-ui/icons/Remove';
 import * as React from 'react';
 import { StructureSelectionQueries, StructureSelectionQuery } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
-import { StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
+import { StructureRef, StructureComponentRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { StructureSelectionModifier } from '../../mol-plugin-state/manager/structure/selection';
 import { memoizeLatest } from '../../mol-util/memoize';
 import { ParamDefinition } from '../../mol-util/param-definition';
@@ -31,15 +33,16 @@ const StructureSelectionParams = {
 interface StructureSelectionActionsControlsState {
     isEmpty: boolean,
     isBusy: boolean,
+    canUndo: boolean,
 
     action?: StructureSelectionModifier | 'color' | 'add-repr'
 }
 
 const ActionHeader = new Map<StructureSelectionModifier, string>([
-    ['add', 'Add/Union'],
-    ['remove', 'Remove/Subtract'],
-    ['intersect', 'Intersect'],
-    ['set', 'Set']
+    ['add', 'Add/Union Selection'],
+    ['remove', 'Remove/Subtract Selection'],
+    ['intersect', 'Intersect Selection'],
+    ['set', 'Set Selection']
 ] as const);
 
 export class StructureSelectionActionsControls extends PluginUIComponent<{}, StructureSelectionActionsControlsState> {
@@ -48,6 +51,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
 
         isEmpty: true,
         isBusy: false,
+        canUndo: false,
     }
 
     componentDidMount() {
@@ -64,6 +68,10 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
 
         this.subscribe(this.plugin.managers.interactivity.events.propsUpdated, () => {
             this.forceUpdate();
+        });
+
+        this.subscribe(this.plugin.state.data.events.historyUpdated, ({ state }) => {
+            this.setState({ canUndo: state.canUndo });
         });
     }
 
@@ -119,25 +127,46 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
 
     turnOff = () => this.plugin.selectionMode = false;
 
+    undo = () => {
+        const task = this.plugin.state.data.undo();
+        if (task) this.plugin.runTask(task);
+    }
+
+    subtract = () => {
+        const sel = this.plugin.managers.structure.hierarchy.getStructuresWithSelection();
+        const components: StructureComponentRef[] = [];
+        for (const s of sel) components.push(...s.components);
+        if (components.length === 0) return;
+        this.plugin.managers.structure.component.modifyByCurrentSelection(components, 'subtract');
+    }
+
     render() {
         const granularity = this.plugin.managers.interactivity.props.granularity;
+        const undoTitle = this.state.canUndo
+            ? `Undo ${this.plugin.state.data.latestUndoLabel}`
+            : 'Some mistakes of the past can be undone.';
+
         return <>
-            <div className='msp-flex-row'>
+            <div className='msp-flex-row' style={{ background: 'none' }}>
+                <PureSelectControl title={`Picking Level`} param={StructureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />
                 <ToggleButton icon={Union} title={ActionHeader.get('add')} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
                 <ToggleButton icon={Subtract} title={ActionHeader.get('remove')} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
                 <ToggleButton icon={Intersect} title={ActionHeader.get('intersect')} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
                 <ToggleButton icon={SetSvg} title={ActionHeader.get('set')} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
-                <ToggleButton icon={Brush} title='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} />
+
+                <ToggleButton icon={Brush} title='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} style={{ marginLeft: '10px' }}  />
                 <ToggleButton icon={CubeSvg} title='Create Representation' toggle={this.toggleAddRepr} isSelected={this.state.action === 'add-repr'} disabled={this.isDisabled} />
-                <PureSelectControl title={`Picking Level`} param={StructureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />
-                <IconButton svg={CancelOutlined} title='Turn selection mode off' onClick={this.turnOff} />
+                <IconButton svg={Remove} title='Subtract from Representations' onClick={this.subtract} disabled={this.isDisabled} />
+                <IconButton svg={Restore} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />
+
+                <IconButton svg={CancelOutlined} title='Turn selection mode off' onClick={this.turnOff} style={{ marginLeft: '10px' }} />
             </div>
             {(this.state.action && this.state.action !== 'color' && this.state.action !== 'add-repr') && <div className='msp-selection-viewport-controls-actions'>
                 <ActionMenu header={ActionHeader.get(this.state.action as StructureSelectionModifier)} items={this.queries} onSelect={this.selectQuery} noOffset />
             </div>}
             {this.state.action === 'color' && <div className='msp-selection-viewport-controls-actions'>
                 <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor} topRightIcon={Close}>
-                    <ApplyColorControls />
+                    <ApplyColorControls onApply={this.toggleColor} />
                 </ControlGroup>
             </div>}
             {this.state.action === 'add-repr' && <div className='msp-selection-viewport-controls-actions'>

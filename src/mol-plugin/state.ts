@@ -57,8 +57,8 @@ class PluginState extends PluginComponent {
             startAnimation: p.startAnimation ? !!p.startAnimation : void 0,
             camera: p.camera ? {
                 current: this.plugin.canvas3d!.camera.getSnapshot(),
-                transitionStyle: p.cameraTranstion!.name,
-                transitionDurationInMs: p?.cameraTranstion?.name === 'animate' ? p.cameraTranstion.params.durationInMs : void 0
+                transitionStyle: p.cameraTransition!.name,
+                transitionDurationInMs: p?.cameraTransition?.name === 'animate' ? p.cameraTransition.params.durationInMs : void 0
             } : void 0,
             canvas3d: p.canvas3d ? { props: this.plugin.canvas3d?.props } : void 0,
             interactivity: p.interactivity ? { props: this.plugin.managers.interactivity.props } : void 0,
@@ -136,7 +136,7 @@ namespace PluginState {
         canvas3d: PD.Boolean(true),
         interactivity: PD.Boolean(true),
         camera: PD.Boolean(true),
-        cameraTranstion: PD.MappedStatic('animate', {
+        cameraTransition: PD.MappedStatic('animate', {
             animate: PD.Group({
                 durationInMs: PD.Numeric(250, { min: 100, max: 5000, step: 500 }, { label: 'Duration in ms' }),
             }),

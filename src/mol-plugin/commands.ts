@@ -37,7 +37,7 @@ export const PluginCommands = {
             Upload: PluginCommand<{ name?: string, description?: string, playOnLoad?: boolean, serverUrl: string, params?: PluginState.SnapshotParams }>(),
             Fetch: PluginCommand<{ url: string }>(),
 
-            DownloadToFile: PluginCommand<{ name?: string, type: 'json' | 'zip' }>(),
+            DownloadToFile: PluginCommand<{ name?: string, type: 'json' | 'molj' | 'zip' | 'molx', params?: PluginState.SnapshotParams }>(),
             OpenFile: PluginCommand<{ file: File }>(),
         }
     },

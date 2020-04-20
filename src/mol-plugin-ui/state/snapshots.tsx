@@ -75,10 +75,10 @@ export class StateExportImportControls extends PluginUIComponent<{ onAction?: ()
     render() {
         return <div className='msp-flex-row'>
             <Button icon={GetApp} onClick={this.downloadToFileJson} title='Save the state description. Input data are loaded using the provided sources. Does not work if local files are used as input.'>
-                Base
+                State
             </Button>
             <Button icon={GetApp} onClick={this.downloadToFileZip} title='Save the state including the input data.'>
-                Full
+                Session
             </Button>
             <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
                 <Icon svg={OpenInBrowser} inline /> Open <input onChange={this.open} type='file' multiple={false} accept='.molx,.molj' />

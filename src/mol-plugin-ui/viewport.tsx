@@ -114,7 +114,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </div>}
             </div>
             {this.state.isScreenshotExpanded && <div className='msp-viewport-controls-panel'>
-                <ControlGroup header='Screenshot / State Snapshot' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleScreenshotExpanded}
+                <ControlGroup header='Screenshot / State' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleScreenshotExpanded}
                     topRightIcon={Close} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <DownloadScreenshotControls close={this.toggleScreenshotExpanded} />
                 </ControlGroup>

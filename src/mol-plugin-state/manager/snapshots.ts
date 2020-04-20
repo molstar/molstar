@@ -189,10 +189,10 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         };
     }
 
-    async serialize(type: 'json' | 'zip' = 'json') {
-        const json = JSON.stringify(this.getStateSnapshot(), null, 2);
+    async serialize(options?: { type: 'json' | 'molj' | 'zip' | 'molx', params?: PluginState.SnapshotParams }) {
+        const json = JSON.stringify(this.getStateSnapshot({ params: options?.params }), null, 2);
 
-        if (type === 'json') {
+        if (!options?.type || options.type === 'json' || options.type === 'molj') {
             return new Blob([json], {type : 'application/json;charset=utf-8'});
         } else {
             const state = new Uint8Array(utf8ByteCount(json));
