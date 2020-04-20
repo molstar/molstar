@@ -40,6 +40,11 @@ export async function getFromPdb(pdbId: string, assetManager: AssetManager) {
     return { mmcif: cif.blocks[0], asset };
 }
 
+export async function getFromOPM(pdbId: string, assetManager: AssetManager){
+    const asset = await assetManager.resolve(Asset.getUrlAsset(assetManager, `https://opm-assets.storage.googleapis.com/pdb/${pdbId.toLowerCase()}.pdb`), 'string').run();
+    return { pdb: await parsePDBfile(asset.data, pdbId), asset };
+}
+
 export async function getFromCellPackDB(id: string, baseUrl: string, assetManager: AssetManager) {
     if (id.toLowerCase().endsWith('.cif') || id.toLowerCase().endsWith('.bcif')) {
         const isBinary = id.toLowerCase().endsWith('.bcif');
@@ -52,8 +57,6 @@ export async function getFromCellPackDB(id: string, baseUrl: string, assetManage
 }
 
 export type IngredientFiles = { [name: string]: Asset.File }
-
-//
 
 export function getStructureMean(structure: Structure) {
     let xSum = 0, ySum = 0, zSum = 0;
