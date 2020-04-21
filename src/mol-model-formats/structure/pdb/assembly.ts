@@ -59,13 +59,13 @@ export function parseRemark350(lines: Tokens, lineStart: number, lineEnd: number
     const assemblies: PdbAssembly[] = [];
 
     // Read the assemblies
-    let current: PdbAssembly, group: PdbAssembly['groups'][0], matrix: Mat4, operId = 1;
+    let current: PdbAssembly, group: PdbAssembly['groups'][0], matrix: Mat4, operId = 1, asmId = 1;
     const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1]);
     for (let i = lineStart; i < lineEnd; i++) {
         let line = getLine(i);
         if (line.substr(11, 12) === 'BIOMOLECULE:') {
             const id = line.substr(23).trim();
-            let details: string = `Biomolecule ` + id;
+            let details = `Biomolecule ${id}`;
             line = getLine(i + 1);
             if (line.substr(11, 30) !== 'APPLY THE FOLLOWING TO CHAINS:') {
                 i++;
@@ -96,6 +96,23 @@ export function parseRemark350(lines: Tokens, lineStart: number, lineEnd: number
             }
 
             const chainList = line.substr(41, 30).split(',');
+            for (let j = 0, jl = chainList.length; j < jl; ++j) {
+                const c = chainList[j].trim();
+                if (c) group!.chains.push(c);
+            }
+        } else if (line.substr(11, 33) === 'APPLYING THE FOLLOWING TO CHAINS:') {
+            // variant in older PDB format version
+            current = PdbAssembly(`${asmId}`, `Biomolecule ${asmId}`);
+            assemblies.push(current);
+            asmId += 1;
+
+            group = { chains: [], operators: [] };
+            current!.groups.push(group);
+
+            i++;
+            line = getLine(i);
+
+            const chainList = line.substr(11, 69).split(',');
             for (let j = 0, jl = chainList.length; j < jl; ++j) {
                 const c = chainList[j].trim();
                 if (c) group!.chains.push(c);
