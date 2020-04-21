@@ -70,7 +70,7 @@ export const DxProvider = DataFormatProvider({
     parse: async (plugin, data) => {
         const volume = plugin.build()
             .to(data)
-            .apply(StateTransforms.Volume.VolumeFromDx, {}, { state: { isGhost: true } });
+            .apply(StateTransforms.Volume.VolumeFromDx);
 
         await volume.commit({ revertOnError: true });
 

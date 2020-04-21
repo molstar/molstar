@@ -245,7 +245,9 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         e.currentTarget.blur();
     }
 
-    hideApply = () => this.setState({ action: 'options', currentAction: void 0 });
+    hideApply = () => {
+        this.setCurrentRoot();
+    }
 
     get actions() {
         const cell = this.props.cell;

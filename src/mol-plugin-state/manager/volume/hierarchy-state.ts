@@ -84,14 +84,14 @@ type TestCell = (cell: StateObjectCell, state: BuildState) => boolean
 type ApplyRef = (state: BuildState, cell: StateObjectCell) => boolean | void
 type LeaveRef = (state: BuildState) => any
 
-function isType(t: StateObject.Ctor): TestCell {
-    return (cell) => t.is(cell.obj);
+function isTypeRoot(t: StateObject.Ctor, target: (state: BuildState) => any): TestCell {
+    return (cell, state) => !target(state) && t.is(cell.obj);
 }
 
 function noop() { }
 
 const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
-    [isType(SO.Volume.Data), (state, cell) => {
+    [isTypeRoot(SO.Volume.Data, t => t.currentVolume), (state, cell) => {
         state.currentVolume = createOrUpdateRefList(state, cell, state.hierarchy.volumes, VolumeRef, cell);
     }, state => state.currentVolume = void 0],
 
