@@ -196,11 +196,16 @@ class MarchingCubesState {
         const n1y = sfg(sf, hi, Math.max(0, hj - 1), hk) - sfg(sf, hi, Math.min(this.nY - 1, hj + 1), hk);
         const n1z = sfg(sf, hi, hj, Math.max(0, hk - 1)) - sfg(sf, hi, hj, Math.min(this.nZ - 1, hk + 1));
 
-        this.builder.addNormal(
-            n0x + t * (n0x - n1x),
-            n0y + t * (n0y - n1y),
-            n0z + t * (n0z - n1z)
-        );
+        const nx = n0x + t * (n0x - n1x);
+        const ny = n0y + t * (n0y - n1y);
+        const nz = n0z + t * (n0z - n1z);
+
+        // ensure normal-direction is the same for negative and positive iso-levels
+        if (this.isoLevel >= 0) {
+            this.builder.addNormal(nx, ny, nz);
+        } else {
+            this.builder.addNormal(-nx, -ny, -nz);
+        }
 
         return id;
     }
@@ -255,7 +260,13 @@ class MarchingCubesState {
 
         const triInfo = TriTable[tableIndex];
         for (let t = 0; t < triInfo.length; t += 3) {
-            this.builder.addTriangle(this.vertList, triInfo[t], triInfo[t + 1], triInfo[t + 2], edgeFilter);
+            const l = triInfo[t], m = triInfo[t + 1], n = triInfo[t + 2];
+            // ensure winding-order is the same for negative and positive iso-levels
+            if (this.isoLevel >= 0) {
+                this.builder.addTriangle(this.vertList, l, m, n, edgeFilter);
+            } else {
+                this.builder.addTriangle(this.vertList, n, m, l, edgeFilter);
+            }
         }
     }
 }

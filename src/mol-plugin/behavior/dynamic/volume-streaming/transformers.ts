@@ -54,7 +54,7 @@ export const InitVolumeStreaming = StateAction.build({
     isApplicable: (a, _, plugin: PluginContext) => {
         const canStreamTest = plugin.config.get(PluginConfig.VolumeStreaming.CanStream);
         if (canStreamTest) return canStreamTest(a.data, plugin);
-        return a.data.models.length === 1 && Model.hasDensityMap(a.data.models[0]);
+        return a.data.models.length === 1 && Model.probablyHasDensityMap(a.data.models[0]);
     }
 })(({ ref, state, params }, plugin: PluginContext) => Task.create('Volume Streaming', async taskCtx => {
     const entries: InfoEntryProps[] = [];

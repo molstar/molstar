@@ -28,9 +28,7 @@ export const PluginConfig = {
     VolumeStreaming: {
         DefaultServer: item('volume-streaming.server', 'https://ds.litemol.org'),
         CanStream: item('volume-streaming.can-stream', (s: Structure, plugin: PluginContext) => {
-            return s.models.length === 1 && (Model.hasDensityMap(s.models[0])
-                // the following test is to include e.g. 'updated' files from PDBe
-                || (!Model.isFromPdbArchive(s.models[0]) && s.models[0].entryId.length === 4));
+            return s.models.length === 1 && Model.probablyHasDensityMap(s.models[0]);
         }),
         EmdbHeaderServer: item('volume-streaming.emdb-header-server', 'https://ftp.wwpdb.org/pub/emdb/structures'),
     },

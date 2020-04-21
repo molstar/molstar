@@ -181,7 +181,7 @@ export const DscifProvider = DataFormatProvider({
 
 export const BuiltInVolumeFormats = [
     ['ccp4', Ccp4Provider] as const,
-    ['dns6', Dsn6Provider] as const,
+    ['dsn6', Dsn6Provider] as const,
     ['cube', CubeProvider] as const,
     ['dx', DxProvider] as const,
     ['dscif', DscifProvider] as const,

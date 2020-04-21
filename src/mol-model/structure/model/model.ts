@@ -25,6 +25,7 @@ import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { ChainIndex } from './indexing';
 import { SymmetryOperator } from '../../../mol-math/geometry';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
+import { Column } from '../../../mol-data/db';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -234,17 +235,23 @@ export namespace Model {
 
     export function hasDensityMap(model: Model): boolean {
         if (!MmcifFormat.is(model.sourceData)) return false;
+        return hasXrayMap(model) || hasEmMap(model);
+    }
+
+    export function probablyHasDensityMap(model: Model): boolean {
+        if (!MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
-        return (
-            hasXrayMap(model) || hasEmMap(model) || (
-                // check if from pdb archive but missing relevant meta data
-                isFromPdbArchive(model) &&
-                !db.pdbx_database_related.db_name.isDefined &&
-                !db.pdbx_database_status.status_code_sf.isDefined && (
-                    !db.exptl.method.isDefined ||
-                    isFromXray(model) ||
-                    isFromEm(model)
-                )
+        return hasDensityMap(model) || (
+            // check if from pdb archive but missing relevant meta data
+            isFromPdbArchive(model) && (
+                !db.exptl.method.isDefined ||
+                (isFromXray(model) && (
+                    !db.pdbx_database_status.status_code_sf.isDefined ||
+                    db.pdbx_database_status.status_code_sf.valueKind(0) === Column.ValueKind.Unknown
+                )) ||
+                (isFromEm(model) && (
+                    !db.pdbx_database_related.db_name.isDefined
+                ))
             )
         );
     }
