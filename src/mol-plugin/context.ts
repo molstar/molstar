@@ -21,7 +21,7 @@ import { LociLabel, LociLabelManager } from '../mol-plugin-state/manager/loci-la
 import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
 import { StructureFocusManager } from '../mol-plugin-state/manager/structure/focus';
 import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure/hierarchy';
-import { HierarchyRef } from '../mol-plugin-state/manager/structure/hierarchy-state';
+import { StructureHierarchyRef } from '../mol-plugin-state/manager/structure/hierarchy-state';
 import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
 import { PluginUIComponent } from '../mol-plugin-ui/base';
@@ -57,6 +57,7 @@ import { AssetManager } from '../mol-util/assets';
 import { PluginStateSnapshotManager } from '../mol-plugin-state/manager/snapshots';
 import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
 import { objectForEach } from '../mol-util/object';
+import { VolumeHierarchyManager } from '../mol-plugin-state/manager/volume/hierarchy';
 
 export class PluginContext {
     runTask = <T>(task: Task<T>) => this.tasks.run(task);
@@ -137,6 +138,9 @@ export class PluginContext {
             selection: new StructureSelectionManager(this),
             focus: new StructureFocusManager(this),
         },
+        volume: {
+            hierarchy: new VolumeHierarchyManager(this)
+        },
         interactivity: void 0 as any as InteractivityManager,
         camera: new CameraManager(this),
         animation: new PluginAnimationManager(this),
@@ -151,7 +155,7 @@ export class PluginContext {
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
     readonly customStructureControls = new Map<string, { new(): PluginUIComponent<any, any, any> }>();
-    readonly genericRepresentationControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [HierarchyRef[], string]>();
+    readonly genericRepresentationControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [StructureHierarchyRef[], string]>();
 
     readonly helpers = {
         substructureParent: new SubstructureParentHelper(this),

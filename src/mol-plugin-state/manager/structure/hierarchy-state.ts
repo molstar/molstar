@@ -21,7 +21,7 @@ export interface StructureHierarchy {
     trajectories: TrajectoryRef[],
     models: ModelRef[],
     structures: StructureRef[],
-    refs: Map<StateTransform.Ref, HierarchyRef>
+    refs: Map<StateTransform.Ref, StructureHierarchyRef>
     // TODO: might be needed in the future
     // decorators: Map<StateTransform.Ref, StateTransform>,
 }
@@ -36,7 +36,7 @@ interface RefBase<K extends string = string, O extends StateObject = StateObject
     version: StateTransform['version']
 }
 
-export type HierarchyRef =
+export type StructureHierarchyRef =
     | TrajectoryRef
     | ModelRef | ModelPropertiesRef | ModelUnitcellRef
     | StructureRef | StructurePropertiesRef | StructureTransformRef | StructureVolumeStreamingRef | StructureComponentRef | StructureRepresentationRef
@@ -140,10 +140,10 @@ function StructureRepresentationRef(cell: StateObjectCell<SO.Molecule.Structure.
 }
 
 export interface GenericRepresentationRef extends RefBase<'generic-representation', SO.Any> {
-    parent: HierarchyRef
+    parent: StructureHierarchyRef
 }
 
-function GenericRepresentationRef(cell: StateObjectCell<SO.Molecule.Structure.Representation3D>, parent: HierarchyRef): GenericRepresentationRef {
+function GenericRepresentationRef(cell: StateObjectCell<SO.Molecule.Structure.Representation3D>, parent: StructureHierarchyRef): GenericRepresentationRef {
     return { kind: 'generic-representation', cell, version: cell.transform.version, parent };
 }
 
@@ -166,7 +166,7 @@ function BuildState(state: State, oldHierarchy: StructureHierarchy): BuildState 
     return { state, oldHierarchy, hierarchy: StructureHierarchy(), changed: false, added: new Set() };
 }
 
-function createOrUpdateRefList<R extends HierarchyRef, C extends any[]>(state: BuildState, cell: StateObjectCell, list: R[], ctor: (...args: C) => R, ...args: C) {
+function createOrUpdateRefList<R extends StructureHierarchyRef, C extends any[]>(state: BuildState, cell: StateObjectCell, list: R[], ctor: (...args: C) => R, ...args: C) {
     const ref: R = ctor(...args);
     list.push(ref);
     state.hierarchy.refs.set(cell.transform.ref, ref);
@@ -180,7 +180,7 @@ function createOrUpdateRefList<R extends HierarchyRef, C extends any[]>(state: B
     return ref;
 }
 
-function createOrUpdateRef<R extends HierarchyRef, C extends any[]>(state: BuildState, cell: StateObjectCell, ctor: (...args: C) => R, ...args: C) {
+function createOrUpdateRef<R extends StructureHierarchyRef, C extends any[]>(state: BuildState, cell: StateObjectCell, ctor: (...args: C) => R, ...args: C) {
     const ref: R = ctor(...args);
     state.hierarchy.refs.set(cell.transform.ref, ref);
     const old = state.oldHierarchy.refs.get(cell.transform.ref);
@@ -300,7 +300,7 @@ function isValidCell(cell?: StateObjectCell): cell is StateObjectCell {
     return true;
 }
 
-function isRemoved(this: BuildState, ref: HierarchyRef) {
+function isRemoved(this: BuildState, ref: StructureHierarchyRef) {
     const { cell } = ref;
     if (isValidCell(cell)) return;
     this.changed = true;

@@ -11,6 +11,7 @@ import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-ax
 import { Camera } from '../../mol-canvas3d/camera';
 import { Loci } from '../../mol-model/loci';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
+import { GraphicsRenderObject } from '../../mol-gl/render-object';
 
 // TODO: make this customizable somewhere?
 const DefaultCameraFocusOptions = {
@@ -23,6 +24,19 @@ export type CameraFocusOptions = typeof DefaultCameraFocusOptions
 
 export class CameraManager {
     private boundaryHelper = new BoundaryHelper('98');
+
+    focusRenderObjects(objects?: ReadonlyArray<GraphicsRenderObject>, options?: Partial<CameraFocusOptions>) {
+        if (!objects) return;
+        const spheres: Sphere3D[] = [];
+
+        for (const o of objects) {
+            const s = o.values.boundingSphere.ref.value;
+            if (s.radius === 0) continue;
+            spheres.push(s);
+        }
+
+        this.focusSpheres(spheres, s => s, options);
+    }
 
     focusLoci(loci: Loci | Loci[], options?: Partial<CameraFocusOptions>) {
         // TODO: allow computation of principal axes here?

@@ -6,7 +6,7 @@
  */
 
 import * as React from 'react';
-import { HierarchyRef, ModelRef, TrajectoryRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
+import { StructureHierarchyRef, ModelRef, TrajectoryRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { CollapsableControls, CollapsableState } from '../base';
 import { ActionMenu } from '../controls/action-menu';
@@ -41,7 +41,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         });
     }
 
-    private item = (ref: HierarchyRef) => {
+    private item = (ref: StructureHierarchyRef) => {
         const selected = this.plugin.managers.structure.hierarchy.seletionSet;
 
         let label;
@@ -179,11 +179,11 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
     }
 
     selectHierarchy: ActionMenu.OnSelectMany = (items) => {
-        if (!items || items.length === 0) return 0;
+        if (!items || items.length === 0) return;
 
-        const refs: HierarchyRef[] = [];
+        const refs: StructureHierarchyRef[] = [];
         for (const i of items) {
-            for (const r of (i.value as HierarchyRef[])) refs.push(r);
+            for (const r of (i.value as StructureHierarchyRef[])) refs.push(r);
         }
 
         this.plugin.managers.structure.hierarchy.updateCurrent(refs, items[0].selected ? 'remove' : 'add');

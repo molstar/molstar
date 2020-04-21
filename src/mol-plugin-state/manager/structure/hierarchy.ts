@@ -12,7 +12,7 @@ import { StateTransform, StateTree } from '../../../mol-state';
 import { SetUtils } from '../../../mol-util/set';
 import { TrajectoryHierarchyPresetProvider } from '../../builder/structure/hierarchy-preset';
 import { PluginComponent } from '../../component';
-import { buildStructureHierarchy, HierarchyRef, ModelRef, StructureComponentRef, StructureHierarchy, StructureRef, TrajectoryRef } from './hierarchy-state';
+import { buildStructureHierarchy, StructureHierarchyRef, ModelRef, StructureComponentRef, StructureHierarchy, StructureRef, TrajectoryRef } from './hierarchy-state';
 
 export class StructureHierarchyManager extends PluginComponent {
     private state = {
@@ -79,7 +79,7 @@ export class StructureHierarchyManager extends PluginComponent {
         return ret;
     }
 
-    private syncCurrent<T extends HierarchyRef>(all: ReadonlyArray<T>, added: Set<StateTransform.Ref>): T[] {
+    private syncCurrent<T extends StructureHierarchyRef>(all: ReadonlyArray<T>, added: Set<StateTransform.Ref>): T[] {
         const current = this.seletionSet;
         const newCurrent: T[] = [];
 
@@ -132,7 +132,7 @@ export class StructureHierarchyManager extends PluginComponent {
         }
     }
 
-    updateCurrent(refs: HierarchyRef[], action: 'add' | 'remove') {
+    updateCurrent(refs: StructureHierarchyRef[], action: 'add' | 'remove') {
         const hierarchy = this.current;
         const set = action === 'add'
             ? SetUtils.union(this.seletionSet, new Set(refs.map(r => r.cell.transform.ref)))
@@ -162,14 +162,14 @@ export class StructureHierarchyManager extends PluginComponent {
         this.behaviors.selection.next({ hierarchy, trajectories, models, structures });
     }
 
-    remove(refs: (HierarchyRef | string)[], canUndo?: boolean) {
+    remove(refs: (StructureHierarchyRef | string)[], canUndo?: boolean) {
         if (refs.length === 0) return;
         const deletes = this.plugin.state.data.build();
         for (const r of refs) deletes.delete(typeof r === 'string' ? r : r.cell.transform.ref);
         return deletes.commit({ canUndo: canUndo ? 'Remove' : false });
     }
 
-    toggleVisibility(refs: ReadonlyArray<HierarchyRef>, action?: 'show' | 'hide') {
+    toggleVisibility(refs: ReadonlyArray<StructureHierarchyRef>, action?: 'show' | 'hide') {
         if (refs.length === 0) return;
 
         const isHidden = action !== void 0

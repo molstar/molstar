@@ -11,6 +11,7 @@ import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 
 /** The basic unit cell that contains the data. */
 interface VolumeData {
+    readonly label?: string,
     readonly cell: SpacegroupCell,
     readonly fractionalBox: Box3D,
     readonly data: Tensor,

@@ -25,7 +25,7 @@ import { clearStructureOverpaint, setStructureOverpaint } from '../../helpers/st
 import { createStructureColorThemeParams, createStructureSizeThemeParams } from '../../helpers/structure-representation-params';
 import { StructureSelectionQueries, StructureSelectionQuery } from '../../helpers/structure-selection-query';
 import { StructureRepresentation3D } from '../../transforms/representation';
-import { HierarchyRef, StructureComponentRef, StructureRef, StructureRepresentationRef } from './hierarchy-state';
+import { StructureHierarchyRef, StructureComponentRef, StructureRef, StructureRepresentationRef } from './hierarchy-state';
 
 export { StructureComponentManager };
 
@@ -132,7 +132,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         let changed = false;
         const update = this.dataState.build();
 
-        const sync = (r: HierarchyRef) => {
+        const sync = (r: StructureHierarchyRef) => {
             if (!keptRefs.has(r.cell.transform.ref)) {
                 changed = true;
                 update.delete(r.cell);
@@ -169,7 +169,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         }
     }
 
-    canBeModified(ref: HierarchyRef) {
+    canBeModified(ref: StructureHierarchyRef) {
         return this.plugin.builders.structure.isComponentTransform(ref.cell);
     }
 
@@ -211,7 +211,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     removeRepresentations(components: ReadonlyArray<StructureComponentRef>, pivot?: StructureRepresentationRef) {
         if (components.length === 0) return;
 
-        const toRemove: HierarchyRef[] = [];
+        const toRemove: StructureHierarchyRef[] = [];
         if (pivot) {
             const index = components[0].representations.indexOf(pivot);
             if (index < 0) return;
