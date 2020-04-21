@@ -126,6 +126,10 @@ import direct_volume_vert from './shader/direct-volume.vert';
 import direct_volume_frag from './shader/direct-volume.frag';
 export const DirectVolumeShaderCode = ShaderCode('direct-volume', direct_volume_vert, direct_volume_frag, { fragDepth: true });
 
+import image_vert from './shader/image.vert';
+import image_frag from './shader/image.frag';
+export const ImageShaderCode = ShaderCode('image', image_vert, image_frag, { fragDepth: true });
+
 //
 
 export type ShaderDefines = {

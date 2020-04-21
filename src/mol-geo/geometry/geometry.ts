@@ -21,8 +21,9 @@ import { TransformData } from './transform-data';
 import { Theme } from '../../mol-theme/theme';
 import { RenderObjectValues } from '../../mol-gl/render-object';
 import { TextureMesh } from './texture-mesh/texture-mesh';
+import { Image } from './image/image';
 
-export type GeometryKind = 'mesh' | 'points' | 'spheres' | 'text' | 'lines' | 'direct-volume' | 'texture-mesh'
+export type GeometryKind = 'mesh' | 'points' | 'spheres' | 'text' | 'lines' | 'direct-volume' | 'image' | 'texture-mesh'
 
 export type Geometry<T extends GeometryKind = GeometryKind> =
     T extends 'mesh' ? Mesh :
@@ -31,7 +32,8 @@ export type Geometry<T extends GeometryKind = GeometryKind> =
                 T extends 'text' ? Text :
                     T extends 'lines' ? Lines :
                         T extends 'direct-volume' ? DirectVolume :
-                            T extends 'texture-mesh' ? TextureMesh : never
+                            T extends 'image' ? Image :
+                                T extends 'texture-mesh' ? TextureMesh : never
 
 type GeometryParams<T extends GeometryKind> =
     T extends 'mesh' ? Mesh.Params :
@@ -40,7 +42,8 @@ type GeometryParams<T extends GeometryKind> =
                 T extends 'text' ? Text.Params :
                     T extends 'lines' ? Lines.Params :
                         T extends 'direct-volume' ? DirectVolume.Params :
-                            T extends 'texture-mesh' ? TextureMesh.Params : never
+                            T extends 'image' ? Image.Params :
+                                T extends 'texture-mesh' ? TextureMesh.Params : never
 
 export interface GeometryUtils<G extends Geometry, P extends PD.Params = GeometryParams<G['kind']>, V = RenderObjectValues<G['kind']>> {
     Params: P
@@ -64,6 +67,7 @@ export namespace Geometry {
             case 'text': return geometry.charCount * 2 * 3;
             case 'lines': return geometry.lineCount * 2 * 3;
             case 'direct-volume': return 12 * 3;
+            case 'image': return 2 * 3;
             case 'texture-mesh': return geometry.vertexCount;
         }
     }
@@ -78,6 +82,8 @@ export namespace Geometry {
                 return getDrawCount(geometry) === 0 ? 0 : (arrayMax(geometry.groupBuffer.ref.value) + 1);
             case 'direct-volume':
                 return 1;
+            case 'image':
+                return arrayMax(geometry.groupTexture.ref.value.array) + 1;
             case 'texture-mesh':
                 return geometry.groupCount;
         }
@@ -92,6 +98,7 @@ export namespace Geometry {
             case 'text': return Text.Utils as any;
             case 'lines': return Lines.Utils as any;
             case 'direct-volume': return DirectVolume.Utils as any;
+            case 'image': return Image.Utils as any;
             case 'texture-mesh': return TextureMesh.Utils as any;
         }
     }

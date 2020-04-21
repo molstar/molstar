@@ -14,6 +14,7 @@ import { LinesValues, LinesRenderable } from './renderable/lines';
 import { SpheresValues, SpheresRenderable } from './renderable/spheres';
 import { TextValues, TextRenderable } from './renderable/text';
 import { TextureMeshValues, TextureMeshRenderable } from './renderable/texture-mesh';
+import { ImageValues, ImageRenderable } from './renderable/image';
 
 const getNextId = idFactory(0, 0x7FFFFFFF);
 
@@ -27,7 +28,7 @@ export interface GraphicsRenderObject<T extends RenderObjectType = RenderObjectT
     readonly materialId: number
 }
 
-export type RenderObjectType = 'mesh' | 'points' | 'spheres' | 'text' | 'lines' | 'direct-volume' | 'texture-mesh'
+export type RenderObjectType = 'mesh' | 'points' | 'spheres' | 'text' | 'lines' | 'direct-volume' | 'image' | 'texture-mesh'
 
 export type RenderObjectValues<T extends RenderObjectType> =
     T extends 'mesh' ? MeshValues :
@@ -36,7 +37,8 @@ export type RenderObjectValues<T extends RenderObjectType> =
                 T extends 'text' ? TextValues :
                     T extends 'lines' ? LinesValues :
                         T extends 'direct-volume' ? DirectVolumeValues :
-                            T extends 'texture-mesh' ? TextureMeshValues : never
+                            T extends 'image' ? ImageValues :
+                                T extends 'texture-mesh' ? TextureMeshValues : never
 
 //
 
@@ -52,6 +54,7 @@ export function createRenderable<T extends RenderObjectType>(ctx: WebGLContext, 
         case 'text': return TextRenderable(ctx, o.id, o.values as TextValues, o.state, o.materialId);
         case 'lines': return LinesRenderable(ctx, o.id, o.values as LinesValues, o.state, o.materialId);
         case 'direct-volume': return DirectVolumeRenderable(ctx, o.id, o.values as DirectVolumeValues, o.state, o.materialId);
+        case 'image': return ImageRenderable(ctx, o.id, o.values as ImageValues, o.state, o.materialId);
         case 'texture-mesh': return TextureMeshRenderable(ctx, o.id, o.values as TextureMeshValues, o.state, o.materialId);
     }
     throw new Error('unsupported type');
