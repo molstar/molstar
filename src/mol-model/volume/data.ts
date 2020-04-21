@@ -10,7 +10,7 @@ import { Tensor, Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 
 /** The basic unit cell that contains the data. */
-interface VolumeData {
+interface VolumeDataBase {
     readonly label?: string,
     readonly transform: { kind: 'spacegroup', cell: SpacegroupCell, fractionalBox: Box3D } | { kind: 'matrix', matrix: Mat4 },
     readonly data: Tensor,
@@ -20,6 +20,10 @@ interface VolumeData {
         mean: number,
         sigma: number
     }>
+}
+
+interface VolumeData extends VolumeDataBase {
+    readonly colorVolume?: VolumeDataBase
 }
 
 namespace VolumeData {

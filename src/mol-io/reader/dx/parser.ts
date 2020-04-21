@@ -12,6 +12,7 @@ import { chunkedSubtask, RuntimeContext, Task } from '../../../mol-task';
 import { parseFloat as fastParseFloat } from '../common/text/number-parser';
 import { Tokenizer } from '../common/text/tokenizer';
 import { ReaderResult as Result } from '../result';
+import { utf8Read } from '../../common/utf8';
 
 // http://apbs-pdb2pqr.readthedocs.io/en/latest/formats/opendx.html
 
@@ -87,13 +88,41 @@ function readValuesText(ctx: RuntimeContext, tokenizer: Tokenizer, header: DxFil
     }, (ctx, _, i) => ctx.update({ current: Math.min(i, N), max: N }));
 }
 
+async function parseText(taskCtx: RuntimeContext, data: string) {
+    await taskCtx.update('Reading header...');
+    const tokenizer = Tokenizer(data as string);
+    const { header } = readHeader(tokenizer);
+    await taskCtx.update('Reading values...');
+    const values = await readValuesText(taskCtx, tokenizer, header);
+    return Result.success({ header, values });
+}
+
+async function parseBinary(taskCtx: RuntimeContext, data: Uint8Array) {
+    await taskCtx.update('Reading header...');
+
+    const headerString = utf8Read(data, 0, 1000);
+
+    const tokenizer = Tokenizer(headerString);
+    const { header, headerByteCount } = readHeader(tokenizer);
+
+    await taskCtx.update('Reading values...');
+
+    const size = header.dim[0] * header.dim[1] * header.dim[2];
+    const dv = new DataView(data.buffer, data.byteOffset + headerByteCount);
+    const values = new Float64Array(size);
+
+    for (let i = 0; i < size; i++) {
+        values[i] = dv.getFloat64(i * 8, true);
+    }
+
+    // TODO: why doesnt this work? throw "attempting to construct out-of-bounds TypedArray"
+    // const values = new Float64Array(data.buffer, data.byteOffset + headerByteCount, header.dim[0] * header.dim[1] * header.dim[2]);
+    return Result.success({ header, values });
+}
+
 export function parseDx(data: string | Uint8Array) {
-    return Task.create<Result<DxFile>>('Parse Cube', async taskCtx => {
-        await taskCtx.update('Reading header...');
-        const tokenizer = Tokenizer(data as string);
-        const { header } = readHeader(tokenizer);
-        const values = await readValuesText(taskCtx, tokenizer, header);
-        console.log(values);
-        return Result.success({ header, values });
+    return Task.create<Result<DxFile>>('Parse Cube', taskCtx => {
+        if (typeof data === 'string') return parseText(taskCtx, data);
+        return parseBinary(taskCtx, data);
     });
 }
