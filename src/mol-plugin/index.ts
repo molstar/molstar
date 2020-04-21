@@ -59,6 +59,8 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3DFromScript),
 
         PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),
+        PluginSpec.Action(StateTransforms.Volume.VolumeFromDsn6),
+        PluginSpec.Action(StateTransforms.Volume.VolumeFromCube),
         PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
     ],
     behaviors: [

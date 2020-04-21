@@ -34,6 +34,7 @@ import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { parseMol } from '../../mol-io/reader/mol/parser';
 import { trajectoryFromMol } from '../../mol-model-formats/structure/mol';
 import { trajectoryFromCifCore } from '../../mol-model-formats/structure/cif-core';
+import { trajectoryFromCube } from '../../mol-model-formats/structure/cube';
 
 export { CoordinatesFromDcd };
 export { TopologyFromPsf };
@@ -43,6 +44,7 @@ export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
 export { TrajectoryFromGRO };
 export { TrajectoryFromMOL };
+export { TrajectoryFromCube };
 export { TrajectoryFromCifCore };
 export { TrajectoryFrom3DG };
 export { ModelFromTrajectory };
@@ -227,6 +229,22 @@ const TrajectoryFromMOL = PluginStateTransform.BuiltIn({
             const parsed = await parseMol(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromMol(parsed.result).runInContext(ctx);
+            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
+
+type TrajectoryFromCube = typeof TrajectoryFromCube
+const TrajectoryFromCube = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-cube',
+    display: { name: 'Parse Cube', description: 'Parse Cube file to create a trajectory.' },
+    from: SO.Format.Cube,
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse MOL', async ctx => {
+            const models = await trajectoryFromCube(a.data).runInContext(ctx);
             const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(models, props);
         });

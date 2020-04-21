@@ -21,6 +21,7 @@ import { ShapeRepresentation } from '../mol-repr/shape/representation';
 import { StructureRepresentation, StructureRepresentationState } from '../mol-repr/structure/representation';
 import { VolumeRepresentation } from '../mol-repr/volume/representation';
 import { StateObject, StateTransformer } from '../mol-state';
+import { CubeFile } from '../mol-io/reader/cube/parser';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 
@@ -67,6 +68,7 @@ export namespace PluginStateObject {
     export namespace Format {
         export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
         export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
+        export class Cube extends Create<CubeFile>({ name: 'Cube File', typeClass: 'Data' }) { }
         export class Psf extends Create<PsfFile>({ name: 'PSF File', typeClass: 'Data' }) { }
         export class Ply extends Create<PlyFile>({ name: 'PLY File', typeClass: 'Data' }) { }
         export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC/MAP File', typeClass: 'Data' }) { }

@@ -13,6 +13,8 @@ import { PluginStateObject } from '../objects';
 import { VolumeRepresentation3DHelpers } from '../transforms/representation';
 import { ColorNames } from '../../mol-util/color/names';
 import { VolumeIsoValue } from '../../mol-model/volume';
+import { createVolumeRepresentationParams } from '../helpers/volume-representation-params';
+import { objectForEach } from '../../mol-util/object';
 
 const Category = 'Volume';
 
@@ -57,6 +59,56 @@ export const Dsn6Provider = DataFormatProvider({
         return { format: format.selector, volume: volume.selector };
     },
     visuals: defaultVisuals
+});
+
+export const CubeProvider = DataFormatProvider({
+    label: 'Cube',
+    description: 'Cube',
+    category: Category,
+    stringExtensions: ['cub', 'cube'],
+    parse: async (plugin, data) => {
+        const format = plugin.build()
+            .to(data)
+            .apply(StateTransforms.Data.ParseCube, {}, { state: { isGhost: true } });
+
+        const volume = format.apply(StateTransforms.Volume.VolumeFromCube);
+        const structure = format
+            .apply(StateTransforms.Model.TrajectoryFromCube, void 0, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.ModelFromTrajectory)
+            .apply(StateTransforms.Model.StructureFromModel);
+
+        await format.commit({ revertOnError: true });
+
+        return { format: format.selector, volume: volume.selector, structure: structure.selector };
+    },
+    visuals: async (plugin: PluginContext, data: { volume: StateObjectSelector<PluginStateObject.Volume.Data>, structure: StateObjectSelector<PluginStateObject.Molecule.Structure> }) => {
+        const surfaces = plugin.build();
+
+        const volumeData = data.volume.cell?.obj?.data;
+        const volumePos = surfaces.to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, volumeData, {
+            type: 'isosurface',
+            typeParams: { isoValue: VolumeIsoValue.relative(1), alpha: 0.4 },
+            color: 'uniform',
+            colorParams: { value: ColorNames.red }
+        }));
+        const volumeNeg = surfaces.to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, volumeData, {
+            type: 'isosurface',
+            typeParams: { isoValue: VolumeIsoValue.relative(-1), alpha: 0.4 },
+            color: 'uniform',
+            colorParams: { value: ColorNames.blue }
+        }));
+
+        const structure = await plugin.builders.structure.representation.applyPreset(data.structure, 'auto');
+        await surfaces.commit();
+
+        const structureReprs: StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>[] = [];
+
+        objectForEach(structure?.representations as any, (r: any) => {
+            if (r) structureReprs.push(r);
+        });
+
+        return [volumePos.selector, volumeNeg.selector, ...structureReprs];
+    }
 });
 
 export const DscifProvider = DataFormatProvider({
@@ -112,6 +164,7 @@ export const DscifProvider = DataFormatProvider({
 export const BuiltInVolumeFormats = [
     ['ccp4', Ccp4Provider] as const,
     ['dns6', Dsn6Provider] as const,
+    ['cube', CubeProvider] as const,
     ['dscif', DscifProvider] as const,
 ] as const;
 

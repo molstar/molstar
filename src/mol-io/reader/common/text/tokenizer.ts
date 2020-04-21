@@ -107,11 +107,20 @@ namespace Tokenizer {
         return read;
     }
 
-    /** Advance the state by the given number of lines and return line starts/ends as tokens. */
-    export function readLines(state: Tokenizer, count: number): Tokens {
+    /** Advance the state by the given number of lines and return them*/
+    export function markLines(state: Tokenizer, count: number): Tokens {
         const lineTokens = TokenBuilder.create(state.data, count * 2);
         readLinesChunk(state, count, lineTokens);
         return lineTokens;
+    }
+
+    /** Advance the state by the given number of lines and return them */
+    export function readLines(state: Tokenizer, count: number): string[] {
+        const ret: string[] = [];
+        for (let i = 0; i < count; i++) {
+            ret.push(Tokenizer.readLine(state));
+        }
+        return ret;
     }
 
     /** Advance the state by the given number of lines and return line starts/ends as tokens. */

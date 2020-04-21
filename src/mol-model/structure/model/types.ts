@@ -34,6 +34,15 @@ export function ElementSymbol(s: string): ElementSymbol {
     return _esCache[s] || s.toUpperCase();
 }
 
+const _elementByAtomicNumber = new Map(
+    ([[1, 'H'], [2, 'He'], [3, 'Li'], [4, 'Be'], [5, 'B'], [6, 'C'], [7, 'N'], [8, 'O'], [9, 'F'], [10, 'Ne'], [11, 'Na'], [12, 'Mg'], [13, 'Al'], [14, 'Si'], [15, 'P'], [16, 'S'], [17, 'Cl'], [18, 'Ar'], [19, 'K'], [20, 'Ca'], [21, 'Sc'], [22, 'Ti'], [23, 'V'], [24, 'Cr'], [25, 'Mn'], [26, 'Fe'], [27, 'Co'], [28, 'Ni'], [29, 'Cu'], [30, 'Zn'], [31, 'Ga'], [32, 'Ge'], [33, 'As'], [34, 'Se'], [35, 'Br'], [36, 'Kr'], [37, 'Rb'], [38, 'Sr'], [39, 'Y'], [40, 'Zr'], [41, 'Nb'], [42, 'Mo'], [43, 'Tc'], [44, 'Ru'], [45, 'Rh'], [46, 'Pd'], [47, 'Ag'], [48, 'Cd'], [49, 'In'], [50, 'Sn'], [51, 'Sb'], [52, 'Te'], [53, 'I'], [54, 'Xe'], [55, 'Cs'], [56, 'Ba'], [57, 'La'], [58, 'Ce'], [59, 'Pr'], [60, 'Nd'], [61, 'Pm'], [62, 'Sm'], [63, 'Eu'], [64, 'Gd'], [65, 'Tb'], [66, 'Dy'], [67, 'Ho'], [68, 'Er'], [69, 'Tm'], [70, 'Yb'], [71, 'Lu'], [72, 'Hf'], [73, 'Ta'], [74, 'W'], [75, 'Re'], [76, 'Os'], [77, 'Ir'], [78, 'Pt'], [79, 'Au'], [80, 'Hg'], [81, 'Tl'], [82, 'Pb'], [83, 'Bi'], [84, 'Po'], [85, 'At'], [86, 'Rn'], [87, 'Fr'], [88, 'Ra'], [89, 'Ac'], [90, 'Th'], [91, 'Pa'], [92, 'U'], [93, 'Np'], [94, 'Pu'], [95, 'Am'], [96, 'Cm'], [97, 'Bk'], [98, 'Cf'], [99, 'Es'], [100, 'Fm'], [101, 'Md'], [102, 'No'], [103, 'Lr'], [104, 'Rf'], [105, 'Db'], [106, 'Sg'], [107, 'Bh'], [108, 'Hs'], [109, 'Mt'], [110, 'Ds'], [111, 'Rg'], [112, 'Cn'], [113, 'Uut'], [114, 'Fl'], [115, 'Uup'], [116, 'Lv'], [117, 'Uus'], [118, 'Uuo']] as const)
+        .map(e => [e[0], ElementSymbol(e[1])]));
+
+export function getElementFromAtomicNumber(n: number) {
+    if (_elementByAtomicNumber.has(n as any)) return _elementByAtomicNumber.get(n as any)!;
+    return ElementSymbol('H');
+}
+
 /** Entity types as defined in the mmCIF dictionary */
 export const enum EntityType {
     'unknown', 'polymer', 'non-polymer', 'macrolide', 'water', 'branched'
@@ -256,9 +265,9 @@ export const DnaBaseNames = new Set([
     'DA', 'DC', 'DT', 'DG', 'DI', 'DU',
     'DN' // unknown DNA base from CCD
 ]);
-export const PeptideBaseNames = new Set([ 'APN', 'CPN', 'TPN', 'GPN' ]);
-export const PurineBaseNames = new Set([ 'A', 'G', 'I', 'DA', 'DG', 'DI', 'APN', 'GPN' ]);
-export const PyrimidineBaseNames = new Set([ 'C', 'T', 'U', 'DC', 'DT', 'DU', 'CPN', 'TPN' ]);
+export const PeptideBaseNames = new Set(['APN', 'CPN', 'TPN', 'GPN']);
+export const PurineBaseNames = new Set(['A', 'G', 'I', 'DA', 'DG', 'DI', 'APN', 'GPN']);
+export const PyrimidineBaseNames = new Set(['C', 'T', 'U', 'DC', 'DT', 'DU', 'CPN', 'TPN']);
 export const BaseNames = SetUtils.unionMany(RnaBaseNames, DnaBaseNames, PeptideBaseNames);
 
 export const isPurineBase = (compId: string) => PurineBaseNames.has(compId.toUpperCase());
@@ -596,13 +605,13 @@ export type BondType = BitFlags<BondType.Flag>
 export namespace BondType {
     export const is: (b: BondType, f: Flag) => boolean = BitFlags.has;
     export const enum Flag {
-        None                 = 0x0,
-        Covalent             = 0x1,
+        None = 0x0,
+        Covalent = 0x1,
         MetallicCoordination = 0x2,
-        HydrogenBond         = 0x4,
-        Disulfide            = 0x8,
-        Aromatic             = 0x10,
-        Computed             = 0x20
+        HydrogenBond = 0x4,
+        Disulfide = 0x8,
+        Aromatic = 0x10,
+        Computed = 0x20
         // currently at most 16 flags are supported!!
     }
 
@@ -656,28 +665,28 @@ export namespace BondType {
  */
 export const ResidueHydrophobicity = {
     // AA  DGwif   DGwoct  Oct-IF
-    'ALA': [ 0.17, 0.50, 0.33 ],
-    'ARG': [ 0.81, 1.81, 1.00 ],
-    'ASN': [ 0.42, 0.85, 0.43 ],
-    'ASP': [ 1.23, 3.64, 2.41 ],
-    'ASH': [ -0.07, 0.43, 0.50 ],
-    'CYS': [ -0.24, -0.02, 0.22 ],
-    'GLN': [ 0.58, 0.77, 0.19 ],
-    'GLU': [ 2.02, 3.63, 1.61 ],
-    'GLH': [ -0.01, 0.11, 0.12 ],
-    'GLY': [ 0.01, 1.15, 1.14 ],
+    'ALA': [0.17, 0.50, 0.33],
+    'ARG': [0.81, 1.81, 1.00],
+    'ASN': [0.42, 0.85, 0.43],
+    'ASP': [1.23, 3.64, 2.41],
+    'ASH': [-0.07, 0.43, 0.50],
+    'CYS': [-0.24, -0.02, 0.22],
+    'GLN': [0.58, 0.77, 0.19],
+    'GLU': [2.02, 3.63, 1.61],
+    'GLH': [-0.01, 0.11, 0.12],
+    'GLY': [0.01, 1.15, 1.14],
     // "His+": [  0.96,  2.33,  1.37 ],
-    'HIS': [ 0.17, 0.11, -0.06 ],
-    'ILE': [ -0.31, -1.12, -0.81 ],
-    'LEU': [ -0.56, -1.25, -0.69 ],
-    'LYS': [ 0.99, 2.80, 1.81 ],
-    'MET': [ -0.23, -0.67, -0.44 ],
-    'PHE': [ -1.13, -1.71, -0.58 ],
-    'PRO': [ 0.45, 0.14, -0.31 ],
-    'SER': [ 0.13, 0.46, 0.33 ],
-    'THR': [ 0.14, 0.25, 0.11 ],
-    'TRP': [ -1.85, -2.09, -0.24 ],
-    'TYR': [ -0.94, -0.71, 0.23 ],
-    'VAL': [ 0.07, -0.46, -0.53 ]
+    'HIS': [0.17, 0.11, -0.06],
+    'ILE': [-0.31, -1.12, -0.81],
+    'LEU': [-0.56, -1.25, -0.69],
+    'LYS': [0.99, 2.80, 1.81],
+    'MET': [-0.23, -0.67, -0.44],
+    'PHE': [-1.13, -1.71, -0.58],
+    'PRO': [0.45, 0.14, -0.31],
+    'SER': [0.13, 0.46, 0.33],
+    'THR': [0.14, 0.25, 0.11],
+    'TRP': [-1.85, -2.09, -0.24],
+    'TYR': [-0.94, -0.71, 0.23],
+    'VAL': [0.07, -0.46, -0.53]
 };
-export const DefaultResidueHydrophobicity = [ 0.00, 0.00, 0.00 ];
+export const DefaultResidueHydrophobicity = [0.00, 0.00, 0.00];

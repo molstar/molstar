@@ -18,6 +18,7 @@ import { ajaxGetMany } from '../../mol-util/data-source';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { Asset } from '../../mol-util/assets';
+import { parseCube } from '../../mol-io/reader/cube/parser';
 
 export { Download };
 export { DownloadBlob };
@@ -25,6 +26,7 @@ export { RawData };
 export { ReadFile };
 export { ParseBlob };
 export { ParseCif };
+export { ParseCube };
 export { ParsePsf };
 export { ParsePly };
 export { ParseCcp4 };
@@ -251,6 +253,22 @@ const ParseCif = PluginStateTransform.BuiltIn({
             const parsed = await (SO.Data.String.is(a) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Cif(parsed.result);
+        });
+    }
+});
+
+type ParseCube = typeof ParseCube
+const ParseCube = PluginStateTransform.BuiltIn({
+    name: 'parse-cube',
+    display: { name: 'Parse Cube', description: 'Parse Cube from String data' },
+    from: SO.Data.String,
+    to: SO.Format.Cube
+})({
+    apply({ a }) {
+        return Task.create('Parse Cube', async ctx => {
+            const parsed = await parseCube(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.Cube(parsed.result);
         });
     }
 });

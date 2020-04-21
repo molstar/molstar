@@ -19,5 +19,5 @@
         "rootDir": "src",
         "outDir": "lib/servers"
     },
-    "include": [ "src/servers/**/*" ]
+    "include": [ "src/servers/**/*", "src/perf-tests/*" ]
 }

@@ -106,6 +106,7 @@ export function mapObjectMap<T, S>(o: { [k: string]: T }, f: (v: T) => S): { [k:
 }
 
 export function objectForEach<T>(o: { [k: string]: T }, f: (v: T, k: string) => void) {
+    if (!o) return;
     for (const k of Object.keys(o)) {
         f((o as any)[k], k);
     }

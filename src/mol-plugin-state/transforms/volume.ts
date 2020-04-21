@@ -13,10 +13,13 @@ import { volumeFromDsn6 } from '../../mol-model-formats/volume/dsn6';
 import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
+import { volumeFromCube } from '../../mol-model-formats/volume/cube';
 
 export { VolumeFromCcp4 };
 export { VolumeFromDsn6 };
+export { VolumeFromCube };
 export { VolumeFromDensityServerCif };
+
 type VolumeFromCcp4 = typeof VolumeFromCcp4
 const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
     name: 'volume-from-ccp4',
@@ -54,6 +57,28 @@ const VolumeFromDsn6 = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         return Task.create('Create volume from DSN6/BRIX', async ctx => {
             const volume = await volumeFromDsn6(a.data, params).runInContext(ctx);
+            const props = { label: 'Volume' };
+            return new SO.Volume.Data(volume, props);
+        });
+    }
+});
+
+type VolumeFromCube = typeof VolumeFromCube
+const VolumeFromCube = PluginStateTransform.BuiltIn({
+    name: 'volume-from-cube',
+    display: { name: 'Volume from Cube', description: 'Create Volume from Cube data' },
+    from: SO.Format.Cube,
+    to: SO.Volume.Data,
+    params(a) {
+        if (!a) return { dataIndex: PD.Numeric(0) };
+        return {
+            dataIndex: PD.Select(0, a.data.header.dataSetIds.map((id, i) => [i, `${id}`] as const))
+        };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create volume from Cube', async ctx => {
+            const volume = await volumeFromCube(a.data, params).runInContext(ctx);
             const props = { label: 'Volume' };
             return new SO.Volume.Data(volume, props);
         });
