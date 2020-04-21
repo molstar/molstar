@@ -9,7 +9,7 @@ import MoreHoriz from '@material-ui/icons/MoreHoriz';
 import VisibilityOutlined from '@material-ui/icons/VisibilityOutlined';
 import VisibilityOffOutlined from '@material-ui/icons/VisibilityOffOutlined';
 import * as React from 'react';
-import { HierarchyRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
+import { StructureHierarchyRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { State } from '../../mol-state';
 import { PurePluginUIComponent } from '../base';
@@ -62,7 +62,7 @@ export class GenericEntryListControls extends PurePluginUIComponent {
     }
 }
 
-export class GenericEntry<T extends HierarchyRef> extends PurePluginUIComponent<{ refs: T[], labelMultiple?: string }, { showOptions: boolean }> {
+export class GenericEntry<T extends StructureHierarchyRef> extends PurePluginUIComponent<{ refs: T[], labelMultiple?: string }, { showOptions: boolean }> {
     state = { showOptions: false }
 
     componentDidMount() {

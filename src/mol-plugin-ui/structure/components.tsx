@@ -215,8 +215,6 @@ class ComponentListControls extends PurePluginUIComponent {
     }
 }
 
-
-
 type StructureComponentEntryActions = 'action' | 'remove'
 
 class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureComponentRef[] }, { action?: StructureComponentEntryActions }> {
