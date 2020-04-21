@@ -34,8 +34,7 @@ function volumeFromDensityServerData(source: DensityServer_Data_Database): Task<
         const dimensions = Vec3.ofArray(normalizeOrder(info.dimensions.value(0)));
 
         return {
-            cell,
-            fractionalBox: Box3D.create(origin, Vec3.add(Vec3.zero(), origin, dimensions)),
+            transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin, Vec3.add(Vec3.zero(), origin, dimensions)) },
             data,
             dataStats: {
                 min: info.min_sampled.value(0),

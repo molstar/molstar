@@ -67,8 +67,7 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
         // These, however, calculate sigma, so no data on that.
 
         return {
-            cell,
-            fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)),
+            transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
             data,
             dataStats: {
                 min: isNaN(header.AMIN) ? arrayMin(values) : header.AMIN,

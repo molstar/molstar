@@ -12,8 +12,7 @@ import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 /** The basic unit cell that contains the data. */
 interface VolumeData {
     readonly label?: string,
-    readonly cell: SpacegroupCell,
-    readonly fractionalBox: Box3D,
+    readonly transform: { kind: 'spacegroup', cell: SpacegroupCell, fractionalBox: Box3D } | { kind: 'matrix', matrix: Mat4 },
     readonly data: Tensor,
     readonly dataStats: Readonly<{
         min: number,
@@ -25,18 +24,25 @@ interface VolumeData {
 
 namespace VolumeData {
     export const One: VolumeData = {
-        cell: SpacegroupCell.Zero,
-        fractionalBox: Box3D.empty(),
+        transform: { kind: 'matrix', matrix: Mat4() },
         data: Tensor.create(Tensor.Space([1, 1, 1], [0, 1, 2]), Tensor.Data1([0])),
         dataStats: { min: 0, max: 0, mean: 0, sigma: 0 }
     };
 
     const _scale = Mat4.zero(), _translate = Mat4.zero();
     export function getGridToCartesianTransform(volume: VolumeData) {
-        const { data: { space } } = volume;
-        const scale = Mat4.fromScaling(_scale, Vec3.div(Vec3.zero(), Box3D.size(Vec3.zero(), volume.fractionalBox), Vec3.ofArray(space.dimensions)));
-        const translate = Mat4.fromTranslation(_translate, volume.fractionalBox.min);
-        return Mat4.mul3(Mat4.zero(), volume.cell.fromFractional, translate, scale);
+        if (volume.transform.kind === 'matrix') {
+            return Mat4.copy(Mat4(), volume.transform.matrix);
+        }
+
+        if (volume.transform.kind === 'spacegroup') {
+            const { data: { space } } = volume;
+            const scale = Mat4.fromScaling(_scale, Vec3.div(Vec3.zero(), Box3D.size(Vec3.zero(), volume.transform.fractionalBox), Vec3.ofArray(space.dimensions)));
+            const translate = Mat4.fromTranslation(_translate, volume.transform.fractionalBox.min);
+            return Mat4.mul3(Mat4.zero(), volume.transform.cell.fromFractional, translate, scale);
+        }
+
+        return Mat4.identity();
     }
 
     export function areEquivalent(volA: VolumeData, volB: VolumeData) {

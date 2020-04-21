@@ -32,8 +32,7 @@ function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3 }): Task<V
         const data = Tensor.create(space, Tensor.Data1(values));
 
         return {
-            cell,
-            fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)),
+            transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
             data,
             dataStats: {
                 min: arrayMin(values),

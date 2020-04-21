@@ -34,9 +34,8 @@ function print(data: Volume) {
     const { volume_data_3d_info } = data.source;
     const row = Table.getRow(volume_data_3d_info, 0);
     console.log(row);
-    console.log(data.volume.cell);
+    if (data.volume.transform) console.log(data.volume.transform);
     console.log(data.volume.dataStats);
-    console.log(data.volume.fractionalBox);
 }
 
 async function doMesh(data: Volume, filename: string) {
