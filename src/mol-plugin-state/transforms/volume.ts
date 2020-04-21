@@ -14,10 +14,13 @@ import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { volumeFromCube } from '../../mol-model-formats/volume/cube';
+import { parseDx } from '../../mol-io/reader/dx/parser';
+import { volumeFromDx } from '../../mol-model-formats/volume/dx';
 
 export { VolumeFromCcp4 };
 export { VolumeFromDsn6 };
 export { VolumeFromCube };
+export { VolumeFromDx };
 export { VolumeFromDensityServerCif };
 
 type VolumeFromCcp4 = typeof VolumeFromCcp4
@@ -84,6 +87,25 @@ const VolumeFromCube = PluginStateTransform.BuiltIn({
         });
     }
 });
+
+type VolumeFromDx = typeof VolumeFromDx
+const VolumeFromDx = PluginStateTransform.BuiltIn({
+    name: 'volume-from-dx',
+    display: { name: 'Parse PX', description: 'Parse DX string/binary and create volume.' },
+    from: [SO.Data.String, SO.Data.Binary],
+    to: SO.Volume.Data
+})({
+    apply({ a }) {
+        return Task.create('Parse DX', async ctx => {
+            const parsed = await parseDx(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const volume = await volumeFromDx(parsed.result).runInContext(ctx);
+            const props = { label: `Volume` };
+            return new SO.Volume.Data(volume, props);
+        });
+    }
+});
+
 
 type VolumeFromDensityServerCif = typeof VolumeFromDensityServerCif
 const VolumeFromDensityServerCif = PluginStateTransform.BuiltIn({

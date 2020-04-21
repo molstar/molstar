@@ -62,6 +62,7 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),
         PluginSpec.Action(StateTransforms.Volume.VolumeFromDsn6),
         PluginSpec.Action(StateTransforms.Volume.VolumeFromCube),
+        PluginSpec.Action(StateTransforms.Volume.VolumeFromDx),
         PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
     ],
     behaviors: [

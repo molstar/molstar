@@ -61,6 +61,24 @@ export const Dsn6Provider = DataFormatProvider({
     visuals: defaultVisuals
 });
 
+export const DxProvider = DataFormatProvider({
+    label: 'DX',
+    description: 'DX',
+    category: Category,
+    stringExtensions: ['dx'],
+    binaryExtensions: ['dxbin'],
+    parse: async (plugin, data) => {
+        const volume = plugin.build()
+            .to(data)
+            .apply(StateTransforms.Volume.VolumeFromDx, {}, { state: { isGhost: true } });
+
+        await volume.commit({ revertOnError: true });
+
+        return { volume: volume.selector };
+    },
+    visuals: defaultVisuals
+});
+
 export const CubeProvider = DataFormatProvider({
     label: 'Cube',
     description: 'Cube',
@@ -165,6 +183,7 @@ export const BuiltInVolumeFormats = [
     ['ccp4', Ccp4Provider] as const,
     ['dns6', Dsn6Provider] as const,
     ['cube', CubeProvider] as const,
+    ['dx', DxProvider] as const,
     ['dscif', DscifProvider] as const,
 ] as const;
 
