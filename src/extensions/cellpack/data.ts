@@ -65,6 +65,7 @@ export interface Ingredient {
     principalAxis?: Vec3;
     /** offset along membrane */
     offset?: Vec3;
+    ingtype?: string;
 }
 
 export interface IngredientSource {

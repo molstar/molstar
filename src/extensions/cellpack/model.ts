@@ -9,7 +9,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Ingredient, IngredientSource, CellPacking } from './data';
-import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile, getStructureMean } from './util';
+import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile, getStructureMean, getFromOPM } from './util';
 import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit } from '../../mol-model/structure';
 import { trajectoryFromMmCIF, MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../mol-model-formats/structure/pdb';
@@ -32,7 +32,9 @@ function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
 }
 
-async function getModel(assetManager: AssetManager, id: string, model_id: number, baseUrl: string, file?: Asset.File) {
+async function getModel(assetManager: AssetManager, id: string, ingredient: Ingredient, baseUrl: string, file?: Asset.File) {
+    const model_id = (ingredient.source.model) ? parseInt(ingredient.source.model) : 0;
+    const surface = (ingredient.ingtype) ? (ingredient.ingtype === 'transmembrane') : false;
     let model: Model;
     let assets: Asset.Wrapper[] = [];
     if (file) {
@@ -55,9 +57,21 @@ async function getModel(assetManager: AssetManager, id: string, model_id: number
             throw new Error(`unsupported file type '${file.name}'`);
         }
     } else if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
-        const { mmcif, asset } = await getFromPdb(id, assetManager);
-        assets.push(asset);
-        model = (await trajectoryFromMmCIF(mmcif).run())[model_id];
+        if (surface){
+            const data = await getFromOPM(id, assetManager);
+            if (data.asset){
+                assets.push(data.asset);
+                model = (await trajectoryFromPDB(data.pdb).run())[model_id];
+            } else {
+                const { mmcif, asset } = await getFromPdb(id, assetManager);
+                assets.push(asset);
+                model = (await trajectoryFromMmCIF(mmcif).run())[model_id];
+            }
+        } else {
+            const { mmcif, asset } = await getFromPdb(id, assetManager);
+            assets.push(asset);
+            model = (await trajectoryFromMmCIF(mmcif).run())[model_id];
+        }
     } else {
         const data = await getFromCellPackDB(id, baseUrl, assetManager);
         assets.push(data.asset);
@@ -288,8 +302,7 @@ async function getIngredientStructure(assetManager: AssetManager, ingredient: In
     }
 
     // model id in case structure is NMR
-    const model_id = (ingredient.source.model) ? parseInt(ingredient.source.model) : 0;
-    const { model, assets } = await getModel(assetManager, source.pdb || name, model_id, baseUrl, file);
+    const { model, assets } = await getModel(assetManager, source.pdb || name, ingredient, baseUrl, file);
     if (!model) return;
 
     let structure: Structure;
