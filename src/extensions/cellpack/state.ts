@@ -71,7 +71,7 @@ const StructureFromCellpack = PluginStateTransform.BuiltIn({
                     ingredientFiles[file.name] = file;
                 }
             }
-            const { structure, assets } = await createStructureFromCellPack(plugin.managers.asset, packing, params.baseUrl, ingredientFiles).runInContext(ctx);
+            const { structure, assets } = await createStructureFromCellPack(plugin, packing, params.baseUrl, ingredientFiles).runInContext(ctx);
 
             await CellPackInfoProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset }, structure, {
                 info: { packingsCount: a.data.packings.length, packingIndex: params.packing }

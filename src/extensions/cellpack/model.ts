@@ -26,70 +26,71 @@ import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
 import { Column } from '../../mol-data/db';
 import { createModels } from '../../mol-model-formats/structure/basic/parser';
 import { CellpackPackingPreset, CellpackMembranePreset } from './preset';
-import { Asset, AssetManager } from '../../mol-util/assets';
+import { Asset } from '../../mol-util/assets';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
 }
 
-async function getModel(assetManager: AssetManager, id: string, ingredient: Ingredient, baseUrl: string, file?: Asset.File) {
+async function getModel(plugin: PluginContext, id: string, ingredient: Ingredient, baseUrl: string, file?: Asset.File) {
+    const assetManager = plugin.managers.asset;
     const model_id = (ingredient.source.model) ? parseInt(ingredient.source.model) : 0;
     const surface = (ingredient.ingtype) ? (ingredient.ingtype === 'transmembrane') : false;
     let model: Model;
     let assets: Asset.Wrapper[] = [];
     if (file) {
         if (file.name.endsWith('.cif')) {
-            const text = await assetManager.resolve(file, 'string').run();
+            const text = await plugin.runTask(assetManager.resolve(file, 'string'));
             assets.push(text);
-            const cif = (await parseCif(text.data)).blocks[0];
-            model = (await trajectoryFromMmCIF(cif).run())[model_id];
+            const cif = (await parseCif(plugin, text.data)).blocks[0];
+            model = (await plugin.runTask(trajectoryFromMmCIF(cif)))[model_id];
         } else if (file.name.endsWith('.bcif')) {
-            const binary = await assetManager.resolve(file, 'binary').run();
+            const binary = await plugin.runTask(assetManager.resolve(file, 'binary'));
             assets.push(binary);
-            const cif = (await parseCif(binary.data)).blocks[0];
-            model = (await trajectoryFromMmCIF(cif).run())[model_id];
+            const cif = (await parseCif(plugin, binary.data)).blocks[0];
+            model = (await plugin.runTask(trajectoryFromMmCIF(cif)))[model_id];
         } else if (file.name.endsWith('.pdb')) {
-            const text = await assetManager.resolve(file, 'string').run();
+            const text = await plugin.runTask(assetManager.resolve(file, 'string'));
             assets.push(text);
-            const pdb = await parsePDBfile(text.data, id);
-            model = (await trajectoryFromPDB(pdb).run())[model_id];
+            const pdb = await parsePDBfile(plugin, text.data, id);
+            model = (await plugin.runTask(trajectoryFromPDB(pdb)))[model_id];
         } else {
             throw new Error(`unsupported file type '${file.name}'`);
         }
     } else if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
         if (surface){
-            const data = await getFromOPM(id, assetManager);
+            const data = await getFromOPM(plugin, id, assetManager);
             if (data.asset){
                 assets.push(data.asset);
-                model = (await trajectoryFromPDB(data.pdb).run())[model_id];
+                model = (await plugin.runTask(trajectoryFromPDB(data.pdb)))[model_id];
             } else {
-                const { mmcif, asset } = await getFromPdb(id, assetManager);
+                const { mmcif, asset } = await getFromPdb(plugin, id, assetManager);
                 assets.push(asset);
-                model = (await trajectoryFromMmCIF(mmcif).run())[model_id];
+                model = (await plugin.runTask(trajectoryFromMmCIF(mmcif)))[model_id];
             }
         } else {
-            const { mmcif, asset } = await getFromPdb(id, assetManager);
+            const { mmcif, asset } = await getFromPdb(plugin, id, assetManager);
             assets.push(asset);
-            model = (await trajectoryFromMmCIF(mmcif).run())[model_id];
+            model = (await plugin.runTask(trajectoryFromMmCIF(mmcif)))[model_id];
         }
     } else {
-        const data = await getFromCellPackDB(id, baseUrl, assetManager);
+        const data = await getFromCellPackDB(plugin, id, baseUrl, assetManager);
         assets.push(data.asset);
         if ('pdb' in data) {
-            model = (await trajectoryFromPDB(data.pdb).run())[model_id];
+            model = (await plugin.runTask(trajectoryFromPDB(data.pdb)))[model_id];
         } else {
-            model = (await trajectoryFromMmCIF(data.mmcif).run())[model_id];
+            model = (await plugin.runTask(trajectoryFromMmCIF(data.mmcif)))[model_id];
         }
     }
     return { model, assets };
 }
 
-async function getStructure(model: Model, source: IngredientSource, props: { assembly?: string } = {}) {
+async function getStructure(plugin: PluginContext, model: Model, source: IngredientSource, props: { assembly?: string } = {}) {
     let structure = Structure.ofModel(model);
     const { assembly } = props;
 
     if (assembly) {
-        structure = await StructureSymmetry.buildAssembly(structure, assembly).run();
+        structure = await plugin.runTask(StructureSymmetry.buildAssembly(structure, assembly));
     }
     let query;
     if (source.selection){
@@ -274,7 +275,7 @@ function getCifCurve(name: string, transforms: Mat4[], model: Model) {
     };
 }
 
-async function getCurve(name: string, ingredient: Ingredient, transforms: Mat4[], model: Model) {
+async function getCurve(plugin: PluginContext, name: string, ingredient: Ingredient, transforms: Mat4[], model: Model) {
     const cif = getCifCurve(name, transforms, model);
 
     const curveModelTask = Task.create('Curve Model', async ctx => {
@@ -283,11 +284,11 @@ async function getCurve(name: string, ingredient: Ingredient, transforms: Mat4[]
         return models[0];
     });
 
-    const curveModel = await curveModelTask.run();
-    return getStructure(curveModel, ingredient.source);
+    const curveModel = await plugin.runTask(curveModelTask);
+    return getStructure(plugin, curveModel, ingredient.source);
 }
 
-async function getIngredientStructure(assetManager: AssetManager, ingredient: Ingredient, baseUrl: string, ingredientFiles: IngredientFiles) {
+async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredient, baseUrl: string, ingredientFiles: IngredientFiles) {
     const { name, source, results, nbCurve } = ingredient;
     if (source.pdb === 'None') return;
 
@@ -302,12 +303,12 @@ async function getIngredientStructure(assetManager: AssetManager, ingredient: In
     }
 
     // model id in case structure is NMR
-    const { model, assets } = await getModel(assetManager, source.pdb || name, ingredient, baseUrl, file);
+    const { model, assets } = await getModel(plugin, source.pdb || name, ingredient, baseUrl, file);
     if (!model) return;
 
     let structure: Structure;
     if (nbCurve) {
-        structure = await getCurve(name, ingredient, getCurveTransforms(ingredient), model);
+        structure = await getCurve(plugin, name, ingredient, getCurveTransforms(ingredient), model);
     } else {
         let bu: string|undefined = source.bu ? source.bu : undefined;
         if (bu){
@@ -317,7 +318,7 @@ async function getIngredientStructure(assetManager: AssetManager, ingredient: In
                 bu = bu.slice(2);
             }
         }
-        structure = await getStructure(model, source, { assembly: bu });
+        structure = await getStructure(plugin, model, source, { assembly: bu });
         // transform with offset and pcp
         let legacy: boolean = true;
         if (ingredient.offset || ingredient.principalAxis){
@@ -349,14 +350,14 @@ async function getIngredientStructure(assetManager: AssetManager, ingredient: In
     return { structure, assets };
 }
 
-export function createStructureFromCellPack(assetManager: AssetManager, packing: CellPacking, baseUrl: string, ingredientFiles: IngredientFiles) {
+export function createStructureFromCellPack(plugin: PluginContext, packing: CellPacking, baseUrl: string, ingredientFiles: IngredientFiles) {
     return Task.create('Create Packing Structure', async ctx => {
         const { ingredients, name } = packing;
         const assets: Asset.Wrapper[] = [];
         const structures: Structure[] = [];
         for (const iName in ingredients) {
             if (ctx.shouldUpdate) await ctx.update(iName);
-            const ingredientStructure = await getIngredientStructure(assetManager, ingredients[iName], baseUrl, ingredientFiles);
+            const ingredientStructure = await getIngredientStructure(plugin, ingredients[iName], baseUrl, ingredientFiles);
             if (ingredientStructure) {
                 structures.push(ingredientStructure.structure);
                 assets.push(...ingredientStructure.assets);

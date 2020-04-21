@@ -9,50 +9,51 @@ import { parsePDB } from '../../mol-io/reader/pdb/parser';
 import { AssetManager, Asset } from '../../mol-util/assets';
 import { Structure } from '../../mol-model/structure';
 import { Vec3 } from '../../mol-math/linear-algebra';
+import { PluginContext } from '../../mol-plugin/context';
 
-export async function parseCif(data: string|Uint8Array) {
+export async function parseCif(plugin: PluginContext, data: string | Uint8Array) {
     const comp = CIF.parse(data);
-    const parsed = await comp.run();
+    const parsed = await plugin.runTask(comp);
     if (parsed.isError) throw parsed;
     return parsed.result;
 }
 
-export async function parsePDBfile(data: string, id: string) {
+export async function parsePDBfile(plugin: PluginContext, data: string, id: string) {
     const comp = parsePDB(data, id);
-    const parsed = await comp.run();
+    const parsed = await plugin.runTask(comp);
     if (parsed.isError) throw parsed;
     return parsed.result;
 }
 
-async function downloadCif(url: string, isBinary: boolean, assetManager: AssetManager) {
+async function downloadCif(plugin: PluginContext, url: string, isBinary: boolean, assetManager: AssetManager) {
     const type = isBinary ? 'binary' : 'string';
-    const asset = await assetManager.resolve(Asset.getUrlAsset(assetManager, url), type).run();
-    return { cif: await parseCif(asset.data), asset };
+    const asset = await plugin.runTask(assetManager.resolve(Asset.getUrlAsset(assetManager, url), type));
+    return { cif: await parseCif(plugin, asset.data), asset };
 }
 
-async function downloadPDB(url: string, id: string, assetManager: AssetManager) {
+async function downloadPDB(plugin: PluginContext, url: string, id: string, assetManager: AssetManager) {
     const asset = await assetManager.resolve(Asset.getUrlAsset(assetManager, url), 'string').run();
-    return { pdb: await parsePDBfile(asset.data, id), asset };
+    return { pdb: await parsePDBfile(plugin, asset.data, id), asset };
 }
 
-export async function getFromPdb(pdbId: string, assetManager: AssetManager) {
-    const { cif, asset } = await downloadCif(`https://models.rcsb.org/${pdbId.toUpperCase()}.bcif`, true, assetManager);
+export async function getFromPdb(plugin: PluginContext, pdbId: string, assetManager: AssetManager) {
+    const { cif, asset } = await downloadCif(plugin, `https://models.rcsb.org/${pdbId.toUpperCase()}.bcif`, true, assetManager);
     return { mmcif: cif.blocks[0], asset };
 }
 
-export async function getFromOPM(pdbId: string, assetManager: AssetManager){
-    const asset = await assetManager.resolve(Asset.getUrlAsset(assetManager, `https://opm-assets.storage.googleapis.com/pdb/${pdbId.toLowerCase()}.pdb`), 'string').run();
-    return { pdb: await parsePDBfile(asset.data, pdbId), asset };
+export async function getFromOPM(plugin: PluginContext, pdbId: string, assetManager: AssetManager){
+    const asset = await plugin.runTask(assetManager.resolve(Asset.getUrlAsset(assetManager, `https://opm-assets.storage.googleapis.com/pdb/${pdbId.toLowerCase()}.pdb`), 'string'));
+    return { pdb: await parsePDBfile(plugin, asset.data, pdbId), asset };
 }
 
-export async function getFromCellPackDB(id: string, baseUrl: string, assetManager: AssetManager) {
+export async function getFromCellPackDB(plugin: PluginContext, id: string, baseUrl: string, assetManager: AssetManager) {
     if (id.toLowerCase().endsWith('.cif') || id.toLowerCase().endsWith('.bcif')) {
         const isBinary = id.toLowerCase().endsWith('.bcif');
-        const { cif, asset } = await downloadCif(`${baseUrl}/other/${id}`, isBinary, assetManager);
+        const { cif, asset } = await downloadCif(plugin, `${baseUrl}/other/${id}`, isBinary, assetManager);
         return { mmcif: cif.blocks[0], asset };
     } else {
         const name = id.endsWith('.pdb') ? id.substring(0, id.length - 4) : id;
-        return await downloadPDB(`${baseUrl}/other/${name}.pdb`, name, assetManager);
+        return await downloadPDB(plugin, `${baseUrl}/other/${name}.pdb`, name, assetManager);
     }
 }
 
