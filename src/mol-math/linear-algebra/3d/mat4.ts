@@ -164,6 +164,21 @@ namespace Mat4 {
         return a;
     }
 
+    export function fromBasis(a: Mat4, x: Vec3, y: Vec3, z: Vec3) {
+        Mat4.setZero(a);
+        Mat4.setValue(a, 0, 0, x[0]);
+        Mat4.setValue(a, 1, 0, x[1]);
+        Mat4.setValue(a, 2, 0, x[2]);
+        Mat4.setValue(a, 0, 1, y[0]);
+        Mat4.setValue(a, 1, 1, y[1]);
+        Mat4.setValue(a, 2, 1, y[2]);
+        Mat4.setValue(a, 0, 2, z[0]);
+        Mat4.setValue(a, 1, 2, z[1]);
+        Mat4.setValue(a, 2, 2, z[2]);
+        Mat4.setValue(a, 3, 3, 1);
+        return a;
+    }
+
     export function copy(out: Mat4, a: Mat4) {
         out[0] = a[0];
         out[1] = a[1];

@@ -18,6 +18,7 @@ import { BoxifyVolumeStreaming, CreateVolumeStreamingBehavior, InitVolumeStreami
 import { PluginConfig } from './config';
 import { PluginContext } from './context';
 import { PluginSpec } from './spec';
+import { AssignColorVolume } from '../mol-plugin-state/actions/volume';
 
 export const DefaultPluginSpec: PluginSpec = {
     actions: [
@@ -59,9 +60,11 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateTransforms.Representation.OverpaintStructureRepresentation3DFromScript),
         PluginSpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3DFromScript),
 
+        PluginSpec.Action(AssignColorVolume),
         PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),
         PluginSpec.Action(StateTransforms.Volume.VolumeFromDsn6),
         PluginSpec.Action(StateTransforms.Volume.VolumeFromCube),
+        PluginSpec.Action(StateTransforms.Volume.VolumeFromDx),
         PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
     ],
     behaviors: [

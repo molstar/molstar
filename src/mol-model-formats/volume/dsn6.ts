@@ -12,7 +12,7 @@ import { degToRad } from '../../mol-math/misc';
 import { Dsn6File } from '../../mol-io/reader/dsn6/schema';
 import { arrayMin, arrayMax, arrayMean, arrayRms } from '../../mol-util/array';
 
-function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3 }): Task<VolumeData> {
+function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, label?: string }): Task<VolumeData> {
     return Task.create<VolumeData>('Create Volume Data', async ctx => {
         const { header, values } = source;
         const size = Vec3.create(header.xlen, header.ylen, header.zlen);
@@ -32,8 +32,8 @@ function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3 }): Task<V
         const data = Tensor.create(space, Tensor.Data1(values));
 
         return {
-            cell,
-            fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)),
+            label: params?.label,
+            transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
             data,
             dataStats: {
                 min: arrayMin(values),

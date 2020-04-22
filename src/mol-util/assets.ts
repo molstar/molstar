@@ -16,10 +16,10 @@ type _File = File;
 type Asset = Asset.Url | Asset.File
 
 namespace Asset {
-    export type Url = { kind: 'url', id: UUID, url: string, title?: string, body?: string }
+    export type Url = { kind: 'url', id: UUID, url: string, title?: string, body?: string, headers?: [string, string][] }
     export type File = { kind: 'file', id: UUID, name: string, file?: _File }
 
-    export function Url(url: string, options?: { body?: string, title?: string }): Url {
+    export function Url(url: string, options?: { body?: string, title?: string, headers?: [string, string][] }): Url {
         return { kind: 'url', id: UUID.create22(), url, ...options };
     }
 

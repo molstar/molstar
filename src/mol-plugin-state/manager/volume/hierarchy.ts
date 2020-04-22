@@ -78,6 +78,7 @@ export class VolumeHierarchyManager extends PluginComponent {
     }
 
     setCurrent(volume?: VolumeRef) {
+        this.state.selection = volume || this.state.hierarchy.volumes[0];
         this.behaviors.selection.next({ hierarchy: this.state.hierarchy, volume: volume || this.state.hierarchy.volumes[0] });
     }
 

@@ -42,6 +42,7 @@ export interface AjaxGetParams<T extends DataType = 'string'> {
     url: string,
     type?: T,
     title?: string,
+    headers?: [string, string][],
     body?: string
 }
 
@@ -61,7 +62,7 @@ export function ajaxGet(url: string): Task<DataValue>
 export function ajaxGet<T extends DataType>(params: AjaxGetParams<T>): Task<DataResponse<T>>
 export function ajaxGet<T extends DataType>(params: AjaxGetParams<T> | string) {
     if (typeof params === 'string') return ajaxGetInternal(params, params, 'string');
-    return ajaxGetInternal(params.title, params.url, params.type || 'string', params.body);
+    return ajaxGetInternal(params.title, params.url, params.type || 'string', params.body, params.headers);
 }
 
 export type AjaxTask = typeof ajaxGet
@@ -256,12 +257,17 @@ function getRequestResponseType(type: DataType): XMLHttpRequestResponseType {
     }
 }
 
-function ajaxGetInternal<T extends DataType>(title: string | undefined, url: string, type: T, body?: string): Task<DataResponse<T>> {
+function ajaxGetInternal<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
     let xhttp: XMLHttpRequest | undefined = void 0;
     return Task.create(title ? title : 'Download', async ctx => {
         xhttp = RequestPool.get();
 
         xhttp.open(body ? 'post' : 'get', url, true);
+        if (headers) {
+            for (const [name, value] of headers) {
+                xhttp.setRequestHeader(name, value);
+            }
+        }
         xhttp.responseType = getRequestResponseType(type);
         xhttp.send(body);
 

@@ -6,7 +6,7 @@
  */
 
 import { PluginContext } from '../../mol-plugin/context';
-import { StateAction, StateTransformer } from '../../mol-state';
+import { StateAction, StateTransformer, StateSelection } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { getFileInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -14,6 +14,7 @@ import { PluginStateObject } from '../objects';
 import { Download } from '../transforms/data';
 import { DataFormatProvider } from '../formats/provider';
 import { Asset } from '../../mol-util/assets';
+import { StateTransforms } from '../transforms';
 
 export { DownloadDensity };
 type DownloadDensity = typeof DownloadDensity
@@ -136,3 +137,16 @@ const DownloadDensity = StateAction.build({
     const volumes = await provider.parse(plugin, data);
     await provider.visuals?.(plugin, volumes);
 }));
+
+export const AssignColorVolume = StateAction.build({
+    display: { name: 'Assign Volume Colors', description: 'Assigns another volume to be available for coloring.' },
+    from: PluginStateObject.Volume.Data,
+    isApplicable(a) { return !a.data.colorVolume; },
+    params(a, plugin: PluginContext) {
+        const cells = plugin.state.data.select(StateSelection.Generators.root.subtree().ofType(PluginStateObject.Volume.Data).filter(cell => !!cell.obj && !cell.obj?.data.colorVolume && cell.obj !== a));
+        if (cells.length === 0) return { ref: PD.Text('', { isHidden: true, label: 'Volume' }) };
+        return { ref: PD.Select(cells[0].transform.ref, cells.map(c => [c.transform.ref, c.obj!.label]), { label: 'Volume' }) };
+    }
+})(({ ref, params, state }, plugin: PluginContext) => {
+    return plugin.build().to(ref).apply(StateTransforms.Volume.AssignColorVolume, { ref: params.ref }, { dependsOn: [ params.ref ] }).commit();
+});

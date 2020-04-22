@@ -38,7 +38,7 @@ function getTypedArrayCtor(header: Ccp4Header) {
     throw Error(`${valueType} is not a supported value format.`);
 }
 
-export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, offset?: Vec3 }): Task<VolumeData> {
+export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, offset?: Vec3, label?: string }): Task<VolumeData> {
     return Task.create<VolumeData>('Create Volume Data', async ctx => {
         const { header, values } = source;
         const size = Vec3.create(header.xLength, header.yLength, header.zLength);
@@ -67,8 +67,8 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
         // These, however, calculate sigma, so no data on that.
 
         return {
-            cell,
-            fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)),
+            label: params?.label,
+            transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
             data,
             dataStats: {
                 min: isNaN(header.AMIN) ? arrayMin(values) : header.AMIN,

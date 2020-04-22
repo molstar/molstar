@@ -14,10 +14,17 @@ import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { volumeFromCube } from '../../mol-model-formats/volume/cube';
+import { parseDx } from '../../mol-io/reader/dx/parser';
+import { volumeFromDx } from '../../mol-model-formats/volume/dx';
+import { VolumeData } from '../../mol-model/volume';
+import { PluginContext } from '../../mol-plugin/context';
+import { StateSelection } from '../../mol-state';
 
 export { VolumeFromCcp4 };
 export { VolumeFromDsn6 };
 export { VolumeFromCube };
+export { VolumeFromDx };
+export { AssignColorVolume };
 export { VolumeFromDensityServerCif };
 
 type VolumeFromCcp4 = typeof VolumeFromCcp4
@@ -35,8 +42,8 @@ const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }) {
         return Task.create('Create volume from CCP4/MRC/MAP', async ctx => {
-            const volume = await volumeFromCcp4(a.data, params).runInContext(ctx);
-            const props = { label: 'Volume' };
+            const volume = await volumeFromCcp4(a.data, { ...params, label: a.label }).runInContext(ctx);
+            const props = { label: volume.label || 'Volume', description: 'Volume' };
             return new SO.Volume.Data(volume, props);
         });
     }
@@ -56,8 +63,8 @@ const VolumeFromDsn6 = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }) {
         return Task.create('Create volume from DSN6/BRIX', async ctx => {
-            const volume = await volumeFromDsn6(a.data, params).runInContext(ctx);
-            const props = { label: 'Volume' };
+            const volume = await volumeFromDsn6(a.data, { ...params, label: a.label }).runInContext(ctx);
+            const props = { label: volume.label || 'Volume', description: 'Volume' };
             return new SO.Volume.Data(volume, props);
         });
     }
@@ -78,8 +85,26 @@ const VolumeFromCube = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }) {
         return Task.create('Create volume from Cube', async ctx => {
-            const volume = await volumeFromCube(a.data, params).runInContext(ctx);
-            const props = { label: 'Volume' };
+            const volume = await volumeFromCube(a.data, { ...params, label: a.label }).runInContext(ctx);
+            const props = { label: volume.label || 'Volume', description: 'Volume' };
+            return new SO.Volume.Data(volume, props);
+        });
+    }
+});
+
+type VolumeFromDx = typeof VolumeFromDx
+const VolumeFromDx = PluginStateTransform.BuiltIn({
+    name: 'volume-from-dx',
+    display: { name: 'Parse PX', description: 'Parse DX string/binary and create volume.' },
+    from: [SO.Data.String, SO.Data.Binary],
+    to: SO.Volume.Data
+})({
+    apply({ a }) {
+        return Task.create('Parse DX', async ctx => {
+            const parsed = await parseDx(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const volume = await volumeFromDx(parsed.result, { label: a.label }).runInContext(ctx);
+            const props = { label: volume.label || 'Volume', description: 'Volume' };
             return new SO.Volume.Data(volume, props);
         });
     }
@@ -112,6 +137,36 @@ const VolumeFromDensityServerCif = PluginStateTransform.BuiltIn({
             const densityServerCif = CIF.schema.densityServer(block);
             const volume = await volumeFromDensityServerData(densityServerCif).runInContext(ctx);
             const props = { label: densityServerCif.volume_data_3d_info.name.value(0), description: `${densityServerCif.volume_data_3d_info.name.value(0)}` };
+            return new SO.Volume.Data(volume, props);
+        });
+    }
+});
+
+type AssignColorVolume = typeof AssignColorVolume
+const AssignColorVolume = PluginStateTransform.BuiltIn({
+    name: 'assign-color-volume',
+    display: { name: 'Assign Color Volume', description: 'Assigns another volume to be available for coloring.' },
+    from: SO.Volume.Data,
+    to: SO.Volume.Data,
+    isDecorator: true,
+    params(a, plugin: PluginContext) {
+        if (!a) return { ref: PD.Text() };
+        const cells = plugin.state.data.select(StateSelection.Generators.root.subtree().ofType(SO.Volume.Data).filter(cell => !!cell.obj && !cell.obj?.data.colorVolume && cell.obj !== a));
+        if (cells.length === 0) return { ref: PD.Text('', { isHidden: true }) };
+        return { ref: PD.Select(cells[0].transform.ref, cells.map(c => [c.transform.ref, c.obj!.label])) };
+    }
+})({
+    apply({ a, params, dependencies }) {
+        return Task.create('Assign Color Volume', async ctx => {
+            if (!dependencies || !dependencies[params.ref]) {
+                throw new Error('Dependency not available.');
+            }
+            const colorVolume = dependencies[params.ref].data as VolumeData;
+            const volume: VolumeData = {
+                ...a.data,
+                colorVolume
+            };
+            const props = { label: a.label, description: 'Volume + Colors' };
             return new SO.Volume.Data(volume, props);
         });
     }
