@@ -49,9 +49,11 @@ class UpdateTransformControl extends TransformControlBase<UpdateTransformControl
     applyText() { return this.canApply() ? 'Update' : 'Nothing to Update'; }
     isUpdate() { return true; }
     getSourceAndTarget() {
+        const bCell = this.props.state.cells.get(this.props.transform.ref);
         return {
             a: this.props.state.cells.get(this.props.transform.parent)!.obj,
-            b: this.props.state.cells.has(this.props.transform.ref)! ? this.props.state.cells.get(this.props.transform.ref)!.obj : void 0
+            b: bCell?.obj,
+            bCell
         };
     }
 

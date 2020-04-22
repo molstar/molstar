@@ -115,11 +115,11 @@ export const InitVolumeStreaming = StateAction.build({
         { ref: params.options.behaviorRef ? params.options.behaviorRef : void 0 });
 
     if (params.method === 'em') {
-        behTree.apply(VolumeStreamingVisual, { channel: 'em' }, { state: { isGhost: true } });
+        behTree.apply(VolumeStreamingVisual, { channel: 'em' }, { state: { isGhost: true }, tags: 'em' });
     } else {
-        behTree.apply(VolumeStreamingVisual, { channel: '2fo-fc' }, { state: { isGhost: true } });
-        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(+ve)' }, { state: { isGhost: true } });
-        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(-ve)' }, { state: { isGhost: true } });
+        behTree.apply(VolumeStreamingVisual, { channel: '2fo-fc' }, { state: { isGhost: true }, tags: '2fo-fc' });
+        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(+ve)' }, { state: { isGhost: true }, tags: 'fo-fc(+ve)' });
+        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(-ve)' }, { state: { isGhost: true }, tags: 'fo-fc(-ve)' });
     }
     await state.updateTree(behTree).runInContext(taskCtx);
 }));

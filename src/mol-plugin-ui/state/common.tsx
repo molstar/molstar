@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { State, StateTransform, StateTransformer, StateAction, StateObject } from '../../mol-state';
+import { State, StateTransform, StateTransformer, StateAction, StateObject, StateObjectCell } from '../../mol-state';
 import * as React from 'react';
 import { PurePluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
@@ -56,7 +56,8 @@ namespace StateTransformParameters {
         params: any,
         isDisabled?: boolean,
         a?: StateObject,
-        b?: StateObject
+        b?: StateObject,
+        bCell?: StateObjectCell
     }
 
     export type Class = React.ComponentClass<Props>
@@ -125,7 +126,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     abstract canAutoApply(newParams: any): boolean;
     abstract applyText(): string;
     abstract isUpdate(): boolean;
-    abstract getSourceAndTarget(): { a?: StateObject, b?: StateObject };
+    abstract getSourceAndTarget(): { a?: StateObject, b?: StateObject, bCell?: StateObjectCell };
     abstract state: S;
 
     private busy: Subject<boolean> = new Subject();
@@ -224,10 +225,10 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
 
         let params = null;
         if (!isEmpty && !this.state.isCollapsed) {
-            const { a, b } = this.getSourceAndTarget();
+            const { a, b, bCell } = this.getSourceAndTarget();
             const applyControl = this.renderApply();
             params = <>
-                <ParamEditor info={info} a={a} b={b} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
+                <ParamEditor info={info} a={a} b={b} bCell={bCell} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
                 {applyControl}
             </>;
         }
@@ -266,11 +267,11 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         const ParamEditor: StateTransformParameters.Class = this.plugin.customParamEditors.has(tId)
             ? this.plugin.customParamEditors.get(tId)!
             : StateTransformParameters;
-        const { a, b } = this.getSourceAndTarget();
+        const { a, b, bCell } = this.getSourceAndTarget();
 
         return <>
             {apply}
-            <ParamEditor info={info} a={a} b={b} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
+            <ParamEditor info={info} a={a} b={b} bCell={bCell} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
         </>;
     }
 
