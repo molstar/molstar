@@ -11,9 +11,13 @@ import { MSymbol } from '../../language/symbol';
 export class QueryRuntimeTable {
     private map = new Map<string, QuerySymbolRuntime>();
 
+    removeSymbol(runtime: QuerySymbolRuntime) {
+        this.map.delete(runtime.symbol.id);
+    }
+
     addSymbol(runtime: QuerySymbolRuntime) {
         if (this.map.has(runtime.symbol.id)) {
-            throw new Error(`Symbol '${runtime.symbol.id}' already added.`);
+            console.warn(`Symbol '${runtime.symbol.id}' already added. Call removeSymbol/removeCustomProps re-adding the symbol.`);
         }
         this.map.set(runtime.symbol.id, runtime);
     }
@@ -23,6 +27,14 @@ export class QueryRuntimeTable {
 
         for (const k of Object.keys(desc.symbols)) {
             this.addSymbol((desc.symbols as any)[k]);
+        }
+    }
+
+    removeCustomProp(desc: CustomPropertyDescriptor<any>) {
+        if (!desc.symbols) return;
+
+        for (const k of Object.keys(desc.symbols)) {
+            this.removeSymbol((desc.symbols as any)[k]);
         }
     }
 

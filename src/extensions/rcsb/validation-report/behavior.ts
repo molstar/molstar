@@ -71,8 +71,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
         }
 
         unregister() {
-            // TODO
-            // DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
+            DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
 
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
 

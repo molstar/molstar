@@ -51,8 +51,7 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
         }
 
         unregister() {
-            // TODO
-            // DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
+            DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
 
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(AccessibleSurfaceAreaColorThemeProvider);
