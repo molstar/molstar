@@ -18,6 +18,7 @@ export type RenderableState = {
     alphaFactor: number
     pickable: boolean
     opaque: boolean
+    writeDepth: boolean,
 }
 
 export interface Renderable<T extends RenderableValues> {

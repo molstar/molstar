@@ -86,7 +86,8 @@ function createPoints() {
         visible: true,
         alphaFactor: 1,
         pickable: true,
-        opaque: true
+        opaque: true,
+        writeDepth: true
     };
 
     return createRenderObject('points', values, state, -1);

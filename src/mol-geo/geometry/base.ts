@@ -72,15 +72,18 @@ export namespace BaseGeometry {
     }
 
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {
+        const opaque = props.alpha === undefined ? true : props.alpha === 1;
         return {
             visible: true,
             alphaFactor: 1,
             pickable: true,
-            opaque: props.alpha === undefined ? true : props.alpha === 1
+            opaque,
+            writeDepth: opaque,
         };
     }
 
     export function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
         state.opaque = props.alpha * state.alphaFactor >= 1;
+        state.writeDepth = state.opaque;
     }
 }

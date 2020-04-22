@@ -50,9 +50,11 @@ function renderableSort(a: Renderable<RenderableValues & BaseValues>, b: Rendera
     const materialIdB = b.materialId;
 
     if (drawProgramIdA !== drawProgramIdB) {
-        return drawProgramIdA - drawProgramIdB; // sort by program id to minimize gl state changes
+        // sort by program id to minimize gl state changes
+        return drawProgramIdA - drawProgramIdB;
     } else if (materialIdA !== materialIdB) {
-        return materialIdA - materialIdB; // sort by material id to minimize gl state changes
+        // sort by material id to minimize gl state changes
+        return materialIdA - materialIdB;
     } else {
         return a.id - b.id;
     }

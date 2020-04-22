@@ -212,6 +212,10 @@ namespace Renderer {
                     state.cullFace(gl.BACK);
                 }
 
+                if (variant === 'color') {
+                    state.depthMask(r.state.writeDepth);
+                }
+
                 r.render(variant);
             }
         };
@@ -245,11 +249,11 @@ namespace Renderer {
 
             state.disable(gl.SCISSOR_TEST);
             state.disable(gl.BLEND);
-            state.depthMask(true);
             state.colorMask(true, true, true, true);
             state.enable(gl.DEPTH_TEST);
 
             if (clear) {
+                state.depthMask(true);
                 if (variant === 'color') {
                     state.clearColor(bgColor[0], bgColor[1], bgColor[2], transparentBackground ? 0 : 1);
                 } else {
@@ -268,10 +272,11 @@ namespace Renderer {
                 state.enable(gl.BLEND);
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i];
-                    if (!r.state.opaque) {
-                        state.depthMask(false);
-                        renderObject(r, variant);
-                    }
+                    if (!r.state.opaque && r.state.writeDepth) renderObject(r, variant);
+                }
+                for (let i = 0, il = renderables.length; i < il; ++i) {
+                    const r = renderables[i];
+                    if (!r.state.opaque && !r.state.writeDepth) renderObject(r, variant);
                 }
             } else { // picking & depth
                 for (let i = 0, il = renderables.length; i < il; ++i) {
