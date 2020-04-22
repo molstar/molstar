@@ -2,6 +2,7 @@ const path = require('path');
 const webpack = require('webpack');
 const ExtraWatchWebpackPlugin = require('extra-watch-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const VersionFile = require('webpack-version-file-plugin');
 // const CircularDependencyPlugin = require('circular-dependency-plugin');
 
 const sharedConfig = {
@@ -38,11 +39,17 @@ const sharedConfig = {
             ],
         }),
         new webpack.DefinePlugin({
-            __VERSION__: webpack.DefinePlugin.runtimeValue(() => JSON.stringify(require('./package.json').version), true),
-            __VERSION_TIMESTAMP__: webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true),
+            // __VERSION__: webpack.DefinePlugin.runtimeValue(() => JSON.stringify(require('./package.json').version), true),
+            // __VERSION_TIMESTAMP__: webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true),
             'process.env.DEBUG': JSON.stringify(process.env.DEBUG)
         }),
-        new MiniCssExtractPlugin({ filename: 'app.css' })
+        new MiniCssExtractPlugin({ filename: 'app.css' }),
+        new VersionFile({
+            extras: { timestamp: `${new Date().valueOf()}` },
+            packageFile: path.resolve(__dirname, 'package.json'),
+            templateString: `export const PLUGIN_VERSION = '<%= package.version %>';\nexport const PLUGIN_VERSION_DATE = new Date(<%= extras.timestamp %>);`,
+            outputFile: path.resolve(__dirname, 'lib/mol-plugin/version.js')
+        })
     ],
     resolve: {
         modules: [
