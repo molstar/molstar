@@ -20,6 +20,7 @@ export interface TextureImage<T extends Uint8Array | Float32Array> {
     readonly array: T
     readonly width: number
     readonly height: number
+    readonly flipY?: boolean
 }
 
 export interface TextureVolume<T extends Uint8Array | Float32Array> {

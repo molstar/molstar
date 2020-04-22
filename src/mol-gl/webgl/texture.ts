@@ -118,6 +118,14 @@ export function getAttachment(gl: GLRenderingContext, extensions: WebGLExtension
     throw new Error('unknown texture attachment');
 }
 
+function isTexture2d(x: TextureImage<any> | TextureVolume<any>, target: number, gl: GLRenderingContext): x is TextureImage<any> {
+    return target === gl.TEXTURE_2D;
+}
+
+function isTexture3d(x: TextureImage<any> | TextureVolume<any>, target: number, gl: WebGL2RenderingContext): x is TextureImage<any> {
+    return target === gl.TEXTURE_3D;
+}
+
 export interface Texture {
     readonly id: number
     readonly target: number
@@ -214,14 +222,13 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
         gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-        if (target === gl.TEXTURE_2D) {
-            const { array, width: _width, height: _height } = data as TextureImage<any>;
-            width = _width, height = _height;
-            gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, array);
-        } else if (isWebGL2(gl) && target === gl.TEXTURE_3D) {
-            const { array, width: _width, height: _height, depth: _depth } = data as TextureVolume<any>;
-            width = _width, height = _height, depth = _depth;
-            gl.texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, array);
+        if (isTexture2d(data, target, gl)) {
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, !!data.flipY);
+            width = data.width, height = data.height;
+            gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, data.array);
+        } else if (isWebGL2(gl) && isTexture3d(data, target, gl)) {
+            width = data.width, height = data.height, depth = data.depth;
+            gl.texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, data.array);
         } else {
             throw new Error('unknown texture target');
         }
