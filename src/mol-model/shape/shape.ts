@@ -100,7 +100,7 @@ export namespace Shape {
     export function Loci(shape: Shape): Loci { return { kind: 'shape-loci', shape }; }
     export function isLoci(x: any): x is Loci { return !!x && x.kind === 'shape-loci'; }
     export function areLociEqual(a: Loci, b: Loci) { return a.shape === b.shape; }
-    export function isLociEmpty(loci: Loci) { return loci.shape.groupCount === 0 ? true : false; }
+    export function isLociEmpty(loci: Loci) { return loci.shape.groupCount === 0; }
 }
 
 export namespace ShapeGroup {

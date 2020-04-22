@@ -12,6 +12,7 @@ import { capitalize, stripTags } from '../mol-util/string';
 import { Column } from '../mol-data/db';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { radToDeg } from '../mol-math/misc';
+import { VolumeIsoValue } from '../mol-model/volume';
 
 export type LabelGranularity = 'element' | 'conformation' | 'residue' | 'chain' | 'structure'
 
@@ -45,6 +46,20 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
             return 'Nothing';
         case 'data-loci':
             return loci.getLabel();
+        case 'volume-loci':
+            return loci.volume.label || 'Volume';
+        case 'isosurface-loci':
+            return [
+                `${loci.volume.label || 'Volume'}`,
+                `Isosurface at ${VolumeIsoValue.toString(loci.isoValue)}`
+            ].join(' | ');
+        case 'cell-loci':
+            const size = OrderedSet.size(loci.indices);
+            const start = OrderedSet.start(loci.indices);
+            return [
+                `${loci.volume.label || 'Volume'}`,
+                `${size === 1 ? `Cell #${start}` : `${size} Cells`}`
+            ].join(' | ');
     }
 }
 

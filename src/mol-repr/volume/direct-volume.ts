@@ -20,6 +20,7 @@ import { NullLocation } from '../../mol-model/location';
 import { EmptyLoci } from '../../mol-model/loci';
 import { VisualUpdateState } from '../util';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
+import { Volume } from '../../mol-model/volume/volume';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D.empty();
@@ -147,8 +148,12 @@ export async function createDirectVolume(ctx: VisualContext, volume: VolumeData,
     if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in props');
 
     return webgl.isWebGL2 ?
-        await createDirectVolume3d(runtime, webgl, volume, directVolume) :
-        await createDirectVolume2d(runtime, webgl, volume, directVolume);
+        createDirectVolume3d(runtime, webgl, volume, directVolume) :
+        createDirectVolume2d(runtime, webgl, volume, directVolume);
+}
+
+function getLoci(volume: VolumeData, props: PD.Values<DirectVolumeParams>) {
+    return Volume.Loci(volume);
 }
 
 //
@@ -176,7 +181,7 @@ export function DirectVolumeVisual(materialId: number): VolumeVisual<DirectVolum
 }
 
 export function DirectVolumeRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, DirectVolumeParams>): VolumeRepresentation<DirectVolumeParams> {
-    return VolumeRepresentation('Direct Volume', ctx, getParams, DirectVolumeVisual);
+    return VolumeRepresentation('Direct Volume', ctx, getParams, DirectVolumeVisual, getLoci);
 }
 
 export const DirectVolumeRepresentationProvider = VolumeRepresentationProvider({

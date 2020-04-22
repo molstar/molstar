@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
+import { SpacegroupCell, Box3D, Sphere3D } from '../../mol-math/geometry';
 import { Tensor, Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 
@@ -41,6 +41,12 @@ namespace VolumeData {
 
     export function areEquivalent(volA: VolumeData, volB: VolumeData) {
         return volA === volB;
+    }
+
+    export function getBoundingSphere(volume: VolumeData, boundingSphere?: Sphere3D) {
+        if (!boundingSphere) boundingSphere = Sphere3D();
+        // TODO
+        return boundingSphere;
     }
 }
 

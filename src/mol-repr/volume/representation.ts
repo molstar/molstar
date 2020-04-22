@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -44,8 +44,8 @@ interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
     defaultProps: PD.Values<P>
     createGeometry(ctx: VisualContext, volume: VolumeData, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
     createLocationIterator(volume: VolumeData): LocationIterator
-    getLoci(pickingId: PickingId, id: number): Loci
-    eachLocation(loci: Loci, apply: (interval: Interval) => boolean): boolean
+    getLoci(pickingId: PickingId, volume: VolumeData, props: PD.Values<P>, id: number): Loci
+    eachLocation(loci: Loci, volume: VolumeData, props: PD.Values<P>, apply: (interval: Interval) => boolean): boolean
     setUpdateState(state: VisualUpdateState, volume: VolumeData, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
 }
 
@@ -151,7 +151,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         if (isEveryLoci(loci)) {
             return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
         } else {
-            return eachLocation(loci, apply);
+            return eachLocation(loci, currentVolume, currentProps, apply);
         }
     }
 
@@ -168,7 +168,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             }
         },
         getLoci(pickingId: PickingId) {
-            return renderObject ? getLoci(pickingId, renderObject.id) : EmptyLoci;
+            return renderObject ? getLoci(pickingId, currentVolume, currentProps, renderObject.id) : EmptyLoci;
         },
         mark(loci: Loci, action: MarkerAction) {
             return Visual.mark(renderObject, loci, action, lociApply);
@@ -210,7 +210,7 @@ export const VolumeParams = {
 };
 export type VolumeParams = typeof VolumeParams
 
-export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (materialId: number) => VolumeVisual<P>): VolumeRepresentation<P> {
+export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (materialId: number) => VolumeVisual<P>, getLoci: (volume: VolumeData, props: PD.Values<P>) => Loci): VolumeRepresentation<P> {
     let version = 0;
     const updated = new Subject<number>();
     const materialId = getNextMaterialId();
@@ -241,11 +241,6 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
             // increment version
             updated.next(version++);
         });
-    }
-
-    function getLoci(pickingId?: PickingId) {
-        if (pickingId === undefined) return EmptyLoci; // TODO add Volume.Loci when available
-        return visual ? visual.getLoci(pickingId) : EmptyLoci;
     }
 
     function mark(loci: Loci, action: MarkerAction) {
@@ -285,7 +280,10 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         createOrUpdate,
         setState,
         setTheme,
-        getLoci,
+        getLoci: (pickingId?: PickingId): Loci => {
+            if (pickingId === undefined) return getLoci(_volume, _props);
+            return visual ? visual.getLoci(pickingId) : EmptyLoci;
+        },
         mark,
         destroy
     };

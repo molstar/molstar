@@ -14,11 +14,16 @@ import { computeMarchingCubesMesh, computeMarchingCubesLines } from '../../mol-g
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { NullLocation } from '../../mol-model/location';
-import { EmptyLoci } from '../../mol-model/loci';
 import { VisualUpdateState } from '../util';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 import { toPrecision } from '../../mol-util/number';
+import { Volume } from '../../mol-model/volume/volume';
+import { PickingId } from '../../mol-geo/geometry/picking';
+import { EmptyLoci, Loci } from '../../mol-model/loci';
+import { Interval, OrderedSet } from '../../mol-data/int';
+import { Tensor } from '../../mol-math/linear-algebra';
+import { fillSerial } from '../../mol-util/array';
 
 const defaultStats: VolumeData['dataStats'] = { min: -1, max: 1, mean: 0, sigma: 0.1  };
 export function createIsoValueParam(defaultValue: VolumeIsoValue, stats?: VolumeData['dataStats']) {
@@ -67,20 +72,57 @@ export const VolumeIsosurfaceParams = {
 export type VolumeIsosurfaceParams = typeof VolumeIsosurfaceParams
 export type VolumeIsosurfaceProps = PD.Values<VolumeIsosurfaceParams>
 
+function getLoci(volume: VolumeData, props: VolumeIsosurfaceProps) {
+    return Volume.Isosurface.Loci(volume, props.isoValue);
+}
+
+function getIsosurfaceLoci(pickingId: PickingId, volume: VolumeData, props: VolumeIsosurfaceProps, id: number) {
+    const { objectId, groupId } = pickingId;
+    if (id === objectId) {
+        return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+    }
+    return EmptyLoci;
+}
+
+function eachIsosurface(loci: Loci, volume: VolumeData, props: VolumeIsosurfaceProps, apply: (interval: Interval) => boolean) {
+    let changed = false;
+    if (Volume.isLoci(loci)) {
+        if (!VolumeData.areEquivalent(loci.volume, volume)) return false;
+        if (apply(Interval.ofLength(volume.data.data.length))) changed = true;
+    } else if (Volume.Isosurface.isLoci(loci)) {
+        if (!VolumeData.areEquivalent(loci.volume, volume)) return false;
+        if (!VolumeIsoValue.areSame(loci.isoValue, props.isoValue, volume.dataStats)) return false;
+        if (apply(Interval.ofLength(volume.data.data.length))) changed = true;
+    } else if (Volume.Cell.isLoci(loci)) {
+        if (!VolumeData.areEquivalent(loci.volume, volume)) return false;
+        if (Interval.is(loci.indices)) {
+            if (apply(loci.indices)) changed = true;
+        } else {
+            OrderedSet.forEach(loci.indices, v => {
+                if (apply(Interval.ofSingleton(v))) changed = true;
+            });
+        }
+    }
+    return changed;
+}
+
 //
 
 export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: VolumeData, theme: Theme, props: VolumeIsosurfaceProps, mesh?: Mesh) {
     ctx.runtime.update({ message: 'Marching cubes...' });
 
+    const ids = fillSerial(new Int32Array(volume.data.data.length));
+
     const surface = await computeMarchingCubesMesh({
         isoLevel: VolumeIsoValue.toAbsolute(props.isoValue, volume.dataStats).absoluteValue,
-        scalarField: volume.data
+        scalarField: volume.data,
+        idField: Tensor.create(volume.data.space, Tensor.Data1(ids))
     }, mesh).runAsChild(ctx.runtime);
 
     const transform = VolumeData.getGridToCartesianTransform(volume);
     ctx.runtime.update({ message: 'Transforming mesh...' });
     Mesh.transform(surface, transform);
-
+    console.log(surface, Tensor.create(volume.data.space, Tensor.Data1(ids)));
     return surface;
 }
 
@@ -94,9 +136,9 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
     return VolumeVisual<Mesh, IsosurfaceMeshParams>({
         defaultProps: PD.getDefaultValues(IsosurfaceMeshParams),
         createGeometry: createVolumeIsosurfaceMesh,
-        createLocationIterator: (volume: VolumeData) => LocationIterator(1, 1, () => NullLocation),
-        getLoci: () => EmptyLoci,
-        eachLocation: () => false,
+        createLocationIterator: (volume: VolumeData) => LocationIterator(volume.data.data.length, 1, () => NullLocation),
+        getLoci: getIsosurfaceLoci,
+        eachLocation: eachIsosurface,
         setUpdateState: (state: VisualUpdateState, volume: VolumeData, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
             if (!VolumeIsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.dataStats)) state.createGeometry = true;
         },
@@ -109,9 +151,12 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
 export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume: VolumeData, theme: Theme, props: VolumeIsosurfaceProps, lines?: Lines) {
     ctx.runtime.update({ message: 'Marching cubes...' });
 
+    const ids = fillSerial(new Int32Array(volume.data.data.length));
+
     const wireframe = await computeMarchingCubesLines({
         isoLevel: VolumeIsoValue.toAbsolute(props.isoValue, volume.dataStats).absoluteValue,
-        scalarField: volume.data
+        scalarField: volume.data,
+        idField: Tensor.create(volume.data.space, Tensor.Data1(ids))
     }, lines).runAsChild(ctx.runtime);
 
     const transform = VolumeData.getGridToCartesianTransform(volume);
@@ -131,9 +176,9 @@ export function IsosurfaceWireframeVisual(materialId: number): VolumeVisual<Isos
     return VolumeVisual<Lines, IsosurfaceWireframeParams>({
         defaultProps: PD.getDefaultValues(IsosurfaceWireframeParams),
         createGeometry: createVolumeIsosurfaceWireframe,
-        createLocationIterator: (volume: VolumeData) => LocationIterator(1, 1, () => NullLocation),
-        getLoci: () => EmptyLoci,
-        eachLocation: () => false,
+        createLocationIterator: (volume: VolumeData) => LocationIterator(volume.data.data.length, 1, () => NullLocation),
+        getLoci: getIsosurfaceLoci,
+        eachLocation: eachIsosurface,
         setUpdateState: (state: VisualUpdateState, volume: VolumeData, newProps: PD.Values<IsosurfaceWireframeParams>, currentProps: PD.Values<IsosurfaceWireframeParams>) => {
             if (!VolumeIsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.dataStats)) state.createGeometry = true;
         },
@@ -144,8 +189,8 @@ export function IsosurfaceWireframeVisual(materialId: number): VolumeVisual<Isos
 //
 
 const IsosurfaceVisuals = {
-    'solid': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, IsosurfaceMeshParams>) => VolumeRepresentation('Isosurface mesh', ctx, getParams, IsosurfaceMeshVisual),
-    'wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, IsosurfaceWireframeParams>) => VolumeRepresentation('Isosurface wireframe', ctx, getParams, IsosurfaceWireframeVisual),
+    'solid': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, IsosurfaceMeshParams>) => VolumeRepresentation('Isosurface mesh', ctx, getParams, IsosurfaceMeshVisual, getLoci),
+    'wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, IsosurfaceWireframeParams>) => VolumeRepresentation('Isosurface wireframe', ctx, getParams, IsosurfaceWireframeVisual, getLoci),
 };
 
 export const IsosurfaceParams = {

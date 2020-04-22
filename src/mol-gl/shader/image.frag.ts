@@ -8,11 +8,15 @@ precision highp float;
 precision highp int;
 
 #include common
+#include read_from_texture
 #include common_frag_params
 
 uniform vec2 uImageTexDim;
 uniform sampler2D tImageTex;
 uniform sampler2D tGroupTex;
+
+uniform vec2 uMarkerTexDim;
+uniform sampler2D tMarker;
 
 varying vec2 vUv;
 varying float vInstance;
@@ -99,7 +103,7 @@ void main() {
             #elif defined(dRenderVariant_pickInstance)
                 gl_FragColor = vec4(encodeFloatRGB(vInstance), 1.0);
             #elif defined(dRenderVariant_pickGroup)
-                float group = texture2D(tGroupTex, vUv).a;
+                float group = texture2D(tGroupTex, vUv).r;
                 gl_FragColor = vec4(encodeFloatRGB(group), 1.0);
             #endif
         } else {
@@ -121,6 +125,9 @@ void main() {
         gl_FragColor = imageData;
         gl_FragColor.a *= uAlpha;
 
+        float group = texture2D(tGroupTex, vUv).r;
+        float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+        #include apply_marker_color
         #include apply_fog
     #endif
 }

@@ -16,6 +16,8 @@ import { shallowEqual } from '../mol-util';
 import { FiniteArray } from '../mol-util/type-helpers';
 import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 import { stringToWords } from '../mol-util/string';
+import { Volume } from './volume/volume';
+import { VolumeData } from './volume';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' };
@@ -62,7 +64,7 @@ export function DataLoci<T = unknown, E = unknown>(tag: string, data: T, element
 
 export { Loci };
 
-type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci
+type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci | Volume.Loci | Volume.Isosurface.Loci | Volume.Cell.Loci
 
 namespace Loci {
     export interface Bundle<L extends number> { loci: FiniteArray<Loci, L> }
@@ -98,6 +100,15 @@ namespace Loci {
         if (ShapeGroup.isLoci(lociA) && ShapeGroup.isLoci(lociB)) {
             return ShapeGroup.areLociEqual(lociA, lociB);
         }
+        if (Volume.isLoci(lociA) && Volume.isLoci(lociB)) {
+            return Volume.areLociEqual(lociA, lociB);
+        }
+        if (Volume.Isosurface.isLoci(lociA) && Volume.Isosurface.isLoci(lociB)) {
+            return Volume.Isosurface.areLociEqual(lociA, lociB);
+        }
+        if (Volume.Cell.isLoci(lociA) && Volume.Cell.isLoci(lociB)) {
+            return Volume.Cell.areLociEqual(lociA, lociB);
+        }
         return false;
     }
 
@@ -114,6 +125,9 @@ namespace Loci {
         if (Bond.isLoci(loci)) return Bond.isLociEmpty(loci);
         if (Shape.isLoci(loci)) return Shape.isLociEmpty(loci);
         if (ShapeGroup.isLoci(loci)) return ShapeGroup.isLociEmpty(loci);
+        if (Volume.isLoci(loci)) return Volume.isLociEmpty(loci);
+        if (Volume.Isosurface.isLoci(loci)) return Volume.Isosurface.isLociEmpty(loci);
+        if (Volume.Cell.isLoci(loci)) return Volume.Cell.isLociEmpty(loci);
         return false;
     }
 
@@ -147,6 +161,13 @@ namespace Loci {
             return ShapeGroup.getBoundingSphere(loci, boundingSphere);
         } else if (loci.kind === 'data-loci') {
             return loci.getBoundingSphere(boundingSphere);
+        } else if (loci.kind === 'volume-loci') {
+            return VolumeData.getBoundingSphere(loci.volume, boundingSphere);
+        } else if (loci.kind === 'isosurface-loci') {
+            return VolumeData.getBoundingSphere(loci.volume, boundingSphere);
+        } else if (loci.kind === 'cell-loci') {
+            // TODO
+            return VolumeData.getBoundingSphere(loci.volume, boundingSphere);
         }
     }
 
@@ -174,6 +195,15 @@ namespace Loci {
             return void 0;
         } else if (loci.kind === 'data-loci') {
             // TODO maybe add loci.getPrincipalAxes()???
+            return void 0;
+        } else if (loci.kind === 'volume-loci') {
+            // TODO
+            return void 0;
+        } else if (loci.kind === 'isosurface-loci') {
+            // TODO
+            return void 0;
+        } else if (loci.kind === 'cell-loci') {
+            // TODO
             return void 0;
         }
     }
