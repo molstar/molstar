@@ -45,7 +45,7 @@
     "cif2bcif": "lib/apps/cif2bcif/index.js",
     "cifschema": "lib/apps/cifschema/index.js",
     "model-server": "lib/servers/servers/model/server.js",
-    "model-server-query": "lib/servers/servers/model/local.js",
+    "model-server-query": "lib/servers/servers/model/query.js",
     "model-server-preprocess": "lib/servers/servers/model/preprocess.js",
     "volume-server": "lib/servers/servers/volume/server.js",
     "volume-server-query": "lib/servers/servers/volume/query.js",
