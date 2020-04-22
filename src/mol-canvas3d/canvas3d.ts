@@ -132,12 +132,12 @@ namespace Canvas3D {
                     if (webgl.isContextLost) return;
                     if (!e.shiftKey || !e.ctrlKey || !e.altKey) return;
 
-                    console.log('lose context');
+                    if (isDebugMode) console.log('lose context');
                     loseContextExt.loseContext();
 
                     setTimeout(() => {
                         if (!webgl.isContextLost) return;
-                        console.log('restore context');
+                        if (isDebugMode) console.log('restore context');
                         loseContextExt.restoreContext();
                     }, 1000);
                 }, false);

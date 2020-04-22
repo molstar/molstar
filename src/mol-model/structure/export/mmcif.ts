@@ -146,7 +146,6 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: 
     if (params?.copyAllCategories && MmcifFormat.is(models[0].sourceData)) {
         encode_mmCIF_categories_copyAll(encoder, ctx);
     } else {
-        console.log('default');
         encode_mmCIF_categories_default(encoder, ctx, params);
     }
 }

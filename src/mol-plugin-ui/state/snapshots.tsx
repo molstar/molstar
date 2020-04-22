@@ -175,7 +175,6 @@ class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
         return <ul style={{ listStyle: 'none', marginTop: '10px' }} className='msp-state-list'>
             {this.plugin.managers.snapshot.state.entries.map(e => <li key={e!.snapshot.id} className='msp-flex-row'>
                 <Button data-id={e!.snapshot.id} onClick={this.apply} className='msp-no-overflow'>
-                    {(console.log(e!.snapshot.durationInMs), false)}
                     <span style={{ fontWeight: e!.snapshot.id === current ? 'bold' : void 0 }}>
                         {e!.name || new Date(e!.timestamp).toLocaleString()}</span> <small>
                         {`${e!.snapshot.durationInMs ? formatTimespan(e!.snapshot.durationInMs, false) + `${e!.description ? ', ' : ''}` : ''}${e!.description ? e!.description : ''}`}

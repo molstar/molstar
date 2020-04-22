@@ -28,7 +28,7 @@ interface VolumeData extends VolumeDataBase {
 
 namespace VolumeData {
     export const One: VolumeData = {
-        transform: { kind: 'matrix', matrix: Mat4() },
+        transform: { kind: 'matrix', matrix: Mat4.identity() },
         data: Tensor.create(Tensor.Space([1, 1, 1], [0, 1, 2]), Tensor.Data1([0])),
         dataStats: { min: 0, max: 0, mean: 0, sigma: 0 }
     };
