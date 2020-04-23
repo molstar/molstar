@@ -340,7 +340,7 @@ export const ValidationReportDensityFitPreset = StructureRepresentationPresetPro
         description: 'Color structure based on density fit. Data from wwPDB Validation Report, obtained via RCSB PDB.'
     },
     isApplicable(a) {
-        return a.data.models.length === 1 && ValidationReport.isApplicable(a.data.models[0]) && Model.hasXrayMap(a.data.models[0]);
+        return a.data.models.length === 1 && ValidationReport.isApplicable(a.data.models[0]) && Model.isFromXray(a.data.models[0]) && Model.probablyHasDensityMap(a.data.models[0]);
     },
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
