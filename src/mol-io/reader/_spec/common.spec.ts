@@ -8,10 +8,14 @@ import { parseFloat as fastParseFloat, parseInt as fastParseInt, getNumberType, 
 
 describe('common', () => {
     it('number-parser fastParseFloat', () => {
+        // ignore suffix numbers in parentheses
         expect(fastParseFloat('11.0829(23)', 0, 11)).toBe(11.0829);
+        // scientific with no space between consecutive values
+        expect(fastParseFloat('-5.1E-01-6.1E-01', 0, 11)).toBe(-0.51);
     });
 
     it('number-parser fastParseInt', () => {
+        // ignore suffix numbers in parentheses
         expect(fastParseInt('11(23)', 0, 11)).toBe(11);
     });
 

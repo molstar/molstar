@@ -109,13 +109,13 @@ export const CubeProvider = DataFormatProvider({
             type: 'isosurface',
             typeParams: { isoValue: VolumeIsoValue.relative(1), alpha: 0.4 },
             color: 'uniform',
-            colorParams: { value: ColorNames.red }
+            colorParams: { value: ColorNames.blue }
         }));
         const volumeNeg = surfaces.to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, volumeData, {
             type: 'isosurface',
             typeParams: { isoValue: VolumeIsoValue.relative(-1), alpha: 0.4 },
             color: 'uniform',
-            colorParams: { value: ColorNames.blue }
+            colorParams: { value: ColorNames.red }
         }));
 
         const structure = await plugin.builders.structure.representation.applyPreset(data.structure, 'auto');

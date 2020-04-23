@@ -25,6 +25,7 @@ export interface CubeFile {
 
 export namespace CubeFile {
     export interface Header {
+        orbitals: boolean,
         comment1: string,
         comment2: string,
         atomCount: number,
@@ -80,8 +81,7 @@ function readHeader(tokenizer: Tokenizer) {
         for (let i = 0, _i = +counts[0]; i < _i; i++) dataSetIds.push(+counts[i + 1]);
     }
 
-    const header: CubeFile.Header = { comment1, comment2, atomCount, origin, dim: Vec3.create(NVX, NVY, NVZ), basisX, basisY, basisZ, dataSetIds };
-
+    const header: CubeFile.Header = { orbitals: rawAtomCount < 0, comment1, comment2, atomCount, origin, dim: Vec3.create(NVX, NVY, NVZ), basisX, basisY, basisZ, dataSetIds };
     return { header, atoms };
 }
 
