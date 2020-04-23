@@ -11,6 +11,7 @@ import { PluginBehavior } from '../behavior';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
 import { Binding } from '../../../mol-util/binding';
 import { PluginCommands } from '../../commands';
+import { Structure, StructureElement, Bond } from '../../../mol-model/structure';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
@@ -53,9 +54,13 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                     }
 
                     // The focus is handled in structure-focus-representation
-                    // TODO: is there a better solution?
-                    // const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
-                    // this.ctx.managers.camera.focusLoci(loci, this.params);
+                    // TODO: is there a better solution for structure-based loci?
+
+                    const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
+
+                    if (!Structure.isLoci(loci) && !StructureElement.Loci.is(loci) && !Bond.isLoci(loci)) {
+                        this.ctx.managers.camera.focusLoci(loci, this.params);
+                    }
                 }
             });
         }
