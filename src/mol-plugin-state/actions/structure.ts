@@ -37,7 +37,7 @@ const DownloadStructure = StateAction.build({
             source: PD.MappedStatic('pdb', {
                 'pdb': PD.Group({
                     provider: PD.Group({
-                        id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
+                        id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma/space separated PDB ids.' }),
                         server: PD.MappedStatic('pdbe', {
                             'rcsb': PD.Group({
                                 encoding: PD.Select('bcif', [['cif', 'cif'], ['bcif', 'bcif']] as ['cif' | 'bcif', string][]),
@@ -50,19 +50,19 @@ const DownloadStructure = StateAction.build({
                     options
                 }, { isFlat: true, label: 'PDB' }),
                 'pdb-dev': PD.Group({
-                    id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma separated ids.' }),
+                    id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma/space separated ids.' }),
                     options
                 }, { isFlat: true, label: 'PDBDEV' }),
                 'bcif-static': PD.Group({
-                    id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
+                    id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma/space separated PDB ids.' }),
                     options
                 }, { isFlat: true, label: 'BinaryCIF (static PDBe Updated)' }),
                 'swissmodel': PD.Group({
-                    id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma separated ACs.' }),
+                    id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
                     options
                 }, { isFlat: true, label: 'SWISS-MODEL', description: 'Loads the best homology model or experimental structure' }),
                 'pubchem': PD.Group({
-                    id: PD.Text('2244,2245', { label: 'PubChem ID', description: 'One or more comma separated IDs.' }),
+                    id: PD.Text('2244,2245', { label: 'PubChem ID', description: 'One or more comma/space separated IDs.' }),
                     options
                 }, { isFlat: true, label: 'PubChem', description: 'Loads 3D conformer from PubChem.' }),
                 'url': PD.Group({
@@ -160,7 +160,7 @@ const DownloadStructure = StateAction.build({
 }));
 
 function getDownloadParams(src: string, url: (id: string) => string, label: (id: string) => string, isBinary: boolean): StateTransformer.Params<Download>[] {
-    const ids = src.split(',').map(id => id.trim()).filter(id => !!id && (id.length >= 4 || /^[1-9][0-9]*$/.test(id)));
+    const ids = src.split(/[,\s]/).map(id => id.trim()).filter(id => !!id && (id.length >= 4 || /^[1-9][0-9]*$/.test(id)));
     const ret: StateTransformer.Params<Download>[] = [];
     for (const id of ids) {
         ret.push({ url: Asset.Url(url(id)), isBinary, label: label(id) });
