@@ -11,6 +11,7 @@ import { SimpleBuffer } from './simple-buffer';
 const fs = typeof document === 'undefined' ? require('fs') as typeof import('fs') : void 0;
 
 export interface FileHandle {
+    name: string
     /**
      * Asynchronously reads data, returning buffer and number of bytes read
      *
@@ -44,8 +45,9 @@ export interface FileHandle {
 }
 
 export namespace FileHandle {
-    export function fromBuffer(buffer: SimpleBuffer): FileHandle {
+    export function fromBuffer(buffer: SimpleBuffer, name: string): FileHandle {
         return {
+            name,
             readBuffer: (position: number, sizeOrBuffer: SimpleBuffer | number, size?: number, byteOffset?: number) => {
                 let bytesRead: number;
                 let outBuffer: SimpleBuffer;
@@ -82,9 +84,10 @@ export namespace FileHandle {
         };
     }
 
-    export function fromDescriptor(file: number): FileHandle {
+    export function fromDescriptor(file: number, name: string): FileHandle {
         if (fs === undefined) throw new Error('fs module not available');
         return {
+            name,
             readBuffer: (position: number, sizeOrBuffer: SimpleBuffer | number, length?: number, byteOffset?: number) => {
                 return new Promise((res, rej) => {
                     let outBuffer: SimpleBuffer;

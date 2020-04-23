@@ -56,10 +56,16 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
         case 'cell-loci':
             const size = OrderedSet.size(loci.indices);
             const start = OrderedSet.start(loci.indices);
-            return [
+            const absVal = VolumeIsoValue.absolute(loci.volume.data.data[start]);
+            const relVal = VolumeIsoValue.toRelative(absVal, loci.volume.dataStats);
+            const label = [
                 `${loci.volume.label || 'Volume'}`,
                 `${size === 1 ? `Cell #${start}` : `${size} Cells`}`
-            ].join(' | ');
+            ];
+            if (size === 1) {
+                label.push(`${VolumeIsoValue.toString(absVal)} (${VolumeIsoValue.toString(relVal)})`);
+            }
+            return label.join(' | ');
     }
 }
 

@@ -19,6 +19,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { Asset } from '../../mol-util/assets';
 import { parseCube } from '../../mol-io/reader/cube/parser';
+import { parseDx } from '../../mol-io/reader/dx/parser';
 
 export { Download };
 export { DownloadBlob };
@@ -31,6 +32,7 @@ export { ParsePsf };
 export { ParsePly };
 export { ParseCcp4 };
 export { ParseDsn6 };
+export { ParseDx };
 export { ImportString };
 export { ImportJson };
 export { ParseJson };
@@ -266,7 +268,7 @@ const ParseCube = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         return Task.create('Parse Cube', async ctx => {
-            const parsed = await parseCube(a.data).runInContext(ctx);
+            const parsed = await parseCube(a.data, a.label).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Cube(parsed.result);
         });
@@ -314,7 +316,7 @@ const ParseCcp4 = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         return Task.create('Parse CCP4/MRC/MAP', async ctx => {
-            const parsed = await CCP4.parse(a.data).runInContext(ctx);
+            const parsed = await CCP4.parse(a.data, a.label).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Ccp4(parsed.result);
         });
@@ -330,9 +332,25 @@ const ParseDsn6 = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         return Task.create('Parse DSN6/BRIX', async ctx => {
-            const parsed = await DSN6.parse(a.data).runInContext(ctx);
+            const parsed = await DSN6.parse(a.data, a.label).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Dsn6(parsed.result);
+        });
+    }
+});
+
+type ParseDx = typeof ParseDx
+const ParseDx = PluginStateTransform.BuiltIn({
+    name: 'parse-dx',
+    display: { name: 'Parse DX', description: 'Parse DX from Binary/String data' },
+    from: [SO.Data.Binary, SO.Data.String],
+    to: SO.Format.Dx
+})({
+    apply({ a }) {
+        return Task.create('Parse DX', async ctx => {
+            const parsed = await parseDx(a.data, a.label).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.Dx(parsed.result);
         });
     }
 });

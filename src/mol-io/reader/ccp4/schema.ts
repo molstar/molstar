@@ -114,6 +114,7 @@ export interface Ccp4Header {
  * CCP4 format does not use the ORIGIN header records (words 50-52)
  */
 export interface Ccp4File {
+    name: string
     header: Ccp4Header
     values: Float32Array | Int16Array | Int8Array | Uint16Array
 }

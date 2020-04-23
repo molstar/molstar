@@ -134,7 +134,7 @@ async function parseInternal(file: FileHandle, size: number, ctx: RuntimeContext
     const values = new Float32Array(valueCount);
     await parseDsn6Values(header, buffer, values, littleEndian);
 
-    const result: Dsn6File = { header, values };
+    const result: Dsn6File = { header, values, name: file.name };
     return result;
 }
 
@@ -148,6 +148,6 @@ export function parseFile(file: FileHandle, size: number) {
     });
 }
 
-export function parse(buffer: Uint8Array) {
-    return parseFile(FileHandle.fromBuffer(SimpleBuffer.fromUint8Array(buffer)), buffer.length);
+export function parse(buffer: Uint8Array, name: string) {
+    return parseFile(FileHandle.fromBuffer(SimpleBuffer.fromUint8Array(buffer), name), buffer.length);
 }

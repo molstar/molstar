@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -22,6 +22,7 @@ import { StructureRepresentation, StructureRepresentationState } from '../mol-re
 import { VolumeRepresentation } from '../mol-repr/volume/representation';
 import { StateObject, StateTransformer } from '../mol-state';
 import { CubeFile } from '../mol-io/reader/cube/parser';
+import { DxFile } from '../mol-io/reader/dx/parser';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 
@@ -73,6 +74,7 @@ export namespace PluginStateObject {
         export class Ply extends Create<PlyFile>({ name: 'PLY File', typeClass: 'Data' }) { }
         export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC/MAP File', typeClass: 'Data' }) { }
         export class Dsn6 extends Create<Dsn6File>({ name: 'DSN6/BRIX File', typeClass: 'Data' }) { }
+        export class Dx extends Create<DxFile>({ name: 'DX File', typeClass: 'Data' }) { }
 
         export type BlobEntry = { id: string } & (
             { kind: 'json', data: unknown } |
@@ -85,6 +87,7 @@ export namespace PluginStateObject {
             { kind: 'dcd', data: DcdFile } |
             { kind: 'ccp4', data: Ccp4File } |
             { kind: 'dsn6', data: Dsn6File } |
+            { kind: 'dx', data: DxFile } |
             { kind: 'ply', data: PlyFile } |
             // For non-build in extensions
             { kind: 'custom', data: unknown, tag: string }

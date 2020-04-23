@@ -68,9 +68,11 @@ export const DxProvider = DataFormatProvider({
     stringExtensions: ['dx'],
     binaryExtensions: ['dxbin'],
     parse: async (plugin, data) => {
-        const volume = plugin.build()
+        const format = plugin.build()
             .to(data)
-            .apply(StateTransforms.Volume.VolumeFromDx);
+            .apply(StateTransforms.Data.ParseDx, {}, { state: { isGhost: true } });
+
+        const volume = format.apply(StateTransforms.Volume.VolumeFromDx);
 
         await volume.commit({ revertOnError: true });
 

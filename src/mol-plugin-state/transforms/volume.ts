@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -14,7 +14,6 @@ import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { volumeFromCube } from '../../mol-model-formats/volume/cube';
-import { parseDx } from '../../mol-io/reader/dx/parser';
 import { volumeFromDx } from '../../mol-model-formats/volume/dx';
 import { VolumeData } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
@@ -42,7 +41,7 @@ const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }) {
         return Task.create('Create volume from CCP4/MRC/MAP', async ctx => {
-            const volume = await volumeFromCcp4(a.data, { ...params, label: a.label }).runInContext(ctx);
+            const volume = await volumeFromCcp4(a.data, { ...params, label: a.data.name || a.label }).runInContext(ctx);
             const props = { label: volume.label || 'Volume', description: 'Volume' };
             return new SO.Volume.Data(volume, props);
         });
@@ -63,7 +62,7 @@ const VolumeFromDsn6 = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }) {
         return Task.create('Create volume from DSN6/BRIX', async ctx => {
-            const volume = await volumeFromDsn6(a.data, { ...params, label: a.label }).runInContext(ctx);
+            const volume = await volumeFromDsn6(a.data, { ...params, label: a.data.name || a.label }).runInContext(ctx);
             const props = { label: volume.label || 'Volume', description: 'Volume' };
             return new SO.Volume.Data(volume, props);
         });
@@ -85,7 +84,7 @@ const VolumeFromCube = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }) {
         return Task.create('Create volume from Cube', async ctx => {
-            const volume = await volumeFromCube(a.data, { ...params, label: a.label }).runInContext(ctx);
+            const volume = await volumeFromCube(a.data, { ...params, label: a.data.name || a.label }).runInContext(ctx);
             const props = { label: volume.label || 'Volume', description: 'Volume' };
             return new SO.Volume.Data(volume, props);
         });
@@ -95,15 +94,15 @@ const VolumeFromCube = PluginStateTransform.BuiltIn({
 type VolumeFromDx = typeof VolumeFromDx
 const VolumeFromDx = PluginStateTransform.BuiltIn({
     name: 'volume-from-dx',
-    display: { name: 'Parse PX', description: 'Parse DX string/binary and create volume.' },
-    from: [SO.Data.String, SO.Data.Binary],
+    display: { name: 'Parse DX', description: 'Create volume from DX data.' },
+    from: SO.Format.Dx,
     to: SO.Volume.Data
 })({
     apply({ a }) {
         return Task.create('Parse DX', async ctx => {
-            const parsed = await parseDx(a.data).runInContext(ctx);
-            if (parsed.isError) throw new Error(parsed.message);
-            const volume = await volumeFromDx(parsed.result, { label: a.label }).runInContext(ctx);
+            console.log(a);
+            const volume = await volumeFromDx(a.data, { label: a.data.name || a.label }).runInContext(ctx);
+            console.log(volume);
             const props = { label: volume.label || 'Volume', description: 'Volume' };
             return new SO.Volume.Data(volume, props);
         });

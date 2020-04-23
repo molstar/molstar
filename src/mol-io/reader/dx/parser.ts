@@ -17,6 +17,7 @@ import { utf8Read } from '../../common/utf8';
 // http://apbs-pdb2pqr.readthedocs.io/en/latest/formats/opendx.html
 
 export interface DxFile {
+    name: string,
     header: DxFile.Header,
     values: Float64Array
 }
@@ -88,16 +89,16 @@ function readValuesText(ctx: RuntimeContext, tokenizer: Tokenizer, header: DxFil
     }, (ctx, _, i) => ctx.update({ current: Math.min(i, N), max: N }));
 }
 
-async function parseText(taskCtx: RuntimeContext, data: string) {
+async function parseText(taskCtx: RuntimeContext, data: string, name: string) {
     await taskCtx.update('Reading header...');
     const tokenizer = Tokenizer(data as string);
     const { header } = readHeader(tokenizer);
     await taskCtx.update('Reading values...');
     const values = await readValuesText(taskCtx, tokenizer, header);
-    return Result.success({ header, values });
+    return Result.success({ header, values, name });
 }
 
-async function parseBinary(taskCtx: RuntimeContext, data: Uint8Array) {
+async function parseBinary(taskCtx: RuntimeContext, data: Uint8Array, name: string) {
     await taskCtx.update('Reading header...');
 
     const headerString = utf8Read(data, 0, 1000);
@@ -117,12 +118,12 @@ async function parseBinary(taskCtx: RuntimeContext, data: Uint8Array) {
 
     // TODO: why doesnt this work? throw "attempting to construct out-of-bounds TypedArray"
     // const values = new Float64Array(data.buffer, data.byteOffset + headerByteCount, header.dim[0] * header.dim[1] * header.dim[2]);
-    return Result.success({ header, values });
+    return Result.success({ header, values, name });
 }
 
-export function parseDx(data: string | Uint8Array) {
+export function parseDx(data: string | Uint8Array, name: string) {
     return Task.create<Result<DxFile>>('Parse Cube', taskCtx => {
-        if (typeof data === 'string') return parseText(taskCtx, data);
-        return parseBinary(taskCtx, data);
+        if (typeof data === 'string') return parseText(taskCtx, data, name);
+        return parseBinary(taskCtx, data, name);
     });
 }

@@ -17,6 +17,7 @@ import { parseFloat as fastParseFloat } from '../common/text/number-parser';
 // https://h5cube-spec.readthedocs.io/en/latest/cubeformat.html
 
 export interface CubeFile {
+    name: string,
     header: CubeFile.Header,
     atoms: CubeFile.Atoms,
     values: Float64Array
@@ -129,12 +130,12 @@ function readValues(ctx: RuntimeContext, tokenizer: Tokenizer, header: CubeFile.
     }, (ctx, _, i) => ctx.update({ current: Math.min(i, N), max: N }));
 }
 
-export function parseCube(data: string) {
+export function parseCube(data: string, name: string) {
     return Task.create<Result<CubeFile>>('Parse Cube', async taskCtx => {
         await taskCtx.update('Reading header...');
         const tokenizer = Tokenizer(data);
         const { header, atoms } = readHeader(tokenizer);
         const values = await readValues(taskCtx, tokenizer, header);
-        return Result.success({ header, atoms, values });
+        return Result.success({ header, atoms, values, name });
     });
 }

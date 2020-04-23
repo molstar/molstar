@@ -160,7 +160,7 @@ async function parseInternal(file: FileHandle, size: number, ctx: RuntimeContext
     const buffer = createTypedArrayBufferContext(count, valueType);
     readCcp4Slices(header, buffer, file, offset, byteCount, littleEndian);
 
-    const result: Ccp4File = { header, values: buffer.values };
+    const result: Ccp4File = { header, values: buffer.values, name: file.name };
     return result;
 }
 
@@ -174,6 +174,6 @@ export function parseFile(file: FileHandle, size: number) {
     });
 }
 
-export function parse(buffer: Uint8Array) {
-    return parseFile(FileHandle.fromBuffer(SimpleBuffer.fromUint8Array(buffer)), buffer.length);
+export function parse(buffer: Uint8Array, name: string) {
+    return parseFile(FileHandle.fromBuffer(SimpleBuffer.fromUint8Array(buffer), name), buffer.length);
 }

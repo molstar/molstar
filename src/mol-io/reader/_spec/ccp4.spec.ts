@@ -31,7 +31,7 @@ function createCcp4Data() {
 describe('ccp4 reader', () => {
     it('basic', async () => {
         const data = createCcp4Data();
-        const parsed = await CCP4.parse(data).run();
+        const parsed = await CCP4.parse(data, 'test.ccp4').run();
 
         if (parsed.isError) {
             throw new Error(parsed.message);

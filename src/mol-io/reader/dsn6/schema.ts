@@ -39,6 +39,7 @@ export interface Dsn6Header {
  * BRIX http://svn.cgl.ucsf.edu/svn/chimera/trunk/libs/VolumeData/dsn6/brix-1.html
  */
 export interface Dsn6File {
+    name: string
     header: Dsn6Header
     values: Float32Array
 }
