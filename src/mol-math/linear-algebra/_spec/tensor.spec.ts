@@ -263,4 +263,59 @@ describe('tensor', () => {
 
         expect(data).toEqual(exp);
     });
+
+    it('indexing', () => {
+        function permutations<T>(inputArr: T[]): T[][] {
+            let result: T[][] = [];
+            function permute(arr: any, m: any = []) {
+                if (arr.length === 0) {
+                    result.push(m);
+                } else {
+                    for (let i = 0; i < arr.length; i++) {
+                        let curr = arr.slice();
+                        let next = curr.splice(i, 1);
+                        permute(curr.slice(), m.concat(next));
+                    }
+                }
+            }
+            permute(inputArr);
+
+            return result;
+        }
+
+        for (let dim = 1; dim <= 5; dim++) {
+            const axes = [], dims: number[] = [];
+            const u: number[] = [], v: number[] = [];
+
+            for (let i = 0; i < dim; i++) {
+                axes.push(i);
+                dims.push(3);
+                u.push(0);
+                v.push(0);
+            }
+
+            const forEachDim = (space: T.Space, d: number): boolean => {
+                if (d === dim) {
+                    const o = space.dataOffset(...u);
+                    space.getCoords(o, v);
+
+                    for (let e = 0; e < dims.length; e++) {
+                        expect(u[e]).toEqual(v[e]);
+                        return false;
+                    }
+                } else {
+                    for (let i = 0; i < dims[d]; i++) {
+                        u[d] = i;
+                        if (!forEachDim(space, d + 1)) return false;
+                    }
+                }
+                return true;
+            };
+
+            for (const ao of permutations(axes)) {
+                const space = T.Space(dims, ao);
+                if (!forEachDim(space, 0)) break;
+            }
+        }
+    });
 });
