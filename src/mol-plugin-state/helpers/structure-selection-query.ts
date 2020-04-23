@@ -264,7 +264,7 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
                 'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
                 'residue-test': MS.core.str.match([
-                    MS.re('non-polymer|(amino|carboxy) terminus', 'i'),
+                    MS.re('non-polymer|(amino|carboxy) terminus|peptide-like', 'i'),
                     MS.ammp('chemCompType')
                 ])
             })
