@@ -198,7 +198,6 @@ class MeasurementsOptions extends PurePluginUIComponent<{}, { isDisabled: boolea
         });
 
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            console.log('isBusy', 'measurement opt', v);
             this.setState({ isDisabled: v });
         });
     }

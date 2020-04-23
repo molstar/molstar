@@ -8,7 +8,7 @@ import { PluginUIComponent } from '../base';
 import { StateTransformParameters } from '../state/common';
 import * as React from 'react';
 import { VolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
-import { ExpandableControlRow } from '../controls/common';
+import { ExpandableControlRow, IconButton } from '../controls/common';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { Slider } from '../controls/slider';
@@ -16,6 +16,10 @@ import { VolumeIsoValue, VolumeData } from '../../mol-model/volume';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { ColorNames } from '../../mol-util/color/names';
 import { toPrecision } from '../../mol-util/number';
+import VisibilityOffOutlined from '@material-ui/icons/VisibilityOffOutlined';
+import VisibilityOutlined from '@material-ui/icons/VisibilityOutlined';
+import { StateSelection, StateObjectCell } from '../../mol-state';
+import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
 
 const ChannelParams = {
     color: PD.Color(ColorNames.black, { description: 'Display color of the volume.' }),
@@ -24,36 +28,69 @@ const ChannelParams = {
 };
 type ChannelParams = PD.Values<typeof ChannelParams>
 
-function Channel(props: {
+class Channel extends PluginUIComponent<{
     label: string,
     name: VolumeStreaming.ChannelType,
     channels: { [k: string]: VolumeStreaming.ChannelParams },
     isRelative: boolean,
     params: StateTransformParameters.Props,
     stats: VolumeData['dataStats'],
-    changeIso: (name: string, value: number, isRelative: boolean) => void
-    changeParams: (name: string, param: string, value: any) => void
-}) {
-    const { isRelative, stats } = props;
-    const channel = props.channels[props.name]!;
+    changeIso: (name: string, value: number, isRelative: boolean) => void,
+    changeParams: (name: string, param: string, value: any) => void,
+    bCell: StateObjectCell,
+    isDisabled?: boolean
+}> {
+    private ref = StateSelection.findTagInSubtree(this.plugin.state.data.tree, this.props.bCell!.transform.ref, this.props.name);
 
-    const { min, max, mean, sigma } = stats;
-    const value = Math.round(100 * (channel.isoValue.kind === 'relative' ? channel.isoValue.relativeValue : channel.isoValue.absoluteValue)) / 100;
-    const relMin = (min - mean) / sigma;
-    const relMax = (max - mean) / sigma;
-    const step = toPrecision(isRelative ? Math.round(((max - min) / sigma)) / 100 : sigma / 100, 2);
+    componentDidUpdate() {
+        this.ref = StateSelection.findTagInSubtree(this.plugin.state.data.tree, this.props.bCell!.transform.ref, this.props.name);
+    }
 
-    return <ExpandableControlRow
-        label={props.label + (props.isRelative ? ' \u03C3' : '')}
-        colorStripe={channel.color}
-        pivot={<Slider value={value} min={isRelative ? relMin : min} max={isRelative ? relMax : max} step={step}
-            onChange={v => props.changeIso(props.name, v, isRelative)} disabled={props.params.isDisabled} onEnter={props.params.events.onEnter} />}
-        controls={<ParameterControls onChange={({ name, value }) => props.changeParams(props.name, name, value)} params={ChannelParams} values={channel} onEnter={props.params.events.onEnter} />}
-    />;
+    componentDidMount() {
+        this.subscribe(this.plugin.state.data.events.cell.stateUpdated, e => {
+            if (this.ref === e.ref) this.forceUpdate();
+        });
+    }
+
+    getVisible = () => {
+        const state = this.plugin.state.data;
+        const ref = this.ref;
+        if (!ref) return false;
+        return !state.cells.get(ref)!.state.isHidden;
+    };
+
+    toggleVisible = () => {
+        const state = this.plugin.state.data;
+        const ref = this.ref;
+        if (!ref) return;
+        setSubtreeVisibility(state, ref, !state.cells.get(ref)!.state.isHidden);
+    };
+
+    render() {
+        const props = this.props;
+        const { isRelative, stats } = props;
+        const channel = props.channels[props.name]!;
+
+        const { min, max, mean, sigma } = stats;
+        const value = Math.round(100 * (channel.isoValue.kind === 'relative' ? channel.isoValue.relativeValue : channel.isoValue.absoluteValue)) / 100;
+        const relMin = (min - mean) / sigma;
+        const relMax = (max - mean) / sigma;
+        const step = toPrecision(isRelative ? Math.round(((max - min) / sigma)) / 100 : sigma / 100, 2);
+
+        return <ExpandableControlRow
+            label={props.label + (props.isRelative ? ' \u03C3' : '')}
+            colorStripe={channel.color}
+            pivot={<div className='msp-volume-channel-inline-controls'>
+                <Slider value={value} min={isRelative ? relMin : min} max={isRelative ? relMax : max} step={step}
+                    onChange={v => props.changeIso(props.name, v, isRelative)} disabled={props.params.isDisabled} onEnter={props.params.events.onEnter} />
+                <IconButton svg={this.getVisible() ? VisibilityOutlined : VisibilityOffOutlined} onClick={this.toggleVisible} toggleState={false} disabled={props.params.isDisabled} />
+            </div>}
+            controls={<ParameterControls onChange={({ name, value }) => props.changeParams(props.name, name, value)} params={ChannelParams} values={channel} onEnter={props.params.events.onEnter} isDisabled={props.params.isDisabled} />}
+        />;
+    }
 }
 
 export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransformParameters.Props> {
-
     private areInitial(params: any) {
         return PD.areEqual(this.props.info.params, params, this.props.info.initialValues);
     }
@@ -170,8 +207,8 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
 
     render() {
         if (!this.props.b) return null;
-
         const b = (this.props.b as VolumeStreaming).data;
+
         const isEM = b.info.kind === 'em';
         const pivot = isEM ? 'em' : '2fo-fc';
 
@@ -225,16 +262,16 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
         };
 
         if (isOff) {
-            return <ParameterControls onChange={this.changeOption} params={OptionsParams} values={options} onEnter={this.props.events.onEnter} />;
+            return <ParameterControls onChange={this.changeOption} params={OptionsParams} values={options} onEnter={this.props.events.onEnter} isDisabled={this.props.isDisabled} />;
         }
 
         return <>
-            {!isEM && <Channel label='2Fo-Fc' name='2fo-fc' channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[0]} />}
-            {!isEM && <Channel label='Fo-Fc(+ve)' name='fo-fc(+ve)' channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[1]} />}
-            {!isEM && <Channel label='Fo-Fc(-ve)' name='fo-fc(-ve)' channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[1]} />}
-            {isEM && <Channel label='EM' name='em' channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[0]} />}
+            {!isEM && <Channel label='2Fo-Fc' name='2fo-fc' bCell={this.props.bCell!} channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[0]} />}
+            {!isEM && <Channel label='Fo-Fc(+ve)' name='fo-fc(+ve)' bCell={this.props.bCell!} channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[1]} />}
+            {!isEM && <Channel label='Fo-Fc(-ve)' name='fo-fc(-ve)' bCell={this.props.bCell!} channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[1]} />}
+            {isEM && <Channel label='EM' name='em' bCell={this.props.bCell!} channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[0]} />}
 
-            <ParameterControls onChange={this.changeOption} params={OptionsParams} values={options} onEnter={this.props.events.onEnter} />
+            <ParameterControls onChange={this.changeOption} params={OptionsParams} values={options} onEnter={this.props.events.onEnter} isDisabled={this.props.isDisabled} />
         </>;
     }
 }

@@ -53,7 +53,6 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
             if (radialSegments === 2) {
                 // add2AndScale2(normalVector, u, v, w * Math.cos(t), h * Math.sin(t))
                 Vec3.copy(normalVector, v);
-                console.log(i, t);
                 Vec3.normalize(normalVector, normalVector);
                 if (t !== 0 || i % 2 === 0) Vec3.negate(normalVector, normalVector);
             } else {

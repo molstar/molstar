@@ -580,3 +580,34 @@
 @include accent('purple', $color-accent-purple);
 @include accent('blue', $color-accent-blue);
 @include accent('orange', $color-accent-orange);
+
+.msp-volume-channel-inline-controls {
+    > :first-child {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: $row-height;
+        right: 32px;
+    }
+
+    .msp-slider {
+        > div:first-child() {
+            right: 42px;
+        }
+        > div:last-child() {
+            width: 30px;
+        }
+    }
+
+    > button {
+        position: absolute;
+        right: 0;
+        width: 32px;
+        top: 0;
+        padding: 0;
+
+        .msp-material-icon {
+            margin-right: 0;
+        }
+    }
+}
