@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -122,12 +122,12 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
     const transform = VolumeData.getGridToCartesianTransform(volume);
     ctx.runtime.update({ message: 'Transforming mesh...' });
     Mesh.transform(surface, transform);
-    console.log(surface, Tensor.create(volume.data.space, Tensor.Data1(ids)));
     return surface;
 }
 
 export const IsosurfaceMeshParams = {
     ...Mesh.Params,
+    quality: { ...Mesh.Params.quality, isEssential: false },
     ...VolumeIsosurfaceParams
 };
 export type IsosurfaceMeshParams = typeof IsosurfaceMeshParams
@@ -167,6 +167,7 @@ export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume
 
 export const IsosurfaceWireframeParams = {
     ...Lines.Params,
+    quality: { ...Lines.Params.quality, isEssential: false },
     sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
     ...VolumeIsosurfaceParams
 };

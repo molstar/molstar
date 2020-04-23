@@ -17,7 +17,6 @@ import { FiniteArray } from '../mol-util/type-helpers';
 import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 import { stringToWords } from '../mol-util/string';
 import { Volume } from './volume/volume';
-import { VolumeData } from './volume';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' };
@@ -162,12 +161,11 @@ namespace Loci {
         } else if (loci.kind === 'data-loci') {
             return loci.getBoundingSphere(boundingSphere);
         } else if (loci.kind === 'volume-loci') {
-            return VolumeData.getBoundingSphere(loci.volume, boundingSphere);
+            return Volume.getBoundingSphere(loci.volume, boundingSphere);
         } else if (loci.kind === 'isosurface-loci') {
-            return VolumeData.getBoundingSphere(loci.volume, boundingSphere);
+            return Volume.Isosurface.getBoundingSphere(loci.volume, boundingSphere);
         } else if (loci.kind === 'cell-loci') {
-            // TODO
-            return VolumeData.getBoundingSphere(loci.volume, boundingSphere);
+            return Volume.Cell.getBoundingSphere(loci.volume, boundingSphere);
         }
     }
 

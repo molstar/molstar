@@ -98,8 +98,7 @@ namespace Image {
         return image;
     }
 
-    function update(imageTexture: TextureImage<Uint8Array | Float32Array>, corners: Float32Array, groupTexture: TextureImage<Float32Array>, image: Image): Image {
-
+    function update(imageTexture: TextureImage<Float32Array>, corners: Float32Array, groupTexture: TextureImage<Float32Array>, image: Image): Image {
         const width = imageTexture.width;
         const height = imageTexture.height;
 
@@ -116,7 +115,7 @@ namespace Image {
 
     export const Params = {
         ...BaseGeometry.Params,
-        interpolation: PD.Select('bspline', PD.objectToOptions(InterpolationTypes), { isEssential: true }),
+        interpolation: PD.Select('bspline', PD.objectToOptions(InterpolationTypes)),
     };
     export type Params = typeof Params
 
@@ -176,7 +175,7 @@ namespace Image {
     }
 
     function updateValues(values: ImageValues, props: PD.Values<Params>) {
-        ValueCell.updateIfChanged(values.uAlpha, props.alpha);
+        BaseGeometry.updateValues(values, props);
         ValueCell.updateIfChanged(values.dInterpolation, props.interpolation);
     }
 
