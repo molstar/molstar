@@ -8,6 +8,7 @@ import { VolumeData, VolumeIsoValue } from './data';
 import { OrderedSet } from '../../mol-data/int';
 import { Sphere3D } from '../../mol-math/geometry';
 import { Vec3 } from '../../mol-math/linear-algebra';
+import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 
 export namespace Volume {
     export type CellIndex = { readonly '@type': 'cell-index' } & number
@@ -51,7 +52,8 @@ export namespace Volume {
         export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume && VolumeIsoValue.areSame(a.isoValue, b.isoValue, a.volume.dataStats); }
         export function isLociEmpty(loci: Loci) { return loci.volume.data.data.length === 0; }
 
-        export function getBoundingSphere(volume: VolumeData, boundingSphere?: Sphere3D) {
+        export function getBoundingSphere(volume: VolumeData, isoValue: VolumeIsoValue, boundingSphere?: Sphere3D) {
+            // TODO get bounding sphere for subgrid with values >= isoValue
             return Volume.getBoundingSphere(volume, boundingSphere);
         }
     }
@@ -63,10 +65,28 @@ export namespace Volume {
         export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume && OrderedSet.areEqual(a.indices, b.indices); }
         export function isLociEmpty(loci: Loci) { return OrderedSet.size(loci.indices) === 0; }
 
-        export function getBoundingSphere(volume: VolumeData, boundingSphere?: Sphere3D) {
-            if (!boundingSphere) boundingSphere = Sphere3D();
-            // TODO get sphere reflecting cell coords and size
-            return Volume.getBoundingSphere(volume, boundingSphere);
+        const boundaryHelper = new BoundaryHelper('98');
+        const tmpBoundaryPos = Vec3();
+        export function getBoundingSphere(volume: VolumeData, indices: OrderedSet<CellIndex>, boundingSphere?: Sphere3D) {
+            boundaryHelper.reset();
+            const transform = VolumeData.getGridToCartesianTransform(volume);
+            const { getCoords } = volume.data.space;
+
+            for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                const o = OrderedSet.getAt(indices, i);
+                getCoords(o, tmpBoundaryPos);
+                Vec3.transformMat4(tmpBoundaryPos, tmpBoundaryPos, transform);
+                boundaryHelper.includePosition(tmpBoundaryPos);
+            }
+            boundaryHelper.finishedIncludeStep();
+            for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                const o = OrderedSet.getAt(indices, i);
+                getCoords(o, tmpBoundaryPos);
+                Vec3.transformMat4(tmpBoundaryPos, tmpBoundaryPos, transform);
+                boundaryHelper.radiusPosition(tmpBoundaryPos);
+            }
+
+            return boundaryHelper.getSphere(boundingSphere);
         }
     }
 }
