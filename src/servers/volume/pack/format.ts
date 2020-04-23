@@ -103,7 +103,7 @@ export function getProviderFromType(type: Type): Provider {
 export async function open(name: string, filename: string, type: Type): Promise<Context> {
     const provider = getProviderFromType(type);
     const descriptor = await File.openRead(filename);
-    const file = FileHandle.fromDescriptor(descriptor);
+    const file = FileHandle.fromDescriptor(descriptor, filename);
     const header = await provider.readHeader(name, file);
     const data = { header, file, slices: void 0 as any };
     return { data, provider };

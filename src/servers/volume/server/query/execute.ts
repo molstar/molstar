@@ -34,7 +34,7 @@ export default async function execute(params: Data.QueryParams, outputProvider: 
 
     let sourceFile: FileHandle | undefined;
     try {
-        sourceFile = FileHandle.fromDescriptor(await File.openRead(params.sourceFilename));
+        sourceFile = FileHandle.fromDescriptor(await File.openRead(params.sourceFilename), params.sourceFilename);
         await _execute(sourceFile, params, guid, outputProvider);
         return true;
     } catch (e) {

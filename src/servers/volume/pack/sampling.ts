@@ -32,7 +32,7 @@ export async function createContext(filename: string, channels: Format.Context[]
     }
 
     const ctx: Data.Context = {
-        file: FileHandle.fromDescriptor(await File.createFile(filename)),
+        file: FileHandle.fromDescriptor(await File.createFile(filename), filename),
         isPeriodic,
         channels,
         valueType,

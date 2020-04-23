@@ -66,7 +66,7 @@ async function readHeader(filename: string | undefined, sourceId: string) {
     let file: FileHandle | undefined;
     try {
         if (!filename) return void 0;
-        file = FileHandle.fromDescriptor(await File.openRead(filename));
+        file = FileHandle.fromDescriptor(await File.openRead(filename), filename);
         const header = await DataFormat.readHeader(file);
         return header.header;
     } catch (e) {
