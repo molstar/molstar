@@ -145,7 +145,8 @@ const str = {
 
 const list = {
     '@header': 'Lists',
-    getAt: symbol(Arguments.Dictionary({ 0: Argument(Types.List()), 1: Argument(Type.Num) }), Types.AnyVar)
+    getAt: symbol(Arguments.Dictionary({ 0: Argument(Types.List()), 1: Argument(Type.Num) }), Types.AnyVar),
+    equal: symbol(Arguments.Dictionary({ 0: Argument(Types.List()), 1: Argument(Types.List()) }), Type.Bool)
 };
 
 const set = {
