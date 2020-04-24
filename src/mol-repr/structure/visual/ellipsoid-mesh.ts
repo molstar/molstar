@@ -21,11 +21,12 @@ import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/property
 import { equalEps } from '../../../mol-math/linear-algebra/3d/common';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 export const EllipsoidMeshParams = {
     ...UnitsMeshParams,
     sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
-    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     ignoreHydrogens: PD.Boolean(false),
 };
 export type EllipsoidMeshParams = typeof EllipsoidMeshParams

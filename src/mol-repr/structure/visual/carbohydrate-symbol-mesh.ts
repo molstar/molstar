@@ -26,6 +26,7 @@ import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { VisualContext } from '../../../mol-repr/visual';
 import { Theme } from '../../../mol-theme/theme';
 import { getAltResidueLociFromId } from './util/common';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const t = Mat4.identity();
 const sVec = Vec3.zero();
@@ -162,7 +163,7 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
 
 export const CarbohydrateSymbolParams = {
     ...ComplexMeshParams,
-    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     sizeFactor: PD.Numeric(1.75, { min: 0, max: 10, step: 0.01 }),
 };
 export type CarbohydrateSymbolParams = typeof CarbohydrateSymbolParams
