@@ -51,6 +51,7 @@ export interface QualityProps {
     linearSegments: number
     resolution: number
     doubleSided: boolean
+    alpha: number
 }
 
 export const DefaultQualityThresholds = {
@@ -149,6 +150,10 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
         case 'custom':
             // use defaults or given props as set above
             break;
+    }
+
+    if (props.alpha !== undefined && props.alpha < 1) {
+        doubleSided = false;
     }
 
     return {
