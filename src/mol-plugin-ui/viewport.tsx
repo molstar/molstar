@@ -104,8 +104,8 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon(BuildOutlined, this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
-                    {this.plugin.config.get(PluginConfig.Viewport.ShowExpand) && this.icon(Fullscreen, this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
+                    {this.icon(BuildOutlined, this.toggleControls, 'Toggle Controls Panel', this.plugin.layout.state.showControls)}
+                    {this.plugin.config.get(PluginConfig.Viewport.ShowExpand) && this.icon(Fullscreen, this.toggleExpanded, 'Toggle Expanded Viewport', this.plugin.layout.state.isExpanded)}
                     {this.icon(Tune, this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
                 </div>
                 {this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode) && <div>
@@ -114,13 +114,13 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </div>}
             </div>
             {this.state.isScreenshotExpanded && <div className='msp-viewport-controls-panel'>
-                <ControlGroup header='Screenshot / State' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleScreenshotExpanded}
+                <ControlGroup header='Screenshot / State' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleScreenshotExpanded}
                     topRightIcon={Close} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <DownloadScreenshotControls close={this.toggleScreenshotExpanded} />
                 </ControlGroup>
             </div>}
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-panel'>
-                <ControlGroup header='Settings / Controls Info' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded}
+                <ControlGroup header='Settings / Controls Info' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded}
                     topRightIcon={Close} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <SimpleSettingsControl />
                 </ControlGroup>
