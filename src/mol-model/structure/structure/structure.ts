@@ -429,7 +429,8 @@ function getUniqueElementSymbols(s: Structure) {
     const prop = StructureProperties.atom.type_symbol;
     const symbols = new Set<ElementSymbol>();
     const loc = StructureElement.Location.create(s);
-    for (const unit of s.units) {
+    for (const unitGroup of s.unitSymmetryGroups) {
+        const unit = unitGroup.units[0];
         if (!Unit.isAtomic(unit)) continue;
         loc.unit = unit;
         for (let i = 0, il = unit.elements.length; i < il; ++i) {

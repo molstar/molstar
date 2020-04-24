@@ -105,7 +105,7 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             polymer: await presetStaticComponent(plugin, structureCell, 'polymer'),
             ligand: await presetStaticComponent(plugin, structureCell, 'ligand'),
             nonStandard: await presetStaticComponent(plugin, structureCell, 'non-standard'),
-            branched: await presetStaticComponent(plugin, structureCell, 'branched'),
+            branched: await presetStaticComponent(plugin, structureCell, 'branched', { label: 'Carbohydrate' }),
             water: await presetStaticComponent(plugin, structureCell, 'water'),
             coarse: await presetStaticComponent(plugin, structureCell, 'coarse')
         };
