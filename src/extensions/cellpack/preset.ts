@@ -85,6 +85,7 @@ export const CellpackMembranePreset = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
+
         return { components, representations };
     }
 });

@@ -17,7 +17,7 @@ import { Mat4, Vec3, Quat } from '../../mol-math/linear-algebra';
 import { SymmetryOperator } from '../../mol-math/geometry';
 import { Task, RuntimeContext } from '../../mol-task';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl } from './state';
+import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl, GetAllAssamblyinOneStructure } from './state';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
 import { compile } from '../../mol-script/runtime/query/compiler';
@@ -27,6 +27,7 @@ import { Column } from '../../mol-data/db';
 import { createModels } from '../../mol-model-formats/structure/basic/parser';
 import { CellpackPackingPreset, CellpackMembranePreset } from './preset';
 import { Asset } from '../../mol-util/assets';
+import { Color } from '../../mol-util/color';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
@@ -142,11 +143,14 @@ function getResultTransforms(results: Ingredient['results'], legacy: boolean) {
 function getCurveTransforms(ingredient: Ingredient) {
     const n = ingredient.nbCurve || 0;
     const instances: Mat4[] = [];
-    const segmentLength = ingredient.radii
-        ? (ingredient.radii[0].radii
+    let segmentLength = 3.4;
+    if (ingredient.uLength){
+        segmentLength = ingredient.uLength;
+    } else if (ingredient.radii){
+        segmentLength = ingredient.radii[0].radii
             ? ingredient.radii[0].radii[0] * 2.0
-            : 3.4)
-        : 3.4;
+            : 3.4;
+    }
     for (let i = 0; i < n; ++i) {
         const cname = `curve${i}`;
         if (!(cname in ingredient)) {
@@ -355,15 +359,27 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
         const { ingredients, name } = packing;
         const assets: Asset.Wrapper[] = [];
         const structures: Structure[] = [];
+        let colors: Color[] = [];
+        let skip_color: boolean = false;
         for (const iName in ingredients) {
             if (ctx.shouldUpdate) await ctx.update(iName);
             const ingredientStructure = await getIngredientStructure(plugin, ingredients[iName], baseUrl, ingredientFiles);
             if (ingredientStructure) {
                 structures.push(ingredientStructure.structure);
                 assets.push(...ingredientStructure.assets);
+                if (ingredients[iName].color){
+                    let c = ingredients[iName].color;
+                    if (!c) c = Vec3.create(1, 0, 0);
+                    colors.push(Color.fromNormalizedRgb(c[0], c[1], c[2]));
+                } else {
+                    colors.push(Color.fromNormalizedRgb(1, 0, 0));
+                    skip_color = true;
+                }
             }
         }
-
+        if (skip_color){
+            colors = [];
+        }
         if (ctx.shouldUpdate) await ctx.update(`${name} - units`);
         const builder = Structure.Builder({ label: name });
         let offsetInvariantId = 0;
@@ -385,7 +401,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
             trajectoryInfo.size = il;
             trajectoryInfo.index = i;
         }
-        return { structure, assets };
+        return { structure, assets, colors };
     });
 }
 
@@ -421,11 +437,25 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
                 break;
             }
         }
+        if (!file){
+            // check for cif directly
+            const cifileName = `${name}.cif`;
+            for (const f of params.ingredients.files) {
+                if (cifileName === f.name) {
+                    file = f;
+                    break;
+                }
+            }
+        }
     }
 
     let b = state.build().toRoot();
     if (file) {
-        b = b.apply(StateTransforms.Data.ReadFile, { file, isBinary: true, label: file.name }, { state: { isGhost: true } });
+        if (file.name.endsWith('.cif')) {
+            b = b.apply(StateTransforms.Data.ReadFile, { file, isBinary: false, label: file.name }, { state: { isGhost: true } });
+        } else if (file.name.endsWith('.bcif')) {
+            b = b.apply(StateTransforms.Data.ReadFile, { file, isBinary: true, label: file.name }, { state: { isGhost: true } });
+        }
     } else {
         const url = Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/membranes/${name}.bcif`);
         b = b.apply(StateTransforms.Data.Download, { url, isBinary: true, label: name }, { state: { isGhost: true } });
@@ -435,12 +465,53 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
         .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.StructureFromModel)
+        .apply(GetAllAssamblyinOneStructure, undefined, { state: { isGhost: true } })
         .commit({ revertOnError: true });
 
     const membraneParams = {
         representation: params.preset.representation,
     };
+
     await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
+    /*
+    let structures: Structure[] = await getAllAssambly(plugin, model);
+    const builder = Structure.Builder({ label: name });
+    let offsetInvariantId = 0;
+    for (const s of structures) {
+        let maxInvariantId = 0;
+        for (const u of s.units) {
+            const invariantId = u.invariantId + offsetInvariantId;
+            if (u.invariantId > maxInvariantId) maxInvariantId = u.invariantId;
+            builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, Unit.Trait.None, invariantId);
+        }
+        offsetInvariantId += maxInvariantId + 1;
+    }
+
+    const structure = builder.getStructure();
+    for( let i = 0, il = structure.models.length; i < il; ++i) {
+        const { trajectoryInfo } = structure.models[i];
+        trajectoryInfo.size = il;
+        trajectoryInfo.index = i;
+    }
+    b = state.build().toRoot();
+    const SO = await b.apply(TransformStructureTest, {structure}, { state: { isGhost: true } }).commit({ revertOnError: true });;
+    // const SO = new PSO.Molecule.Structure(structure, { label: name });
+    const membraneParams = {
+        representation: params.preset.representation,
+    };
+    await CellpackMembranePreset.apply(SO, membraneParams, plugin);
+   
+    const membrane = await b.apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
+        .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
+        .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
+        .apply(StateTransforms.Model.StructureFromModel)
+        .commit({ revertOnError: true });
+    for (const s of structures) {
+        StateTransforms.Model.StructureFromModel(s);
+        CellpackMembranePreset.apply(s, membraneParams, plugin);
+    }
+    //await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
+    */
 }
 
 async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
@@ -495,6 +566,7 @@ const LoadCellPackModelParams = {
             ['HIV-1_0.1.6-8_mixed_radii_pdb.cpr', 'HIV-1_0.1.6-8_mixed_radii_pdb'],
             ['hiv_lipids.bcif', 'hiv_lipids'],
             ['influenza_model1.json', 'influenza_model1'],
+            ['InfluenzaModel2.json', 'Influenza Complete'],
             ['ExosomeModel.json', 'ExosomeModel'],
             ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma1.5_mixed_pdb_fixed'],
         ] as const),
