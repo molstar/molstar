@@ -75,7 +75,8 @@ const auto = StructureRepresentationPresetProvider({
             case Structure.Size.Medium:
                 return polymerAndLigand.apply(ref, params, plugin);
             case Structure.Size.Small:
-                return atomicDetail.apply(ref, params, plugin);
+                // `showCarbohydrateSymbol: true` is nice e.g. for PDB 1aga
+                return atomicDetail.apply(ref, { ...params, showCarbohydrateSymbol: true }, plugin);
         }
     }
 });
@@ -115,9 +116,9 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams, color }, { tag: 'polymer' }),
             ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams, color }, { tag: 'ligand' }),
             nonStandard: builder.buildRepresentation(update, components.nonStandard, { type: 'ball-and-stick', typeParams, color: color || 'polymer-id' }, { tag: 'non-standard' }),
-            branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.15 }, color }, { tag: 'branched-ball-and-stick' }),
+            branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color }, { tag: 'branched-ball-and-stick' }),
             branchedSnfg3d: builder.buildRepresentation(update, components.branched, { type: 'carbohydrate', typeParams, color }, { tag: 'branched-snfg-3d' }),
-            water: builder.buildRepresentation(update, components.water, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.51 }, color }, { tag: 'water' }),
+            water: builder.buildRepresentation(update, components.water, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.6 }, color }, { tag: 'water' }),
             coarse: builder.buildRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'polymer-id' }, { tag: 'coarse' })
         };
 
@@ -226,7 +227,10 @@ const atomicDetail = StructureRepresentationPresetProvider({
         name: 'Atomic Detail', group: BuiltInPresetGroupName,
         description: 'Shows everything in atomic detail with Ball & Stick.'
     },
-    params: () => CommonParams,
+    params: () => ({
+        ...CommonParams,
+        showCarbohydrateSymbol: PD.Boolean(false)
+    }),
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};
@@ -237,8 +241,13 @@ const atomicDetail = StructureRepresentationPresetProvider({
 
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);
         const representations = {
-            all: builder.buildRepresentation(update, components.all, { type: 'ball-and-stick', typeParams, color }, { tag: 'all' })
+            all: builder.buildRepresentation(update, components.all, { type: 'ball-and-stick', typeParams, color }, { tag: 'all' }),
         };
+        if (params.showCarbohydrateSymbol) {
+            Object.assign(representations, {
+                snfg3d: builder.buildRepresentation(update, components.all, { type: 'carbohydrate', typeParams: { ...typeParams, alpha: 0.4, visuals: ['carbohydrate-symbol'] }, color }, { tag: 'snfg-3d' }),
+            });
+        }
 
         await update.commit({ revertOnError: true });
         return { components, representations };
