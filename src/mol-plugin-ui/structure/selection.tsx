@@ -11,7 +11,7 @@ import Brush from '@material-ui/icons/Brush';
 import Restore from '@material-ui/icons/Restore';
 import Remove from '@material-ui/icons/Remove';
 import * as React from 'react';
-import { StructureSelectionQueries, StructureSelectionQuery } from '../../mol-plugin-state/helpers/structure-selection-query';
+import { StructureSelectionQueries, StructureSelectionQuery, ResidueQuery, ElementSymbolQuery } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
 import { StructureRef, StructureComponentRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
@@ -25,6 +25,9 @@ import { Button, ControlGroup, IconButton, ToggleButton } from '../controls/comm
 import { ParameterControls, ParamOnChange, PureSelectControl } from '../controls/parameters';
 import { Union, Subtract, Intersect, SetSvg as SetSvg, CubeSvg } from '../controls/icons';
 import { AddComponentControls } from './components';
+import { SetUtils } from '../../mol-util/set';
+import { AminoAcidNamesL, RnaBaseNames, DnaBaseNames, WaterNames, ElementSymbol } from '../../mol-model/structure/model/types';
+import { ElementNames } from '../../mol-model/structure/model/properties/atomic/types';
 
 const StructureSelectionParams = {
     granularity: InteractivityManager.Params.granularity,
@@ -45,6 +48,10 @@ const ActionHeader = new Map<StructureSelectionModifier, string>([
     ['set', 'Set Selection']
 ] as const);
 
+const StandardResidues = SetUtils.unionMany(
+    AminoAcidNamesL, RnaBaseNames, DnaBaseNames, WaterNames
+);
+
 export class StructureSelectionActionsControls extends PluginUIComponent<{}, StructureSelectionActionsControlsState> {
     state = {
         action: void 0 as StructureSelectionActionsControlsState['action'],
@@ -60,6 +67,9 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
             if (this.state.isEmpty !== isEmpty) {
                 this.setState({ isEmpty });
             }
+            // trigger elementQueries and nonStandardResidueQueries recalculation
+            this.queriesVersion = -1;
+            this.forceUpdate();
         });
 
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
@@ -83,15 +93,60 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         this.plugin.managers.structure.selection.fromSelectionQuery(modifier, selectionQuery, false);
     }
 
-    selectQuery: ActionMenu.OnSelect = item => {
+    selectQuery: ActionMenu.OnSelect = (item, e) => {
         if (!item || !this.state.action) {
             this.setState({ action: void 0 });
             return;
         }
         const q = this.state.action! as StructureSelectionModifier;
-        this.setState({ action: void 0 }, () => {
+        if (e?.shiftKey) {
             this.set(q, item.value as StructureSelectionQuery);
+        } else {
+            this.setState({ action: void 0 }, () => {
+                this.set(q, item.value as StructureSelectionQuery);
+            });
+        }
+    }
+
+    get elementQueries () {
+        const uniqueElements = new Set<ElementSymbol>();
+        for (const s of this.plugin.managers.structure.hierarchy.selection.structures) {
+            const structure = s.cell.obj?.data;
+            if (!structure) continue;
+
+            structure.uniqueElementSymbols.forEach(e => uniqueElements.add(e));
+        }
+
+        const queries: StructureSelectionQuery[] = [];
+        uniqueElements.forEach(e => {
+            const label = ElementNames[e] || e;
+            queries.push(ElementSymbolQuery([[e], label], 'Element Symbol'));
         });
+        return queries;
+    }
+
+    get nonStandardResidueQueries () {
+        const residueLabels = new Map<string, string>();
+        const uniqueResidues = new Set<string>();
+        for (const s of this.plugin.managers.structure.hierarchy.selection.structures) {
+            const structure = s.cell.obj?.data;
+            if (!structure) continue;
+
+            structure.uniqueResidueNames.forEach(r => uniqueResidues.add(r));
+            for (const m of structure.models) {
+                structure.uniqueResidueNames.forEach(r => {
+                    const comp = m.properties.chemicalComponentMap.get(r);
+                    if (comp) residueLabels.set(r, comp.name);
+                });
+            }
+        }
+
+        const queries: StructureSelectionQuery[] = [];
+        SetUtils.difference(uniqueResidues, StandardResidues).forEach(r => {
+            const label = residueLabels.get(r) || r;
+            queries.push(ResidueQuery([[r], label], 'Ligand/Non-standard Residue'));
+        });
+        return queries;
     }
 
     private queriesItems: ActionMenu.Items[] = []
@@ -99,8 +154,9 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
     get queries () {
         const { registry } = this.plugin.query.structure;
         if (registry.version !== this.queriesVersion) {
-            this.queriesItems = ActionMenu.createItems(registry.list, {
-                filter: q => q !== StructureSelectionQueries.current,
+            const queries = [...registry.list, ...this.nonStandardResidueQueries, ...this.elementQueries];
+            this.queriesItems = ActionMenu.createItems(queries, {
+                filter: q => q !== StructureSelectionQueries.current && !q.isHidden,
                 label: q => q.label,
                 category: q => q.category,
                 description: q => q.description

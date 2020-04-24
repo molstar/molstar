@@ -229,14 +229,14 @@ const branchedPlusConnected = StructureSelectionQuery('Carbohydrate with Connect
     MS.struct.modifier.includeConnected({
         0: branched.expression, 'layer-count': 1, 'as-whole-residues': true
     })
-]), { category: StructureSelectionCategory.Internal });
+]), { category: StructureSelectionCategory.Internal, isHidden: true });
 
 const branchedConnectedOnly = StructureSelectionQuery('Connected to Carbohydrate', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: branchedPlusConnected.expression,
         by: branched.expression
     })
-]), { category: StructureSelectionCategory.Internal });
+]), { category: StructureSelectionCategory.Internal, isHidden: true });
 
 const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
     MS.struct.combinator.merge([
@@ -290,14 +290,14 @@ const ligandPlusConnected = StructureSelectionQuery('Ligand with Connected', MS.
         ]),
         by: branched.expression
     })
-]), { category: StructureSelectionCategory.Internal });
+]), { category: StructureSelectionCategory.Internal, isHidden: true });
 
 const ligandConnectedOnly = StructureSelectionQuery('Connected to Ligand', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: ligandPlusConnected.expression,
         by: ligand.expression
     })
-]), { category: StructureSelectionCategory.Internal });
+]), { category: StructureSelectionCategory.Internal, isHidden: true });
 
 // residues connected to ligands or branched entities
 const connectedOnly = StructureSelectionQuery('Connected to Ligand or Carbohydrate', MS.struct.modifier.union([
@@ -305,7 +305,7 @@ const connectedOnly = StructureSelectionQuery('Connected to Ligand or Carbohydra
         branchedConnectedOnly.expression,
         ligandConnectedOnly.expression
     ]),
-]), { category: StructureSelectionCategory.Internal });
+]), { category: StructureSelectionCategory.Internal, isHidden: true });
 
 const disulfideBridges = StructureSelectionQuery('Disulfide Bridges', MS.struct.modifier.union([
     MS.struct.modifier.wholeResidues([
@@ -380,6 +380,16 @@ const bonded = StructureSelectionQuery('Residues Bonded to Selection', MS.struct
     referencesCurrent: true
 });
 
+const wholeResidues = StructureSelectionQuery('Whole Residues of Selection', MS.struct.modifier.union([
+    MS.struct.modifier.wholeResidues({
+        0: MS.internal.generator.current()
+    })
+]), {
+    description: 'Expand current selection to whole residues.',
+    category: StructureSelectionCategory.Manipulate,
+    referencesCurrent: true
+});
+
 const StandardAminoAcids = [
     [['HIS'], 'HISTIDINE'],
     [['ARG'], 'ARGININE'],
@@ -390,6 +400,7 @@ const StandardAminoAcids = [
     [['TRP'], 'TRYPTOPHAN'],
     [['ALA'], 'ALANINE'],
     [['MET'], 'METHIONINE'],
+    [['PRO'], 'PROLINE'],
     [['CYS'], 'CYSTEINE'],
     [['ASN'], 'ASPARAGINE'],
     [['VAL'], 'VALINE'],
@@ -402,6 +413,7 @@ const StandardAminoAcids = [
     [['THR'], 'THREONINE'],
     [['SEC'], 'SELENOCYSTEINE'],
     [['PYL'], 'PYRROLYSINE'],
+    [['UNK'], 'UNKNOWN'],
 ].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][];
 
 const StandardNucleicBases = [
@@ -411,12 +423,21 @@ const StandardNucleicBases = [
     [['G', 'DG'], 'GUANOSINE'],
     [['I', 'DI'], 'INOSINE'],
     [['U', 'DU'], 'URIDINE'],
+    [['N', 'DN'], 'UNKNOWN'],
 ].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][];
 
-function ResidueQuery([names, label]: [string[], string], category: string) {
+export function ResidueQuery([names, label]: [string[], string], category: string) {
     return StructureSelectionQuery(`${stringToWords(label)} (${names.join(', ')})`, MS.struct.modifier.union([
         MS.struct.generator.atomGroups({
             'residue-test': MS.core.set.has([MS.set(...names), MS.ammp('auth_comp_id')])
+        })
+    ]), { category });
+}
+
+export function ElementSymbolQuery([names, label]: [string[], string], category: string) {
+    return StructureSelectionQuery(`${stringToWords(label)} (${names.join(', ')})`, MS.struct.modifier.union([
+        MS.struct.generator.atomGroups({
+            'atom-test': MS.core.set.has([MS.set(...names), MS.acp('elementSymbol')])
         })
     ]), { category });
 }
@@ -447,6 +468,7 @@ export const StructureSelectionQueries = {
     surroundings,
     complement,
     bonded,
+    wholeResidues,
 };
 
 export function applyBuiltInSelection(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, query: keyof typeof StructureSelectionQueries, customTag?: string) {
