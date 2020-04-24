@@ -473,45 +473,6 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
     };
 
     await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
-    /*
-    let structures: Structure[] = await getAllAssambly(plugin, model);
-    const builder = Structure.Builder({ label: name });
-    let offsetInvariantId = 0;
-    for (const s of structures) {
-        let maxInvariantId = 0;
-        for (const u of s.units) {
-            const invariantId = u.invariantId + offsetInvariantId;
-            if (u.invariantId > maxInvariantId) maxInvariantId = u.invariantId;
-            builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, Unit.Trait.None, invariantId);
-        }
-        offsetInvariantId += maxInvariantId + 1;
-    }
-
-    const structure = builder.getStructure();
-    for( let i = 0, il = structure.models.length; i < il; ++i) {
-        const { trajectoryInfo } = structure.models[i];
-        trajectoryInfo.size = il;
-        trajectoryInfo.index = i;
-    }
-    b = state.build().toRoot();
-    const SO = await b.apply(TransformStructureTest, {structure}, { state: { isGhost: true } }).commit({ revertOnError: true });;
-    // const SO = new PSO.Molecule.Structure(structure, { label: name });
-    const membraneParams = {
-        representation: params.preset.representation,
-    };
-    await CellpackMembranePreset.apply(SO, membraneParams, plugin);
-   
-    const membrane = await b.apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.StructureFromModel)
-        .commit({ revertOnError: true });
-    for (const s of structures) {
-        StateTransforms.Model.StructureFromModel(s);
-        CellpackMembranePreset.apply(s, membraneParams, plugin);
-    }
-    //await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
-    */
 }
 
 async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
