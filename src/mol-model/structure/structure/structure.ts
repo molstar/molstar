@@ -29,6 +29,7 @@ import { CustomProperties } from '../common/custom-property';
 import { AtomicHierarchy } from '../model/properties/atomic';
 import { StructureSelection } from '../query/selection';
 import { getBoundary } from '../../../mol-math/geometry/boundary';
+import { ElementSymbol } from '../model/types';
 
 class Structure {
     /** Maps unit.id to unit */
@@ -50,6 +51,7 @@ class Structure {
         masterModel?: Model,
         representativeModel?: Model,
         uniqueResidueNames?: Set<string>,
+        uniqueElementSymbols?: Set<ElementSymbol>,
         entityIndices?: ReadonlyArray<EntityIndex>,
         uniqueAtomicResidueIndices?: ReadonlyMap<UUID, ReadonlyArray<ResidueIndex>>,
         serialMapping?: SerialMapping,
@@ -265,6 +267,11 @@ class Structure {
             || (this._props.uniqueResidueNames = getUniqueResidueNames(this));
     }
 
+    get uniqueElementSymbols() {
+        return this._props.uniqueElementSymbols
+            || (this._props.uniqueElementSymbols = getUniqueElementSymbols(this));
+    }
+
     get entityIndices() {
         return this._props.entityIndices
             || (this._props.entityIndices = getEntityIndices(this));
@@ -403,7 +410,8 @@ function getUniqueResidueNames(s: Structure) {
     const prop = StructureProperties.residue.label_comp_id;
     const names = new Set<string>();
     const loc = StructureElement.Location.create(s);
-    for (const unit of s.units) {
+    for (const unitGroup of s.unitSymmetryGroups) {
+        const unit = unitGroup.units[0];
         // TODO: support coarse unit?
         if (!Unit.isAtomic(unit)) continue;
         const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
@@ -415,6 +423,21 @@ function getUniqueResidueNames(s: Structure) {
         }
     }
     return names;
+}
+
+function getUniqueElementSymbols(s: Structure) {
+    const prop = StructureProperties.atom.type_symbol;
+    const symbols = new Set<ElementSymbol>();
+    const loc = StructureElement.Location.create(s);
+    for (const unit of s.units) {
+        if (!Unit.isAtomic(unit)) continue;
+        loc.unit = unit;
+        for (let i = 0, il = unit.elements.length; i < il; ++i) {
+            loc.element = unit.elements[i];
+            symbols.add(prop(loc));
+        }
+    }
+    return symbols;
 }
 
 function getEntityIndices(structure: Structure): ReadonlyArray<EntityIndex> {
