@@ -16,6 +16,7 @@ export type ColorAccent = 'cyan' | 'red' | 'gray' | 'green' | 'purple' | 'blue' 
 
 export class ControlGroup extends React.Component<{
     header: string,
+    title?: string,
     initialExpanded?: boolean,
     hideExpander?: boolean,
     hideOffset?: boolean,
@@ -41,7 +42,7 @@ export class ControlGroup extends React.Component<{
 
         // TODO: customize header style (bg color, togle button etc)
         return <div className='msp-control-group-wrapper' style={{ position: 'relative', marginTop: this.props.noTopMargin ? 0 : void 0 }}>
-            <div className='msp-control-group-header' style={{ marginLeft: this.props.headerLeftMargin }}>
+            <div className='msp-control-group-header' style={{ marginLeft: this.props.headerLeftMargin }} title={this.props.title}>
                 <Button onClick={this.headerClicked}>
                     {!this.props.hideExpander && <Icon svg={this.state.isExpanded ? ArrowRight : ArrowDropDown} />}
                     {this.props.topRightIcon && <Icon svg={this.props.topRightIcon} style={{ position: 'absolute', right: '2px', top: 0 }} />}

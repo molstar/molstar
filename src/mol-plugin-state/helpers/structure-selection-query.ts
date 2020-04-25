@@ -6,8 +6,8 @@
  */
 
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
-import { QueryContext, Structure, StructureQuery, StructureSelection } from '../../mol-model/structure';
-import { BondType, NucleicBackboneAtoms, ProteinBackboneAtoms, SecondaryStructureType } from '../../mol-model/structure/model/types';
+import { QueryContext, Structure, StructureQuery, StructureSelection, StructureProperties, StructureElement } from '../../mol-model/structure';
+import { BondType, NucleicBackboneAtoms, ProteinBackboneAtoms, SecondaryStructureType, AminoAcidNamesL, RnaBaseNames, DnaBaseNames, WaterNames, ElementSymbol } from '../../mol-model/structure/model/types';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import Expression from '../../mol-script/language/expression';
@@ -15,9 +15,9 @@ import { compile } from '../../mol-script/runtime/query/compiler';
 import { StateBuilder } from '../../mol-state';
 import { RuntimeContext } from '../../mol-task';
 import { SetUtils } from '../../mol-util/set';
-import { stringToWords } from '../../mol-util/string';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
+import { ElementNames } from '../../mol-model/structure/model/properties/atomic/types';
 
 export enum StructureSelectionCategory {
     Type = 'Type',
@@ -41,6 +41,7 @@ interface StructureSelectionQuery {
     readonly description: string
     readonly category: string
     readonly isHidden: boolean
+    readonly priority: number
     readonly referencesCurrent: boolean
     readonly query: StructureQuery
     readonly ensureCustomProperties?: (ctx: CustomProperty.Context, structure: Structure) => Promise<void>
@@ -51,6 +52,7 @@ interface StructureSelectionQueryProps {
     description?: string
     category?: string
     isHidden?: boolean
+    priority?: number
     referencesCurrent?: boolean
     ensureCustomProperties?: (ctx: CustomProperty.Context, structure: Structure) => Promise<void>
 }
@@ -63,6 +65,7 @@ function StructureSelectionQuery(label: string, expression: Expression, props: S
         description: props.description || '',
         category: props.category ?? StructureSelectionCategory.Misc,
         isHidden: !!props.isHidden,
+        priority: props.priority || 0,
         referencesCurrent: !!props.referencesCurrent,
         get query() {
             if (!_query) _query = compile<StructureSelection>(expression);
@@ -81,7 +84,7 @@ function StructureSelectionQuery(label: string, expression: Expression, props: S
     };
 }
 
-const all = StructureSelectionQuery('All', MS.struct.generator.all(), { category: '' });
+const all = StructureSelectionQuery('All', MS.struct.generator.all(), { category: '', priority: 1000 });
 const current = StructureSelectionQuery('Current Selection', MS.internal.generator.current(), { category: '', referencesCurrent: true });
 
 const polymer = StructureSelectionQuery('Polymer', MS.struct.modifier.union([
@@ -426,20 +429,96 @@ const StandardNucleicBases = [
     [['N', 'DN'], 'UNKNOWN'],
 ].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][];
 
-export function ResidueQuery([names, label]: [string[], string], category: string) {
-    return StructureSelectionQuery(`${stringToWords(label)} (${names.join(', ')})`, MS.struct.modifier.union([
+export function ResidueQuery([names, label]: [string[], string], category: string, priority = 0) {
+    return StructureSelectionQuery(`${label} (${names.join(', ')})`, MS.struct.modifier.union([
         MS.struct.generator.atomGroups({
             'residue-test': MS.core.set.has([MS.set(...names), MS.ammp('auth_comp_id')])
         })
-    ]), { category });
+    ]), { category, priority, description: label });
 }
 
-export function ElementSymbolQuery([names, label]: [string[], string], category: string) {
-    return StructureSelectionQuery(`${stringToWords(label)} (${names.join(', ')})`, MS.struct.modifier.union([
+export function ElementSymbolQuery([names, label]: [string[], string], category: string, priority: number) {
+    return StructureSelectionQuery(`${label} (${names.join(', ')})`, MS.struct.modifier.union([
         MS.struct.generator.atomGroups({
             'atom-test': MS.core.set.has([MS.set(...names), MS.acp('elementSymbol')])
         })
-    ]), { category });
+    ]), { category, priority });
+}
+
+export function EntityDescriptionQuery([description, label]: [string[], string], category: string, priority: number) {
+    return StructureSelectionQuery(`${label}`, MS.struct.modifier.union([
+        MS.struct.generator.atomGroups({
+            'entity-test': MS.core.list.equal([MS.list(...description), MS.ammp('entityDescription')])
+        })
+    ]), { category, priority, description: description.join(', ') });
+}
+
+const StandardResidues = SetUtils.unionMany(
+    AminoAcidNamesL, RnaBaseNames, DnaBaseNames, WaterNames
+);
+
+export function getElementQueries(structures: Structure[]) {
+    const uniqueElements = new Set<ElementSymbol>();
+    for (const structure of structures) {
+        structure.uniqueElementSymbols.forEach(e => uniqueElements.add(e));
+    }
+
+    const queries: StructureSelectionQuery[] = [];
+    uniqueElements.forEach(e => {
+        const label = ElementNames[e] || e;
+        queries.push(ElementSymbolQuery([[e], label], 'Element Symbol', 0));
+    });
+    return queries;
+}
+
+export function getNonStandardResidueQueries(structures: Structure[]) {
+    const residueLabels = new Map<string, string>();
+    const uniqueResidues = new Set<string>();
+    for (const structure of structures) {
+        structure.uniqueResidueNames.forEach(r => uniqueResidues.add(r));
+        for (const m of structure.models) {
+            structure.uniqueResidueNames.forEach(r => {
+                const comp = m.properties.chemicalComponentMap.get(r);
+                if (comp) residueLabels.set(r, comp.name);
+            });
+        }
+    }
+
+    const queries: StructureSelectionQuery[] = [];
+    SetUtils.difference(uniqueResidues, StandardResidues).forEach(r => {
+        const label = residueLabels.get(r) || r;
+        queries.push(ResidueQuery([[r], label], 'Ligand/Non-standard Residue', 200));
+    });
+    return queries;
+}
+
+export function getPolymerAndBranchedEntityQueries(structures: Structure[]) {
+    const uniqueEntities = new Map<string, string[]>();
+    const l = StructureElement.Location.create();
+    for (const structure of structures) {
+        l.structure = structure;
+        for (const ug of structure.unitSymmetryGroups) {
+            l.unit = ug.units[0];
+            l.element = ug.elements[0];
+            const entityType = StructureProperties.entity.type(l);
+            if (entityType === 'polymer' || entityType === 'branched') {
+                const description = StructureProperties.entity.pdbx_description(l);
+                uniqueEntities.set(description.join(', '), description);
+            }
+        }
+    }
+
+    const queries: StructureSelectionQuery[] = [];
+    uniqueEntities.forEach((v, k) => {
+        queries.push(EntityDescriptionQuery([v, k], 'Polymer/Carbohydrate Entities', 300));
+    });
+    return queries;
+}
+
+export function applyBuiltInSelection(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, query: keyof typeof StructureSelectionQueries, customTag?: string) {
+    return to.apply(StateTransforms.Model.StructureSelectionFromExpression,
+        { expression: StructureSelectionQueries[query].expression, label: StructureSelectionQueries[query].label },
+        { tags: customTag ? [query, customTag] : [query] });
 }
 
 export const StructureSelectionQueries = {
@@ -470,12 +549,6 @@ export const StructureSelectionQueries = {
     bonded,
     wholeResidues,
 };
-
-export function applyBuiltInSelection(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, query: keyof typeof StructureSelectionQueries, customTag?: string) {
-    return to.apply(StateTransforms.Model.StructureSelectionFromExpression,
-        { expression: StructureSelectionQueries[query].expression, label: StructureSelectionQueries[query].label },
-        { tags: customTag ? [query, customTag] : [query] });
-}
 
 export class StructureSelectionQueryRegistry {
     list: StructureSelectionQuery[] = []

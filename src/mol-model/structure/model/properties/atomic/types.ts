@@ -15,12 +15,7 @@ export const enum Elements {
 }
 
 export const ElementNames: { [k: string]: string } = {
-    'H': 'Hydrogen',
-    'C': 'Carbon',
-    'N': 'Nitrogen',
-    'O': 'Oxygen',
-    'S': 'Sulfur',
-    'FE': 'Iron',
+    H: 'Hydrogen', HE: 'Helium', LI: 'Lithium', BE: 'Beryllium', B: 'Boron', C: 'Carbon', N: 'Nitrogen', O: 'Oxygen', F: 'Fluorine', NE: 'Neon', NA: 'Sodium', MG: 'Magnesium', AL: 'Aluminum', SI: 'Silicon', P: 'Phosphorus', S: 'Sulfur', CL: 'Chlorine', AR: 'Argon', K: 'Potassium', CA: 'Calcium', SC: 'Scandium', TI: 'Titanium', V: 'Vanadium', CR: 'Chromium', MN: 'Manganese', FE: 'Iron', CO: 'Cobalt', NI: 'Nickel', CU: 'Copper', ZN: 'Zinc', GA: 'Gallium', GE: 'Germanium', AS: 'Arsenic', SE: 'Selenium', BR: 'Bromine', KR: 'Krypton', RB: 'Rubidium', SR: 'Strontium', Y: 'Yttrium', ZR: 'Zirconium', NB: 'Niobium', MO: 'Molybdenum', TC: 'Technetium', RU: 'Ruthenium', RH: 'Rhodium', PD: 'Palladium', AG: 'Silver', CD: 'Cadmium', IN: 'Indium', SN: 'Tin', SB: 'Antimony', TE: 'Tellurium', I: 'Iodine', XE: 'Xenon', CS: 'Cesium', BA: 'Barium', LA: 'Lanthanum', CE: 'Cerium', PR: 'Praseodymium', ND: 'Neodymium', PM: 'Promethium', SM: 'Samarium', EU: 'Europium', GD: 'Gadolinium', TB: 'Terbium', DY: 'Dysprosium', HO: 'Holmium', ER: 'Erbium', TM: 'Thulium', YB: 'Ytterbium', LU: 'Lutetium', HF: 'Hafnium', TA: 'Tantalum', W: 'Wolfram', RE: 'Rhenium', OS: 'Osmium', IR: 'Iridium', PT: 'Platinum', AU: 'Gold', HG: 'Mercury', TL: 'Thallium', PB: 'Lead', BI: 'Bismuth', PO: 'Polonium', AT: 'Astatine', RN: 'Radon', FR: 'Francium', RA: 'Radium', AC: 'Actinium', TH: 'Thorium', PA: 'Protactinium', U: 'Uranium', NP: 'Neptunium', PU: 'Plutonium', AM: 'Americium', CM: 'Curium', BK: 'Berkelium', CF: 'Californium', ES: 'Einsteinium', FM: 'Fermium', MD: 'Mendelevium', NO: 'Nobelium', LR: 'Lawrencium', RF: 'Rutherfordium', DB: 'Dubnium', SG: 'Seaborgium', BH: 'Bohrium', HS: 'Hassium', MT: 'Meitnerium', DS: 'Darmstadtium', RG: 'Roentgenium', CN: 'Copernicium', NH: 'Nihonium', FL: 'Flerovium', MC: 'Moscovium', LV: 'Livermorium', TS: 'Tennessine', OG: 'Oganesson'
 };
 
 export const AlkaliMetals = new Set<ElementSymbol>(['LI', 'NA', 'K', 'RB', 'CS', 'FR'] as ElementSymbol[]);

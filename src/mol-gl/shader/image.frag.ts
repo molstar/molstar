@@ -35,20 +35,20 @@ varying float vInstance;
             const float C = 0.333;
         #endif
 
-        float cubicFilter( float x ){
+        float cubicFilter(float x){
             float f = x;
-            if( f < 0.0 ){
+            if (f < 0.0) {
                 f = -f;
             }
-            if( f < 1.0 ){
-                return ( ( 12.0 - 9.0 * B - 6.0 * C ) * ( f * f * f ) +
-                    ( -18.0 + 12.0 * B + 6.0 *C ) * ( f * f ) +
-                    ( 6.0 - 2.0 * B ) ) / 6.0;
-            }else if( f >= 1.0 && f < 2.0 ){
-                return ( ( -B - 6.0 * C ) * ( f * f * f )
-                    + ( 6.0 * B + 30.0 * C ) * ( f *f ) +
-                    ( - ( 12.0 * B ) - 48.0 * C  ) * f +
-                    8.0 * B + 24.0 * C ) / 6.0;
+            if (f < 1.0) {
+                return ((12.0 - 9.0 * B - 6.0 * C) * (f * f * f) +
+                    (-18.0 + 12.0 * B + 6.0 * C) * (f * f) +
+                    (6.0 - 2.0 * B)) / 6.0;
+            }else if (f >= 1.0 && f < 2.0){
+                return ((-B - 6.0 * C) * ( f * f * f)
+                    + (6.0 * B + 30.0 * C) * (f * f) +
+                    (-(12.0 * B) - 48.0 * C) * f +
+                    8.0 * B + 24.0 * C) / 6.0;
             }else{
                 return 0.0;
             }
@@ -92,6 +92,8 @@ void main() {
     #else
         vec4 imageData = texture2D(tImageTex, vUv);
     #endif
+    imageData.a = clamp(imageData.a, 0.0, 1.0);
+    if (imageData.a > 0.9) imageData.a = 1.0;
 
     #if defined(dRenderVariant_pick)
         if (imageData.a < 0.3)
@@ -110,7 +112,7 @@ void main() {
             gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); // set to empty picking id
         }
     #elif defined(dRenderVariant_depth)
-        if (imageData.a < 0.01)
+        if (imageData.a < 0.05)
             discard;
 
         #ifdef enabledFragDepth
@@ -119,7 +121,7 @@ void main() {
             gl_FragColor = packDepthToRGBA(gl_FragCoord.z);
         #endif
     #elif defined(dRenderVariant_color)
-        if (imageData.a < 0.01)
+        if (imageData.a < 0.05)
             discard;
 
         gl_FragColor = imageData;

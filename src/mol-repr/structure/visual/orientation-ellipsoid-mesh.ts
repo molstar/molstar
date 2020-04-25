@@ -21,11 +21,12 @@ import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { UnitIndex } from '../../../mol-model/structure/structure/element/element';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { MoleculeType } from '../../../mol-model/structure/model/types';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 export const OrientationEllipsoidMeshParams = {
     ...UnitsMeshParams,
     sizeFactor: PD.Numeric(1, { min: 0, max: 2, step: 0.1 }),
-    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
 };
 export type OrientationEllipsoidMeshParams = typeof OrientationEllipsoidMeshParams
 
@@ -80,7 +81,7 @@ export function createOrientationEllipsoidMesh(ctx: VisualContext, unit: Unit, s
     const radiusScale = Vec3.create(size[2], size[1], size[0]);
 
     builderState.currentGroup = 0;
-    addEllipsoid(builderState, origin, dirA, dirB, radiusScale, detail);
+    addEllipsoid(builderState, origin, dirA, dirB, radiusScale, detail + 1);
 
     const m = MeshBuilder.getMesh(builderState);
 

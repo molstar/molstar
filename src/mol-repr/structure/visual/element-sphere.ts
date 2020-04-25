@@ -10,12 +10,13 @@ import { UnitsMeshParams, UnitsSpheresParams, UnitsVisual, UnitsSpheresVisual, U
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { createElementSphereImpostor, ElementIterator, getElementLoci, eachElement, createElementSphereMesh } from './util/element';
 import { VisualUpdateState } from '../../util';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 export const ElementSphereParams = {
     ...UnitsMeshParams,
     ...UnitsSpheresParams,
     sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
-    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     ignoreHydrogens: PD.Boolean(false),
     traceOnly: PD.Boolean(false),
 };

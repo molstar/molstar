@@ -20,7 +20,7 @@ export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
         const cmd = this.props;
         const section = <Section items={cmd.items} onSelect={cmd.onSelect} current={cmd.current} multiselect={this.props.multiselect} noOffset={this.props.noOffset} noAccent={this.props.noAccent} />;
         return <div className={`msp-action-menu-options${cmd.header ? '' : ' msp-action-menu-options-no-header'}`}>
-            {cmd.header && <ControlGroup header={cmd.header} initialExpanded={true} hideExpander={true} hideOffset onHeaderClick={this.hide} topRightIcon={Close}>
+            {cmd.header && <ControlGroup header={cmd.header} title={cmd.title} initialExpanded={true} hideExpander={true} hideOffset onHeaderClick={this.hide} topRightIcon={Close}>
                 {section}
             </ControlGroup>}
             {!cmd.header && section}
@@ -33,6 +33,7 @@ export namespace ActionMenu {
         items: Items,
         onSelect: OnSelect | OnSelectMany,
         header?: string,
+        title?: string,
         current?: Item,
         multiselect?: boolean,
         noOffset?: boolean,

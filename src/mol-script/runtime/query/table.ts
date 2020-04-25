@@ -14,6 +14,7 @@ import { upperCaseAny } from '../../../mol-util/string';
 import { VdwRadius, AtomWeight, AtomNumber } from '../../../mol-model/structure/model/properties/atomic';
 import { cantorPairing } from '../../../mol-data/util';
 import { bundleElementImpl, bundleGenerator } from '../../../mol-model/structure/query/queries/internal';
+import { arrayEqual } from '../../../mol-util/array';
 
 const C = QuerySymbolRuntime.Const;
 const D = QuerySymbolRuntime.Dynamic;
@@ -151,6 +152,7 @@ const symbols = [
 
     // ============= LIST ================
     C(MolScript.core.list.getAt, (ctx, v) => v[0](ctx)[v[1](ctx)]),
+    C(MolScript.core.list.equal, (ctx, v) => arrayEqual(v[0](ctx), v[1](ctx))),
 
     // ============= SET ================
     C(MolScript.core.set.has, function core_set_has(ctx, v) { return v[0](ctx).has(v[1](ctx)); }),
@@ -334,6 +336,7 @@ const symbols = [
 
     D(MolScript.structureQuery.atomProperty.macromolecular.entityType, atomProp(StructureProperties.entity.type)),
     D(MolScript.structureQuery.atomProperty.macromolecular.entitySubtype, atomProp(StructureProperties.entity.subtype)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.entityDescription, atomProp(StructureProperties.entity.pdbx_description)),
     D(MolScript.structureQuery.atomProperty.macromolecular.objectPrimitive, atomProp(StructureProperties.unit.object_primitive)),
 
     D(MolScript.structureQuery.atomProperty.macromolecular.isNonStandard, atomProp(StructureProperties.residue.isNonStandard)),

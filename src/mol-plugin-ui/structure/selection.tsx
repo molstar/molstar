@@ -11,7 +11,7 @@ import Brush from '@material-ui/icons/Brush';
 import Restore from '@material-ui/icons/Restore';
 import Remove from '@material-ui/icons/Remove';
 import * as React from 'react';
-import { StructureSelectionQueries, StructureSelectionQuery, ResidueQuery, ElementSymbolQuery } from '../../mol-plugin-state/helpers/structure-selection-query';
+import { StructureSelectionQueries, StructureSelectionQuery, getNonStandardResidueQueries, getElementQueries, getPolymerAndBranchedEntityQueries } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
 import { StructureRef, StructureComponentRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
@@ -25,9 +25,7 @@ import { Button, ControlGroup, IconButton, ToggleButton } from '../controls/comm
 import { ParameterControls, ParamOnChange, PureSelectControl } from '../controls/parameters';
 import { Union, Subtract, Intersect, SetSvg as SetSvg, CubeSvg } from '../controls/icons';
 import { AddComponentControls } from './components';
-import { SetUtils } from '../../mol-util/set';
-import { AminoAcidNamesL, RnaBaseNames, DnaBaseNames, WaterNames, ElementSymbol } from '../../mol-model/structure/model/types';
-import { ElementNames } from '../../mol-model/structure/model/properties/atomic/types';
+import Structure from '../../mol-model/structure/structure/structure';
 
 const StructureSelectionParams = {
     granularity: InteractivityManager.Params.granularity,
@@ -47,10 +45,6 @@ const ActionHeader = new Map<StructureSelectionModifier, string>([
     ['intersect', 'Intersect Selection'],
     ['set', 'Set Selection']
 ] as const);
-
-const StandardResidues = SetUtils.unionMany(
-    AminoAcidNamesL, RnaBaseNames, DnaBaseNames, WaterNames
-);
 
 export class StructureSelectionActionsControls extends PluginUIComponent<{}, StructureSelectionActionsControlsState> {
     state = {
@@ -108,45 +102,13 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         }
     }
 
-    get elementQueries () {
-        const uniqueElements = new Set<ElementSymbol>();
+    get structures () {
+        const structures: Structure[] = [];
         for (const s of this.plugin.managers.structure.hierarchy.selection.structures) {
             const structure = s.cell.obj?.data;
-            if (!structure) continue;
-
-            structure.uniqueElementSymbols.forEach(e => uniqueElements.add(e));
+            if (structure) structures.push(structure);
         }
-
-        const queries: StructureSelectionQuery[] = [];
-        uniqueElements.forEach(e => {
-            const label = ElementNames[e] || e;
-            queries.push(ElementSymbolQuery([[e], label], 'Element Symbol'));
-        });
-        return queries;
-    }
-
-    get nonStandardResidueQueries () {
-        const residueLabels = new Map<string, string>();
-        const uniqueResidues = new Set<string>();
-        for (const s of this.plugin.managers.structure.hierarchy.selection.structures) {
-            const structure = s.cell.obj?.data;
-            if (!structure) continue;
-
-            structure.uniqueResidueNames.forEach(r => uniqueResidues.add(r));
-            for (const m of structure.models) {
-                structure.uniqueResidueNames.forEach(r => {
-                    const comp = m.properties.chemicalComponentMap.get(r);
-                    if (comp) residueLabels.set(r, comp.name);
-                });
-            }
-        }
-
-        const queries: StructureSelectionQuery[] = [];
-        SetUtils.difference(uniqueResidues, StandardResidues).forEach(r => {
-            const label = residueLabels.get(r) || r;
-            queries.push(ResidueQuery([[r], label], 'Ligand/Non-standard Residue'));
-        });
-        return queries;
+        return structures;
     }
 
     private queriesItems: ActionMenu.Items[] = []
@@ -154,7 +116,13 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
     get queries () {
         const { registry } = this.plugin.query.structure;
         if (registry.version !== this.queriesVersion) {
-            const queries = [...registry.list, ...this.nonStandardResidueQueries, ...this.elementQueries];
+            const structures = this.structures;
+            const queries = [
+                ...registry.list,
+                ...getPolymerAndBranchedEntityQueries(structures),
+                ...getNonStandardResidueQueries(structures),
+                ...getElementQueries(structures)
+            ].sort((a, b) => b.priority - a.priority);
             this.queriesItems = ActionMenu.createItems(queries, {
                 filter: q => q !== StructureSelectionQueries.current && !q.isHidden,
                 label: q => q.label,
@@ -204,29 +172,29 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
 
         return <>
             <div className='msp-flex-row' style={{ background: 'none' }}>
-                <PureSelectControl title={`Picking Level`} param={StructureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />
-                <ToggleButton icon={Union} title={ActionHeader.get('add')} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
-                <ToggleButton icon={Subtract} title={ActionHeader.get('remove')} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
-                <ToggleButton icon={Intersect} title={ActionHeader.get('intersect')} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
-                <ToggleButton icon={SetSvg} title={ActionHeader.get('set')} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
+                <PureSelectControl title={`Picking Level for selecting and highlighting`} param={StructureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />
+                <ToggleButton icon={Union} title={`${ActionHeader.get('add')}. Hold shift key to keep menu open.`} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
+                <ToggleButton icon={Subtract} title={`${ActionHeader.get('remove')}. Hold shift key to keep menu open.`} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
+                <ToggleButton icon={Intersect} title={`${ActionHeader.get('intersect')}. Hold shift key to keep menu open.`} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
+                <ToggleButton icon={SetSvg} title={`${ActionHeader.get('set')}. Hold shift key to keep menu open.`} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
 
-                <ToggleButton icon={Brush} title='Color' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} style={{ marginLeft: '10px' }}  />
-                <ToggleButton icon={CubeSvg} title='Create Representation' toggle={this.toggleAddRepr} isSelected={this.state.action === 'add-repr'} disabled={this.isDisabled} />
-                <IconButton svg={Remove} title='Subtract from Representations' onClick={this.subtract} disabled={this.isDisabled} />
+                <ToggleButton icon={Brush} title='Color Selection' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} style={{ marginLeft: '10px' }}  />
+                <ToggleButton icon={CubeSvg} title='Create Representation of Selection' toggle={this.toggleAddRepr} isSelected={this.state.action === 'add-repr'} disabled={this.isDisabled} />
+                <IconButton svg={Remove} title='Subtract Selection from Representations' onClick={this.subtract} disabled={this.isDisabled} />
                 <IconButton svg={Restore} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />
 
                 <IconButton svg={CancelOutlined} title='Turn selection mode off' onClick={this.turnOff} style={{ marginLeft: '10px' }} />
             </div>
             {(this.state.action && this.state.action !== 'color' && this.state.action !== 'add-repr') && <div className='msp-selection-viewport-controls-actions'>
-                <ActionMenu header={ActionHeader.get(this.state.action as StructureSelectionModifier)} items={this.queries} onSelect={this.selectQuery} noOffset />
+                <ActionMenu header={ActionHeader.get(this.state.action as StructureSelectionModifier)} title='Click to close.' items={this.queries} onSelect={this.selectQuery} noOffset />
             </div>}
             {this.state.action === 'color' && <div className='msp-selection-viewport-controls-actions'>
-                <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor} topRightIcon={Close}>
+                <ControlGroup header='Color' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor} topRightIcon={Close}>
                     <ApplyColorControls onApply={this.toggleColor} />
                 </ControlGroup>
             </div>}
             {this.state.action === 'add-repr' && <div className='msp-selection-viewport-controls-actions'>
-                <ControlGroup header='Add Representation' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleAddRepr} topRightIcon={Close}>
+                <ControlGroup header='Add Representation' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleAddRepr} topRightIcon={Close}>
                     <AddComponentControls onApply={this.toggleAddRepr} forSelection />
                 </ControlGroup>
             </div>}

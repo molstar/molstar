@@ -7,7 +7,7 @@
 import { VolumeData, VolumeIsoValue } from './data';
 import { OrderedSet } from '../../mol-data/int';
 import { Sphere3D } from '../../mol-math/geometry';
-import { Vec3 } from '../../mol-math/linear-algebra';
+import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 
 export namespace Volume {
@@ -86,7 +86,8 @@ export namespace Volume {
                 boundaryHelper.radiusPosition(tmpBoundaryPos);
             }
 
-            return boundaryHelper.getSphere(boundingSphere);
+            const bs = boundaryHelper.getSphere(boundingSphere);
+            return Sphere3D.expand(bs, bs, Mat4.getMaxScaleOnAxis(transform) * 10);
         }
     }
 }

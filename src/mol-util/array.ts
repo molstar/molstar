@@ -105,7 +105,7 @@ export function arraySetRemove<T>(xs: T[], x: T) {
     return true;
 }
 
-export function arrayEqual<T>(xs?: T[], ys?: T[]) {
+export function arrayEqual<T>(xs?: ArrayLike<T>, ys?: ArrayLike<T>) {
     if (!xs || xs.length === 0) return !ys || ys.length === 0;
     if (!ys) return false;
 
