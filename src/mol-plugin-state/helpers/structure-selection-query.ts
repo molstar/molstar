@@ -394,63 +394,68 @@ const wholeResidues = StructureSelectionQuery('Whole Residues of Selection', MS.
 });
 
 const StandardAminoAcids = [
-    [['HIS'], 'HISTIDINE'],
-    [['ARG'], 'ARGININE'],
-    [['LYS'], 'LYSINE'],
-    [['ILE'], 'ISOLEUCINE'],
-    [['PHE'], 'PHENYLALANINE'],
-    [['LEU'], 'LEUCINE'],
-    [['TRP'], 'TRYPTOPHAN'],
-    [['ALA'], 'ALANINE'],
-    [['MET'], 'METHIONINE'],
-    [['PRO'], 'PROLINE'],
-    [['CYS'], 'CYSTEINE'],
-    [['ASN'], 'ASPARAGINE'],
-    [['VAL'], 'VALINE'],
-    [['GLY'], 'GLYCINE'],
-    [['SER'], 'SERINE'],
-    [['GLN'], 'GLUTAMINE'],
-    [['TYR'], 'TYROSINE'],
-    [['ASP'], 'ASPARTIC ACID'],
-    [['GLU'], 'GLUTAMIC ACID'],
-    [['THR'], 'THREONINE'],
-    [['SEC'], 'SELENOCYSTEINE'],
-    [['PYL'], 'PYRROLYSINE'],
-    [['UNK'], 'UNKNOWN'],
+    [['HIS'], 'Histidine'],
+    [['ARG'], 'Arginine'],
+    [['LYS'], 'Lysine'],
+    [['ILE'], 'Isoleucine'],
+    [['PHE'], 'Phenylalanine'],
+    [['LEU'], 'Leucine'],
+    [['TRP'], 'Tryptophan'],
+    [['ALA'], 'Alanine'],
+    [['MET'], 'Methionine'],
+    [['PRO'], 'Proline'],
+    [['CYS'], 'Cysteine'],
+    [['ASN'], 'Asparagine'],
+    [['VAL'], 'Valine'],
+    [['GLY'], 'Glycine'],
+    [['SER'], 'Serine'],
+    [['GLN'], 'Glutamine'],
+    [['TYR'], 'Tyrosine'],
+    [['ASP'], 'Aspartic Acid'],
+    [['GLU'], 'Glutamic Acid'],
+    [['THR'], 'Threonine'],
+    [['SEC'], 'Selenocysteine'],
+    [['PYL'], 'Pyrrolysine'],
+    [['UNK'], 'Unknown'],
 ].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][];
 
 const StandardNucleicBases = [
-    [['A', 'DA'], 'ADENOSINE'],
-    [['C', 'DC'], 'CYTIDINE'],
-    [['T', 'DT'], 'THYMIDINE'],
-    [['G', 'DG'], 'GUANOSINE'],
-    [['I', 'DI'], 'INOSINE'],
-    [['U', 'DU'], 'URIDINE'],
-    [['N', 'DN'], 'UNKNOWN'],
+    [['A', 'DA'], 'Adenosine'],
+    [['C', 'DC'], 'Cytidine'],
+    [['T', 'DT'], 'Thymidine'],
+    [['G', 'DG'], 'Guanosine'],
+    [['I', 'DI'], 'Inosine'],
+    [['U', 'DU'], 'Uridine'],
+    [['N', 'DN'], 'Unknown'],
 ].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][];
 
 export function ResidueQuery([names, label]: [string[], string], category: string, priority = 0) {
-    return StructureSelectionQuery(`${label} (${names.join(', ')})`, MS.struct.modifier.union([
+    const description = names.length === 1 && !StandardResidues.has(names[0])
+        ? `[${names[0]}] ${label}`
+        : `${label} (${names.join(', ')})`;
+    return StructureSelectionQuery(description, MS.struct.modifier.union([
         MS.struct.generator.atomGroups({
             'residue-test': MS.core.set.has([MS.set(...names), MS.ammp('auth_comp_id')])
         })
-    ]), { category, priority, description: label });
+    ]), { category, priority, description });
 }
 
 export function ElementSymbolQuery([names, label]: [string[], string], category: string, priority: number) {
-    return StructureSelectionQuery(`${label} (${names.join(', ')})`, MS.struct.modifier.union([
+    const description = `${label} (${names.join(', ')})`;
+    return StructureSelectionQuery(description, MS.struct.modifier.union([
         MS.struct.generator.atomGroups({
             'atom-test': MS.core.set.has([MS.set(...names), MS.acp('elementSymbol')])
         })
-    ]), { category, priority });
+    ]), { category, priority, description });
 }
 
-export function EntityDescriptionQuery([description, label]: [string[], string], category: string, priority: number) {
+export function EntityDescriptionQuery([names, label]: [string[], string], category: string, priority: number) {
+    const description = `${label}`;
     return StructureSelectionQuery(`${label}`, MS.struct.modifier.union([
         MS.struct.generator.atomGroups({
-            'entity-test': MS.core.list.equal([MS.list(...description), MS.ammp('entityDescription')])
+            'entity-test': MS.core.list.equal([MS.list(...names), MS.ammp('entityDescription')])
         })
-    ]), { category, priority, description: description.join(', ') });
+    ]), { category, priority, description });
 }
 
 const StandardResidues = SetUtils.unionMany(
