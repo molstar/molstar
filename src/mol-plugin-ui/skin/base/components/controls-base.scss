@@ -88,21 +88,18 @@
     outline: none;
 }
 
-// .msp-btn-icon, .msp-btn-icon-small {
-//     svg {
-//         display: inline-flex;
-//         vertical-align: middle;
-//         font-size: 1rem;
-//         margin-bottom: 3px;
-//     }
-// }
-
 .msp-material-icon {
     svg {
         display: inline-flex;
         vertical-align: middle;
         font-size: 1rem;
         margin-bottom: 3px;
+
+        fill: currentColor;
+        width: 1em;
+        height: 1em;
+        flex-shrink: 0;
+        user-select: none;
     }
 }
 
@@ -270,7 +267,7 @@ select[multiple],
 select[size] {
     height: auto;
 }
-  
+
 // Reset height for `textarea`s
 textarea.msp-form-control {
     height: auto;
