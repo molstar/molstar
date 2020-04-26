@@ -92,6 +92,12 @@
             // var format = 'pdb';
             // var assemblyId = 'deposited';
 
+            function loadAndSnapshot(params) {
+                PluginWrapper.load(params).then(() => {
+                    setTimeout(() => snapshot = PluginWrapper.plugin.state.getSnapshot({ canvas3d: false /* do not save spinning state */ }), 500);
+                });
+            }
+
             var representationStyle = {
                 // sequence: { coloring: 'proteopedia-custom' }, // or just { }
                 hetGroups: { kind: 'ball-and-stick' }, // or 'spacefill
@@ -103,7 +109,7 @@
                 customColorList: CustomColors
             });
             PluginWrapper.setBackground(0xffffff);
-            PluginWrapper.load({ url: url, format: format, isBinary: isBinary, assemblyId: assemblyId, representationStyle: representationStyle });
+            loadAndSnapshot({ url: url, format: format, isBinary: isBinary, assemblyId: assemblyId, representationStyle: representationStyle });
             PluginWrapper.toggleSpin();
 
             PluginWrapper.events.modelInfo.subscribe(function (info) {
@@ -111,8 +117,8 @@
                 listHetGroups(info);
             });
 
-            addControl('Load Asym Unit', () => PluginWrapper.load({ url: url, format: format, isBinary }));
-            addControl('Load Assembly', () => PluginWrapper.load({ url: url, format: format, isBinary, assemblyId: assemblyId }));
+            addControl('Load Asym Unit', () => loadAndSnapshot({ url: url, format: format, isBinary }));
+            addControl('Load Assembly', () => loadAndSnapshot({ url: url, format: format, isBinary, assemblyId: assemblyId }));
 
             addSeparator();
 
@@ -185,10 +191,10 @@
                 PluginWrapper.snapshot.set(snapshot);
             });
             addControl('Download State', () => {
-                snapshot = PluginWrapper.snapshot.download('molj');
+                PluginWrapper.snapshot.download('molj');
             });
             addControl('Download Session', () => {
-                snapshot = PluginWrapper.snapshot.download('molx');
+                PluginWrapper.snapshot.download('molx');
             });
 
             ////////////////////////////////////////////////////////
