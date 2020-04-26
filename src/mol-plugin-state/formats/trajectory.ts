@@ -114,10 +114,10 @@ export const Provider3dg: TrajectoryFormatProvider = {
 };
 
 export const MolProvider: TrajectoryFormatProvider = {
-    label: 'MOL',
-    description: 'MOL',
+    label: 'MOL/SDF',
+    description: 'MOL/SDF',
     category: Category,
-    stringExtensions: ['mol', 'sdf'],
+    stringExtensions: ['mol', 'sdf', 'sd'],
     parse: directTrajectory(StateTransforms.Model.TrajectoryFromMOL),
     visuals: defaultVisuals
 };

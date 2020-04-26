@@ -173,7 +173,7 @@ export function _bundleLabel(bundle: Loci.Bundle<any>, options: LabelOptions) {
         }
 
         let offset = 0;
-        for (let i = 0, il = Math.min(...labels.map(l => l.length)); i < il; ++i) {
+        for (let i = 0, il = Math.min(...labels.map(l => l.length)) - 1; i < il; ++i) {
             let areIdentical = true;
             for (let j = 1, jl = labels.length; j < jl; ++j) {
                 if (labels[0][i] !== labels[j][i]) {

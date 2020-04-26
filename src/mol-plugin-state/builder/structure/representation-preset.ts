@@ -237,7 +237,13 @@ const atomicDetail = StructureRepresentationPresetProvider({
 
         const components = {
             all: await presetStaticComponent(plugin, structureCell, 'all'),
+            branched: undefined
         };
+        if (params.showCarbohydrateSymbol) {
+            Object.assign(components, {
+                branched: await presetStaticComponent(plugin, structureCell, 'branched', { label: 'Carbohydrate' }),
+            });
+        }
 
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);
         const representations = {
@@ -245,7 +251,7 @@ const atomicDetail = StructureRepresentationPresetProvider({
         };
         if (params.showCarbohydrateSymbol) {
             Object.assign(representations, {
-                snfg3d: builder.buildRepresentation(update, components.all, { type: 'carbohydrate', typeParams: { ...typeParams, alpha: 0.4, visuals: ['carbohydrate-symbol'] }, color }, { tag: 'snfg-3d' }),
+                snfg3d: builder.buildRepresentation(update, components.branched, { type: 'carbohydrate', typeParams: { ...typeParams, alpha: 0.4, visuals: ['carbohydrate-symbol'] }, color }, { tag: 'snfg-3d' }),
             });
         }
 
