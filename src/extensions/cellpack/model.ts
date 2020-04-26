@@ -34,56 +34,66 @@ function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
 }
 
-async function getModel(plugin: PluginContext, id: string, ingredient: Ingredient, baseUrl: string, file?: Asset.File) {
+class TrajectoryCache {
+    private map = new Map<string, Model.Trajectory>();
+    set(id: string, trajectory: Model.Trajectory) { this.map.set(id, trajectory); }
+    get(id: string) { return this.map.get(id); }
+}
+
+async function getModel(plugin: PluginContext, id: string, ingredient: Ingredient, baseUrl: string, trajCache: TrajectoryCache, file?: Asset.File) {
     const assetManager = plugin.managers.asset;
-    const model_id = (ingredient.source.model) ? parseInt(ingredient.source.model) : 0;
+    const modelIndex = (ingredient.source.model) ? parseInt(ingredient.source.model) : 0;
     const surface = (ingredient.ingtype) ? (ingredient.ingtype === 'transmembrane') : false;
-    let model: Model;
+    let trajectory = trajCache.get(id);
     let assets: Asset.Wrapper[] = [];
-    if (file) {
-        if (file.name.endsWith('.cif')) {
-            const text = await plugin.runTask(assetManager.resolve(file, 'string'));
-            assets.push(text);
-            const cif = (await parseCif(plugin, text.data)).blocks[0];
-            model = (await plugin.runTask(trajectoryFromMmCIF(cif)))[model_id];
-        } else if (file.name.endsWith('.bcif')) {
-            const binary = await plugin.runTask(assetManager.resolve(file, 'binary'));
-            assets.push(binary);
-            const cif = (await parseCif(plugin, binary.data)).blocks[0];
-            model = (await plugin.runTask(trajectoryFromMmCIF(cif)))[model_id];
-        } else if (file.name.endsWith('.pdb')) {
-            const text = await plugin.runTask(assetManager.resolve(file, 'string'));
-            assets.push(text);
-            const pdb = await parsePDBfile(plugin, text.data, id);
-            model = (await plugin.runTask(trajectoryFromPDB(pdb)))[model_id];
-        } else {
-            throw new Error(`unsupported file type '${file.name}'`);
-        }
-    } else if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
-        if (surface){
-            const data = await getFromOPM(plugin, id, assetManager);
-            if (data.asset){
-                assets.push(data.asset);
-                model = (await plugin.runTask(trajectoryFromPDB(data.pdb)))[model_id];
+    if (!trajectory) {
+        if (file) {
+            if (file.name.endsWith('.cif')) {
+                const text = await plugin.runTask(assetManager.resolve(file, 'string'));
+                assets.push(text);
+                const cif = (await parseCif(plugin, text.data)).blocks[0];
+                trajectory = await plugin.runTask(trajectoryFromMmCIF(cif));
+            } else if (file.name.endsWith('.bcif')) {
+                const binary = await plugin.runTask(assetManager.resolve(file, 'binary'));
+                assets.push(binary);
+                const cif = (await parseCif(plugin, binary.data)).blocks[0];
+                trajectory = await plugin.runTask(trajectoryFromMmCIF(cif));
+            } else if (file.name.endsWith('.pdb')) {
+                const text = await plugin.runTask(assetManager.resolve(file, 'string'));
+                assets.push(text);
+                const pdb = await parsePDBfile(plugin, text.data, id);
+                trajectory = await plugin.runTask(trajectoryFromPDB(pdb));
+            } else {
+                throw new Error(`unsupported file type '${file.name}'`);
+            }
+        } else if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
+            if (surface){
+                const data = await getFromOPM(plugin, id, assetManager);
+                if (data.asset){
+                    assets.push(data.asset);
+                    trajectory = await plugin.runTask(trajectoryFromPDB(data.pdb));
+                } else {
+                    const { mmcif, asset } = await getFromPdb(plugin, id, assetManager);
+                    assets.push(asset);
+                    trajectory = await plugin.runTask(trajectoryFromMmCIF(mmcif));
+                }
             } else {
                 const { mmcif, asset } = await getFromPdb(plugin, id, assetManager);
                 assets.push(asset);
-                model = (await plugin.runTask(trajectoryFromMmCIF(mmcif)))[model_id];
+                trajectory = await plugin.runTask(trajectoryFromMmCIF(mmcif));
             }
         } else {
-            const { mmcif, asset } = await getFromPdb(plugin, id, assetManager);
-            assets.push(asset);
-            model = (await plugin.runTask(trajectoryFromMmCIF(mmcif)))[model_id];
+            const data = await getFromCellPackDB(plugin, id, baseUrl, assetManager);
+            assets.push(data.asset);
+            if ('pdb' in data) {
+                trajectory = await plugin.runTask(trajectoryFromPDB(data.pdb));
+            } else {
+                trajectory = await plugin.runTask(trajectoryFromMmCIF(data.mmcif));
+            }
         }
-    } else {
-        const data = await getFromCellPackDB(plugin, id, baseUrl, assetManager);
-        assets.push(data.asset);
-        if ('pdb' in data) {
-            model = (await plugin.runTask(trajectoryFromPDB(data.pdb)))[model_id];
-        } else {
-            model = (await plugin.runTask(trajectoryFromMmCIF(data.mmcif)))[model_id];
-        }
+        trajCache.set(id, trajectory);
     }
+    const model = trajectory[modelIndex];
     return { model, assets };
 }
 
@@ -134,7 +144,6 @@ function getTransform(trans: Vec3, rot: Quat) {
     Mat4.setTranslation(m, p);
     return m;
 }
-
 
 function getResultTransforms(results: Ingredient['results'], legacy: boolean) {
     if (legacy) return results.map((r: Ingredient['results'][0]) => getTransformLegacy(r[0], r[1]));
@@ -290,7 +299,7 @@ async function getCurve(plugin: PluginContext, name: string, ingredient: Ingredi
     return getStructure(plugin, curveModel, ingredient.source);
 }
 
-async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredient, baseUrl: string, ingredientFiles: IngredientFiles) {
+async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredient, baseUrl: string, ingredientFiles: IngredientFiles, trajCache: TrajectoryCache) {
     const { name, source, results, nbCurve } = ingredient;
     if (source.pdb === 'None') return;
 
@@ -305,7 +314,7 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
     }
 
     // model id in case structure is NMR
-    const { model, assets } = await getModel(plugin, source.pdb || name, ingredient, baseUrl, file);
+    const { model, assets } = await getModel(plugin, source.pdb || name, ingredient, baseUrl, trajCache, file);
     if (!model) return;
 
     let structure: Structure;
@@ -356,10 +365,11 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
     return Task.create('Create Packing Structure', async ctx => {
         const { ingredients, name } = packing;
         const assets: Asset.Wrapper[] = [];
+        const trajCache = new TrajectoryCache();
         const structures: Structure[] = [];
         for (const iName in ingredients) {
             if (ctx.shouldUpdate) await ctx.update(iName);
-            const ingredientStructure = await getIngredientStructure(plugin, ingredients[iName], baseUrl, ingredientFiles);
+            const ingredientStructure = await getIngredientStructure(plugin, ingredients[iName], baseUrl, ingredientFiles, trajCache);
             if (ingredientStructure) {
                 structures.push(ingredientStructure.structure);
                 assets.push(...ingredientStructure.assets);
