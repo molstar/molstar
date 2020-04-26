@@ -27,6 +27,8 @@ import { Column } from '../../mol-data/db';
 import { createModels } from '../../mol-model-formats/structure/basic/parser';
 import { CellpackPackingPreset, CellpackMembranePreset } from './preset';
 import { Asset } from '../../mol-util/assets';
+import { readFromFile } from '../../mol-util/data-source';
+import { objectForEach } from '../../mol-util/object';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
@@ -444,6 +446,8 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
 }
 
 async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
+    const ingredientFiles = params.ingredients.files || [];
+
     let cellPackJson: StateBuilder.To<PSO.Format.Json, StateTransformer<PSO.Data.String, PSO.Format.Json>>;
     if (params.source.name === 'id') {
         const url = Asset.getUrlAsset(plugin.managers.asset, getCellPackModelUrl(params.source.params, params.baseUrl));
@@ -451,12 +455,25 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.source.params }, { state: { isGhost: true } });
     } else {
         const file = params.source.params;
-        if (file === null) {
+        if (!file?.file) {
             plugin.log.error('No file selected');
             return;
         }
+
+        let jsonFile: Asset.File;
+        if (file.name.toLowerCase().endsWith('.zip')) {
+            const data = await readFromFile(file.file, 'zip').runInContext(runtime);
+            jsonFile = Asset.File(new File([data['model.json']], 'model.json'));
+            objectForEach(data, (v, k) => {
+                if (k === 'model.json') return;
+                ingredientFiles.push(Asset.File(new File([v], k)));
+            });
+        } else {
+            jsonFile = file;
+        }
+
         cellPackJson = state.build().toRoot()
-            .apply(StateTransforms.Data.ReadFile, { file, isBinary: false, label: file.name }, { state: { isGhost: true } });
+            .apply(StateTransforms.Data.ReadFile, { file: jsonFile, isBinary: false, label: jsonFile.name }, { state: { isGhost: true } });
     }
 
     const cellPackBuilder = cellPackJson
@@ -469,7 +486,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
     await handleHivRna(plugin, packings, params.baseUrl);
 
     for (let i = 0, il = packings.length; i < il; ++i) {
-        const p = { packing: i, baseUrl: params.baseUrl, ingredientFiles: params.ingredients.files };
+        const p = { packing: i, baseUrl: params.baseUrl, ingredientFiles };
 
         const packing = await state.build()
             .to(cellPackBuilder.ref)
@@ -497,8 +514,8 @@ const LoadCellPackModelParams = {
             ['influenza_model1.json', 'influenza_model1'],
             ['ExosomeModel.json', 'ExosomeModel'],
             ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma1.5_mixed_pdb_fixed'],
-        ] as const),
-        'file': PD.File({ accept: 'id' }),
+        ] as const, { description: 'Download the model definition with `id` from the server at `baseUrl.`' }),
+        'file': PD.File({ accept: '.json,.cpr,.zip', description: 'Open model definition from .json/.cpr file or open .zip file containing model definition plus ingredients.' }),
     }, { options: [['id', 'Id'], ['file', 'File']] }),
     baseUrl: PD.Text(DefaultCellPackBaseUrl),
     ingredients : PD.Group({
