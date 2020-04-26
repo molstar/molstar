@@ -175,7 +175,7 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, p
     const boundary = unit === rootUnit ? unit.boundary : getBoundary(position);
 
     const l = StructureElement.Location.create(structure, rootUnit);
-    const sizeTheme = PhysicalSizeTheme({}, {});
+    const sizeTheme = PhysicalSizeTheme({}, { scale: 1 });
     const radius = (index: number) => {
         l.element = index as ElementIndex;
         return sizeTheme.size(l);
@@ -186,7 +186,7 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, p
 
 export function getStructureConformationAndRadius(structure: Structure, ignoreHydrogens: boolean, traceOnly: boolean) {
     const l = StructureElement.Location.create(structure);
-    const sizeTheme = PhysicalSizeTheme({}, {});
+    const sizeTheme = PhysicalSizeTheme({}, { scale: 1 });
 
     let xs: ArrayLike<number>;
     let ys: ArrayLike<number>;

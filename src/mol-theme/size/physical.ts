@@ -14,7 +14,9 @@ import { ThemeDataContext } from '../../mol-theme/theme';
 const DefaultSize = 1;
 const Description = 'Assigns a physical size, i.e. vdW radius for atoms or given radius for coarse spheres.';
 
-export const PhysicalSizeThemeParams = {};
+export const PhysicalSizeThemeParams = {
+    scale: PD.Numeric(1, { min: 0.1, max: 5, step: 0.1 })
+};
 export type PhysicalSizeThemeParams = typeof PhysicalSizeThemeParams
 export function getPhysicalSizeThemeParams(ctx: ThemeDataContext) {
     return PhysicalSizeThemeParams; // TODO return copy
@@ -35,14 +37,16 @@ export function getPhysicalRadius(unit: Unit, element: ElementIndex): number {
  * i.e. vdw for atoms and radius for coarse spheres
  */
 export function PhysicalSizeTheme(ctx: ThemeDataContext, props: PD.Values<PhysicalSizeThemeParams>): SizeTheme<PhysicalSizeThemeParams> {
+    const scale = props.scale === void 0 ? 1 : props.scale;
+
     function size(location: Location): number {
         let size: number;
         if (StructureElement.Location.is(location)) {
-            size = getPhysicalRadius(location.unit, location.element);
+            size = scale * getPhysicalRadius(location.unit, location.element);
         } else if (Bond.isLocation(location)) {
-            size = getPhysicalRadius(location.aUnit, location.aUnit.elements[location.aIndex]);
+            size = scale * getPhysicalRadius(location.aUnit, location.aUnit.elements[location.aIndex]);
         } else {
-            size = DefaultSize;
+            size = scale * DefaultSize;
         }
         return size;
     }

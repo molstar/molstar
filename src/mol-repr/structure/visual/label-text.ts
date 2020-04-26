@@ -148,7 +148,7 @@ function createElementText(ctx: VisualContext, structure: Structure, theme: Them
     const { label_atom_id, label_alt_id } = StructureProperties.atom;
     const { cumulativeUnitElementCount } = serialMapping;
 
-    const sizeTheme = PhysicalSizeTheme({}, {});
+    const sizeTheme = PhysicalSizeTheme({}, { scale: 1 });
 
     const count = structure.elementCount;
     const { elementScale } = props;
