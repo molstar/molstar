@@ -28,7 +28,6 @@ uniform sampler2D tMarker;
 
 uniform float uAlpha;
 uniform float uPickingAlphaThreshold;
-uniform int uPickable;
 
 #if defined(dGridTexType_2d)
     precision highp sampler2D;
@@ -117,8 +116,6 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                 #if defined(dRenderVariant_pick)
                     if (uAlpha < uPickingAlphaThreshold)
                         discard; // ignore so the element below can be picked
-                    if (uPickable == 0)
-                        return vec4(0.0, 0.0, 0.0, 1.0); // set to empty picking id
                 #endif
 
                 #if defined(dRenderVariant_pickObject)

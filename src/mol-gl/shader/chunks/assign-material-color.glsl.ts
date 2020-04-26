@@ -34,7 +34,7 @@ export default `
         if (ta < 0.99 && (ta < 0.01 || ta < at)) discard;
     #endif
 #elif defined(dRenderVariant_pick)
-    vec4 material = uPickable == 1 ? vColor : vec4(0.0, 0.0, 0.0, 1.0); // set to empty picking id
+    vec4 material = vColor;
 #elif defined(dRenderVariant_depth)
     #ifdef enabledFragDepth
         vec4 material = packDepthToRGBA(gl_FragDepthEXT);

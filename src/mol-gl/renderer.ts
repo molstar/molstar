@@ -173,51 +173,53 @@ namespace Renderer {
         let globalUniformsNeedUpdate = true;
 
         const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: GraphicsRenderVariant) => {
+            if (!r.state.visible || (!r.state.pickable && variant[0] === 'p')) {
+                return;
+            }
+
             const program = r.getProgram(variant);
-            if (r.state.visible) {
-                if (state.currentProgramId !== program.id) {
-                    // console.log('new program')
-                    globalUniformsNeedUpdate = true;
-                    program.use();
-                }
+            if (state.currentProgramId !== program.id) {
+                // console.log('new program')
+                globalUniformsNeedUpdate = true;
+                program.use();
+            }
 
-                if (globalUniformsNeedUpdate) {
-                    // console.log('globalUniformsNeedUpdate')
-                    program.setUniforms(globalUniformList);
-                    globalUniformsNeedUpdate = false;
-                }
+            if (globalUniformsNeedUpdate) {
+                // console.log('globalUniformsNeedUpdate')
+                program.setUniforms(globalUniformList);
+                globalUniformsNeedUpdate = false;
+            }
 
-                if (r.values.dDoubleSided) {
-                    if (r.values.dDoubleSided.ref.value) {
-                        state.disable(gl.CULL_FACE);
-                    } else {
-                        state.enable(gl.CULL_FACE);
-                    }
-                } else {
-                    // webgl default
+            if (r.values.dDoubleSided) {
+                if (r.values.dDoubleSided.ref.value) {
                     state.disable(gl.CULL_FACE);
-                }
-
-                if (r.values.dFlipSided) {
-                    if (r.values.dFlipSided.ref.value) {
-                        state.frontFace(gl.CW);
-                        state.cullFace(gl.FRONT);
-                    } else {
-                        state.frontFace(gl.CCW);
-                        state.cullFace(gl.BACK);
-                    }
                 } else {
-                    // webgl default
+                    state.enable(gl.CULL_FACE);
+                }
+            } else {
+                // webgl default
+                state.disable(gl.CULL_FACE);
+            }
+
+            if (r.values.dFlipSided) {
+                if (r.values.dFlipSided.ref.value) {
+                    state.frontFace(gl.CW);
+                    state.cullFace(gl.FRONT);
+                } else {
                     state.frontFace(gl.CCW);
                     state.cullFace(gl.BACK);
                 }
-
-                if (variant === 'color') {
-                    state.depthMask(r.state.writeDepth);
-                }
-
-                r.render(variant);
+            } else {
+                // webgl default
+                state.frontFace(gl.CCW);
+                state.cullFace(gl.BACK);
             }
+
+            if (variant === 'color') {
+                state.depthMask(r.state.writeDepth);
+            }
+
+            r.render(variant);
         };
 
         const render = (scene: Scene, camera: Camera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean) => {

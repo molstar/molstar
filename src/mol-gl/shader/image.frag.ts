@@ -99,18 +99,14 @@ void main() {
         if (imageData.a < 0.3)
             discard;
 
-        if (uPickable == 1) {
-            #if defined(dRenderVariant_pickObject)
-                gl_FragColor = vec4(encodeFloatRGB(float(uObjectId)), 1.0);
-            #elif defined(dRenderVariant_pickInstance)
-                gl_FragColor = vec4(encodeFloatRGB(vInstance), 1.0);
-            #elif defined(dRenderVariant_pickGroup)
-                float group = texture2D(tGroupTex, vUv).r;
-                gl_FragColor = vec4(encodeFloatRGB(group), 1.0);
-            #endif
-        } else {
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); // set to empty picking id
-        }
+        #if defined(dRenderVariant_pickObject)
+            gl_FragColor = vec4(encodeFloatRGB(float(uObjectId)), 1.0);
+        #elif defined(dRenderVariant_pickInstance)
+            gl_FragColor = vec4(encodeFloatRGB(vInstance), 1.0);
+        #elif defined(dRenderVariant_pickGroup)
+            float group = texture2D(tGroupTex, vUv).r;
+            gl_FragColor = vec4(encodeFloatRGB(group), 1.0);
+        #endif
     #elif defined(dRenderVariant_depth)
         if (imageData.a < 0.05)
             discard;

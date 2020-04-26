@@ -26,7 +26,6 @@ export function PointsRenderable(ctx: WebGLContext, id: number, values: PointsVa
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...PointsSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
-        uPickable: ValueCell.create(state.pickable ? 1 : 0)
     };
     const shaderCode = PointsShaderCode;
     const renderItem = createGraphicsRenderItem(ctx, 'points', shaderCode, schema, { ...values, ...internalValues }, materialId);

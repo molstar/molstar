@@ -38,7 +38,6 @@ export function TextRenderable(ctx: WebGLContext, id: number, values: TextValues
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...TextSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
-        uPickable: ValueCell.create(state.pickable ? 1 : 0)
     };
     const shaderCode = TextShaderCode;
     const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId);

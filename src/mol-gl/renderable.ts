@@ -44,9 +44,6 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
             if (values.uAlpha && values.alpha) {
                 ValueCell.updateIfChanged(values.uAlpha, clamp(values.alpha.ref.value * state.alphaFactor, 0, 1));
             }
-            if (values.uPickable) {
-                ValueCell.updateIfChanged(values.uPickable, state.pickable ? 1 : 0);
-            }
             renderItem.render(variant);
         },
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),

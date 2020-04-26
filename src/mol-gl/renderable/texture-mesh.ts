@@ -31,7 +31,6 @@ export function TextureMeshRenderable(ctx: WebGLContext, id: number, values: Tex
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...TextureMeshSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
-        uPickable: ValueCell.create(state.pickable ? 1 : 0)
     };
     const shaderCode = MeshShaderCode;
     const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId);
