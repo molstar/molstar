@@ -59,7 +59,7 @@ export const PostprocessingParams = {
     outline: PD.MappedStatic('off', {
         on: PD.Group({
             scale: PD.Numeric(1, { min: 0, max: 10, step: 1 }),
-            threshold: PD.Numeric(0.8, { min: 0, max: 1, step: 0.01 }),
+            threshold: PD.Numeric(0.8, { min: 0, max: 5, step: 0.01 }),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Draw outline around 3D objects' })
