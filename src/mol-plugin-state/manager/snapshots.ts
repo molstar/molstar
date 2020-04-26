@@ -132,7 +132,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     async setStateSnapshot(snapshot: PluginStateSnapshotManager.StateSnapshot): Promise<PluginState.Snapshot | undefined> {
         if (snapshot.version !== PLUGIN_VERSION) {
             // TODO
-            console.warn('state snapshot version mismatch');
+            // console.warn('state snapshot version mismatch');
         }
 
         this.clear();

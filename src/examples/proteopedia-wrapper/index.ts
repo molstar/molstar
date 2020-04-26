@@ -32,7 +32,7 @@ require('../../mol-plugin-ui/skin/light.scss');
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 5;
-    static VERSION_MINOR = 4;
+    static VERSION_MINOR = 5;
 
     private _ev = RxEventHelper.create();
 
@@ -405,7 +405,7 @@ class MolStarProteopediaWrapper {
             try {
                 const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'binary' }));
                 this.loadedParams = { ...this.emptyLoadedParams };
-                await this.plugin.managers.snapshot.open(new File([data], `state.${type}`));
+                return await this.plugin.managers.snapshot.open(new File([data], `state.${type}`));
             } catch (e) {
                 console.log(e);
             }
