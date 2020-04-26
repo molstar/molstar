@@ -12,7 +12,7 @@ import { createModels } from './basic/parser';
 import { BasicSchema, createBasic } from './basic/schema';
 import { ComponentBuilder } from './common/component';
 import { EntityBuilder } from './common/entity';
-import { ModelFormat } from './format';
+import { ModelFormat } from '../format';
 import { CifCore_Database } from '../../mol-io/reader/cif/schema/cif-core';
 import { CifFrame, CIF } from '../../mol-io/reader/cif';
 import { Spacegroup, SpacegroupCell } from '../../mol-math/geometry';

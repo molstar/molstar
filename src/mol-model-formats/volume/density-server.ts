@@ -9,8 +9,9 @@ import { VolumeData } from '../../mol-model/volume/data';
 import { Task } from '../../mol-task';
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
 import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
+import { ModelFormat } from '../format';
 
-function volumeFromDensityServerData(source: DensityServer_Data_Database): Task<VolumeData> {
+export function volumeFromDensityServerData(source: DensityServer_Data_Database): Task<VolumeData> {
     return Task.create<VolumeData>('Create Volume Data', async ctx => {
         const { volume_data_3d_info: info, volume_data_3d: values } = source;
         const cell = SpacegroupCell.create(
@@ -41,9 +42,24 @@ function volumeFromDensityServerData(source: DensityServer_Data_Database): Task<
                 max: info.max_sampled.value(0),
                 mean: info.mean_sampled.value(0),
                 sigma: info.sigma_sampled.value(0)
-            }
+            },
+            sourceData: DscifFormat.create(source)
         };
     });
 }
 
-export { volumeFromDensityServerData };
+//
+
+export { DscifFormat };
+
+type DscifFormat = ModelFormat<DensityServer_Data_Database>
+
+namespace DscifFormat {
+    export function is(x: ModelFormat): x is DscifFormat {
+        return x.kind === 'dscif';
+    }
+
+    export function create(dscif: DensityServer_Data_Database): DscifFormat {
+        return { kind: 'dscif', name: dscif._name, data: dscif };
+    }
+}

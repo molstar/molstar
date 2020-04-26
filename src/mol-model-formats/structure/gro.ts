@@ -6,7 +6,7 @@
 
 import { Model } from '../../mol-model/structure/model';
 import { Task } from '../../mol-task';
-import { ModelFormat } from './format';
+import { ModelFormat } from '../format';
 import { GroFile, GroAtoms } from '../../mol-io/reader/gro/schema';
 import { Column, Table } from '../../mol-data/db';
 import { guessElementSymbolString } from './util';

@@ -8,6 +8,7 @@
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
 import { Tensor, Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
+import { ModelFormat } from '../../mol-model-formats/format';
 
 /** The basic unit cell that contains the data. */
 interface VolumeDataBase {
@@ -20,6 +21,7 @@ interface VolumeDataBase {
         mean: number,
         sigma: number
     }>
+    readonly sourceData: ModelFormat,
 }
 
 interface VolumeData extends VolumeDataBase {
@@ -30,7 +32,8 @@ namespace VolumeData {
     export const One: VolumeData = {
         transform: { kind: 'matrix', matrix: Mat4.identity() },
         data: Tensor.create(Tensor.Space([1, 1, 1], [0, 1, 2]), Tensor.Data1([0])),
-        dataStats: { min: 0, max: 0, mean: 0, sigma: 0 }
+        dataStats: { min: 0, max: 0, mean: 0, sigma: 0 },
+        sourceData: { kind: '', data: '', name: '' }
     };
 
     const _scale = Mat4.zero(), _translate = Mat4.zero();

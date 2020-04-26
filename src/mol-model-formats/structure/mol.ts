@@ -14,7 +14,7 @@ import { createModels } from './basic/parser';
 import { BasicSchema, createBasic } from './basic/schema';
 import { ComponentBuilder } from './common/component';
 import { EntityBuilder } from './common/entity';
-import { ModelFormat } from './format';
+import { ModelFormat } from '../format';
 import { IndexPairBonds } from './property/bonds/index-pair';
 
 async function getModels(mol: MolFile, ctx: RuntimeContext): Promise<Model[]> {
