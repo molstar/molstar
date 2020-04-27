@@ -109,7 +109,7 @@ async function getStructure(plugin: PluginContext, model: Model, source: Ingredi
     }
     let query;
     if (source.selection){
-        const asymIds: string[] = source.selection.replace(' :', '').split(' or');
+        const asymIds: string[] = source.selection.replace(' ', '').replace(':', '').split('or');
         query = MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
@@ -164,6 +164,7 @@ function getCurveTransforms(ingredient: Ingredient) {
             ? ingredient.radii[0].radii[0] * 2.0
             : 3.4;
     }
+    let resampling: boolean = false;
     for (let i = 0; i < n; ++i) {
         const cname = `curve${i}`;
         if (!(cname in ingredient)) {
@@ -175,12 +176,17 @@ function getCurveTransforms(ingredient: Ingredient) {
             // TODO handle curve with 2 or less points
             continue;
         }
+        // test for resampling
+        let distance: number = Vec3.distance(_points[0], _points[1]);
+        if (distance >= segmentLength + 2.0) {
+            console.info(distance);
+            resampling = true;
+        }
         const points = new Float32Array(_points.length * 3);
         for (let i = 0, il = _points.length; i < il; ++i) Vec3.toArray(_points[i], points, i * 3);
-        const newInstances = getMatFromResamplePoints(points, segmentLength);
+        const newInstances = getMatFromResamplePoints(points, segmentLength, resampling);
         instances.push(...newInstances);
     }
-
     return instances;
 }
 
@@ -294,7 +300,6 @@ function getCifCurve(name: string, transforms: Mat4[], model: Model) {
 
 async function getCurve(plugin: PluginContext, name: string, ingredient: Ingredient, transforms: Mat4[], model: Model) {
     const cif = getCifCurve(name, transforms, model);
-
     const curveModelTask = Task.create('Curve Model', async ctx => {
         const format = MmcifFormat.fromFrame(cif);
         const models = await createModels(format.data.db, format, ctx);
@@ -312,10 +317,10 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
     const file = ingredientFiles[source.pdb];
     if (!file) {
         // TODO can these be added to the library?
-        if (name === 'HIV1_CAhex_0_1_0') return;
-        if (name === 'HIV1_CAhexCyclophilA_0_1_0') return;
-        if (name === 'iLDL') return;
-        if (name === 'peptides') return;
+        if (name === 'HIV1_CAhex_0_1_0') return; // 1VU4CtoH_hex.pdb
+        if (name === 'HIV1_CAhexCyclophilA_0_1_0') return; // 1AK4fitTo1VU4hex.pdb
+        if (name === 'iLDL') return; // EMD-5239
+        if (name === 'peptides') return; // peptide.pdb
         if (name === 'lypoglycane') return;
     }
 
@@ -542,7 +547,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             representation: params.preset.representation,
         };
         await CellpackPackingPreset.apply(packing, packingParams, plugin);
-        if ( packings[i].location === 'surface' ){
+        if ( packings[i].location === 'surface' && params.membrane){
             await loadMembrane(plugin, packings[i].name, state, params);
         }
     }
@@ -550,21 +555,21 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
 
 const LoadCellPackModelParams = {
     source: PD.MappedStatic('id', {
-        'id': PD.Select('influenza_model1.json', [
-            ['blood_hiv_immature_inside.json', 'blood_hiv_immature_inside'],
+        'id': PD.Select('InfluenzaModel2.json', [
+            ['blood_hiv_immature_inside.json', 'Blood HIV immature'],
             ['HIV_immature_model.json', 'HIV immature'],
-            ['BloodHIV1.0_mixed_fixed_nc1.cpr', 'BloodHIV1.0_mixed_fixed_nc1'],
-            ['HIV-1_0.1.6-8_mixed_radii_pdb.cpr', 'HIV-1_0.1.6-8_mixed_radii_pdb'],
-            ['hiv_lipids.bcif', 'hiv_lipids'],
-            ['influenza_model1.json', 'influenza_model1'],
+            ['BloodHIV1.0_mixed_fixed_nc1.cpr', 'Blood HIV'],
+            ['HIV-1_0.1.6-8_mixed_radii_pdb.cpr', 'HIV'],
+            ['influenza_model1.json', 'Influenza envelope'],
             ['InfluenzaModel2.json', 'Influenza Complete'],
-            ['ExosomeModel.json', 'ExosomeModel'],
-            ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma1.5_mixed_pdb_fixed'],
+            ['ExosomeModel.json', 'Exosome Model'],
+            ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma simple'],
             ['MycoplasmaModel.json', 'Mycoplasma WholeCell model'],
         ] as const, { description: 'Download the model definition with `id` from the server at `baseUrl.`' }),
         'file': PD.File({ accept: '.json,.cpr,.zip', description: 'Open model definition from .json/.cpr file or open .zip file containing model definition plus ingredients.' }),
     }, { options: [['id', 'Id'], ['file', 'File']] }),
     baseUrl: PD.Text(DefaultCellPackBaseUrl),
+    membrane: PD.Boolean(true),
     ingredients : PD.Group({
         files: PD.FileList({ accept: '.cif,.bcif,.pdb' })
     }, { isExpanded: true }),
@@ -580,9 +585,5 @@ export const LoadCellPackModel = StateAction.build({
     params: LoadCellPackModelParams,
     from: PSO.Root
 })(({ state, params }, ctx: PluginContext) => Task.create('CellPack Loader', async taskCtx => {
-    if (params.source.name === 'id' && params.source.params === 'hiv_lipids.bcif') {
-        await loadMembrane(ctx, 'hiv_lipids', state, params);
-    } else {
-        await loadPackings(ctx, taskCtx, state, params);
-    }
+    await loadPackings(ctx, taskCtx, state, params);
 }));

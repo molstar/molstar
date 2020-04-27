@@ -191,8 +191,14 @@ function GetMiniFrame(points: Vec3[], normals: Vec3[]) {
 
 const rpTmpVec1 = Vec3();
 
-export function getMatFromResamplePoints(points: NumberArray, segmentLength: number) {
-    const new_points = ResampleControlPoints(points, segmentLength);
+export function getMatFromResamplePoints(points: NumberArray, segmentLength: number, resample: boolean) {
+    let new_points: Vec3[] = [];
+    if (resample) new_points = ResampleControlPoints(points, segmentLength);
+    else {
+        for (let idx = 0; idx < points.length / 3; ++idx){
+            new_points.push(Vec3.fromArray(Vec3.zero(), points, idx * 3));
+        }
+    }
     const npoints = new_points.length;
     const new_normal = GetSmoothNormals(new_points);
     const frames = GetMiniFrame(new_points, new_normal);
