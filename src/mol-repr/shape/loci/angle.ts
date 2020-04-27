@@ -24,6 +24,7 @@ import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
 import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
 import { angleLabel } from '../../../mol-theme/label';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { MeasurementRepresentationCommonTextParams } from './common';
 
 export interface AngleData {
     triples: Loci.Bundle<3>[]
@@ -62,9 +63,8 @@ type SectorParams = typeof SectorParams
 
 const TextParams = {
     ...Text.Params,
-    borderWidth: PD.Numeric(0.2, { min: 0, max: 0.5, step: 0.01 }),
-    textColor: PD.Color(ColorNames.black),
-    textSize: PD.Numeric(0.4, { min: 0.1, max: 5, step: 0.1 }),
+    ...MeasurementRepresentationCommonTextParams,
+    borderWidth: PD.Numeric(0.2, { min: 0, max: 0.5, step: 0.01 })
 };
 type TextParams = typeof TextParams
 
@@ -227,7 +227,7 @@ function buildText(data: AngleData, props: AngleProps, text?: Text): Text {
         Vec3.add(tmpVec, tmpState.sphereB.center, tmpVec);
 
         const angle = radToDeg(tmpState.angle).toFixed(2);
-        const label = `${angle}\u00B0`;
+        const label = props.customText || `${angle}\u00B0`;
         const radius = Math.max(2, tmpState.sphereA.radius, tmpState.sphereB.radius, tmpState.sphereC.radius);
         const scale = radius / 2;
         builder.add(label, tmpVec[0], tmpVec[1], tmpVec[2], 0.1, scale, i);

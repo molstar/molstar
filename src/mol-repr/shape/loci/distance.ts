@@ -118,7 +118,7 @@ function buildText(data: DistanceData, props: DistanceProps, text?: Text): Text 
     for (let i = 0, il = data.pairs.length; i < il; ++i) {
         setDistanceState(data.pairs[i], tmpState);
         const { center, distance, sphereA, sphereB } = tmpState;
-        const label = `${distance.toFixed(2)} ${props.unitLabel}`;
+        const label = props.customText || `${distance.toFixed(2)} ${props.unitLabel}`;
         const radius = Math.max(2, sphereA.radius, sphereB.radius);
         const scale = radius / 2;
         builder.add(label, center[0], center[1], center[2], 1, scale, i);
