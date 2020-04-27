@@ -13,6 +13,7 @@ import { degToRad } from '../../mol-math/misc';
 import { getCcp4ValueType } from '../../mol-io/reader/ccp4/parser';
 import { TypedArrayValueType } from '../../mol-io/common/typed-array';
 import { arrayMin, arrayRms, arrayMean, arrayMax } from '../../mol-util/array';
+import { ModelFormat } from '../format';
 
 /** When available (e.g. in MRC files) use ORIGIN records instead of N[CRS]START */
 export function getCcp4Origin(header: Ccp4Header): Vec3 {
@@ -75,7 +76,24 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
                 max: isNaN(header.AMAX) ? arrayMax(values) : header.AMAX,
                 mean: isNaN(header.AMEAN) ? arrayMean(values) : header.AMEAN,
                 sigma: (isNaN(header.ARMS) || header.ARMS === 0) ? arrayRms(values) : header.ARMS
-            }
+            },
+            sourceData: Ccp4Format.create(source)
         };
     });
+}
+
+//
+
+export { Ccp4Format };
+
+type Ccp4Format = ModelFormat<Ccp4File>
+
+namespace Ccp4Format {
+    export function is(x: ModelFormat): x is Ccp4Format {
+        return x.kind === 'ccp4';
+    }
+
+    export function create(ccp4: Ccp4File): Ccp4Format {
+        return { kind: 'ccp4', name: ccp4.name, data: ccp4 };
+    }
 }

@@ -11,8 +11,9 @@ import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { degToRad } from '../../mol-math/misc';
 import { Dsn6File } from '../../mol-io/reader/dsn6/schema';
 import { arrayMin, arrayMax, arrayMean, arrayRms } from '../../mol-util/array';
+import { ModelFormat } from '../format';
 
-function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, label?: string }): Task<VolumeData> {
+export function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, label?: string }): Task<VolumeData> {
     return Task.create<VolumeData>('Create Volume Data', async ctx => {
         const { header, values } = source;
         const size = Vec3.create(header.xlen, header.ylen, header.zlen);
@@ -40,9 +41,24 @@ function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, label?: s
                 max: arrayMax(values),
                 mean: arrayMean(values),
                 sigma: header.sigma !== undefined ? header.sigma : arrayRms(values)
-            }
+            },
+            sourceData: Dsn6Format.create(source)
         };
     });
 }
 
-export { volumeFromDsn6 };
+//
+
+export { Dsn6Format };
+
+type Dsn6Format = ModelFormat<Dsn6File>
+
+namespace Dsn6Format {
+    export function is(x: ModelFormat): x is Dsn6Format {
+        return x.kind === 'dsn6';
+    }
+
+    export function create(dsn6: Dsn6File): Dsn6Format {
+        return { kind: 'dsn6', name: dsn6.name, data: dsn6 };
+    }
+}

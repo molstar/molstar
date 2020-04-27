@@ -5,7 +5,7 @@
  */
 
 import { CustomPropertyDescriptor, Model } from '../../../mol-model/structure';
-import { ModelFormat } from '../format';
+import { ModelFormat } from '../../format';
 
 class FormatRegistry<T> {
     private map = new Map<ModelFormat['kind'], (model: Model) => T | undefined>()

@@ -16,7 +16,7 @@ import { ElementSymbol } from '../../../mol-model/structure/model/types';
 import { Entities } from '../../../mol-model/structure/model/properties/common';
 import { getAtomicDerivedData } from '../../../mol-model/structure/model/properties/utils/atomic-derived';
 import { AtomSite } from './schema';
-import { ModelFormat } from '../format';
+import { ModelFormat } from '../../format';
 import { SymmetryOperator } from '../../../mol-math/geometry';
 import { MmcifFormat } from '../mmcif';
 import { AtomSiteOperatorMappingSchema } from '../../../mol-model/structure/export/categories/atom_site_operator_mapping';

@@ -12,7 +12,7 @@ import { guessElementSymbolString } from './util';
 import { MoleculeType, getMoleculeType } from '../../mol-model/structure/model/types';
 import { getChainId } from './common/util';
 import { Task } from '../../mol-task';
-import { ModelFormat } from './format';
+import { ModelFormat } from '../format';
 import { Topology } from '../../mol-model/structure/topology/topology';
 import { createBasic, BasicSchema } from './basic/schema';
 

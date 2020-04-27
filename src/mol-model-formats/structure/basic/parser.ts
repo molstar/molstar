@@ -15,7 +15,7 @@ import { getAtomicHierarchyAndConformation } from './atomic';
 import { getCoarse, EmptyCoarse, CoarseData } from './coarse';
 import { getSequence } from './sequence';
 import { sortAtomSite } from './sort';
-import { ModelFormat } from '../format';
+import { ModelFormat } from '../../format';
 import { getAtomicRanges } from '../../../mol-model/structure/model/properties/utils/atomic-ranges';
 import { AtomSite, BasicData } from './schema';
 import { getProperties } from './properties';
