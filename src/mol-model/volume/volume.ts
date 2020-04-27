@@ -9,9 +9,15 @@ import { OrderedSet } from '../../mol-data/int';
 import { Sphere3D } from '../../mol-math/geometry';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
+import { CubeFormat } from '../../mol-model-formats/volume/cube';
 
 export namespace Volume {
     export type CellIndex = { readonly '@type': 'cell-index' } & number
+
+    export function isOrbitals(volume: VolumeData) {
+        if (!CubeFormat.is(volume.sourceData)) return false;
+        return volume.sourceData.data.header.orbitals;
+    }
 
     export interface Loci { readonly kind: 'volume-loci', readonly volume: VolumeData }
     export function Loci(volume: VolumeData): Loci { return { kind: 'volume-loci', volume }; }

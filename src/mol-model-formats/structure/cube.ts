@@ -12,7 +12,7 @@ import { createModels } from './basic/parser';
 import { BasicSchema, createBasic } from './basic/schema';
 import { ComponentBuilder } from './common/component';
 import { EntityBuilder } from './common/entity';
-import { ModelFormat } from './format';
+import { ModelFormat } from '../format';
 import { CubeFile } from '../../mol-io/reader/cube/parser';
 
 async function getModels(cube: CubeFile, ctx: RuntimeContext): Promise<Model[]> {

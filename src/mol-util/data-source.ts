@@ -241,9 +241,8 @@ function processAjax<T extends DataType>(req: XMLHttpRequest, type: T): DataResp
         }
         throw new Error(`could not get requested response data '${type}'`);
     } else {
-        const status = req.statusText;
         RequestPool.deposit(req);
-        throw new Error(status);
+        throw new Error(`Download failed with status code ${req.status}`);
     }
 }
 

@@ -63,5 +63,6 @@ export interface Mol2Structure {
 }
 
 export interface Mol2File {
+    name: string
     structures: Mol2Structure[]
 }

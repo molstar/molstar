@@ -58,6 +58,7 @@ import { PluginStateSnapshotManager } from '../mol-plugin-state/manager/snapshot
 import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
 import { objectForEach } from '../mol-util/object';
 import { VolumeHierarchyManager } from '../mol-plugin-state/manager/volume/hierarchy';
+import { filter, take } from 'rxjs/operators';
 
 export class PluginContext {
     runTask = <T>(task: Task<T>) => this.tasks.run(task);
@@ -73,13 +74,13 @@ export class PluginContext {
         log: this.ev<LogEntry>(),
         task: this.tasks.events,
         canvas3d: {
-            initialized: this.ev(),
             settingsUpdated: this.ev(),
         }
     } as const
 
     readonly config = new PluginConfigManager(this.spec.config);
 
+    private canvas3dInit = this.ev.behavior<boolean>(false);
     readonly behaviors = {
         state: {
             isAnimating: this.ev.behavior<boolean>(false),
@@ -96,8 +97,11 @@ export class PluginContext {
         },
         layout: {
             leftPanelTabName: this.ev.behavior<LeftPanelTabName>('root')
+        },
+        canvas3d: {
+            initialized: this.canvas3dInit.pipe(filter(v => !!v), take(1))
         }
-    } as const
+    } as const;
 
     readonly canvas3d: Canvas3D | undefined;
     readonly layout = new PluginLayout(this);
@@ -174,8 +178,7 @@ export class PluginContext {
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
 
             (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas);
-            this.events.canvas3d.initialized.next();
-            this.events.canvas3d.initialized.isStopped = true; // TODO is this a good way?
+            this.canvas3dInit.next(true);
             const renderer = this.canvas3d!.props.renderer;
             PluginCommands.Canvas3D.SetSettings(this, { settings: { renderer: { ...renderer, backgroundColor: Color(0xFCFBF9) } } });
             this.canvas3d!.animate();

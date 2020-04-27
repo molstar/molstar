@@ -6,7 +6,7 @@
 
 import { Model } from '../../mol-model/structure/model';
 import { Task } from '../../mol-task';
-import { ModelFormat } from './format';
+import { ModelFormat } from '../format';
 import { Column, Table } from '../../mol-data/db';
 import { EntityBuilder } from './common/entity';
 import { File3DG } from '../../mol-io/reader/3dg/parser';

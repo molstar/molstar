@@ -12,7 +12,7 @@ import { CoarseHierarchy, CoarseConformation } from './properties/coarse';
 import { Entities, ChemicalComponentMap, MissingResidues, StructAsymMap } from './properties/common';
 import { CustomProperties } from '../common/custom-property';
 import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
-import { ModelFormat } from '../../../mol-model-formats/structure/format';
+import { ModelFormat } from '../../../mol-model-formats/format';
 import { calcModelCenter } from './util';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Mutable } from '../../../mol-util/type-helpers';

@@ -7,7 +7,7 @@
 import { UUID } from '../../../mol-util';
 import { Column } from '../../../mol-data/db';
 import { BasicData } from '../../../mol-model-formats/structure/basic/schema';
-import { ModelFormat } from '../../../mol-model-formats/structure/format';
+import { ModelFormat } from '../../../mol-model-formats/format';
 
 export { Topology };
 

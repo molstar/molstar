@@ -69,11 +69,13 @@ async function getModel(plugin: PluginContext, id: string, ingredient: Ingredien
             }
         } else if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
             if (surface){
-                const data = await getFromOPM(plugin, id, assetManager);
-                if (data.asset){
+                try {
+                    const data = await getFromOPM(plugin, id, assetManager);
                     assets.push(data.asset);
                     trajectory = await plugin.runTask(trajectoryFromPDB(data.pdb));
-                } else {
+                } catch (e) {
+                    // fallback to getFromPdb
+                    // console.error(e);
                     const { mmcif, asset } = await getFromPdb(plugin, id, assetManager);
                     assets.push(asset);
                     trajectory = await plugin.runTask(trajectoryFromMmCIF(mmcif));

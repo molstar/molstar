@@ -271,7 +271,7 @@ export namespace ParamDefinition {
         getLabel(t: T): string
     }
     export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[], ctor?: () => T }): ObjectList<Normalize<T>> {
-        return setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, ctor: _defaultObjectListCtor, defaultValue: (info?.defaultValue) || []  }, info);
+        return setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, ctor: _defaultObjectListCtor, defaultValue: (info?.defaultValue) || [] }, info);
     }
     function _defaultObjectListCtor(this: ObjectList) { return getDefaultValues(this.element) as any; }
 
@@ -316,7 +316,7 @@ export namespace ParamDefinition {
     export type ValuesFor<T extends For<any>> = Normalize<{ [k in keyof T]: T[k]['defaultValue'] }>
 
     type Optionals<P> = { [K in keyof P]-?: undefined extends P[K] ? K : never }[keyof P]
-    type NonOptionals<P> = { [K in keyof P]-?: undefined extends P[K] ? never: K }[keyof P]
+    type NonOptionals<P> = { [K in keyof P]-?: undefined extends P[K] ? never : K }[keyof P]
     export type Normalize<P> = Pick<P, NonOptionals<P>> & Partial<Pick<P, Optionals<P>>>
     export type For<P> = { [K in keyof P]-?: Base<P[K]> }
     export type Def<P> = { [K in keyof P]: Any }
@@ -435,8 +435,8 @@ export namespace ParamDefinition {
     }
 
     export function mergeParam(p: Any, a: any, b: any): any {
-        if (a === undefined) return typeof b === 'object' ? { ...b } : b;
-        if (b === undefined) return typeof a === 'object' ? { ...a } : a;
+        if (a === undefined) return typeof b === 'object' && !Array.isArray(b) ? { ...b } : b;
+        if (b === undefined) return typeof a === 'object' && !Array.isArray(a) ? { ...a } : a;
 
         if (p.type === 'group') {
             return merge(p.params, a, b);
@@ -448,7 +448,12 @@ export namespace ParamDefinition {
                 name: v.name,
                 params: mergeParam(map, u.params, v.params)
             };
+        } else if (p.type === 'value') {
+            return b;
         } else if (typeof a === 'object' && typeof b === 'object') {
+            if (Array.isArray(b)) {
+                return b;
+            }
             return { ...a, ...b };
         } else {
             return b;

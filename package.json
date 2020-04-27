@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "0.7.0-dev.10",
+  "version": "0.7.0-dev.13",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -34,9 +34,8 @@
     "model-server-watch": "nodemon --watch lib lib/servers/servers/model/server.js",
     "volume-server-test": "node lib/servers/servers/volume/server.js --idMap em 'test/${id}.mdb' --defaultPort 1336",
     "plugin-state": "node lib/servers/servers/plugin-state/index.js",
-    "preversion": "npm run test",
-    "postversion": "git push && git push --tags",
-    "prepublishOnly": "npm run test && npm run build"
+    "preversion": "npm run test && npm run build",
+    "postversion": "git push && git push --tags"
   },
   "files": [
     "lib/"

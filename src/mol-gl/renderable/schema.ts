@@ -187,7 +187,6 @@ export type GlobalUniformValues = Values<GlobalUniformSchema> // { [k in keyof G
 
 export const InternalSchema = {
     uObjectId: UniformSpec('i'),
-    uPickable: UniformSpec('i', true),
 } as const;
 export type InternalSchema = typeof InternalSchema
 export type InternalValues = { [k in keyof InternalSchema]: ValueCell<any> }

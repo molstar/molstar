@@ -9,6 +9,7 @@ import { Mat4, Tensor } from '../../mol-math/linear-algebra';
 import { VolumeData } from '../../mol-model/volume/data';
 import { Task } from '../../mol-task';
 import { arrayMax, arrayMean, arrayMin, arrayRms } from '../../mol-util/array';
+import { ModelFormat } from '../format';
 
 export function volumeFromDx(source: DxFile, params?: { label?: string }): Task<VolumeData> {
     return Task.create<VolumeData>('Create Volume Data', async () => {
@@ -28,7 +29,24 @@ export function volumeFromDx(source: DxFile, params?: { label?: string }): Task<
                 max: arrayMax(values),
                 mean: arrayMean(values),
                 sigma: arrayRms(values)
-            }
+            },
+            sourceData: DxFormat.create(source)
         };
     });
+}
+
+//
+
+export { DxFormat };
+
+type DxFormat = ModelFormat<DxFile>
+
+namespace DxFormat {
+    export function is(x: ModelFormat): x is DxFormat {
+        return x.kind === 'dx';
+    }
+
+    export function create(dx: DxFile): DxFormat {
+        return { kind: 'dx', name: dx.name, data: dx };
+    }
 }

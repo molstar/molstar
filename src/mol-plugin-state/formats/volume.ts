@@ -15,6 +15,7 @@ import { ColorNames } from '../../mol-util/color/names';
 import { VolumeIsoValue } from '../../mol-model/volume';
 import { createVolumeRepresentationParams } from '../helpers/volume-representation-params';
 import { objectForEach } from '../../mol-util/object';
+import { Volume } from '../../mol-model/volume/volume';
 
 const Category = 'Volume';
 
@@ -104,30 +105,41 @@ export const CubeProvider = DataFormatProvider({
     visuals: async (plugin: PluginContext, data: { volume: StateObjectSelector<PluginStateObject.Volume.Data>, structure: StateObjectSelector<PluginStateObject.Molecule.Structure> }) => {
         const surfaces = plugin.build();
 
+        const volumeReprs: StateObjectSelector<PluginStateObject.Volume.Representation3D>[] = [];
         const volumeData = data.volume.cell?.obj?.data;
-        const volumePos = surfaces.to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, volumeData, {
-            type: 'isosurface',
-            typeParams: { isoValue: VolumeIsoValue.relative(1), alpha: 0.4 },
-            color: 'uniform',
-            colorParams: { value: ColorNames.blue }
-        }));
-        const volumeNeg = surfaces.to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, volumeData, {
-            type: 'isosurface',
-            typeParams: { isoValue: VolumeIsoValue.relative(-1), alpha: 0.4 },
-            color: 'uniform',
-            colorParams: { value: ColorNames.red }
-        }));
+        if (volumeData && Volume.isOrbitals(volumeData)) {
+            const volumePos = surfaces.to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, volumeData, {
+                type: 'isosurface',
+                typeParams: { isoValue: VolumeIsoValue.relative(1), alpha: 0.4 },
+                color: 'uniform',
+                colorParams: { value: ColorNames.blue }
+            }));
+            const volumeNeg = surfaces.to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, volumeData, {
+                type: 'isosurface',
+                typeParams: { isoValue: VolumeIsoValue.relative(-1), alpha: 0.4 },
+                color: 'uniform',
+                colorParams: { value: ColorNames.red }
+            }));
+            volumeReprs.push(volumePos.selector, volumeNeg.selector);
+        } else {
+            const volume = surfaces.to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, volumeData, {
+                type: 'isosurface',
+                typeParams: { isoValue: VolumeIsoValue.relative(2), alpha: 0.4 },
+                color: 'uniform',
+                colorParams: { value: ColorNames.grey }
+            }));
+            volumeReprs.push(volume.selector);
+        }
 
         const structure = await plugin.builders.structure.representation.applyPreset(data.structure, 'auto');
         await surfaces.commit();
 
         const structureReprs: StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>[] = [];
-
         objectForEach(structure?.representations as any, (r: any) => {
             if (r) structureReprs.push(r);
         });
 
-        return [volumePos.selector, volumeNeg.selector, ...structureReprs];
+        return [...volumeReprs, ...structureReprs];
     }
 });
 

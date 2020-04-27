@@ -29,7 +29,6 @@ export function SpheresRenderable(ctx: WebGLContext, id: number, values: Spheres
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...SpheresSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
-        uPickable: ValueCell.create(state.pickable ? 1 : 0)
     };
     const shaderCode = SpheresShaderCode;
     const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId);

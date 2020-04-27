@@ -7,7 +7,7 @@
 
 import { Model } from '../../mol-model/structure/model/model';
 import { Task } from '../../mol-task';
-import { ModelFormat } from './format';
+import { ModelFormat } from '../format';
 import { CifFrame, CIF } from '../../mol-io/reader/cif';
 import { mmCIF_Database } from '../../mol-io/reader/cif/schema/mmcif';
 import { createModels } from './basic/parser';

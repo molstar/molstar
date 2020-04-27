@@ -73,7 +73,6 @@ export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: Di
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...DirectVolumeSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
-        uPickable: ValueCell.create(state.pickable ? 1 : 0),
     };
     const shaderCode = DirectVolumeShaderCode;
     const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId);

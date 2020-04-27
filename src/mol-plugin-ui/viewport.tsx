@@ -130,14 +130,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
 }
 
 export const Logo = () =>
-    <div className='msp-logo'>
-        <div>
-            <div>
-                <div />
-                <div className='msp-logo-image' />
-            </div>
-        </div>
-    </div>;
+    <a className='msp-logo' href='https://molstar.org' target='_blank' />;
 
 interface ViewportState {
     noWebGl: boolean

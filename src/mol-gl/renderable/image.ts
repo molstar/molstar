@@ -33,7 +33,6 @@ export function ImageRenderable(ctx: WebGLContext, id: number, values: ImageValu
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...ImageSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
-        uPickable: ValueCell.create(state.pickable ? 1 : 0),
     };
     const shaderCode = ImageShaderCode;
     const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId);

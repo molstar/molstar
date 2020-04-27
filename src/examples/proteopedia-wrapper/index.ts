@@ -5,35 +5,34 @@
  */
 
 import * as ReactDOM from 'react-dom';
+import { Canvas3DProps, DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
-import './index.html';
-import { PluginContext } from '../../mol-plugin/context';
-import { PluginCommands } from '../../mol-plugin/commands';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { Color } from '../../mol-util/color';
-import { PluginStateObject as PSO, PluginStateObject } from '../../mol-plugin-state/objects';
 import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in';
-import { StateBuilder, StateObject, StateSelection } from '../../mol-state';
-import { EvolutionaryConservation } from './annotation';
-import { LoadParams, SupportedFormats, RepresentationStyle, ModelInfo, StateElements } from './helpers';
-import { RxEventHelper } from '../../mol-util/rx-event-helper';
-import { volumeStreamingControls } from './ui/controls';
-import { PluginState } from '../../mol-plugin/state';
-import { Scheduler } from '../../mol-task';
-import { createProteopediaCustomTheme } from './coloring';
-import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
-import { ColorNames } from '../../mol-util/color/names';
-import { InitVolumeStreaming, CreateVolumeStreamingInfo } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
-import { DefaultCanvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
-import { download } from '../../mol-util/download';
-import { getFormattedTime } from '../../mol-util/date';
+import { PluginStateObject, PluginStateObject as PSO } from '../../mol-plugin-state/objects';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { CreateVolumeStreamingInfo, InitVolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
+import { PluginCommands } from '../../mol-plugin/commands';
+import { PluginContext } from '../../mol-plugin/context';
+import { PluginState } from '../../mol-plugin/state';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
+import { StateBuilder, StateObject, StateSelection } from '../../mol-state';
 import { Asset } from '../../mol-util/assets';
+import { Color } from '../../mol-util/color';
+import { ColorNames } from '../../mol-util/color/names';
+import { getFormattedTime } from '../../mol-util/date';
+import { download } from '../../mol-util/download';
+import { RxEventHelper } from '../../mol-util/rx-event-helper';
+import { EvolutionaryConservation } from './annotation';
+import { createProteopediaCustomTheme } from './coloring';
+import { LoadParams, ModelInfo, RepresentationStyle, StateElements, SupportedFormats } from './helpers';
+import './index.html';
+import { volumeStreamingControls } from './ui/controls';
 require('../../mol-plugin-ui/skin/light.scss');
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 5;
-    static VERSION_MINOR = 4;
+    static VERSION_MINOR = 5;
 
     private _ev = RxEventHelper.create();
 
@@ -233,7 +232,6 @@ class MolStarProteopediaWrapper {
         await this.updateStyle(representationStyle);
 
         this.loadedParams = { url, format, assemblyId };
-        Scheduler.setImmediate(() => PluginCommands.Camera.Reset(this.plugin, { }));
     }
 
     async updateStyle(style?: RepresentationStyle, partial?: boolean) {
@@ -407,7 +405,7 @@ class MolStarProteopediaWrapper {
             try {
                 const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'binary' }));
                 this.loadedParams = { ...this.emptyLoadedParams };
-                await this.plugin.managers.snapshot.open(new File([data], `state.${type}`));
+                return await this.plugin.managers.snapshot.open(new File([data], `state.${type}`));
             } catch (e) {
                 console.log(e);
             }

@@ -9,6 +9,7 @@ import { Mat4, Tensor } from '../../mol-math/linear-algebra';
 import { VolumeData } from '../../mol-model/volume/data';
 import { Task } from '../../mol-task';
 import { arrayMax, arrayMean, arrayMin, arrayRms } from '../../mol-util/array';
+import { ModelFormat } from '../format';
 
 export function volumeFromCube(source: CubeFile, params?: { dataIndex?: number, label?: string }): Task<VolumeData> {
     return Task.create<VolumeData>('Create Volume Data', async () => {
@@ -51,7 +52,24 @@ export function volumeFromCube(source: CubeFile, params?: { dataIndex?: number, 
                 max: arrayMax(values),
                 mean: arrayMean(values),
                 sigma: arrayRms(values)
-            }
+            },
+            sourceData: CubeFormat.create(source)
         };
     });
+}
+
+//
+
+export { CubeFormat };
+
+type CubeFormat = ModelFormat<CubeFile>
+
+namespace CubeFormat {
+    export function is(x: ModelFormat): x is CubeFormat {
+        return x.kind === 'cube';
+    }
+
+    export function create(cube: CubeFile): CubeFormat {
+        return { kind: 'cube', name: cube.name, data: cube };
+    }
 }

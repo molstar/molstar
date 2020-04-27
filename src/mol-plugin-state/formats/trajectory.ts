@@ -122,6 +122,14 @@ export const MolProvider: TrajectoryFormatProvider = {
     visuals: defaultVisuals
 };
 
+export const Mol2Provider: TrajectoryFormatProvider = {
+    label: 'MOL2',
+    description: 'MOL2',
+    category: Category,
+    stringExtensions: ['mol2'],
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromMOL2),
+    visuals: defaultVisuals
+};
 
 export const BuiltInTrajectoryFormats = [
     ['mmcif', MmcifProvider] as const,
@@ -129,7 +137,8 @@ export const BuiltInTrajectoryFormats = [
     ['pdb', PdbProvider] as const,
     ['gro', GroProvider] as const,
     ['3dg', Provider3dg] as const,
-    ['mol', MolProvider] as const
+    ['mol', MolProvider] as const,
+    ['mol2', Mol2Provider] as const,
 ] as const;
 
 export type BuiltInTrajectoryFormat = (typeof BuiltInTrajectoryFormats)[number][0]

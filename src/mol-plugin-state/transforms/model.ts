@@ -35,6 +35,8 @@ import { parseMol } from '../../mol-io/reader/mol/parser';
 import { trajectoryFromMol } from '../../mol-model-formats/structure/mol';
 import { trajectoryFromCifCore } from '../../mol-model-formats/structure/cif-core';
 import { trajectoryFromCube } from '../../mol-model-formats/structure/cube';
+import { parseMol2 } from '../../mol-io/reader/mol2/parser';
+import { trajectoryFromMol2 } from '../../mol-model-formats/structure/mol2';
 
 export { CoordinatesFromDcd };
 export { TopologyFromPsf };
@@ -44,6 +46,7 @@ export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
 export { TrajectoryFromGRO };
 export { TrajectoryFromMOL };
+export { TrajectoryFromMOL2 };
 export { TrajectoryFromCube };
 export { TrajectoryFromCifCore };
 export { TrajectoryFrom3DG };
@@ -229,6 +232,24 @@ const TrajectoryFromMOL = PluginStateTransform.BuiltIn({
             const parsed = await parseMol(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromMol(parsed.result).runInContext(ctx);
+            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
+
+type TrajectoryFromMOL2 = typeof TrajectoryFromMOL
+const TrajectoryFromMOL2 = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-mol2',
+    display: { name: 'Parse MOL2', description: 'Parse MOL2 string and create trajectory.' },
+    from: [SO.Data.String],
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse MOL2', async ctx => {
+            const parsed = await parseMol2(a.data, a.label).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const models = await trajectoryFromMol2(parsed.result).runInContext(ctx);
             const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(models, props);
         });

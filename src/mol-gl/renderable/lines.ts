@@ -29,7 +29,6 @@ export function LinesRenderable(ctx: WebGLContext, id: number, values: LinesValu
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...LinesSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
-        uPickable: ValueCell.create(state.pickable ? 1 : 0)
     };
     const shaderCode = LinesShaderCode;
     const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId);
