@@ -41,7 +41,7 @@
                 display: block;
             }
         </style>
-        <link rel="stylesheet" type="text/css" href="app.css" />
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
         <script type="text/javascript" src="./index.js"></script>
     </head>
     <body>
@@ -55,13 +55,13 @@
             </select>
         </div>
         <div id="app"></div>
-        <script>      
+        <script>
             function $(id) { return document.getElementById(id); }
-        
+
             var pdbId = '1grm', assemblyId= '1';
             var url = 'https://www.ebi.ac.uk/pdbe/static/entry/' + pdbId + '_updated.cif';
             var format = 'mmcif';
-            
+
             $('url').value = url;
             $('url').onchange = function (e) { url = e.target.value; }
             $('assemblyId').value = assemblyId;
@@ -86,7 +86,7 @@
 
             addHeader('Camera');
             addControl('Toggle Spin', () => BasicMolStarWrapper.toggleSpin());
-            
+
             addSeparator();
 
             addHeader('Animation');
@@ -115,7 +115,7 @@
             addControl('Static Superposition', () => BasicMolStarWrapper.tests.staticSuperposition());
             addControl('Dynamic Superposition', () => BasicMolStarWrapper.tests.dynamicSuperposition());
             addControl('Validation Tooltip', () => BasicMolStarWrapper.tests.toggleValidationTooltip());
-            
+
             addControl('Show Toasts', () => BasicMolStarWrapper.tests.showToasts());
             addControl('Hide Toasts', () => BasicMolStarWrapper.tests.hideToasts());
 

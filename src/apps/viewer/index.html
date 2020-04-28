@@ -34,10 +34,43 @@
                 height: 600px;
             }
         </style>
-        <link rel="stylesheet" type="text/css" href="app.css" />
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
     </head>
     <body>
         <div id="app"></div>
-        <script type="text/javascript" src="./index.js"></script>
+        <script type="text/javascript" src="./molstar.js"></script>
+        <script type="text/javascript">
+            function getParam(name, regex) {
+                var r = new RegExp(name + '=' + '(' + regex + ')[&]?', 'i');
+                return decodeURIComponent(((window.location.search || '').match(r) || [])[1] || '');
+            }
+
+            var hideControls = getParam('hide-controls', '[^&]+').trim() === '1';
+            var viewer = new molstar.Viewer('app', {
+                layoutShowControls: !hideControls,
+                viewportShowExpand: false,
+            });
+
+            var snapshotId = getParam('snapshot-id', '[^&]+').trim();
+            if (snapshotId) viewer.setRemoteSnapshot(snapshotId);
+
+            var snapshotUrl = getParam('snapshot-url', '[^&]+').trim();
+            var snapshotUrlType = getParam('snapshot-url-type', '[^&]+').toLowerCase().trim();
+            if (snapshotUrl && snapshotUrlType) viewer.loadSnapshotFromUrl(snapshotUrl, snapshotUrlType);
+
+            var structureUrl = getParam('structure-url', '[^&]+').trim();
+            var structureUrlFormat = getParam('structure-url-format', '[a-z]+').toLowerCase().trim();
+            var structureUrlIsBinary = getParam('structure-url-is-binary', '[^&]+').trim() === '1';
+            if (structureUrl) viewer.loadStructureFromUrl(structureUrl, structureUrlFormat, structureUrlIsBinary);
+
+            var pdb = getParam('pdb', '[^&]+').trim();
+            if (pdb) viewer.loadPdb(pdb);
+
+            var pdbDev = getParam('pdb-dev', '[^&]+').trim();
+            if (pdbDev) viewer.loadPdbDev(pdbDev);
+
+            var emdb = getParam('emdb', '[^&]+').trim();
+            if (emdb) viewer.loadEmdb(emdb);
+        </script>
     </body>
 </html>
