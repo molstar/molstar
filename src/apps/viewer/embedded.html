@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <link rel="icon" href="./favicon.ico" type="image/x-icon">
+        <title>Embedded Mol* Viewer</title>
+        <style>
+            #app {
+                position: absolute;
+                left: 100px;
+                top: 100px;
+                width: 800px;
+                height: 600px;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+    </head>
+    <body>
+        <div id="app"></div>
+        <script type="text/javascript" src="./molstar.js"></script>
+        <script type="text/javascript">
+            var viewer = new molstar.Viewer('app', {
+                layoutIsExpanded: false,
+                layoutShowControls: false,
+                layoutShowRemoteState: false,
+                layoutShowSequence: true,
+                layoutShowLog: false,
+                layoutShowLeftPanel: true,
+
+                viewportShowExpand: true,
+                viewportShowSelectionMode: false,
+                viewportShowAnimation: false,
+
+                pdbProvider: 'rcsb',
+                emdbProvider: 'rcsb',
+            });
+            viewer.loadPdb('7bv2');
+            viewer.loadEmdb('EMD-30210');
+
+            // TODO add Volume.customProperty and load suggested isoValue via custom property
+            var sub = viewer.plugin.managers.volume.hierarchy.behaviors.selection.subscribe(function (value) {
+                if (value.volume?.representations[0]) {
+                    var ref = value.volume.representations[0].cell;
+                    var tree = viewer.plugin.state.data.build().to(ref).update({
+                        type: {
+                            name: 'isosurface',
+                            params: {
+                                isoValue: {
+                                    kind: 'relative',
+                                    relativeValue: 6
+                                }
+                            }
+                        },
+                        colorTheme: ref.transform.params?.colorTheme
+                    });
+                    viewer.plugin.runTask(viewer.plugin.state.data.updateTree(tree));
+                    if (typeof sub !== 'undefined') sub.unsubscribe();
+                }
+            });
+        </script>
+    </body>
+</html>

@@ -48,7 +48,7 @@
                 width: 300px;
             }
         </style>
-        <link rel="stylesheet" type="text/css" href="app.css" />
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
         <script type="text/javascript" src="./index.js"></script>
     </head>
     <body>
@@ -65,7 +65,7 @@
         <div id="app"></div>
         <div id="volume-streaming-wrapper"></div>
         <script>
-            // it might be a good idea to define these colors in a separate script file 
+            // it might be a good idea to define these colors in a separate script file
             var CustomColors = [0x00ff00, 0x0000ff];
 
             // create an instance of the plugin
@@ -74,11 +74,11 @@
             console.log('Wrapper version', MolStarProteopediaWrapper.VERSION_MAJOR, MolStarProteopediaWrapper.VERSION_MINOR);
 
             function $(id) { return document.getElementById(id); }
-        
+
             var pdbId = '1cbs', assemblyId= 'preferred', isBinary = true;
             var url = 'https://www.ebi.ac.uk/pdbe/entry-files/download/' + pdbId + '.bcif'
             var format = 'cif';
-            
+
             $('url').value = url;
             $('url').onchange = function (e) { url = e.target.value; }
             $('assemblyId').value = assemblyId;
@@ -144,7 +144,7 @@
             // Same as "wheel icon" and Viewport options
             // addControl('Clip', () => PluginWrapper.viewport.setSettings({ clip: [33, 66] }));
             // addControl('Reset Clip', () => PluginWrapper.viewport.setSettings({ clip: [1, 100] }));
-            
+
             addSeparator();
 
             addHeader('Animation');
@@ -177,7 +177,7 @@
             addControl('Init', () => PluginWrapper.experimentalData.init($('volume-streaming-wrapper')));
             addControl('Remove', () => PluginWrapper.experimentalData.remove());
 
-            addSeparator(); 
+            addSeparator();
             addHeader('State');
 
             var snapshot;

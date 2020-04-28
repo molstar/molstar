@@ -7,6 +7,7 @@
 import { shallowMergeArray } from '../mol-util/object';
 import { RxEventHelper } from '../mol-util/rx-event-helper';
 import { Subscription, Observable } from 'rxjs';
+import { arraySetRemove } from '../mol-util/array';
 
 export class PluginComponent {
     private _ev: RxEventHelper | undefined;
@@ -14,7 +15,18 @@ export class PluginComponent {
 
     protected subscribe<T>(obs: Observable<T>, action: (v: T) => void) {
         if (typeof this.subs === 'undefined') this.subs = [];
-        this.subs.push(obs.subscribe(action));
+
+        let sub: Subscription | undefined = obs.subscribe(action);
+        this.subs.push(sub);
+
+        return {
+            unsubscribe: () => {
+                if (sub && this.subs && arraySetRemove(this.subs, sub)) {
+                    sub.unsubscribe();
+                    sub = void 0;
+                }
+            }
+        };
     }
 
     protected get ev() {

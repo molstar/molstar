@@ -16,6 +16,8 @@ import { DataFormatProvider } from '../formats/provider';
 import { Asset } from '../../mol-util/assets';
 import { StateTransforms } from '../transforms';
 
+export type EmdbDownloadProvider = 'pdbe' | 'rcsb'
+
 export { DownloadDensity };
 type DownloadDensity = typeof DownloadDensity
 const DownloadDensity = StateAction.build({
@@ -42,7 +44,7 @@ const DownloadDensity = StateAction.build({
                 'pdb-emd-ds': PD.Group({
                     provider: PD.Group({
                         id: PD.Text('emd-8004', { label: 'Id' }),
-                        server: PD.Select('pdbe', [['pdbe', 'PDBe'], ['rcsb', 'RCSB PDB']]),
+                        server: PD.Select<EmdbDownloadProvider>('pdbe', [['pdbe', 'PDBe'], ['rcsb', 'RCSB PDB']]),
                     }, { pivot: 'id' }),
                     detail: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { label: 'Detail' }),
                 }, { isFlat: true }),

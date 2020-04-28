@@ -176,7 +176,7 @@ export const DscifProvider = DataFormatProvider({
         if (volumes.length > 0) {
             visuals[0] = tree
                 .to(volumes[0])
-                .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: VolumeIsoValue.relative(1.5), alpha: 0.3 }, 'uniform', { value: ColorNames.teal }))
+                .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: VolumeIsoValue.relative(1.5), alpha: 1 }, 'uniform', { value: ColorNames.teal }))
                 .selector;
         }
 

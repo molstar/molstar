@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "0.7.0-dev.13",
+  "version": "0.7.0-dev.17",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -38,7 +38,8 @@
     "postversion": "git push && git push --tags"
   },
   "files": [
-    "lib/"
+    "lib/",
+    "build/viewer/"
   ],
   "bin": {
     "cif2bcif": "lib/apps/cif2bcif/index.js",

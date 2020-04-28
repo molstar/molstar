@@ -76,6 +76,7 @@ type TextParams = typeof TextParams
 const DihedralVisuals = {
     'vectors': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, VectorsParams>) => ShapeRepresentation(getVectorsShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'extenders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ExtendersParams>) => ShapeRepresentation(getExtendersShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
+    'connector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ExtendersParams>) => ShapeRepresentation(getConnectorShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'arc': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ArcParams>) => ShapeRepresentation(getArcShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }), modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
     'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, markerActions: MarkerAction.None }) }),
@@ -156,7 +157,8 @@ function setDihedralState(quad: Loci.Bundle<4>, state: DihedralState, arcScale: 
     Vec3.add(arcPointA, arcCenter, arcDirA);
     Vec3.add(arcPointD, arcCenter, arcDirD);
     state.radius = radius;
-    state.angle = Vec3.angle(arcDirA, arcDirD);
+
+    state.angle = Vec3.dihedralAngle(sphereA.center, sphereB.center, sphereC.center, sphereD.center);
 
     Vec3.matchDirection(tmpVec, arcNormal, Vec3.sub(tmpVec, arcPointA, sphereA.center));
     const angleA = Vec3.angle(dirBA, tmpVec);
@@ -175,11 +177,11 @@ function getCircle(state: DihedralState, segmentLength?: number) {
     const { radius, angle } = state;
     const segments = segmentLength ? arcLength(angle, radius) / segmentLength : 32;
 
-    Mat4.targetTo(tmpMat, state.arcCenter, angle > halfPI ? state.arcPointA : state.arcPointD, state.arcNormal);
+    Mat4.targetTo(tmpMat, state.arcCenter, angle < 0 ? state.arcPointD : state.arcPointA, state.arcNormal);
     Mat4.setTranslation(tmpMat, state.arcCenter);
     Mat4.mul(tmpMat, tmpMat, Mat4.rotY180);
 
-    const circle = Circle({ radius, thetaLength: angle, segments });
+    const circle = Circle({ radius, thetaLength: Math.abs(angle), segments });
     return transformPrimitive(circle, tmpMat);
 }
 
@@ -203,6 +205,23 @@ function buildVectorsLines(data: DihedralData, props: DihedralProps, lines?: Lin
 
 function getVectorsShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Lines>) {
     const lines = buildVectorsLines(data, props, shape && shape.geometry);
+    const name = getDihedralName(data);
+    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, () => '');
+}
+
+//
+
+function buildConnectorLine(data: DihedralData, props: DihedralProps, lines?: Lines): Lines {
+    const builder = LinesBuilder.create(128, 64, lines);
+    for (let i = 0, il = data.quads.length; i < il; ++i) {
+        setDihedralState(data.quads[i], tmpState, props.arcScale);
+        builder.addFixedLengthDashes(tmpState.sphereB.center, tmpState.sphereC.center, props.dashLength, i);
+    }
+    return builder.getLines();
+}
+
+function getConnectorShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Lines>) {
+    const lines = buildConnectorLine(data, props, shape && shape.geometry);
     const name = getDihedralName(data);
     return Shape.create(name, data, lines, () => props.color, () => props.linesSize, () => '');
 }
@@ -287,8 +306,8 @@ function buildText(data: DihedralData, props: DihedralProps, text?: Text): Text 
         Vec3.setMagnitude(tmpVec, tmpVec, tmpState.radius);
         Vec3.add(tmpVec, tmpState.arcCenter, tmpVec);
 
-        const angle = radToDeg(tmpState.angle).toFixed(2);
-        const label = `${angle}\u00B0`;
+        const angle = Math.abs(radToDeg(tmpState.angle)).toFixed(2);
+        const label =  props.customText || `${angle}\u00B0`;
         const radius = Math.max(2, tmpState.sphereA.radius, tmpState.sphereB.radius, tmpState.sphereC.radius, tmpState.sphereD.radius);
         const scale = radius / 2;
         builder.add(label, tmpVec[0], tmpVec[1], tmpVec[2], 0.1, scale, i);

@@ -166,4 +166,6 @@ namespace PluginState {
         structureFocus?: StructureFocusSnapshot,
         durationInMs?: number
     }
+
+    export type SnapshotType = 'json' | 'molj' | 'zip' | 'molx'
 }

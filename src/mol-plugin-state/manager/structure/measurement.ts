@@ -37,6 +37,12 @@ export interface StructureMeasurementManagerState {
     options: StructureMeasurementOptions
 }
 
+type StructureMeasurementManagerAddOptions = {
+    customText?: string,
+    selectionTags?: string | string[],
+    reprTags?: string | string[]
+}
+
 class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasurementManagerState>  {
     readonly behaviors = {
         state: this.ev.behavior(this.state)
@@ -80,7 +86,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
         await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.data, tree: update, options: { doNotLogTiming: true } });
     }
 
-    async addDistance(a: StructureElement.Loci, b: StructureElement.Loci) {
+    async addDistance(a: StructureElement.Loci, b: StructureElement.Loci, options?: StructureMeasurementManagerAddOptions) {
         const cellA = this.plugin.helpers.substructureParent.get(a.structure);
         const cellB = this.plugin.helpers.substructureParent.get(b.structure);
 
@@ -98,17 +104,18 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 ],
                 isTransitive: true,
                 label: 'Distance'
-            }, { dependsOn })
+            }, { dependsOn, tags: options?.selectionTags })
             .apply(StateTransforms.Representation.StructureSelectionsDistance3D, {
+                customText: options?.customText || '',
                 unitLabel: this.state.options.distanceUnitLabel,
                 textColor: this.state.options.textColor
-            });
+            }, { tags: options?.reprTags });
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
-    async addAngle(a: StructureElement.Loci, b: StructureElement.Loci, c: StructureElement.Loci) {
+    async addAngle(a: StructureElement.Loci, b: StructureElement.Loci, c: StructureElement.Loci, options?: StructureMeasurementManagerAddOptions) {
         const cellA = this.plugin.helpers.substructureParent.get(a.structure);
         const cellB = this.plugin.helpers.substructureParent.get(b.structure);
         const cellC = this.plugin.helpers.substructureParent.get(c.structure);
@@ -129,16 +136,17 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 ],
                 isTransitive: true,
                 label: 'Angle'
-            }, { dependsOn })
+            }, { dependsOn, tags: options?.selectionTags })
             .apply(StateTransforms.Representation.StructureSelectionsAngle3D, {
+                customText: options?.customText || '',
                 textColor: this.state.options.textColor
-            });
+            }, { tags: options?.reprTags });
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
-    async addDihedral(a: StructureElement.Loci, b: StructureElement.Loci, c: StructureElement.Loci, d: StructureElement.Loci) {
+    async addDihedral(a: StructureElement.Loci, b: StructureElement.Loci, c: StructureElement.Loci, d: StructureElement.Loci, options?: StructureMeasurementManagerAddOptions) {
         const cellA = this.plugin.helpers.substructureParent.get(a.structure);
         const cellB = this.plugin.helpers.substructureParent.get(b.structure);
         const cellC = this.plugin.helpers.substructureParent.get(c.structure);
@@ -162,16 +170,17 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 ],
                 isTransitive: true,
                 label: 'Dihedral'
-            }, { dependsOn })
+            }, { dependsOn, tags: options?.selectionTags })
             .apply(StateTransforms.Representation.StructureSelectionsDihedral3D, {
+                customText: options?.customText || '',
                 textColor: this.state.options.textColor
-            });
+            }, { tags: options?.reprTags });
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
-    async addLabel(a: StructureElement.Loci) {
+    async addLabel(a: StructureElement.Loci, options?: Omit<StructureMeasurementManagerAddOptions, 'customText'>) {
         const cellA = this.plugin.helpers.substructureParent.get(a.structure);
 
         if (!cellA) return;
@@ -186,10 +195,10 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 ],
                 isTransitive: true,
                 label: 'Label'
-            }, { dependsOn })
+            }, { dependsOn, tags: options?.selectionTags })
             .apply(StateTransforms.Representation.StructureSelectionsLabel3D, {
                 textColor: this.state.options.textColor
-            });
+            }, { tags: options?.reprTags });
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });

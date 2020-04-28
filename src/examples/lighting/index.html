@@ -38,16 +38,16 @@
                 display: block;
             }
         </style>
-        <link rel="stylesheet" type="text/css" href="app.css" />
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
         <script type="text/javascript" src="./index.js"></script>
     </head>
     <body>
         <div id='controls'></div>
         <div id="app"></div>
-        <script>      
+        <script>
             LightingDemo.init('app')
             LightingDemo.load({ url: 'https://files.rcsb.org/download/1M07.cif', assemblyId: '1' })
-            
+
             addHeader('Example PDB IDs');
             addControl('1M07', () => LightingDemo.load({ url: 'https://files.rcsb.org/download/1M07.cif', assemblyId: '1' }));
             addControl('6HY0', () => LightingDemo.load({ url: 'https://files.rcsb.org/download/6HY0.cif', assemblyId: '1' }));

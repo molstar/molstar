@@ -43,7 +43,7 @@ const sharedConfig = {
             // __VERSION_TIMESTAMP__: webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true),
             'process.env.DEBUG': JSON.stringify(process.env.DEBUG)
         }),
-        new MiniCssExtractPlugin({ filename: 'app.css' }),
+        new MiniCssExtractPlugin({ filename: 'molstar.css',  }),
         new VersionFile({
             extras: { timestamp: `${new Date().valueOf()}` },
             packageFile: path.resolve(__dirname, 'package.json'),
@@ -73,11 +73,11 @@ function createEntry(src, outFolder, outFilename, isNode) {
     }
 }
 
-function createEntryPoint(name, dir, out) {
+function createEntryPoint(name, dir, out, library) {
     return {
         node: { fs: 'empty' }, // TODO find better solution? Currently used in file-handle.ts
         entry: path.resolve(__dirname, `lib/${dir}/${name}.js`),
-        output: { filename: `${name}.js`, path: path.resolve(__dirname, `build/${out}`) },
+        output: { filename: `${library || name}.js`, path: path.resolve(__dirname, `build/${out}`), library: library || out, libraryTarget: 'umd' },
         ...sharedConfig
     }
 }
@@ -97,7 +97,7 @@ function createNodeEntryPoint(name, dir, out) {
     }
 }
 
-function createApp(name) { return createEntryPoint('index', `apps/${name}`, name) }
+function createApp(name, library) { return createEntryPoint('index', `apps/${name}`, name, library) }
 function createExample(name) { return createEntry(`examples/${name}/index`, `examples/${name}`, 'index') }
 function createBrowserTest(name) { return createEntryPoint(name, 'tests/browser', 'tests') }
 function createNodeApp(name) { return createNodeEntryPoint('index', `apps/${name}`, name) }
