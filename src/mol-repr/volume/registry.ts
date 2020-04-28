@@ -5,12 +5,12 @@
  */
 
 import { RepresentationRegistry, Representation, RepresentationProvider } from '../representation';
-import { VolumeData } from '../../mol-model/volume';
+import { Volume } from '../../mol-model/volume';
 import { IsosurfaceRepresentationProvider } from './isosurface';
 import { objectForEach } from '../../mol-util/object';
 import { SliceRepresentationProvider } from './slice';
 
-export class VolumeRepresentationRegistry extends RepresentationRegistry<VolumeData, Representation.State> {
+export class VolumeRepresentationRegistry extends RepresentationRegistry<Volume, Representation.State> {
     constructor() {
         super();
         objectForEach(VolumeRepresentationRegistry.BuiltIn, (p, k) => {

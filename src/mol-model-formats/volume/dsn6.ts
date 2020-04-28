@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { VolumeData } from '../../mol-model/volume/data';
+import { Volume } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
 import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
@@ -12,9 +12,10 @@ import { degToRad } from '../../mol-math/misc';
 import { Dsn6File } from '../../mol-io/reader/dsn6/schema';
 import { arrayMin, arrayMax, arrayMean, arrayRms } from '../../mol-util/array';
 import { ModelFormat } from '../format';
+import { CustomProperties } from '../../mol-model/custom-property';
 
-export function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, label?: string }): Task<VolumeData> {
-    return Task.create<VolumeData>('Create Volume Data', async ctx => {
+export function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, label?: string }): Task<Volume> {
+    return Task.create<Volume>('Create Volume', async ctx => {
         const { header, values } = source;
         const size = Vec3.create(header.xlen, header.ylen, header.zlen);
         if (params && params.voxelSize) Vec3.mul(size, size, params.voxelSize);
@@ -34,15 +35,19 @@ export function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, la
 
         return {
             label: params?.label,
-            transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
-            data,
-            dataStats: {
-                min: arrayMin(values),
-                max: arrayMax(values),
-                mean: arrayMean(values),
-                sigma: header.sigma !== undefined ? header.sigma : arrayRms(values)
+            grid: {
+                transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
+                cells: data,
+                stats: {
+                    min: arrayMin(values),
+                    max: arrayMax(values),
+                    mean: arrayMean(values),
+                    sigma: header.sigma !== undefined ? header.sigma : arrayRms(values)
+                },
             },
-            sourceData: Dsn6Format.create(source)
+            sourceData: Dsn6Format.create(source),
+            customProperties: new CustomProperties(),
+            _propertyData: Object.create(null),
         };
     });
 }

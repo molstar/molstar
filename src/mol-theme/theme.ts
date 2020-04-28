@@ -7,7 +7,7 @@
 import { ColorTheme } from './color';
 import { SizeTheme } from './size';
 import { Structure } from '../mol-model/structure';
-import { VolumeData } from '../mol-model/volume';
+import { Volume } from '../mol-model/volume';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { Shape } from '../mol-model/shape';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
@@ -21,7 +21,7 @@ export interface ThemeRegistryContext {
 export interface ThemeDataContext {
     [k: string]: any
     structure?: Structure
-    volume?: VolumeData
+    volume?: Volume
     shape?: Shape
 }
 

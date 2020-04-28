@@ -10,7 +10,7 @@ import { Spacegroup, SpacegroupCell, SymmetryOperator } from '../../../mol-math/
 import { Tensor, Vec3, Mat3 } from '../../../mol-math/linear-algebra';
 import { Symmetry } from '../../../mol-model/structure/model/properties/symmetry';
 import { createAssemblies } from './assembly';
-import { CustomPropertyDescriptor } from '../../../mol-model/structure';
+import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { FormatPropertyProvider } from '../common/property';
 import { Table } from '../../../mol-data/db';
 

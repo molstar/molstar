@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { VolumeData } from '../../mol-model/volume';
+import { Volume } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
 import { RepresentationProvider } from '../../mol-repr/representation';
 import { VolumeRepresentationRegistry } from '../../mol-repr/volume/registry';
@@ -30,7 +30,7 @@ export interface VolumeRepresentationBuiltInProps<
 }
 
 export interface VolumeRepresentationProps<
-    R extends RepresentationProvider<VolumeData> = RepresentationProvider<VolumeData>,
+    R extends RepresentationProvider<Volume> = RepresentationProvider<Volume>,
     C extends ColorTheme.Provider = ColorTheme.Provider,
     S extends SizeTheme.Provider = SizeTheme.Provider> {
     type?: R,
@@ -41,43 +41,43 @@ export interface VolumeRepresentationProps<
     sizeParams?: Partial<SizeTheme.ParamValues<S>>
 }
 
-export function createVolumeRepresentationParams<R extends VolumeRepresentationRegistry.BuiltIn, C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(ctx: PluginContext, volume?: VolumeData, props?: VolumeRepresentationBuiltInProps<R, C, S>): StateTransformer.Params<VolumeRepresentation3D>
-export function createVolumeRepresentationParams<R extends RepresentationProvider<VolumeData>, C extends ColorTheme.Provider, S extends SizeTheme.Provider>(ctx: PluginContext, volume?: VolumeData, props?: VolumeRepresentationProps<R, C, S>): StateTransformer.Params<VolumeRepresentation3D>
-export function createVolumeRepresentationParams(ctx: PluginContext, volume?: VolumeData, props: any = {}): StateTransformer.Params<VolumeRepresentation3D>  {
+export function createVolumeRepresentationParams<R extends VolumeRepresentationRegistry.BuiltIn, C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(ctx: PluginContext, volume?: Volume, props?: VolumeRepresentationBuiltInProps<R, C, S>): StateTransformer.Params<VolumeRepresentation3D>
+export function createVolumeRepresentationParams<R extends RepresentationProvider<Volume>, C extends ColorTheme.Provider, S extends SizeTheme.Provider>(ctx: PluginContext, volume?: Volume, props?: VolumeRepresentationProps<R, C, S>): StateTransformer.Params<VolumeRepresentation3D>
+export function createVolumeRepresentationParams(ctx: PluginContext, volume?: Volume, props: any = {}): StateTransformer.Params<VolumeRepresentation3D>  {
     const p = props as VolumeRepresentationBuiltInProps;
-    if (typeof p.type === 'string' || typeof p.color === 'string' || typeof p.size === 'string') return createParamsByName(ctx, volume || VolumeData.One, props);
-    return createParamsProvider(ctx, volume || VolumeData.One, props);
+    if (typeof p.type === 'string' || typeof p.color === 'string' || typeof p.size === 'string') return createParamsByName(ctx, volume || Volume.One, props);
+    return createParamsProvider(ctx, volume || Volume.One, props);
 }
 
-export function getVolumeThemeTypes(ctx: PluginContext, volume?: VolumeData) {
+export function getVolumeThemeTypes(ctx: PluginContext, volume?: Volume) {
     const { themes: themeCtx } = ctx.representation.volume;
     if (!volume) return themeCtx.colorThemeRegistry.types;
     return themeCtx.colorThemeRegistry.getApplicableTypes({ volume });
 }
 
-export function createVolumeColorThemeParams<T extends ColorTheme.BuiltIn>(ctx: PluginContext, volume: VolumeData | undefined, typeName: string | undefined, themeName: T, params?: ColorTheme.BuiltInParams<T>): StateTransformer.Params<VolumeRepresentation3D>['colorTheme']
-export function createVolumeColorThemeParams(ctx: PluginContext, volume: VolumeData | undefined, typeName: string | undefined, themeName?: string, params?: any): StateTransformer.Params<VolumeRepresentation3D>['colorTheme']
-export function createVolumeColorThemeParams(ctx: PluginContext, volume: VolumeData | undefined, typeName: string | undefined, themeName?: string, params?: any): StateTransformer.Params<VolumeRepresentation3D>['colorTheme'] {
+export function createVolumeColorThemeParams<T extends ColorTheme.BuiltIn>(ctx: PluginContext, volume: Volume | undefined, typeName: string | undefined, themeName: T, params?: ColorTheme.BuiltInParams<T>): StateTransformer.Params<VolumeRepresentation3D>['colorTheme']
+export function createVolumeColorThemeParams(ctx: PluginContext, volume: Volume | undefined, typeName: string | undefined, themeName?: string, params?: any): StateTransformer.Params<VolumeRepresentation3D>['colorTheme']
+export function createVolumeColorThemeParams(ctx: PluginContext, volume: Volume | undefined, typeName: string | undefined, themeName?: string, params?: any): StateTransformer.Params<VolumeRepresentation3D>['colorTheme'] {
     const { registry, themes } = ctx.representation.volume;
     const repr = registry.get(typeName || registry.default.name);
     const color = themes.colorThemeRegistry.get(themeName || repr.defaultColorTheme.name);
-    const colorDefaultParams = PD.getDefaultValues(color.getParams({ volume: volume || VolumeData.One }));
+    const colorDefaultParams = PD.getDefaultValues(color.getParams({ volume: volume || Volume.One }));
     if (color.name === repr.defaultColorTheme.name) Object.assign(colorDefaultParams, repr.defaultColorTheme.props);
     return { name: color.name, params: Object.assign(colorDefaultParams, params) };
 }
 
-export function createVolumeSizeThemeParams<T extends SizeTheme.BuiltIn>(ctx: PluginContext, volume: VolumeData | undefined, typeName: string | undefined, themeName: T, params?: SizeTheme.BuiltInParams<T>): StateTransformer.Params<VolumeRepresentation3D>['sizeTheme']
-export function createVolumeSizeThemeParams(ctx: PluginContext, volume: VolumeData | undefined, typeName: string | undefined, themeName?: string, params?: any): StateTransformer.Params<VolumeRepresentation3D>['sizeTheme']
-export function createVolumeSizeThemeParams(ctx: PluginContext, volume: VolumeData | undefined, typeName: string | undefined, themeName?: string, params?: any): StateTransformer.Params<VolumeRepresentation3D>['sizeTheme'] {
+export function createVolumeSizeThemeParams<T extends SizeTheme.BuiltIn>(ctx: PluginContext, volume: Volume | undefined, typeName: string | undefined, themeName: T, params?: SizeTheme.BuiltInParams<T>): StateTransformer.Params<VolumeRepresentation3D>['sizeTheme']
+export function createVolumeSizeThemeParams(ctx: PluginContext, volume: Volume | undefined, typeName: string | undefined, themeName?: string, params?: any): StateTransformer.Params<VolumeRepresentation3D>['sizeTheme']
+export function createVolumeSizeThemeParams(ctx: PluginContext, volume: Volume | undefined, typeName: string | undefined, themeName?: string, params?: any): StateTransformer.Params<VolumeRepresentation3D>['sizeTheme'] {
     const { registry, themes } = ctx.representation.volume;
     const repr = registry.get(typeName || registry.default.name);
     const size = themes.sizeThemeRegistry.get(themeName || repr.defaultSizeTheme.name);
-    const sizeDefaultParams = PD.getDefaultValues(size.getParams({ volume: volume || VolumeData.One }));
+    const sizeDefaultParams = PD.getDefaultValues(size.getParams({ volume: volume || Volume.One }));
     if (size.name === repr.defaultSizeTheme.name) Object.assign(sizeDefaultParams, repr.defaultSizeTheme.props);
     return { name: size.name, params: Object.assign(sizeDefaultParams, params) };
 }
 
-function createParamsByName(ctx: PluginContext, volume: VolumeData, props: VolumeRepresentationBuiltInProps): StateTransformer.Params<VolumeRepresentation3D> {
+function createParamsByName(ctx: PluginContext, volume: Volume, props: VolumeRepresentationBuiltInProps): StateTransformer.Params<VolumeRepresentation3D> {
     const typeProvider = (props.type && ctx.representation.volume.registry.get(props.type))
         || ctx.representation.volume.registry.default.provider;
     const colorProvider = (props.color && ctx.representation.volume.themes.colorThemeRegistry.get(props.color))
@@ -95,7 +95,7 @@ function createParamsByName(ctx: PluginContext, volume: VolumeData, props: Volum
     });
 }
 
-function createParamsProvider(ctx: PluginContext, volume: VolumeData, props: VolumeRepresentationProps = {}): StateTransformer.Params<VolumeRepresentation3D> {
+function createParamsProvider(ctx: PluginContext, volume: Volume, props: VolumeRepresentationProps = {}): StateTransformer.Params<VolumeRepresentation3D> {
     const { themes: themeCtx } = ctx.representation.volume;
     const themeDataCtx = { volume };
 

@@ -25,7 +25,7 @@ import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { idFactory } from '../../../mol-util/id-factory';
 import { GridLookup3D } from '../../../mol-math/geometry';
 import { UUID } from '../../../mol-util';
-import { CustomProperties } from '../common/custom-property';
+import { CustomProperties } from '../../custom-property';
 import { AtomicHierarchy } from '../model/properties/atomic';
 import { StructureSelection } from '../query/selection';
 import { getBoundary } from '../../../mol-math/geometry/boundary';

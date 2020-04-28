@@ -7,12 +7,13 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ShrakeRupleyComputationParams, AccessibleSurfaceArea } from './accessible-surface-area/shrake-rupley';
-import { Structure, CustomPropertyDescriptor, Unit } from '../../mol-model/structure';
+import { Structure, Unit } from '../../mol-model/structure';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/compiler';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
 import Type from '../../mol-script/language/type';
+import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 
 export const AccessibleSurfaceAreaParams = {
     ...ShrakeRupleyComputationParams

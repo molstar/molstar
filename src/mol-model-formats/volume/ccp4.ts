@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { VolumeData } from '../../mol-model/volume/data';
+import { Volume } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
 import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
@@ -14,6 +14,7 @@ import { getCcp4ValueType } from '../../mol-io/reader/ccp4/parser';
 import { TypedArrayValueType } from '../../mol-io/common/typed-array';
 import { arrayMin, arrayRms, arrayMean, arrayMax } from '../../mol-util/array';
 import { ModelFormat } from '../format';
+import { CustomProperties } from '../../mol-model/custom-property';
 
 /** When available (e.g. in MRC files) use ORIGIN records instead of N[CRS]START */
 export function getCcp4Origin(header: Ccp4Header): Vec3 {
@@ -39,8 +40,8 @@ function getTypedArrayCtor(header: Ccp4Header) {
     throw Error(`${valueType} is not a supported value format.`);
 }
 
-export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, offset?: Vec3, label?: string }): Task<VolumeData> {
-    return Task.create<VolumeData>('Create Volume Data', async ctx => {
+export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, offset?: Vec3, label?: string }): Task<Volume> {
+    return Task.create<Volume>('Create Volume', async ctx => {
         const { header, values } = source;
         const size = Vec3.create(header.xLength, header.yLength, header.zLength);
         if (params && params.voxelSize) Vec3.mul(size, size, params.voxelSize);
@@ -69,15 +70,19 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
 
         return {
             label: params?.label,
-            transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
-            data,
-            dataStats: {
-                min: isNaN(header.AMIN) ? arrayMin(values) : header.AMIN,
-                max: isNaN(header.AMAX) ? arrayMax(values) : header.AMAX,
-                mean: isNaN(header.AMEAN) ? arrayMean(values) : header.AMEAN,
-                sigma: (isNaN(header.ARMS) || header.ARMS === 0) ? arrayRms(values) : header.ARMS
+            grid: {
+                transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
+                cells: data,
+                stats: {
+                    min: isNaN(header.AMIN) ? arrayMin(values) : header.AMIN,
+                    max: isNaN(header.AMAX) ? arrayMax(values) : header.AMAX,
+                    mean: isNaN(header.AMEAN) ? arrayMean(values) : header.AMEAN,
+                    sigma: (isNaN(header.ARMS) || header.ARMS === 0) ? arrayRms(values) : header.ARMS
+                },
             },
-            sourceData: Ccp4Format.create(source)
+            sourceData: Ccp4Format.create(source),
+            customProperties: new CustomProperties(),
+            _propertyData: Object.create(null),
         };
     });
 }

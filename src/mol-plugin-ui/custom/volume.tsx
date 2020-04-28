@@ -12,7 +12,7 @@ import { ExpandableControlRow, IconButton } from '../controls/common';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { Slider } from '../controls/slider';
-import { VolumeIsoValue, VolumeData } from '../../mol-model/volume';
+import { Volume, Grid } from '../../mol-model/volume';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { ColorNames } from '../../mol-util/color/names';
 import { toPrecision } from '../../mol-util/number';
@@ -34,7 +34,7 @@ class Channel extends PluginUIComponent<{
     channels: { [k: string]: VolumeStreaming.ChannelParams },
     isRelative: boolean,
     params: StateTransformParameters.Props,
-    stats: VolumeData['dataStats'],
+    stats: Grid['stats'],
     changeIso: (name: string, value: number, isRelative: boolean) => void,
     changeParams: (name: string, param: string, value: any) => void,
     bCell: StateObjectCell,
@@ -111,7 +111,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                         ...old.entry.params.channels,
                         [name]: {
                             ...(old.entry.params.channels as any)[name],
-                            isoValue: isRelative ? VolumeIsoValue.relative(value) : VolumeIsoValue.absolute(value)
+                            isoValue: isRelative ? Volume.IsoValue.relative(value) : Volume.IsoValue.absolute(value)
                         }
                     }
                 }
@@ -139,11 +139,11 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
         });
     };
 
-    convert(channel: any, stats: VolumeData['dataStats'], isRelative: boolean) {
+    convert(channel: any, stats: Grid['stats'], isRelative: boolean) {
         return {
             ...channel, isoValue: isRelative
-                ? VolumeIsoValue.toRelative(channel.isoValue, stats)
-                : VolumeIsoValue.toAbsolute(channel.isoValue, stats)
+                ? Volume.IsoValue.toRelative(channel.isoValue, stats)
+                : Volume.IsoValue.toAbsolute(channel.isoValue, stats)
         };
     }
 
@@ -215,7 +215,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
         const params = this.props.params as VolumeStreaming.Params;
         const detailLevel = ((this.props.info.params as VolumeStreaming.ParamDefinition)
             .entry.map(params.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>).params.detailLevel;
-        const isRelative = ((params.entry.params.channels as any)[pivot].isoValue as VolumeIsoValue).kind === 'relative';
+        const isRelative = ((params.entry.params.channels as any)[pivot].isoValue as Volume.IsoValue).kind === 'relative';
 
         const sampling = b.info.header.sampling[0];
 

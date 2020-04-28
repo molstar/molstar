@@ -6,7 +6,7 @@
  */
 
 import { Structure, StructureElement } from '../../mol-model/structure';
-import { VolumeData, VolumeIsoValue } from '../../mol-model/volume';
+import { Volume } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
 import { VolumeRepresentationRegistry } from '../../mol-repr/volume/registry';
 import { VolumeParams } from '../../mol-repr/volume/representation';
@@ -441,7 +441,7 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
 //
 
 export namespace VolumeRepresentation3DHelpers {
-    export function getDefaultParams(ctx: PluginContext, name: VolumeRepresentationRegistry.BuiltIn, volume: VolumeData, volumeParams?: Partial<PD.Values<VolumeParams>>): StateTransformer.Params<VolumeRepresentation3D> {
+    export function getDefaultParams(ctx: PluginContext, name: VolumeRepresentationRegistry.BuiltIn, volume: Volume, volumeParams?: Partial<PD.Values<VolumeParams>>): StateTransformer.Params<VolumeRepresentation3D> {
         const type = ctx.representation.volume.registry.get(name);
 
         const themeDataCtx = { volume };
@@ -467,7 +467,7 @@ export namespace VolumeRepresentation3DHelpers {
     }
 
     export function getDescription(props: any) {
-        return props.isoValue && VolumeIsoValue.toString(props.isoValue);
+        return props.isoValue && Volume.IsoValue.toString(props.isoValue);
     }
 }
 type VolumeRepresentation3D = typeof VolumeRepresentation3D
@@ -485,16 +485,16 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
                 type: PD.Mapped<any>(
                     registry.default.name,
                     registry.types,
-                    name => PD.Group<any>(registry.get(name).getParams(themeCtx, VolumeData.One))),
+                    name => PD.Group<any>(registry.get(name).getParams(themeCtx, Volume.One))),
                 colorTheme: PD.Mapped<any>(
                     type.defaultColorTheme.name,
                     themeCtx.colorThemeRegistry.types,
-                    name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ volume: VolumeData.One }))
+                    name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ volume: Volume.One }))
                 ),
                 sizeTheme: PD.Mapped<any>(
                     type.defaultSizeTheme.name,
                     themeCtx.sizeThemeRegistry.types,
-                    name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ volume: VolumeData.One }))
+                    name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ volume: Volume.One }))
                 )
             };
         }

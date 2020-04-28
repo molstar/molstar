@@ -7,9 +7,10 @@
 import { Model } from '../../../mol-model/structure/model/model';
 import { Table } from '../../../mol-data/db';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
-import { Unit, CustomPropertyDescriptor } from '../../../mol-model/structure';
+import { Unit } from '../../../mol-model/structure';
 import { ElementIndex } from '../../../mol-model/structure/model/indexing';
 import { FormatPropertyProvider } from '../../../mol-model-formats/structure/common/property';
+import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 
 export { ModelCrossLinkRestraint };
 

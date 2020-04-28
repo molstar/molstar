@@ -8,7 +8,7 @@ import { AssemblySymmetryQuery, AssemblySymmetryQueryVariables } from '../graphq
 import query from '../graphql/symmetry.gql';
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { CustomPropertyDescriptor, Structure, Model, StructureSelection, QueryContext } from '../../../mol-model/structure';
+import { Structure, Model, StructureSelection, QueryContext } from '../../../mol-model/structure';
 import { Database as _Database, Column } from '../../../mol-data/db';
 import { GraphQLClient } from '../../../mol-util/graphql-client';
 import { CustomProperty } from '../../../mol-model-props/common/custom-property';
@@ -19,6 +19,7 @@ import { ReadonlyVec3 } from '../../../mol-math/linear-algebra/3d/vec3';
 import { SetUtils } from '../../../mol-util/set';
 import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
 import { compile } from '../../../mol-script/runtime/query/compiler';
+import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 
 const BiologicalAssemblyNames = new Set([
     'author_and_software_defined_assembly',

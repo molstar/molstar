@@ -5,7 +5,7 @@
  */
 
 import { ModelCrossLinkRestraint } from './format';
-import { Unit, StructureElement, Structure, CustomPropertyDescriptor, Bond} from '../../../mol-model/structure';
+import { Unit, StructureElement, Structure, Bond} from '../../../mol-model/structure';
 import { PairRestraints, PairRestraint } from '../pair-restraints';
 import { CustomStructureProperty } from '../../common/custom-structure-property';
 import { CustomProperty } from '../../common/custom-property';
@@ -15,6 +15,7 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import { bondLabel } from '../../../mol-theme/label';
 import { Vec3 } from '../../../mol-math/linear-algebra';
+import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 
 export type CrossLinkRestraintValue = PairRestraints<CrossLinkRestraint>
 

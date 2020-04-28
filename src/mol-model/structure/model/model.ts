@@ -10,7 +10,7 @@ import StructureSequence from './properties/sequence';
 import { AtomicHierarchy, AtomicConformation, AtomicRanges } from './properties/atomic';
 import { CoarseHierarchy, CoarseConformation } from './properties/coarse';
 import { Entities, ChemicalComponentMap, MissingResidues, StructAsymMap } from './properties/common';
-import { CustomProperties } from '../common/custom-property';
+import { CustomProperties } from '../../custom-property';
 import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
 import { ModelFormat } from '../../../mol-model-formats/format';
 import { calcModelCenter } from './util';

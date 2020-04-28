@@ -137,7 +137,7 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
     private item = (ref: VolumeRef) => {
         const selected = this.plugin.managers.volume.hierarchy.selection;
 
-        const label = ref.cell.obj?.data.label || 'Volume';
+        const label = ref.cell.obj?.label || 'Volume';
         const item: ActionMenu.Item = { kind: 'item', label: label || ref.kind, selected: selected === ref, value: ref };
         return item;
     }
@@ -172,7 +172,7 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
     get label() {
         const selected = this.plugin.managers.volume.hierarchy.selection;
         if (!selected) return 'Nothing Selected';
-        return selected?.cell.obj?.data.label || 'Volume';
+        return selected?.cell.obj?.label || 'Volume';
     }
 
     selectCurrent: ActionMenu.OnSelect = (item) => {

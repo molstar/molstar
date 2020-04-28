@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CustomPropertyDescriptor } from '../../../../mol-model/structure';
+import { CustomPropertyDescriptor } from '../../../../mol-model/custom-property';
 import { IntAdjacencyGraph } from '../../../../mol-math/graph';
 import { Column } from '../../../../mol-data/db';
 import { FormatPropertyProvider } from '../../common/property';

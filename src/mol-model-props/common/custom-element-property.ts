@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ElementIndex, Model, CustomPropertyDescriptor } from '../../mol-model/structure';
+import { ElementIndex, Model } from '../../mol-model/structure';
 import { StructureElement } from '../../mol-model/structure/structure';
 import { Location } from '../../mol-model/location';
 import { ThemeDataContext } from '../../mol-theme/theme';
@@ -16,6 +16,7 @@ import { OrderedSet } from '../../mol-data/int';
 import { CustomModelProperty } from './custom-model-property';
 import { CustomProperty } from './custom-property';
 import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
+import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 
 export { CustomElementProperty };
 

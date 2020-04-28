@@ -7,7 +7,7 @@
 
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
-import { VolumeIsoValue, VolumeData } from '../../../../mol-model/volume';
+import { Volume, Grid } from '../../../../mol-model/volume';
 import { createIsoValueParam } from '../../../../mol-repr/volume/isosurface';
 import { VolumeServerHeader, VolumeServerInfo } from './model';
 import { Box3D } from '../../../../mol-math/geometry';
@@ -31,13 +31,13 @@ export namespace VolumeStreaming {
     export const RootTag = 'volume-streaming-info';
 
     export interface ChannelParams {
-        isoValue: VolumeIsoValue,
+        isoValue: Volume.IsoValue,
         color: Color,
         wireframe: boolean,
         opacity: number
     }
 
-    function channelParam(label: string, color: Color, defaultValue: VolumeIsoValue, stats: VolumeData['dataStats'], defaults: Partial<ChannelParams> = {}) {
+    function channelParam(label: string, color: Color, defaultValue: Volume.IsoValue, stats: Grid['stats'], defaults: Partial<ChannelParams> = {}) {
         return PD.Group<ChannelParams>({
             isoValue: createIsoValueParam(typeof defaults.isoValue !== 'undefined' ? defaults.isoValue : defaultValue, stats),
             color: PD.Color(typeof defaults.color !== 'undefined' ? defaults.color : color),
@@ -71,7 +71,7 @@ export namespace VolumeStreaming {
         const { entryData, defaultView, structure, channelParams = { } } = options;
 
         // fake the info
-        const info = entryData || { kind: 'em', header: { sampling: [fakeSampling], availablePrecisions: [{ precision: 0, maxVoxels: 0 }] }, emDefaultContourLevel: VolumeIsoValue.relative(0) };
+        const info = entryData || { kind: 'em', header: { sampling: [fakeSampling], availablePrecisions: [{ precision: 0, maxVoxels: 0 }] }, emDefaultContourLevel: Volume.IsoValue.relative(0) };
         const box = (structure && structure.boundary.box) || Box3D.empty();
 
         return {
@@ -93,12 +93,12 @@ export namespace VolumeStreaming {
                 info.header.availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string]), { description: 'Determines the maximum number of voxels. Depending on the size of the volume options are in the range from 0 (0.52M voxels) to 6 (25.17M voxels).' }),
             channels: info.kind === 'em'
                 ? PD.Group({
-                    'em': channelParam('EM', Color(0x638F8F), info.emDefaultContourLevel || VolumeIsoValue.relative(1), info.header.sampling[0].valuesInfo[0], channelParams['em'])
+                    'em': channelParam('EM', Color(0x638F8F), info.emDefaultContourLevel || Volume.IsoValue.relative(1), info.header.sampling[0].valuesInfo[0], channelParams['em'])
                 }, { isFlat: true })
                 : PD.Group({
-                    '2fo-fc': channelParam('2Fo-Fc', Color(0x3362B2), VolumeIsoValue.relative(1.5), info.header.sampling[0].valuesInfo[0], channelParams['2fo-fc']),
-                    'fo-fc(+ve)': channelParam('Fo-Fc(+ve)', Color(0x33BB33), VolumeIsoValue.relative(3), info.header.sampling[0].valuesInfo[1], channelParams['fo-fc(+ve)']),
-                    'fo-fc(-ve)': channelParam('Fo-Fc(-ve)', Color(0xBB3333), VolumeIsoValue.relative(-3), info.header.sampling[0].valuesInfo[1], channelParams['fo-fc(-ve)']),
+                    '2fo-fc': channelParam('2Fo-Fc', Color(0x3362B2), Volume.IsoValue.relative(1.5), info.header.sampling[0].valuesInfo[0], channelParams['2fo-fc']),
+                    'fo-fc(+ve)': channelParam('Fo-Fc(+ve)', Color(0x33BB33), Volume.IsoValue.relative(3), info.header.sampling[0].valuesInfo[1], channelParams['fo-fc(+ve)']),
+                    'fo-fc(-ve)': channelParam('Fo-Fc(-ve)', Color(0xBB3333), Volume.IsoValue.relative(-3), info.header.sampling[0].valuesInfo[1], channelParams['fo-fc(-ve)']),
                 }, { isFlat: true }),
         };
     }
@@ -110,16 +110,16 @@ export namespace VolumeStreaming {
     export type ParamDefinition = typeof createParams extends (...args: any[]) => (infer T) ? T : never
     export type Params = ParamDefinition extends PD.Params ? PD.Values<ParamDefinition> : {}
 
-    type ChannelsInfo = { [name in ChannelType]?: { isoValue: VolumeIsoValue, color: Color, wireframe: boolean, opacity: number } }
-    type ChannelsData = { [name in 'EM' | '2FO-FC' | 'FO-FC']?: VolumeData }
+    type ChannelsInfo = { [name in ChannelType]?: { isoValue: Volume.IsoValue, color: Color, wireframe: boolean, opacity: number } }
+    type ChannelsData = { [name in 'EM' | '2FO-FC' | 'FO-FC']?: Volume }
 
     export type ChannelType = 'em' | '2fo-fc' | 'fo-fc(+ve)' | 'fo-fc(-ve)'
     export const ChannelTypeOptions: [ChannelType, string][] = [['em', 'em'], ['2fo-fc', '2fo-fc'], ['fo-fc(+ve)', 'fo-fc(+ve)'], ['fo-fc(-ve)', 'fo-fc(-ve)']];
     export interface ChannelInfo {
-        data: VolumeData,
+        data: Volume,
         color: Color,
         wireframe: boolean,
-        isoValue: VolumeIsoValue.Relative,
+        isoValue: Volume.IsoValue.Relative,
         opacity: number
     }
     export type Channels = { [name in ChannelType]?: ChannelInfo }
@@ -329,24 +329,24 @@ export namespace VolumeStreaming {
             const info = params.entry.params.channels as ChannelsInfo;
 
             if (this.info.kind === 'x-ray') {
-                this.channels['2fo-fc'] = this.createChannel(data['2FO-FC'] || VolumeData.One, info['2fo-fc'], this.info.header.sampling[0].valuesInfo[0]);
-                this.channels['fo-fc(+ve)'] = this.createChannel(data['FO-FC'] || VolumeData.One, info['fo-fc(+ve)'], this.info.header.sampling[0].valuesInfo[1]);
-                this.channels['fo-fc(-ve)'] = this.createChannel(data['FO-FC'] || VolumeData.One, info['fo-fc(-ve)'], this.info.header.sampling[0].valuesInfo[1]);
+                this.channels['2fo-fc'] = this.createChannel(data['2FO-FC'] || Volume.One, info['2fo-fc'], this.info.header.sampling[0].valuesInfo[0]);
+                this.channels['fo-fc(+ve)'] = this.createChannel(data['FO-FC'] || Volume.One, info['fo-fc(+ve)'], this.info.header.sampling[0].valuesInfo[1]);
+                this.channels['fo-fc(-ve)'] = this.createChannel(data['FO-FC'] || Volume.One, info['fo-fc(-ve)'], this.info.header.sampling[0].valuesInfo[1]);
             } else {
-                this.channels['em'] = this.createChannel(data['EM'] || VolumeData.One, info['em'], this.info.header.sampling[0].valuesInfo[0]);
+                this.channels['em'] = this.createChannel(data['EM'] || Volume.One, info['em'], this.info.header.sampling[0].valuesInfo[0]);
             }
 
             return true;
         }
 
-        private createChannel(data: VolumeData, info: ChannelsInfo['em'], stats: VolumeData['dataStats']): ChannelInfo {
+        private createChannel(data: Volume, info: ChannelsInfo['em'], stats: Grid['stats']): ChannelInfo {
             const i = info!;
             return {
                 data,
                 color: i.color,
                 wireframe: i.wireframe,
                 opacity: i.opacity,
-                isoValue: i.isoValue.kind === 'relative' ? i.isoValue : VolumeIsoValue.toRelative(i.isoValue, stats)
+                isoValue: i.isoValue.kind === 'relative' ? i.isoValue : Volume.IsoValue.toRelative(i.isoValue, stats)
             };
         }
 

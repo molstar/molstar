@@ -15,7 +15,7 @@ import { _chem_comp, _pdbx_chem_comp_identifier, _pdbx_nonpoly_scheme } from './
 import { Model } from '../model';
 import { getUniqueEntityIndicesFromStructures, copy_mmCif_category, copy_source_mmCifCategory } from './categories/utils';
 import { _struct_asym, _entity_poly, _entity_poly_seq } from './categories/sequence';
-import { CustomPropertyDescriptor } from '../common/custom-property';
+import { CustomPropertyDescriptor } from '../../custom-property';
 import { atom_site_operator_mapping } from './categories/atom_site_operator_mapping';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 

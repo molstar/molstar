@@ -6,7 +6,7 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Visual, VisualContext } from '../visual';
-import { VolumeData } from '../../mol-model/volume';
+import { Volume } from '../../mol-model/volume';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
@@ -30,9 +30,9 @@ import { Subject } from 'rxjs';
 import { Task } from '../../mol-task';
 import { SizeValues } from '../../mol-gl/renderable/schema';
 
-export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
+export interface VolumeVisual<P extends VolumeParams> extends Visual<Volume, P> { }
 
-function createVolumeRenderObject<G extends Geometry>(volume: VolumeData, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>, materialId: number) {
+function createVolumeRenderObject<G extends Geometry>(volume: Volume, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>, materialId: number) {
     const { createValues, createRenderableState } = Geometry.getUtils(geometry);
     const transform = createIdentityTransform();
     const values = createValues(geometry, transform, locationIt, theme, props);
@@ -42,11 +42,11 @@ function createVolumeRenderObject<G extends Geometry>(volume: VolumeData, geomet
 
 interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
     defaultProps: PD.Values<P>
-    createGeometry(ctx: VisualContext, volume: VolumeData, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
-    createLocationIterator(volume: VolumeData): LocationIterator
-    getLoci(pickingId: PickingId, volume: VolumeData, props: PD.Values<P>, id: number): Loci
-    eachLocation(loci: Loci, volume: VolumeData, props: PD.Values<P>, apply: (interval: Interval) => boolean): boolean
-    setUpdateState(state: VisualUpdateState, volume: VolumeData, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
+    createGeometry(ctx: VisualContext, volume: Volume, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
+    createLocationIterator(volume: Volume): LocationIterator
+    getLoci(pickingId: PickingId, volume: Volume, props: PD.Values<P>, id: number): Loci
+    eachLocation(loci: Loci, volume: Volume, props: PD.Values<P>, apply: (interval: Interval) => boolean): boolean
+    setUpdateState(state: VisualUpdateState, volume: Volume, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
 }
 
 interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry> extends VolumeVisualBuilder<P, G> {
@@ -62,16 +62,16 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
     let newProps: PD.Values<P>;
     let newTheme: Theme;
-    let newVolume: VolumeData;
+    let newVolume: Volume;
 
     let currentProps: PD.Values<P> = Object.assign({}, defaultProps);
     let currentTheme: Theme = Theme.createEmpty();
-    let currentVolume: VolumeData;
+    let currentVolume: Volume;
 
     let geometry: G;
     let locationIt: LocationIterator;
 
-    function prepareUpdate(theme: Theme, props: Partial<PD.Values<P>>, volume: VolumeData) {
+    function prepareUpdate(theme: Theme, props: Partial<PD.Values<P>>, volume: Volume) {
         if (!volume && !currentVolume) {
             throw new Error('missing volume');
         }
@@ -84,7 +84,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
         if (!renderObject) {
             updateState.createNew = true;
-        } else if (!currentVolume || !VolumeData.areEquivalent(newVolume, currentVolume)) {
+        } else if (!currentVolume || !Volume.areEquivalent(newVolume, currentVolume)) {
             updateState.createNew = true;
         }
 
@@ -158,7 +158,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
     return {
         get groupCount() { return locationIt ? locationIt.count : 0; },
         get renderObject () { return renderObject; },
-        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, volume?: VolumeData) {
+        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, volume?: Volume) {
             prepareUpdate(theme, props, volume || currentVolume);
             if (updateState.createGeometry) {
                 const newGeometry = createGeometry(ctx, newVolume, newTheme, newProps, geometry);
@@ -198,9 +198,9 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
     };
 }
 
-export interface VolumeRepresentation<P extends VolumeParams> extends Representation<VolumeData, P> { }
+export interface VolumeRepresentation<P extends VolumeParams> extends Representation<Volume, P> { }
 
-export type VolumeRepresentationProvider<P extends VolumeParams, Id extends string = string> = RepresentationProvider<VolumeData, P, Representation.State, Id>
+export type VolumeRepresentationProvider<P extends VolumeParams, Id extends string = string> = RepresentationProvider<Volume, P, Representation.State, Id>
 export function VolumeRepresentationProvider<P extends VolumeParams, Id extends string>(p: VolumeRepresentationProvider<P, Id>): VolumeRepresentationProvider<P, Id> { return p; }
 
 //
@@ -210,7 +210,7 @@ export const VolumeParams = {
 };
 export type VolumeParams = typeof VolumeParams
 
-export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (materialId: number) => VolumeVisual<P>, getLoci: (volume: VolumeData, props: PD.Values<P>) => Loci): VolumeRepresentation<P> {
+export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, P>, visualCtor: (materialId: number) => VolumeVisual<P>, getLoci: (volume: Volume, props: PD.Values<P>) => Loci): VolumeRepresentation<P> {
     let version = 0;
     const updated = new Subject<number>();
     const materialId = getNextMaterialId();
@@ -218,12 +218,12 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
     const _state = Representation.createState();
     let visual: VolumeVisual<P> | undefined;
 
-    let _volume: VolumeData;
+    let _volume: Volume;
     let _params: P;
     let _props: PD.Values<P>;
     let _theme = Theme.createEmpty();
 
-    function createOrUpdate(props: Partial<PD.Values<P>> = {}, volume?: VolumeData) {
+    function createOrUpdate(props: Partial<PD.Values<P>> = {}, volume?: Volume) {
         if (volume && volume !== _volume) {
             _params = getParams(ctx, volume);
             _volume = volume;

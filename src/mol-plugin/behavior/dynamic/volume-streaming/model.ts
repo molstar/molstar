@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
-import { VolumeIsoValue } from '../../../../mol-model/volume';
+import { Volume } from '../../../../mol-model/volume';
 import { Structure } from '../../../../mol-model/structure';
 
 export class VolumeServerInfo extends PluginStateObject.Create<VolumeServerInfo.Data>({ name: 'Volume Streaming', typeClass: 'Object' }) { }
@@ -18,7 +18,7 @@ export namespace VolumeServerInfo {
         // for em, the EMDB access code, for x-ray, the PDB id
         dataId: string,
         header: VolumeServerHeader,
-        emDefaultContourLevel?: VolumeIsoValue,
+        emDefaultContourLevel?: Volume.IsoValue,
     }
     export interface Data {
         serverUrl: string,

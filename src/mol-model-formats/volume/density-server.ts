@@ -5,14 +5,15 @@
  */
 
 import { DensityServer_Data_Database } from '../../mol-io/reader/cif/schema/density-server';
-import { VolumeData } from '../../mol-model/volume/data';
+import { Volume } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
 import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { ModelFormat } from '../format';
+import { CustomProperties } from '../../mol-model/custom-property';
 
-export function volumeFromDensityServerData(source: DensityServer_Data_Database): Task<VolumeData> {
-    return Task.create<VolumeData>('Create Volume Data', async ctx => {
+export function volumeFromDensityServerData(source: DensityServer_Data_Database): Task<Volume> {
+    return Task.create<Volume>('Create Volume', async ctx => {
         const { volume_data_3d_info: info, volume_data_3d: values } = source;
         const cell = SpacegroupCell.create(
             info.spacegroup_number.value(0),
@@ -35,15 +36,19 @@ export function volumeFromDensityServerData(source: DensityServer_Data_Database)
         const dimensions = Vec3.ofArray(normalizeOrder(info.dimensions.value(0)));
 
         return {
-            transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin, Vec3.add(Vec3.zero(), origin, dimensions)) },
-            data,
-            dataStats: {
-                min: info.min_sampled.value(0),
-                max: info.max_sampled.value(0),
-                mean: info.mean_sampled.value(0),
-                sigma: info.sigma_sampled.value(0)
+            grid: {
+                transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin, Vec3.add(Vec3.zero(), origin, dimensions)) },
+                cells: data,
+                stats: {
+                    min: info.min_sampled.value(0),
+                    max: info.max_sampled.value(0),
+                    mean: info.mean_sampled.value(0),
+                    sigma: info.sigma_sampled.value(0)
+                },
             },
-            sourceData: DscifFormat.create(source)
+            sourceData: DscifFormat.create(source),
+            customProperties: new CustomProperties(),
+            _propertyData: Object.create(null),
         };
     });
 }

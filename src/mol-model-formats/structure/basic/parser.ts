@@ -10,7 +10,7 @@ import { RuntimeContext } from '../../../mol-task';
 import UUID from '../../../mol-util/uuid';
 import { Model } from '../../../mol-model/structure/model/model';
 import { Entities } from '../../../mol-model/structure/model/properties/common';
-import { CustomProperties } from '../../../mol-model/structure';
+import { CustomProperties } from '../../../mol-model/custom-property';
 import { getAtomicHierarchyAndConformation } from './atomic';
 import { getCoarse, EmptyCoarse, CoarseData } from './coarse';
 import { getSequence } from './sequence';

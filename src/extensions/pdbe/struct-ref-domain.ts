@@ -7,9 +7,10 @@
 import { Column, Table } from '../../mol-data/db';
 import { toTable } from '../../mol-io/reader/cif/schema';
 import { CifWriter } from '../../mol-io/writer/cif';
-import { Model, CustomPropertyDescriptor } from '../../mol-model/structure';
+import { Model } from '../../mol-model/structure';
 import { PropertyWrapper } from '../../mol-model-props/common/wrapper';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 
 export namespace PDBeStructRefDomain {
     export type Property = PropertyWrapper<Table<Schema['pdbe_struct_ref_domain']> | undefined>

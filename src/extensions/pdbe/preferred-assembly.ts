@@ -7,9 +7,10 @@
 import { Column, Table } from '../../mol-data/db';
 import { toTable } from '../../mol-io/reader/cif/schema';
 import { CifWriter } from '../../mol-io/writer/cif';
-import { Model, CustomPropertyDescriptor } from '../../mol-model/structure';
+import { Model } from '../../mol-model/structure';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 
 export namespace PDBePreferredAssembly {
     export type Property = string

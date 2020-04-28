@@ -4,11 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CustomPropertyDescriptor, Structure } from '../../mol-model/structure';
+import { Structure } from '../../mol-model/structure';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { computeInteractions, Interactions, InteractionsParams as _InteractionsParams } from './interactions/interactions';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
+import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 
 export const InteractionsParams = {
     ..._InteractionsParams

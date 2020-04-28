@@ -12,7 +12,7 @@ import { Unit } from '../../mol-model/structure/structure';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
 import { ModelSecondaryStructure } from '../../mol-model-formats/structure/property/secondary-structure';
-import { CustomPropertyDescriptor } from '../../mol-model/structure/common/custom-property';
+import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { Model } from '../../mol-model/structure/model';
 
 function getSecondaryStructureParams(data?: Structure) {

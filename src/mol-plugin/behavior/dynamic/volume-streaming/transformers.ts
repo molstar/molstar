@@ -12,7 +12,7 @@ import { Task } from '../../../../mol-task';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { urlCombine } from '../../../../mol-util/url';
 import { createIsoValueParam } from '../../../../mol-repr/volume/isosurface';
-import { VolumeIsoValue } from '../../../../mol-model/volume';
+import { Volume } from '../../../../mol-model/volume';
 import { StateAction, StateObject, StateTransformer } from '../../../../mol-state';
 import { getStreamingMethod, getIds, getContourLevel, getEmdbIds } from './util';
 import { VolumeStreaming } from './behavior';
@@ -27,7 +27,7 @@ import { Model } from '../../../../mol-model/structure';
 function addEntry(entries: InfoEntryProps[], method: VolumeServerInfo.Kind, dataId: string, emDefaultContourLevel: number) {
     entries.push({
         source: method === 'em'
-            ? { name: 'em', params: { isoValue: VolumeIsoValue.absolute(emDefaultContourLevel || 0) } }
+            ? { name: 'em', params: { isoValue: Volume.IsoValue.absolute(emDefaultContourLevel || 0) } }
             : { name: 'x-ray', params: { } },
         dataId
     });
@@ -157,7 +157,7 @@ const InfoEntryParams = {
     dataId: PD.Text(''),
     source: PD.MappedStatic('x-ray', {
         'em': PD.Group({
-            isoValue: createIsoValueParam(VolumeIsoValue.relative(1))
+            isoValue: createIsoValueParam(Volume.IsoValue.relative(1))
         }),
         'x-ray': PD.Group({ })
     })
@@ -185,7 +185,7 @@ const CreateVolumeStreamingInfo = PluginStateTransform.BuiltIn({
         for (let i = 0, il = params.entries.length; i < il; ++i) {
             const e = params.entries[i];
             const dataId = e.dataId;
-            const emDefaultContourLevel = e.source.name === 'em' ? e.source.params.isoValue : VolumeIsoValue.relative(1);
+            const emDefaultContourLevel = e.source.name === 'em' ? e.source.params.isoValue : Volume.IsoValue.relative(1);
             await taskCtx.update('Getting server header...');
             const header = await plugin.fetch({ url: urlCombine(params.serverUrl, `${e.source.name}/${dataId.toLocaleLowerCase()}`), type: 'json' }).runInContext(taskCtx) as VolumeServerHeader;
             entries.push({
