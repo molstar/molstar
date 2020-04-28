@@ -187,4 +187,9 @@ export function Snapshots(ctx: PluginContext) {
     PluginCommands.State.Snapshots.OpenFile.subscribe(ctx, ({ file }) => {
         return ctx.managers.snapshot.open(file);
     });
+
+    PluginCommands.State.Snapshots.OpenUrl.subscribe(ctx, async ({ url, type }) => {
+        const data = await ctx.runTask(ctx.fetch({ url, type: 'binary' }));
+        return ctx.managers.snapshot.open(new File([data], `state.${type}`));
+    });
 }
