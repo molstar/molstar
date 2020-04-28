@@ -38,7 +38,8 @@
     "postversion": "git push && git push --tags"
   },
   "files": [
-    "lib/"
+    "lib/",
+    "build/viewer/"
   ],
   "bin": {
     "cif2bcif": "lib/apps/cif2bcif/index.js",
