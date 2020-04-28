@@ -17,6 +17,7 @@ import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { CustomModelProperties, CustomStructureProperties, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { Asset } from '../../mol-util/assets';
+import { PluginConfig } from '../../mol-plugin/config';
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => PD.Group({
     type: RootStructureDefinition.getParams(void 0, 'auto').type,
@@ -26,6 +27,16 @@ const DownloadModelRepresentationOptions = (plugin: PluginContext) => PD.Group({
     asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
 }, { isExpanded: false });
 
+export const PdbDownloadProvider = {
+    'rcsb': PD.Group({
+        encoding: PD.Select('bcif', [['cif', 'cif'], ['bcif', 'bcif']] as ['cif' | 'bcif', string][]),
+    }, { label: 'RCSB PDB', isFlat: true }),
+    'pdbe': PD.Group({
+        variant: PD.Select('updated-bcif', [['updated-bcif', 'Updated (bcif)'], ['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'archival', string][]),
+    }, { label: 'PDBe', isFlat: true }),
+};
+export type PdbDownloadProvider = keyof typeof PdbDownloadProvider;
+
 export { DownloadStructure };
 type DownloadStructure = typeof DownloadStructure
 const DownloadStructure = StateAction.build({
@@ -33,19 +44,13 @@ const DownloadStructure = StateAction.build({
     display: { name: 'Download Structure', description: 'Load a structure from the provided source and create its representation.' },
     params: (_, plugin: PluginContext) => {
         const options = DownloadModelRepresentationOptions(plugin);
+        const defaultPdbProvider = plugin.config.get(PluginConfig.Download.DefaultPdbProvider) || 'pdbe';
         return {
             source: PD.MappedStatic('pdb', {
                 'pdb': PD.Group({
                     provider: PD.Group({
                         id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma/space separated PDB ids.' }),
-                        server: PD.MappedStatic('pdbe', {
-                            'rcsb': PD.Group({
-                                encoding: PD.Select('bcif', [['cif', 'cif'], ['bcif', 'bcif']] as ['cif' | 'bcif', string][]),
-                            }, { label: 'RCSB PDB', isFlat: true }),
-                            'pdbe': PD.Group({
-                                variant: PD.Select('updated-bcif', [['updated-bcif', 'Updated (bcif)'], ['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'archival', string][]),
-                            }, { label: 'PDBe', isFlat: true }),
-                        }),
+                        server: PD.MappedStatic(defaultPdbProvider, PdbDownloadProvider),
                     }, { pivot: 'id' }),
                     options
                 }, { isFlat: true, label: 'PDB' }),

@@ -49,8 +49,8 @@ export class StateTree extends PluginUIComponent<{ state: State }, { showActions
         const ref = this.props.state.tree.root.ref;
         if (this.state.showActions) {
             return <div style={{ margin: '10px', cursor: 'default' }}>
-                <p>Nothing to see here.</p>
-                <p>Structures can be loaded from the <Icon svg={HomeOutlined} /> tab.</p>
+                <p>Nothing to see here yet.</p>
+                <p>Structures and Volumes can be loaded from the <Icon svg={HomeOutlined} /> tab.</p>
             </div>;
         }
         return <StateTreeNode cell={this.props.state.cells.get(ref)!} depth={0} />;

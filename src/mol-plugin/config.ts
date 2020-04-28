@@ -7,6 +7,8 @@
 
 import { Structure, Model } from '../mol-model/structure';
 import { PluginContext } from './context';
+import { PdbDownloadProvider } from '../mol-plugin-state/actions/structure';
+import { EmdbDownloadProvider } from '../mol-plugin-state/actions/volume';
 
 export class PluginConfigItem<T = any> {
     toString() { return this.key; }
@@ -36,6 +38,10 @@ export const PluginConfig = {
         ShowExpand: item('viewer.show-expand-button', true),
         ShowSelectionMode: item('viewer.show-selection-model-button', true),
         ShowAnimation: item('viewer.show-animation-button', true),
+    },
+    Download: {
+        DefaultPdbProvider: item<PdbDownloadProvider>('download.default-pdb-provider', 'pdbe'),
+        DefaultEmdbProvider: item<EmdbDownloadProvider>('download.default-emdb-provider', 'pdbe'),
     }
 };
 
