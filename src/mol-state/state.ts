@@ -63,6 +63,7 @@ class State {
     get tree(): StateTree { return this._tree; }
     get transforms() { return (this._tree as StateTree).transforms; }
     get current() { return this.behaviors.currentObject.value.ref; }
+    get root() { return this.cells.get((this._tree as StateTree).root.ref)!; }
 
     build() { return new StateBuilder.Root(this.tree, this); }
 

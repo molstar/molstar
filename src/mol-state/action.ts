@@ -19,7 +19,7 @@ interface StateAction<A extends StateObject = StateObject, T = any, P extends {}
     readonly id: UUID,
     readonly definition: StateAction.Definition<A, T, P>,
     /** create a fresh copy of the params which can be edited in place */
-    createDefaultParams(a: A | undefined, globalCtx: unknown): P
+    createDefaultParams(a: A, globalCtx: unknown): P
 }
 
 namespace StateAction {
@@ -54,7 +54,7 @@ namespace StateAction {
     export interface Definition<A extends StateObject = StateObject, T = any, P extends {} = {}> extends DefinitionBase<A, T, P> {
         readonly from: StateObject.Ctor[],
         readonly display: { readonly name: string, readonly description?: string },
-        params?(a: A | undefined, globalCtx: unknown): { [K in keyof P]: PD.Any }
+        params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any }
     }
 
     export function create<A extends StateObject, T, P extends {} = {}>(definition: Definition<A, T, P>): StateAction<A, T, P> {
