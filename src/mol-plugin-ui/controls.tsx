@@ -29,6 +29,7 @@ import { StructureMeasurementsControls } from './structure/measurements';
 import { StructureSelectionActionsControls } from './structure/selection';
 import { StructureSourceControls } from './structure/source';
 import { VolumeStreamingControls, VolumeSourceControls } from './structure/volume';
+import { PluginConfig } from '../mol-plugin/config';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' }
@@ -219,9 +220,8 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
     }
 
     render() {
-        // if (!this.state.show) return null;
         const isPlaying = this.plugin.managers.snapshot.state.isPlaying;
-        if (isPlaying || this.state.isEmpty) return null;
+        if (isPlaying || this.state.isEmpty || this.plugin.managers.animation.isEmpty || !this.plugin.config.get(PluginConfig.Viewport.ShowAnimation)) return null;
 
         const isAnimating = this.state.isAnimating;
 

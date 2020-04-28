@@ -44,6 +44,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     }
 
     updateParams(newParams: Partial<PluginAnimationManager.State['params']>) {
+        if (this.isEmpty) return;
         this.updateState({ params: { ...this.state.params, ...newParams } });
         const anim = this.map.get(this.state.params.current)!;
         const params = anim.params(this.context) as PD.Params;
@@ -59,6 +60,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     }
 
     updateCurrentParams(values: any) {
+        if (this.isEmpty) return;
         this._current.paramValues = { ...this._current.paramValues, ...values };
         this.triggerUpdate();
     }
@@ -163,6 +165,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     }
 
     setSnapshot(snapshot: PluginAnimationManager.Snapshot) {
+        if (this.isEmpty) return;
         this.updateState({ animationState: snapshot.state.animationState });
         this.updateParams(snapshot.state.params);
 
