@@ -36,6 +36,7 @@ import { Sphere3D } from '../mol-math/geometry';
 import { isDebugMode } from '../mol-util/debug';
 import { CameraHelperParams } from './helper/camera-helper';
 import { produce } from 'immer';
+import { HandleHelper, HandleHelperParams } from './helper/handle-helper';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -60,7 +61,8 @@ export const Canvas3DParams = {
     postprocessing: PD.Group(PostprocessingParams),
     renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
-    debug: PD.Group(DebugHelperParams)
+    debug: PD.Group(DebugHelperParams),
+    handle: PD.Group(HandleHelperParams),
 };
 export const DefaultCanvas3DParams = PD.getDefaultValues(Canvas3DParams);
 export type Canvas3DProps = PD.Values<typeof Canvas3DParams>
@@ -188,12 +190,13 @@ namespace Canvas3D {
         const controls = TrackballControls.create(input, camera, p.trackball);
         const renderer = Renderer.create(webgl, p.renderer);
         const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
+        const handleHelper = new HandleHelper(webgl, p.handle);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
 
-        const drawPass = new DrawPass(webgl, renderer, scene, camera, debugHelper, {
+        const drawPass = new DrawPass(webgl, renderer, scene, camera, debugHelper, handleHelper, {
             cameraHelper: p.camera.helper
         });
-        const pickPass = new PickPass(webgl, renderer, scene, camera, 0.5);
+        const pickPass = new PickPass(webgl, renderer, scene, camera, handleHelper, 0.5);
         const postprocessing = new PostprocessingPass(webgl, camera, drawPass, p.postprocessing);
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample);
 
@@ -205,6 +208,7 @@ namespace Canvas3D {
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci;
             let repr: Representation.Any = Representation.Empty;
+            loci = handleHelper.getLoci(pickingId);
             reprRenderObjects.forEach((_, _repr) => {
                 const _loci = _repr.getLoci(pickingId);
                 if (!isEmptyLoci(_loci)) {
@@ -224,10 +228,12 @@ namespace Canvas3D {
             if (repr) {
                 changed = repr.mark(loci, action);
             } else {
+                changed = handleHelper.mark(loci, action);
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed; });
             }
             if (changed) {
                 scene.update(void 0, true);
+                handleHelper.scene.update(void 0, true);
                 const prevPickDirty = pickPass.pickDirty;
                 draw(true);
                 pickPass.pickDirty = prevPickDirty; // marking does not change picking buffers
@@ -428,7 +434,8 @@ namespace Canvas3D {
                 multiSample: { ...multiSample.props },
                 renderer: { ...renderer.props },
                 trackball: { ...controls.props },
-                debug: { ...debugHelper.props }
+                debug: { ...debugHelper.props },
+                handle: { ...handleHelper.props },
             };
         }
 
@@ -535,11 +542,12 @@ namespace Canvas3D {
                 if (props.renderer) renderer.setProps(props.renderer);
                 if (props.trackball) controls.setProps(props.trackball);
                 if (props.debug) debugHelper.setProps(props.debug);
+                if (props.handle) handleHelper.setProps(props.handle);
 
                 requestDraw(true);
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
-                return new ImagePass(webgl, renderer, scene, camera, debugHelper, props);
+                return new ImagePass(webgl, renderer, scene, camera, debugHelper, handleHelper, props);
             },
 
             get props() {
@@ -563,7 +571,8 @@ namespace Canvas3D {
                     multiSample: { ...multiSample.props },
                     renderer: { ...renderer.props },
                     trackball: { ...controls.props },
-                    debug: { ...debugHelper.props }
+                    debug: { ...debugHelper.props },
+                    handle: { ...handleHelper.props },
                 };
             },
             get input() {

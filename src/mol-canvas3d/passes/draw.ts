@@ -13,6 +13,7 @@ import { Texture } from '../../mol-gl/webgl/texture';
 import { Camera } from '../camera';
 import { CameraHelper, CameraHelperParams } from '../helper/camera-helper';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { HandleHelper } from '../helper/handle-helper';
 
 export const DrawPassParams = {
     cameraHelper: PD.Group(CameraHelperParams)
@@ -29,7 +30,7 @@ export class DrawPass {
 
     private depthTarget: RenderTarget | null
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private debugHelper: BoundingSphereHelper, props: Partial<DrawPassProps> = {}) {
+    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private debugHelper: BoundingSphereHelper, private handleHelper: HandleHelper, props: Partial<DrawPassProps> = {}) {
         const { gl, extensions, resources } = webgl;
         const width = gl.drawingBufferWidth;
         const height = gl.drawingBufferHeight;
@@ -89,11 +90,14 @@ export class DrawPass {
     }
 
     private renderInternal(variant: 'color' | 'depth', transparentBackground: boolean) {
-        const { renderer, scene, camera, debugHelper, cameraHelper } = this;
+        const { renderer, scene, camera, debugHelper, cameraHelper, handleHelper } = this;
         renderer.render(scene, camera, variant, true, transparentBackground);
         if (debugHelper.isEnabled) {
             debugHelper.syncVisibility();
             renderer.render(debugHelper.scene, camera, variant, false, transparentBackground);
+        }
+        if (handleHelper.isEnabled) {
+            renderer.render(handleHelper.scene, camera, variant, false, transparentBackground);
         }
         if (cameraHelper.isEnabled) {
             cameraHelper.update(camera);
