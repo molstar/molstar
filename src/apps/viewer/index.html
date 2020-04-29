@@ -46,9 +46,13 @@
             }
 
             var hideControls = getParam('hide-controls', '[^&]+').trim() === '1';
+            var pdbProvider = getParam('pdb-provider', '[^&]+').trim().toLowerCase();
+            var emdbProvider = getParam('emdb-provider', '[^&]+').trim().toLowerCase();
             var viewer = new molstar.Viewer('app', {
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
+                pdbProvider: pdbProvider || 'pdbe',
+                emdbProvider: emdbProvider || 'pdbe',
             });
 
             var snapshotId = getParam('snapshot-id', '[^&]+').trim();
