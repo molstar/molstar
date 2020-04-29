@@ -9,7 +9,6 @@ import { AminoAlphabet, NuclecicAlphabet, getProteinOneLetterCode, getRnaOneLett
 import { Column } from '../../mol-data/db';
 
 // TODO add mapping support to other sequence spaces, e.g. uniprot
-// TODO sequence alignment (take NGL code as starting point)
 
 type Sequence = Sequence.Protein | Sequence.DNA | Sequence.RNA | Sequence.Generic
 
