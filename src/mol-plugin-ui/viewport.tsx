@@ -21,6 +21,8 @@ import { PluginUIComponent } from './base';
 import { ControlGroup, IconButton } from './controls/common';
 import { DownloadScreenshotControls } from './viewport/screenshot';
 import { SimpleSettingsControl } from './viewport/simple-settings';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 
 interface ViewportControlsState {
     isSettingsExpanded: boolean,
@@ -169,13 +171,15 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
 
         const canvas3d = this.plugin.canvas3d!;
         this.subscribe(canvas3d.reprCount, this.handleLogo);
-        this.subscribe(canvas3d.input.resize, this.handleResize);
 
+        const resized = new Subject();
+        const resize = () => resized.next();
+        resized.pipe(debounceTime(1000 / 24)).subscribe(() => this.handleResize());
+
+        this.subscribe(canvas3d.input.resize, resize);
         this.subscribe(canvas3d.interaction.click, e => this.plugin.behaviors.interaction.click.next(e));
         this.subscribe(canvas3d.interaction.hover, e => this.plugin.behaviors.interaction.hover.next(e));
-        this.subscribe(this.plugin.layout.events.updated, () => {
-            setTimeout(this.handleResize, 50);
-        });
+        this.subscribe(this.plugin.layout.events.updated, resize);
     }
 
     componentWillUnmount() {
