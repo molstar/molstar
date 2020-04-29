@@ -5,7 +5,7 @@
  */
 
 import { RuntimeContext } from '../../mol-task';
-import { CustomPropertyDescriptor } from '../../mol-model/structure';
+import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ValueBox } from '../../mol-util';
 import { OrderedMap } from 'immutable';

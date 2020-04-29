@@ -14,7 +14,7 @@ import { PlyFile } from '../mol-io/reader/ply/schema';
 import { PsfFile } from '../mol-io/reader/psf/parser';
 import { ShapeProvider } from '../mol-model/shape/provider';
 import { Coordinates as _Coordinates, Model as _Model, Structure as _Structure, StructureElement, Topology as _Topology } from '../mol-model/structure';
-import { VolumeData } from '../mol-model/volume';
+import { Volume as _Volume } from '../mol-model/volume';
 import { PluginBehavior } from '../mol-plugin/behavior/behavior';
 import { Representation } from '../mol-repr/representation';
 import { ShapeRepresentation } from '../mol-repr/shape/representation';
@@ -121,7 +121,7 @@ export namespace PluginStateObject {
     }
 
     export namespace Volume {
-        export class Data extends Create<VolumeData>({ name: 'Volume Data', typeClass: 'Object' }) { }
+        export class Data extends Create<_Volume>({ name: 'Volume', typeClass: 'Object' }) { }
         export class Representation3D extends CreateRepresentation3D<VolumeRepresentation<any>>({ name: 'Volume 3D' }) { }
     }
 

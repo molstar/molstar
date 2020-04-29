@@ -6,13 +6,14 @@
 
 import { DxFile } from '../../mol-io/reader/dx/parser';
 import { Mat4, Tensor } from '../../mol-math/linear-algebra';
-import { VolumeData } from '../../mol-model/volume/data';
+import { Volume } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { arrayMax, arrayMean, arrayMin, arrayRms } from '../../mol-util/array';
 import { ModelFormat } from '../format';
+import { CustomProperties } from '../../mol-model/custom-property';
 
-export function volumeFromDx(source: DxFile, params?: { label?: string }): Task<VolumeData> {
-    return Task.create<VolumeData>('Create Volume Data', async () => {
+export function volumeFromDx(source: DxFile, params?: { label?: string }): Task<Volume> {
+    return Task.create<Volume>('Create Volume', async () => {
         const { header, values } = source;
         const space = Tensor.Space(header.dim, [0, 1, 2], Float64Array);
         const data = Tensor.create(space, Tensor.Data1(values));
@@ -22,15 +23,19 @@ export function volumeFromDx(source: DxFile, params?: { label?: string }): Task<
 
         return {
             label: params?.label,
-            transform: { kind: 'matrix', matrix },
-            data,
-            dataStats: {
-                min: arrayMin(values),
-                max: arrayMax(values),
-                mean: arrayMean(values),
-                sigma: arrayRms(values)
+            grid: {
+                transform: { kind: 'matrix', matrix },
+                cells: data,
+                stats: {
+                    min: arrayMin(values),
+                    max: arrayMax(values),
+                    mean: arrayMean(values),
+                    sigma: arrayRms(values)
+                },
             },
-            sourceData: DxFormat.create(source)
+            sourceData: DxFormat.create(source),
+            customProperties: new CustomProperties(),
+            _propertyData: Object.create(null),
         };
     });
 }

@@ -10,4 +10,3 @@ export * from './structure/topology';
 export * from './structure/model';
 export * from './structure/structure';
 export * from './structure/query';
-export * from './structure/common/custom-property';

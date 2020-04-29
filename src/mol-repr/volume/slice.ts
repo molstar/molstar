@@ -7,14 +7,13 @@
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Image } from '../../mol-geo/geometry/image/image';
 import { ThemeRegistryContext, Theme } from '../../mol-theme/theme';
-import { VolumeData, VolumeIsoValue } from '../../mol-model/volume';
+import { Grid, Volume } from '../../mol-model/volume';
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { VisualUpdateState } from '../util';
 import { NullLocation } from '../../mol-model/location';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { VisualContext } from '../visual';
-import { Volume } from '../../mol-model/volume/volume';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
 import { Interval, OrderedSet, SortedArray } from '../../mol-data/int';
@@ -25,12 +24,12 @@ import { createIsoValueParam, IsoValueParam } from './isosurface';
 import { Color } from '../../mol-util/color';
 import { ColorTheme } from '../../mol-theme/color';
 
-export async function createImage(ctx: VisualContext, volume: VolumeData, theme: Theme, props: PD.Values<SliceParams>, image?: Image) {
+export async function createImage(ctx: VisualContext, volume: Volume, theme: Theme, props: PD.Values<SliceParams>, image?: Image) {
     const { dimension: { name: dim }, isoValue } = props;
 
-    const { space, data: data } = volume.data;
-    const { min, max } = volume.dataStats;
-    const isoVal = VolumeIsoValue.toAbsolute(isoValue, volume.dataStats).absoluteValue;
+    const { space, data } = volume.grid.cells;
+    const { min, max } = volume.grid.stats;
+    const isoVal = Volume.IsoValue.toAbsolute(isoValue, volume.grid.stats).absoluteValue;
 
     // TODO more color themes
     const color = theme.color.color(NullLocation, false);
@@ -41,7 +40,7 @@ export async function createImage(ctx: VisualContext, volume: VolumeData, theme:
         x, y, z,
         x0, y0, z0,
         nx, ny, nz
-    } = getSliceInfo(volume, props);
+    } = getSliceInfo(volume.grid, props);
 
     const corners = new Float32Array(
         dim === 'x' ? [x, 0, 0,  x, y, 0,  x, 0, z,  x, y, z] :
@@ -50,7 +49,7 @@ export async function createImage(ctx: VisualContext, volume: VolumeData, theme:
     );
 
     const imageArray = new Float32Array(width * height * 4);
-    const groupArray = getGroupArray(volume, props);
+    const groupArray = getGroupArray(volume.grid, props);
 
     let i = 0;
     for (let iy = y0; iy < ny; ++iy) {
@@ -72,15 +71,15 @@ export async function createImage(ctx: VisualContext, volume: VolumeData, theme:
     const imageTexture = { width, height, array: imageArray, flipY: true };
     const groupTexture = { width, height, array: groupArray, flipY: true };
 
-    const transform = VolumeData.getGridToCartesianTransform(volume);
+    const transform = Grid.getGridToCartesianTransform(volume.grid);
     transformPositionArray(transform, corners, 0, 4);
 
     return Image.create(imageTexture, corners, groupTexture, image);
 }
 
-function getSliceInfo(volume: VolumeData, props: PD.Values<SliceParams>) {
+function getSliceInfo(grid: Grid, props: PD.Values<SliceParams>) {
     const { dimension: { name: dim, params: index } } = props;
-    const { space } = volume.data;
+    const { space } = grid.cells;
 
     let width, height;
     let x, y, z;
@@ -108,9 +107,9 @@ function getSliceInfo(volume: VolumeData, props: PD.Values<SliceParams>) {
     };
 }
 
-function getGroupArray(volume: VolumeData, props: PD.Values<SliceParams>) {
-    const { space } = volume.data;
-    const { width, height, x0, y0, z0, nx, ny, nz } = getSliceInfo(volume, props);
+function getGroupArray(grid: Grid, props: PD.Values<SliceParams>) {
+    const { space } = grid.cells;
+    const { width, height, x0, y0, z0, nx, ny, nz } = getSliceInfo(grid, props);
     const groupArray = new Float32Array(width * height);
 
     let j = 0;
@@ -125,13 +124,13 @@ function getGroupArray(volume: VolumeData, props: PD.Values<SliceParams>) {
     return groupArray;
 }
 
-function getLoci(volume: VolumeData, props: PD.Values<SliceParams>) {
+function getLoci(volume: Volume, props: PD.Values<SliceParams>) {
     // TODO cache somehow?
-    const groupArray = getGroupArray(volume, props);
+    const groupArray = getGroupArray(volume.grid, props);
     return Volume.Cell.Loci(volume, SortedArray.ofUnsortedArray(groupArray));
 }
 
-function getSliceLoci(pickingId: PickingId, volume: VolumeData, props: PD.Values<SliceParams>, id: number) {
+function getSliceLoci(pickingId: PickingId, volume: Volume, props: PD.Values<SliceParams>, id: number) {
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
         return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
@@ -139,24 +138,24 @@ function getSliceLoci(pickingId: PickingId, volume: VolumeData, props: PD.Values
     return EmptyLoci;
 }
 
-function eachSlice(loci: Loci, volume: VolumeData, props: PD.Values<SliceParams>, apply: (interval: Interval) => boolean) {
+function eachSlice(loci: Loci, volume: Volume, props: PD.Values<SliceParams>, apply: (interval: Interval) => boolean) {
     let changed = false;
     if (Volume.isLoci(loci)) {
-        if (!VolumeData.areEquivalent(loci.volume, volume)) return false;
-        if (apply(Interval.ofLength(volume.data.data.length))) changed = true;
+        if (!Volume.areEquivalent(loci.volume, volume)) return false;
+        if (apply(Interval.ofLength(volume.grid.cells.data.length))) changed = true;
     } else if (Volume.Isosurface.isLoci(loci)) {
-        if (!VolumeData.areEquivalent(loci.volume, volume)) return false;
+        if (!Volume.areEquivalent(loci.volume, volume)) return false;
         // TODO find a cheaper way?
-        const { dataStats, data: { data } } = volume;
-        const eps = dataStats.sigma;
-        const v = VolumeIsoValue.toAbsolute(loci.isoValue, dataStats).absoluteValue;
+        const { stats, cells: { data } } = volume.grid;
+        const eps = stats.sigma;
+        const v = Volume.IsoValue.toAbsolute(loci.isoValue, stats).absoluteValue;
         for (let i = 0, il = data.length; i < il; ++i) {
             if (equalEps(v, data[i], eps)) {
                 if (apply(Interval.ofSingleton(i))) changed = true;
             }
         }
     } else if (Volume.Cell.isLoci(loci)) {
-        if (!VolumeData.areEquivalent(loci.volume, volume)) return false;
+        if (!Volume.areEquivalent(loci.volume, volume)) return false;
         if (Interval.is(loci.indices)) {
             if (apply(loci.indices)) changed = true;
         } else {
@@ -181,15 +180,15 @@ export const SliceParams = {
     isoValue: IsoValueParam,
 };
 export type SliceParams = typeof SliceParams
-export function getSliceParams(ctx: ThemeRegistryContext, volume: VolumeData) {
+export function getSliceParams(ctx: ThemeRegistryContext, volume: Volume) {
     const p = PD.clone(SliceParams);
-    const dim = volume.data.space.dimensions;
+    const dim = volume.grid.cells.space.dimensions;
     p.dimension = PD.MappedStatic('x', {
         x: PD.Numeric(0, { min: 0, max: dim[0] - 1, step: 1 }),
         y: PD.Numeric(0, { min: 0, max: dim[1] - 1, step: 1 }),
         z: PD.Numeric(0, { min: 0, max: dim[2] - 1, step: 1 }),
     }, { isEssential: true });
-    p.isoValue = createIsoValueParam(VolumeIsoValue.absolute(volume.dataStats.min), volume.dataStats);
+    p.isoValue = createIsoValueParam(Volume.IsoValue.absolute(volume.grid.stats.min), volume.grid.stats);
     return p;
 }
 
@@ -197,14 +196,14 @@ export function SliceVisual(materialId: number): VolumeVisual<SliceParams> {
     return VolumeVisual<Image, SliceParams>({
         defaultProps: PD.getDefaultValues(SliceParams),
         createGeometry: createImage,
-        createLocationIterator: (volume: VolumeData) => LocationIterator(volume.data.data.length, 1, () => NullLocation),
+        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, () => NullLocation),
         getLoci: getSliceLoci,
         eachLocation: eachSlice,
-        setUpdateState: (state: VisualUpdateState, volume: VolumeData, newProps: PD.Values<SliceParams>, currentProps: PD.Values<SliceParams>, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<SliceParams>, currentProps: PD.Values<SliceParams>, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
                 newProps.dimension.name !== currentProps.dimension.name ||
                 newProps.dimension.params !== currentProps.dimension.params ||
-                !VolumeIsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.dataStats) ||
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
                 !ColorTheme.areEqual(newTheme.color, currentTheme.color)
             );
         },
@@ -226,7 +225,7 @@ function updateRenderableState(state: RenderableState, props: PD.Values<SlicePar
     state.writeDepth = true;
 }
 
-export function SliceRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, SliceParams>): VolumeRepresentation<SliceParams> {
+export function SliceRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, SliceParams>): VolumeRepresentation<SliceParams> {
     return VolumeRepresentation('Slice', ctx, getParams, SliceVisual, getLoci);
 }
 
@@ -239,5 +238,5 @@ export const SliceRepresentationProvider = VolumeRepresentationProvider({
     defaultValues: PD.getDefaultValues(SliceParams),
     defaultColorTheme: { name: 'uniform' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (volume: VolumeData) => volume.data.data.length > 0
+    isApplicable: (volume: Volume) => !Volume.isEmpty(volume)
 });

@@ -8,38 +8,36 @@ import * as fs from 'fs';
 import * as argparse from 'argparse';
 import * as util from 'util';
 
-import { VolumeData, VolumeIsoValue } from '../../mol-model/volume';
+import { Volume } from '../../mol-model/volume';
 import { downloadCif } from './helpers';
 import { CIF } from '../../mol-io/reader/cif';
-import { DensityServer_Data_Database } from '../../mol-io/reader/cif/schema/density-server';
 import { Table } from '../../mol-data/db';
 import { StringBuilder } from '../../mol-util';
 import { Task } from '../../mol-task';
 import { createVolumeIsosurfaceMesh } from '../../mol-repr/volume/isosurface';
 import { Theme } from '../../mol-theme/theme';
-import { volumeFromDensityServerData } from '../../mol-model-formats/volume/density-server';
+import { volumeFromDensityServerData, DscifFormat } from '../../mol-model-formats/volume/density-server';
 
 require('util.promisify').shim();
 const writeFileAsync = util.promisify(fs.writeFile);
 
-type Volume = { source: DensityServer_Data_Database, volume: VolumeData }
-
 async function getVolume(url: string): Promise<Volume> {
     const cif = await downloadCif(url, true);
     const data = CIF.schema.densityServer(cif.blocks[1]);
-    return { source: data, volume: await volumeFromDensityServerData(data).run() };
+    return await volumeFromDensityServerData(data).run();
 }
 
-function print(data: Volume) {
-    const { volume_data_3d_info } = data.source;
+function print(volume: Volume) {
+    if (!DscifFormat.is(volume.sourceData)) return;
+    const { volume_data_3d_info } = volume.sourceData.data;
     const row = Table.getRow(volume_data_3d_info, 0);
     console.log(row);
-    if (data.volume.transform) console.log(data.volume.transform);
-    console.log(data.volume.dataStats);
+    console.log(volume.grid.transform);
+    console.log(volume.grid.stats);
 }
 
-async function doMesh(data: Volume, filename: string) {
-    const mesh = await Task.create('', runtime => createVolumeIsosurfaceMesh({ runtime }, data.volume, Theme.createEmpty(), { isoValue: VolumeIsoValue.absolute(1.5) } )).run();
+async function doMesh(volume: Volume, filename: string) {
+    const mesh = await Task.create('', runtime => createVolumeIsosurfaceMesh({ runtime }, volume, Theme.createEmpty(), { isoValue: Volume.IsoValue.absolute(1.5) } )).run();
     console.log({ vc: mesh.vertexCount, tc: mesh.triangleCount });
 
     // Export the mesh in OBJ format.

@@ -44,18 +44,18 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     mark(loci: Loci, action: MarkerAction): boolean {
         let changed = false;
         const { structure } = this.data;
+        const index = (seqId: number) => this.sequence.index(seqId);
         if (StructureElement.Loci.is(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, structure)) return false;
             loci = StructureElement.Loci.remap(loci, structure);
 
-            const { offset } = this.sequence;
             for (const e of loci.elements) {
                 if (!this.unitMap.has(e.unit.id)) continue;
 
                 if (Unit.isAtomic(e.unit)) {
-                    changed = applyMarkerAtomic(e, action, this.markerArray, offset) || changed;
+                    changed = applyMarkerAtomic(e, action, this.markerArray, index) || changed;
                 } else {
-                    changed = applyMarkerCoarse(e, action, this.markerArray, offset) || changed;
+                    changed = applyMarkerCoarse(e, action, this.markerArray, index) || changed;
                 }
             }
         } else if (Structure.isLoci(loci)) {
@@ -117,27 +117,28 @@ function createResidueQuery(chainGroupId: number, operatorName: string, label_se
     });
 }
 
-function applyMarkerAtomic(e: StructureElement.Loci.Element, action: MarkerAction, markerArray: Uint8Array, offset: number) {
+function applyMarkerAtomic(e: StructureElement.Loci.Element, action: MarkerAction, markerArray: Uint8Array, index: (seqId: number) => number) {
     const { model, elements } = e.unit;
-    const { index } = model.atomicHierarchy.residueAtomSegments;
+    const { index: residueIndex } = model.atomicHierarchy.residueAtomSegments;
     const { label_seq_id } = model.atomicHierarchy.residues;
 
     let changed = false;
-    OrderedSet.forEachSegment(e.indices, i => index[elements[i]], rI => {
+    OrderedSet.forEachSegment(e.indices, i => residueIndex[elements[i]], rI => {
         const seqId = label_seq_id.value(rI);
-        changed = applyMarkerActionAtPosition(markerArray, seqId - 1 - offset, action) || changed;
+        changed = applyMarkerActionAtPosition(markerArray, index(seqId), action) || changed;
     });
     return changed;
 }
 
-function applyMarkerCoarse(e: StructureElement.Loci.Element, action: MarkerAction, markerArray: Uint8Array, offset: number) {
+function applyMarkerCoarse(e: StructureElement.Loci.Element, action: MarkerAction, markerArray: Uint8Array, index: (seqId: number) => number) {
     const { model, elements } = e.unit;
     const begin = Unit.isSpheres(e.unit) ? model.coarseHierarchy.spheres.seq_id_begin : model.coarseHierarchy.gaussians.seq_id_begin;
     const end = Unit.isSpheres(e.unit) ? model.coarseHierarchy.spheres.seq_id_end : model.coarseHierarchy.gaussians.seq_id_end;
 
     let changed = false;
     OrderedSet.forEach(e.indices, i => {
-        for (let s = begin.value(elements[i]) - 1 - offset, e = end.value(elements[i]) - 1 - offset; s <= e; s++) {
+        const eI = elements[i];
+        for (let s = index(begin.value(eI)), e = index(end.value(eI)); s <= e; s++) {
             changed = applyMarkerActionAtPosition(markerArray, s, action) || changed;
         }
     });

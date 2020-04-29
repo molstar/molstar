@@ -37,9 +37,11 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
 
     const { x, y, z } = unit.model.atomicConformation;
     const atomCount = unit.elements.length;
-    const { elements: atoms, residueIndex } = unit;
+    const { elements: atoms, residueIndex, chainIndex } = unit;
     const { type_symbol, label_atom_id, label_alt_id } = unit.model.atomicHierarchy.atoms;
-    const { label_comp_id } = unit.model.atomicHierarchy.residues;
+    const { label_comp_id, label_seq_id } = unit.model.atomicHierarchy.residues;
+    const { index } = unit.model.atomicHierarchy;
+    const { byEntityKey } = unit.model.sequence;
     const query3d = unit.lookup3d;
 
     const structConn = StructConn.Provider.get(unit.model);
@@ -101,7 +103,13 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
 
         if (!props.forceCompute && raI !== lastResidue) {
             if (!!component && component.entries.has(compId)) {
-                componentMap = component.entries.get(compId)!.map;
+                const entitySeq = byEntityKey[index.getEntityFromChain(chainIndex[aI])];
+                if (entitySeq && entitySeq.sequence.microHet.has(label_seq_id.value(raI))) {
+                    // compute for sequence positions with micro-heterogeneity
+                    componentMap = void 0;
+                } else {
+                    componentMap = component.entries.get(compId)!.map;
+                }
             } else {
                 componentMap = void 0;
             }

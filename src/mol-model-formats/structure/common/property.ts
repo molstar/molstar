@@ -4,8 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CustomPropertyDescriptor, Model } from '../../../mol-model/structure';
+import { Model } from '../../../mol-model/structure';
 import { ModelFormat } from '../../format';
+import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 
 class FormatRegistry<T> {
     private map = new Map<ModelFormat['kind'], (model: Model) => T | undefined>()

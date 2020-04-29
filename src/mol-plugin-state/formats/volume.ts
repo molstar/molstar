@@ -12,10 +12,9 @@ import { StateObjectSelector } from '../../mol-state';
 import { PluginStateObject } from '../objects';
 import { VolumeRepresentation3DHelpers } from '../transforms/representation';
 import { ColorNames } from '../../mol-util/color/names';
-import { VolumeIsoValue } from '../../mol-model/volume';
+import { Volume } from '../../mol-model/volume';
 import { createVolumeRepresentationParams } from '../helpers/volume-representation-params';
 import { objectForEach } from '../../mol-util/object';
-import { Volume } from '../../mol-model/volume/volume';
 
 const Category = 'Volume';
 
@@ -110,13 +109,13 @@ export const CubeProvider = DataFormatProvider({
         if (volumeData && Volume.isOrbitals(volumeData)) {
             const volumePos = surfaces.to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, volumeData, {
                 type: 'isosurface',
-                typeParams: { isoValue: VolumeIsoValue.relative(1), alpha: 0.4 },
+                typeParams: { isoValue: Volume.IsoValue.relative(1), alpha: 0.4 },
                 color: 'uniform',
                 colorParams: { value: ColorNames.blue }
             }));
             const volumeNeg = surfaces.to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, volumeData, {
                 type: 'isosurface',
-                typeParams: { isoValue: VolumeIsoValue.relative(-1), alpha: 0.4 },
+                typeParams: { isoValue: Volume.IsoValue.relative(-1), alpha: 0.4 },
                 color: 'uniform',
                 colorParams: { value: ColorNames.red }
             }));
@@ -124,7 +123,7 @@ export const CubeProvider = DataFormatProvider({
         } else {
             const volume = surfaces.to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, volumeData, {
                 type: 'isosurface',
-                typeParams: { isoValue: VolumeIsoValue.relative(2), alpha: 0.4 },
+                typeParams: { isoValue: Volume.IsoValue.relative(2), alpha: 0.4 },
                 color: 'uniform',
                 colorParams: { value: ColorNames.grey }
             }));
@@ -176,13 +175,13 @@ export const DscifProvider = DataFormatProvider({
         if (volumes.length > 0) {
             visuals[0] = tree
                 .to(volumes[0])
-                .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: VolumeIsoValue.relative(1.5), alpha: 1 }, 'uniform', { value: ColorNames.teal }))
+                .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: Volume.IsoValue.relative(1.5), alpha: 1 }, 'uniform', { value: ColorNames.teal }))
                 .selector;
         }
 
         if (volumes.length > 1) {
-            const posParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: VolumeIsoValue.relative(3), alpha: 0.3 }, 'uniform', { value: ColorNames.green });
-            const negParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: VolumeIsoValue.relative(-3), alpha: 0.3 }, 'uniform', { value: ColorNames.red });
+            const posParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: Volume.IsoValue.relative(3), alpha: 0.3 }, 'uniform', { value: ColorNames.green });
+            const negParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: Volume.IsoValue.relative(-3), alpha: 0.3 }, 'uniform', { value: ColorNames.red });
             visuals[visuals.length] = tree.to(volumes[1]).apply(StateTransforms.Representation.VolumeRepresentation3D, posParams).selector;
             visuals[visuals.length] = tree.to(volumes[1]).apply(StateTransforms.Representation.VolumeRepresentation3D, negParams).selector;
         }

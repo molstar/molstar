@@ -9,7 +9,7 @@ import { Model } from '../../../../mol-model/structure/model/model';
 import { Structure } from '../../../../mol-model/structure';
 import { BondType } from '../../../../mol-model/structure/model/types';
 import { Column, Table } from '../../../../mol-data/db';
-import { CustomPropertyDescriptor } from '../../../../mol-model/structure';
+import { CustomPropertyDescriptor } from '../../../../mol-model/custom-property';
 import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { SortedArray } from '../../../../mol-data/int';
 import { CifWriter } from '../../../../mol-io/writer/cif';

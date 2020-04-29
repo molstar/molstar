@@ -13,7 +13,7 @@ import { SecondaryStructure } from '../../../mol-model/structure/model/propertie
 import { Column, Table } from '../../../mol-data/db';
 import { ChainIndex, ResidueIndex } from '../../../mol-model/structure/model/indexing';
 import { FormatPropertyProvider } from '../common/property';
-import { CustomPropertyDescriptor } from '../../../mol-model/structure';
+import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 
 export { ModelSecondaryStructure };
 

@@ -4,10 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CustomPropertyDescriptor, Structure } from '../../mol-model/structure';
+import { Structure } from '../../mol-model/structure';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ValueBox } from '../../mol-util';
 import { CustomProperty } from './custom-property';
+import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 
 export { CustomStructureProperty };
 

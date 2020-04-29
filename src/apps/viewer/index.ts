@@ -110,7 +110,7 @@ export class Viewer {
     }
 
     async loadStructureFromUrl(url: string, format = 'cif', isBinary = false) {
-        const params = DownloadStructure.createDefaultParams(undefined, this.plugin);
+        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
             source: {
                 name: 'url',
@@ -125,7 +125,7 @@ export class Viewer {
     }
 
     async loadPdb(pdb: string) {
-        const params = DownloadStructure.createDefaultParams(undefined, this.plugin);
+        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         const provider = this.plugin.config.get(PluginConfig.Download.DefaultPdbProvider)!;
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
             source: {
@@ -145,7 +145,7 @@ export class Viewer {
     }
 
     async loadPdbDev(pdbDev: string) {
-        const params = DownloadStructure.createDefaultParams(undefined, this.plugin);
+        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
             source: {
                 name: 'pdb-dev' as const,

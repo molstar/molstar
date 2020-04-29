@@ -15,7 +15,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { volumeFromCube } from '../../mol-model-formats/volume/cube';
 import { volumeFromDx } from '../../mol-model-formats/volume/dx';
-import { VolumeData } from '../../mol-model/volume';
+import {  Volume } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateSelection } from '../../mol-state';
 
@@ -160,8 +160,8 @@ const AssignColorVolume = PluginStateTransform.BuiltIn({
             if (!dependencies || !dependencies[params.ref]) {
                 throw new Error('Dependency not available.');
             }
-            const colorVolume = dependencies[params.ref].data as VolumeData;
-            const volume: VolumeData = {
+            const colorVolume = dependencies[params.ref].data as Volume;
+            const volume: Volume = {
                 ...a.data,
                 colorVolume
             };

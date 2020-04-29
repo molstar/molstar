@@ -12,7 +12,7 @@ import { capitalize, stripTags } from '../mol-util/string';
 import { Column } from '../mol-data/db';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { radToDeg } from '../mol-math/misc';
-import { VolumeIsoValue } from '../mol-model/volume';
+import { Volume } from '../mol-model/volume';
 
 export type LabelGranularity = 'element' | 'conformation' | 'residue' | 'chain' | 'structure'
 
@@ -51,19 +51,19 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
         case 'isosurface-loci':
             return [
                 `${loci.volume.label || 'Volume'}`,
-                `Isosurface at ${VolumeIsoValue.toString(loci.isoValue)}`
+                `Isosurface at ${Volume.IsoValue.toString(loci.isoValue)}`
             ].join(' | ');
         case 'cell-loci':
             const size = OrderedSet.size(loci.indices);
             const start = OrderedSet.start(loci.indices);
-            const absVal = VolumeIsoValue.absolute(loci.volume.data.data[start]);
-            const relVal = VolumeIsoValue.toRelative(absVal, loci.volume.dataStats);
+            const absVal = Volume.IsoValue.absolute(loci.volume.grid.cells.data[start]);
+            const relVal = Volume.IsoValue.toRelative(absVal, loci.volume.grid.stats);
             const label = [
                 `${loci.volume.label || 'Volume'}`,
                 `${size === 1 ? `Cell #${start}` : `${size} Cells`}`
             ];
             if (size === 1) {
-                label.push(`${VolumeIsoValue.toString(absVal)} (${VolumeIsoValue.toString(relVal)})`);
+                label.push(`${Volume.IsoValue.toString(absVal)} (${Volume.IsoValue.toString(relVal)})`);
             }
             return label.join(' | ');
     }

@@ -5,10 +5,11 @@
  */
 
 import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
-import { Structure, CustomPropertyDescriptor } from '../../mol-model/structure';
+import { Structure } from '../../mol-model/structure';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Color } from '../../mol-util/color';
+import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 
 export type CellPackInfoValue = {
     packingsCount: number

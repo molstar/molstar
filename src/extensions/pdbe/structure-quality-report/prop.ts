@@ -9,7 +9,7 @@ import { Column, Table } from '../../../mol-data/db';
 import { toTable } from '../../../mol-io/reader/cif/schema';
 import { mmCIF_residueId_schema } from '../../../mol-io/reader/cif/schema/mmcif-extras';
 import { CifWriter } from '../../../mol-io/writer/cif';
-import { Model, CustomPropertyDescriptor, ResidueIndex, Unit, IndexedCustomProperty } from '../../../mol-model/structure';
+import { Model, ResidueIndex, Unit, IndexedCustomProperty } from '../../../mol-model/structure';
 import { residueIdFields } from '../../../mol-model/structure/export/categories/atom_site';
 import { StructureElement, CifExportContext, Structure } from '../../../mol-model/structure/structure';
 import { CustomPropSymbol } from '../../../mol-script/language/symbol';
@@ -22,6 +22,7 @@ import { PropertyWrapper } from '../../../mol-model-props/common/wrapper';
 import { CustomProperty } from '../../../mol-model-props/common/custom-property';
 import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
 import { Asset } from '../../../mol-util/assets';
+import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 
 export { StructureQualityReport };
 

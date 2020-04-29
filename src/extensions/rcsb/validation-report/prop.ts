@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { CustomPropertyDescriptor, Structure, Unit } from '../../../mol-model/structure';
+import { Structure, Unit } from '../../../mol-model/structure';
 import { CustomProperty } from '../../../mol-model-props/common/custom-property';
 import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
 import { Model, ElementIndex, ResidueIndex } from '../../../mol-model/structure/model';
@@ -21,6 +21,7 @@ import { QuerySymbolRuntime } from '../../../mol-script/runtime/query/compiler';
 import { CustomPropSymbol } from '../../../mol-script/language/symbol';
 import Type from '../../../mol-script/language/type';
 import { Asset } from '../../../mol-util/assets';
+import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 
 export { ValidationReport };
 

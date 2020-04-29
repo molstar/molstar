@@ -5,7 +5,7 @@
  */
 
 import { Table, Column } from '../../../mol-data/db';
-import { CustomPropertyDescriptor } from '../../../mol-model/structure';
+import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { CifWriter } from '../../../mol-io/writer/cif';
 import { FormatPropertyProvider } from '../common/property';

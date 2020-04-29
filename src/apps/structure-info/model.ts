@@ -117,7 +117,7 @@ export function printSequence(model: Model) {
     for (const key of Object.keys(byEntityKey)) {
         const { sequence, entityId } = byEntityKey[+key];
         const { seqId, compId } = sequence;
-        console.log(`${entityId} (${sequence.kind} ${seqId.value(0)} (offset ${sequence.offset}), ${seqId.value(seqId.rowCount - 1)}) (${compId.value(0)}, ${compId.value(compId.rowCount - 1)})`);
+        console.log(`${entityId} (${sequence.kind} ${seqId.value(0)}, ${seqId.value(seqId.rowCount - 1)}) (${compId.value(0)}, ${compId.value(compId.rowCount - 1)})`);
         console.log(`${Sequence.getSequenceString(sequence)}`);
     }
     console.log();
