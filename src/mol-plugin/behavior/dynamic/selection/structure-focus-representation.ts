@@ -18,11 +18,11 @@ import { SizeTheme } from '../../../../mol-theme/size';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { PluginCommands } from '../../../commands';
 import { PluginContext } from '../../../context';
+import { Color } from '../../../../mol-util/color';
 
 const StructureFocusRepresentationParams = (plugin: PluginContext) => {
     const reprParams = StateTransforms.Representation.StructureRepresentation3D.definition.params!(void 0, plugin) as PD.Params;
     return {
-        // TODO: min = 0 to turn them off?
         expandRadius: PD.Numeric(5, { min: 1, max: 10, step: 1 }),
         targetParams: PD.Group(reprParams, {
             label: 'Target',
@@ -30,7 +30,7 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         }),
         surroundingsParams: PD.Group(reprParams, {
             label: 'Surroundings',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', color: 'element-symbol', size: 'physical', typeParams: { sizeFactor: 0.16 } })
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', color: 'element-symbol', size: 'physical', typeParams: { sizeFactor: 0.16 }, colorParams: { carbon: Color.fromRgb(200, 200, 200) } })
         }),
         nciParams: PD.Group(reprParams, {
             label: 'Non-covalent Int.',

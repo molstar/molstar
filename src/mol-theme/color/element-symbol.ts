@@ -24,6 +24,7 @@ const DefaultElementSymbolColor = Color(0xFFFFFF);
 const Description = 'Assigns a color to every atom according to its chemical element.';
 
 export const ElementSymbolColorThemeParams = {
+    carbon: PD.Color(ElementSymbolColors.C),
     saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
     lightness: PD.Numeric(0.7, { min: -6, max: 6, step: 0.1 })
 };
@@ -39,17 +40,20 @@ export function elementSymbolColor(colorMap: ElementSymbolColors, element: Eleme
 
 export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<ElementSymbolColorThemeParams>): ColorTheme<ElementSymbolColorThemeParams> {
     const colorMap = getAdjustedColorMap(ElementSymbolColors, props.saturation, props.lightness);
+    const carbonColor = Color.darken(Color.saturate(props.carbon, props.saturation), -props.lightness);
 
     function color(location: Location): Color {
         if (StructureElement.Location.is(location)) {
             if (Unit.isAtomic(location.unit)) {
                 const { type_symbol } = location.unit.model.atomicHierarchy.atoms;
-                return elementSymbolColor(colorMap, type_symbol.value(location.element));
+                const element = type_symbol.value(location.element);
+                return element === 'C' ? carbonColor : elementSymbolColor(colorMap, element);
             }
         } else if (Bond.isLocation(location)) {
             if (Unit.isAtomic(location.aUnit)) {
                 const { type_symbol } = location.aUnit.model.atomicHierarchy.atoms;
-                return elementSymbolColor(colorMap, type_symbol.value(location.aUnit.elements[location.aIndex]));
+                const element = type_symbol.value(location.aUnit.elements[location.aIndex]);
+                return element === 'C' ? carbonColor : elementSymbolColor(colorMap, element);
             }
         }
         return DefaultElementSymbolColor;
