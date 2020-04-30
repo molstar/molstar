@@ -255,11 +255,12 @@ namespace Loci {
     };
     export type Granularity = keyof typeof Granularity
     export const GranularityOptions = ParamDefinition.objectToOptions(Granularity, k => {
-        if (k.indexOf('Instances') > 0) return [stringToWords(k), 'With Symmetry'];
         switch (k) {
             case 'element': return'Atom/Coarse Element';
+            case 'elementInstances': return ['Atom/Coarse Element Instances', 'With Symmetry'];
             case 'structure': return'Structure/Shape';
-            default: return stringToWords(k);
+            default: return k.indexOf('Instances')
+                ? [stringToWords(k), 'With Symmetry'] : stringToWords(k);
         }
     });
 
