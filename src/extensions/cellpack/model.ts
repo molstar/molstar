@@ -17,7 +17,7 @@ import { Mat4, Vec3, Quat } from '../../mol-math/linear-algebra';
 import { SymmetryOperator } from '../../mol-math/geometry';
 import { Task, RuntimeContext } from '../../mol-task';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl, GetAllAssamblyinOneStructure } from './state';
+import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl, StructureFromAssemblies } from './state';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
 import { compile } from '../../mol-script/runtime/query/compiler';
@@ -479,8 +479,7 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
     const membrane = await b.apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
         .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.StructureFromModel)
-        .apply(GetAllAssamblyinOneStructure, undefined, { state: { isGhost: true } })
+        .apply(StructureFromAssemblies, undefined, { state: { isGhost: true } })
         .commit({ revertOnError: true });
 
     const membraneParams = {

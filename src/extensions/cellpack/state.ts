@@ -97,12 +97,11 @@ const StructureFromCellpack = PluginStateTransform.BuiltIn({
     }
 });
 
-export { GetAllAssamblyinOne };
-type GetAllAssamblyinOne = typeof GetAllAssamblyinOne
-const GetAllAssamblyinOne = PluginStateTransform.BuiltIn({
-    name: 'get assambly from model',
-    display: { name: 'get assambly from model' },
-    isDecorator: true,
+export { StructureFromAssemblies };
+type StructureFromAssemblies = typeof StructureFromAssemblies
+const StructureFromAssemblies = PluginStateTransform.BuiltIn({
+    name: 'Structure from all assemblies',
+    display: { name: 'Structure from all assemblies' },
     from: PSO.Molecule.Model,
     to: PSO.Molecule.Structure,
     params: {
@@ -121,29 +120,27 @@ const GetAllAssamblyinOne = PluginStateTransform.BuiltIn({
             let structure: Structure = initial_structure;
             // the list of asambly *?
             const symmetry = ModelSymmetry.Provider.get(model);
-            if (symmetry){
-                if (symmetry.assemblies.length !== 0) {
-                    for (const a of symmetry.assemblies) {
-                        const s = await StructureSymmetry.buildAssembly(initial_structure, a.id).runInContext(ctx);
-                        structures.push(s);
+            if (symmetry && symmetry.assemblies.length !== 0){
+                for (const a of symmetry.assemblies) {
+                    const s = await StructureSymmetry.buildAssembly(initial_structure, a.id).runInContext(ctx);
+                    structures.push(s);
+                }
+                const builder = Structure.Builder({ label: name });
+                let offsetInvariantId = 0;
+                for (const s of structures) {
+                    let maxInvariantId = 0;
+                    for (const u of s.units) {
+                        const invariantId = u.invariantId + offsetInvariantId;
+                        if (u.invariantId > maxInvariantId) maxInvariantId = u.invariantId;
+                        builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, Unit.Trait.None, invariantId);
                     }
-                    const builder = Structure.Builder({ label: name });
-                    let offsetInvariantId = 0;
-                    for (const s of structures) {
-                        let maxInvariantId = 0;
-                        for (const u of s.units) {
-                            const invariantId = u.invariantId + offsetInvariantId;
-                            if (u.invariantId > maxInvariantId) maxInvariantId = u.invariantId;
-                            builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, Unit.Trait.None, invariantId);
-                        }
-                        offsetInvariantId += maxInvariantId + 1;
-                    }
-                    structure = builder.getStructure();
-                    for( let i = 0, il = structure.models.length; i < il; ++i) {
-                        const { trajectoryInfo } = structure.models[i];
-                        trajectoryInfo.size = il;
-                        trajectoryInfo.index = i;
-                    }
+                    offsetInvariantId += maxInvariantId + 1;
+                }
+                structure = builder.getStructure();
+                for( let i = 0, il = structure.models.length; i < il; ++i) {
+                    const { trajectoryInfo } = structure.models[i];
+                    trajectoryInfo.size = il;
+                    trajectoryInfo.index = i;
                 }
             }
             return new PSO.Molecule.Structure(structure, { label: a.label, description: `${a.description}` });
@@ -154,54 +151,54 @@ const GetAllAssamblyinOne = PluginStateTransform.BuiltIn({
     }
 });
 
-export { GetAllAssamblyinOneStructure };
-type GetAllAssamblyinOneStructure = typeof GetAllAssamblyinOneStructure
-const GetAllAssamblyinOneStructure = PluginStateTransform.BuiltIn({
-    name: 'get assambly from structure',
-    display: { name: 'get assambly from structure' },
-    isDecorator: true,
-    from: PSO.Molecule.Structure,
-    to: PSO.Molecule.Structure,
-    params(a) {
-        return { };
-    }
-})({
-    apply({ a, params }) {
-        return Task.create('Build Structure Assemblies', async ctx => {
-            // TODO: optimze
-            // TODO: think of ways how to fast-track changes to this for animations
-            const initial_structure = a.data;
-            const structures: Structure[] = [];
-            let structure: Structure = initial_structure;
-            // the list of asambly *?
-            const symmetry = ModelSymmetry.Provider.get(initial_structure.model);
-            if (symmetry){
-                if (symmetry.assemblies.length !== 0) {
-                    for (const a of symmetry.assemblies) {
-                        const s = await StructureSymmetry.buildAssembly(initial_structure, a.id!).runInContext(ctx);
-                        structures.push(s);
-                    }
-                    const builder = Structure.Builder({ label: name });
-                    let offsetInvariantId = 0;
-                    for (const s of structures) {
-                        let maxInvariantId = 0;
-                        for (const u of s.units) {
-                            const invariantId = u.invariantId + offsetInvariantId;
-                            if (u.invariantId > maxInvariantId) maxInvariantId = u.invariantId;
-                            builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, Unit.Trait.None, invariantId);
-                        }
-                        offsetInvariantId += maxInvariantId + 1;
-                    }
-                    structure = builder.getStructure();
-                    for( let i = 0, il = structure.models.length; i < il; ++i) {
-                        const { trajectoryInfo } = structure.models[i];
-                        trajectoryInfo.size = il;
-                        trajectoryInfo.index = i;
-                    }
-                }
-            }
-            return new PSO.Molecule.Structure(structure, { label: a.label, description: `${a.description}` });
-        });
-    }
-});
+// export { GetAllAssamblyinOneStructure };
+// type GetAllAssamblyinOneStructure = typeof GetAllAssamblyinOneStructure
+// const GetAllAssamblyinOneStructure = PluginStateTransform.BuiltIn({
+//     name: 'get assambly from structure',
+//     display: { name: 'get assambly from structure' },
+//     isDecorator: true,
+//     from: PSO.Molecule.Structure,
+//     to: PSO.Molecule.Structure,
+//     params(a) {
+//         return { };
+//     }
+// })({
+//     apply({ a, params }) {
+//         return Task.create('Build Structure Assemblies', async ctx => {
+//             // TODO: optimze
+//             // TODO: think of ways how to fast-track changes to this for animations
+//             const initial_structure = a.data;
+//             const structures: Structure[] = [];
+//             let structure: Structure = initial_structure;
+//             // the list of asambly *?
+//             const symmetry = ModelSymmetry.Provider.get(initial_structure.model);
+//             if (symmetry){
+//                 if (symmetry.assemblies.length !== 0) {
+//                     for (const a of symmetry.assemblies) {
+//                         const s = await StructureSymmetry.buildAssembly(initial_structure, a.id!).runInContext(ctx);
+//                         structures.push(s);
+//                     }
+//                     const builder = Structure.Builder({ label: name });
+//                     let offsetInvariantId = 0;
+//                     for (const s of structures) {
+//                         let maxInvariantId = 0;
+//                         for (const u of s.units) {
+//                             const invariantId = u.invariantId + offsetInvariantId;
+//                             if (u.invariantId > maxInvariantId) maxInvariantId = u.invariantId;
+//                             builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, Unit.Trait.None, invariantId);
+//                         }
+//                         offsetInvariantId += maxInvariantId + 1;
+//                     }
+//                     structure = builder.getStructure();
+//                     for( let i = 0, il = structure.models.length; i < il; ++i) {
+//                         const { trajectoryInfo } = structure.models[i];
+//                         trajectoryInfo.size = il;
+//                         trajectoryInfo.index = i;
+//                     }
+//                 }
+//             }
+//             return new PSO.Molecule.Structure(structure, { label: a.label, description: `${a.description}` });
+//         });
+//     }
+// });
 
