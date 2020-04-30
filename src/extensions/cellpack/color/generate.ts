@@ -4,29 +4,28 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ThemeDataContext } from '../../mol-theme/theme';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Color } from '../../mol-util/color';
-import { getPalette } from '../../mol-util/color/palette';
-import { ColorTheme, LocationColor } from '../../mol-theme/color';
-import { ScaleLegend, TableLegend } from '../../mol-util/legend';
-import { StructureElement, Bond } from '../../mol-model/structure';
-import { Location } from '../../mol-model/location';
-import { CellPackInfoProvider } from './property';
-import { distinctColors } from '../../mol-util/color/distinct';
-import { Hcl } from '../../mol-util/color/spaces/hcl';
-
+import { ThemeDataContext } from '../../../mol-theme/theme';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { Color } from '../../../mol-util/color';
+import { getPalette } from '../../../mol-util/color/palette';
+import { ColorTheme, LocationColor } from '../../../mol-theme/color';
+import { ScaleLegend, TableLegend } from '../../../mol-util/legend';
+import { StructureElement, Bond } from '../../../mol-model/structure';
+import { Location } from '../../../mol-model/location';
+import { CellPackInfoProvider } from '../property';
+import { distinctColors } from '../../../mol-util/color/distinct';
+import { Hcl } from '../../../mol-util/color/spaces/hcl';
 
 const DefaultColor = Color(0xCCCCCC);
-const Description = 'Gives every model in a CellPack packing a unique color similar to other models in the packing.';
+const Description = 'Gives every model in a CellPack packing a unique generated color similar to other models in the packing.';
 
-export const CellPackColorThemeParams = {};
-export type CellPackColorThemeParams = typeof CellPackColorThemeParams
-export function getCellPackColorThemeParams(ctx: ThemeDataContext) {
-    return CellPackColorThemeParams; // TODO return copy
+export const CellPackGenerateColorThemeParams = {};
+export type CellPackGenerateColorThemeParams = typeof CellPackGenerateColorThemeParams
+export function getCellPackGenerateColorThemeParams(ctx: ThemeDataContext) {
+    return CellPackGenerateColorThemeParams; // TODO return copy
 }
 
-export function CellPackColorTheme(ctx: ThemeDataContext, props: PD.Values<CellPackColorThemeParams>): ColorTheme<CellPackColorThemeParams> {
+export function CellPackGenerateColorTheme(ctx: ThemeDataContext, props: PD.Values<CellPackGenerateColorThemeParams>): ColorTheme<CellPackGenerateColorThemeParams> {
     let color: LocationColor;
     let legend: ScaleLegend | TableLegend | undefined;
 
@@ -55,11 +54,7 @@ export function CellPackColorTheme(ctx: ThemeDataContext, props: PD.Values<CellP
         const modelColor = new Map<number, Color>();
         for (let i = 0, il = models.length; i < il; ++i) {
             const idx = models[i].trajectoryInfo.index;
-            let acolor = palette.color(idx);
-            if (info.color){
-                acolor = info.colors[idx];
-            }
-            modelColor.set(models[i].trajectoryInfo.index, acolor);
+            modelColor.set(models[i].trajectoryInfo.index, palette.color(idx));
         }
 
         color = (location: Location): Color => {
@@ -75,7 +70,7 @@ export function CellPackColorTheme(ctx: ThemeDataContext, props: PD.Values<CellP
     }
 
     return {
-        factory: CellPackColorTheme,
+        factory: CellPackGenerateColorTheme,
         granularity: 'instance',
         color,
         props,
@@ -84,13 +79,13 @@ export function CellPackColorTheme(ctx: ThemeDataContext, props: PD.Values<CellP
     };
 }
 
-export const CellPackColorThemeProvider: ColorTheme.Provider<CellPackColorThemeParams, 'cellpack'> = {
-    name: 'cellpack',
-    label: 'CellPack',
+export const CellPackGenerateColorThemeProvider: ColorTheme.Provider<CellPackGenerateColorThemeParams, 'cellpack-generate'> = {
+    name: 'cellpack-generate',
+    label: 'CellPack Generate',
     category: ColorTheme.Category.Chain,
-    factory: CellPackColorTheme,
-    getParams: getCellPackColorThemeParams,
-    defaultValues: PD.getDefaultValues(CellPackColorThemeParams),
+    factory: CellPackGenerateColorTheme,
+    getParams: getCellPackGenerateColorThemeParams,
+    defaultValues: PD.getDefaultValues(CellPackGenerateColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => {
         return (
             !!ctx.structure && ctx.structure.elementCount > 0 &&
@@ -99,3 +94,4 @@ export const CellPackColorThemeProvider: ColorTheme.Provider<CellPackColorThemeP
         );
     }
 };
+

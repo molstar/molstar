@@ -5,9 +5,9 @@
  */
 
 import { PluginBehavior } from '../../mol-plugin/behavior';
-import { CellPackColorThemeProvider } from './color';
 import { LoadCellPackModel } from './model';
-
+import { CellPackGenerateColorThemeProvider } from './color/generate';
+import { CellPackProvidedColorThemeProvider } from './color/provided';
 
 export const CellPack = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'cellpack',
@@ -19,12 +19,14 @@ export const CellPack = PluginBehavior.create<{ autoAttach: boolean, showTooltip
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
         register(): void {
             this.ctx.state.data.actions.add(LoadCellPackModel);
-            this.ctx.representation.structure.themes.colorThemeRegistry.add(CellPackColorThemeProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(CellPackGenerateColorThemeProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(CellPackProvidedColorThemeProvider);
         }
 
         unregister() {
             this.ctx.state.data.actions.remove(LoadCellPackModel);
-            this.ctx.representation.structure.themes.colorThemeRegistry.remove(CellPackColorThemeProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(CellPackGenerateColorThemeProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(CellPackProvidedColorThemeProvider);
         }
     }
 });

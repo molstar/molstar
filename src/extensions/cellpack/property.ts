@@ -14,12 +14,11 @@ import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 export type CellPackInfoValue = {
     packingsCount: number
     packingIndex: number
-    color: boolean
-    colors: Color[]
+    colors?: Color[]
 }
 
 const CellPackInfoParams = {
-    info: PD.Value<CellPackInfoValue>({ packingsCount: 1, packingIndex: 0, color: false, colors:[] }, { isHidden: true })
+    info: PD.Value<CellPackInfoValue>({ packingsCount: 1, packingIndex: 0, colors: undefined }, { isHidden: true })
 };
 type CellPackInfoParams = PD.Values<typeof CellPackInfoParams>
 

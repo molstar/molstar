@@ -378,27 +378,23 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
         const assets: Asset.Wrapper[] = [];
         const trajCache = new TrajectoryCache();
         const structures: Structure[] = [];
-        let colors: Color[] = [];
-        let skip_color: boolean = false;
+        const colors: Color[] = [];
+        let skipColors: boolean = false;
         for (const iName in ingredients) {
             if (ctx.shouldUpdate) await ctx.update(iName);
             const ingredientStructure = await getIngredientStructure(plugin, ingredients[iName], baseUrl, ingredientFiles, trajCache);
             if (ingredientStructure) {
                 structures.push(ingredientStructure.structure);
                 assets.push(...ingredientStructure.assets);
-                if (ingredients[iName].color){
-                    let c = ingredients[iName].color;
-                    if (!c) c = Vec3.create(1, 0, 0);
+                const c = ingredients[iName].color;
+                if (c){
                     colors.push(Color.fromNormalizedRgb(c[0], c[1], c[2]));
                 } else {
-                    colors.push(Color.fromNormalizedRgb(1, 0, 0));
-                    skip_color = true;
+                    skipColors = true;
                 }
             }
         }
-        if (skip_color){
-            colors = [];
-        }
+
         if (ctx.shouldUpdate) await ctx.update(`${name} - units`);
         const builder = Structure.Builder({ label: name });
         let offsetInvariantId = 0;
@@ -420,7 +416,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
             trajectoryInfo.size = il;
             trajectoryInfo.index = i;
         }
-        return { structure, assets, colors };
+        return { structure, assets, colors: skipColors ? undefined : colors };
     });
 }
 

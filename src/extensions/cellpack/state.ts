@@ -74,9 +74,8 @@ const StructureFromCellpack = PluginStateTransform.BuiltIn({
                 }
             }
             const { structure, assets, colors } = await createStructureFromCellPack(plugin, packing, params.baseUrl, ingredientFiles).runInContext(ctx);
-            const docolor: boolean = (colors.length !== 0);
             await CellPackInfoProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset }, structure, {
-                info: { packingsCount: a.data.packings.length, packingIndex: params.packing, colors: colors, color: docolor }
+                info: { packingsCount: a.data.packings.length, packingIndex: params.packing, colors }
             });
 
             (cache as any).assets = assets;
