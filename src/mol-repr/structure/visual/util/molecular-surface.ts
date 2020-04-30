@@ -6,7 +6,7 @@
 
 import { Unit, Structure } from '../../../../mol-model/structure';
 import { Task, RuntimeContext } from '../../../../mol-task';
-import { getUnitConformationAndRadius, CommonSurfaceProps } from './common';
+import { getUnitConformationAndRadius, CommonSurfaceProps, ensureReasonableResolution } from './common';
 import { PositionData, DensityData, Box3D } from '../../../../mol-math/geometry';
 import { MolecularSurfaceCalculationProps, calcMolecularSurface } from '../../../../mol-math/geometry/molecular-surface';
 import { OrderedSet } from '../../../../mol-data/int';
@@ -34,9 +34,10 @@ function getPositionDataAndMaxRadius(structure: Structure, unit: Unit, props: Mo
 
 export function computeUnitMolecularSurface(structure: Structure, unit: Unit, props: MolecularSurfaceProps) {
     const { box } = unit.lookup3d.boundary;
-    const { position, boundary, maxRadius } = getPositionDataAndMaxRadius(structure, unit, props);
+    const p = ensureReasonableResolution(box, props);
+    const { position, boundary, maxRadius } = getPositionDataAndMaxRadius(structure, unit, p);
     return Task.create('Molecular Surface', async ctx => {
-        return await MolecularSurface(ctx, position, boundary, maxRadius, box, props);
+        return await MolecularSurface(ctx, position, boundary, maxRadius, box, p);
     });
 }
 
