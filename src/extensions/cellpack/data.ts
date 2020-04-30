@@ -59,6 +59,7 @@ export interface Ingredient {
     radii?: [Radii];
     /** Number of `curveX` properties in the object where `X` is a 0-indexed number */
     nbCurve?: number;
+    uLength?: number;
     /** Curve properties are Vec3[] but that is not expressable in TypeScript */
     [curveX: string]: unknown;
     /** the orientation in the membrane */
@@ -66,6 +67,8 @@ export interface Ingredient {
     /** offset along membrane */
     offset?: Vec3;
     ingtype?: string;
+    color?: Vec3;
+    confidence?: number;
 }
 
 export interface IngredientSource {

@@ -8,15 +8,18 @@ import { CustomStructureProperty } from '../../mol-model-props/common/custom-str
 import { Structure } from '../../mol-model/structure';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { Color } from '../../mol-util/color';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 
 export type CellPackInfoValue = {
     packingsCount: number
     packingIndex: number
+    color: boolean
+    colors: Color[]
 }
 
 const CellPackInfoParams = {
-    info: PD.Value<CellPackInfoValue>({ packingsCount: 1, packingIndex: 0 }, { isHidden: true })
+    info: PD.Value<CellPackInfoValue>({ packingsCount: 1, packingIndex: 0, color: false, colors:[] }, { isHidden: true })
 };
 type CellPackInfoParams = PD.Values<typeof CellPackInfoParams>
 

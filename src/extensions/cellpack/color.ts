@@ -34,7 +34,8 @@ export function CellPackColorTheme(ctx: ThemeDataContext, props: PD.Values<CellP
 
     if (ctx.structure && info) {
         const colors = distinctColors(info.packingsCount);
-        const hcl = Hcl.fromColor(Hcl(), colors[info.packingIndex]);
+        let hcl = Hcl.fromColor(Hcl(), colors[info.packingIndex]);
+
         const hue = [Math.max(0, hcl[0] - 35), Math.min(360, hcl[0] + 35)] as [number, number];
 
         const { models } = ctx.structure.root;
@@ -54,7 +55,11 @@ export function CellPackColorTheme(ctx: ThemeDataContext, props: PD.Values<CellP
         const modelColor = new Map<number, Color>();
         for (let i = 0, il = models.length; i < il; ++i) {
             const idx = models[i].trajectoryInfo.index;
-            modelColor.set(models[i].trajectoryInfo.index, palette.color(idx));
+            let acolor = palette.color(idx);
+            if (info.color){
+                acolor = info.colors[idx];
+            }
+            modelColor.set(models[i].trajectoryInfo.index, acolor);
         }
 
         color = (location: Location): Color => {
