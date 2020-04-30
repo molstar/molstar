@@ -211,9 +211,16 @@ export class RemoteStateSnapshots extends PluginUIComponent<
         }, { isFlat: true })
     };
 
+    private _mounted = false;
     componentDidMount() {
         this.refresh();
+        // TODO: solve this by using "PluginComponent" with behaviors intead
+        this._mounted = true;
         // this.subscribe(UploadedEvent, this.refresh);
+    }
+
+    componentWillUnmount() {
+        this._mounted = false;
     }
 
     serverUrl(q?: string) {
@@ -242,10 +249,10 @@ export class RemoteStateSnapshots extends PluginUIComponent<
                 });
             }
 
-            this.setState({ entries: entries.asImmutable(), isBusy: false });
+            if (this._mounted) this.setState({ entries: entries.asImmutable(), isBusy: false });
         } catch (e) {
             this.plugin.log.error('Fetching Remote Snapshots: ' + e);
-            this.setState({ entries: OrderedMap(), isBusy: false });
+            if (this._mounted) this.setState({ entries: OrderedMap(), isBusy: false });
         }
     }
 
@@ -260,10 +267,14 @@ export class RemoteStateSnapshots extends PluginUIComponent<
             serverUrl: this.state.params.options.serverUrl
         });
 
-        this.setState({ isBusy: false });
         this.plugin.log.message('Snapshot uploaded.');
-        this.refresh();
+
+        if (this._mounted) {
+            this.setState({ isBusy: false });
+            this.refresh();
+        }
     }
+
 
     fetch = async (e: React.MouseEvent<HTMLElement>) => {
         const id = e.currentTarget.getAttribute('data-id');
@@ -275,7 +286,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
         try {
             await PluginCommands.State.Snapshots.Fetch(this.plugin, { url: entry.url });
         } finally {
-            this.setState({ isBusy: false });
+            if (this._mounted) this.setState({ isBusy: false });
         }
     }
 

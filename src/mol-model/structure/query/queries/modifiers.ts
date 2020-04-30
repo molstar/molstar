@@ -340,9 +340,6 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
     const interBonds = inputStructure.interUnitBonds;
     const builder = new StructureUniqueSubsetBuilder(inputStructure);
 
-    // Note: each bond is visited twice so that bond.atom-a and bond.atom-b both get the "swapped values"
-    const visitedSourceUnits = new Set<number>();
-
     const atomicBond = ctx.atomicBond;
 
     // Process intra unit bonds
@@ -394,7 +391,6 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
 
         // Process inter unit bonds
         for (const bondedUnit of interBonds.getConnectedUnits(inputUnitA)) {
-            if (visitedSourceUnits.has(bondedUnit.unitB.id)) continue;
             const currentUnitB = structure.unitMap.get(bondedUnit.unitB.id);
 
             for (const aI of bondedUnit.connectedIndices) {
@@ -422,8 +418,6 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
                 }
             }
         }
-
-        visitedSourceUnits.add(inputUnitA.id);
     }
 
     return builder.getStructure();

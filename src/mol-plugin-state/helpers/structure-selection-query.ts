@@ -74,7 +74,7 @@ function StructureSelectionQuery(label: string, expression: Expression, props: S
         ensureCustomProperties: props.ensureCustomProperties,
         async getSelection(plugin, runtime, structure) {
             const current = plugin.managers.structure.selection.getStructure(structure);
-            const currentSelection = current ? StructureSelection.Singletons(structure, current) : StructureSelection.Empty(structure);
+            const currentSelection = current ? StructureSelection.Sequence(structure, [current]) : StructureSelection.Empty(structure);
             if (props.ensureCustomProperties) {
                 await props.ensureCustomProperties({ runtime, assetManager: plugin.managers.asset }, structure);
             }
@@ -411,9 +411,27 @@ const complement = StructureSelectionQuery('Inverse / Complement of Selection', 
     referencesCurrent: true
 });
 
-const bonded = StructureSelectionQuery('Residues Bonded to Selection', MS.struct.modifier.union([
+const covalentlyBonded = StructureSelectionQuery('Residues Covalently Bonded to Selection', MS.struct.modifier.union([
     MS.struct.modifier.includeConnected({
         0: MS.internal.generator.current(), 'layer-count': 1, 'as-whole-residues': true
+    })
+]), {
+    description: 'Select residues covalently bonded to current selection.',
+    category: StructureSelectionCategory.Manipulate,
+    referencesCurrent: true
+});
+
+const covalentlyOrMetallicBonded = StructureSelectionQuery('Residues with Cov. or Metallic Bond to Selection', MS.struct.modifier.union([
+    MS.struct.modifier.includeConnected({
+        0: MS.internal.generator.current(),
+        'layer-count': 1,
+        'as-whole-residues': true,
+        'bond-test': MS.core.flags.hasAny([
+            MS.struct.bondProperty.flags(),
+            MS.core.type.bitflags([
+                BondType.Flag.Covalent | BondType.Flag.MetallicCoordination
+            ])
+        ])
     })
 ]), {
     description: 'Select residues covalently bonded to current selection.',
@@ -591,7 +609,8 @@ export const StructureSelectionQueries = {
     aromaticRing,
     surroundings,
     complement,
-    bonded,
+    covalentlyBonded,
+    covalentlyOrMetallicBonded,
     wholeResidues,
 };
 
