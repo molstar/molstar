@@ -37,7 +37,13 @@ export type StructureSelectionModifier = 'add' | 'remove' | 'intersect' | 'set'
 export class StructureSelectionManager extends StatefulPluginComponent<StructureSelectionManagerState> {
     readonly events = {
         changed: this.ev<undefined>(),
-        additionsHistoryUpdated: this.ev<undefined>()
+        additionsHistoryUpdated: this.ev<undefined>(),
+
+        loci: {
+            add: this.ev<StructureElement.Loci>(),
+            remove: this.ev<StructureElement.Loci>(),
+            clear: this.ev<undefined>()
+        }
     }
 
     private referenceLoci: Loci | undefined
@@ -94,6 +100,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         entry.selection = StructureElement.Loci.union(entry.selection, loci);
         this.tryAddHistory(loci);
         this.referenceLoci = loci;
+        this.events.loci.add.next(loci);
         return !StructureElement.Loci.areEqual(sel, entry.selection);
     }
 
@@ -107,6 +114,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         entry.selection = StructureElement.Loci.subtract(entry.selection, loci);
         // this.addHistory(loci);
         this.referenceLoci = loci;
+        this.events.loci.remove.next(loci);
         return !StructureElement.Loci.areEqual(sel, entry.selection);
     }
 
@@ -234,6 +242,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         this.referenceLoci = undefined;
         this.state.stats = void 0;
         this.events.changed.next();
+        this.events.loci.clear.next();
         return selections;
     }
 
