@@ -119,31 +119,35 @@ const trace = StructureSelectionQuery('Trace', MS.struct.modifier.union([
     ])
 ]), { category: StructureSelectionCategory.Structure });
 
-// TODO maybe pre-calculate atom properties like backbone/sidechain
+const _proteinEntityTest = MS.core.logic.and([
+    MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+    MS.core.str.match([
+        MS.re('(polypeptide|cyclic-pseudo-peptide)', 'i'),
+        MS.ammp('entitySubtype')
+    ])
+]);
+
+const _nucleiEntityTest = MS.core.logic.and([
+    MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+    MS.core.str.match([
+        MS.re('(nucleotide|peptide nucleic acid)', 'i'),
+        MS.ammp('entitySubtype')
+    ])
+]);
+
+// TODO maybe pre-calculate backbone atom properties
 const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
     MS.struct.combinator.merge([
         MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
-                'entity-test': MS.core.logic.and([
-                    MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
-                    MS.core.str.match([
-                        MS.re('(polypeptide|cyclic-pseudo-peptide)', 'i'),
-                        MS.ammp('entitySubtype')
-                    ])
-                ]),
+                'entity-test': _proteinEntityTest,
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
                 'atom-test': MS.core.set.has([MS.set(...SetUtils.toArray(ProteinBackboneAtoms)), MS.ammp('label_atom_id')])
             })
         ]),
         MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
-                'entity-test': MS.core.logic.and([
-                    MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
-                    MS.core.str.match([
-                        MS.re('(nucleotide|peptide nucleic acid)', 'i'),
-                        MS.ammp('entitySubtype')
-                    ])
-                ]),
+                'entity-test': _nucleiEntityTest,
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
                 'atom-test': MS.core.set.has([MS.set(...SetUtils.toArray(NucleicBackboneAtoms)), MS.ammp('label_atom_id')])
             })
@@ -151,39 +155,79 @@ const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
     ])
 ]), { category: StructureSelectionCategory.Structure });
 
-const protein = StructureSelectionQuery('Protein', MS.struct.modifier.union([
-    MS.struct.generator.atomGroups({
-        'entity-test': MS.core.logic.and([
-            MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
-            MS.core.str.match([
-                MS.re('(polypeptide|cyclic-pseudo-peptide)', 'i'),
-                MS.ammp('entitySubtype')
-            ])
+// TODO maybe pre-calculate sidechain atom property
+const sidechain = StructureSelectionQuery('Sidechain', MS.struct.modifier.union([
+    MS.struct.combinator.merge([
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'entity-test': _proteinEntityTest,
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'atom-test': MS.core.logic.or([
+                    MS.core.logic.not([
+                        MS.core.set.has([MS.set(...SetUtils.toArray(ProteinBackboneAtoms)), MS.ammp('label_atom_id')])
+                    ])
+                ])
+            })
+        ]),
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'entity-test': _nucleiEntityTest,
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'atom-test': MS.core.logic.or([
+                    MS.core.logic.not([
+                        MS.core.set.has([MS.set(...SetUtils.toArray(NucleicBackboneAtoms)), MS.ammp('label_atom_id')])
+                    ])
+                ])
+            })
         ])
-    })
+    ])
+]), { category: StructureSelectionCategory.Structure });
+
+// TODO maybe pre-calculate sidechain atom property
+const sidechainWithTrace = StructureSelectionQuery('Sidechain with Trace', MS.struct.modifier.union([
+    MS.struct.combinator.merge([
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'entity-test': _proteinEntityTest,
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'atom-test': MS.core.logic.or([
+                    MS.core.logic.not([
+                        MS.core.set.has([MS.set(...SetUtils.toArray(ProteinBackboneAtoms)), MS.ammp('label_atom_id')])
+                    ]),
+                    MS.core.rel.eq([MS.ammp('label_atom_id'), 'CA']),
+                    MS.core.logic.and([
+                        MS.core.rel.eq([MS.ammp('auth_comp_id'), 'PRO']),
+                        MS.core.rel.eq([MS.ammp('label_atom_id'), 'N'])
+                    ])
+                ])
+            })
+        ]),
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'entity-test': _nucleiEntityTest,
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'atom-test': MS.core.logic.or([
+                    MS.core.logic.not([
+                        MS.core.set.has([MS.set(...SetUtils.toArray(NucleicBackboneAtoms)), MS.ammp('label_atom_id')])
+                    ]),
+                    MS.core.rel.eq([MS.ammp('label_atom_id'), 'P'])
+                ])
+            })
+        ])
+    ])
+]), { category: StructureSelectionCategory.Structure });
+
+const protein = StructureSelectionQuery('Protein', MS.struct.modifier.union([
+    MS.struct.generator.atomGroups({ 'entity-test': _proteinEntityTest })
 ]), { category: StructureSelectionCategory.Type });
 
 const nucleic = StructureSelectionQuery('Nucleic', MS.struct.modifier.union([
-    MS.struct.generator.atomGroups({
-        'entity-test': MS.core.logic.and([
-            MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
-            MS.core.str.match([
-                MS.re('(nucleotide|peptide nucleic acid)', 'i'),
-                MS.ammp('entitySubtype')
-            ])
-        ])
-    })
+    MS.struct.generator.atomGroups({ 'entity-test': _nucleiEntityTest })
 ]), { category: StructureSelectionCategory.Type });
 
 const helix = StructureSelectionQuery('Helix', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
-        'entity-test': MS.core.logic.and([
-            MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
-            MS.core.str.match([
-                MS.re('(polypeptide|cyclic-pseudo-peptide)', 'i'),
-                MS.ammp('entitySubtype')
-            ])
-        ]),
+        'entity-test': _proteinEntityTest,
         'residue-test': MS.core.flags.hasAny([
             MS.ammp('secondaryStructureFlags'),
             MS.core.type.bitflags([SecondaryStructureType.Flag.Helix])
@@ -193,13 +237,7 @@ const helix = StructureSelectionQuery('Helix', MS.struct.modifier.union([
 
 const beta = StructureSelectionQuery('Beta Strand/Sheet', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
-        'entity-test': MS.core.logic.and([
-            MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
-            MS.core.str.match([
-                MS.re('(polypeptide|cyclic-pseudo-peptide)', 'i'),
-                MS.ammp('entitySubtype')
-            ])
-        ]),
+        'entity-test': _proteinEntityTest,
         'residue-test': MS.core.flags.hasAny([
             MS.ammp('secondaryStructureFlags'),
             MS.core.type.bitflags([SecondaryStructureType.Flag.Beta])
@@ -532,6 +570,8 @@ export const StructureSelectionQueries = {
     polymer,
     trace,
     backbone,
+    sidechain,
+    sidechainWithTrace,
     protein,
     nucleic,
     helix,
