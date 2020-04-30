@@ -15,6 +15,7 @@ import { fillSerial } from '../../../../mol-util/array';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { AssignableArrayLike } from '../../../../mol-util/type-helpers';
 import { getBoundary } from '../../../../mol-math/geometry/boundary';
+import { Box3D } from '../../../../mol-math/geometry';
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
@@ -98,6 +99,16 @@ export function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
 }
 
 //
+
+const MaxCells = 500_000_000;
+
+/** guard against overly high resolution for the given box size */
+export function ensureReasonableResolution<T>(box: Box3D, props: { resolution: number } & T) {
+    const volume = Box3D.volume(box);
+    const approxCells = volume / props.resolution;
+    const resolution = approxCells > MaxCells ? volume / MaxCells : props.resolution;
+    return { ...props, resolution };
+}
 
 export function getConformation(unit: Unit) {
     switch (unit.kind) {

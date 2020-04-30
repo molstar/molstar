@@ -7,6 +7,7 @@
 import { defaults } from '../mol-util';
 import { Structure } from '../mol-model/structure';
 import { VisualQuality } from '../mol-geo/geometry/base';
+import { Box3D } from '../mol-math/geometry';
 
 export interface VisualUpdateState {
     updateTransform: boolean
@@ -93,8 +94,10 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     let resolution = defaults(props.resolution, 2);
     let doubleSided = defaults(props.doubleSided, true);
 
+    let volume = 0;
     if (quality === 'auto' && data instanceof Structure) {
         quality = getStructureQuality(data.root);
+        volume = Box3D.volume(data.boundary.box);
     }
 
     switch (quality) {
@@ -102,49 +105,49 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             detail = 3;
             radialSegments = 36;
             linearSegments = 18;
-            resolution = 0.1;
+            resolution = Math.max(volume / 500_000_000, 0.1);
             doubleSided = true;
             break;
         case 'higher':
             detail = 3;
             radialSegments = 28;
             linearSegments = 14;
-            resolution = 0.3;
+            resolution = Math.max(volume / 400_000_000, 0.3);
             doubleSided = true;
             break;
         case 'high':
             detail = 2;
             radialSegments = 20;
             linearSegments = 10;
-            resolution = 0.5;
+            resolution = Math.max(volume / 300_000_000, 0.5);
             doubleSided = true;
             break;
         case 'medium':
             detail = 1;
             radialSegments = 12;
             linearSegments = 8;
-            resolution = 1;
+            resolution = Math.max(volume / 200_000_000, 1);
             doubleSided = true;
             break;
         case 'low':
             detail = 0;
             radialSegments = 8;
             linearSegments = 3;
-            resolution = 2;
+            resolution = Math.max(volume / 150_000_000, 2);
             doubleSided = false;
             break;
         case 'lower':
             detail = 0;
             radialSegments = 4;
             linearSegments = 2;
-            resolution = 4;
+            resolution = Math.max(volume / 100_000_000, 4);
             doubleSided = false;
             break;
         case 'lowest':
             detail = 0;
             radialSegments = 2;
             linearSegments = 1;
-            resolution = 8;
+            resolution = Math.max(volume / 75_000_000, 8);
             doubleSided = false;
             break;
         case 'custom':
