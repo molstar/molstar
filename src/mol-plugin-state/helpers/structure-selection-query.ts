@@ -434,7 +434,7 @@ const covalentlyOrMetallicBonded = StructureSelectionQuery('Residues with Cov. o
         ])
     })
 ]), {
-    description: 'Select residues covalently bonded to current selection.',
+    description: 'Select residues with covalent or metallic bond to current selection.',
     category: StructureSelectionCategory.Manipulate,
     referencesCurrent: true
 });
