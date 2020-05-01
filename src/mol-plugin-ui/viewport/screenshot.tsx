@@ -16,9 +16,7 @@ import { Button, ExpandGroup } from '../controls/common';
 import { CameraHelperProps } from '../../mol-canvas3d/helper/camera-helper';
 import GetApp from '@material-ui/icons/GetApp';
 import Launch from '@material-ui/icons/Launch';
-import Warning from '@material-ui/icons/Warning';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { Icon } from '../controls/icons';
 import { StateExportImportControls, LocalStateSnapshotParams } from '../state/snapshots';
 
 interface ImageControlsState {
@@ -152,9 +150,6 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                 <ExpandGroup header='Save Options' initiallyExpanded={false} noOffset>
                     <LocalStateSnapshotParams />
                 </ExpandGroup>
-                <div className='msp-help-text' style={{ padding: '10px'}}>
-                    <Icon svg={Warning} /> This is an experimental feature and stored states might not be openable in a future version.
-                </div>
             </ExpandGroup>
         </div>;
     }

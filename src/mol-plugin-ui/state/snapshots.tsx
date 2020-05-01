@@ -14,6 +14,7 @@ import OpenInBrowser from '@material-ui/icons/OpenInBrowser';
 import SaveOutlined from '@material-ui/icons/SaveOutlined';
 import SwapHoriz from '@material-ui/icons/SwapHoriz';
 import Refresh from '@material-ui/icons/Refresh';
+import Warning from '@material-ui/icons/Warning';
 import { OrderedMap } from 'immutable';
 import * as React from 'react';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -73,17 +74,22 @@ export class StateExportImportControls extends PluginUIComponent<{ onAction?: ()
     }
 
     render() {
-        return <div className='msp-flex-row'>
-            <Button icon={GetApp} onClick={this.downloadToFileJson} title='Save the state description. Input data are loaded using the provided sources. Does not work if local files are used as input.'>
-                State
-            </Button>
-            <Button icon={GetApp} onClick={this.downloadToFileZip} title='Save the state including the input data.'>
-                Session
-            </Button>
-            <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
-                <Icon svg={OpenInBrowser} inline /> Open <input onChange={this.open} type='file' multiple={false} accept='.molx,.molj' />
+        return <>
+            <div className='msp-flex-row'>
+                <Button icon={GetApp} onClick={this.downloadToFileJson} title='Save the state description. Input data are loaded using the provided sources. Does not work if local files are used as input.'>
+                    State
+                </Button>
+                <Button icon={GetApp} onClick={this.downloadToFileZip} title='Save the state including the input data.'>
+                    Session
+                </Button>
+                <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
+                    <Icon svg={OpenInBrowser} inline /> Open <input onChange={this.open} type='file' multiple={false} accept='.molx,.molj' />
+                </div>
             </div>
-        </div>;
+            <div className='msp-help-text' style={{ padding: '10px'}}>
+                <Icon svg={Warning} /> This is an experimental feature and stored states/sessions might not be openable in a future version.
+            </div>
+        </>;
     }
 }
 
