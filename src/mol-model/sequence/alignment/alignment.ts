@@ -17,22 +17,15 @@ export function align(seqA: ArrayLike<string>, seqB: ArrayLike<string>, options:
     const o = { ...DefaultAlignmentOptions, ...options };
     const alignment = new Alignment(seqA, seqB, o);
     alignment.calculate();
-    alignment.trace();
-    return {
-        aliA: alignment.aliA,
-        aliB: alignment.aliB,
-        score: alignment.score,
-    };
+    return alignment.trace();
 }
 
 class Alignment {
-    gapPenalty: number; gapExtensionPenalty: number
-    substMatrix: SubstitutionMatrixData
+    readonly gapPenalty: number; readonly gapExtensionPenalty: number
+    readonly substMatrix: SubstitutionMatrixData
 
-    n: number; m: number
-    S: number[][]; V: number[][]; H: number[][]
-    aliA: ArrayLike<string>; aliB: ArrayLike<string>;
-    score: number
+    readonly n: number; readonly m: number
+    readonly S: number[][] = []; readonly V: number[][] = []; readonly H: number[][] = []
 
     constructor (readonly seqA: ArrayLike<string>, readonly seqB: ArrayLike<string>, options: AlignmentOptions) {
         this.gapPenalty = options.gapPenalty;
@@ -44,37 +37,27 @@ class Alignment {
     }
 
     private initMatrices () {
-        this.S = [];
-        this.V = [];
-        this.H = [];
+        const { n, m, gapPenalty, S, V, H } = this;
 
-        for (let i = 0; i <= this.n; ++i) {
-            this.S[i] = [];
-            this.V[i] = [];
-            this.H[i] = [];
+        for (let i = 0; i <= n; ++i) {
+            S[i] = [], V[i] = [], H[i] = [];
 
-            for (let j = 0; j <= this.m; ++j) {
-                this.S[i][j] = 0;
-                this.V[i][j] = 0;
-                this.H[i][j] = 0;
+            for (let j = 0; j <= m; ++j) {
+                S[i][j] = 0, V[i][j] = 0, H[i][j] = 0;
             }
         }
 
-        for (let i = 0; i <= this.n; ++i) {
-            this.S[i][0] = this.gap(0);
-            this.H[i][0] = -Infinity;
+        for (let i = 0; i <= n; ++i) {
+            S[i][0] = gapPenalty;
+            H[i][0] = -Infinity;
         }
 
-        for (let j = 0; j <= this.m; ++j) {
-            this.S[0][j] = this.gap(0);
-            this.V[0][j] = -Infinity;
+        for (let j = 0; j <= m; ++j) {
+            S[0][j] = gapPenalty;
+            V[0][j] = -Infinity;
         }
 
-        this.S[0][0] = 0;
-    }
-
-    private gap (len: number) {
-        return this.gapPenalty + len * this.gapExtensionPenalty;
+        S[0][0] = 0;
     }
 
     private makeScoreFn () {
@@ -87,18 +70,12 @@ class Alignment {
             return function score (i: number, j: number) {
                 const c1 = seq1[i];
                 const c2 = seq2[j];
-
-                try {
-                    return substMatrix[c1][c2];
-                } catch (e) {
-                    return -4;
-                }
+                return substMatrix[c1]?.[c2] ?? -4;
             };
         } else {
             return function scoreNoSubstMat (i: number, j: number) {
                 const c1 = seq1[i];
                 const c2 = seq2[j];
-
                 return c1 === c2 ? 5 : -3;
             };
         }
@@ -107,9 +84,8 @@ class Alignment {
     calculate () {
         this.initMatrices();
 
-        const gap0 = this.gap(0);
         const scoreFn = this.makeScoreFn();
-        const { V, H, S, n, m, gapExtensionPenalty } = this;
+        const { V, H, S, n, m, gapExtensionPenalty, gapPenalty } = this;
 
         let Vi1, Si1, Vi, Hi, Si;
         for (let i = 1; i <= n; ++i) {
@@ -118,12 +94,12 @@ class Alignment {
 
             for (let j = 1; j <= m; ++j) {
                 Vi[j] = Math.max(
-                    Si1[j] + gap0,
+                    Si1[j] + gapPenalty,
                     Vi1[j] + gapExtensionPenalty
                 );
 
                 Hi[j] = Math.max(
-                    Si[j - 1] + gap0,
+                    Si[j - 1] + gapPenalty,
                     Hi[j - 1] + gapExtensionPenalty
                 );
 
@@ -136,66 +112,68 @@ class Alignment {
         }
     }
 
-    trace () {
-        this.aliA = '';
-        this.aliB = '';
-
+    trace (): { aliA: ArrayLike<string>, aliB: ArrayLike<string>, score: number } {
         const scoreFn = this.makeScoreFn();
+        const { V, H, S, seqA, seqB, gapExtensionPenalty, gapPenalty } = this;
 
         let i = this.n;
         let j = this.m;
         let mat: 'S' | 'V' | 'H';
+        let score: number;
 
-        if (this.S[i][j] >= this.V[i][j]) {
+        let aliA = '';
+        let aliB = '';
+
+        if (S[i][j] >= V[i][j]) {
             mat = 'S';
-            this.score = this.S[i][j];
-        } else if (this.V[i][j] >= this.H[i][j]) {
+            score = S[i][j];
+        } else if (V[i][j] >= H[i][j]) {
             mat = 'V';
-            this.score = this.V[i][j];
+            score = V[i][j];
         } else {
             mat = 'H';
-            this.score = this.H[i][j];
+            score = H[i][j];
         }
 
         while (i > 0 && j > 0) {
             if (mat === 'S') {
-                if (this.S[i][j] === this.S[i - 1][j - 1] + scoreFn(i - 1, j - 1)) {
-                    this.aliA = this.seqA[i - 1] + this.aliA;
-                    this.aliB = this.seqB[j - 1] + this.aliB;
+                if (S[i][j] === S[i - 1][j - 1] + scoreFn(i - 1, j - 1)) {
+                    aliA = seqA[i - 1] + aliA;
+                    aliB = seqB[j - 1] + aliB;
                     --i;
                     --j;
                     mat = 'S';
-                } else if (this.S[i][j] === this.V[i][j]) {
+                } else if (S[i][j] === V[i][j]) {
                     mat = 'V';
-                } else if (this.S[i][j] === this.H[i][j]) {
+                } else if (S[i][j] === H[i][j]) {
                     mat = 'H';
                 } else {
                     --i;
                     --j;
                 }
             } else if (mat === 'V') {
-                if (this.V[i][j] === this.V[i - 1][j] + this.gapExtensionPenalty) {
-                    this.aliA = this.seqA[i - 1] + this.aliA;
-                    this.aliB = '-' + this.aliB;
+                if (V[i][j] === V[i - 1][j] + gapExtensionPenalty) {
+                    aliA = seqA[i - 1] + aliA;
+                    aliB = '-' + aliB;
                     --i;
                     mat = 'V';
-                } else if (this.V[i][j] === this.S[i - 1][j] + this.gap(0)) {
-                    this.aliA = this.seqA[i - 1] + this.aliA;
-                    this.aliB = '-' + this.aliB;
+                } else if (V[i][j] === S[i - 1][j] + gapPenalty) {
+                    aliA = seqA[i - 1] + aliA;
+                    aliB = '-' + aliB;
                     --i;
                     mat = 'S';
                 } else {
                     --i;
                 }
             } else if (mat === 'H') {
-                if (this.H[i][j] === this.H[i][j - 1] + this.gapExtensionPenalty) {
-                    this.aliA = '-' + this.aliA;
-                    this.aliB = this.seqB[j - 1] + this.aliB;
+                if (H[i][j] === H[i][j - 1] + gapExtensionPenalty) {
+                    aliA = '-' + aliA;
+                    aliB = seqB[j - 1] + aliB;
                     --j;
                     mat = 'H';
-                } else if (this.H[i][j] === this.S[i][j - 1] + this.gap(0)) {
-                    this.aliA = '-' + this.aliA;
-                    this.aliB = this.seqB[j - 1] + this.aliB;
+                } else if (H[i][j] === S[i][j - 1] + gapPenalty) {
+                    aliA = '-' + aliA;
+                    aliB = seqB[j - 1] + aliB;
                     --j;
                     mat = 'S';
                 } else {
@@ -205,15 +183,17 @@ class Alignment {
         }
 
         while (i > 0) {
-            this.aliA = this.seqA[i - 1] + this.aliA;
-            this.aliB = '-' + this.aliB;
+            aliA = seqA[i - 1] + aliA;
+            aliB = '-' + aliB;
             --i;
         }
 
         while (j > 0) {
-            this.aliA = '-' + this.aliA;
-            this.aliB = this.seqB[j - 1] + this.aliB;
+            aliA = '-' + aliA;
+            aliB = seqB[j - 1] + aliB;
             --j;
         }
+
+        return { aliA, aliB, score };
     }
 }
