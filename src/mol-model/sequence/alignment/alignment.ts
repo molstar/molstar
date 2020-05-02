@@ -13,14 +13,14 @@ const DefaultAlignmentOptions = {
 };
 export type AlignmentOptions = typeof DefaultAlignmentOptions;
 
-export function align(seq1: string, seq2: string, options: Partial<AlignmentOptions> = {}) {
+export function align(seqA: ArrayLike<string>, seqB: ArrayLike<string>, options: Partial<AlignmentOptions> = {}) {
     const o = { ...DefaultAlignmentOptions, ...options };
-    const alignment = new Alignment(seq1, seq2, o);
+    const alignment = new Alignment(seqA, seqB, o);
     alignment.calculate();
     alignment.trace();
     return {
-        ali1: alignment.ali1,
-        ali2: alignment.ali2,
+        aliA: alignment.aliA,
+        aliB: alignment.aliB,
         score: alignment.score,
     };
 }
@@ -31,16 +31,16 @@ class Alignment {
 
     n: number; m: number
     S: number[][]; V: number[][]; H: number[][]
-    ali1: string; ali2: string;
+    aliA: ArrayLike<string>; aliB: ArrayLike<string>;
     score: number
 
-    constructor (readonly seq1: string, readonly seq2: string, options: AlignmentOptions) {
+    constructor (readonly seqA: ArrayLike<string>, readonly seqB: ArrayLike<string>, options: AlignmentOptions) {
         this.gapPenalty = options.gapPenalty;
         this.gapExtensionPenalty = options.gapExtensionPenalty;
         this.substMatrix = SubstitutionMatrices[options.substMatrix];
 
-        this.n = this.seq1.length;
-        this.m = this.seq2.length;
+        this.n = this.seqA.length;
+        this.m = this.seqB.length;
     }
 
     private initMatrices () {
@@ -78,8 +78,8 @@ class Alignment {
     }
 
     private makeScoreFn () {
-        const seq1 = this.seq1;
-        const seq2 = this.seq2;
+        const seq1 = this.seqA;
+        const seq2 = this.seqB;
 
         const substMatrix = this.substMatrix;
 
@@ -137,8 +137,8 @@ class Alignment {
     }
 
     trace () {
-        this.ali1 = '';
-        this.ali2 = '';
+        this.aliA = '';
+        this.aliB = '';
 
         const scoreFn = this.makeScoreFn();
 
@@ -160,8 +160,8 @@ class Alignment {
         while (i > 0 && j > 0) {
             if (mat === 'S') {
                 if (this.S[i][j] === this.S[i - 1][j - 1] + scoreFn(i - 1, j - 1)) {
-                    this.ali1 = this.seq1[i - 1] + this.ali1;
-                    this.ali2 = this.seq2[j - 1] + this.ali2;
+                    this.aliA = this.seqA[i - 1] + this.aliA;
+                    this.aliB = this.seqB[j - 1] + this.aliB;
                     --i;
                     --j;
                     mat = 'S';
@@ -175,13 +175,13 @@ class Alignment {
                 }
             } else if (mat === 'V') {
                 if (this.V[i][j] === this.V[i - 1][j] + this.gapExtensionPenalty) {
-                    this.ali1 = this.seq1[i - 1] + this.ali1;
-                    this.ali2 = '-' + this.ali2;
+                    this.aliA = this.seqA[i - 1] + this.aliA;
+                    this.aliB = '-' + this.aliB;
                     --i;
                     mat = 'V';
                 } else if (this.V[i][j] === this.S[i - 1][j] + this.gap(0)) {
-                    this.ali1 = this.seq1[i - 1] + this.ali1;
-                    this.ali2 = '-' + this.ali2;
+                    this.aliA = this.seqA[i - 1] + this.aliA;
+                    this.aliB = '-' + this.aliB;
                     --i;
                     mat = 'S';
                 } else {
@@ -189,13 +189,13 @@ class Alignment {
                 }
             } else if (mat === 'H') {
                 if (this.H[i][j] === this.H[i][j - 1] + this.gapExtensionPenalty) {
-                    this.ali1 = '-' + this.ali1;
-                    this.ali2 = this.seq2[j - 1] + this.ali2;
+                    this.aliA = '-' + this.aliA;
+                    this.aliB = this.seqB[j - 1] + this.aliB;
                     --j;
                     mat = 'H';
                 } else if (this.H[i][j] === this.S[i][j - 1] + this.gap(0)) {
-                    this.ali1 = '-' + this.ali1;
-                    this.ali2 = this.seq2[j - 1] + this.ali2;
+                    this.aliA = '-' + this.aliA;
+                    this.aliB = this.seqB[j - 1] + this.aliB;
                     --j;
                     mat = 'S';
                 } else {
@@ -205,14 +205,14 @@ class Alignment {
         }
 
         while (i > 0) {
-            this.ali1 = this.seq1[i - 1] + this.ali1;
-            this.ali2 = '-' + this.ali2;
+            this.aliA = this.seqA[i - 1] + this.aliA;
+            this.aliB = '-' + this.aliB;
             --i;
         }
 
         while (j > 0) {
-            this.ali1 = '-' + this.ali1;
-            this.ali2 = this.seq2[j - 1] + this.ali2;
+            this.aliA = '-' + this.aliA;
+            this.aliB = this.seqB[j - 1] + this.aliB;
             --j;
         }
     }

@@ -30,6 +30,7 @@ import { StructureSelectionActionsControls } from './structure/selection';
 import { StructureSourceControls } from './structure/source';
 import { VolumeStreamingControls, VolumeSourceControls } from './structure/volume';
 import { PluginConfig } from '../mol-plugin/config';
+import { StructureSuperpositionControls } from './structure/superposition';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' }
@@ -296,6 +297,7 @@ export class DefaultStructureTools extends PluginUIComponent {
 
             <StructureSourceControls />
             <StructureMeasurementsControls />
+            <StructureSuperpositionControls />
             <StructureComponentControls />
             <VolumeStreamingControls />
             <VolumeSourceControls />

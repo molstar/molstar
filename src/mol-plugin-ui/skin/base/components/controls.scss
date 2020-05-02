@@ -239,7 +239,7 @@
 // TODO : get rid of the important
 .msp-control-group-header {
     background: $default-background;
-    > button {
+    > button, div {
         padding-left: 4px; // $control-spacing / 2 !important;
         text-align: left;
         height: 24px !important; // 2 * $row-height / 3 !important;

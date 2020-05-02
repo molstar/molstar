@@ -6,7 +6,7 @@
 
 import { Mat4 } from '../../mol-math/linear-algebra';
 import { QueryContext, StructureSelection } from '../../mol-model/structure';
-import { superposeStructures } from '../../mol-model/structure/structure/util/superposition';
+import { superpose } from '../../mol-model/structure/structure/util/superposition';
 import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
@@ -79,7 +79,7 @@ export function dynamicSuperpositionTest(plugin: PluginContext, src: string[], c
         const xs = plugin.managers.structure.hierarchy.current.structures;
         const selections = xs.map(s => StructureSelection.toLociWithCurrentUnits(query(new QueryContext(s.cell.obj!.data))));
 
-        const transforms = superposeStructures(selections);
+        const transforms = superpose(selections);
 
         await siteVisual(plugin, xs[0].cell, pivot, rest);
         for (let i = 1; i < selections.length; i++) {

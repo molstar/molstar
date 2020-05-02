@@ -1,14 +1,16 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { MinimizeRmsd } from '../../../../mol-math/linear-algebra/3d/minimize-rmsd';
 import StructureElement from '../element';
 import { OrderedSet } from '../../../../mol-data/int';
+import { AlignSequences } from '../../../sequence/alignment/sequence';
 
-export function superposeStructures(xs: StructureElement.Loci[]): MinimizeRmsd.Result[] {
+export function superpose(xs: StructureElement.Loci[]): MinimizeRmsd.Result[] {
     const ret: MinimizeRmsd.Result[] = [];
     if (xs.length <= 0) return ret;
 
@@ -19,6 +21,35 @@ export function superposeStructures(xs: StructureElement.Loci[]): MinimizeRmsd.R
         input.b = getPositionTable(xs[i], n);
         input.centerB = void 0;
         ret.push(MinimizeRmsd.compute(input));
+    }
+
+    return ret;
+}
+
+type AlignAndSuperposeResult = MinimizeRmsd.Result & { alignmentScore: number };
+
+export function alignAndSuperpose(xs: StructureElement.Loci[]): AlignAndSuperposeResult[] {
+    const ret: AlignAndSuperposeResult[] = [];
+    if (xs.length <= 0) return ret;
+
+    for (let i = 1; i < xs.length; i++) {
+
+        const { a, b, score } = AlignSequences.compute({
+            a: xs[0].elements[0],
+            b: xs[i].elements[0]
+        });
+
+        const lociA = StructureElement.Loci(xs[0].structure, [a]);
+        const lociB = StructureElement.Loci(xs[i].structure, [b]);
+        const n = OrderedSet.size(a.indices);
+
+        ret.push({
+            ...MinimizeRmsd.compute({
+                a: getPositionTable(lociA, n),
+                b: getPositionTable(lociB, n)
+            }),
+            alignmentScore: score
+        });
     }
 
     return ret;

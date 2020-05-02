@@ -30,7 +30,7 @@ interface StructureSelectionManagerState {
 }
 
 const boundaryHelper = new BoundaryHelper('98');
-const HISTORY_CAPACITY = 8;
+const HISTORY_CAPACITY = 24;
 
 export type StructureSelectionModifier = 'add' | 'remove' | 'intersect' | 'set'
 
