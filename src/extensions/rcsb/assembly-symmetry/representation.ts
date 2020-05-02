@@ -186,12 +186,22 @@ const getSymbolCage = memoize1((symbol: string): Cage | undefined => {
     if (symbol.startsWith('D') || symbol.startsWith('C')) {
         // z axis is prism axis, x/y axes cut through edge midpoints
         const fold = parseInt(symbol.substr(1));
+        let cage: Cage;
         if (fold === 2) {
-            return PrismCage(polygon(4, false));
+            cage = PrismCage(polygon(4, false));
         } else if (fold === 3) {
-            return WedgeCage();
+            cage = WedgeCage();
         } else if (fold > 3) {
-            return PrismCage(polygon(fold, false));
+            cage = PrismCage(polygon(fold, false));
+        } else {
+            return;
+        }
+        if (fold % 2 === 0) {
+            return cage;
+        } else {
+            const m = Mat4.identity();
+            Mat4.rotate(m, m, 1 / fold * Math.PI / 2, Vec3.unitZ);
+            return transformCage(cloneCage(cage), m);
         }
     } else if (symbol === 'O') {
         // x/y/z axes cut through order 4 vertices
@@ -237,7 +247,7 @@ function setSymbolTransform(t: Mat4, symbol: string, axes: AssemblySymmetry.Rota
             pair = axes.filter(a => a.order === 2);
         } else if (fold >= 3) {
             const aN = axes.filter(a => a.order === fold)[0];
-            const a2 = axes.filter(a => a.order === 2)[0];
+            const a2 = axes.filter(a => a.order === 2)[1];
             pair = [aN, a2];
         }
     } else if (symbol === 'O') {
@@ -267,7 +277,19 @@ function setSymbolTransform(t: Mat4, symbol: string, axes: AssemblySymmetry.Rota
             Vec3.sub(dir, eye, target);
             if (Vec3.dot(dir, up) < 0) Vec3.negate(up, up);
             Mat4.targetTo(t, eye, target, up);
-            Mat4.scaleUniformly(t, t, size * getSymbolScale(symbol));
+
+            if (symbol.startsWith('D')) {
+                const { sphere } = structure.lookup3d.boundary;
+                let sizeXY = (sphere.radius * 2) * 0.8; // fallback for missing extrema
+                if (Sphere3D.hasExtrema(sphere)) {
+                    const n = Mat3.directionTransform(Mat3(), t);
+                    const dirs = unitCircleDirections.map(d => Vec3.transformMat3(Vec3(), d, n));
+                    sizeXY = getMaxProjectedDistance(sphere.extrema, dirs, sphere.center) * 1.6;
+                }
+                Mat4.scale(t, t, Vec3.create(sizeXY, sizeXY, Vec3.distance(aA.start, aA.end) * 0.9));
+            } else {
+                Mat4.scaleUniformly(t, t, size * getSymbolScale(symbol));
+            }
         } else {
             if (Vec3.dot(Vec3.unitY, Vec3.sub(tmpV, aA.end, aA.start)) === 0) {
                 Vec3.copy(up, Vec3.unitY);
@@ -283,7 +305,6 @@ function setSymbolTransform(t: Mat4, symbol: string, axes: AssemblySymmetry.Rota
                 const dirs = unitCircleDirections.map(d => Vec3.transformMat3(Vec3(), d, n));
                 sizeXY = getMaxProjectedDistance(sphere.extrema, dirs, sphere.center);
             }
-
             Mat4.scale(t, t, Vec3.create(sizeXY, sizeXY, size * 0.9));
         }
     }
