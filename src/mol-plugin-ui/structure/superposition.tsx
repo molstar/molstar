@@ -13,6 +13,7 @@ import ArrowDownward from '@material-ui/icons/ArrowDownward';
 import ArrowUpward from '@material-ui/icons/ArrowUpward';
 import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
 import Tune from '@material-ui/icons/Tune';
+import Crop from '@material-ui/icons/Crop';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
 import { Icon } from '../controls/icons';
 import { Button, ToggleButton, IconButton } from '../controls/common';
@@ -263,6 +264,14 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
         return entries;
     }
 
+    _toggleSelMode = () => {
+        this.plugin.selectionMode = !this.plugin.selectionMode;
+    }
+
+    get toggleSelectionMode() {
+        return <IconButton svg={Crop} onClick={this._toggleSelMode} title={'Toggle Selection Mode'} style={{ background: 'transparent' }} />;
+    }
+
     addByChains() {
         const entries = this.chainEntries;
         return <>
@@ -270,7 +279,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
                 {entries.map((e, i) => this.lociEntry(e, i))}
             </div>}
             {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add 2 or more selections from separate structures. Selections must be limited to single chains or parts of single chains.</div>
+                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add 2 or more selections {this.toggleSelectionMode} from separate structures. Selections must be limited to single chains or parts of single chains.</div>
             </div>}
             {entries.length > 1 && <Button title='Superpose structures by selected chains.' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeChains} style={{ marginTop: '1px' }}>
                 Superpose
@@ -285,7 +294,8 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
                 {entries.map((e, i) => this.atomsLociEntry(e, i))}
             </div>}
             {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add 1 or more selections from separate structures. Selections must be limited to single atoms.</div>
+                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add 1 or more selections {this.toggleSelectionMode} from
+                separate structures. Selections must be limited to single atoms.</div>
             </div>}
             {entries.length > 1 && <Button title='Superpose structures by selected atoms.' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeAtoms} style={{ marginTop: '1px' }}>
                 Superpose
