@@ -32,7 +32,7 @@ export const PdbDownloadProvider = {
         encoding: PD.Select('bcif', [['cif', 'cif'], ['bcif', 'bcif']] as ['cif' | 'bcif', string][]),
     }, { label: 'RCSB PDB', isFlat: true }),
     'pdbe': PD.Group({
-        variant: PD.Select('updated-bcif', [['updated-bcif', 'Updated (bcif)'], ['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'archival', string][]),
+        variant: PD.Select('updated-bcif', [['updated-bcif', 'Updated (bcif)'], ['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'updtaed-bcif' | 'archival', string][]),
     }, { label: 'PDBe', isFlat: true }),
 };
 export type PdbDownloadProvider = keyof typeof PdbDownloadProvider;
@@ -55,7 +55,10 @@ const DownloadStructure = StateAction.build({
                     options
                 }, { isFlat: true, label: 'PDB' }),
                 'pdb-dev': PD.Group({
-                    id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma/space separated ids.' }),
+                    provider: PD.Group({
+                        id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma/space separated ids.' }),
+                        encoding: PD.Select('bcif', [['cif', 'cif'], ['bcif', 'bcif']] as ['cif' | 'bcif', string][]),
+                    }, { pivot: 'id' }),
                     options
                 }, { isFlat: true, label: 'PDBDEV' }),
                 'bcif-static': PD.Group({
@@ -104,13 +107,15 @@ const DownloadStructure = StateAction.build({
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'pdb-dev':
-            downloadParams = getDownloadParams(src.params.id,
+            downloadParams = getDownloadParams(src.params.provider.id,
                 id => {
                     const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
-                    return `https://pdb-dev.wwpdb.org/cif/${nId.toUpperCase()}.cif`;
+                    return src.params.provider.encoding === 'bcif'
+                        ? `https://pdb-dev.wwpdb.org/bcif/${nId.toUpperCase()}.bcif`
+                        : `https://pdb-dev.wwpdb.org/cif/${nId.toUpperCase()}.cif`;
                 },
                 id => id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`,
-                false
+                src.params.provider.encoding === 'bcif'
             );
             asTrajectory = !!src.params.options.asTrajectory;
             break;

@@ -150,7 +150,10 @@ export class Viewer {
             source: {
                 name: 'pdb-dev' as const,
                 params: {
-                    id: pdbDev,
+                    provider: {
+                        id: pdbDev,
+                        encoding: 'bcif',
+                    },
                     options: params.source.params.options,
                 }
             }
