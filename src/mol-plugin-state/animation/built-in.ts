@@ -23,6 +23,15 @@ export const AnimateModelIndex = PluginStateAnimation.create({
         }, { options: [['palindrome', 'Palindrome'], ['loop', 'Loop'], ['once', 'Once']] }),
         maxFPS: PD.Numeric(15, { min: 1, max: 30, step: 1 })
     }),
+    canApply(ctx) {
+        const state = ctx.state.data;
+        const models = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Model.ModelFromTrajectory));
+        for (const m of models) {
+            const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
+            if (parent && parent.obj && parent.obj.data.length > 1) return { canApply: true };
+        }
+        return { canApply: false, reason: 'No trajectory to animate' };
+    },
     initialState: () => ({} as { palindromeDirections?: { [id: string]: -1 | 1 | undefined } }),
     async apply(animState, t, ctx) {
         // limit fps
@@ -48,6 +57,8 @@ export const AnimateModelIndex = PluginStateAnimation.create({
             const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
             if (!parent || !parent.obj) continue;
             const traj = parent.obj;
+            if (traj.data.length <= 1) continue;
+
             update.to(m).update(old => {
                 const len = traj.data.length;
                 if (len !== 1) {
@@ -79,7 +90,9 @@ export const AnimateModelIndex = PluginStateAnimation.create({
             });
         }
 
-        await PluginCommands.State.Update(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+        if (!allSingles) {
+            await PluginCommands.State.Update(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+        }
 
         if (allSingles || (params.mode.name === 'once' && isEnd)) return { kind: 'finished' };
         if (params.mode.name === 'palindrome') return { kind: 'next', state: { palindromeDirections } };
@@ -103,6 +116,12 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
             playOnce: PD.Boolean(false),
             target: PD.Select(targets[0][0], targets)
         };
+    },
+    canApply(plugin) {
+        const state = plugin.state.data;
+        const root = StateTransform.RootRef;
+        const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D, root));
+        return { canApply: reprs.length > 0 };
     },
     initialState: () => ({ t: 0 }),
     setup(params, plugin) {
@@ -231,6 +250,9 @@ export const AnimateStateInterpolation = PluginStateAnimation.create({
     params: () => ({
         transtionDurationInMs: PD.Numeric(2000, { min: 100, max: 30000, step: 10 })
     }),
+    canApply(plugin) {
+        return { canApply: plugin.managers.snapshot.state.entries.size > 1 };
+    },
     initialState: () => ({ }),
     async apply(animState, t, ctx) {
 

@@ -15,7 +15,9 @@ export { PluginStateAnimation };
 interface PluginStateAnimation<P = any, S = any> {
     name: string,
     readonly display: { readonly name: string, readonly description?: string },
+
     params(ctx: PluginContext): PD.For<P>,
+    canApply?(ctx: PluginContext): { canApply: true } | { canApply: false, reason?: string },
     initialState(params: P, ctx: PluginContext): S,
 
     // TODO: support state in setup/teardown?

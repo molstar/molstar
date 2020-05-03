@@ -37,14 +37,15 @@ export class AnimationControls extends PluginUIComponent<{ onStart?: () => void 
         if (anim.isEmpty) return null;
 
         const isDisabled = anim.state.animationState === 'playing';
+        const canApply = anim.current.anim.canApply?.(this.plugin);
 
         return <>
             <ParameterControls params={anim.getParams()} values={anim.state.params} onChange={this.updateParams} isDisabled={isDisabled} />
             <ParameterControls params={anim.current.params} values={anim.current.paramValues} onChange={this.updateCurrentParams} isDisabled={isDisabled} />
 
             <div className='msp-flex-row'>
-                <Button icon={anim.state.animationState !== 'playing' ? void 0 : PlayArrow} onClick={this.startOrStop}>
-                    {anim.state.animationState === 'playing' ? 'Stop' : 'Start'}
+                <Button icon={anim.state.animationState !== 'playing' ? void 0 : PlayArrow} onClick={this.startOrStop} disabled={canApply !== void 0 && canApply.canApply === false}>
+                    {anim.state.animationState === 'playing' ? 'Stop' : canApply === void 0 || canApply.canApply ? 'Start' : canApply.reason || 'Start'}
                 </Button>
             </div>
         </>;
