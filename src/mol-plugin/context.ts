@@ -85,6 +85,9 @@ export class PluginContext {
         state: {
             isAnimating: this.ev.behavior<boolean>(false),
             isUpdating: this.ev.behavior<boolean>(false),
+            // TODO: should there be separate "updated" event?
+            //   Often, this is used to indicate that the state has updated
+            //   and it might not be the best way to react to state updates.
             isBusy: this.ev.behavior<boolean>(false)
         },
         interaction: {
@@ -257,7 +260,11 @@ export class PluginContext {
 
         let timeout: any = void 0;
         const setBusy = () => {
-            isBusy.next(true);
+            if (!isBusy.value) isBusy.next(true);
+        };
+        const reset = () => {
+            if (timeout !== void 0) clearTimeout(timeout);
+            timeout = void 0;
         };
 
         merge(this.behaviors.state.isUpdating, this.behaviors.state.isAnimating).subscribe(v => {
@@ -265,15 +272,11 @@ export class PluginContext {
             const isAnimating = this.behaviors.state.isAnimating.value;
 
             if ((isUpdating || isAnimating) && !isBusy.value) {
-                if (timeout !== void 0) clearTimeout(timeout);
+                reset();
                 timeout = setTimeout(setBusy, timeoutMs);
-                // isBusy.next(true);
             } else {
-                if (timeout !== void 0) clearTimeout(timeout);
-                timeout = void 0;
-                if (isBusy.value) {
-                    isBusy.next(false);
-                }
+                reset();
+                isBusy.next(false);
             }
         });
 
