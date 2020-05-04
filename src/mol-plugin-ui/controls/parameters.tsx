@@ -1073,7 +1073,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
 
 type ObjectListEditorProps = { params: PD.Params, value: object, isUpdate?: boolean, apply: (value: any) => void, isDisabled?: boolean }
 class ObjectListEditor extends React.PureComponent<ObjectListEditorProps, { current: object }> {
-    state = { current: void 0 as any };
+    state = { current: this.props.value };
 
     onChangeParam: ParamOnChange = e => {
         this.setState({ current: { ...this.state.current, [e.name]: e.value } });
