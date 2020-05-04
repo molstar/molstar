@@ -22,8 +22,9 @@ const DefaultFocusLociBindings = {
         Trigger(B.Flag.Primary, M.create())
     ], 'Camera center and focus', 'Click element using ${triggers}'),
     clickCenterFocusSelectMode: Binding([
-        Trigger(B.Flag.Auxilary, M.create()),
-        Trigger(B.Flag.Primary, M.create({ alt: true }))
+        Trigger(B.Flag.Primary, M.create())
+        // Trigger(B.Flag.Auxilary, M.create()),
+        // Trigger(B.Flag.Primary, M.create({ alt: true }))
     ], 'Camera center and focus', 'Click element using ${triggers}'),
 };
 const FocusLociParams = {

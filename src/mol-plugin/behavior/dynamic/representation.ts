@@ -77,11 +77,11 @@ export const HighlightLoci = PluginBehavior.create({
 
 const DefaultSelectLociBindings = {
     clickSelect: Binding.Empty,
-    clickToggleExtend: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Toggle extended selection', '${triggers} to extend selection along polymer'),
+    clickToggleExtend: Binding([Trigger(B.Flag.Secondary, M.create({ shift: true }))], 'Toggle extended selection', '${triggers} to extend selection along polymer'),
     clickSelectOnly: Binding.Empty,
-    clickToggle: Binding([Trigger(B.Flag.Primary, M.create())], 'Toggle selection', '${triggers} on element'),
+    clickToggle: Binding([Trigger(B.Flag.Secondary, M.create())], 'Toggle selection', '${triggers} on element'),
     clickDeselect: Binding.Empty,
-    clickDeselectAllOnEmpty: Binding([Trigger(B.Flag.Primary, M.create())], 'Deselect all', 'Click on nothing using ${triggers}'),
+    clickDeselectAllOnEmpty: Binding([Trigger(B.Flag.Secondary, M.create())], 'Deselect all', 'Click on nothing using ${triggers}'),
 };
 const SelectLociParams = {
     bindings: PD.Value(DefaultSelectLociBindings, { isHidden: true }),
@@ -206,12 +206,14 @@ const DefaultFocusLociBindings = {
         Trigger(B.Flag.Primary, M.create({ shift: true })),
     ], 'Representation Focus Add', 'Click element using ${triggers}'),
     clickFocusSelectMode: Binding([
-        Trigger(B.Flag.Secondary, M.create()),
-        Trigger(B.Flag.Primary, M.create({ control: true }))
+        Trigger(B.Flag.Primary, M.create()),
+        // Trigger(B.Flag.Secondary, M.create()),
+        // Trigger(B.Flag.Primary, M.create({ control: true }))
     ], 'Representation Focus', 'Click element using ${triggers}'),
     clickFocusAddSelectMode: Binding([
-        Trigger(B.Flag.Secondary, M.create({ shift: true })),
-        Trigger(B.Flag.Primary, M.create({ control: true, shift: true }))
+        Trigger(B.Flag.Primary, M.create({ shift: true })),
+        // Trigger(B.Flag.Secondary, M.create({ shift: true })),
+        // Trigger(B.Flag.Primary, M.create({ control: true, shift: true }))
     ], 'Representation Focus Add', 'Click element using ${triggers}'),
 };
 const FocusLociParams = {
