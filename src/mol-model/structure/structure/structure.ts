@@ -1057,14 +1057,19 @@ namespace Structure {
     //
 
     export const DefaultSizeThresholds = {
+        /** Must be lower to be small */
         smallResidueCount: 10,
+        /** Must be lower to be medium */
         mediumResidueCount: 3000,
-        /** large ribosomes like 4UG0 should still be `large` */
+        /** Must be lower to be large (big ribosomes like 4UG0 should still be `large`) */
         largeResidueCount: 20000,
+        /**
+         * Structures above `largeResidueCount` are consider huge when they have
+         * a `highSymmetryUnitCount` or gigantic when not
+         */
         highSymmetryUnitCount: 10,
+        /** Fiber-like structure are consider small when below this */
         fiberResidueCount: 15,
-
-        residueCountFactor: 1
     };
     export type SizeThresholds = typeof DefaultSizeThresholds
 
@@ -1094,9 +1099,13 @@ namespace Structure {
 
     export enum Size { Small, Medium, Large, Huge, Gigantic }
 
-    export function getSize(structure: Structure, thresholds: Partial<SizeThresholds> = {}): Size {
+    /**
+     * @param residueCountFactor - modifies the threshold counts, useful when estimating
+     *                             the size of a structure comprised of multiple models
+     */
+    export function getSize(structure: Structure, thresholds: Partial<SizeThresholds> = {}, residueCountFactor = 1): Size {
         const t = { ...DefaultSizeThresholds, ...thresholds };
-        if (structure.polymerResidueCount >= t.largeResidueCount * t.residueCountFactor) {
+        if (structure.polymerResidueCount >= t.largeResidueCount * residueCountFactor) {
             if (hasHighSymmetry(structure, t)) {
                 return Size.Huge;
             } else {
@@ -1104,9 +1113,9 @@ namespace Structure {
             }
         } else if (isFiberLike(structure, t)) {
             return Size.Small;
-        } else if (structure.polymerResidueCount < t.smallResidueCount * t.residueCountFactor) {
+        } else if (structure.polymerResidueCount < t.smallResidueCount * residueCountFactor) {
             return Size.Small;
-        } else if (structure.polymerResidueCount < t.mediumResidueCount * t.residueCountFactor) {
+        } else if (structure.polymerResidueCount < t.mediumResidueCount * residueCountFactor) {
             return Size.Medium;
         } else {
             return Size.Large;
