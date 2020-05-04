@@ -30,7 +30,7 @@ interface PluginSpec {
             controls?: React.ComponentClass
         }
     },
-    config?: Map<PluginConfigItem, unknown>
+    config?: [PluginConfigItem, unknown][]
 }
 
 namespace PluginSpec {

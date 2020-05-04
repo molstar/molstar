@@ -83,17 +83,17 @@ export class Viewer {
                 ...DefaultPluginSpec.components,
                 remoteState: o.layoutShowRemoteState ? 'default' : 'none',
             },
-            config: DefaultPluginSpec.config
+            config: [
+                [PluginConfig.Viewport.ShowExpand, o.viewportShowExpand],
+                [PluginConfig.Viewport.ShowSelectionMode, o.viewportShowSelectionMode],
+                [PluginConfig.Viewport.ShowAnimation, o.viewportShowAnimation],
+                [PluginConfig.State.DefaultServer, o.pluginStateServer],
+                [PluginConfig.State.CurrentServer, o.pluginStateServer],
+                [PluginConfig.VolumeStreaming.DefaultServer, o.volumeStreamingServer],
+                [PluginConfig.Download.DefaultPdbProvider, o.pdbProvider],
+                [PluginConfig.Download.DefaultEmdbProvider, o.emdbProvider]
+            ]
         };
-
-        spec.config?.set(PluginConfig.Viewport.ShowExpand, o.viewportShowExpand);
-        spec.config?.set(PluginConfig.Viewport.ShowSelectionMode, o.viewportShowSelectionMode);
-        spec.config?.set(PluginConfig.Viewport.ShowAnimation, o.viewportShowAnimation);
-        spec.config?.set(PluginConfig.State.DefaultServer, o.pluginStateServer);
-        spec.config?.set(PluginConfig.State.CurrentServer, o.pluginStateServer);
-        spec.config?.set(PluginConfig.VolumeStreaming.DefaultServer, o.volumeStreamingServer);
-        spec.config?.set(PluginConfig.Download.DefaultPdbProvider, o.pdbProvider);
-        spec.config?.set(PluginConfig.Download.DefaultEmdbProvider, o.emdbProvider);
 
         const element = document.getElementById(elementId);
         if (!element) throw new Error(`Could not get element with id '${elementId}'`);
