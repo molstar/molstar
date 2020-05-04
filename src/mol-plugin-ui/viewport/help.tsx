@@ -40,7 +40,7 @@ export class BindingsHelp extends React.PureComponent<{ bindings: { [k: string]:
     }
 }
 
-class HelpText extends React.PureComponent {
+export class HelpText extends React.PureComponent {
     render() {
         return <div className='msp-help-text'>
             <div>{this.props.children}</div>
@@ -48,7 +48,7 @@ class HelpText extends React.PureComponent {
     }
 }
 
-class HelpGroup extends React.PureComponent<{ header: string, initiallyExpanded?: boolean }, { isExpanded: boolean }> {
+export class HelpGroup extends React.PureComponent<{ header: string, initiallyExpanded?: boolean }, { isExpanded: boolean }> {
     state = {
         header: this.props.header,
         isExpanded: !!this.props.initiallyExpanded
@@ -75,7 +75,7 @@ function HelpSection(props: { header: string }) {
     return <div className='msp-simple-help-section'>{props.header}</div>;
 }
 
-export class ViewportHelpContent extends PluginUIComponent {
+export class ViewportHelpContent extends PluginUIComponent<{ selectOnly?: boolean }> {
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
     }
@@ -87,10 +87,10 @@ export class ViewportHelpContent extends PluginUIComponent {
             if (bindings) Object.assign(interactionBindings, bindings);
         });
         return <>
-            {this.plugin.canvas3d && <HelpGroup key='trackball' header='Moving in 3D'>
+            {(!this.props.selectOnly && this.plugin.canvas3d) && <HelpGroup key='trackball' header='Moving in 3D'>
                 <BindingsHelp bindings={this.plugin.canvas3d.props.trackball.bindings} />
             </HelpGroup>}
-            <HelpGroup key='interactions' header='Select, Highlight, Focus'>
+            <HelpGroup key='interactions' header='Mouse Controls'>
                 <BindingsHelp bindings={interactionBindings} />
             </HelpGroup>
         </>;

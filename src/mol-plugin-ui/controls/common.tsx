@@ -24,7 +24,8 @@ export class ControlGroup extends React.Component<{
     headerLeftMargin?: string,
     onHeaderClick?: () => void,
     noTopMargin?: boolean,
-    childrenClassName?: string
+    childrenClassName?: string,
+    maxHeight?: string
 }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initialExpanded }
 
@@ -49,7 +50,7 @@ export class ControlGroup extends React.Component<{
                     <b>{this.props.header}</b>
                 </Button>
             </div>
-            {this.state.isExpanded && <div className={groupClassName} style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
+            {this.state.isExpanded && <div className={groupClassName} style={{ display: this.state.isExpanded ? 'block' : 'none', maxHeight: this.props.maxHeight, overflow: 'hidden', overflowY: 'auto' }}>
                 {this.props.children}
             </div>}
         </div>;
