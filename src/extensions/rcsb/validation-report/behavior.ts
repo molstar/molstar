@@ -222,12 +222,12 @@ function densityFitLabel(loci: Loci): string | undefined {
         if (rsrzSeen.size) {
             const rsrzCount = `<small>(${rsrzSeen.size} ${rsrzSeen.size > 1 ? 'Residues avg.' : 'Residue'})</small>`;
             const rsrzAvg = rsrzSum / rsrzSeen.size;
-            summary.push(`Real Space R ${rsrzCount}: ${rsrzAvg.toFixed(2)}`);
+            summary.push(`Real-Space R Z-score ${rsrzCount}: ${rsrzAvg.toFixed(2)}`);
         }
         if (rsccSeen.size) {
             const rsccCount = `<small>(${rsccSeen.size} ${rsccSeen.size > 1 ? 'Residues avg.' : 'Residue'})</small>`;
             const rsccAvg = rsccSum / rsccSeen.size;
-            summary.push(`Real Space Correlation Coefficient ${rsccCount}: ${rsccAvg.toFixed(2)}`);
+            summary.push(`Real-Space Correlation Coefficient ${rsccCount}: ${rsccAvg.toFixed(2)}`);
         }
 
         if (summary.length) {
