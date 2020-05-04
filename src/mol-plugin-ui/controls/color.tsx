@@ -34,10 +34,22 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
         }
     }
 
-    onChangeText = (value: Color) => {
-        if (value !== this.props.value) {
-            this.update(value);
-        }
+    onR = (v: number) => {
+        const [, g, b] = Color.toRgb(this.props.value);
+        const value = Color.fromRgb(v, g, b);
+        if (value !== this.props.value) this.update(value);
+    }
+
+    onG = (v: number) => {
+        const [r, , b] = Color.toRgb(this.props.value);
+        const value = Color.fromRgb(r, v, b);
+        if (value !== this.props.value) this.update(value);
+    }
+
+    onB = (v: number) => {
+        const [r, g, ] = Color.toRgb(this.props.value);
+        const value = Color.fromRgb(r, g, v);
+        if (value !== this.props.value) this.update(value);
     }
 
     swatch() {
@@ -49,42 +61,21 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
 
     render() {
         const label = this.props.param.label || camelCaseToWords(this.props.name);
+        const [r, g, b] = Color.toRgb(this.props.value);
         return <>
             <ControlRow title={this.props.param.description}
                 label={label}
                 control={<Button onClick={this.toggleExpanded} inline className='msp-combined-color-button' style={{ background: Color.toStyle(this.props.value) }} />} />
             {this.state.isExpanded && <div className='msp-control-offset'>
                 {this.swatch()}
-                <ControlRow label='RGB'
-                    control={<TextInput onChange={this.onChangeText} value={this.props.value}
-                        fromValue={formatColorRGB} toValue={getColorFromString} isValid={isValidColorString}
-                        className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
-                        placeholder='e.g. 127 127 127' delayMs={250} />} />
+                <ControlRow label='RGB' control={<div style={{ display: 'flex', textAlignLast: 'center' }}>
+                    <TextInput onChange={this.onR} numeric value={r} delayMs={250} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
+                    <TextInput onChange={this.onG} numeric value={g} delayMs={250} style={{ order: 2, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
+                    <TextInput onChange={this.onB} numeric value={b} delayMs={250} style={{ order: 3, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
+                </div>}/>
             </div>}
         </>;
     }
-}
-
-function formatColorRGB(c: Color) {
-    const [r, g, b] = Color.toRgb(c);
-    return `${r} ${g} ${b}`;
-}
-
-function getColorFromString(s: string) {
-    const cs = s.split(/\s+/g);
-    return Color.fromRgb(+cs[0], +cs[1], +cs[2]);
-}
-
-function isValidColorString(s: string) {
-    const cs = s.split(/\s+/g);
-    if (cs.length !== 3 && !(cs.length === 4 && cs[3] === '')) return false;
-    for (const c of cs) {
-        if (c === '') continue;
-        const n = +c;
-        if ('' + n !== c) return false;
-        if (n < 0 || n > 255) return false;
-    }
-    return true;
 }
 
 let _colors: React.ReactFragment | undefined = void 0;
