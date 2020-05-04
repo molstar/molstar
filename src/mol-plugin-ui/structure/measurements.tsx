@@ -11,10 +11,9 @@ import ArrowUpward from '@material-ui/icons/ArrowUpward';
 import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
 import HelpOutline from '@material-ui/icons/HelpOutline';
 import MoreHoriz from '@material-ui/icons/MoreHoriz';
-import RemoveOutlined from '@material-ui/icons/RemoveOutlined';
 import Tune from '@material-ui/icons/Tune';
-import VisibilityOutlined from '@material-ui/icons/VisibilityOutlined';
 import VisibilityOffOutlined from '@material-ui/icons/VisibilityOffOutlined';
+import VisibilityOutlined from '@material-ui/icons/VisibilityOutlined';
 import * as React from 'react';
 import { Loci } from '../../mol-model/loci';
 import { StructureElement } from '../../mol-model/structure';
@@ -27,9 +26,10 @@ import { FiniteArray } from '../../mol-util/type-helpers';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ExpandGroup, IconButton, ToggleButton } from '../controls/common';
-import { Icon, SetSvg, RulerSvg } from '../controls/icons';
+import { Icon, RulerSvg, SetSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
+import { ToggleSelectionModeButton } from './selection';
 
 // TODO details, options (e.g. change text for labels)
 
@@ -172,7 +172,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
                 {entries}
             </div>}
             {entries.length === 0 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add one or more selections</div>
+                <div className='msp-help-description' style={{ padding: 0 }}><Icon svg={HelpOutline} inline />Add <ToggleSelectionModeButton /> one or more selections</div>
             </div>}
         </>;
     }
@@ -298,7 +298,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
                     <span dangerouslySetInnerHTML={{ __html: this.label }} />
                 </button>
                 <IconButton svg={cell.state.isHidden ? VisibilityOffOutlined : VisibilityOutlined} toggleState={false} small className='msp-form-control' onClick={this.toggleVisibility} flex title={cell.state.isHidden ? 'Show' : 'Hide'} />
-                <IconButton svg={RemoveOutlined} small className='msp-form-control' onClick={this.delete} flex title='Delete' />
+                <IconButton svg={DeleteOutlined} small className='msp-form-control' onClick={this.delete} flex title='Delete' toggleState={false} />
                 <IconButton svg={MoreHoriz} className='msp-form-control' onClick={this.toggleUpdate} flex title='Actions' toggleState={this.state.showUpdate} />
             </div>
             {this.state.showUpdate && cell.parent && <>

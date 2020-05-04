@@ -10,6 +10,7 @@ import CancelOutlined from '@material-ui/icons/CancelOutlined';
 import Brush from '@material-ui/icons/Brush';
 import Restore from '@material-ui/icons/Restore';
 import Remove from '@material-ui/icons/Remove';
+import SelectAll from '@material-ui/icons/SelectAll';
 import * as React from 'react';
 import { StructureSelectionQueries, StructureSelectionQuery, getNonStandardResidueQueries, getElementQueries, getPolymerAndBranchedEntityQueries } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
@@ -26,6 +27,24 @@ import { ParameterControls, ParamOnChange, PureSelectControl } from '../controls
 import { Union, Subtract, Intersect, SetSvg as SetSvg, CubeSvg } from '../controls/icons';
 import { AddComponentControls } from './components';
 import Structure from '../../mol-model/structure/structure/structure';
+
+
+export class ToggleSelectionModeButton extends PurePluginUIComponent {
+    componentDidMount() {
+        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
+        this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
+        this.subscribe(this.plugin.behaviors.interaction.selectionMode, () => this.forceUpdate());
+    }
+
+    _toggleSelMode = () => {
+        this.plugin.selectionMode = !this.plugin.selectionMode;
+    }
+
+    render() {
+        return <IconButton svg={SelectAll} onClick={this._toggleSelMode} title={'Toggle Selection Mode'} style={{ background: 'transparent' }} toggleState={this.plugin.selectionMode} />;
+    }
+}
+
 
 const StructureSelectionParams = {
     granularity: InteractivityManager.Params.granularity,

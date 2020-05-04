@@ -9,20 +9,20 @@ import Autorenew from '@material-ui/icons/Autorenew';
 import BuildOutlined from '@material-ui/icons/BuildOutlined';
 import CameraOutlined from '@material-ui/icons/CameraOutlined';
 import Close from '@material-ui/icons/Close';
-import Crop from '@material-ui/icons/Crop';
 import Fullscreen from '@material-ui/icons/Fullscreen';
 import Tune from '@material-ui/icons/Tune';
 import * as React from 'react';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { resizeCanvas } from '../mol-canvas3d/util';
 import { PluginCommands } from '../mol-plugin/commands';
 import { PluginConfig } from '../mol-plugin/config';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { PluginUIComponent } from './base';
 import { ControlGroup, IconButton } from './controls/common';
+import { ToggleSelectionModeButton } from './structure/selection';
 import { DownloadScreenshotControls } from './viewport/screenshot';
 import { SimpleSettingsControl } from './viewport/simple-settings';
-import { Subject } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
 
 interface ViewportControlsState {
     isSettingsExpanded: boolean,
@@ -62,10 +62,6 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         PluginCommands.Layout.Update(this.plugin, { state: { isExpanded: !this.plugin.layout.state.isExpanded } });
     }
 
-    toggleSelectionMode = () => {
-        this.plugin.selectionMode = !this.plugin.selectionMode;
-    }
-
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
         PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { [p.name]: p.value } });
     }
@@ -81,7 +77,6 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
-        this.subscribe(this.plugin.behaviors.interaction.selectionMode, () => this.forceUpdate());
     }
 
     icon(icon: React.FC, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
@@ -112,7 +107,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </div>
                 {this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode) && <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon(Crop, this.toggleSelectionMode, 'Toggle Selection Mode', this.plugin.behaviors.interaction.selectionMode.value)}
+                    <ToggleSelectionModeButton />
                 </div>}
             </div>
             {this.state.isScreenshotExpanded && <div className='msp-viewport-controls-panel'>
