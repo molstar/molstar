@@ -271,9 +271,11 @@ export class PluginContext {
             const isUpdating = this.behaviors.state.isUpdating.value;
             const isAnimating = this.behaviors.state.isAnimating.value;
 
-            if ((isUpdating || isAnimating) && !isBusy.value) {
-                reset();
-                timeout = setTimeout(setBusy, timeoutMs);
+            if (isUpdating || isAnimating) {
+                if (!isBusy.value) {
+                    reset();
+                    timeout = setTimeout(setBusy, timeoutMs);
+                }
             } else {
                 reset();
                 isBusy.next(false);

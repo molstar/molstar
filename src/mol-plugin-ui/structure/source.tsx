@@ -254,6 +254,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         const { selection } = this.plugin.managers.structure.hierarchy;
         if (selection.structures.length !== 1) return null;
         const pivot = selection.structures[0];
+        if (!pivot.cell.parent) return null;
         const t = StateSelection.tryFindDecorator(this.plugin.state.data, pivot.cell.transform.ref, StateTransforms.Model.TransformStructureConformation);
         if (!t) return;
 
