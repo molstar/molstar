@@ -198,11 +198,17 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         this.events.additionsHistoryUpdated.next();
     }
 
+    private clearHistory() {
+        if (this.state.additionsHistory.length !== 0) {
+            this.state.additionsHistory = [];
+            this.events.additionsHistoryUpdated.next();
+        }
+    }
+
     private onRemove(ref: string) {
         if (this.entries.has(ref)) {
             this.entries.delete(ref);
-            // TODO: property update the latest loci
-            this.state.additionsHistory = [];
+            this.clearHistory();
             this.referenceLoci = undefined;
         }
     }
@@ -243,6 +249,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         this.state.stats = void 0;
         this.events.changed.next();
         this.events.loci.clear.next();
+        this.clearHistory();
         return selections;
     }
 
