@@ -94,7 +94,7 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
         if (!pivot.cell.parent) return null;
         const bindings = pivot.volumeStreaming?.cell.transform.params?.entry.params.view.name === 'selection-box' && this.plugin.state.behaviors.cells.get(FocusLoci.id)?.params?.values?.bindings;
         return <>
-            <UpdateTransformControl state={pivot.cell.parent} transform={pivot.volumeStreaming!.cell.transform} customHeader='none' noMargin autoHideApply />
+            <UpdateTransformControl state={pivot.cell.parent} transform={pivot.volumeStreaming!.cell.transform} customHeader='none' noMargin />
             {bindings && <ExpandGroup header='Controls Help'>
                 <BindingsHelp bindings={bindings} />
             </ExpandGroup>}
