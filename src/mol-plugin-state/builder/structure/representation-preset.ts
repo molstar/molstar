@@ -15,6 +15,7 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { StateObjectRef, StateObjectSelector } from '../../../mol-state';
 import { StaticStructureComponentType } from '../../helpers/structure-component';
 import { StructureSelectionQueries as Q } from '../../helpers/structure-selection-query';
+import { PluginConfig } from '../../../mol-plugin/config';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -64,7 +65,9 @@ const auto = StructureRepresentationPresetProvider({
     apply(ref, params, plugin) {
         const structure = StateObjectRef.resolveAndCheck(plugin.state.data, ref)?.obj?.data;
         if (!structure) return { };
-        const size = Structure.getSize(structure);
+
+        const thresholds = plugin.config.get(PluginConfig.Structure.SizeThresholds) || Structure.DefaultSizeThresholds;
+        const size = Structure.getSize(structure, thresholds);
 
         switch (size) {
             case Structure.Size.Gigantic:

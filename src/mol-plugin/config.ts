@@ -42,6 +42,9 @@ export const PluginConfig = {
     Download: {
         DefaultPdbProvider: item<PdbDownloadProvider>('download.default-pdb-provider', 'pdbe'),
         DefaultEmdbProvider: item<EmdbDownloadProvider>('download.default-emdb-provider', 'pdbe'),
+    },
+    Structure: {
+        SizeThresholds: item('structure.size-thresholds', Structure.DefaultSizeThresholds),
     }
 };
 
