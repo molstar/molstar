@@ -956,6 +956,9 @@ namespace Structure {
             this.current.unit = this.structure.units[this.unitIndex];
             this.elements = this.current.unit.elements;
             this.maxIdx = this.elements.length - 1;
+            if (this.maxIdx === 0) {
+                this.hasNext = this.unitIndex + 1 < this.structure.units.length;
+            }
         }
 
         constructor(private structure: Structure) {
