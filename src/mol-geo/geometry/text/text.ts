@@ -283,6 +283,7 @@ export namespace Text {
         BaseGeometry.updateRenderableState(state, props);
         state.pickable = false;
         state.opaque = false;
+        state.writeDepth = true;
     }
 }
 
