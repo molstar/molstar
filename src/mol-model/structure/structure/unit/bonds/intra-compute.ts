@@ -39,6 +39,7 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
     const atomCount = unit.elements.length;
     const { elements: atoms, residueIndex, chainIndex } = unit;
     const { type_symbol, label_atom_id, label_alt_id } = unit.model.atomicHierarchy.atoms;
+    const { occupancy } = unit.model.atomicConformation;
     const { label_comp_id, label_seq_id } = unit.model.atomicHierarchy.residues;
     const { index } = unit.model.atomicHierarchy;
     const { byEntityKey } = unit.model.sequence;
@@ -115,6 +116,9 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
             }
         }
         lastResidue = raI;
+
+        // ignore atoms with zero occupancy (assuming they are not actually atoms)
+        if (occupancy.isDefined && occupancy.value(aI) === 0) continue;
 
         const aeI = getElementIdx(type_symbol.value(aI));
         const atomIdA = label_atom_id.value(aI);
