@@ -30,8 +30,6 @@ import { stripTags } from '../../mol-util/string';
 import { StructureSelectionHistoryEntry } from '../../mol-plugin-state/manager/structure/selection';
 import { ToggleSelectionModeButton } from './selection';
 
-// TODO not working with already transformed structures in the general case
-
 export class StructureSuperpositionControls extends CollapsableControls {
     defaultState() {
         return {
@@ -107,7 +105,9 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
     async transform(s: StateObjectRef<PluginStateObject.Molecule.Structure>, matrix: Mat4) {
         const r = StateObjectRef.resolveAndCheck(this.plugin.state.data, s);
         if (!r) return;
+        // TODO should find any TransformStructureConformation decorator instance
         const o = StateSelection.findTagInSubtree(this.plugin.state.data.tree, r.transform.ref, SuperpositionTag);
+
         const params = {
             transform: {
                 name: 'matrix' as const,
@@ -115,7 +115,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
             }
         };
         // TODO add .insertOrUpdate to StateBuilder?
-        const b = o
+        let b = o
             ? this.plugin.state.data.build().to(o).update(params)
             : this.plugin.state.data.build().to(s)
                 .insert(StateTransforms.Model.TransformStructureConformation, params, { tags: SuperpositionTag });
@@ -126,12 +126,14 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
         const { query } = StructureSelectionQueries.trace;
         const entries = this.chainEntries;
 
-        const traceLocis: StructureElement.Loci[] = [];
-        for (const e of entries) {
+        const traceLocis = entries.map((e, i) => {
             const s = StructureElement.Loci.toStructure(e.loci);
             const loci = StructureSelection.toLociWithSourceUnits(query(new QueryContext(s)));
-            traceLocis.push(loci);
-        }
+            return StructureElement.Loci.remap(loci, i === 0
+                ? this.plugin.helpers.substructureParent.get(e.loci.structure.root)!.obj!.data
+                : loci.structure.root
+            );
+        });
 
         const transforms = this.state.options.alignSequences
             ? alignAndSuperpose(traceLocis)
@@ -151,7 +153,12 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
     superposeAtoms = async () => {
         const entries = this.atomEntries;
 
-        const atomLocis = entries.map(e => e.loci);
+        const atomLocis = entries.map((e, i) => {
+            return StructureElement.Loci.remap(e.loci, i === 0
+                ? this.plugin.helpers.substructureParent.get(e.loci.structure.root)!.obj!.data
+                : e.loci.structure.root
+            );
+        });
         const transforms = superpose(atomLocis);
 
         const eA = entries[0];
@@ -161,7 +168,8 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
             await this.transform(eB.cell, bTransform);
             const labelA = stripTags(eA.label);
             const labelB = stripTags(eB.label);
-            this.plugin.log.info(`Superposed [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
+            const count = entries[i].atoms.length;
+            this.plugin.log.info(`Superposed ${count} ${count === 1 ? 'atom' : 'atoms'} of [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
         }
     }
 
@@ -174,6 +182,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
     }
 
     moveHistory(e: StructureSelectionHistoryEntry, direction: 'up' | 'down') {
+        // TODO take structure grouping into account
         this.plugin.managers.structure.selection.modifyHistory(e, direction);
     }
 
@@ -247,18 +256,17 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
 
         const entries: AtomsLociEntry[] = [];
         structureEntries.forEach((atoms, structure) => {
-            const cell = this.plugin.helpers.substructureParent.get(structure);
-            const parent = cell?.obj?.data;
-            if (!cell || !parent) return;
+            const cell = this.plugin.helpers.substructureParent.get(structure)!;
 
             const elements: StructureElement.Loci['elements'][0][] = [];
             for (let i = 0, il = atoms.length; i < il; ++i) {
                 // note, we don't do loci union here to keep order of selected atoms
+                // for atom pairing during superposition
                 elements.push(atoms[i].loci.elements[0]);
             }
 
-            const loci = StructureElement.Loci(parent, elements);
-            const label = `${loci.structure.label}`;
+            const loci = StructureElement.Loci(atoms[0].loci.structure, elements);
+            const label = loci.structure.label.split(' | ')[0];
             entries.push({ loci, label, cell, atoms });
         });
         return entries;
