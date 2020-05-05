@@ -207,5 +207,6 @@ export namespace Points {
             !props.pointFilledCircle ||
             (props.pointFilledCircle && props.pointEdgeBleach === 0)
         );
+        state.writeDepth = state.opaque;
     }
 }
