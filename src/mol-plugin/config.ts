@@ -64,8 +64,8 @@ export class PluginConfigManager {
         this._config.delete(key);
     }
 
-    constructor(initial?: Map<PluginConfigItem, unknown>) {
+    constructor(initial?: [PluginConfigItem, unknown][]) {
         if (!initial) return;
-        initial.forEach((v, k) => this._config.set(k, v));
+        initial.forEach(([k, v]) => this._config.set(k, v));
     }
 }

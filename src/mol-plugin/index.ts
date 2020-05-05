@@ -15,7 +15,6 @@ import { Plugin } from '../mol-plugin-ui/plugin';
 import { PluginBehaviors } from './behavior';
 import { StructureFocusRepresentation } from './behavior/dynamic/selection/structure-focus-representation';
 import { BoxifyVolumeStreaming, CreateVolumeStreamingBehavior, InitVolumeStreaming } from './behavior/dynamic/volume-streaming/transformers';
-import { PluginConfig } from './config';
 import { PluginContext } from './context';
 import { PluginSpec } from './spec';
 import { AssignColorVolume } from '../mol-plugin-state/actions/volume';
@@ -89,11 +88,7 @@ export const DefaultPluginSpec: PluginSpec = {
         AnimateAssemblyUnwind,
         AnimateUnitsExplode,
         AnimateStateInterpolation
-    ],
-    config: new Map([
-        [PluginConfig.State.DefaultServer, 'https://webchem.ncbr.muni.cz/molstar-state'],
-        [PluginConfig.VolumeStreaming.DefaultServer, 'https://ds.litemol.org']
-    ])
+    ]
 };
 
 export function createPlugin(target: HTMLElement, spec?: PluginSpec): PluginContext {
