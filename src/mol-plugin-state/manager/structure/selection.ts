@@ -46,7 +46,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         }
     }
 
-    private referenceLoci: Loci | undefined
+    private referenceLoci: StructureElement.Loci | undefined
 
     get entries() { return this.state.entries; }
     get additionsHistory() { return this.state.additionsHistory; }
@@ -144,26 +144,34 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         return !StructureElement.Loci.areEqual(sel, entry.selection);
     }
 
-    modifyHistory(entry: StructureSelectionHistoryEntry, action: 'remove' | 'up' | 'down', modulus?: number) {
-        const idx = this.additionsHistory.indexOf(entry);
+    modifyHistory(entry: StructureSelectionHistoryEntry, action: 'remove' | 'up' | 'down', modulus?: number, groupByStructure = false) {
+        const history = this.additionsHistory;
+        const idx = history.indexOf(entry);
         if (idx < 0) return;
 
         let swapWith: number | undefined = void 0;
 
         switch (action) {
-            case 'remove': arrayRemoveAtInPlace(this.additionsHistory, idx); break;
+            case 'remove': arrayRemoveAtInPlace(history, idx); break;
             case 'up': swapWith = idx - 1; break;
             case 'down': swapWith = idx + 1; break;
         }
 
         if (swapWith !== void 0) {
-            const mod = modulus ? Math.min(this.additionsHistory.length, modulus) : this.additionsHistory.length;
-            swapWith = swapWith % mod;
-            if (swapWith < 0) swapWith += mod;
+            const mod = modulus ? Math.min(history.length, modulus) : history.length;
+            while (true) {
+                swapWith = swapWith % mod;
+                if (swapWith < 0) swapWith += mod;
 
-            const t = this.additionsHistory[idx];
-            this.additionsHistory[idx] = this.additionsHistory[swapWith];
-            this.additionsHistory[swapWith] = t;
+                if (!groupByStructure || history[idx].loci.structure === history[swapWith].loci.structure) {
+                    const t = history[idx];
+                    history[idx] = history[swapWith];
+                    history[swapWith] = t;
+                    break;
+                } else {
+                    swapWith += action === 'up' ? -1 : +1;
+                }
+            }
         }
 
         this.events.additionsHistoryUpdated.next();
@@ -205,11 +213,32 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         }
     }
 
-    private onRemove(ref: string) {
+    private clearHistoryForStructure(structure: Structure) {
+        const historyEntryToRemove: StructureSelectionHistoryEntry[] = [];
+        for (const e of this.state.additionsHistory) {
+            if (e.loci.structure === structure) {
+                historyEntryToRemove.push(e);
+            }
+        }
+        for (const e of historyEntryToRemove) {
+            this.modifyHistory(e, 'remove');
+        }
+        if (historyEntryToRemove.length !== 0) {
+            this.events.additionsHistoryUpdated.next();
+        }
+    }
+
+    private onRemove(ref: string, obj: StateObject | undefined) {
         if (this.entries.has(ref)) {
             this.entries.delete(ref);
-            this.clearHistory();
-            this.referenceLoci = undefined;
+            if (obj?.data) {
+                this.clearHistoryForStructure(obj.data);
+            }
+            if (this.referenceLoci?.structure === obj?.data) {
+                this.referenceLoci = undefined;
+            }
+            this.state.stats = void 0;
+            this.events.changed.next();
         }
     }
 
@@ -219,18 +248,37 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         if (this.entries.has(ref)) {
             if (!PluginStateObject.Molecule.Structure.is(oldObj) || oldObj === obj || oldObj.data === obj.data) return;
 
-            // TODO: property update the latest loci & reference loci
-            this.state.additionsHistory = [];
-            this.referenceLoci = undefined;
-
             // remap the old selection to be related to the new object if possible.
             if (Structure.areUnitAndIndicesEqual(oldObj.data, obj.data)) {
                 this.entries.set(ref, remapSelectionEntry(this.entries.get(ref)!, obj.data));
-                return;
-            }
 
-            // clear the selection
-            this.entries.set(ref, new SelectionEntry(StructureElement.Loci(obj.data, [])));
+                // remap referenceLoci & prevHighlight if needed and possible
+                if (this.referenceLoci?.structure === oldObj.data) {
+                    this.referenceLoci = StructureElement.Loci.remap(this.referenceLoci, obj.data);
+                }
+
+                // remap history locis if needed and possible
+                let changedHistory = false;
+                for (const e of this.state.additionsHistory) {
+                    if (e.loci.structure === oldObj.data) {
+                        e.loci = StructureElement.Loci.remap(e.loci, obj.data);
+                        changedHistory = true;
+                    }
+                }
+                if (changedHistory) this.events.additionsHistoryUpdated.next();
+            } else {
+                // clear the selection for ref
+                this.entries.set(ref, new SelectionEntry(StructureElement.Loci(obj.data, [])));
+
+                if (this.referenceLoci?.structure === oldObj.data) {
+                    this.referenceLoci = undefined;
+                }
+
+                this.clearHistoryForStructure(oldObj.data);
+
+                this.state.stats = void 0;
+                this.events.changed.next();
+            }
         }
     }
 
@@ -292,7 +340,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         if (!xs) return;
 
         const ref = this.referenceLoci;
-        if (!ref || !StructureElement.Loci.is(ref) || ref.structure.root !== loci.structure.root) return;
+        if (!ref || !StructureElement.Loci.is(ref) || ref.structure !== loci.structure) return;
 
         let e: StructureElement.Loci['elements'][0] | undefined;
         for (const _e of ref.elements) {
@@ -305,26 +353,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
 
         if (xs.unit !== e.unit) return;
 
-        return getElementRange(loci.structure.root, e, xs);
-    }
-
-    private prevHighlight: StructureElement.Loci | undefined = void 0;
-
-    accumulateInteractiveHighlight(loci: Loci) {
-        if (StructureElement.Loci.is(loci)) {
-            if (this.prevHighlight) {
-                this.prevHighlight = StructureElement.Loci.union(this.prevHighlight, loci);
-            } else {
-                this.prevHighlight = loci;
-            }
-        }
-        return this.prevHighlight;
-    }
-
-    clearInteractiveHighlight() {
-        const ret = this.prevHighlight;
-        this.prevHighlight = void 0;
-        return ret || EmptyLoci;
+        return getElementRange(loci.structure, e, xs);
     }
 
     /** Count of all selected elements */
@@ -445,7 +474,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
     constructor(private plugin: PluginContext) {
         super({ entries: new Map(), additionsHistory: [], stats: SelectionStats() });
 
-        plugin.state.data.events.object.removed.subscribe(e => this.onRemove(e.ref));
+        plugin.state.data.events.object.removed.subscribe(e => this.onRemove(e.ref, e.obj));
         plugin.state.data.events.object.updated.subscribe(e => this.onUpdate(e.ref, e.oldObj, e.obj));
     }
 }

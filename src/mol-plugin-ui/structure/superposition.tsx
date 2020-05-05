@@ -182,8 +182,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
     }
 
     moveHistory(e: StructureSelectionHistoryEntry, direction: 'up' | 'down') {
-        // TODO take structure grouping into account
-        this.plugin.managers.structure.selection.modifyHistory(e, direction);
+        this.plugin.managers.structure.selection.modifyHistory(e, direction, void 0, true);
     }
 
     focusLoci(loci: StructureElement.Loci) {
