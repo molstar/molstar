@@ -233,7 +233,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
 
             const stats = StructureElement.Stats.ofLoci(selection);
             const counts = structureElementStatsLabel(stats, { countsOnly: true });
-            const chain = elementLabel(stats.firstElementLoc, { reverse: true, granularity: 'chain' }).split('|');
+            const chain = elementLabel(l, { reverse: true, granularity: 'chain' }).split('|');
             const label = `${counts} | ${chain[0]} | ${chain[chain.length - 1]}`;
             entries.push({ loci: selection, label, cell });
         });

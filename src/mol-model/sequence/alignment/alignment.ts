@@ -9,7 +9,7 @@ import { SubstitutionMatrix, SubstitutionMatrices, SubstitutionMatrixData } from
 const DefaultAlignmentOptions = {
     gapPenalty: -11,
     gapExtensionPenalty: -1,
-    substMatrix: 'blosum62' as SubstitutionMatrix
+    substMatrix: 'default' as SubstitutionMatrix | 'default'
 };
 export type AlignmentOptions = typeof DefaultAlignmentOptions;
 
@@ -22,7 +22,7 @@ export function align(seqA: ArrayLike<string>, seqB: ArrayLike<string>, options:
 
 class Alignment {
     readonly gapPenalty: number; readonly gapExtensionPenalty: number
-    readonly substMatrix: SubstitutionMatrixData
+    readonly substMatrix: SubstitutionMatrixData | undefined
 
     readonly n: number; readonly m: number
     readonly S: number[][] = []; readonly V: number[][] = []; readonly H: number[][] = []
@@ -30,7 +30,7 @@ class Alignment {
     constructor (readonly seqA: ArrayLike<string>, readonly seqB: ArrayLike<string>, options: AlignmentOptions) {
         this.gapPenalty = options.gapPenalty;
         this.gapExtensionPenalty = options.gapExtensionPenalty;
-        this.substMatrix = SubstitutionMatrices[options.substMatrix];
+        this.substMatrix = options.substMatrix === 'default' ? undefined : SubstitutionMatrices[options.substMatrix];
 
         this.n = this.seqA.length;
         this.m = this.seqB.length;
@@ -61,22 +61,19 @@ class Alignment {
     }
 
     private makeScoreFn () {
-        const seq1 = this.seqA;
-        const seq2 = this.seqB;
-
-        const substMatrix = this.substMatrix;
+        const { seqA, seqB, substMatrix } = this;
 
         if (substMatrix) {
             return function score (i: number, j: number) {
-                const c1 = seq1[i];
-                const c2 = seq2[j];
-                return substMatrix[c1]?.[c2] ?? -4;
+                const cA = seqA[i];
+                const cB = seqB[j];
+                return substMatrix[cA]?.[cB] ?? -4;
             };
         } else {
             return function scoreNoSubstMat (i: number, j: number) {
-                const c1 = seq1[i];
-                const c2 = seq2[j];
-                return c1 === c2 ? 5 : -3;
+                const cA = seqA[i];
+                const cB = seqB[j];
+                return cA === cB ? 5 : -3;
             };
         }
     }

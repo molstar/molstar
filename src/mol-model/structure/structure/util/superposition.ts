@@ -9,6 +9,7 @@ import { MinimizeRmsd } from '../../../../mol-math/linear-algebra/3d/minimize-rm
 import StructureElement from '../element';
 import { OrderedSet } from '../../../../mol-data/int';
 import { AlignSequences } from '../../../sequence/alignment/sequence';
+import StructureProperties from '../properties';
 
 export function superpose(xs: StructureElement.Loci[]): MinimizeRmsd.Result[] {
     const ret: MinimizeRmsd.Result[] = [];
@@ -31,16 +32,21 @@ export function superpose(xs: StructureElement.Loci[]): MinimizeRmsd.Result[] {
 }
 
 type AlignAndSuperposeResult = MinimizeRmsd.Result & { alignmentScore: number };
+const reProtein = /(polypeptide|cyclic-pseudo-peptide)/i;
 
 export function alignAndSuperpose(xs: StructureElement.Loci[]): AlignAndSuperposeResult[] {
     const ret: AlignAndSuperposeResult[] = [];
     if (xs.length <= 0) return ret;
 
+    const l = StructureElement.Loci.getFirstLocation(xs[0])!;
+    const subtype = StructureProperties.entity.subtype(l);
+    const substMatrix = subtype.match(reProtein) ? 'blosum62' : 'default';
+
     for (let i = 1; i < xs.length; i++) {
         const { a, b, score } = AlignSequences.compute({
             a: xs[0].elements[0],
-            b: xs[i].elements[0]
-        });
+            b: xs[i].elements[0],
+        }, { substMatrix });
 
         const lociA = StructureElement.Loci(xs[0].structure, [a]);
         const lociB = StructureElement.Loci(xs[i].structure, [b]);
