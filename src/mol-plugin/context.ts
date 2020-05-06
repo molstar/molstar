@@ -137,6 +137,11 @@ export class PluginContext {
         return this.state.data.build();
     }
 
+    readonly helpers = {
+        substructureParent: new SubstructureParentHelper(this),
+        viewportScreenshot: void 0 as ViewportScreenshotHelper | undefined
+    } as const;
+
     readonly managers = {
         structure: {
             hierarchy: new StructureHierarchyManager(this),
@@ -163,11 +168,6 @@ export class PluginContext {
 
     readonly customStructureControls = new Map<string, { new(): PluginUIComponent<any, any, any> }>();
     readonly genericRepresentationControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [StructureHierarchyRef[], string]>();
-
-    readonly helpers = {
-        substructureParent: new SubstructureParentHelper(this),
-        viewportScreenshot: void 0 as ViewportScreenshotHelper | undefined
-    } as const;
 
     /**
      * Used to store application specific custom state which is then available
@@ -243,6 +243,7 @@ export class PluginContext {
         this.state.dispose();
         this.tasks.dispose();
         this.layout.dispose();
+        this.helpers.substructureParent.dispose();
 
         objectForEach(this.managers, m => (m as any)?.dispose?.());
         objectForEach(this.managers.structure, m => (m as any)?.dispose?.());

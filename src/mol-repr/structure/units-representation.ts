@@ -51,7 +51,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
             if (!_structure && !structure) {
                 throw new Error('missing structure');
             } else if (structure && !_structure) {
-                // console.log(label, 'initial structure')
+                // console.log(label, 'initial structure');
                 // First call with a structure, create visuals for each group.
                 _groups = structure.unitSymmetryGroups;
                 for (let i = 0; i < _groups.length; i++) {
@@ -75,7 +75,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                     const group = _groups[i];
                     const visualGroup = oldVisuals.get(group.hashCode);
                     if (visualGroup) {
-                        // console.log(label, 'found visualGroup to reuse')
+                        // console.log(label, 'found visualGroup to reuse');
                         // console.log('old', visualGroup.group)
                         // console.log('new', group)
                         const { visual } = visualGroup;
@@ -91,7 +91,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                             applyMarkerAction(arr, Interval.ofBounds(0, arr.length), MarkerAction.RemoveHighlight);
                         }
                     } else {
-                        // console.log(label, 'did not find visualGroup to reuse, creating new')
+                        // console.log(label, 'did not find visualGroup to reuse, creating new');
                         // newGroups.push(group)
                         const visual = visualCtor(materialId);
                         const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure });
@@ -118,7 +118,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                 // })
                 // unusedVisuals.forEach(visual => visual.destroy())
             } else if (structure && structure !== _structure && Structure.areEquivalent(structure, _structure)) {
-                // console.log(label, 'structures equivalent but not identical')
+                // console.log(label, 'structures equivalent but not identical');
                 // Expects that for structures with the same hashCode,
                 // the unitSymmetryGroups are the same as well.
                 // Re-uses existing visuals for the groups of the new structure.
@@ -132,14 +132,13 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                         const promise = visualGroup.visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure });
                         if (promise) await promise;
                         visualGroup.group = group;
-
                     } else {
                         throw new Error(`expected to find visual for hashCode ${group.hashCode}`);
                     }
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
                 }
             } else {
-                // console.log(label, 'no new structure')
+                // console.log(label, 'no new structure');
                 // No new structure given, just update all visuals with new props.
                 const visualsList: [ UnitsVisual<P>, Unit.SymmetryGroup ][] = []; // TODO avoid allocation
                 visuals.forEach(({ visual, group }) => visualsList.push([ visual, group ]));

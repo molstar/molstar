@@ -13,13 +13,13 @@ import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Structure, StructureElement, StructureSelection } from '../../../mol-model/structure';
 import { Boundary } from '../../../mol-model/structure/structure/util/boundary';
 import { PluginContext } from '../../../mol-plugin/context';
-import { StateObject, StateObjectRef } from '../../../mol-state';
+import { StateObjectRef } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { structureElementStatsLabel } from '../../../mol-theme/label';
 import { arrayRemoveAtInPlace } from '../../../mol-util/array';
 import { StatefulPluginComponent } from '../../component';
 import { StructureSelectionQuery } from '../../helpers/structure-selection-query';
-import { PluginStateObject } from '../../objects';
+import { PluginStateObject as PSO } from '../../objects';
 import { UUID } from '../../../mol-util';
 import { StructureRef } from './hierarchy-state';
 
@@ -57,7 +57,8 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
     }
 
     private getEntry(s: Structure) {
-        const cell = this.plugin.helpers.substructureParent.get(s);
+        // ignore decorators to get stable ref
+        const cell = this.plugin.helpers.substructureParent.get(s, true);
         if (!cell) return;
         const ref = cell.transform.ref;
         if (!this.entries.has(ref)) {
@@ -216,7 +217,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
     private clearHistoryForStructure(structure: Structure) {
         const historyEntryToRemove: StructureSelectionHistoryEntry[] = [];
         for (const e of this.state.additionsHistory) {
-            if (e.loci.structure === structure) {
+            if (e.loci.structure.root === structure.root) {
                 historyEntryToRemove.push(e);
             }
         }
@@ -228,7 +229,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         }
     }
 
-    private onRemove(ref: string, obj: StateObject | undefined) {
+    private onRemove(ref: string, obj: PSO.Molecule.Structure | undefined) {
         if (this.entries.has(ref)) {
             this.entries.delete(ref);
             if (obj?.data) {
@@ -242,43 +243,49 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         }
     }
 
-    private onUpdate(ref: string, oldObj: StateObject | undefined, obj: StateObject) {
-        if (!PluginStateObject.Molecule.Structure.is(obj)) return;
+    private onUpdate(ref: string, oldObj: PSO.Molecule.Structure | undefined, obj: PSO.Molecule.Structure) {
+        if (!oldObj?.data) return;
 
-        if (this.entries.has(ref)) {
-            if (!PluginStateObject.Molecule.Structure.is(oldObj) || oldObj === obj || oldObj.data === obj.data) return;
+        // no change to structure
+        if (oldObj === obj || oldObj.data === obj.data) return;
 
-            // remap the old selection to be related to the new object if possible.
-            if (Structure.areUnitAndIndicesEqual(oldObj.data, obj.data)) {
-                this.entries.set(ref, remapSelectionEntry(this.entries.get(ref)!, obj.data));
+        // ignore decorators to get stable ref
+        const cell = this.plugin.helpers.substructureParent.get(obj.data, true);
+        if (!cell) return;
 
-                // remap referenceLoci & prevHighlight if needed and possible
-                if (this.referenceLoci?.structure === oldObj.data) {
-                    this.referenceLoci = StructureElement.Loci.remap(this.referenceLoci, obj.data);
-                }
+        ref = cell.transform.ref;
+        if (!this.entries.has(ref)) return;
 
-                // remap history locis if needed and possible
-                let changedHistory = false;
-                for (const e of this.state.additionsHistory) {
-                    if (e.loci.structure === oldObj.data) {
-                        e.loci = StructureElement.Loci.remap(e.loci, obj.data);
-                        changedHistory = true;
-                    }
-                }
-                if (changedHistory) this.events.additionsHistoryUpdated.next();
-            } else {
-                // clear the selection for ref
-                this.entries.set(ref, new SelectionEntry(StructureElement.Loci(obj.data, [])));
+        // remap the old selection to be related to the new object if possible.
+        if (Structure.areUnitAndIndicesEqual(oldObj.data, obj.data)) {
+            this.entries.set(ref, remapSelectionEntry(this.entries.get(ref)!, obj.data));
 
-                if (this.referenceLoci?.structure === oldObj.data) {
-                    this.referenceLoci = undefined;
-                }
-
-                this.clearHistoryForStructure(oldObj.data);
-
-                this.state.stats = void 0;
-                this.events.changed.next();
+            // remap referenceLoci & prevHighlight if needed and possible
+            if (this.referenceLoci?.structure.root === oldObj.data.root) {
+                this.referenceLoci = StructureElement.Loci.remap(this.referenceLoci, obj.data);
             }
+
+            // remap history locis if needed and possible
+            let changedHistory = false;
+            for (const e of this.state.additionsHistory) {
+                if (e.loci.structure === oldObj.data) {
+                    e.loci = StructureElement.Loci.remap(e.loci, obj.data);
+                    changedHistory = true;
+                }
+            }
+            if (changedHistory) this.events.additionsHistoryUpdated.next();
+        } else {
+            // clear the selection for ref
+            this.entries.set(ref, new SelectionEntry(StructureElement.Loci(obj.data, [])));
+
+            if (this.referenceLoci?.structure.root === oldObj.data.root) {
+                this.referenceLoci = undefined;
+            }
+
+            this.clearHistoryForStructure(oldObj.data);
+
+            this.state.stats = void 0;
+            this.events.changed.next();
         }
     }
 
@@ -456,11 +463,11 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         }));
     }
 
-    fromSelections(ref: StateObjectRef<PluginStateObject.Molecule.Structure.Selections>) {
+    fromSelections(ref: StateObjectRef<PSO.Molecule.Structure.Selections>) {
         const cell = StateObjectRef.resolveAndCheck(this.plugin.state.data, ref);
         if (!cell || !cell.obj) return;
 
-        if (!PluginStateObject.Molecule.Structure.Selections.is(cell.obj)) {
+        if (!PSO.Molecule.Structure.Selections.is(cell.obj)) {
             console.warn('fromSelections applied to wrong object type.', cell.obj);
             return;
         }
@@ -474,8 +481,9 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
     constructor(private plugin: PluginContext) {
         super({ entries: new Map(), additionsHistory: [], stats: SelectionStats() });
 
-        plugin.state.data.events.object.removed.subscribe(e => this.onRemove(e.ref, e.obj));
-        plugin.state.data.events.object.updated.subscribe(e => this.onUpdate(e.ref, e.oldObj, e.obj));
+        // listen to events from substructureParent helper to ensure it is updated
+        plugin.helpers.substructureParent.events.removed.subscribe(e => this.onRemove(e.ref, e.obj));
+        plugin.helpers.substructureParent.events.updated.subscribe(e => this.onUpdate(e.ref, e.oldObj, e.obj));
     }
 }
 
