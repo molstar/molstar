@@ -244,10 +244,9 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
     }
 
     private onUpdate(ref: string, oldObj: PSO.Molecule.Structure | undefined, obj: PSO.Molecule.Structure) {
-        if (!oldObj?.data) return;
 
         // no change to structure
-        if (oldObj === obj || oldObj.data === obj.data) return;
+        if (oldObj === obj || oldObj?.data === obj.data) return;
 
         // ignore decorators to get stable ref
         const cell = this.plugin.helpers.substructureParent.get(obj.data, true);
@@ -256,33 +255,37 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         ref = cell.transform.ref;
         if (!this.entries.has(ref)) return;
 
-        // remap the old selection to be related to the new object if possible.
-        if (Structure.areUnitAndIndicesEqual(oldObj.data, obj.data)) {
-            this.entries.set(ref, remapSelectionEntry(this.entries.get(ref)!, obj.data));
+        // use structure from last decorator as reference
+        const structure = this.plugin.helpers.substructureParent.get(obj.data)?.obj?.data;
+        if (!structure) return;
+
+        // oldObj is not defined for inserts (e.g. TransformStructureConformation)
+        if (!oldObj || Structure.areUnitAndIndicesEqual(oldObj.data, obj.data)) {
+            this.entries.set(ref, remapSelectionEntry(this.entries.get(ref)!, structure));
 
             // remap referenceLoci & prevHighlight if needed and possible
-            if (this.referenceLoci?.structure.root === oldObj.data.root) {
-                this.referenceLoci = StructureElement.Loci.remap(this.referenceLoci, obj.data);
+            if (this.referenceLoci?.structure.root === structure.root) {
+                this.referenceLoci = StructureElement.Loci.remap(this.referenceLoci, structure);
             }
 
             // remap history locis if needed and possible
             let changedHistory = false;
             for (const e of this.state.additionsHistory) {
-                if (e.loci.structure === oldObj.data) {
-                    e.loci = StructureElement.Loci.remap(e.loci, obj.data);
+                if (e.loci.structure.root === structure.root) {
+                    e.loci = StructureElement.Loci.remap(e.loci, structure);
                     changedHistory = true;
                 }
             }
             if (changedHistory) this.events.additionsHistoryUpdated.next();
         } else {
             // clear the selection for ref
-            this.entries.set(ref, new SelectionEntry(StructureElement.Loci(obj.data, [])));
+            this.entries.set(ref, new SelectionEntry(StructureElement.Loci(structure, [])));
 
-            if (this.referenceLoci?.structure.root === oldObj.data.root) {
+            if (this.referenceLoci?.structure.root === structure.root) {
                 this.referenceLoci = undefined;
             }
 
-            this.clearHistoryForStructure(oldObj.data);
+            this.clearHistoryForStructure(structure);
 
             this.state.stats = void 0;
             this.events.changed.next();
