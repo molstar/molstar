@@ -135,6 +135,17 @@ const _nucleiEntityTest = MS.core.logic.and([
     ])
 ]);
 
+/**
+ * this is to get non-polymer and peptide terminus components in polymer entities,
+ * - non-polymer, e.g. PXZ in 4HIV or generally ACE
+ * - carboxy terminus, e.g. FC0 in 4BP9, or ETA in 6DDE
+ * - amino terminus, e.g. ARF in 3K4V, or 4MM in 3EGV
+ */
+const _nonPolymerResidueTest = MS.core.str.match([
+    MS.re('non-polymer|(amino|carboxy) terminus|peptide-like', 'i'),
+    MS.ammp('chemCompType')
+]);
+
 // TODO maybe pre-calculate backbone atom properties
 const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
     MS.struct.combinator.merge([
@@ -142,6 +153,7 @@ const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'entity-test': _proteinEntityTest,
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'residue-test': MS.core.logic.not([_nonPolymerResidueTest]),
                 'atom-test': MS.core.set.has([MS.set(...SetUtils.toArray(ProteinBackboneAtoms)), MS.ammp('label_atom_id')])
             })
         ]),
@@ -149,6 +161,7 @@ const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'entity-test': _nucleiEntityTest,
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'residue-test': MS.core.logic.not([_nonPolymerResidueTest]),
                 'atom-test': MS.core.set.has([MS.set(...SetUtils.toArray(NucleicBackboneAtoms)), MS.ammp('label_atom_id')])
             })
         ])
@@ -162,6 +175,7 @@ const sidechain = StructureSelectionQuery('Sidechain', MS.struct.modifier.union(
             MS.struct.generator.atomGroups({
                 'entity-test': _proteinEntityTest,
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'residue-test': MS.core.logic.not([_nonPolymerResidueTest]),
                 'atom-test': MS.core.logic.or([
                     MS.core.logic.not([
                         MS.core.set.has([MS.set(...SetUtils.toArray(ProteinBackboneAtoms)), MS.ammp('label_atom_id')])
@@ -173,6 +187,7 @@ const sidechain = StructureSelectionQuery('Sidechain', MS.struct.modifier.union(
             MS.struct.generator.atomGroups({
                 'entity-test': _nucleiEntityTest,
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'residue-test': MS.core.logic.not([_nonPolymerResidueTest]),
                 'atom-test': MS.core.logic.or([
                     MS.core.logic.not([
                         MS.core.set.has([MS.set(...SetUtils.toArray(NucleicBackboneAtoms)), MS.ammp('label_atom_id')])
@@ -190,6 +205,7 @@ const sidechainWithTrace = StructureSelectionQuery('Sidechain with Trace', MS.st
             MS.struct.generator.atomGroups({
                 'entity-test': _proteinEntityTest,
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'residue-test': MS.core.logic.not([_nonPolymerResidueTest]),
                 'atom-test': MS.core.logic.or([
                     MS.core.logic.not([
                         MS.core.set.has([MS.set(...SetUtils.toArray(ProteinBackboneAtoms)), MS.ammp('label_atom_id')])
@@ -206,6 +222,7 @@ const sidechainWithTrace = StructureSelectionQuery('Sidechain with Trace', MS.st
             MS.struct.generator.atomGroups({
                 'entity-test': _nucleiEntityTest,
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'residue-test': MS.core.logic.not([_nonPolymerResidueTest]),
                 'atom-test': MS.core.logic.or([
                     MS.core.logic.not([
                         MS.core.set.has([MS.set(...SetUtils.toArray(NucleicBackboneAtoms)), MS.ammp('label_atom_id')])
@@ -296,18 +313,11 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
                 ])
             })
         ]),
-        // this is to get non-polymer and peptide terminus components in polymer entities,
-        // - non-polymer, e.g. PXZ in 4HIV or generally ACE
-        // - carboxy terminus, e.g. FC0 in 4BP9, or ETA in 6DDE
-        // - amino terminus, e.g. ARF in 3K4V, or 4MM in 3EGV
         MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'residue-test': MS.core.str.match([
-                    MS.re('non-polymer|(amino|carboxy) terminus|peptide-like', 'i'),
-                    MS.ammp('chemCompType')
-                ])
+                'residue-test': _nonPolymerResidueTest
             })
         ])
     ]),
