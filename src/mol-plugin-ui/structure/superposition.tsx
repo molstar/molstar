@@ -16,7 +16,7 @@ import Tune from '@material-ui/icons/Tune';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
 import { Icon } from '../controls/icons';
 import { Button, ToggleButton, IconButton } from '../controls/common';
-import { StructureElement, StructureSelection, QueryContext, Structure } from '../../mol-model/structure';
+import { StructureElement, StructureSelection, QueryContext, Structure, StructureProperties } from '../../mol-model/structure';
 import { Mat4 } from '../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StateObjectRef, StateObjectCell, StateSelection } from '../../mol-state';
@@ -221,14 +221,15 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
     }
 
     get chainEntries() {
+        const location = StructureElement.Location.create();
         const entries: LociEntry[] = [];
         this.plugin.managers.structure.selection.entries.forEach(({ selection }, ref) => {
             const cell = StateObjectRef.resolveAndCheck(this.plugin.state.data, ref);
             if (!cell || StructureElement.Loci.isEmpty(selection)) return;
 
-            // only single chain selections
-            // TODO wrongly assumes unit is equal to chain
-            if (selection.elements.length > 1) return;
+            // only single polymer chain selections
+            const l = StructureElement.Loci.getFirstLocation(selection, location)!;
+            if (selection.elements.length > 1 || StructureProperties.entity.type(l) !== 'polymer') return;
 
             const stats = StructureElement.Stats.ofLoci(selection);
             const counts = structureElementStatsLabel(stats, { countsOnly: true });
@@ -278,7 +279,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
                 {entries.map((e, i) => this.lociEntry(e, i))}
             </div>}
             {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add 2 or more selections <ToggleSelectionModeButton /> from separate structures. Selections must be limited to single chains or parts of single chains.</div>
+                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add 2 or more selections <ToggleSelectionModeButton /> from separate structures. Selections must be limited to single polymer chains or residues therein.</div>
             </div>}
             {entries.length > 1 && <Button title='Superpose structures by selected chains.' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeChains} style={{ marginTop: '1px' }}>
                 Superpose
