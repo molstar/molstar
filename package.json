@@ -34,7 +34,8 @@
     "model-server-watch": "nodemon --watch lib lib/servers/servers/model/server.js",
     "volume-server-test": "node lib/servers/servers/volume/server.js --idMap em 'test/${id}.mdb' --defaultPort 1336",
     "plugin-state": "node lib/servers/servers/plugin-state/index.js",
-    "preversion": "npm run test && npm run build",
+    "preversion": "npm run test",
+    "version": "npm run build",
     "postversion": "git push && git push --tags"
   },
   "files": [
