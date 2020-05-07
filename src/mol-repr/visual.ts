@@ -45,7 +45,7 @@ interface Visual<D, P extends PD.Params> {
     destroy: () => void
 }
 namespace Visual {
-    export type LociApply = (loci: Loci, apply: (interval: Interval) => boolean) => boolean
+    export type LociApply = (loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) => boolean
 
     export function setVisibility(renderObject: GraphicsRenderObject | undefined, visible: boolean) {
         if (renderObject) renderObject.state.visible = visible;
@@ -70,7 +70,7 @@ namespace Visual {
         if (isEveryLoci(loci)) {
             changed = applyMarkerAction(array, Interval.ofLength(count), action);
         } else if (!isEmptyLoci(loci)) {
-            changed = lociApply(loci, interval => applyMarkerAction(array, interval, action));
+            changed = lociApply(loci, interval => applyMarkerAction(array, interval, action), true);
         }
         if (changed) ValueCell.update(tMarker, tMarker.ref.value);
         return changed;
@@ -98,7 +98,7 @@ namespace Visual {
                     ? clearOverpaint(array, start, end)
                     : applyOverpaintColor(array, start, end, color, overpaint.alpha);
             };
-            lociApply(loci, apply);
+            lociApply(loci, apply, false);
         }
         ValueCell.update(tOverpaint, tOverpaint.ref.value);
     }
@@ -123,7 +123,7 @@ namespace Visual {
             const end = Interval.end(interval);
             return applyTransparencyValue(array, start, end, value);
         };
-        lociApply(loci, apply);
+        lociApply(loci, apply, false);
 
         ValueCell.update(tTransparency, tTransparency.ref.value);
     }

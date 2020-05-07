@@ -54,7 +54,7 @@ interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
     createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
     createLocationIterator(structureGroup: StructureGroup): LocationIterator
     getLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number): Loci
-    eachLocation(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean): boolean
+    eachLocation(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean): boolean
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup): void
 }
 
@@ -224,11 +224,11 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         return false;
     }
 
-    function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
+    function lociApply(loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) {
         if (lociIsSuperset(loci)) {
             return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
         } else {
-            return eachLocation(loci, currentStructureGroup, apply);
+            return eachLocation(loci, currentStructureGroup, apply, isMarking);
         }
     }
 

@@ -46,7 +46,7 @@ interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
     createGeometry(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
     createLocationIterator(structure: Structure): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
-    eachLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
+    eachLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean): boolean,
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure): void
 }
 
@@ -173,11 +173,11 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         return false;
     }
 
-    function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
+    function lociApply(loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) {
         if (lociIsSuperset(loci)) {
             return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
         } else {
-            return eachLocation(loci, currentStructure, apply);
+            return eachLocation(loci, currentStructure, apply, isMarking);
         }
     }
 

@@ -154,7 +154,7 @@ function getBondLoci(pickingId: PickingId, structureGroup: StructureGroup, id: n
     return EmptyLoci;
 }
 
-function eachBond(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+function eachBond(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean) {
     let changed = false;
     if (Bond.isLoci(loci)) {
         const { structure, group } = structureGroup;
@@ -183,7 +183,7 @@ function eachBond(loci: Loci, structureGroup: StructureGroup, apply: (interval: 
                 const { offset, b } = unit.bonds;
                 OrderedSet.forEach(e.indices, v => {
                     for (let t = offset[v], _t = offset[v + 1]; t < _t; t++) {
-                        if (OrderedSet.has(e.indices, b[t])) {
+                        if (!isMarking || OrderedSet.has(e.indices, b[t])) {
                             if (apply(Interval.ofSingleton(unitIdx * groupCount + t))) changed = true;
                         }
                     }

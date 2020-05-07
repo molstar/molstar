@@ -241,7 +241,6 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
     }
 
     get atomEntries() {
-        // TODO have stable order of structureEntries, independent of history order
         const structureEntries = new Map<Structure, StructureSelectionHistoryEntry[]>();
         const history = this.plugin.managers.structure.selection.additionsHistory;
 

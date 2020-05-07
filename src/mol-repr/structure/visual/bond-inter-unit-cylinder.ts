@@ -155,7 +155,7 @@ function getBondLoci(pickingId: PickingId, structure: Structure, id: number) {
     return EmptyLoci;
 }
 
-function eachBond(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+function eachBond(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean) {
     let changed = false;
     if (Bond.isLoci(loci)) {
         if (!Structure.areEquivalent(loci.structure, structure)) return false;
@@ -181,7 +181,7 @@ function eachBond(loci: Loci, structure: Structure, apply: (interval: Interval) 
                     OrderedSet.forEach(e.indices, v => {
                         if (!b.connectedIndices.includes(v)) return;
                         b.getEdges(v).forEach(bi => {
-                            if (OrderedSet.has(otherLociIndices, bi.indexB)) {
+                            if (!isMarking || OrderedSet.has(otherLociIndices, bi.indexB)) {
                                 const idx = structure.interUnitBonds.getEdgeIndex(v, unit, bi.indexB, b.unitB);
                                 if (apply(Interval.ofSingleton(idx))) changed = true;
                             }
