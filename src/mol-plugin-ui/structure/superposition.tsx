@@ -278,7 +278,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
                 {entries.map((e, i) => this.lociEntry(e, i))}
             </div>}
             {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add 2 or more selections <ToggleSelectionModeButton /> from separate structures. Selections must be limited to single polymer chains or residues therein.</div>
+                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add 2 or more selections (toggle <ToggleSelectionModeButton inline /> mode) from separate structures. Selections must be limited to single polymer chains or residues therein.</div>
             </div>}
             {entries.length > 1 && <Button title='Superpose structures by selected chains.' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeChains} style={{ marginTop: '1px' }}>
                 Superpose
@@ -293,7 +293,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
                 {entries.map((e, i) => this.atomsLociEntry(e, i))}
             </div>}
             {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add 1 or more selections <ToggleSelectionModeButton /> from
+                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add 1 or more selections (toggle <ToggleSelectionModeButton inline /> mode) from
                 separate structures. Selections must be limited to single atoms.</div>
             </div>}
             {entries.length > 1 && <Button title='Superpose structures by selected atoms.' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeAtoms} style={{ marginTop: '1px' }}>

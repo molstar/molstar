@@ -172,7 +172,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
                 {entries}
             </div>}
             {entries.length === 0 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description' style={{ padding: 0 }}><Icon svg={HelpOutline} inline />Add one or more selections <ToggleSelectionModeButton /></div>
+                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add one or more selections (toggle <ToggleSelectionModeButton inline /> mode)</div>
             </div>}
         </>;
     }

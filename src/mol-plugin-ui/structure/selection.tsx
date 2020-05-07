@@ -30,7 +30,7 @@ import Structure from '../../mol-model/structure/structure/structure';
 import { ViewportHelpContent, HelpGroup, HelpText } from '../viewport/help';
 
 
-export class ToggleSelectionModeButton extends PurePluginUIComponent {
+export class ToggleSelectionModeButton extends PurePluginUIComponent<{ inline?: boolean }> {
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
@@ -42,7 +42,10 @@ export class ToggleSelectionModeButton extends PurePluginUIComponent {
     }
 
     render() {
-        return <IconButton svg={CursorSvg} onClick={this._toggleSelMode} title={'Toggle Selection Mode'} style={{ background: 'transparent' }} toggleState={this.plugin.selectionMode} />;
+        const style = this.props.inline
+            ? { background: 'transparent', width: 'auto', height: 'auto', lineHeight: 'unset' }
+            : { background: 'transparent' };
+        return <IconButton svg={CursorSvg} onClick={this._toggleSelMode} title={'Toggle Selection Mode'} style={style} toggleState={this.plugin.selectionMode} />;
     }
 }
 
