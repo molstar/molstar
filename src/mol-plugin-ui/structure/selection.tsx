@@ -10,7 +10,6 @@ import CancelOutlined from '@material-ui/icons/CancelOutlined';
 import Brush from '@material-ui/icons/Brush';
 import Restore from '@material-ui/icons/Restore';
 import Remove from '@material-ui/icons/Remove';
-import SelectAll from '@material-ui/icons/SelectAll';
 import HelpOutline from '@material-ui/icons/HelpOutline';
 import * as React from 'react';
 import { StructureSelectionQueries, StructureSelectionQuery, getNonStandardResidueQueries, getElementQueries, getPolymerAndBranchedEntityQueries } from '../../mol-plugin-state/helpers/structure-selection-query';
@@ -25,7 +24,7 @@ import { PluginUIComponent, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ControlGroup, IconButton, ToggleButton } from '../controls/common';
 import { ParameterControls, ParamOnChange, PureSelectControl } from '../controls/parameters';
-import { Union, Subtract, Intersect, SetSvg as SetSvg, CubeSvg, Icon } from '../controls/icons';
+import { UnionSvg, SubtractSvg, IntersectSvg, SetSvg, CubeSvg, Icon, CursorSvg } from '../controls/icons';
 import { AddComponentControls } from './components';
 import Structure from '../../mol-model/structure/structure/structure';
 import { ViewportHelpContent, HelpGroup, HelpText } from '../viewport/help';
@@ -43,7 +42,7 @@ export class ToggleSelectionModeButton extends PurePluginUIComponent {
     }
 
     render() {
-        return <IconButton svg={SelectAll} onClick={this._toggleSelMode} title={'Toggle Selection Mode'} style={{ background: 'transparent' }} toggleState={this.plugin.selectionMode} />;
+        return <IconButton svg={CursorSvg} onClick={this._toggleSelMode} title={'Toggle Selection Mode'} style={{ background: 'transparent' }} toggleState={this.plugin.selectionMode} />;
     }
 }
 
@@ -195,9 +194,9 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         return <>
             <div className='msp-flex-row' style={{ background: 'none' }}>
                 <PureSelectControl title={`Picking Level for selecting and highlighting`} param={StructureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />
-                <ToggleButton icon={Union} title={`${ActionHeader.get('add')}. Hold shift key to keep menu open.`} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
-                <ToggleButton icon={Subtract} title={`${ActionHeader.get('remove')}. Hold shift key to keep menu open.`} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
-                <ToggleButton icon={Intersect} title={`${ActionHeader.get('intersect')}. Hold shift key to keep menu open.`} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
+                <ToggleButton icon={UnionSvg} title={`${ActionHeader.get('add')}. Hold shift key to keep menu open.`} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
+                <ToggleButton icon={SubtractSvg} title={`${ActionHeader.get('remove')}. Hold shift key to keep menu open.`} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
+                <ToggleButton icon={IntersectSvg} title={`${ActionHeader.get('intersect')}. Hold shift key to keep menu open.`} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
                 <ToggleButton icon={SetSvg} title={`${ActionHeader.get('set')}. Hold shift key to keep menu open.`} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
 
                 <ToggleButton icon={Brush} title='Color Selection' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} style={{ marginLeft: '10px' }}  />
@@ -224,7 +223,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
             {this.state.action === 'help' && <div className='msp-selection-viewport-controls-actions'>
                 <ControlGroup header='Help' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleHelp} topRightIcon={Close} maxHeight='300px'>
                     <HelpGroup header='Selection Operations'>
-                        <HelpText>Use <Icon svg={Union} inline /> <Icon svg={Subtract} inline /> <Icon svg={Intersect} inline /> <Icon svg={SetSvg} inline /> to modify the selection.</HelpText>
+                        <HelpText>Use <Icon svg={UnionSvg} inline /> <Icon svg={SubtractSvg} inline /> <Icon svg={IntersectSvg} inline /> <Icon svg={SetSvg} inline /> to modify the selection.</HelpText>
                     </HelpGroup>
                     <HelpGroup header='Representation Operations'>
                         <HelpText>Use <Icon svg={Brush} inline /> <Icon svg={CubeSvg} inline /> <Icon svg={Remove} inline /> <Icon svg={Restore} inline /> to color, create selection/representation, subtract it, or undo actions.</HelpText>

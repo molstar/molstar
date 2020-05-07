@@ -24,7 +24,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ExpandGroup, IconButton, ToggleButton } from '../controls/common';
-import { CubeSvg, Intersect, SetSvg, Subtract, Union } from '../controls/icons';
+import { CubeSvg, IntersectSvg, SetSvg, SubtractSvg, UnionSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 import { GenericEntryListControls } from './generic';
@@ -267,9 +267,9 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         if (mng.canBeModified(this.props.group[0])) {
             ret.push([
                 ActionMenu.Header('Modify by Selection'),
-                ActionMenu.Item('Include', () => mng.modifyByCurrentSelection(this.props.group, 'union'), { icon: Union }),
-                ActionMenu.Item('Subtract', () => mng.modifyByCurrentSelection(this.props.group, 'subtract'), { icon: Subtract }),
-                ActionMenu.Item('Intersect', () => mng.modifyByCurrentSelection(this.props.group, 'intersect'), { icon: Intersect })
+                ActionMenu.Item('Include', () => mng.modifyByCurrentSelection(this.props.group, 'union'), { icon: UnionSvg }),
+                ActionMenu.Item('Subtract', () => mng.modifyByCurrentSelection(this.props.group, 'subtract'), { icon: SubtractSvg }),
+                ActionMenu.Item('Intersect', () => mng.modifyByCurrentSelection(this.props.group, 'intersect'), { icon: IntersectSvg })
             ]);
         }
 
