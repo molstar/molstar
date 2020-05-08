@@ -42,7 +42,7 @@ const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         return Task.create('Create volume from CCP4/MRC/MAP', async ctx => {
             const volume = await volumeFromCcp4(a.data, { ...params, label: a.data.name || a.label }).runInContext(ctx);
-            const props = { label: volume.label || 'Volume', description: 'Volume' };
+            const props = { label: volume.label || 'Volume', description: `Volume ${a.data.header.NX}\u00D7${a.data.header.NX}\u00D7${a.data.header.NX}` };
             return new SO.Volume.Data(volume, props);
         });
     }
@@ -63,7 +63,7 @@ const VolumeFromDsn6 = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         return Task.create('Create volume from DSN6/BRIX', async ctx => {
             const volume = await volumeFromDsn6(a.data, { ...params, label: a.data.name || a.label }).runInContext(ctx);
-            const props = { label: volume.label || 'Volume', description: 'Volume' };
+            const props = { label: volume.label || 'Volume', description: `Volume ${a.data.header.xExtent}\u00D7${a.data.header.yExtent}\u00D7${a.data.header.zExtent}` };
             return new SO.Volume.Data(volume, props);
         });
     }
@@ -85,7 +85,7 @@ const VolumeFromCube = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         return Task.create('Create volume from Cube', async ctx => {
             const volume = await volumeFromCube(a.data, { ...params, label: a.data.name || a.label }).runInContext(ctx);
-            const props = { label: volume.label || 'Volume', description: 'Volume' };
+            const props = { label: volume.label || 'Volume', description: `Volume ${a.data.header.dim[0]}\u00D7${a.data.header.dim[1]}\u00D7${a.data.header.dim[2]}` };
             return new SO.Volume.Data(volume, props);
         });
     }
@@ -102,8 +102,7 @@ const VolumeFromDx = PluginStateTransform.BuiltIn({
         return Task.create('Parse DX', async ctx => {
             console.log(a);
             const volume = await volumeFromDx(a.data, { label: a.data.name || a.label }).runInContext(ctx);
-            console.log(volume);
-            const props = { label: volume.label || 'Volume', description: 'Volume' };
+            const props = { label: volume.label || 'Volume', description: `Volume ${a.data.header.dim[0]}\u00D7${a.data.header.dim[1]}\u00D7${a.data.header.dim[2]}` };
             return new SO.Volume.Data(volume, props);
         });
     }
@@ -135,7 +134,8 @@ const VolumeFromDensityServerCif = PluginStateTransform.BuiltIn({
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
             const densityServerCif = CIF.schema.densityServer(block);
             const volume = await volumeFromDensityServerData(densityServerCif).runInContext(ctx);
-            const props = { label: densityServerCif.volume_data_3d_info.name.value(0), description: `${densityServerCif.volume_data_3d_info.name.value(0)}` };
+            const [x, y, z] = volume.grid.cells.space.dimensions;
+            const props = { label: densityServerCif.volume_data_3d_info.name.value(0), description: `Volume ${x}\u00D7${y}\u00D7${z}` };
             return new SO.Volume.Data(volume, props);
         });
     }
