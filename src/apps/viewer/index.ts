@@ -25,6 +25,8 @@ import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 require('mol-plugin-ui/skin/light.scss');
 
+export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
+
 const Extensions = {
     'cellpack': PluginSpec.Behavior(CellPack),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
