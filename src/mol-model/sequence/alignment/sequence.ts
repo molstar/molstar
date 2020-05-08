@@ -24,16 +24,26 @@ namespace AlignSequences {
 
     function createSeqIdIndicesMap(element: StructureElement.Loci.Element) {
         const seqIds = new Map<number, StructureElement.UnitIndex[]>();
-        if (!Unit.isAtomic(element.unit)) return seqIds;
-
-        const { label_seq_id } = element.unit.model.atomicHierarchy.residues;
-        const { residueIndex } = element.unit;
-        for (let i = 0, il = OrderedSet.size(element.indices); i < il; ++i) {
-            const uI = OrderedSet.getAt(element.indices, i);
-            const eI = element.unit.elements[uI];
-            const seqId = label_seq_id.value(residueIndex[eI]);
-            if (seqIds.has(seqId)) seqIds.get(seqId)!.push(uI);
-            else seqIds.set(seqId, [uI]);
+        if (Unit.isAtomic(element.unit)) {
+            const { label_seq_id } = element.unit.model.atomicHierarchy.residues;
+            const { residueIndex } = element.unit;
+            for (let i = 0, il = OrderedSet.size(element.indices); i < il; ++i) {
+                const uI = OrderedSet.getAt(element.indices, i);
+                const eI = element.unit.elements[uI];
+                const seqId = label_seq_id.value(residueIndex[eI]);
+                if (seqIds.has(seqId)) seqIds.get(seqId)!.push(uI);
+                else seqIds.set(seqId, [uI]);
+            }
+        } else if (Unit.isCoarse(element.unit)) {
+            const { seq_id_begin } = Unit.isSpheres(element.unit)
+                ? element.unit.model.coarseHierarchy.spheres
+                : element.unit.model.coarseHierarchy.gaussians;
+            for (let i = 0, il = OrderedSet.size(element.indices); i < il; ++i) {
+                const uI = OrderedSet.getAt(element.indices, i);
+                const eI = element.unit.elements[uI];
+                const seqId = seq_id_begin.value(eI);
+                seqIds.set(seqId, [uI]);
+            }
         }
         return seqIds;
     }
