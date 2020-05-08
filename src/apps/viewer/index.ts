@@ -23,9 +23,11 @@ import { ObjectKeys } from '../../mol-util/type-helpers';
 import { PluginState } from '../../mol-plugin/state';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
+
 require('mol-plugin-ui/skin/light.scss');
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
+export { setProductionMode, setDebugMode } from '../../mol-util/debug';
 
 const Extensions = {
     'cellpack': PluginSpec.Behavior(CellPack),

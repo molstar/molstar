@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,13 +16,12 @@ let isProductionMode = process.env.NODE_ENV === 'production';
  */
 let isDebugMode = process.env.DEBUG === '*' || process.env.DEBUG === 'molstar';
 
-if (typeof window !== 'undefined' && !(window as any).setMolStarDebugMode) {
-    try {
-        (window as any).setMolStarDebugMode = function setMolStarDebugMode(isDebug?: boolean, isProduction?: boolean) {
-            if (typeof isDebug !== 'undefined') isDebugMode = isDebug;
-            if (typeof isProduction !== 'undefined') isProductionMode = isProduction;
-        };
-    } catch { }
+export { isProductionMode, isDebugMode };
+
+export function setProductionMode(value?: boolean) {
+    if (typeof value !== 'undefined') isProductionMode = value;
 }
 
-export { isProductionMode, isDebugMode };
+export function setDebugMode(value?: boolean) {
+    if (typeof value !== 'undefined') isDebugMode = value;
+}
