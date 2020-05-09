@@ -231,6 +231,8 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
 
                 if (PluginStateSnapshotManager.isStateSnapshot(snapshot)) {
                     return this.setStateSnapshot(snapshot);
+                } else if (PluginStateSnapshotManager.isStateSnapshot(snapshot.data)) {
+                    return this.setStateSnapshot(snapshot.data);
                 } else {
                     this.plugin.state.setSnapshot(snapshot);
                 }
@@ -330,7 +332,7 @@ namespace PluginStateSnapshotManager {
         snapshot: PluginState.Snapshot
     }
 
-    export function Entry(snapshot: PluginState.Snapshot, params: {name?: string, description?: string }): Entry {
+    export function Entry(snapshot: PluginState.Snapshot, params: { name?: string, description?: string }): Entry {
         return { timestamp: +new Date(), snapshot, ...params };
     }
 
