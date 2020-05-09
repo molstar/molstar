@@ -362,8 +362,17 @@ namespace Canvas3D {
 
             camera.setState({ radiusMax: scene.boundingSphere.radius }, 0);
             reprCount.next(reprRenderObjects.size);
+            if (isDebugMode) consoleStats();
 
             return true;
+        }
+
+        function consoleStats() {
+            console.table(scene.renderables.map(r => ({
+                drawCount: r.values.drawCount.ref.value,
+                instanceCount: r.values.instanceCount.ref.value,
+                materialId: r.materialId,
+            })));
         }
 
         function add(repr: Representation.Any) {
@@ -384,6 +393,7 @@ namespace Canvas3D {
             reprRenderObjects.set(repr, newRO);
 
             scene.update(repr.renderObjects, false);
+            if (isDebugMode) consoleStats();
         }
 
         function remove(repr: Representation.Any) {
@@ -394,6 +404,7 @@ namespace Canvas3D {
                 renderObjects.forEach(o => scene.remove(o));
                 reprRenderObjects.delete(repr);
                 scene.update(repr.renderObjects, false, true);
+                if (isDebugMode) consoleStats();
             }
         }
 
