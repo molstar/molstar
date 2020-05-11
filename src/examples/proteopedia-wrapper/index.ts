@@ -89,9 +89,12 @@ class MolStarProteopediaWrapper {
     private structure(assemblyId: string) {
         const model = this.state.build().to(StateElements.Model);
         const props = {
-            type: {
+            type: assemblyId ? {
                 name: 'assembly' as const,
-                params: { id: assemblyId || 'deposited' }
+                params: { id: assemblyId }
+            } : {
+                name: 'model' as const,
+                params: { }
             }
         };
 
@@ -196,7 +199,7 @@ class MolStarProteopediaWrapper {
 
     private emptyLoadedParams: LoadParams = { url: '', format: 'cif', isBinary: false, assemblyId: '' };
     private loadedParams: LoadParams = { url: '', format: 'cif', isBinary: false, assemblyId: '' };
-    async load({ url, format = 'cif', assemblyId = 'deposited', isBinary = false, representationStyle }: LoadParams) {
+    async load({ url, format = 'cif', assemblyId = '', isBinary = false, representationStyle }: LoadParams) {
         let loadType: 'full' | 'update' = 'full';
 
         const state = this.plugin.state.data;
@@ -220,9 +223,12 @@ class MolStarProteopediaWrapper {
             const info = await this.doInfo(true);
             const asmId = (assemblyId === 'preferred' && info && info.preferredAssemblyId) || assemblyId;
             const props = {
-                type: {
+                type: assemblyId ? {
                     name: 'assembly' as const,
-                    params: { id: asmId || 'deposited' }
+                    params: { id: asmId }
+                } : {
+                    name: 'model' as const,
+                    params: { }
                 }
             };
             tree.to(StateElements.Assembly).update(StateTransforms.Model.StructureFromModel, p => ({ ...p, ...props }));

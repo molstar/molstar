@@ -43,7 +43,7 @@ const defaultPreset = TrajectoryHierarchyPresetProvider({
     id: 'preset-trajectory-default',
     display: {
         name: 'Default (Assembly)', group: 'Preset',
-        description: 'Shows the first assembly or, if that is unavailable, the first deposited model.'
+        description: 'Shows the first assembly or, if that is unavailable, the first model.'
     },
     isApplicable: o => {
         return true;
@@ -93,7 +93,7 @@ const allModels = TrajectoryHierarchyPresetProvider({
         for (let i = 0; i < tr.length; i++) {
             const model = await builder.createModel(trajectory, { modelIndex: i });
             const modelProperties = await builder.insertModelProperties(model, params.modelProperties, { isCollapsed: true });
-            const structure = await builder.createStructure(modelProperties || model, { name: 'deposited', params: {} });
+            const structure = await builder.createStructure(modelProperties || model, { name: 'model', params: {} });
             const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
             models.push(model);

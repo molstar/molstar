@@ -371,7 +371,7 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
 type StructureFromModel = typeof StructureFromModel
 const StructureFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-from-model',
-    display: { name: 'Structure', description: 'Create a molecular structure (deposited, assembly, or symmetry) from the specified model.' },
+    display: { name: 'Structure', description: 'Create a molecular structure (model, assembly, or symmetry) from the specified model.' },
     from: SO.Molecule.Model,
     to: SO.Molecule.Structure,
     params(a) { return RootStructureDefinition.getParams(a && a.data); }

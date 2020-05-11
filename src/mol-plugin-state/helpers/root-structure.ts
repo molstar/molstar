@@ -17,7 +17,7 @@ import { PluginStateObject as SO } from '../objects';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 
 export namespace RootStructureDefinition {
-    export function getParams(model?: Model, defaultValue?: 'auto' | 'deposited' | 'assembly' | 'symmetry' | 'symmetry-mates' | 'symmetry-assembly') {
+    export function getParams(model?: Model, defaultValue?: 'auto' | 'model' | 'assembly' | 'symmetry' | 'symmetry-mates' | 'symmetry-assembly') {
         const symmetry = model && ModelSymmetry.Provider.get(model);
 
         const assemblyIds = symmetry ? symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]) : [];
@@ -41,7 +41,7 @@ export namespace RootStructureDefinition {
 
         const modes = {
             auto: PD.EmptyGroup(),
-            deposited: PD.EmptyGroup(),
+            model: PD.EmptyGroup(),
             assembly: PD.Group({
                 id: PD.Optional(model
                     ? PD.Select(assemblyIds.length ? assemblyIds[0][0] : '', assemblyIds, { label: 'Asm Id', description: 'Assembly Id' })
@@ -75,7 +75,7 @@ export namespace RootStructureDefinition {
             options.push(['auto', 'Auto']);
         }
 
-        options.push(['deposited', 'Deposited']);
+        options.push(['model', 'Model']);
 
         if (assemblyIds.length > 0) {
             options.push(['assembly', 'Assembly']);
@@ -88,7 +88,7 @@ export namespace RootStructureDefinition {
         }
 
         return {
-            type: PD.MappedStatic(defaultValue || 'deposited', modes, { options })
+            type: PD.MappedStatic(defaultValue || 'model', modes, { options })
         };
     }
 
@@ -110,19 +110,17 @@ export namespace RootStructureDefinition {
         }
 
         if (!symmetry || symmetry.assemblies.length === 0) {
-            if (id !== 'deposited') {
-                plugin.log.warn(`Model '${model.entryId}' has no assembly, returning deposited structure.`);
-            }
+            plugin.log.warn(`Model '${model.entryId}' has no assembly, returning model structure.`);
         } else {
             asm = Symmetry.findAssembly(model, id || '');
             if (!asm) {
-                plugin.log.warn(`Model '${model.entryId}' has no assembly called '${id}', returning deposited structure.`);
+                plugin.log.warn(`Model '${model.entryId}' has no assembly called '${id}', returning model structure.`);
             }
         }
 
         const base = Structure.ofModel(model);
         if (!asm) {
-            const label = { label: 'Deposited', description: Structure.elementDescription(base) };
+            const label = { label: 'Model', description: Structure.elementDescription(base) };
             return new SO.Molecule.Structure(base, label);
         }
 
@@ -155,14 +153,14 @@ export namespace RootStructureDefinition {
 
     export async function create(plugin: PluginContext, ctx: RuntimeContext, model: Model, params?: Params): Promise<SO.Molecule.Structure> {
         const symmetry = ModelSymmetry.Provider.get(model);
-        if (!symmetry || !params || params.name === 'deposited') {
+        if (!symmetry || !params || params.name === 'model') {
             const s = Structure.ofModel(model);
-            return new SO.Molecule.Structure(s, { label: 'Deposited', description: Structure.elementDescription(s) });
+            return new SO.Molecule.Structure(s, { label: 'Model', description: Structure.elementDescription(s) });
         }
         if (params.name === 'auto') {
             if (symmetry.assemblies.length === 0) {
                 const s = Structure.ofModel(model);
-                return new SO.Molecule.Structure(s, { label: 'Deposited', description: Structure.elementDescription(s) });
+                return new SO.Molecule.Structure(s, { label: 'Model', description: Structure.elementDescription(s) });
             } else {
                 return buildAssembly(plugin, ctx, model);
             }

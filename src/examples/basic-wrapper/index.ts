@@ -56,7 +56,13 @@ class BasicWrapper {
         const trajectory = await this.plugin.builders.structure.parseTrajectory(data, format);
 
         await this.plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
-            structure: assemblyId ? { name: 'assembly', params: { id: assemblyId } } : { name: 'deposited', params: { } },
+            structure: assemblyId ? {
+                name: 'assembly',
+                params: { id: assemblyId }
+            } : {
+                name: 'model',
+                params: { }
+            },
             showUnitcell: false,
             representationPreset: 'auto'
         });

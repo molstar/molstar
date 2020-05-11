@@ -88,10 +88,6 @@
             $('isBinary').checked = isBinary;
             $('isBinary').onchange = function (e) { isBinary = !!e.target.checked; };
 
-            // var url = 'https://www.ebi.ac.uk/pdbe/entry-files/pdb' + pdbId + '.ent';
-            // var format = 'pdb';
-            // var assemblyId = 'deposited';
-
             function loadAndSnapshot(params) {
                 PluginWrapper.load(params).then(() => {
                     setTimeout(() => snapshot = PluginWrapper.plugin.state.getSnapshot({ canvas3d: false /* do not save spinning state */ }), 500);

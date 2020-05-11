@@ -90,7 +90,7 @@ export class StructureBuilder {
             const model = StateObjectRef.resolveAndCheck(state, modelRef);
             if (model) {
                 const symm = ModelSymmetry.Provider.get(model.obj?.data!);
-                if (!symm || symm?.assemblies.length === 0) params = { name: 'deposited', params: { } };
+                if (!symm || symm?.assemblies.length === 0) params = { name: 'model', params: { } };
             }
         }
 
