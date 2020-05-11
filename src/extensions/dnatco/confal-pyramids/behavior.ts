@@ -6,6 +6,7 @@
  */
 
 import { ConfalPyramidsProvider } from './property';
+import { ConfalPyramidsRepresentationProvider } from './representation';
 import { Loci } from '../../../mol-model/loci';
 import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -34,7 +35,9 @@ export const DnatcoConfalPyramids = PluginBehavior.create<{ autoAttach: boolean,
             this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
             this.ctx.managers.lociLabels.addProvider(this.labelConfalPyramids);
 
-            /* TODO: Add color and visual providers */
+            this.ctx.representation.structure.registry.add(ConfalPyramidsRepresentationProvider);
+
+            /* TODO: Add color provider */
         }
 
         update(p: { autoAttach: boolean, showToolTip: boolean }) {
@@ -49,7 +52,9 @@ export const DnatcoConfalPyramids = PluginBehavior.create<{ autoAttach: boolean,
             this.ctx.customModelProperties.unregister(ConfalPyramidsProvider.descriptor.name);
             this.ctx.managers.lociLabels.removeProvider(this.labelConfalPyramids);
 
-            /* TODO: Unregister color and visual providers */
+            this.ctx.representation.structure.registry.remove(ConfalPyramidsRepresentationProvider);
+
+            /* TODO: Unregister color provider */
         }
     },
     params: () => ({
