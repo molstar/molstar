@@ -3,7 +3,6 @@ const webpack = require('webpack');
 const ExtraWatchWebpackPlugin = require('extra-watch-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const VersionFile = require('webpack-version-file-plugin');
-// const CircularDependencyPlugin = require('circular-dependency-plugin');
 
 const sharedConfig = {
     module: {
@@ -20,18 +19,12 @@ const sharedConfig = {
                 use: [
                     MiniCssExtractPlugin.loader,
                     { loader: 'css-loader', options: { sourceMap: false } },
-                    { loader: 'resolve-url-loader', options: { sourceMap: false } },
                     { loader: 'sass-loader', options: { sourceMap: false } },
                 ]
             }
         ]
     },
     plugins: [
-        // new CircularDependencyPlugin({
-        //     include: [ path.resolve(__dirname, 'lib/') ],
-        //     failOnError: false,
-        //     cwd: process.cwd(),
-        // }),
         new ExtraWatchWebpackPlugin({
             files: [
                 './lib/**/*.scss',
@@ -39,8 +32,6 @@ const sharedConfig = {
             ],
         }),
         new webpack.DefinePlugin({
-            // __VERSION__: webpack.DefinePlugin.runtimeValue(() => JSON.stringify(require('./package.json').version), true),
-            // __VERSION_TIMESTAMP__: webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true),
             'process.env.DEBUG': JSON.stringify(process.env.DEBUG)
         }),
         new MiniCssExtractPlugin({ filename: 'molstar.css',  }),
