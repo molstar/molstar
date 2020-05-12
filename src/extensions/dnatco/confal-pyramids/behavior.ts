@@ -5,6 +5,7 @@
  * @author Jiří Černý <jiri.cerny@ibt.cas.cz>
  */
 
+import { ConfalPyramidsColorThemeProvider } from './color';
 import { ConfalPyramidsProvider } from './property';
 import { ConfalPyramidsRepresentationProvider } from './representation';
 import { Loci } from '../../../mol-model/loci';
@@ -35,9 +36,8 @@ export const DnatcoConfalPyramids = PluginBehavior.create<{ autoAttach: boolean,
             this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
             this.ctx.managers.lociLabels.addProvider(this.labelConfalPyramids);
 
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(ConfalPyramidsColorThemeProvider);
             this.ctx.representation.structure.registry.add(ConfalPyramidsRepresentationProvider);
-
-            /* TODO: Add color provider */
         }
 
         update(p: { autoAttach: boolean, showToolTip: boolean }) {
@@ -53,8 +53,7 @@ export const DnatcoConfalPyramids = PluginBehavior.create<{ autoAttach: boolean,
             this.ctx.managers.lociLabels.removeProvider(this.labelConfalPyramids);
 
             this.ctx.representation.structure.registry.remove(ConfalPyramidsRepresentationProvider);
-
-            /* TODO: Unregister color provider */
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(ConfalPyramidsColorThemeProvider);
         }
     },
     params: () => ({

@@ -23,7 +23,6 @@ import { StructureRepresentation, StructureRepresentationProvider, StructureRepr
 import { StructureGroup, UnitsMeshParams, UnitsMeshVisual, UnitsVisual } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { VisualContext } from '../../../mol-repr/visual';
-import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Theme, ThemeRegistryContext } from '../../../mol-theme/theme';
 import { NullLocation } from '../../../mol-model/location';
@@ -159,7 +158,7 @@ export const ConfalPyramidsRepresentationProvider = StructureRepresentationProvi
     factory: ConfalPyramidsRepresentation,
     getParams: getConfalPyramidsParams,
     defaultValues: PD.getDefaultValues(ConfalPyramidsParams),
-    defaultColorTheme: { name: 'uniform', props: { value: Color(0xFF3D5A) } }, // TODO: Change to the actual color theme once it is implemented
+    defaultColorTheme: { name: 'confal-pyramids' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.models.some(m => ConfalPyramids.isApplicable(m)),
     ensureCustomProperties: {
