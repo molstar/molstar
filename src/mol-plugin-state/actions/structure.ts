@@ -61,10 +61,6 @@ const DownloadStructure = StateAction.build({
                     }, { pivot: 'id' }),
                     options
                 }, { isFlat: true, label: 'PDBDEV' }),
-                'bcif-static': PD.Group({
-                    id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma/space separated PDB ids.' }),
-                    options
-                }, { isFlat: true, label: 'BinaryCIF (static PDBe Updated)' }),
                 'swissmodel': PD.Group({
                     id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
                     options
@@ -117,10 +113,6 @@ const DownloadStructure = StateAction.build({
                 id => id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`,
                 src.params.provider.encoding === 'bcif'
             );
-            asTrajectory = !!src.params.options.asTrajectory;
-            break;
-        case 'bcif-static':
-            downloadParams = getDownloadParams(src.params.id, id => `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${id.toLowerCase()}`, id => `BinaryCIF: ${id}`, true);
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'swissmodel':
