@@ -14,10 +14,9 @@ import { Subject } from 'rxjs';
 import { ViewportScreenshotHelper } from '../../mol-plugin/util/viewport-screenshot';
 import { Button, ExpandGroup } from '../controls/common';
 import { CameraHelperProps } from '../../mol-canvas3d/helper/camera-helper';
-import GetApp from '@material-ui/icons/GetApp';
-import Launch from '@material-ui/icons/Launch';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateExportImportControls, LocalStateSnapshotParams } from '../state/snapshots';
+import { GetAppSvg, LaunchSvg } from '../controls/icons';
 
 interface ImageControlsState {
     showPreview: boolean
@@ -141,8 +140,8 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                 <span>Right-click the image to Copy.</span>
             </div>
             <div className='msp-flex-row'>
-                <Button icon={GetApp} onClick={this.download} disabled={this.state.isDisabled}>Download</Button>
-                <Button icon={Launch} onClick={this.openTab} disabled={this.state.isDisabled}>Open in new Tab</Button>
+                <Button icon={GetAppSvg} onClick={this.download} disabled={this.state.isDisabled}>Download</Button>
+                <Button icon={LaunchSvg} onClick={this.openTab} disabled={this.state.isDisabled}>Open in new Tab</Button>
             </div>
             <ParameterControls params={this.plugin.helpers.viewportScreenshot!.params} values={this.plugin.helpers.viewportScreenshot!.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
             <ExpandGroup header='State'>

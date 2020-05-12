@@ -5,15 +5,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Add from '@material-ui/icons/Add';
-import ArrowDownward from '@material-ui/icons/ArrowDownward';
-import ArrowUpward from '@material-ui/icons/ArrowUpward';
-import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
-import HelpOutline from '@material-ui/icons/HelpOutline';
-import MoreHoriz from '@material-ui/icons/MoreHoriz';
-import Tune from '@material-ui/icons/Tune';
-import VisibilityOffOutlined from '@material-ui/icons/VisibilityOffOutlined';
-import VisibilityOutlined from '@material-ui/icons/VisibilityOutlined';
 import * as React from 'react';
 import { Loci } from '../../mol-model/loci';
 import { StructureElement } from '../../mol-model/structure';
@@ -26,7 +17,7 @@ import { FiniteArray } from '../../mol-util/type-helpers';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ExpandGroup, IconButton, ToggleButton } from '../controls/common';
-import { Icon, RulerSvg, SetSvg } from '../controls/icons';
+import { Icon, RulerSvg, SetSvg, ArrowUpwardSvg, ArrowDownwardSvg, DeleteOutlinedSvg, HelpOutlineSvg, AddSvg, TuneSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, MoreHorizSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 import { ToggleSelectionModeButton } from './selection';
@@ -152,9 +143,9 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
             <Button noOverflow title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={this.plugin.managers.interactivity.lociHighlights.clearHighlights}>
                 {idx}. <span dangerouslySetInnerHTML={{ __html: e.label }} />
             </Button>
-            {history.length > 1 && <IconButton svg={ArrowUpward} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'up')} flex='20px' title={'Move up'} />}
-            {history.length > 1 && <IconButton svg={ArrowDownward} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'down')} flex='20px' title={'Move down'} />}
-            <IconButton svg={DeleteOutlined} small={true} className='msp-form-control' onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')} flex title={'Remove'} />
+            {history.length > 1 && <IconButton svg={ArrowUpwardSvg} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'up')} flex='20px' title={'Move up'} />}
+            {history.length > 1 && <IconButton svg={ArrowDownwardSvg} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'down')} flex='20px' title={'Move down'} />}
+            <IconButton svg={DeleteOutlinedSvg} small={true} className='msp-form-control' onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')} flex title={'Remove'} />
         </div>;
     }
 
@@ -172,7 +163,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
                 {entries}
             </div>}
             {entries.length === 0 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add one or more selections (toggle <ToggleSelectionModeButton inline /> mode)</div>
+                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add one or more selections (toggle <ToggleSelectionModeButton inline /> mode)</div>
             </div>}
         </>;
     }
@@ -180,8 +171,8 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
     render() {
         return <>
             <div className='msp-flex-row'>
-                <ToggleButton icon={Add} label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.state.isBusy} className='msp-btn-apply-simple' />
-                <ToggleButton icon={Tune} label='' title='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px', padding: 0 }} />
+                <ToggleButton icon={AddSvg} label='Add' toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.state.isBusy} className='msp-btn-apply-simple' />
+                <ToggleButton icon={TuneSvg} label='' title='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.action === 'add' && this.add()}
             {this.state.action === 'options' && <MeasurementsOptions />}
@@ -297,9 +288,9 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
                 <button className='msp-form-control msp-control-button-label msp-no-overflow' title='Click to focus. Hover to highlight.' onClick={this.focus} style={{ width: 'auto', textAlign: 'left' }}>
                     <span dangerouslySetInnerHTML={{ __html: this.label }} />
                 </button>
-                <IconButton svg={cell.state.isHidden ? VisibilityOffOutlined : VisibilityOutlined} toggleState={false} small className='msp-form-control' onClick={this.toggleVisibility} flex title={cell.state.isHidden ? 'Show' : 'Hide'} />
-                <IconButton svg={DeleteOutlined} small className='msp-form-control' onClick={this.delete} flex title='Delete' toggleState={false} />
-                <IconButton svg={MoreHoriz} className='msp-form-control' onClick={this.toggleUpdate} flex title='Actions' toggleState={this.state.showUpdate} />
+                <IconButton svg={cell.state.isHidden ? VisibilityOffOutlinedSvg : VisibilityOutlinedSvg} toggleState={false} small className='msp-form-control' onClick={this.toggleVisibility} flex title={cell.state.isHidden ? 'Show' : 'Hide'} />
+                <IconButton svg={DeleteOutlinedSvg} small className='msp-form-control' onClick={this.delete} flex title='Delete' toggleState={false} />
+                <IconButton svg={MoreHorizSvg} className='msp-form-control' onClick={this.toggleUpdate} flex title='Actions' toggleState={this.state.showUpdate} />
             </div>
             {this.state.showUpdate && cell.parent && <>
                 <div className='msp-accent-offset'>

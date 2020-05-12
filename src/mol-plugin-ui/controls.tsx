@@ -5,13 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Build from '@material-ui/icons/Build';
-import NavigateBefore from '@material-ui/icons/NavigateBefore';
-import NavigateNext from '@material-ui/icons/NavigateNext';
-import PlayArrow from '@material-ui/icons/PlayArrow';
-import SkipPrevious from '@material-ui/icons/SkipPrevious';
-import Stop from '@material-ui/icons/Stop';
-import SubscriptionsOutlined from '@material-ui/icons/SubscriptionsOutlined';
 import * as React from 'react';
 import { UpdateTrajectory } from '../mol-plugin-state/actions/structure';
 import { LociLabel } from '../mol-plugin-state/manager/loci-label';
@@ -22,7 +15,7 @@ import { PluginCommands } from '../mol-plugin/commands';
 import { StateTransformer } from '../mol-state';
 import { PluginUIComponent } from './base';
 import { IconButton } from './controls/common';
-import { Icon } from './controls/icons';
+import { Icon, NavigateBeforeSvg, NavigateNextSvg, SkipPreviousSvg, StopSvg, PlayArrowSvg, SubscriptionsOutlinedSvg, BuildSvg } from './controls/icons';
 import { AnimationControls } from './state/animation';
 import { StructureComponentControls } from './structure/components';
 import { StructureMeasurementsControls } from './structure/measurements';
@@ -97,9 +90,9 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
         if (!this.state.show || (isAnimating && !this.state.label)) return null;
 
         return <div className='msp-traj-controls'>
-            {!isAnimating && <IconButton svg={SkipPrevious} title='First Model' onClick={this.reset} disabled={isAnimating} />}
-            {!isAnimating && <IconButton svg={NavigateBefore} title='Previous Model' onClick={this.prev} disabled={isAnimating} />}
-            {!isAnimating && <IconButton svg={NavigateNext} title='Next Model' onClick={this.next} disabled={isAnimating} />}
+            {!isAnimating && <IconButton svg={SkipPreviousSvg} title='First Model' onClick={this.reset} disabled={isAnimating} />}
+            {!isAnimating && <IconButton svg={NavigateBeforeSvg} title='Previous Model' onClick={this.prev} disabled={isAnimating} />}
+            {!isAnimating && <IconButton svg={NavigateNextSvg} title='Next Model' onClick={this.next} disabled={isAnimating} />}
             {!!this.state.label && <span>{this.state.label}</span> }
         </div>;
     }
@@ -187,11 +180,11 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
                 {!current && <option key='none' value='none'></option>}
                 {snapshots.state.entries.valueSeq().map((e, i) => <option key={e!.snapshot.id} value={e!.snapshot.id}>{`[${i! + 1}/${count}]`} {e!.name || new Date(e!.timestamp).toLocaleString()}</option>)}
             </select>
-            <IconButton svg={isPlaying ? Stop : PlayArrow} title={isPlaying ? 'Pause' : 'Cycle States'} onClick={this.togglePlay}
+            <IconButton svg={isPlaying ? StopSvg : PlayArrowSvg} title={isPlaying ? 'Pause' : 'Cycle States'} onClick={this.togglePlay}
                 disabled={isPlaying ? false : this.state.isBusy} />
             {!isPlaying && <>
-                <IconButton svg={NavigateBefore} title='Previous State' onClick={this.prev} disabled={this.state.isBusy || isPlaying} />
-                <IconButton svg={NavigateNext} title='Next State' onClick={this.next} disabled={this.state.isBusy || isPlaying} />
+                <IconButton svg={NavigateBeforeSvg} title='Previous State' onClick={this.prev} disabled={this.state.isBusy || isPlaying} />
+                <IconButton svg={NavigateNextSvg} title='Next State' onClick={this.next} disabled={this.state.isBusy || isPlaying} />
             </>}
         </div>;
     }
@@ -229,7 +222,7 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
         return <div className='msp-animation-viewport-controls'>
             <div>
                 <div className='msp-semi-transparent-background' />
-                <IconButton svg={isAnimating || isPlaying ? Stop : SubscriptionsOutlined} transparent title={isAnimating ? 'Stop' : 'Select Animation'}
+                <IconButton svg={isAnimating || isPlaying ? StopSvg : SubscriptionsOutlinedSvg} transparent title={isAnimating ? 'Stop' : 'Select Animation'}
                     onClick={isAnimating || isPlaying ? this.stop : this.toggleExpanded} toggleState={this.state.isExpanded}
                     disabled={isAnimating || isPlaying ? false : this.state.isBusy || this.state.isPlaying || this.state.isEmpty} />
             </div>
@@ -293,7 +286,7 @@ export class CustomStructureControls extends PluginUIComponent<{ initiallyCollap
 export class DefaultStructureTools extends PluginUIComponent {
     render() {
         return <>
-            <div className='msp-section-header'><Icon svg={Build} />Structure Tools</div>
+            <div className='msp-section-header'><Icon svg={BuildSvg} />Structure Tools</div>
 
             <StructureSourceControls />
             <StructureMeasurementsControls />

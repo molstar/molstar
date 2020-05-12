@@ -5,16 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import ArrowDownward from '@material-ui/icons/ArrowDownward';
-import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
-import ArrowRight from '@material-ui/icons/ArrowRight';
-import ArrowUpward from '@material-ui/icons/ArrowUpward';
-import BookmarksOutlined from '@material-ui/icons/BookmarksOutlined';
-import Check from '@material-ui/icons/Check';
-import Clear from '@material-ui/icons/Clear';
-import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
-import HelpOutline from '@material-ui/icons/HelpOutline';
-import MoreHoriz from '@material-ui/icons/MoreHoriz';
 import * as React from 'react';
 import { Mat4, Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { PluginContext } from '../../mol-plugin/context';
@@ -30,7 +20,7 @@ import { PluginUIComponent } from '../base';
 import { ActionMenu } from './action-menu';
 import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
 import { Button, ControlGroup, ControlRow, ExpandGroup, IconButton, TextInput, ToggleButton } from './common';
-import { Icon } from './icons';
+import { Icon, HelpOutlineSvg, CheckSvg, ClearSvg, BookmarksOutlinedSvg, MoreHorizSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowDownwardSvg, ArrowUpwardSvg, DeleteOutlinedSvg } from './icons';
 import { legendFor } from './legend';
 import LineGraphComponent from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
@@ -216,7 +206,7 @@ export class ParamHelp<L extends LegendData> extends React.PureComponent<{ legen
 
         return <div className='msp-help-text'>
             <div>
-                <div className='msp-help-description'><Icon svg={HelpOutline} inline />{description}</div>
+                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />{description}</div>
                 {Legend && <div className='msp-help-legend'><Legend legend={legend} /></div>}
             </div>
         </div>;
@@ -259,8 +249,7 @@ function renderSimple(options: { props: ParamProps<any>, state: { showHelp: bool
                     <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={toggleHelp}
                         title={desc || `${state.showHelp ? 'Hide' : 'Show'} help`}
                         style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                        {/* TODO: <Icon name={state.showHelp ? 'help-circle-collapse' : 'help-circle-expand'} /> */}
-                        <Icon svg={HelpOutline} />
+                        <Icon svg={HelpOutlineSvg} />
                     </button>
                 }
             </>}
@@ -300,7 +289,7 @@ export class BoolControl extends SimpleParam<PD.BooleanParam> {
     onClick = (e: React.MouseEvent<HTMLButtonElement>) => { this.update(!this.props.value); e.currentTarget.blur(); }
     renderControl() {
         return <button onClick={this.onClick} disabled={this.props.isDisabled}>
-            <Icon svg={this.props.value ? Check : Clear} />
+            <Icon svg={this.props.value ? CheckSvg : ClearSvg} />
             {this.props.value ? 'On' : 'Off'}
         </button>;
     }
@@ -466,8 +455,8 @@ export class SelectControl extends React.PureComponent<ParamProps<PD.Select<stri
         const toggle = this.props.param.cycle ? this.cycle : this.toggle;
         const textAlign = this.props.param.cycle ? 'center' : 'left';
         const icon = this.props.param.cycle
-            ? (this.props.value === 'on' ? Check
-                : this.props.value === 'off' ? Clear : void 0)
+            ? (this.props.value === 'on' ? CheckSvg
+                : this.props.value === 'off' ? ClearSvg : void 0)
             : void 0;
 
         return <ToggleButton disabled={this.props.isDisabled} style={{ textAlign, overflow: 'hidden', textOverflow: 'ellipsis' }}
@@ -644,7 +633,7 @@ export class ColorListControl extends React.PureComponent<ParamProps<PD.ColorLis
                 {value.colors.length === 1 ? '1 color' : `${value.colors.length} colors`}
                 <div style={colorStripStyle(value, '33px')} />
             </button>
-            <IconButton svg={BookmarksOutlined} onClick={this.togglePresets} toggleState={this.state.show === 'presets'} title='Color Presets'
+            <IconButton svg={BookmarksOutlinedSvg} onClick={this.togglePresets} toggleState={this.state.show === 'presets'} title='Color Presets'
                 style={{ padding: 0, position: 'absolute', right: 0, top: 0, width: '32px' }} />
         </>;
     }
@@ -939,7 +928,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
         if (!this.state.isExpanded) {
             return <div className='msp-mapped-parameter-group'>
                 {ctrl}
-                <IconButton svg={MoreHoriz} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
+                <IconButton svg={MoreHorizSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
             </div>;
         }
 
@@ -950,7 +939,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
 
         return <div className='msp-mapped-parameter-group'>
             {ctrl}
-            <IconButton svg={MoreHoriz} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
+            <IconButton svg={MoreHorizSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
             <div className='msp-control-offset'>
                 <ParameterControls params={filtered} onEnter={this.props.onEnter} values={this.props.value} onChange={this.onChangeParam} isDisabled={this.props.isDisabled} />
             </div>
@@ -980,7 +969,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
                 <button className='msp-btn msp-form-control msp-btn-block' onClick={this.toggleExpanded}>
-                    <Icon svg={this.state.isExpanded ? ArrowDropDown : ArrowRight} />
+                    <Icon svg={this.state.isExpanded ? ArrowDropDownSvg : ArrowRightSvg} />
                     {label}
                 </button>
             </div>
@@ -1056,7 +1045,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
             if (!this.areParamsEmpty(param.params)) {
                 return <div className='msp-mapped-parameter-group'>
                     {Select}
-                    <IconButton svg={MoreHoriz} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`${label} Properties`} />
+                    <IconButton svg={MoreHorizSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`${label} Properties`} />
                     {this.state.isExpanded && <GroupControl inMapped param={param} value={value.params} name={value.name} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />}
                 </div>;
             }
@@ -1134,9 +1123,9 @@ class ObjectListItem extends React.PureComponent<ObjectListItemProps, { isExpand
                     {this.props.param.getLabel(this.props.value)}
                 </button>
                 <div>
-                    <IconButton svg={ArrowDownward} title='Move Up' onClick={this.moveUp} small={true} />
-                    <IconButton svg={ArrowUpward} title='Move Down' onClick={this.moveDown} small={true} />
-                    <IconButton svg={DeleteOutlined} title='Remove' onClick={this.remove} small={true} />
+                    <IconButton svg={ArrowDownwardSvg} title='Move Up' onClick={this.moveUp} small={true} />
+                    <IconButton svg={ArrowUpwardSvg} title='Move Down' onClick={this.moveDown} small={true} />
+                    <IconButton svg={DeleteOutlinedSvg} title='Remove' onClick={this.remove} small={true} />
                 </div>
             </div>
             {this.state.isExpanded && <div className='msp-control-offset'>

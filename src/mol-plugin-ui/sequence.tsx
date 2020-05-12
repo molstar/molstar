@@ -20,9 +20,8 @@ import { State, StateSelection } from '../mol-state';
 import { ChainSequenceWrapper } from './sequence/chain';
 import { ElementSequenceWrapper } from './sequence/element';
 import { elementLabel } from '../mol-theme/label';
-import { Icon } from './controls/icons';
+import { Icon, HelpOutlineSvg } from './controls/icons';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
-import HelpOutline from '@material-ui/icons/HelpOutline';
 
 const MaxDisplaySequenceLength = 5000;
 
@@ -296,7 +295,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
         if (this.getStructure(this.state.structureRef) === Structure.Empty) {
             return <div className='msp-sequence'>
                 <div className='msp-sequence-select'>
-                    <Icon svg={HelpOutline} style={{ cursor: 'help', position: 'absolute', right: 0, top: 0 }}
+                    <Icon svg={HelpOutlineSvg} style={{ cursor: 'help', position: 'absolute', right: 0, top: 0 }}
                         title='This shows a single sequence. Use the controls to show a different sequence.'/>
 
                     <span>Sequence</span><span style={{ fontWeight: 'normal' }}>No structure available</span>
@@ -311,7 +310,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
 
         return <div className='msp-sequence'>
             <div className='msp-sequence-select'>
-                <Icon svg={HelpOutline} style={{ cursor: 'help', position: 'absolute', right: 0, top: 0 }}
+                <Icon svg={HelpOutlineSvg} style={{ cursor: 'help', position: 'absolute', right: 0, top: 0 }}
                     title='This shows a single sequence. Use the controls to show a different sequence.' />
 
                 <span>Sequence of</span>

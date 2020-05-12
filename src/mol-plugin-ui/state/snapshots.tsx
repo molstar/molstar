@@ -4,17 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Add from '@material-ui/icons/Refresh';
-import ArrowDownward from '@material-ui/icons/ArrowDownward';
-import ArrowUpward from '@material-ui/icons/ArrowUpward';
-import CloudUpload from '@material-ui/icons/CloudUpload';
-import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
-import GetApp from '@material-ui/icons/GetApp';
-import OpenInBrowser from '@material-ui/icons/OpenInBrowser';
-import SaveOutlined from '@material-ui/icons/SaveOutlined';
-import SwapHoriz from '@material-ui/icons/SwapHoriz';
-import Refresh from '@material-ui/icons/Refresh';
-import Warning from '@material-ui/icons/Warning';
 import { OrderedMap } from 'immutable';
 import * as React from 'react';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -26,13 +15,13 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { urlCombine } from '../../mol-util/url';
 import { PluginUIComponent, PurePluginUIComponent } from '../base';
 import { Button, ExpandGroup, IconButton, SectionHeader } from '../controls/common';
-import { Icon } from '../controls/icons';
+import { Icon, SaveOutlinedSvg, GetAppSvg, OpenInBrowserSvg, WarningSvg, DeleteOutlinedSvg, AddSvg, ArrowUpwardSvg, SwapHorizSvg, ArrowDownwardSvg, RefreshSvg, CloudUploadSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 
 export class StateSnapshots extends PluginUIComponent<{}> {
     render() {
         return <div>
-            <SectionHeader icon={SaveOutlined} title='Plugin State' />
+            <SectionHeader icon={SaveOutlinedSvg} title='Plugin State' />
 
             <div style={{ marginBottom: '10px' }}>
                 <ExpandGroup header='Save Options' initiallyExpanded={false}>
@@ -76,18 +65,18 @@ export class StateExportImportControls extends PluginUIComponent<{ onAction?: ()
     render() {
         return <>
             <div className='msp-flex-row'>
-                <Button icon={GetApp} onClick={this.downloadToFileJson} title='Save the state description. Input data are loaded using the provided sources. Does not work if local files are used as input.'>
+                <Button icon={GetAppSvg} onClick={this.downloadToFileJson} title='Save the state description. Input data are loaded using the provided sources. Does not work if local files are used as input.'>
                     State
                 </Button>
-                <Button icon={GetApp} onClick={this.downloadToFileZip} title='Save the state including the input data.'>
+                <Button icon={GetAppSvg} onClick={this.downloadToFileZip} title='Save the state including the input data.'>
                     Session
                 </Button>
                 <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
-                    <Icon svg={OpenInBrowser} inline /> Open <input onChange={this.open} type='file' multiple={false} accept='.molx,.molj' />
+                    <Icon svg={OpenInBrowserSvg} inline /> Open <input onChange={this.open} type='file' multiple={false} accept='.molx,.molj' />
                 </div>
             </div>
             <div className='msp-help-text' style={{ padding: '10px'}}>
-                <Icon svg={Warning} /> This is an experimental feature and stored states/sessions might not be openable in a future version.
+                <Icon svg={WarningSvg} /> This is an experimental feature and stored states/sessions might not be openable in a future version.
             </div>
         </>;
     }
@@ -134,8 +123,8 @@ class LocalStateSnapshots extends PluginUIComponent<
         return <div>
             <ParameterControls params={LocalStateSnapshots.Params} values={this.state.params} onEnter={this.add} onChangeValues={this.updateParams} />
             <div className='msp-flex-row'>
-                <IconButton onClick={this.clear} svg={DeleteOutlined} title='Remove All' />
-                <Button onClick={this.add} icon={Add} style={{ textAlign: 'right' }} commit>Add</Button>
+                <IconButton onClick={this.clear} svg={DeleteOutlinedSvg} title='Remove All' />
+                <Button onClick={this.add} icon={AddSvg} style={{ textAlign: 'right' }} commit>Add</Button>
             </div>
         </div>;
     }
@@ -186,10 +175,10 @@ class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
                         {`${e!.snapshot.durationInMs ? formatTimespan(e!.snapshot.durationInMs, false) + `${e!.description ? ', ' : ''}` : ''}${e!.description ? e!.description : ''}`}
                     </small>
                 </Button>
-                <IconButton svg={ArrowUpward} data-id={e!.snapshot.id} title='Move Up' onClick={this.moveUp} flex='20px' />
-                <IconButton svg={ArrowDownward} data-id={e!.snapshot.id} title='Move Down' onClick={this.moveDown} flex='20px' />
-                <IconButton svg={SwapHoriz} data-id={e!.snapshot.id} title='Replace' onClick={this.replace} flex='20px' />
-                <IconButton svg={DeleteOutlined} data-id={e!.snapshot.id} title='Remove' onClick={this.remove} flex='20px' />
+                <IconButton svg={ArrowUpwardSvg} data-id={e!.snapshot.id} title='Move Up' onClick={this.moveUp} flex='20px' />
+                <IconButton svg={ArrowDownwardSvg} data-id={e!.snapshot.id} title='Move Down' onClick={this.moveDown} flex='20px' />
+                <IconButton svg={SwapHorizSvg} data-id={e!.snapshot.id} title='Replace' onClick={this.replace} flex='20px' />
+                <IconButton svg={DeleteOutlinedSvg} data-id={e!.snapshot.id} title='Remove' onClick={this.remove} flex='20px' />
             </li>)}
         </ul>;
     }
@@ -317,8 +306,8 @@ export class RemoteStateSnapshots extends PluginUIComponent<
                     this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
                 }} isDisabled={this.state.isBusy} />
                 <div className='msp-flex-row'>
-                    <IconButton onClick={this.refresh} disabled={this.state.isBusy} svg={Refresh} />
-                    <Button icon={CloudUpload} onClick={this.upload} disabled={this.state.isBusy} commit>Upload</Button>
+                    <IconButton onClick={this.refresh} disabled={this.state.isBusy} svg={RefreshSvg} />
+                    <Button icon={CloudUploadSvg} onClick={this.upload} disabled={this.state.isBusy} commit>Upload</Button>
                 </div>
             </>}
 
@@ -330,7 +319,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
                     this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
                 }} isDisabled={this.state.isBusy} />
                 <div className='msp-flex-row'>
-                    <Button onClick={this.refresh} disabled={this.state.isBusy} icon={Refresh}>Refresh</Button>
+                    <Button onClick={this.refresh} disabled={this.state.isBusy} icon={RefreshSvg}>Refresh</Button>
                 </div>
             </div>}
         </>;
@@ -361,7 +350,7 @@ class RemoteStateSnapshotList extends PurePluginUIComponent<
                     disabled={this.props.isBusy} onContextMenu={this.open} title='Click to download, right-click to open in a new tab.'>
                     {e!.name || new Date(e!.timestamp).toLocaleString()} <small>{e!.description}</small>
                 </Button>
-                {!e!.isSticky && this.props.remove && <IconButton svg={DeleteOutlined} data-id={e!.id} title='Remove' onClick={this.props.remove} disabled={this.props.isBusy} small />}
+                {!e!.isSticky && this.props.remove && <IconButton svg={DeleteOutlinedSvg} data-id={e!.id} title='Remove' onClick={this.props.remove} disabled={this.props.isBusy} small />}
             </li>)}
         </ul>;
     }

@@ -8,7 +8,7 @@ import * as React from 'react';
 import { PluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { Button } from '../controls/common';
-import PlayArrow from '@material-ui/icons/PlayArrow';
+import { PlayArrowSvg } from '../controls/icons';
 
 export class AnimationControls extends PluginUIComponent<{ onStart?: () => void }> {
     componentDidMount() {
@@ -44,7 +44,7 @@ export class AnimationControls extends PluginUIComponent<{ onStart?: () => void 
             <ParameterControls params={anim.current.params} values={anim.current.paramValues} onChange={this.updateCurrentParams} isDisabled={isDisabled} />
 
             <div className='msp-flex-row'>
-                <Button icon={anim.state.animationState !== 'playing' ? void 0 : PlayArrow} onClick={this.startOrStop} disabled={canApply !== void 0 && canApply.canApply === false}>
+                <Button icon={anim.state.animationState !== 'playing' ? void 0 : PlayArrowSvg} onClick={this.startOrStop} disabled={canApply !== void 0 && canApply.canApply === false}>
                     {anim.state.animationState === 'playing' ? 'Stop' : canApply === void 0 || canApply.canApply ? 'Start' : canApply.reason || 'Start'}
                 </Button>
             </div>

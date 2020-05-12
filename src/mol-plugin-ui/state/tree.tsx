@@ -4,13 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
-import ArrowRight from '@material-ui/icons/ArrowRight';
-import Close from '@material-ui/icons/Close';
-import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
-import HomeOutlined from '@material-ui/icons/HomeOutlined';
-import VisibilityOffOutlined from '@material-ui/icons/VisibilityOffOutlined';
-import VisibilityOutlined from '@material-ui/icons/VisibilityOutlined';
 import * as React from 'react';
 import { debounceTime, filter } from 'rxjs/operators';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
@@ -20,7 +13,7 @@ import { StateTreeSpine } from '../../mol-state/tree/spine';
 import { PluginUIComponent, _Props, _State } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ControlGroup, IconButton } from '../controls/common';
-import { Icon } from '../controls/icons';
+import { Icon, HomeOutlinedSvg, ArrowRightSvg, ArrowDropDownSvg, DeleteOutlinedSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, CloseSvg } from '../controls/icons';
 import { ApplyActionControl } from './apply-action';
 import { UpdateTransformControl } from './update-transform';
 
@@ -50,7 +43,7 @@ export class StateTree extends PluginUIComponent<{ state: State }, { showActions
         if (this.state.showActions) {
             return <div style={{ margin: '10px', cursor: 'default' }}>
                 <p>Nothing to see here yet.</p>
-                <p>Structures and Volumes can be loaded from the <Icon svg={HomeOutlined} /> tab.</p>
+                <p>Structures and Volumes can be loaded from the <Icon svg={HomeOutlinedSvg} /> tab.</p>
             </div>;
         }
         return <StateTreeNode cell={this.props.state.cells.get(ref)!} depth={0} />;
@@ -306,9 +299,9 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         const children = cell.parent!.tree.children.get(this.ref);
         const cellState = cell.state;
 
-        const expand = <IconButton svg={cellState.isCollapsed ? ArrowRight : ArrowDropDown} flex='20px' disabled={disabled} onClick={this.toggleExpanded} transparent className='msp-no-hover-outline' style={{ visibility: children.size > 0 ? 'visible' : 'hidden' }} />;
-        const remove = !cell.state.isLocked ? <IconButton svg={DeleteOutlined} onClick={this.remove} disabled={disabled} small toggleState={false} /> : void 0;
-        const visibility = <IconButton svg={cellState.isHidden ? VisibilityOffOutlined : VisibilityOutlined} toggleState={false} disabled={disabled} small onClick={this.toggleVisible} />;
+        const expand = <IconButton svg={cellState.isCollapsed ? ArrowRightSvg : ArrowDropDownSvg} flex='20px' disabled={disabled} onClick={this.toggleExpanded} transparent className='msp-no-hover-outline' style={{ visibility: children.size > 0 ? 'visible' : 'hidden' }} />;
+        const remove = !cell.state.isLocked ? <IconButton svg={DeleteOutlinedSvg} onClick={this.remove} disabled={disabled} small toggleState={false} /> : void 0;
+        const visibility = <IconButton svg={cellState.isHidden ? VisibilityOffOutlinedSvg : VisibilityOutlinedSvg} toggleState={false} disabled={disabled} small onClick={this.toggleVisible} />;
 
         const marginStyle: React.CSSProperties = {
             marginLeft: `${this.props.depth * 8}px`
@@ -326,7 +319,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         if (this.state.action === 'apply' && this.state.currentAction) {
             return <div style={{ marginBottom: '1px' }}>
                 {row}
-                <ControlGroup header={`Apply ${this.state.currentAction.definition.display.name}`} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hideApply} topRightIcon={Close} headerLeftMargin={`${this.props.depth * 8 + 21}px`}>
+                <ControlGroup header={`Apply ${this.state.currentAction.definition.display.name}`} initialExpanded={true} hideExpander={true} hideOffset={false} onHeaderClick={this.hideApply} topRightIcon={CloseSvg} headerLeftMargin={`${this.props.depth * 8 + 21}px`}>
                     <ApplyActionControl onApply={this.hideApply} state={this.props.cell.parent!} action={this.state.currentAction} nodeRef={this.props.cell.transform.ref} hideHeader noMargin />
                 </ControlGroup>
             </div>;

@@ -4,12 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import AccountTreeOutlined from '@material-ui/icons/AccountTreeOutlined';
-import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
-import HelpOutline from '@material-ui/icons/HelpOutline';
-import HomeOutlined from '@material-ui/icons/HomeOutlined';
-import SaveOutlined from '@material-ui/icons/SaveOutlined';
-import Tune from '@material-ui/icons/Tune';
 import * as React from 'react';
 import { Canvas3DParams } from '../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../mol-plugin/commands';
@@ -23,6 +17,7 @@ import { StateObjectActions } from './state/actions';
 import { RemoteStateSnapshots, StateSnapshots } from './state/snapshots';
 import { StateTree } from './state/tree';
 import { HelpContent } from './viewport/help';
+import { HomeOutlinedSvg, AccountTreeOutlinedSvg, TuneSvg, HelpOutlineSvg, SaveOutlinedSvg, DeleteOutlinedSvg } from './controls/icons';
 
 export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTabName }> {
     state = { tab: this.plugin.behaviors.layout.leftPanelTabName.value };
@@ -57,21 +52,21 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
     tabs: { [K in LeftPanelTabName]: JSX.Element } = {
         'none': <></>,
         'root': <>
-            <SectionHeader icon={HomeOutlined} title='Home' />
+            <SectionHeader icon={HomeOutlinedSvg} title='Home' />
             <StateObjectActions state={this.plugin.state.data} nodeRef={StateTransform.RootRef} hideHeader={true} initiallyCollapsed={true} alwaysExpandFirst={true} />
             {this.plugin.spec.components?.remoteState !== 'none' && <RemoteStateSnapshots listOnly /> }
         </>,
         'data': <>
-            <SectionHeader icon={AccountTreeOutlined} title={<><RemoveAllButton /> State Tree</>} />
+            <SectionHeader icon={AccountTreeOutlinedSvg} title={<><RemoveAllButton /> State Tree</>} />
             <StateTree state={this.plugin.state.data} />
         </>,
         'states': <StateSnapshots />,
         'settings': <>
-            <SectionHeader icon={Tune} title='Plugin Settings' />
+            <SectionHeader icon={TuneSvg} title='Plugin Settings' />
             <FullSettings />
         </>,
         'help': <>
-            <SectionHeader icon={HelpOutline} title='Help' />
+            <SectionHeader icon={HelpOutlineSvg} title='Help' />
             <HelpContent />
         </>
     }
@@ -81,12 +76,12 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
 
         return <div className='msp-left-panel-controls'>
             <div className='msp-left-panel-controls-buttons'>
-                <IconButton svg={HomeOutlined} toggleState={tab === 'root'} transparent onClick={() => this.set('root')} title='Home' />
+                <IconButton svg={HomeOutlinedSvg} toggleState={tab === 'root'} transparent onClick={() => this.set('root')} title='Home' />
                 <DataIcon set={this.set} />
-                <IconButton svg={SaveOutlined} toggleState={tab === 'states'} transparent onClick={() => this.set('states')} title='Plugin State' />
-                <IconButton svg={HelpOutline} toggleState={tab === 'help'} transparent onClick={() => this.set('help')} title='Help' />
+                <IconButton svg={SaveOutlinedSvg} toggleState={tab === 'states'} transparent onClick={() => this.set('states')} title='Plugin State' />
+                <IconButton svg={HelpOutlineSvg} toggleState={tab === 'help'} transparent onClick={() => this.set('help')} title='Help' />
                 <div className='msp-left-panel-controls-buttons-bottom'>
-                    <IconButton svg={Tune} toggleState={tab === 'settings'} transparent onClick={() => this.set('settings')} title='Settings' />
+                    <IconButton svg={TuneSvg} toggleState={tab === 'settings'} transparent onClick={() => this.set('settings')} title='Settings' />
                 </div>
             </div>
             <div className='msp-scrollable-container'>
@@ -116,7 +111,7 @@ class DataIcon extends PluginUIComponent<{ set: (tab: LeftPanelTabName) => void 
 
     render() {
         return <IconButton
-            svg={AccountTreeOutlined} toggleState={this.tab === 'data'} transparent onClick={() => this.props.set('data')} title='State Tree'
+            svg={AccountTreeOutlinedSvg} toggleState={this.tab === 'data'} transparent onClick={() => this.props.set('data')} title='State Tree'
             style={{ position: 'relative' }} extraContent={this.state.changed ? <div className='msp-left-panel-controls-button-data-dirty' /> : void 0} />;
     }
 }
@@ -168,6 +163,6 @@ class RemoveAllButton extends PluginUIComponent<{ }> {
     render() {
         const count = this.plugin.state.data.tree.children.get(StateTransform.RootRef).size;
         if (count === 0) return null;
-        return <IconButton svg={DeleteOutlined} onClick={this.remove} title={'Remove All'} style={{ display: 'inline-block' }} small className='msp-no-hover-outline' transparent />;
+        return <IconButton svg={DeleteOutlinedSvg} onClick={this.remove} title={'Remove All'} style={{ display: 'inline-block' }} small className='msp-no-hover-outline' transparent />;
     }
 }

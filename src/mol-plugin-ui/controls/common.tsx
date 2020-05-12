@@ -6,11 +6,7 @@
 
 import * as React from 'react';
 import { Color } from '../../mol-util/color';
-import { Icon } from './icons';
-import ArrowRight from '@material-ui/icons/ArrowRight';
-import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
-import Remove from '@material-ui/icons/Remove';
-import Add from '@material-ui/icons/Add';
+import { Icon, ArrowRightSvg, ArrowDropDownSvg, RemoveSvg, AddSvg } from './icons';
 
 export type ColorAccent = 'cyan' | 'red' | 'gray' | 'green' | 'purple' | 'blue' | 'orange'
 
@@ -45,7 +41,7 @@ export class ControlGroup extends React.Component<{
         return <div className='msp-control-group-wrapper' style={{ position: 'relative', marginTop: this.props.noTopMargin ? 0 : void 0 }}>
             <div className='msp-control-group-header' style={{ marginLeft: this.props.headerLeftMargin }} title={this.props.title}>
                 <Button onClick={this.headerClicked}>
-                    {!this.props.hideExpander && <Icon svg={this.state.isExpanded ? ArrowRight : ArrowDropDown} />}
+                    {!this.props.hideExpander && <Icon svg={this.state.isExpanded ? ArrowRightSvg : ArrowDropDownSvg} />}
                     {this.props.topRightIcon && <Icon svg={this.props.topRightIcon} style={{ position: 'absolute', right: '2px', top: 0 }} />}
                     <b>{this.props.header}</b>
                 </Button>
@@ -206,7 +202,7 @@ export class ExpandableControlRow extends React.Component<{
                 {label}
                 <button className='msp-btn-link msp-btn-icon msp-control-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Less' : 'More'} options`}
                     style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                    <Icon svg={this.state.isExpanded ? Remove : Add} style={{ display: 'inline-block' }} />
+                    <Icon svg={this.state.isExpanded ? RemoveSvg : AddSvg} style={{ display: 'inline-block' }} />
                 </button>
             </>} control={pivot}>
                 {this.props.colorStripe && <div className='msp-expandable-group-color-stripe' style={{ backgroundColor: Color.toStyle(this.props.colorStripe) }} />}
@@ -347,7 +343,7 @@ export class ExpandGroup extends React.PureComponent<{ header: string, headerSty
         return <>
             <div className='msp-control-group-header' style={{ marginTop: this.props.marginTop !== void 0 ? this.props.marginTop : '1px', marginLeft: this.props.headerLeftMargin }}>
                 <button className='msp-btn msp-form-control msp-btn-block' onClick={this.toggleExpanded} style={this.props.headerStyle}>
-                    <Icon svg={this.state.isExpanded ? ArrowDropDown : ArrowRight} />
+                    <Icon svg={this.state.isExpanded ? ArrowDropDownSvg : ArrowRightSvg} />
                     {this.props.header}
                 </button>
             </div>

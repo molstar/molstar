@@ -5,12 +5,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Close from '@material-ui/icons/Close';
-import CancelOutlined from '@material-ui/icons/CancelOutlined';
-import Brush from '@material-ui/icons/Brush';
-import Restore from '@material-ui/icons/Restore';
-import Remove from '@material-ui/icons/Remove';
-import HelpOutline from '@material-ui/icons/HelpOutline';
 import * as React from 'react';
 import { StructureSelectionQueries, StructureSelectionQuery, getNonStandardResidueQueries, getElementQueries, getPolymerAndBranchedEntityQueries } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { InteractivityManager } from '../../mol-plugin-state/manager/interactivity';
@@ -24,7 +18,7 @@ import { PluginUIComponent, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ControlGroup, IconButton, ToggleButton } from '../controls/common';
 import { ParameterControls, ParamOnChange, PureSelectControl } from '../controls/parameters';
-import { UnionSvg, SubtractSvg, IntersectSvg, SetSvg, CubeSvg, Icon, CursorSvg } from '../controls/icons';
+import { UnionSvg, SubtractSvg, IntersectSvg, SetSvg, CubeSvg, Icon, SelectionModeSvg, RemoveSvg, RestoreSvg, HelpOutlineSvg, CancelOutlinedSvg, BrushSvg, CloseSvg } from '../controls/icons';
 import { AddComponentControls } from './components';
 import Structure from '../../mol-model/structure/structure/structure';
 import { ViewportHelpContent, HelpGroup, HelpText } from '../viewport/help';
@@ -45,7 +39,7 @@ export class ToggleSelectionModeButton extends PurePluginUIComponent<{ inline?: 
         const style = this.props.inline
             ? { background: 'transparent', width: 'auto', height: 'auto', lineHeight: 'unset' }
             : { background: 'transparent' };
-        return <IconButton svg={CursorSvg} onClick={this._toggleSelMode} title={'Toggle Selection Mode'} style={style} toggleState={this.plugin.selectionMode} />;
+        return <IconButton svg={SelectionModeSvg} onClick={this._toggleSelMode} title={'Toggle Selection Mode'} style={style} toggleState={this.plugin.selectionMode} />;
     }
 }
 
@@ -202,34 +196,34 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                 <ToggleButton icon={IntersectSvg} title={`${ActionHeader.get('intersect')}. Hold shift key to keep menu open.`} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
                 <ToggleButton icon={SetSvg} title={`${ActionHeader.get('set')}. Hold shift key to keep menu open.`} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
 
-                <ToggleButton icon={Brush} title='Color Selection' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} style={{ marginLeft: '10px' }}  />
+                <ToggleButton icon={BrushSvg} title='Color Selection' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} style={{ marginLeft: '10px' }}  />
                 <ToggleButton icon={CubeSvg} title='Create Representation of Selection' toggle={this.toggleAddRepr} isSelected={this.state.action === 'add-repr'} disabled={this.isDisabled} />
-                <IconButton svg={Remove} title='Subtract Selection from Representations' onClick={this.subtract} disabled={this.isDisabled} />
-                <IconButton svg={Restore} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />
+                <IconButton svg={RemoveSvg} title='Subtract Selection from Representations' onClick={this.subtract} disabled={this.isDisabled} />
+                <IconButton svg={RestoreSvg} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />
 
-                <ToggleButton icon={HelpOutline} title='Show/hide help' toggle={this.toggleHelp} style={{ marginLeft: '10px' }} isSelected={this.state.action === 'help'} />
-                <IconButton svg={CancelOutlined} title='Turn selection mode off' onClick={this.turnOff} />
+                <ToggleButton icon={HelpOutlineSvg} title='Show/hide help' toggle={this.toggleHelp} style={{ marginLeft: '10px' }} isSelected={this.state.action === 'help'} />
+                <IconButton svg={CancelOutlinedSvg} title='Turn selection mode off' onClick={this.turnOff} />
             </div>
             {(this.state.action && this.state.action !== 'color' && this.state.action !== 'add-repr' && this.state.action !== 'help') && <div className='msp-selection-viewport-controls-actions'>
                 <ActionMenu header={ActionHeader.get(this.state.action as StructureSelectionModifier)} title='Click to close.' items={this.queries} onSelect={this.selectQuery} noOffset />
             </div>}
             {this.state.action === 'color' && <div className='msp-selection-viewport-controls-actions'>
-                <ControlGroup header='Color' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor} topRightIcon={Close}>
+                <ControlGroup header='Color' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor} topRightIcon={CloseSvg}>
                     <ApplyColorControls onApply={this.toggleColor} />
                 </ControlGroup>
             </div>}
             {this.state.action === 'add-repr' && <div className='msp-selection-viewport-controls-actions'>
-                <ControlGroup header='Add Representation' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleAddRepr} topRightIcon={Close}>
+                <ControlGroup header='Add Representation' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleAddRepr} topRightIcon={CloseSvg}>
                     <AddComponentControls onApply={this.toggleAddRepr} forSelection />
                 </ControlGroup>
             </div>}
             {this.state.action === 'help' && <div className='msp-selection-viewport-controls-actions'>
-                <ControlGroup header='Help' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleHelp} topRightIcon={Close} maxHeight='300px'>
+                <ControlGroup header='Help' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleHelp} topRightIcon={CloseSvg} maxHeight='300px'>
                     <HelpGroup header='Selection Operations'>
                         <HelpText>Use <Icon svg={UnionSvg} inline /> <Icon svg={SubtractSvg} inline /> <Icon svg={IntersectSvg} inline /> <Icon svg={SetSvg} inline /> to modify the selection.</HelpText>
                     </HelpGroup>
                     <HelpGroup header='Representation Operations'>
-                        <HelpText>Use <Icon svg={Brush} inline /> <Icon svg={CubeSvg} inline /> <Icon svg={Remove} inline /> <Icon svg={Restore} inline /> to color, create selection/representation, subtract it, or undo actions.</HelpText>
+                        <HelpText>Use <Icon svg={BrushSvg} inline /> <Icon svg={CubeSvg} inline /> <Icon svg={RemoveSvg} inline /> <Icon svg={RestoreSvg} inline /> to color, create selection/representation, subtract it, or undo actions.</HelpText>
                     </HelpGroup>
                     <ViewportHelpContent selectOnly={true} />
                 </ControlGroup>
@@ -305,7 +299,7 @@ export class StructureSelectionStatsControls extends PluginUIComponent<{ hideOnE
                     style={{ textAlignLast: !empty ? 'left' : void 0 }}>
                     {this.stats}
                 </Button>
-                {!empty && <IconButton svg={CancelOutlined} onClick={this.clear} title='Clear' className='msp-form-control' flex />}
+                {!empty && <IconButton svg={CancelOutlinedSvg} onClick={this.clear} title='Clear' className='msp-form-control' flex />}
             </div>
         </>;
     }
@@ -335,7 +329,7 @@ class ApplyColorControls extends PurePluginUIComponent<ApplyColorControlsProps, 
     render() {
         return <>
             <ParameterControls params={this.params} values={this.state.values} onChangeValues={this.paramsChanged} />
-            <Button icon={Brush} className='msp-btn-commit msp-btn-commit-on' onClick={this.apply} style={{ marginTop: '1px' }}>
+            <Button icon={BrushSvg} className='msp-btn-commit msp-btn-commit-on' onClick={this.apply} style={{ marginTop: '1px' }}>
                 Apply Coloring
             </Button>
         </>;

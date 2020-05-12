@@ -5,12 +5,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Autorenew from '@material-ui/icons/Autorenew';
-import BuildOutlined from '@material-ui/icons/BuildOutlined';
-import CameraOutlined from '@material-ui/icons/CameraOutlined';
-import Close from '@material-ui/icons/Close';
-import Fullscreen from '@material-ui/icons/Fullscreen';
-import Tune from '@material-ui/icons/Tune';
 import * as React from 'react';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
@@ -23,6 +17,7 @@ import { ControlGroup, IconButton } from './controls/common';
 import { ToggleSelectionModeButton } from './structure/selection';
 import { DownloadScreenshotControls } from './viewport/screenshot';
 import { SimpleSettingsControl } from './viewport/simple-settings';
+import { AutorenewSvg, CameraOutlinedSvg, BuildOutlinedSvg, FullscreenSvg, TuneSvg, CloseSvg } from './controls/icons';
 
 interface ViewportControlsState {
     isSettingsExpanded: boolean,
@@ -93,17 +88,17 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
             <div className='msp-viewport-controls-buttons'>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon(Autorenew, this.resetCamera, 'Reset Camera')}
+                    {this.icon(AutorenewSvg, this.resetCamera, 'Reset Camera')}
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon(CameraOutlined, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}
+                    {this.icon(CameraOutlinedSvg, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon(BuildOutlined, this.toggleControls, 'Toggle Controls Panel', this.plugin.layout.state.showControls)}
-                    {this.plugin.config.get(PluginConfig.Viewport.ShowExpand) && this.icon(Fullscreen, this.toggleExpanded, 'Toggle Expanded Viewport', this.plugin.layout.state.isExpanded)}
-                    {this.icon(Tune, this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
+                    {this.icon(BuildOutlinedSvg, this.toggleControls, 'Toggle Controls Panel', this.plugin.layout.state.showControls)}
+                    {this.plugin.config.get(PluginConfig.Viewport.ShowExpand) && this.icon(FullscreenSvg, this.toggleExpanded, 'Toggle Expanded Viewport', this.plugin.layout.state.isExpanded)}
+                    {this.icon(TuneSvg, this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
                 </div>
                 {this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode) && <div>
                     <div className='msp-semi-transparent-background' />
@@ -112,13 +107,13 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
             </div>
             {this.state.isScreenshotExpanded && <div className='msp-viewport-controls-panel'>
                 <ControlGroup header='Screenshot / State' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleScreenshotExpanded}
-                    topRightIcon={Close} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
+                    topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <DownloadScreenshotControls close={this.toggleScreenshotExpanded} />
                 </ControlGroup>
             </div>}
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-panel'>
                 <ControlGroup header='Settings / Controls Info' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded}
-                    topRightIcon={Close} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
+                    topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <SimpleSettingsControl />
                 </ControlGroup>
             </div>}

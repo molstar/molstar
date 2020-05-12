@@ -10,11 +10,8 @@ import { PluginUIComponent } from '../base';
 import { StateTransformer, StateSelection } from '../../mol-state';
 import { SelectLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
-import { Icon } from '../controls/icons';
+import { Icon, ArrowDropDownSvg, ArrowRightSvg, CameraSvg } from '../controls/icons';
 import { Button } from '../controls/common';
-import ArrowRight from '@material-ui/icons/ArrowRight';
-import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
-import Camera from '@material-ui/icons/Camera';
 
 function getBindingsList(bindings: { [k: string]: Binding }) {
     return Object.keys(bindings).map(k => [k, bindings[k]] as [string, Binding]);
@@ -60,7 +57,7 @@ export class HelpGroup extends React.PureComponent<{ header: string, initiallyEx
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
                 <Button onClick={this.toggleExpanded}>
-                    <Icon svg={this.state.isExpanded ? ArrowDropDown : ArrowRight} />
+                    <Icon svg={this.state.isExpanded ? ArrowDropDownSvg : ArrowRightSvg} />
                     {this.props.header}
                 </Button>
             </div>
@@ -155,7 +152,7 @@ export class HelpContent extends PluginUIComponent {
             <HelpSection header='How-to Guides' />
             <HelpGroup header='Create an Image'>
                 <HelpText>
-                    <p>Use the <Icon svg={Camera} /> icon in the viewport to bring up the screenshot controls.</p>
+                    <p>Use the <Icon svg={CameraSvg} /> icon in the viewport to bring up the screenshot controls.</p>
                     <p>To adjust the size of the image, use the <i>Resolution</i> dropdown.</p>
                 </HelpText>
             </HelpGroup>

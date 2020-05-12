@@ -16,8 +16,7 @@ import { StateAction, StateSelection } from '../../../mol-state';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { PluginContext } from '../../../mol-plugin/context';
 import { Task } from '../../../mol-task';
-import Check from '@material-ui/icons/Check';
-import Extension from '@material-ui/icons/Extension';
+import { ExtensionSvg, CheckSvg } from '../../../mol-plugin-ui/controls/icons';
 
 interface AssemblySymmetryControlState extends CollapsableState {
     isBusy: boolean
@@ -30,7 +29,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
             isCollapsed: false,
             isBusy: false,
             isHidden: true,
-            brand: { accent: 'cyan', svg: Extension }
+            brand: { accent: 'cyan', svg: ExtensionSvg }
         };
     }
 
@@ -62,7 +61,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
     renderEnable() {
         const pivot = this.pivot;
         if (!pivot.cell.parent) return null;
-        return <ApplyActionControl state={pivot.cell.parent} action={EnableAssemblySymmetry3D} initiallyCollapsed={true} nodeRef={pivot.cell.transform.ref} simpleApply={{ header: 'Enable', icon: Check }} />;
+        return <ApplyActionControl state={pivot.cell.parent} action={EnableAssemblySymmetry3D} initiallyCollapsed={true} nodeRef={pivot.cell.transform.ref} simpleApply={{ header: 'Enable', icon: CheckSvg }} />;
     }
 
     renderNoSymmetries() {

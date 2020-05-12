@@ -16,10 +16,9 @@ import { Volume, Grid } from '../../mol-model/volume';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { ColorNames } from '../../mol-util/color/names';
 import { toPrecision } from '../../mol-util/number';
-import VisibilityOffOutlined from '@material-ui/icons/VisibilityOffOutlined';
-import VisibilityOutlined from '@material-ui/icons/VisibilityOutlined';
 import { StateSelection, StateObjectCell } from '../../mol-state';
 import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
+import { VisibilityOutlinedSvg, VisibilityOffOutlinedSvg } from '../controls/icons';
 
 const ChannelParams = {
     color: PD.Color(ColorNames.black, { description: 'Display color of the volume.' }),
@@ -107,7 +106,7 @@ class Channel extends PluginUIComponent<{
             pivot={<div className='msp-volume-channel-inline-controls'>
                 <Slider value={value} min={ctrlMin} max={ctrlMax} step={step}
                     onChange={v => props.changeIso(props.name, v, isRelative)} disabled={props.params.isDisabled} onEnter={props.params.events.onEnter} />
-                <IconButton svg={this.getVisible() ? VisibilityOutlined : VisibilityOffOutlined} onClick={this.toggleVisible} toggleState={false} disabled={props.params.isDisabled} />
+                <IconButton svg={this.getVisible() ? VisibilityOutlinedSvg : VisibilityOffOutlinedSvg} onClick={this.toggleVisible} toggleState={false} disabled={props.params.isDisabled} />
             </div>}
             controls={<ParameterControls onChange={({ name, value }) => props.changeParams(props.name, name, value)} params={ChannelParams} values={channel} onEnter={props.params.events.onEnter} isDisabled={props.params.isDisabled} />}
         />;

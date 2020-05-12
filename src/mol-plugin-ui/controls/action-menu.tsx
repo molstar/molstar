@@ -8,10 +8,7 @@
 import * as React from 'react';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { Button, ControlGroup } from './common';
-import ArrowRight from '@material-ui/icons/ArrowRight';
-import Check from '@material-ui/icons/Check';
-import Close from '@material-ui/icons/Close';
-import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
+import { CloseSvg, ArrowDropDownSvg, ArrowRightSvg, CheckSvg } from './icons';
 
 export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
     hide = () => this.props.onSelect(void 0)
@@ -20,7 +17,7 @@ export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
         const cmd = this.props;
         const section = <Section items={cmd.items} onSelect={cmd.onSelect} current={cmd.current} multiselect={this.props.multiselect} noOffset={this.props.noOffset} noAccent={this.props.noAccent} />;
         return <div className={`msp-action-menu-options${cmd.header ? '' : ' msp-action-menu-options-no-header'}`}>
-            {cmd.header && <ControlGroup header={cmd.header} title={cmd.title} initialExpanded={true} hideExpander={true} hideOffset onHeaderClick={this.hide} topRightIcon={Close}>
+            {cmd.header && <ControlGroup header={cmd.header} title={cmd.title} initialExpanded={true} hideExpander={true} hideOffset onHeaderClick={this.hide} topRightIcon={CloseSvg}>
                 {section}
             </ControlGroup>}
             {!cmd.header && section}
@@ -229,13 +226,13 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { header, hasCurrent } = this.state;
 
         return <div className='msp-flex-row msp-control-group-header'>
-            <Button icon={this.state.isExpanded ? ArrowDropDown : ArrowRight} flex noOverflow onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}.${header?.description ? ` ${header?.description}` : ''}`}>
+            <Button icon={this.state.isExpanded ? ArrowDropDownSvg : ArrowRightSvg} flex noOverflow onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}.${header?.description ? ` ${header?.description}` : ''}`}>
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </Button>
-            <Button icon={Check} flex onClick={this.selectAll} style={{ flex: '0 0 50px', textAlign: 'right' }}>
+            <Button icon={CheckSvg} flex onClick={this.selectAll} style={{ flex: '0 0 50px', textAlign: 'right' }}>
                 All
             </Button>
-            <Button icon={Close} flex onClick={this.selectNone} style={{ flex: '0 0 50px', textAlign: 'right' }}>
+            <Button icon={CloseSvg} flex onClick={this.selectNone} style={{ flex: '0 0 50px', textAlign: 'right' }}>
                 None
             </Button>
         </div>;
@@ -245,7 +242,7 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         const { header, hasCurrent } = this.state;
 
         return <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
-            <Button noOverflow icon={this.state.isExpanded ? ArrowDropDown : ArrowRight} onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}. ${header?.description ? header?.description : ''}`}>
+            <Button noOverflow icon={this.state.isExpanded ? ArrowDropDownSvg : ArrowRightSvg} onClick={this.toggleExpanded} title={`Click to ${this.state.isExpanded ? 'collapse' : 'expand'}. ${header?.description ? header?.description : ''}`}>
                 {hasCurrent ? <b>{header?.label}</b> : header?.label}
             </Button>
         </div>;

@@ -7,9 +7,8 @@
 import * as React from 'react';
 import { State } from '../../mol-state';
 import { PluginUIComponent } from '../base';
-import { Icon } from '../controls/icons';
+import { Icon, CodeSvg } from '../controls/icons';
 import { ApplyActionControl } from './apply-action';
-import Code from '@material-ui/icons/Code';
 
 export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRef: string, hideHeader?: boolean, initiallyCollapsed?: boolean, alwaysExpandFirst?: boolean }> {
     get current() {
@@ -42,7 +41,7 @@ export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRe
         const display = cell.obj ? cell.obj.label : (def.display && def.display.name) || def.name;
 
         return <div className='msp-state-actions'>
-            {!this.props.hideHeader && <div className='msp-section-header'><Icon svg={Code} /> {`Actions (${display})`}</div> }
+            {!this.props.hideHeader && <div className='msp-section-header'><Icon svg={CodeSvg} /> {`Actions (${display})`}</div> }
             {actions.map((act, i) => <ApplyActionControl
                 key={`${act.id}`} state={state} action={act} nodeRef={ref}
                 initiallyCollapsed={i === 0 ? !this.props.alwaysExpandFirst && this.props.initiallyCollapsed : this.props.initiallyCollapsed} />)}

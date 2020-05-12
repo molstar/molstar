@@ -4,8 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import CenterFocusStrong from '@material-ui/icons/CenterFocusStrong';
-import CancelOutlined from '@material-ui/icons/CancelOutlined';
 import * as React from 'react';
 import { OrderedSet, SortedArray } from '../../mol-data/int';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
@@ -21,6 +19,7 @@ import { memoizeLatest } from '../../mol-util/memoize';
 import { PluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, IconButton, ToggleButton } from '../controls/common';
+import { CancelOutlinedSvg, CenterFocusStrongSvg } from '../controls/icons';
 
 interface StructureFocusControlsState {
     isBusy: boolean
@@ -238,8 +237,8 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
                     style={{ textAlignLast: current ? 'left' : void 0 }}>
                     {label}
                 </Button>
-                {current && <IconButton svg={CancelOutlined} onClick={this.clear} title='Clear' className='msp-form-control' flex disabled={this.isDisabled} />}
-                <ToggleButton icon={CenterFocusStrong} title='Select a focus target to center on an show its surroundings. Hold shift to focus on multiple targets.' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
+                {current && <IconButton svg={CancelOutlinedSvg} onClick={this.clear} title='Clear' className='msp-form-control' flex disabled={this.isDisabled} />}
+                <ToggleButton icon={CenterFocusStrongSvg} title='Select a focus target to center on an show its surroundings. Hold shift to focus on multiple targets.' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.showAction && <ActionMenu items={this.actionItems} onSelect={this.selectAction} />}
         </>;

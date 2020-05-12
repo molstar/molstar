@@ -5,16 +5,8 @@
  */
 
 import * as React from 'react';
-import FlipToFrontIcon from '@material-ui/icons/FlipToFront';
-import HelpOutline from '@material-ui/icons/HelpOutline';
-import LinearScaleIcon from '@material-ui/icons/LinearScale';
-import ScatterPlotIcon from '@material-ui/icons/ScatterPlot';
-import ArrowDownward from '@material-ui/icons/ArrowDownward';
-import ArrowUpward from '@material-ui/icons/ArrowUpward';
-import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
-import Tune from '@material-ui/icons/Tune';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
-import { Icon } from '../controls/icons';
+import { Icon, ArrowUpwardSvg, ArrowDownwardSvg, DeleteOutlinedSvg, HelpOutlineSvg, TuneSvg, SuperposeAtomsSvg, SuperposeChainsSvg, SuperpositionSvg } from '../controls/icons';
 import { Button, ToggleButton, IconButton } from '../controls/common';
 import { StructureElement, StructureSelection, QueryContext, Structure, StructureProperties } from '../../mol-model/structure';
 import { Mat4 } from '../../mol-math/linear-algebra';
@@ -35,7 +27,7 @@ export class StructureSuperpositionControls extends CollapsableControls {
         return {
             isCollapsed: false,
             header: 'Superposition',
-            brand: { accent: 'gray' as const, svg: FlipToFrontIcon },
+            brand: { accent: 'gray' as const, svg: SuperpositionSvg },
             isHidden: true
         };
     }
@@ -203,9 +195,9 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
             <Button noOverflow title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={this.plugin.managers.interactivity.lociHighlights.clearHighlights}>
                 {idx}. <span dangerouslySetInnerHTML={{ __html: e.label }} />
             </Button>
-            {history.length > 1 && <IconButton svg={ArrowUpward} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'up')} flex='20px' title={'Move up'} />}
-            {history.length > 1 && <IconButton svg={ArrowDownward} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'down')} flex='20px' title={'Move down'} />}
-            <IconButton svg={DeleteOutlined} small={true} className='msp-form-control' onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')} flex title={'Remove'} />
+            {history.length > 1 && <IconButton svg={ArrowUpwardSvg} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'up')} flex='20px' title={'Move up'} />}
+            {history.length > 1 && <IconButton svg={ArrowDownwardSvg} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'down')} flex='20px' title={'Move down'} />}
+            <IconButton svg={DeleteOutlinedSvg} small={true} className='msp-form-control' onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')} flex title={'Remove'} />
         </div>;
     }
 
@@ -278,7 +270,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
                 {entries.map((e, i) => this.lociEntry(e, i))}
             </div>}
             {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add 2 or more selections (toggle <ToggleSelectionModeButton inline /> mode) from separate structures. Selections must be limited to single polymer chains or residues therein.</div>
+                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add 2 or more selections (toggle <ToggleSelectionModeButton inline /> mode) from separate structures. Selections must be limited to single polymer chains or residues therein.</div>
             </div>}
             {entries.length > 1 && <Button title='Superpose structures by selected chains.' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeChains} style={{ marginTop: '1px' }}>
                 Superpose
@@ -293,7 +285,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
                 {entries.map((e, i) => this.atomsLociEntry(e, i))}
             </div>}
             {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutline} inline />Add 1 or more selections (toggle <ToggleSelectionModeButton inline /> mode) from
+                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add 1 or more selections (toggle <ToggleSelectionModeButton inline /> mode) from
                 separate structures. Selections must be limited to single atoms.</div>
             </div>}
             {entries.length > 1 && <Button title='Superpose structures by selected atoms.' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeAtoms} style={{ marginTop: '1px' }}>
@@ -309,9 +301,9 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
     render() {
         return <>
             <div className='msp-flex-row'>
-                <ToggleButton icon={LinearScaleIcon} label='By Chains' toggle={this.toggleByChains} isSelected={this.state.action === 'byChains'} disabled={this.state.isBusy} />
-                <ToggleButton icon={ScatterPlotIcon} label='By Atoms' toggle={this.toggleByAtoms} isSelected={this.state.action === 'byAtoms'} disabled={this.state.isBusy} />
-                <ToggleButton icon={Tune} label='' title='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px', padding: 0 }} />
+                <ToggleButton icon={SuperposeChainsSvg} label='By Chains' toggle={this.toggleByChains} isSelected={this.state.action === 'byChains'} disabled={this.state.isBusy} />
+                <ToggleButton icon={SuperposeAtomsSvg} label='By Atoms' toggle={this.toggleByAtoms} isSelected={this.state.action === 'byAtoms'} disabled={this.state.isBusy} />
+                <ToggleButton icon={TuneSvg} label='' title='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.action === 'byChains' && this.addByChains()}
             {this.state.action === 'byAtoms' && this.addByAtoms()}

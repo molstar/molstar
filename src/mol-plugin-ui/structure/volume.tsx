@@ -5,14 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Add from '@material-ui/icons/Add';
-import BlurOn from '@material-ui/icons/BlurOn';
-import Check from '@material-ui/icons/Check';
-import ErrorSvg from '@material-ui/icons/Error';
-import DeleteOutlined from '@material-ui/icons/DeleteOutlined';
-import MoreHoriz from '@material-ui/icons/MoreHoriz';
-import VisibilityOffOutlined from '@material-ui/icons/VisibilityOffOutlined';
-import VisibilityOutlined from '@material-ui/icons/VisibilityOutlined';
 import * as React from 'react';
 import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
 import { VolumeHierarchyManager } from '../../mol-plugin-state/manager/volume/hierarchy';
@@ -28,6 +20,7 @@ import { ApplyActionControl } from '../state/apply-action';
 import { UpdateTransformControl } from '../state/update-transform';
 import { BindingsHelp } from '../viewport/help';
 import { PluginCommands } from '../../mol-plugin/commands';
+import { BlurOnSvg, ErrorSvg, CheckSvg, AddSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, DeleteOutlinedSvg, MoreHorizSvg } from '../controls/icons';
 
 interface VolumeStreamingControlState extends CollapsableState {
     isBusy: boolean
@@ -40,7 +33,7 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
             isCollapsed: false,
             isBusy: false,
             isHidden: true,
-            brand: { accent: 'cyan', svg: BlurOn }
+            brand: { accent: 'cyan', svg: BlurOnSvg }
         };
     }
 
@@ -84,7 +77,7 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
             ? { header: 'Error enabling', icon: ErrorSvg, title: rootCell.errorText }
             : rootCell && rootCell.obj?.data.entries.length === 0
                 ? { header: 'Error enabling', icon: ErrorSvg, title: 'No entry for streaming found' }
-                : { header: 'Enable', icon: Check, title: 'Enable' };
+                : { header: 'Enable', icon: CheckSvg, title: 'Enable' };
 
         return <ApplyActionControl state={pivot.cell.parent} action={InitVolumeStreaming} initiallyCollapsed={true} nodeRef={pivot.cell.transform.ref} simpleApply={simpleApply} />;
     }
@@ -121,7 +114,7 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
             isCollapsed: false,
             isBusy: false,
             isHidden: true,
-            brand: { accent: 'purple', svg: BlurOn }
+            brand: { accent: 'purple', svg: BlurOnSvg }
         };
     }
 
@@ -199,7 +192,7 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
         return <>
             <div className='msp-flex-row' style={{ marginTop: '1px' }}>
                 <Button noOverflow flex onClick={this.toggleHierarchy} disabled={disabled} title={label}>{label}</Button>
-                {!this.isEmpty && <IconButton svg={Add} onClick={this.toggleAddRepr} title='Apply a structure presets to the current hierarchy.' toggleState={this.state.show === 'add-repr'} disabled={disabled} />}
+                {!this.isEmpty && <IconButton svg={AddSvg} onClick={this.toggleAddRepr} title='Apply a structure presets to the current hierarchy.' toggleState={this.state.show === 'add-repr'} disabled={disabled} />}
             </div>
             {this.state.show === 'hierarchy' && <ActionMenu items={this.hierarchyItems} onSelect={this.selectCurrent} />}
             {this.state.show === 'add-repr' && <ActionMenu items={this.addActions} onSelect={this.selectAdd} />}
@@ -258,9 +251,9 @@ class VolumeRepresentationControls extends PurePluginUIComponent<{ representatio
                     {repr.obj?.label}
                     <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{repr.obj?.description}</small>
                 </Button>
-                <IconButton svg={repr.state.isHidden ? VisibilityOffOutlined : VisibilityOutlined} toggleState={false} onClick={this.toggleVisible} title={`${repr.state.isHidden ? 'Show' : 'Hide'} component`} small className='msp-form-control' flex />
-                <IconButton svg={DeleteOutlined} onClick={this.remove} title='Remove' small />
-                <IconButton svg={MoreHoriz} onClick={this.toggleUpdate} title='Actions' toggleState={this.state.action === 'update'} />
+                <IconButton svg={repr.state.isHidden ? VisibilityOffOutlinedSvg : VisibilityOutlinedSvg} toggleState={false} onClick={this.toggleVisible} title={`${repr.state.isHidden ? 'Show' : 'Hide'} component`} small className='msp-form-control' flex />
+                <IconButton svg={DeleteOutlinedSvg} onClick={this.remove} title='Remove' small />
+                <IconButton svg={MoreHorizSvg} onClick={this.toggleUpdate} title='Actions' toggleState={this.state.action === 'update'} />
             </div>
             {this.state.action === 'update' && !!repr.parent && <div style={{ marginBottom: '6px' }} className='msp-accent-offset'>
                 <UpdateTransformControl state={repr.parent} transform={repr.transform} customHeader='none' noMargin />
