@@ -23,6 +23,7 @@ import { ObjectKeys } from '../../mol-util/type-helpers';
 import { PluginState } from '../../mol-plugin/state';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
+import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 
 require('mol-plugin-ui/skin/light.scss');
 
@@ -59,7 +60,7 @@ type ViewerOptions = typeof DefaultViewerOptions;
 export class Viewer {
     plugin: PluginContext
 
-    constructor(elementId: string, options: Partial<ViewerOptions> = {}) {
+    constructor(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
         const o = { ...DefaultViewerOptions, ...options };
 
         const spec: PluginSpec = {
@@ -99,8 +100,10 @@ export class Viewer {
             ]
         };
 
-        const element = document.getElementById(elementId);
-        if (!element) throw new Error(`Could not get element with id '${elementId}'`);
+        const element = typeof elementOrId === 'string'
+            ? document.getElementById(elementOrId)
+            : elementOrId;
+        if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
         this.plugin = createPlugin(element, spec);
     }
 
@@ -113,7 +116,7 @@ export class Viewer {
         await PluginCommands.State.Snapshots.OpenUrl(this.plugin, { url, type });
     }
 
-    async loadStructureFromUrl(url: string, format = 'cif', isBinary = false) {
+    async loadStructureFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false) {
         const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
             source: {
@@ -126,6 +129,12 @@ export class Viewer {
                 }
             }
         }));
+    }
+
+    async loadStructureFromData(data: string | number[], format: BuiltInTrajectoryFormat, options?: { dataLabel?: string }) {
+        const _data = await this.plugin.builders.data.rawData({ data, label: options?.dataLabel });
+        const trajectory = await this.plugin.builders.structure.parseTrajectory(_data, format);
+        await this.plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
     }
 
     async loadPdb(pdb: string) {
