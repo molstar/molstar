@@ -50,25 +50,21 @@ const ConfalPyramidsMeshParams = {
 type ConfalPyramidsMeshParams = typeof ConfalPyramidsMeshParams;
 
 function createConfalPyramidsIterator(structureGroup: StructureGroup): LocationIterator {
-    const { structure } = structureGroup;
-    const unit = structureGroup.group.units[0];
-
-    if (!Unit.isAtomic(unit)) {
-        // Noop
-        return LocationIterator(0, 1, () => NullLocation);
-    }
+    const { structure, group } = structureGroup;
+    const instanceCount = group.units.length;
 
     const prop = ConfalPyramidsProvider.get(structure.model).value;
     if (prop === undefined || prop.data === undefined) {
-        return LocationIterator(0, 1, (groupIndex: number, instanceIndex: number) => {
-            return NullLocation;
-        });
+        return LocationIterator(0, 1, () => NullLocation);
     }
 
+    const { locations } = prop.data;
+
     const getLocation = (groupIndex: number, instanceIndex: number) => {
-        return NullLocation; // TODO: Implement me
+        if (locations.length <= groupIndex) return NullLocation;
+        return locations[groupIndex];
     };
-    return LocationIterator(prop.data.locations.length, 1, getLocation); // TODO: Implement me
+    return LocationIterator(locations.length, instanceCount, getLocation);
 }
 
 function createConfalPyramidsMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ConfalPyramidsMeshParams>, mesh?: Mesh) {
