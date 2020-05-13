@@ -16,13 +16,14 @@ import { PrimitiveBuilder } from '../../../mol-geo/primitive/primitive';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
-import { Structure, Unit } from '../../../mol-model/structure';
+import { Structure, StructureProperties, Unit } from '../../../mol-model/structure';
 import { CustomProperty } from '../../../mol-model-props/common/custom-property';
 import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../../mol-repr/representation';
 import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder, UnitsRepresentation } from '../../../mol-repr/structure/representation';
 import { StructureGroup, UnitsMeshParams, UnitsMeshVisual, UnitsVisual } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { VisualContext } from '../../../mol-repr/visual';
+import { getAltResidueLociFromId } from '../../../mol-repr/structure/visual/util/common';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Theme, ThemeRegistryContext } from '../../../mol-theme/theme';
 import { NullLocation } from '../../../mol-model/location';
@@ -115,7 +116,24 @@ function createConfalPyramidsMesh(ctx: VisualContext, unit: Unit, structure: Str
 }
 
 function getConfalPyramidLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {
-    return EmptyLoci; // TODO: Implement me
+    const { groupId, objectId, instanceId } = pickingId;
+    if (objectId !== id) return EmptyLoci;
+
+    const { structure } = structureGroup;
+
+    const unit = structureGroup.group.units[instanceId];
+    if (!Unit.isAtomic(unit)) return EmptyLoci;
+
+    const prop = ConfalPyramidsProvider.get(structure.model).value;
+    if (prop === undefined || prop.data === undefined) return EmptyLoci;
+
+    const { locations } = prop.data;
+
+    if (locations.length <= groupId) return EmptyLoci;
+    const altId = StructureProperties.atom.label_alt_id(CPT.toElementLocation(locations[groupId]));
+    const rI = unit.residueIndex[locations[groupId].element.element];
+
+    return getAltResidueLociFromId(structure, unit, rI, altId);
 }
 
 function eachConfalPyramid(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
