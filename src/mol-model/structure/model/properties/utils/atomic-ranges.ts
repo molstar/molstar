@@ -88,24 +88,20 @@ export function getAtomicRanges(hierarchy: AtomicHierarchy, entities: Entities, 
                         startIndex = residueSegment.start;
                     } else if (!residueIt.hasNext) {
                         polymerRanges.push(startIndex, residueSegment.end - 1);
-                        // TODO
-                        // if (seqId !== maxSeqId) {
-                        //     gapRanges.push(residueSegment.end - 1, residueSegment.end - 1)
-                        // }
+                        // TODO store terminal gaps
                     } else {
                         const riStart = hierarchy.residueAtomSegments.index[residueSegment.start];
                         const riEnd = hierarchy.residueAtomSegments.index[prevEnd - 1];
                         if (conformation.xyzDefined && !areBackboneConnected(riStart, riEnd, conformation, hierarchy.index, derived)) {
                             polymerRanges.push(startIndex, prevEnd - 1);
+                            // add gap even for consecutive residues if they are not connected
+                            gapRanges.push(prevStart, residueSegment.end - 1);
                             startIndex = residueSegment.start;
                         }
                     }
                 } else {
                     startIndex = residueSegment.start; // start polymer
-                    // TODO
-                    // if (seqId !== 1) {
-                    //     gapRanges.push(residueSegment.start, residueSegment.start)
-                    // }
+                    // TODO store terminal gaps
                 }
             } else {
                 if (startIndex !== -1) {
