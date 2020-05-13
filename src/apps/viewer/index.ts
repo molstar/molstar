@@ -107,16 +107,16 @@ export class Viewer {
         this.plugin = createPlugin(element, spec);
     }
 
-    async setRemoteSnapshot(id: string) {
+    setRemoteSnapshot(id: string) {
         const url = `${this.plugin.config.get(PluginConfig.State.CurrentServer)}/get/${id}`;
-        await PluginCommands.State.Snapshots.Fetch(this.plugin, { url });
+        return PluginCommands.State.Snapshots.Fetch(this.plugin, { url });
     }
 
-    async loadSnapshotFromUrl(url: string, type: PluginState.SnapshotType) {
-        await PluginCommands.State.Snapshots.OpenUrl(this.plugin, { url, type });
+    loadSnapshotFromUrl(url: string, type: PluginState.SnapshotType) {
+        return PluginCommands.State.Snapshots.OpenUrl(this.plugin, { url, type });
     }
 
-    async loadStructureFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false) {
+    loadStructureFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false) {
         const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
             source: {
@@ -137,7 +137,7 @@ export class Viewer {
         await this.plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
     }
 
-    async loadPdb(pdb: string) {
+    loadPdb(pdb: string) {
         const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         const provider = this.plugin.config.get(PluginConfig.Download.DefaultPdbProvider)!;
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
@@ -157,7 +157,7 @@ export class Viewer {
         }));
     }
 
-    async loadPdbDev(pdbDev: string) {
+    loadPdbDev(pdbDev: string) {
         const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
             source: {
@@ -173,7 +173,7 @@ export class Viewer {
         }));
     }
 
-    async loadEmdb(emdb: string) {
+    loadEmdb(emdb: string) {
         const provider = this.plugin.config.get(PluginConfig.Download.DefaultEmdbProvider)!;
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadDensity, {
             source: {
