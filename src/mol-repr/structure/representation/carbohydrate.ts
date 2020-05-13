@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure } from '../../../mol-model/structure';
+import { Structure, Model } from '../../../mol-model/structure';
 import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -46,6 +46,6 @@ export const CarbohydrateRepresentationProvider = StructureRepresentationProvide
     defaultColorTheme: { name: 'carbohydrate-symbol' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => {
-        return structure.models.reduce((a, v) => a + v.properties.saccharideComponentMap.size, 0) > 0;
+        return structure.models.some(m => Model.hasCarbohydrate(m));
     }
 });

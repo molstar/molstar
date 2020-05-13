@@ -144,6 +144,27 @@ export namespace Model {
 
     //
 
+    export function hasCarbohydrate(model: Model): boolean {
+        return model.properties.saccharideComponentMap.size > 0;
+    }
+
+    export function hasProtein(model: Model): boolean {
+        const { subtype } = model.entities;
+        for (let i = 0, il = subtype.rowCount; i < il; ++i) {
+            if (subtype.value(i).startsWith('polypeptide')) return true;
+        }
+        return false;
+    }
+
+    export function hasNucleic(model: Model): boolean {
+        const { subtype } = model.entities;
+        for (let i = 0, il = subtype.rowCount; i < il; ++i) {
+            const s = subtype.value(i);
+            if (s.endsWith('ribonucleotide hybrid') || s.endsWith('ribonucleotide')) return true;
+        }
+        return false;
+    }
+
     export function isFromPdbArchive(model: Model): boolean {
         if (!MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
