@@ -107,7 +107,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
             }
         };
         // TODO add .insertOrUpdate to StateBuilder?
-        let b = o
+        const b = o
             ? this.plugin.state.data.build().to(o).update(params)
             : this.plugin.state.data.build().to(s)
                 .insert(StateTransforms.Model.TransformStructureConformation, params, { tags: SuperpositionTag });

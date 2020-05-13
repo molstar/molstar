@@ -322,14 +322,14 @@ export const ValidationReportGeometryQualityPreset = StructureRepresentationPres
         const clashes = await plugin.builders.structure.tryCreateComponentFromExpression(structureCell, hasClash.expression, 'clashes', { label: 'Clashes' });
 
         const { update, builder, typeParams, color } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
-        let clashesBallAndStick, clashesSnfg3d;
+        let clashesBallAndStick, clashesRepr;
         if (representations) {
             clashesBallAndStick = builder.buildRepresentation(update, clashes, { type: 'ball-and-stick', typeParams, color: colorTheme }, { tag: 'clashes-ball-and-stick' });
-            clashesSnfg3d = builder.buildRepresentation<any>(update, clashes, { type: ClashesRepresentationProvider.name, typeParams, color }, { tag: 'clashes-snfg-3d' });
+            clashesRepr = builder.buildRepresentation<any>(update, clashes, { type: ClashesRepresentationProvider.name, typeParams, color }, { tag: 'clashes-repr' });
         }
 
         await update.commit({ revertOnError: true });
-        return { components: { ...components, clashes }, representations: { ...representations, clashesBallAndStick, clashesSnfg3d } };
+        return { components: { ...components, clashes }, representations: { ...representations, clashesBallAndStick, clashesRepr } };
     }
 });
 
