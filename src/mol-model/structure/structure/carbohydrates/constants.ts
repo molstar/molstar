@@ -220,7 +220,7 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     Gul: ['4GL', 'GL0', 'GUP', 'Z8H'],
     Alt: ['Z6H', '3MK', 'SHD'],
     All: ['AFD', 'ALL', 'WOO', 'Z2D'],
-    Tal: ['ZEE', 'A5C'],
+    Tal: ['ZEE', 'A5C', 'SDY'],
     Ido: ['ZCD', 'Z0F', '4N2'],
     // HexNAc
     GlcNAc: ['NDG', 'NAG', 'NGZ'],
@@ -230,7 +230,7 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     AltNAc: [],
     AllNAc: ['NAA'],
     TalNAc: [],
-    IdoNAc: ['LXZ'],
+    IdoNAc: ['LXZ', 'HSQ'],
     // Hexosamine
     GlcN: ['PA1', 'GCS'],
     ManN: ['95Z'],
@@ -255,7 +255,7 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     '6dGul': ['66O'],
     '6dAlt': [],
     '6dTal': [],
-    Fuc: ['FUC', 'FUL', 'FCA', 'FCB'],
+    Fuc: ['FUC', 'FUL', 'FCA', 'FCB', 'GYE'],
     // DeoxyhexNAc
     QuiNAc: ['Z9W'],
     RhaNAc: [],
@@ -270,7 +270,7 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     Dig: ['Z3U'],
     Col: [],
     // Pentose
-    Ara: ['64K', 'ARA', 'ARB', 'AHR', 'FUB', 'BXY', 'BXX'],
+    Ara: ['64K', 'ARA', 'ARB', 'AHR', 'FUB', 'BXY', 'BXX', 'SEJ'],
     Lyx: ['LDY', 'Z4W'],
     Xyl: ['XYS', 'XYP', 'XYZ', 'HSY', 'LXC'],
     Rib: ['YYM', 'RIP', 'RIB', 'BDR', '0MK', 'Z6J', '32O'],
@@ -298,8 +298,8 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     Api: ['XXM'],
     Fru: ['BDF', 'Z9N', 'FRU', 'LFR'],
     Tag: ['T6T'],
-    Sor: ['SOE'],
-    Psi: ['PSV', 'SF6', 'SF9'],
+    Sor: ['SOE', 'UEA'],
+    Psi: ['PSV', 'SF6', 'SF9', 'TTV'],
 };
 
 const UnknownSaccharideNames = [
