@@ -32,6 +32,7 @@ import { ModelIndexColorThemeProvider } from './color/model-index';
 import { OccupancyColorThemeProvider } from './color/occupancy';
 import { OperatorNameColorThemeProvider } from './color/operator-name';
 import { OperatorHklColorThemeProvider } from './color/operator-hkl';
+import { AccessibleSurfaceAreaColorThemeProvider } from '../mol-model-props/computed/themes/accessible-surface-area';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -100,6 +101,7 @@ namespace ColorTheme {
         'uncertainty': UncertaintyColorThemeProvider,
         'unit-index': UnitIndexColorThemeProvider,
         'uniform': UniformColorThemeProvider,
+        'accessible-surface-area': AccessibleSurfaceAreaColorThemeProvider,
     };
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn

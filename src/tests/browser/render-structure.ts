@@ -26,6 +26,7 @@ import { InteractionsProvider } from '../../mol-model-props/computed/interaction
 import { SecondaryStructureProvider } from '../../mol-model-props/computed/secondary-structure';
 import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
 import { AssetManager } from '../../mol-util/assets';
+import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -127,6 +128,14 @@ async function init() {
     await SecondaryStructureProvider.attach(ctx, structure);
     console.timeEnd('compute SecondaryStructure');
 
+    console.time('compute AccessibleSurfaceArea');
+    await AccessibleSurfaceAreaProvider.attach(ctx, structure);
+    console.timeEnd('compute AccessibleSurfaceArea');
+
+    console.time('compute Topology');
+    await TopologyProvider.attach(ctx, structure);
+    console.timeEnd('compute Topology');
+
     console.time('compute Interactions');
     await InteractionsProvider.attach(ctx, structure);
     console.timeEnd('compute Interactions');
@@ -148,7 +157,8 @@ async function init() {
 
     if (show.cartoon) {
         cartoonRepr.setTheme({
-            color: reprCtx.colorThemeRegistry.create('element-symbol', { structure }),
+            // TODO remove from mol-theme/color.ts again
+            color: reprCtx.colorThemeRegistry.create('accessible-surface-area', { structure }),
             size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
         });
         await cartoonRepr.createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure).run();
