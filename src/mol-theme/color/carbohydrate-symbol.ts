@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureElement, Bond, ElementIndex, Unit } from '../../mol-model/structure';
+import { StructureElement, Bond, ElementIndex, Unit, Model } from '../../mol-model/structure';
 import { SaccharideColors, MonosaccharidesColorTable } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
@@ -68,6 +68,6 @@ export const CarbohydrateSymbolColorThemeProvider: ColorTheme.Provider<Carbohydr
     getParams: getCarbohydrateSymbolColorThemeParams,
     defaultValues: PD.getDefaultValues(CarbohydrateSymbolColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => {
-        return !!ctx.structure && ctx.structure.models.reduce((a, v) => a + v.properties.saccharideComponentMap.size, 0) > 0;
+        return !!ctx.structure && ctx.structure.models.some(m => Model.hasCarbohydrate(m));
     }
 };
