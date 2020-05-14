@@ -135,9 +135,9 @@ const _Remove = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M19
 export function RemoveSvg() { return _Remove; }
 const _Restore = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z' /></svg>;
 export function RestoreSvg() { return _Restore; }
-const _SaveOutlined = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm2 16H5V5h11.17L19 7.83V19zm-7-7c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zM6 6h9v4H6z' /></svg>;
+const _SaveOutlined = <svg width='24px' height='24px' viewBox='0 0 24 24' strokeWidth='0.1px'><path d='M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm2 16H5V5h11.17L19 7.83V19zm-7-7c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zM6 6h9v4H6z' /></svg>;
 export function SaveOutlinedSvg() { return _SaveOutlined; }
-const _ScatterPlot = <svg width='24px' height='24px' viewBox='0 0 24 24' strokeWidth='0.1px'><circle cx='7' cy='14' r='3' /><circle cx='11' cy='6' r='3' /><circle cx='16.6' cy='17.6' r='3' /></svg>;
+const _ScatterPlot = <svg width='24px' height='24px' viewBox='0 0 24 24'><circle cx='7' cy='14' r='3' /><circle cx='11' cy='6' r='3' /><circle cx='16.6' cy='17.6' r='3' /></svg>;
 export function ScatterPlotSvg() { return _ScatterPlot; }
 const _SkipPrevious = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M6 6h2v12H6zm3.5 6l8.5 6V6z' /></svg>;
 export function SkipPreviousSvg() { return _SkipPrevious; }
