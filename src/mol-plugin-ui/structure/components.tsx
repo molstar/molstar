@@ -15,7 +15,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ExpandGroup, IconButton, ToggleButton } from '../controls/common';
-import { CubeSvg, IntersectSvg, SetSvg, SubtractSvg, UnionSvg, BookmarksOutlinedSvg, AddSvg, TuneSvg, RestoreSvg, DeleteSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, DeleteOutlinedSvg, MoreHorizSvg } from '../controls/icons';
+import { CubeOutlineSvg, IntersectSvg, SetSvg, SubtractSvg, UnionSvg, BookmarksOutlinedSvg, AddSvg, TuneSvg, RestoreSvg, DeleteSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, DeleteOutlinedSvg, MoreHorizSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 import { GenericEntryListControls } from './generic';
@@ -30,7 +30,7 @@ export class StructureComponentControls extends CollapsableControls<{}, Structur
             header: 'Representation',
             isCollapsed: false,
             isDisabled: false,
-            brand: { accent: 'blue', svg: CubeSvg }
+            brand: { accent: 'blue', svg: CubeOutlineSvg }
         };
     }
 

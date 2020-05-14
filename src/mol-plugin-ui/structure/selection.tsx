@@ -18,7 +18,7 @@ import { PluginUIComponent, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ControlGroup, IconButton, ToggleButton } from '../controls/common';
 import { ParameterControls, ParamOnChange, PureSelectControl } from '../controls/parameters';
-import { UnionSvg, SubtractSvg, IntersectSvg, SetSvg, CubeSvg, Icon, SelectionModeSvg, RemoveSvg, RestoreSvg, HelpOutlineSvg, CancelOutlinedSvg, BrushSvg, CloseSvg } from '../controls/icons';
+import { UnionSvg, SubtractSvg, IntersectSvg, SetSvg, CubeOutlineSvg, Icon, SelectionModeSvg, RemoveSvg, RestoreSvg, HelpOutlineSvg, CancelOutlinedSvg, BrushSvg, CloseSvg } from '../controls/icons';
 import { AddComponentControls } from './components';
 import Structure from '../../mol-model/structure/structure/structure';
 import { ViewportHelpContent, HelpGroup, HelpText } from '../viewport/help';
@@ -196,7 +196,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                 <ToggleButton icon={SetSvg} title={`${ActionHeader.get('set')}. Hold shift key to keep menu open.`} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
 
                 <ToggleButton icon={BrushSvg} title='Apply Theme to Selection' toggle={this.toggleTheme} isSelected={this.state.action === 'theme'} disabled={this.isDisabled} style={{ marginLeft: '10px' }}  />
-                <ToggleButton icon={CubeSvg} title='Create Representation of Selection' toggle={this.toggleAddRepr} isSelected={this.state.action === 'add-repr'} disabled={this.isDisabled} />
+                <ToggleButton icon={CubeOutlineSvg} title='Create Representation of Selection' toggle={this.toggleAddRepr} isSelected={this.state.action === 'add-repr'} disabled={this.isDisabled} />
                 <IconButton svg={RemoveSvg} title='Subtract Selection from Representations' onClick={this.subtract} disabled={this.isDisabled} />
                 <IconButton svg={RestoreSvg} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />
 
@@ -222,7 +222,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                         <HelpText>Use <Icon svg={UnionSvg} inline /> <Icon svg={SubtractSvg} inline /> <Icon svg={IntersectSvg} inline /> <Icon svg={SetSvg} inline /> to modify the selection.</HelpText>
                     </HelpGroup>
                     <HelpGroup header='Representation Operations'>
-                        <HelpText>Use <Icon svg={BrushSvg} inline /> <Icon svg={CubeSvg} inline /> <Icon svg={RemoveSvg} inline /> <Icon svg={RestoreSvg} inline /> to color, create selection/representation, subtract it, or undo actions.</HelpText>
+                        <HelpText>Use <Icon svg={BrushSvg} inline /> <Icon svg={CubeOutlineSvg} inline /> <Icon svg={RemoveSvg} inline /> <Icon svg={RestoreSvg} inline /> to color, create selection/representation, subtract it, or undo actions.</HelpText>
                     </HelpGroup>
                     <ViewportHelpContent selectOnly={true} />
                 </ControlGroup>
