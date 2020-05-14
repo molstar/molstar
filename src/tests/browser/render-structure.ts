@@ -134,8 +134,8 @@ async function init() {
 
     const show = {
         cartoon: true,
-        interaction: true,
-        ballAndStick: true,
+        interaction: false,
+        ballAndStick: false,
         molecularSurface: false,
         gaussianSurface: false,
     };
