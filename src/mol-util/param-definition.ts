@@ -423,7 +423,7 @@ export namespace ParamDefinition {
         return false;
     }
 
-    export function merge(params: Params, a: any, b: any): any {
+    export function merge<P extends Params>(params: P, a: any, b: any): Values<P> {
         if (a === undefined) return { ...b };
         if (b === undefined) return { ...a };
 

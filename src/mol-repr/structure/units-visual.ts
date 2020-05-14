@@ -36,6 +36,7 @@ import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { SizeValues } from '../../mol-gl/renderable/schema';
 import { StructureParams, StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureTextParams, StructureDirectVolumeParams, StructureTextureMeshParams } from './params';
+import { Clipping } from '../../mol-theme/clipping';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -267,6 +268,9 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         },
         setTransparency(transparency: Transparency) {
             Visual.setTransparency(renderObject, transparency, lociApply, true);
+        },
+        setClipping(clipping: Clipping) {
+            Visual.setClipping(renderObject, clipping, lociApply, true);
         },
         destroy() {
             // TODO

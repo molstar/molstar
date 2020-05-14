@@ -64,7 +64,7 @@ void main(void){
     vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
 
     if (vTexCoord.x == 10.0) { // indicates background plane
-        // move a bit to the back, tkaing ditsnace to camera into account to avoid z-fighting
+        // move a bit to the back, taking distance to camera into account to avoid z-fighting
         offsetZ -= 0.001 * distance(uCameraPosition, (uProjection * mvCorner).xyz);
     }
 

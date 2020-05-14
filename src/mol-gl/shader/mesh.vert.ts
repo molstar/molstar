@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,6 +12,7 @@ precision highp int;
 #include read_from_texture
 #include common_vert_params
 #include color_vert_params
+#include common_clip
 
 #ifdef dGeoTexture
     uniform vec2 uGeoTexDim;
@@ -34,7 +35,9 @@ void main(){
     #include assign_group
     #include assign_color_varying
     #include assign_marker_varying
+    #include assign_clipping_varying
     #include assign_position
+    #include clip_instance
 
     #ifdef dGeoTexture
         vec3 normal = readFromTexture(tNormal, aGroup, uGeoTexDim).xyz;

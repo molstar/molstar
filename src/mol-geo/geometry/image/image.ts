@@ -9,7 +9,7 @@ import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere, TextureImage } from '../../../mol-gl/renderable/util';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { Vec2 } from '../../../mol-math/linear-algebra';
+import { Vec2, Vec4 } from '../../../mol-math/linear-algebra';
 import { Theme } from '../../../mol-theme/theme';
 import { ValueCell } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
@@ -23,6 +23,7 @@ import { TransformData } from '../transform-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { ImageValues } from '../../../mol-gl/renderable/image';
 import { fillSerial } from '../../../mol-util/array';
+import { createEmptyClipping } from '../clipping-data';
 
 const QuadIndices = new Uint32Array([
     0, 1, 2,
@@ -137,6 +138,7 @@ namespace Image {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const clipping = createEmptyClipping();
 
         const counts = { drawCount: QuadIndices.length, groupCount, instanceCount };
 
@@ -148,6 +150,7 @@ namespace Image {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...clipping,
             ...transform,
             ...BaseGeometry.createValues(props, counts),
 
@@ -159,6 +162,7 @@ namespace Image {
             aGroup: ValueCell.create(fillSerial(new Float32Array(4))),
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
+            uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
 
             dInterpolation: ValueCell.create(props.interpolation),
 
@@ -188,6 +192,7 @@ namespace Image {
         }
         if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
             ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere);
+            ValueCell.update(values.uInvariantBoundingSphere, Vec4.fromSphere(values.uInvariantBoundingSphere.ref.value, invariantBoundingSphere));
         }
     }
 

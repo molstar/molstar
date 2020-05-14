@@ -13,8 +13,11 @@ precision highp int;
 #include color_frag_params
 #include light_frag_params
 #include normal_frag_params
+#include common_clip
 
 void main() {
+    #include clip_pixel
+
     // Workaround for buggy gl_FrontFacing (e.g. on some integrated Intel GPUs)
     #if defined(enabledStandardDerivatives)
         vec3 fdx = dFdx(vViewPosition);

@@ -3,6 +3,21 @@ uniform int uObjectId;
 uniform int uInstanceCount;
 uniform int uGroupCount;
 
+#if dClipObjectCount != 0
+    uniform int uClipObjectType[dClipObjectCount];
+    uniform vec3 uClipObjectPosition[dClipObjectCount];
+    uniform vec4 uClipObjectRotation[dClipObjectCount];
+    uniform vec3 uClipObjectScale[dClipObjectCount];
+
+    #if defined(dClipping)
+        #if __VERSION__ != 300
+            varying float vClipping;
+        #else
+            flat in float vClipping;
+        #endif
+    #endif
+#endif
+
 uniform vec3 uHighlightColor;
 uniform vec3 uSelectColor;
 #if __VERSION__ != 300
@@ -11,6 +26,7 @@ uniform vec3 uSelectColor;
     flat in float vMarker;
 #endif
 
+varying vec3 vModelPosition;
 varying vec3 vViewPosition;
 
 uniform vec2 uViewOffset;

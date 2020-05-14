@@ -29,8 +29,15 @@ export const DirectVolumeSchema = {
     dTransparency: DefineSpec('boolean'),
     dTransparencyVariant: DefineSpec('string', ['single', 'multi']),
 
+    dClipObjectCount: DefineSpec('number'),
+    dClipVariant: DefineSpec('string', ['instance', 'pixel']),
+    uClippingTexDim: UniformSpec('v2'),
+    tClipping: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+    dClipping: DefineSpec('boolean'),
+
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
+    uInvariantBoundingSphere: UniformSpec('v4'),
 
     aInstance: AttributeSpec('float32', 1, 1),
     aTransform: AttributeSpec('float32', 16, 1),

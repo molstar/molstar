@@ -30,6 +30,7 @@ import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams } from './params';
+import { Clipping } from '../../mol-theme/clipping';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -216,6 +217,9 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         },
         setTransparency(transparency: Transparency) {
             Visual.setTransparency(renderObject, transparency, lociApply, true);
+        },
+        setClipping(clipping: Clipping) {
+            Visual.setClipping(renderObject, clipping, lociApply, true);
         },
         destroy() {
             // TODO

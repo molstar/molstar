@@ -79,7 +79,8 @@
   "contributors": [
     "Alexander Rose <alexander.rose@weirdbyte.de>",
     "David Sehnal <david.sehnal@gmail.com>",
-    "Sebastian Bittrich <sebastian.bittrich@rcsb.org>"
+    "Sebastian Bittrich <sebastian.bittrich@rcsb.org>",
+    "Ludovic Autin <autin@scripps.edu>"
   ],
   "license": "MIT",
   "devDependencies": {

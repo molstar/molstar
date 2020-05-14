@@ -21,6 +21,8 @@ import { createOverpaint, clearOverpaint, applyOverpaintColor } from '../mol-geo
 import { Interval } from '../mol-data/int';
 import { Transparency } from '../mol-theme/transparency';
 import { createTransparency, clearTransparency, applyTransparencyValue } from '../mol-geo/geometry/transparency-data';
+import { Clipping } from '../mol-theme/clipping';
+import { createClipping, applyClippingGroups, clearClipping } from '../mol-geo/geometry/clipping-data';
 
 export interface VisualContext {
     readonly runtime: RuntimeContext
@@ -42,6 +44,7 @@ interface Visual<D, P extends PD.Params> {
     setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void
     setOverpaint: (overpaint: Overpaint) => void
     setTransparency: (transparency: Transparency) => void
+    setClipping: (clipping: Clipping) => void
     destroy: () => void
 }
 namespace Visual {
@@ -126,6 +129,31 @@ namespace Visual {
         lociApply(loci, apply, false);
 
         ValueCell.update(tTransparency, tTransparency.ref.value);
+    }
+
+    export function setClipping(renderObject: GraphicsRenderObject | undefined, clipping: Clipping, lociApply: LociApply, clear: boolean) {
+        if (!renderObject) return;
+
+        const { tClipping, uGroupCount, instanceCount } = renderObject.values;
+        const count = uGroupCount.ref.value * instanceCount.ref.value;
+
+        // ensure texture has right size
+        createClipping(clipping.layers.length ? count : 0, renderObject.values);
+        const { array } = tClipping.ref.value;
+
+        // clear if requested
+        if (clear) clearClipping(array, 0, count);
+
+        for (let i = 0, il = clipping.layers.length; i < il; ++i) {
+            const { loci, groups } = clipping.layers[i];
+            const apply = (interval: Interval) => {
+                const start = Interval.start(interval);
+                const end = Interval.end(interval);
+                return applyClippingGroups(array, start, end, groups);
+            };
+            lociApply(loci, apply, false);
+        }
+        ValueCell.update(tClipping, tClipping.ref.value);
     }
 
     export function setTransform(renderObject: GraphicsRenderObject | undefined, transform?: Mat4, instanceTransforms?: Float32Array | null) {

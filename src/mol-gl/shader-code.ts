@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -34,6 +34,7 @@ import apply_fog from './shader/chunks/apply-fog.glsl';
 import apply_interior_color from './shader/chunks/apply-interior-color.glsl';
 import apply_light_color from './shader/chunks/apply-light-color.glsl';
 import apply_marker_color from './shader/chunks/apply-marker-color.glsl';
+import assign_clipping_varying from './shader/chunks/assign-clipping-varying.glsl';
 import assign_color_varying from './shader/chunks/assign-color-varying.glsl';
 import assign_group from './shader/chunks/assign-group.glsl';
 import assign_marker_varying from './shader/chunks/assign-marker-varying.glsl';
@@ -41,8 +42,11 @@ import assign_material_color from './shader/chunks/assign-material-color.glsl';
 import assign_position from './shader/chunks/assign-position.glsl';
 import assign_size from './shader/chunks/assign-size.glsl';
 import check_picking_alpha from './shader/chunks/check-picking-alpha.glsl';
+import clip_instance from './shader/chunks/clip-instance.glsl';
+import clip_pixel from './shader/chunks/clip-pixel.glsl';
 import color_frag_params from './shader/chunks/color-frag-params.glsl';
 import color_vert_params from './shader/chunks/color-vert-params.glsl';
+import common_clip from './shader/chunks/common-clip.glsl';
 import common_frag_params from './shader/chunks/common-frag-params.glsl';
 import common_vert_params from './shader/chunks/common-vert-params.glsl';
 import common from './shader/chunks/common.glsl';
@@ -59,6 +63,7 @@ const ShaderChunks: { [k: string]: string } = {
     apply_interior_color,
     apply_light_color,
     apply_marker_color,
+    assign_clipping_varying,
     assign_color_varying,
     assign_group,
     assign_marker_varying,
@@ -66,8 +71,11 @@ const ShaderChunks: { [k: string]: string } = {
     assign_position,
     assign_size,
     check_picking_alpha,
+    clip_instance,
+    clip_pixel,
     color_frag_params,
     color_vert_params,
+    common_clip,
     common_frag_params,
     common_vert_params,
     common,

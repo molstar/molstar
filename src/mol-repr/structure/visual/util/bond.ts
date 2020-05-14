@@ -10,10 +10,11 @@ import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
 import { StructureGroup } from '../../units-visual';
 import { LinkCylinderParams } from './link';
+import { ObjectKeys } from '../../../../mol-util/type-helpers';
 
 export const BondCylinderParams = {
     ...LinkCylinderParams,
-    includeTypes: PD.MultiSelect(Object.keys(BondType.Names) as BondType.Names[], PD.objectToOptions(BondType.Names)),
+    includeTypes: PD.MultiSelect(ObjectKeys(BondType.Names), PD.objectToOptions(BondType.Names)),
     excludeTypes: PD.MultiSelect([] as BondType.Names[], PD.objectToOptions(BondType.Names)),
 };
 export const DefaultBondCylinderProps = PD.getDefaultValues(BondCylinderParams);

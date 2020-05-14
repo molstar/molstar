@@ -86,7 +86,8 @@ function checkActiveUniforms(gl: GLRenderingContext, program: WebGLProgram, sche
                 // name assigned by `gl.shim.ts`, ignore for checks
                 continue;
             }
-            const spec = schema[name];
+            const baseName = name.replace(/[[0-9]+\]$/, ''); // 'array' uniforms
+            const spec = schema[baseName];
             if (spec === undefined) {
                 throw new Error(`missing 'uniform' or 'texture' with name '${name}' in schema`);
             }

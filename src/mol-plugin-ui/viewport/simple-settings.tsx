@@ -62,7 +62,10 @@ const SimpleSettingsParams = {
         outline: Canvas3DParams.postprocessing.params.outline,
         fog: Canvas3DParams.cameraFog,
     }, { pivot: 'renderStyle' }),
-    clipping: Canvas3DParams.cameraClipping,
+    clipping: PD.Group<any>({
+        ...Canvas3DParams.cameraClipping.params,
+        ...(Canvas3DParams.renderer.params.clip as any).params as any
+    }, { pivot: 'radius' }),
     layout: PD.MultiSelect([] as LayoutOptions[], PD.objectToOptions(LayoutOptions)),
 };
 
@@ -108,7 +111,10 @@ const SimpleSettingsMapping = ParamMapping({
                 outline: canvas.postprocessing.outline,
                 fog: canvas.cameraFog
             },
-            clipping: canvas.cameraClipping
+            clipping: {
+                ...canvas.cameraClipping,
+                ...canvas.renderer.clip
+            }
         };
     },
     update(s, props) {
@@ -122,7 +128,14 @@ const SimpleSettingsMapping = ParamMapping({
         canvas.postprocessing.occlusion = s.lighting.occlusion;
         canvas.postprocessing.outline = s.lighting.outline;
         canvas.cameraFog = s.lighting.fog;
-        canvas.cameraClipping = s.clipping;
+        canvas.cameraClipping = {
+            radius: s.clipping.radius,
+            far: s.clipping.far,
+        };
+        canvas.renderer.clip = {
+            variant: s.clipping.variant,
+            objects: s.clipping.objects,
+        };
 
         props.layout = s.layout;
     },

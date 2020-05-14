@@ -34,6 +34,8 @@ import { OrientationRepresentation, OrientationParams } from '../../mol-repr/sha
 import { AngleParams, AngleRepresentation } from '../../mol-repr/shape/loci/angle';
 import { DihedralParams, DihedralRepresentation } from '../../mol-repr/shape/loci/dihedral';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
+import { Clipping } from '../../mol-theme/clipping';
+import { ObjectKeys } from '../../mol-util/type-helpers';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -42,6 +44,8 @@ export { OverpaintStructureRepresentation3DFromScript };
 export { OverpaintStructureRepresentation3DFromBundle };
 export { TransparencyStructureRepresentation3DFromScript };
 export { TransparencyStructureRepresentation3DFromBundle };
+export { ClippingStructureRepresentation3DFromScript };
+export { ClippingStructureRepresentation3DFromBundle };
 export { VolumeRepresentation3D };
 
 type StructureRepresentation3D = typeof StructureRepresentation3D
@@ -434,6 +438,99 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
         b.data.state.transparency = newTransparency;
         b.data.source = a;
         b.label = `Transparency (${newTransparency.value})`;
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
+type ClippingStructureRepresentation3DFromScript = typeof ClippingStructureRepresentation3DFromScript
+const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn({
+    name: 'clipping-structure-representation-3d-from-script',
+    display: 'Clipping 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: {
+        layers: PD.ObjectList({
+            script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
+            groups: PD.Converted((g: Clipping.Groups) => Clipping.Groups.toNames(g), n => Clipping.Groups.fromNames(n), PD.MultiSelect(ObjectKeys(Clipping.Groups.Names), PD.objectToOptions(Clipping.Groups.Names))),
+        }, e => `${Clipping.Groups.toNames(e.groups).length} group(s)`, {
+            defaultValue: [{
+                script: Script('(sel.atom.all)', 'mol-script'),
+                groups: Clipping.Groups.Flag.None,
+            }]
+        }),
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.source.data;
+        const clipping = Clipping.ofScript(params.layers, structure);
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { clipping },
+            initialState: { clipping: Clipping.Empty },
+            info: structure,
+            source: a
+        }, { label: `Clipping (${clipping.layers.length} Layers)` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        const structure = b.data.info as Structure;
+        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
+        const oldClipping = b.data.state.clipping!;
+        const newClipping = Clipping.ofScript(newParams.layers, structure);
+        if (Clipping.areEqual(oldClipping, newClipping)) return StateTransformer.UpdateResult.Unchanged;
+
+        b.data.state.clipping = newClipping;
+        b.data.source = a;
+        b.label = `Clipping (${newClipping.layers.length} Layers)`;
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
+type ClippingStructureRepresentation3DFromBundle = typeof ClippingStructureRepresentation3DFromBundle
+const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn({
+    name: 'clipping-structure-representation-3d-from-bundle',
+    display: 'Clipping 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: {
+        layers: PD.ObjectList({
+            bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
+            groups: PD.Converted((g: Clipping.Groups) => Clipping.Groups.toNames(g), n => Clipping.Groups.fromNames(n), PD.MultiSelect(ObjectKeys(Clipping.Groups.Names), PD.objectToOptions(Clipping.Groups.Names))),
+        }, e => `${Clipping.Groups.toNames(e.groups).length} group(s)`, {
+            defaultValue: [{
+                bundle: StructureElement.Bundle.Empty,
+                groups: Clipping.Groups.Flag.None,
+            }],
+            isHidden: true
+        }),
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.source.data;
+        const clipping = Clipping.ofBundle(params.layers, structure);
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { clipping },
+            initialState: { clipping: Clipping.Empty },
+            info: structure,
+            source: a
+        }, { label: `Clipping (${clipping.layers.length} Layers)` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        const structure = b.data.info as Structure;
+        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
+        const oldClipping = b.data.state.clipping!;
+        const newClipping = Clipping.ofBundle(newParams.layers, structure);
+        if (Clipping.areEqual(oldClipping, newClipping)) return StateTransformer.UpdateResult.Unchanged;
+
+        b.data.state.clipping = newClipping;
+        b.data.source = a;
+        b.label = `Clipping (${newClipping.layers.length} Layers)`;
         return StateTransformer.UpdateResult.Updated;
     }
 });

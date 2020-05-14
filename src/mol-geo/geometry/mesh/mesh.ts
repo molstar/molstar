@@ -6,7 +6,7 @@
  */
 
 import { ValueCell } from '../../../mol-util';
-import { Vec3, Mat4, Mat3 } from '../../../mol-math/linear-algebra';
+import { Vec3, Mat4, Mat3, Vec4 } from '../../../mol-math/linear-algebra';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { transformPositionArray, transformDirectionArray, computeIndexedVertexNormals, GroupMapping, createGroupMapping} from '../../util';
 import { GeometryUtils } from '../geometry';
@@ -23,6 +23,7 @@ import { Color } from '../../../mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
+import { createEmptyClipping } from '../clipping-data';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -355,6 +356,7 @@ export namespace Mesh {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const clipping = createEmptyClipping();
 
         const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount };
 
@@ -368,10 +370,12 @@ export namespace Mesh {
             elements: mesh.indexBuffer,
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
+            uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
             ...color,
             ...marker,
             ...overpaint,
             ...transparency,
+            ...clipping,
             ...transform,
 
             ...BaseGeometry.createValues(props, counts),
@@ -405,6 +409,7 @@ export namespace Mesh {
         }
         if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
             ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere);
+            ValueCell.update(values.uInvariantBoundingSphere, Vec4.fromSphere(values.uInvariantBoundingSphere.ref.value, invariantBoundingSphere));
         }
     }
 }

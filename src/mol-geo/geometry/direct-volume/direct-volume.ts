@@ -12,7 +12,7 @@ import { DirectVolumeValues } from '../../../mol-gl/renderable/direct-volume';
 import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
-import { Mat4, Vec2, Vec3 } from '../../../mol-math/linear-algebra';
+import { Mat4, Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { Theme } from '../../../mol-theme/theme';
 import { ValueCell } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
@@ -26,6 +26,7 @@ import { createEmptyOverpaint } from '../overpaint-data';
 import { TransformData } from '../transform-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './transfer-function';
+import { createEmptyClipping } from '../clipping-data';
 
 const VolumeBox = Box();
 const RenderModeOptions = [['isosurface', 'Isosurface'], ['volume', 'Volume']] as [string, string][];
@@ -140,6 +141,7 @@ export namespace DirectVolume {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const clipping = createEmptyClipping();
 
         const counts = { drawCount: VolumeBox.indices.length, groupCount, instanceCount };
 
@@ -156,6 +158,7 @@ export namespace DirectVolume {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...clipping,
             ...transform,
             ...BaseGeometry.createValues(props, counts),
 
@@ -163,6 +166,7 @@ export namespace DirectVolume {
             elements: ValueCell.create(VolumeBox.indices as Uint32Array),
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
+            uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
 
             uIsoValue: ValueCell.create(props.isoValueNorm),
             uBboxMin: bboxMin,
@@ -204,6 +208,7 @@ export namespace DirectVolume {
         }
         if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
             ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere);
+            ValueCell.update(values.uInvariantBoundingSphere, Vec4.fromSphere(values.uInvariantBoundingSphere.ref.value, invariantBoundingSphere));
         }
     }
 

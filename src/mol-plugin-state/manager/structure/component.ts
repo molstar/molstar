@@ -26,6 +26,8 @@ import { createStructureColorThemeParams, createStructureSizeThemeParams } from 
 import { StructureSelectionQueries, StructureSelectionQuery } from '../../helpers/structure-selection-query';
 import { StructureRepresentation3D } from '../../transforms/representation';
 import { StructureHierarchyRef, StructureComponentRef, StructureRef, StructureRepresentationRef } from './hierarchy-state';
+import { Clipping } from '../../../mol-theme/clipping';
+import { setStructureClipping } from '../../helpers/structure-clipping';
 
 export { StructureComponentManager };
 
@@ -358,7 +360,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         }, { canUndo: 'Add Selection' });
     }
 
-    async applyColor(params: StructureComponentManager.ColorParams, structures?: ReadonlyArray<StructureRef>) {
+    async applyTheme(params: StructureComponentManager.ThemeParams, structures?: ReadonlyArray<StructureRef>) {
         return this.plugin.dataTransaction(async () => {
             const xs = structures || this.currentStructures;
             if (xs.length === 0) return;
@@ -367,12 +369,15 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             for (const s of xs) {
                 if (params.action.name === 'reset') {
                     await clearStructureOverpaint(this.plugin, s.components, params.representations);
-                } else {
+                } else if (params.action.name === 'color') {
                     const p = params.action.params;
                     await setStructureOverpaint(this.plugin, s.components, p.color, getLoci, params.representations, p.opacity);
+                } else if (params.action.name === 'clipping') {
+                    const p = params.action.params;
+                    await setStructureClipping(this.plugin, s.components, Clipping.Groups.fromNames(p.excludeGroups), getLoci, params.representations);
                 }
             }
-        }, { canUndo: 'Apply Color' });
+        }, { canUndo: 'Apply Theme' });
     }
 
     private modifyComponent(builder: StateBuilder.Root, component: StructureComponentRef, by: Structure, action: StructureComponentManager.ModifyAction) {
@@ -448,19 +453,22 @@ namespace StructureComponentManager {
     }
     export type AddParams = { selection: StructureSelectionQuery, options: { checkExisting: boolean, label: string }, representation: string }
 
-    export function getColorParams(plugin: PluginContext, pivot: StructureRef | StructureComponentRef | undefined) {
+    export function getThemeParams(plugin: PluginContext, pivot: StructureRef | StructureComponentRef | undefined) {
         return {
             action: PD.MappedStatic('color', {
                 color: PD.Group({
                     color: PD.Color(ColorNames.blue, { isExpanded: true }),
                     opacity: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
                 }, { isFlat: true }),
-                reset: PD.EmptyGroup()
+                reset: PD.EmptyGroup(),
+                clipping: PD.Group({
+                    excludeGroups: PD.MultiSelect([] as Clipping.Groups.Names[], PD.objectToOptions(Clipping.Groups.Names)),
+                }, { isFlat: true }),
             }),
             representations: PD.MultiSelect([], getRepresentationTypes(plugin, pivot), { emptyValue: 'All' })
         };
     }
-    export type ColorParams = PD.Values<ReturnType<typeof getColorParams>>
+    export type ThemeParams = PD.Values<ReturnType<typeof getThemeParams>>
 
     export function getRepresentationTypes(plugin: PluginContext, pivot: StructureRef | StructureComponentRef | undefined) {
         return pivot?.cell.obj?.data

@@ -1093,7 +1093,7 @@ class ObjectListItem extends React.PureComponent<ObjectListItemProps, { isExpand
     state = { isExpanded: false };
 
     update = (v: object) => {
-        this.setState({ isExpanded: false });
+        // this.setState({ isExpanded: false }); // TODO auto update? mark changed state?
         this.props.actions.update(v, this.props.index);
     }
 

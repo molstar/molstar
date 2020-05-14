@@ -22,6 +22,8 @@ import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
 import { GroupMapping, createGroupMapping } from '../../util';
+import { createEmptyClipping } from '../clipping-data';
+import { Vec4 } from '../../../mol-math/linear-algebra';
 
 export interface Spheres {
     readonly kind: 'spheres',
@@ -147,6 +149,7 @@ export namespace Spheres {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const clipping = createEmptyClipping();
 
         const counts = { drawCount: spheres.sphereCount * 2 * 3, groupCount, instanceCount };
 
@@ -161,11 +164,13 @@ export namespace Spheres {
             elements: spheres.indexBuffer,
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
+            uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
             ...color,
             ...size,
             ...marker,
             ...overpaint,
             ...transparency,
+            ...clipping,
             ...transform,
 
             padding: ValueCell.create(padding),
@@ -200,6 +205,7 @@ export namespace Spheres {
         }
         if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
             ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere);
+            ValueCell.update(values.uInvariantBoundingSphere, Vec4.fromSphere(values.uInvariantBoundingSphere.ref.value, invariantBoundingSphere));
         }
         ValueCell.update(values.padding, padding);
     }

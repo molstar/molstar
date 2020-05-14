@@ -29,6 +29,7 @@ import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { Subject } from 'rxjs';
 import { Task } from '../../mol-task';
 import { SizeValues } from '../../mol-gl/renderable/schema';
+import { Clipping } from '../../mol-theme/clipping';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<Volume, P> { }
 
@@ -190,6 +191,9 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         },
         setTransparency(transparency: Transparency) {
             return Visual.setTransparency(renderObject, transparency, lociApply, true);
+        },
+        setClipping(clipping: Clipping) {
+            return Visual.setClipping(renderObject, clipping, lociApply, true);
         },
         destroy() {
             // TODO

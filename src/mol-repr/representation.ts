@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,6 +22,7 @@ import { getQualityProps } from './util';
 import { BaseGeometry } from '../mol-geo/geometry/base';
 import { Visual } from './visual';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
+import { Clipping } from '../mol-theme/clipping';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -173,6 +174,8 @@ namespace Representation {
         overpaint: Overpaint
         /** Per group transparency applied to the representation's renderobjects */
         transparency: Transparency
+        /** Bit mask of per group clipping applied to the representation's renderobjects */
+        clipping: Clipping
         /** Controls if the representation's renderobjects are synced automatically with GPU or not */
         syncManually: boolean
         /** A transformation applied to the representation's renderobjects */
@@ -181,7 +184,7 @@ namespace Representation {
         markerActions: MarkerActions
     }
     export function createState(): State {
-        return { visible: true, alphaFactor: 1, pickable: true, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty, transparency: Transparency.Empty, markerActions: MarkerActions.All };
+        return { visible: true, alphaFactor: 1, pickable: true, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty, transparency: Transparency.Empty, clipping: Clipping.Empty, markerActions: MarkerActions.All };
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible;
@@ -189,6 +192,7 @@ namespace Representation {
         if (update.pickable !== undefined) state.pickable = update.pickable;
         if (update.overpaint !== undefined) state.overpaint = update.overpaint;
         if (update.transparency !== undefined) state.transparency = update.transparency;
+        if (update.clipping !== undefined) state.clipping = update.clipping;
         if (update.syncManually !== undefined) state.syncManually = update.syncManually;
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform);
         if (update.markerActions !== undefined) state.markerActions = update.markerActions;

@@ -27,11 +27,11 @@ namespace Transparency {
         return true;
     }
 
-    export function ofScript(script: Script, value: number, variant: Transparency.Variant, structure: Structure): Transparency {
+    export function ofScript(script: Script, value: number, variant: Variant, structure: Structure): Transparency {
         return { loci: Script.toLoci(script, structure), value, variant };
     }
 
-    export function ofBundle(bundle: StructureElement.Bundle, value: number, variant: Transparency.Variant, structure: Structure): Transparency {
+    export function ofBundle(bundle: StructureElement.Bundle, value: number, variant: Variant, structure: Structure): Transparency {
         return { loci: StructureElement.Bundle.toLoci(bundle, structure), value, variant };
     }
 }

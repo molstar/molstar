@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -20,8 +20,9 @@ import { createEmptyTransparency } from '../transparency-data';
 import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';
 import { calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
 import { Texture } from '../../../mol-gl/webgl/texture';
-import { Vec2 } from '../../../mol-math/linear-algebra';
+import { Vec2, Vec4 } from '../../../mol-math/linear-algebra';
 import { fillSerial } from '../../../mol-util/array';
+import { createEmptyClipping } from '../clipping-data';
 
 export interface TextureMesh {
     readonly kind: 'texture-mesh',
@@ -93,6 +94,7 @@ export namespace TextureMesh {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const clipping = createEmptyClipping();
 
         const counts = { drawCount: textureMesh.vertexCount, groupCount, instanceCount };
 
@@ -107,11 +109,13 @@ export namespace TextureMesh {
             aGroup: ValueCell.create(fillSerial(new Float32Array(textureMesh.vertexCount))),
             boundingSphere: ValueCell.create(transformBoundingSphere),
             invariantBoundingSphere: ValueCell.create(Sphere3D.clone(textureMesh.boundingSphere)),
+            uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(textureMesh.boundingSphere)),
 
             ...color,
             ...marker,
             ...overpaint,
             ...transparency,
+            ...clipping,
             ...transform,
 
             ...BaseGeometry.createValues(props, counts),
@@ -149,6 +153,7 @@ export namespace TextureMesh {
         }
         if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
             ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere);
+            ValueCell.update(values.uInvariantBoundingSphere, Vec4.fromSphere(values.uInvariantBoundingSphere.ref.value, invariantBoundingSphere));
         }
     }
 }

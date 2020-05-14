@@ -18,7 +18,7 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { TextureImage, createTextureImage, calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
 import { TextValues } from '../../../mol-gl/renderable/text';
 import { Color } from '../../../mol-util/color';
-import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { FontAtlasParams } from './font-atlas';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { clamp } from '../../../mol-math/interpolate';
@@ -28,6 +28,7 @@ import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
 import { GroupMapping, createGroupMapping } from '../../util';
+import { createEmptyClipping } from '../clipping-data';
 
 type TextAttachment = (
     'bottom-left' | 'bottom-center' | 'bottom-right' |
@@ -195,6 +196,7 @@ export namespace Text {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const clipping = createEmptyClipping();
 
         const counts = { drawCount: text.charCount * 2 * 3, groupCount, instanceCount };
 
@@ -210,11 +212,13 @@ export namespace Text {
             elements: text.indexBuffer,
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
+            uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
             ...color,
             ...size,
             ...marker,
             ...overpaint,
             ...transparency,
+            ...clipping,
             ...transform,
 
             aTexCoord: text.tcoordBuffer,
@@ -269,6 +273,7 @@ export namespace Text {
         }
         if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
             ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere);
+            ValueCell.update(values.uInvariantBoundingSphere, Vec4.fromSphere(values.uInvariantBoundingSphere.ref.value, invariantBoundingSphere));
         }
         ValueCell.update(values.padding, padding);
     }

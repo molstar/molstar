@@ -1,22 +1,21 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ValueCell } from '../../mol-util';
-import { AttributeItemSize, ElementsKind, AttributeValues, AttributeKind } from '../webgl/buffer';
-import { UniformKind, UniformValues } from '../webgl/uniform';
+import { AttributeItemSize, ElementsKind, AttributeValues, AttributeKind, DataTypeArrayType } from '../webgl/buffer';
+import { UniformKind, UniformValues, UniformKindValue } from '../webgl/uniform';
 import { DefineKind, DefineValues } from '../shader-code';
-import { Vec2, Vec3, Vec4, Mat3, Mat4 } from '../../mol-math/linear-algebra';
-import { TextureImage, TextureVolume } from './util';
-import { TextureValues, TextureType, TextureFormat, TextureFilter, TextureKind, Texture } from '../webgl/texture';
+import { Mat4 } from '../../mol-math/linear-algebra';
+import { TextureValues, TextureType, TextureFormat, TextureFilter, TextureKind, TextureKindValue } from '../webgl/texture';
 import { Sphere3D } from '../../mol-math/geometry';
 
 export type ValueKindType = {
     'number': number
     'string': string
-    'boolean': string
+    'boolean': boolean
     'any': any
 
     'm4': Mat4,
@@ -27,40 +26,7 @@ export type ValueKind = keyof ValueKindType
 
 //
 
-export type KindValue = {
-    'f': number
-    'i': number
-    'v2': Vec2
-    'v3': Vec3
-    'v4': Vec4
-    'm3': Mat3
-    'm4': Mat4
-    't': number
-
-    'uint8': Uint8Array
-    'int8': Int8Array
-    'uint16': Uint16Array
-    'int16': Int16Array
-    'uint32': Uint32Array
-    'int32': Int32Array
-    'float32': Float32Array
-
-    'image-uint8': TextureImage<Uint8Array>
-    'image-float32': TextureImage<Float32Array>
-    'image-depth': TextureImage<Uint8Array> // TODO should be Uint32Array
-    'volume-uint8': TextureVolume<Uint8Array>
-    'volume-float32': TextureVolume<Float32Array>
-    'texture': Texture
-    'texture2d': Texture
-    'texture3d': Texture
-
-    'number': number
-    'string': string
-    'boolean': boolean
-    'any': any
-
-    'sphere': Sphere3D
-}
+export type KindValue = UniformKindValue & DataTypeArrayType & TextureKindValue & ValueKindType
 
 export type Values<S extends RenderableSchema> = { readonly [k in keyof S]: ValueCell<KindValue[S[k]['kind']]> }
 
@@ -163,6 +129,11 @@ export const GlobalUniformSchema = {
 
     uTransparentBackground: UniformSpec('i'),
 
+    uClipObjectType: UniformSpec('i[]'),
+    uClipObjectPosition: UniformSpec('v3[]'),
+    uClipObjectRotation: UniformSpec('v4[]'),
+    uClipObjectScale: UniformSpec('v3[]'),
+
     // all the following could in principle be per object
     // as a kind of 'material' parameter set
     // would need to test performance implications
@@ -228,21 +199,31 @@ export type OverpaintSchema = typeof OverpaintSchema
 export type OverpaintValues = Values<OverpaintSchema>
 
 export const TransparencySchema = {
-    // aTransparency: AttributeSpec('float32', 1, 0), // TODO
     uTransparencyTexDim: UniformSpec('v2'),
     tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dTransparency: DefineSpec('boolean'),
-    // dTransparencyType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']), // TODO
     dTransparencyVariant: DefineSpec('string', ['single', 'multi']),
 } as const;
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>
+
+export const ClippingSchema = {
+    dClipObjectCount: DefineSpec('number'),
+    dClipVariant: DefineSpec('string', ['instance', 'pixel']),
+
+    uClippingTexDim: UniformSpec('v2'),
+    tClipping: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+    dClipping: DefineSpec('boolean'),
+} as const;
+export type ClippingSchema = typeof ClippingSchema
+export type ClippingValues = Values<ClippingSchema>
 
 export const BaseSchema = {
     ...ColorSchema,
     ...MarkerSchema,
     ...OverpaintSchema,
     ...TransparencySchema,
+    ...ClippingSchema,
 
     aInstance: AttributeSpec('float32', 1, 1),
     aGroup: AttributeSpec('float32', 1, 0),
@@ -258,6 +239,7 @@ export const BaseSchema = {
     uAlpha: UniformSpec('f', true),
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
+    uInvariantBoundingSphere: UniformSpec('v4'),
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
@@ -272,7 +254,7 @@ export const BaseSchema = {
     /** additional per-instance transform, see aTransform */
     extraTransform: ValueSpec('float32'),
 
-    /** bounding sphere taking aTransform into account */
+    /** bounding sphere taking aTransform into account and encompases all instances */
     boundingSphere: ValueSpec('sphere'),
     /** bounding sphere NOT taking aTransform into account */
     invariantBoundingSphere: ValueSpec('sphere'),

@@ -20,6 +20,7 @@
 import Mat4 from './mat4';
 import { EPSILON } from '../3d';
 import { NumberArray } from '../../../mol-util/type-helpers';
+import { Sphere3D } from '../../geometry/primitives/sphere3d';
 
 interface Vec4 extends Array<number> { [d: number]: number, '@type': 'vec4', length: 4 }
 
@@ -51,6 +52,18 @@ namespace Vec4 {
         out[2] = z;
         out[3] = w;
         return out;
+    }
+
+    export function fromSphere(out: Vec4, sphere: Sphere3D) {
+        out[0] = sphere.center[0];
+        out[1] = sphere.center[1];
+        out[2] = sphere.center[2];
+        out[3] = sphere.radius;
+        return out;
+    }
+
+    export function ofSphere(sphere: Sphere3D) {
+        return fromSphere(zero(), sphere);
     }
 
     export function hasNaN(a: Vec4) {

@@ -7,7 +7,7 @@
 import { createGl } from './gl.shim';
 
 import { Camera } from '../../mol-canvas3d/camera';
-import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
+import { Vec3, Mat4, Vec4 } from '../../mol-math/linear-algebra';
 import { ValueCell } from '../../mol-util';
 
 import Renderer from '../renderer';
@@ -24,6 +24,7 @@ import { Color } from '../../mol-util/color';
 import { Sphere3D } from '../../mol-math/geometry';
 import { createEmptyOverpaint } from '../../mol-geo/geometry/overpaint-data';
 import { createEmptyTransparency } from '../../mol-geo/geometry/transparency-data';
+import { createEmptyClipping } from '../../mol-geo/geometry/clipping-data';
 
 function createRenderer(gl: WebGLRenderingContext) {
     const ctx = createContext(gl);
@@ -43,6 +44,7 @@ function createPoints() {
     const marker = createEmptyMarkers();
     const overpaint = createEmptyOverpaint();
     const transparency = createEmptyTransparency();
+    const clipping = createEmptyClipping();
 
     const aTransform = ValueCell.create(new Float32Array(16));
     const m4 = Mat4.identity();
@@ -63,10 +65,12 @@ function createPoints() {
         ...size,
         ...overpaint,
         ...transparency,
+        ...clipping,
 
         uAlpha: ValueCell.create(1.0),
         uInstanceCount: ValueCell.create(1),
         uGroupCount: ValueCell.create(3),
+        uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere.ref.value)),
 
         alpha: ValueCell.create(1.0),
         drawCount: ValueCell.create(3),

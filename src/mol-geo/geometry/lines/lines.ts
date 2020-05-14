@@ -5,7 +5,7 @@
  */
 
 import { ValueCell } from '../../../mol-util';
-import { Mat4 } from '../../../mol-math/linear-algebra';
+import { Mat4, Vec4 } from '../../../mol-math/linear-algebra';
 import { transformPositionArray, GroupMapping, createGroupMapping} from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
@@ -25,6 +25,7 @@ import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
+import { createEmptyClipping } from '../clipping-data';
 
 /** Wide line */
 export interface Lines {
@@ -184,6 +185,7 @@ export namespace Lines {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const clipping = createEmptyClipping();
 
         const counts = { drawCount: lines.lineCount * 2 * 3, groupCount, instanceCount };
 
@@ -198,11 +200,13 @@ export namespace Lines {
             elements: lines.indexBuffer,
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
+            uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
             ...color,
             ...size,
             ...marker,
             ...overpaint,
             ...transparency,
+            ...clipping,
             ...transform,
 
             ...BaseGeometry.createValues(props, counts),
@@ -234,6 +238,7 @@ export namespace Lines {
         }
         if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
             ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere);
+            ValueCell.update(values.uInvariantBoundingSphere, Vec4.fromSphere(values.uInvariantBoundingSphere.ref.value, invariantBoundingSphere));
         }
     }
 }

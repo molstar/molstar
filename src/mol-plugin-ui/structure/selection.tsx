@@ -43,7 +43,6 @@ export class ToggleSelectionModeButton extends PurePluginUIComponent<{ inline?: 
     }
 }
 
-
 const StructureSelectionParams = {
     granularity: InteractivityManager.Params.granularity,
 };
@@ -53,7 +52,7 @@ interface StructureSelectionActionsControlsState {
     isBusy: boolean,
     canUndo: boolean,
 
-    action?: StructureSelectionModifier | 'color' | 'add-repr' | 'help'
+    action?: StructureSelectionModifier | 'theme' | 'add-repr' | 'help'
 }
 
 const ActionHeader = new Map<StructureSelectionModifier, string>([
@@ -159,7 +158,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
     toggleRemove = this.showAction('remove')
     toggleIntersect = this.showAction('intersect')
     toggleSet = this.showAction('set')
-    toggleColor = this.showAction('color')
+    toggleTheme = this.showAction('theme')
     toggleAddRepr = this.showAction('add-repr')
     toggleHelp = this.showAction('help')
 
@@ -196,7 +195,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                 <ToggleButton icon={IntersectSvg} title={`${ActionHeader.get('intersect')}. Hold shift key to keep menu open.`} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
                 <ToggleButton icon={SetSvg} title={`${ActionHeader.get('set')}. Hold shift key to keep menu open.`} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
 
-                <ToggleButton icon={BrushSvg} title='Color Selection' toggle={this.toggleColor} isSelected={this.state.action === 'color'} disabled={this.isDisabled} style={{ marginLeft: '10px' }}  />
+                <ToggleButton icon={BrushSvg} title='Apply Theme to Selection' toggle={this.toggleTheme} isSelected={this.state.action === 'theme'} disabled={this.isDisabled} style={{ marginLeft: '10px' }}  />
                 <ToggleButton icon={CubeSvg} title='Create Representation of Selection' toggle={this.toggleAddRepr} isSelected={this.state.action === 'add-repr'} disabled={this.isDisabled} />
                 <IconButton svg={RemoveSvg} title='Subtract Selection from Representations' onClick={this.subtract} disabled={this.isDisabled} />
                 <IconButton svg={RestoreSvg} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />
@@ -204,12 +203,12 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                 <ToggleButton icon={HelpOutlineSvg} title='Show/hide help' toggle={this.toggleHelp} style={{ marginLeft: '10px' }} isSelected={this.state.action === 'help'} />
                 <IconButton svg={CancelOutlinedSvg} title='Turn selection mode off' onClick={this.turnOff} />
             </div>
-            {(this.state.action && this.state.action !== 'color' && this.state.action !== 'add-repr' && this.state.action !== 'help') && <div className='msp-selection-viewport-controls-actions'>
+            {(this.state.action && this.state.action !== 'theme' && this.state.action !== 'add-repr' && this.state.action !== 'help') && <div className='msp-selection-viewport-controls-actions'>
                 <ActionMenu header={ActionHeader.get(this.state.action as StructureSelectionModifier)} title='Click to close.' items={this.queries} onSelect={this.selectQuery} noOffset />
             </div>}
-            {this.state.action === 'color' && <div className='msp-selection-viewport-controls-actions'>
-                <ControlGroup header='Color' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor} topRightIcon={CloseSvg}>
-                    <ApplyColorControls onApply={this.toggleColor} />
+            {this.state.action === 'theme' && <div className='msp-selection-viewport-controls-actions'>
+                <ControlGroup header='Theme' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleTheme} topRightIcon={CloseSvg}>
+                    <ApplyThemeControls onApply={this.toggleTheme} />
                 </ControlGroup>
             </div>}
             {this.state.action === 'add-repr' && <div className='msp-selection-viewport-controls-actions'>
@@ -306,21 +305,21 @@ export class StructureSelectionStatsControls extends PluginUIComponent<{ hideOnE
 }
 
 interface ApplyColorControlsState {
-    values: StructureComponentManager.ColorParams
+    values: StructureComponentManager.ThemeParams
 }
 
 interface ApplyColorControlsProps {
     onApply?: () => void
 }
 
-class ApplyColorControls extends PurePluginUIComponent<ApplyColorControlsProps, ApplyColorControlsState> {
-    _params = memoizeLatest((pivot: StructureRef | undefined) => StructureComponentManager.getColorParams(this.plugin, pivot));
+class ApplyThemeControls extends PurePluginUIComponent<ApplyColorControlsProps, ApplyColorControlsState> {
+    _params = memoizeLatest((pivot: StructureRef | undefined) => StructureComponentManager.getThemeParams(this.plugin, pivot));
     get params() { return this._params(this.plugin.managers.structure.component.pivotStructure); }
 
     state = { values: ParamDefinition.getDefaultValues(this.params) };
 
     apply = () => {
-        this.plugin.managers.structure.component.applyColor(this.state.values);
+        this.plugin.managers.structure.component.applyTheme(this.state.values);
         this.props.onApply?.();
     }
 
@@ -330,7 +329,7 @@ class ApplyColorControls extends PurePluginUIComponent<ApplyColorControlsProps, 
         return <>
             <ParameterControls params={this.params} values={this.state.values} onChangeValues={this.paramsChanged} />
             <Button icon={BrushSvg} className='msp-btn-commit msp-btn-commit-on' onClick={this.apply} style={{ marginTop: '1px' }}>
-                Apply Coloring
+                Apply Theme
             </Button>
         </>;
     }

@@ -6,7 +6,7 @@
 
 import './index.html';
 import { resizeCanvas } from '../../mol-canvas3d/util';
-import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
+import { Canvas3DParams, Canvas3D } from '../../mol-canvas3d/canvas3d';
 import { ColorNames } from '../../mol-util/color/names';
 import { PositionData, Box3D, Sphere3D } from '../../mol-math/geometry';
 import { OrderedSet } from '../../mol-data/int';
@@ -31,10 +31,10 @@ const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 resizeCanvas(canvas, parent);
 
-const canvas3d = PD.merge(Canvas3DParams, PD.getDefaultValues(Canvas3DParams), {
+const canvas3d = Canvas3D.fromCanvas(canvas, PD.merge(Canvas3DParams, PD.getDefaultValues(Canvas3DParams), {
     renderer: { backgroundColor: ColorNames.white },
     camera: { mode: 'orthographic' }
-});
+}));
 canvas3d.animate();
 
 async function init() {

@@ -23,6 +23,7 @@ import { Transparency } from '../../mol-theme/transparency';
 import { Mat4, EPSILON } from '../../mol-math/linear-algebra';
 import { Interval } from '../../mol-data/int';
 import { StructureParams } from './params';
+import { Clipping } from '../../mol-theme/clipping';
 
 export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
 
@@ -191,13 +192,14 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     }
 
     function setVisualState(visual: UnitsVisual<P>, group: Unit.SymmetryGroup, state: Partial<StructureRepresentationState>) {
-        const { visible, alphaFactor, pickable, overpaint, transparency, transform, unitTransforms } = state;
+        const { visible, alphaFactor, pickable, overpaint, transparency, clipping, transform, unitTransforms } = state;
 
         if (visible !== undefined) visual.setVisibility(visible);
         if (alphaFactor !== undefined) visual.setAlphaFactor(alphaFactor);
         if (pickable !== undefined) visual.setPickable(pickable);
         if (overpaint !== undefined) visual.setOverpaint(overpaint);
         if (transparency !== undefined) visual.setTransparency(transparency);
+        if (clipping !== undefined) visual.setClipping(clipping);
         if (transform !== undefined) visual.setTransform(transform);
         if (unitTransforms !== undefined) {
             if (unitTransforms) {
@@ -210,7 +212,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     }
 
     function setState(state: Partial<StructureRepresentationState>) {
-        const { visible, alphaFactor, pickable, overpaint, transparency, transform, unitTransforms, syncManually, markerActions } = state;
+        const { visible, alphaFactor, pickable, overpaint, transparency, clipping, transform, unitTransforms, syncManually, markerActions } = state;
         const newState: Partial<StructureRepresentationState> = {};
 
         if (visible !== _state.visible) newState.visible = visible;
@@ -223,6 +225,11 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         }
         if (transparency !== undefined && !Transparency.areEqual(transparency, _state.transparency)) {
             newState.transparency = transparency;
+        }
+        if (clipping !== undefined && !Clipping.areEqual(clipping, _state.clipping)) {
+            if (_structure) {
+                newState.clipping = Clipping.remap(clipping, _structure);
+            }
         }
         if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
             newState.transform = transform;
