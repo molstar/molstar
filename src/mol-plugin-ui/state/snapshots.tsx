@@ -92,7 +92,7 @@ export class LocalStateSnapshotParams extends PluginUIComponent {
     }
 }
 
-class LocalStateSnapshots extends PluginUIComponent<
+export class LocalStateSnapshots extends PluginUIComponent<
 {},
 { params: PD.Values<typeof LocalStateSnapshots.Params> }> {
     state = { params: PD.getDefaultValues(LocalStateSnapshots.Params) };
@@ -130,7 +130,7 @@ class LocalStateSnapshots extends PluginUIComponent<
     }
 }
 
-class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
+export class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
     componentDidMount() {
         this.subscribe(this.plugin.managers.snapshot.events.changed, () => this.forceUpdate());
     }
