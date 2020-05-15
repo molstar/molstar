@@ -14,8 +14,11 @@ import { ParamProps } from './parameters';
 import { TextInput, Button, ControlRow } from './common';
 import { DefaultColorSwatch } from '../../mol-util/color/swatches';
 
-export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Color>, { isExpanded: boolean }> {
-    state = { isExpanded: !!this.props.param.isExpanded }
+export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Color>, { isExpanded: boolean, lightness: number }> {
+    state = {
+        isExpanded: !!this.props.param.isExpanded,
+        lightness: 0
+    }
 
     protected update(value: Color) {
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
@@ -52,8 +55,15 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
         if (value !== this.props.value) this.update(value);
     }
 
+    onLighten = () => {
+        this.update(Color.lighten(this.props.value, 0.1));
+    }
+
+    onDarken = () => {
+        this.update(Color.darken(this.props.value, 0.1));
+    }
+
     swatch() {
-        // const def = this.props.param.defaultValue;
         return <div className='msp-combined-color-swatch'>
             {DefaultColorSwatch.map(c => <Button key={c[1]} inline data-color={c[1]} onClick={this.onClickSwatch} style={{ background: Color.toStyle(c[1]) }} />)}
         </div>;
@@ -73,6 +83,10 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
                     <TextInput onChange={this.onG} numeric value={g} delayMs={250} style={{ order: 2, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
                     <TextInput onChange={this.onB} numeric value={b} delayMs={250} style={{ order: 3, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
                 </div>}/>
+                <div style={{ display: 'flex', textAlignLast: 'center' }}>
+                    <Button  onClick={this.onLighten} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control'>Lighten</Button>
+                    <Button onClick={this.onDarken} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control'>Darken</Button>
+                </div>
             </div>}
         </>;
     }
