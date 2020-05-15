@@ -15,7 +15,7 @@ import { StateSelection } from '../../../mol-state';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
 import { Binding } from '../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { EmptyLoci, Loci, isEmptyLoci } from '../../../mol-model/loci';
+import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Structure, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { arrayMax } from '../../../mol-util/array';
 import { Representation } from '../../../mol-repr/representation';
@@ -243,9 +243,10 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                             this.ctx.managers.structure.focus.setFromLoci(loci);
                         } else {
                             this.ctx.managers.structure.focus.addFromLoci(loci);
-                        }
-                        if (isEmptyLoci(loci)) {
-                            this.ctx.managers.camera.reset();
+
+                            // focus-add is not handled in camera behavior, doing it here
+                            const current = this.ctx.managers.structure.focus.current?.loci;
+                            if (current) this.ctx.managers.camera.focusLoci(current);
                         }
                     }
                     return;
