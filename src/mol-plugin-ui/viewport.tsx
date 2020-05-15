@@ -173,7 +173,7 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
     }
 
     componentWillUnmount() {
-        if (super.componentWillUnmount) super.componentWillUnmount();
+        super.componentWillUnmount();
         // TODO viewer cleanup
     }
 

@@ -70,7 +70,7 @@ class UpdateTransformControl extends TransformControlBase<UpdateTransformControl
     }
 
     componentDidMount() {
-        if (super.componentDidMount) super.componentDidMount();
+        super.componentDidMount();
 
         if (this.props.toggleCollapsed) this.subscribe(this.props.toggleCollapsed, () => this.setState({ isCollapsed: !this.state.isCollapsed }));
 
