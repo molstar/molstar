@@ -114,9 +114,14 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             coarse: await presetStaticComponent(plugin, structureCell, 'coarse')
         };
 
+        const structure = structureCell.obj!.data;
+        const cartoonProps = {
+            sizeFactor: structure.isCoarseGrained ? 0.8 : 0.2,
+        };
+
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);
         const representations = {
-            polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams, color }, { tag: 'polymer' }),
+            polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams: { ...typeParams, ...cartoonProps }, color }, { tag: 'polymer' }),
             ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams, color }, { tag: 'ligand' }),
             nonStandard: builder.buildRepresentation(update, components.nonStandard, { type: 'ball-and-stick', typeParams, color: color || 'polymer-id' }, { tag: 'non-standard' }),
             branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color }, { tag: 'branched-ball-and-stick' }),
@@ -147,10 +152,19 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
             nucleic: await presetSelectionComponent(plugin, structureCell, 'nucleic'),
         };
 
+        const structure = structureCell.obj!.data;
+        const cartoonProps = {
+            sizeFactor: structure.isCoarseGrained ? 0.8 : 0.2,
+        };
+        const gaussianProps = {
+            radiusOffset: structure.isCoarseGrained ? 2 : 0,
+            smoothness: structure.isCoarseGrained ? 0.5 : 1.5,
+        };
+
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);
         const representations = {
-            protein: builder.buildRepresentation(update, components.protein, { type: 'cartoon', typeParams, color }, { tag: 'protein' }),
-            nucleic: builder.buildRepresentation(update, components.nucleic, { type: 'gaussian-surface', typeParams, color }, { tag: 'nucleic' })
+            protein: builder.buildRepresentation(update, components.protein, { type: 'cartoon', typeParams: { ...typeParams, ...cartoonProps }, color }, { tag: 'protein' }),
+            nucleic: builder.buildRepresentation(update, components.nucleic, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color }, { tag: 'nucleic' })
         };
 
         await update.commit({ revertOnError: true });
@@ -179,12 +193,18 @@ const coarseSurface = StructureRepresentationPresetProvider({
         if (size === Structure.Size.Gigantic) {
             Object.assign(gaussianProps, {
                 traceOnly: true,
-                radiusOffset: 1,
+                radiusOffset: 2,
                 smoothness: 0.5,
                 visuals: ['structure-gaussian-surface-mesh']
             });
         } else if(size === Structure.Size.Huge) {
             Object.assign(gaussianProps, {
+                radiusOffset: structure.isCoarseGrained ? 2 : 0,
+                smoothness: 0.5,
+            });
+        } else if(structure.isCoarseGrained) {
+            Object.assign(gaussianProps, {
+                radiusOffset: 2,
                 smoothness: 0.5,
             });
         }
@@ -214,9 +234,14 @@ const polymerCartoon = StructureRepresentationPresetProvider({
             polymer: await presetStaticComponent(plugin, structureCell, 'polymer'),
         };
 
+        const structure = structureCell.obj!.data;
+        const cartoonProps = {
+            sizeFactor: structure.isCoarseGrained ? 0.8 : 0.2
+        };
+
         const { update, builder, typeParams, color } = reprBuilder(plugin, params);
         const representations = {
-            polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams, color }, { tag: 'polymer' })
+            polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams: { ...typeParams, ...cartoonProps }, color }, { tag: 'polymer' })
         };
 
         await update.commit({ revertOnError: true });
