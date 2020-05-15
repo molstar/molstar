@@ -227,29 +227,30 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 const { clickFocus, clickFocusAdd, clickFocusSelectMode, clickFocusAddSelectMode } = this.params.bindings;
 
+                // only apply structure focus for appropriate granularity
+                const { granularity } = this.ctx.managers.interactivity.props;
+                if (granularity !== 'residue' && granularity !== 'element') return;
+
                 const binding = this.ctx.selectionMode ? clickFocusSelectMode : clickFocus;
                 const matched = Binding.match(binding, button, modifiers);
-
                 const bindingAdd = this.ctx.selectionMode ? clickFocusAddSelectMode : clickFocusAdd;
                 const matchedAdd = Binding.match(bindingAdd, button, modifiers);
+                if (!matched && !matchedAdd) return;
 
-                if (matched || matchedAdd) {
-                    const loci = Loci.normalize(current.loci, 'residue');
-                    const entry = this.ctx.managers.structure.focus.current;
-                    if (entry && Loci.areEqual(entry.loci, loci)) {
-                        this.ctx.managers.structure.focus.clear();
+                const loci = Loci.normalize(current.loci, 'residue');
+                const entry = this.ctx.managers.structure.focus.current;
+                if (entry && Loci.areEqual(entry.loci, loci)) {
+                    this.ctx.managers.structure.focus.clear();
+                } else {
+                    if (matched) {
+                        this.ctx.managers.structure.focus.setFromLoci(loci);
                     } else {
-                        if (matched) {
-                            this.ctx.managers.structure.focus.setFromLoci(loci);
-                        } else {
-                            this.ctx.managers.structure.focus.addFromLoci(loci);
+                        this.ctx.managers.structure.focus.addFromLoci(loci);
 
-                            // focus-add is not handled in camera behavior, doing it here
-                            const current = this.ctx.managers.structure.focus.current?.loci;
-                            if (current) this.ctx.managers.camera.focusLoci(current);
-                        }
+                        // focus-add is not handled in camera behavior, doing it here
+                        const current = this.ctx.managers.structure.focus.current?.loci;
+                        if (current) this.ctx.managers.camera.focusLoci(current);
                     }
-                    return;
                 }
             });
         }
