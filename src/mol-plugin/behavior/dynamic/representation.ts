@@ -206,12 +206,10 @@ const DefaultFocusLociBindings = {
         Trigger(B.Flag.Primary, M.create({ shift: true })),
     ], 'Representation Focus Add', 'Click element using ${triggers}'),
     clickFocusSelectMode: Binding([
-        Trigger(B.Flag.Secondary, M.create()),
-        Trigger(B.Flag.Primary, M.create({ control: true }))
+        // default is empty
     ], 'Representation Focus', 'Click element using ${triggers}'),
     clickFocusAddSelectMode: Binding([
-        Trigger(B.Flag.Secondary, M.create({ shift: true })),
-        Trigger(B.Flag.Primary, M.create({ control: true, shift: true }))
+        // default is empty
     ], 'Representation Focus Add', 'Click element using ${triggers}'),
 };
 const FocusLociParams = {
