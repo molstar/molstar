@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,6 +11,7 @@ precision highp int;
 #include common
 #include common_frag_params
 #include color_frag_params
+#include common_clip
 
 #ifdef dPointFilledCircle
     uniform float uPointEdgeBleach;
@@ -20,6 +21,7 @@ const vec2 center = vec2(0.5);
 const float radius = 0.5;
 
 void main(){
+    #include clip_pixel
     #include assign_material_color
 
     #if defined(dRenderVariant_pick)
