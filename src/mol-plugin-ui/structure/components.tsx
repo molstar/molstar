@@ -2,6 +2,7 @@
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as React from 'react';
@@ -15,7 +16,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ExpandGroup, IconButton, ToggleButton, ControlRow, TextInput } from '../controls/common';
-import { CubeOutlineSvg, IntersectSvg, SetSvg, SubtractSvg, UnionSvg, BookmarksOutlinedSvg, AddSvg, TuneSvg, RestoreSvg, DeleteSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, DeleteOutlinedSvg, MoreHorizSvg, CheckSvg } from '../controls/icons';
+import { CubeOutlineSvg, IntersectSvg, SetSvg, SubtractSvg, UnionSvg, BookmarksOutlinedSvg, AddSvg, TuneSvg, RestoreSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, DeleteOutlinedSvg, MoreHorizSvg, CheckSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 import { GenericEntryListControls } from './generic';
@@ -208,7 +209,7 @@ class ComponentListControls extends PurePluginUIComponent {
     }
 }
 
-type StructureComponentEntryActions = 'action' | 'remove' | 'label'
+type StructureComponentEntryActions = 'action' | 'label'
 
 class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureComponentRef[] }, { action?: StructureComponentEntryActions }> {
     state = { action: void 0 as StructureComponentEntryActions | undefined }
@@ -283,29 +284,9 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         (item?.value as any)();
     }
 
-    get removeActions(): ActionMenu.Items {
-        const ret = [
-            ActionMenu.Item('Remove', () => this.plugin.managers.structure.hierarchy.remove(this.props.group, true), { icon: DeleteSvg })
-        ];
-
-        const reprs = this.pivot.representations;
-        if (reprs.length === 0) {
-            return ret;
-        }
-
-        ret.push(ActionMenu.Item(`Remove Representation${reprs.length > 1 ? 's' : ''}`, () => this.plugin.managers.structure.component.removeRepresentations(this.props.group), { icon: DeleteSvg }));
-
-        return ret;
-    }
-
-    selectRemoveAction: ActionMenu.OnSelect = item => {
-        if (!item) return;
-        this.setState({ action: void 0 });
-        (item?.value as any)();
-    }
+    remove = () => this.plugin.managers.structure.hierarchy.remove(this.props.group, true);
 
     toggleAction = () => this.setState({ action: this.state.action === 'action' ? void 0 : 'action' });
-    toggleRemove = () => this.setState({ action: this.state.action === 'remove' ? void 0 : 'remove' });
     toggleLabel = () => this.setState({ action: this.state.action === 'label' ? void 0 : 'label' });
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
@@ -362,12 +343,9 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
                     <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{reprLabel}</small>
                 </Button>
                 <IconButton svg={cell.state.isHidden ? VisibilityOffOutlinedSvg : VisibilityOutlinedSvg} toggleState={false} onClick={this.toggleVisible} title={`${cell.state.isHidden ? 'Show' : 'Hide'} component`} small className='msp-form-control' flex />
-                <IconButton svg={DeleteOutlinedSvg} onClick={this.toggleRemove} title='Remove' small toggleState={this.state.action === 'remove'} className='msp-form-control' flex />
+                <IconButton svg={DeleteOutlinedSvg} toggleState={false} onClick={this.remove} title='Remove' small className='msp-form-control' flex />
                 <IconButton svg={MoreHorizSvg} onClick={this.toggleAction} title='Actions' toggleState={this.state.action === 'action'} className='msp-form-control' flex />
             </div>
-            {this.state.action === 'remove' && <div style={{ marginBottom: '6px' }}>
-                <ActionMenu items={this.removeActions} onSelect={this.selectRemoveAction} />
-            </div>}
             {this.state.action === 'label' && <div className='msp-control-offset' style={{ marginBottom: '6px' }}>
                 <ControlRow label='Label' control={<div style={{ display: 'flex', textAlignLast: 'center' }}>
                     <TextInput onChange={this.updateLabel} value={label} style={{ flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' blurOnEnter={true} blurOnEscape={true} />
