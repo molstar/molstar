@@ -14,8 +14,8 @@ import { State } from '../../mol-state';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { Button, ExpandGroup, IconButton, ToggleButton } from '../controls/common';
-import { CubeOutlineSvg, IntersectSvg, SetSvg, SubtractSvg, UnionSvg, BookmarksOutlinedSvg, AddSvg, TuneSvg, RestoreSvg, DeleteSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, DeleteOutlinedSvg, MoreHorizSvg } from '../controls/icons';
+import { Button, ExpandGroup, IconButton, ToggleButton, ControlRow, TextInput } from '../controls/common';
+import { CubeOutlineSvg, IntersectSvg, SetSvg, SubtractSvg, UnionSvg, BookmarksOutlinedSvg, AddSvg, TuneSvg, RestoreSvg, DeleteSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, DeleteOutlinedSvg, MoreHorizSvg, CheckSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 import { GenericEntryListControls } from './generic';
@@ -206,7 +206,7 @@ class ComponentListControls extends PurePluginUIComponent {
     }
 }
 
-type StructureComponentEntryActions = 'action' | 'remove'
+type StructureComponentEntryActions = 'action' | 'remove' | 'label'
 
 class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureComponentRef[] }, { action?: StructureComponentEntryActions }> {
     state = { action: void 0 as StructureComponentEntryActions | undefined }
@@ -266,6 +266,12 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
         ret.push(ActionMenu.Item('Select This', () => mng.selectThis(this.props.group), { icon: SetSvg }));
 
+        if (mng.canBeModified(this.props.group[0])) {
+            ret.push(
+                ActionMenu.Item('Edit Label', this.toggleLabel)
+            );
+        }
+
         return ret;
     }
 
@@ -298,6 +304,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     toggleAction = () => this.setState({ action: this.state.action === 'action' ? void 0 : 'action' });
     toggleRemove = () => this.setState({ action: this.state.action === 'remove' ? void 0 : 'remove' });
+    toggleLabel = () => this.setState({ action: this.state.action === 'label' ? void 0 : 'label' });
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
@@ -337,6 +344,10 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         return `${pivot.representations.length} reprs`;
     }
 
+    private updateLabel = (v: string) => {
+        this.plugin.managers.structure.component.updateLabel(this.pivot, v);
+    }
+
     render() {
         const component = this.pivot;
         const cell = component.cell;
@@ -354,6 +365,12 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
             </div>
             {this.state.action === 'remove' && <div style={{ marginBottom: '6px' }}>
                 <ActionMenu items={this.removeActions} onSelect={this.selectRemoveAction} />
+            </div>}
+            {this.state.action === 'label' && <div className='msp-control-offset' style={{ marginBottom: '6px' }}>
+                <ControlRow label='Label' control={<div style={{ display: 'flex', textAlignLast: 'center' }}>
+                    <TextInput onChange={this.updateLabel} value={label} style={{ flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' blurOnEnter={true} blurOnEscape={true} />
+                    <IconButton svg={CheckSvg} onClick={this.toggleLabel}className='msp-form-control msp-control-button-label' flex />
+                </div>}/>
             </div>}
             {this.state.action === 'action' && <div className='msp-accent-offset'>
                 <div style={{ marginBottom: '6px' }}>

@@ -405,6 +405,15 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         }
     }
 
+    updateLabel(component: StructureComponentRef, label: string) {
+        const params: StructureComponentParams = {
+            type: component.cell.params?.values.type,
+            nullIfEmpty: component.cell.params?.values.nullIfEmpty,
+            label
+        };
+        this.dataState.build().to(component.cell).update(params).commit();
+    }
+
     private get dataState() {
         return this.plugin.state.data;
     }
