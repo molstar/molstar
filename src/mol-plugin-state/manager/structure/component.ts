@@ -28,6 +28,7 @@ import { StructureRepresentation3D } from '../../transforms/representation';
 import { StructureHierarchyRef, StructureComponentRef, StructureRef, StructureRepresentationRef } from './hierarchy-state';
 import { Clipping } from '../../../mol-theme/clipping';
 import { setStructureClipping } from '../../helpers/structure-clipping';
+import { setStructureTransparency } from '../../helpers/structure-transparency';
 
 export { StructureComponentManager };
 
@@ -372,6 +373,9 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                 } else if (params.action.name === 'color') {
                     const p = params.action.params;
                     await setStructureOverpaint(this.plugin, s.components, p.color, getLoci, params.representations, p.opacity);
+                } else if (params.action.name === 'transparency') {
+                    const p = params.action.params;
+                    await setStructureTransparency(this.plugin, s.components, p.value, getLoci, params.representations);
                 } else if (params.action.name === 'clipping') {
                     const p = params.action.params;
                     await setStructureClipping(this.plugin, s.components, Clipping.Groups.fromNames(p.excludeGroups), getLoci, params.representations);
@@ -470,7 +474,10 @@ namespace StructureComponentManager {
                     color: PD.Color(ColorNames.blue, { isExpanded: true }),
                     opacity: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
                 }, { isFlat: true }),
-                reset: PD.EmptyGroup(),
+                reset: PD.EmptyGroup({ label: 'Reset Color' }),
+                transparency: PD.Group({
+                    value: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
+                }, { isFlat: true }),
                 clipping: PD.Group({
                     excludeGroups: PD.MultiSelect([] as Clipping.Groups.Names[], PD.objectToOptions(Clipping.Groups.Names)),
                 }, { isFlat: true }),

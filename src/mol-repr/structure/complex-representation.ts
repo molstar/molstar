@@ -19,6 +19,7 @@ import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { StructureParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
+import { Transparency } from '../../mol-theme/transparency';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0;
@@ -94,7 +95,11 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
             const remappedOverpaint = Overpaint.remap(state.overpaint, _structure);
             visual.setOverpaint(remappedOverpaint);
         }
-        if (state.transparency !== undefined && visual) visual.setTransparency(state.transparency);
+        if (state.transparency !== undefined && visual) {
+            // Remap loci from equivalent structure to the current structure
+            const remappedTransparency = Transparency.remap(state.transparency, _structure);
+            visual.setTransparency(remappedTransparency);
+        }
         if (state.clipping !== undefined && visual) {
             // Remap loci from equivalent structure to the current structure
             const remappedClipping = Clipping.remap(state.clipping, _structure);
