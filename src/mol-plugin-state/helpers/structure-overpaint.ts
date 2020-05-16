@@ -15,17 +15,17 @@ import { Color } from '../../mol-util/color';
 import { StructureComponentRef } from '../manager/structure/hierarchy-state';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
 
-type OverpaintEachReprCallback = (update: StateBuilder.Root, repr: StateObjectCell<PluginStateObject.Molecule.Structure.Representation3D, StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>>, overpaint?: StateObjectCell<any, StateTransform<typeof StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle>>) => void
+type OverpaintEachReprCallback = (update: StateBuilder.Root, repr: StateObjectCell<PluginStateObject.Molecule.Structure.Representation3D, StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>>, overpaint?: StateObjectCell<any, StateTransform<typeof StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle>>) => Promise<void>
 const OverpaintManagerTag = 'overpaint-controls';
 
-export async function setStructureOverpaint(plugin: PluginContext, components: StructureComponentRef[], color: Color | -1, lociGetter: (structure: Structure) => StructureElement.Loci | EmptyLoci, types?: string[], alpha = 1) {
-    await eachRepr(plugin, components, (update, repr, overpaintCell) => {
+export async function setStructureOverpaint(plugin: PluginContext, components: StructureComponentRef[], color: Color | -1, lociGetter: (structure: Structure) => Promise<StructureElement.Loci | EmptyLoci>, types?: string[], alpha = 1) {
+    await eachRepr(plugin, components, async (update, repr, overpaintCell) => {
         if (types && types.length > 0 && !types.includes(repr.params!.values.type.name)) return;
 
         const structure = repr.obj!.data.source.data;
         // always use the root structure to get the loci so the overpaint
         // stays applicable as long as the root structure does not change
-        const loci = lociGetter(structure.root);
+        const loci = await lociGetter(structure.root);
         if (Loci.isEmpty(loci)) return;
 
         const layer = {
@@ -47,7 +47,7 @@ export async function setStructureOverpaint(plugin: PluginContext, components: S
 }
 
 export async function clearStructureOverpaint(plugin: PluginContext, components: StructureComponentRef[], types?: string[]) {
-    await eachRepr(plugin, components, (update, repr, overpaintCell) => {
+    await eachRepr(plugin, components, async (update, repr, overpaintCell) => {
         if (types && types.length > 0 && !types.includes(repr.params!.values.type.name)) return;
         if (overpaintCell) {
             update.delete(overpaintCell.transform.ref);
@@ -55,13 +55,13 @@ export async function clearStructureOverpaint(plugin: PluginContext, components:
     });
 }
 
-function eachRepr(plugin: PluginContext, components: StructureComponentRef[], callback: OverpaintEachReprCallback) {
+async function eachRepr(plugin: PluginContext, components: StructureComponentRef[], callback: OverpaintEachReprCallback) {
     const state = plugin.state.data;
     const update = state.build();
     for (const c of components) {
         for (const r of c.representations) {
             const overpaint = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle, r.cell.transform.ref).withTag(OverpaintManagerTag));
-            callback(update, r.cell, overpaint[0]);
+            await callback(update, r.cell, overpaint[0]);
         }
     }
 

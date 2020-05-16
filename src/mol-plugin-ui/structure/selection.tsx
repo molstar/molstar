@@ -52,7 +52,7 @@ interface StructureSelectionActionsControlsState {
     isBusy: boolean,
     canUndo: boolean,
 
-    action?: StructureSelectionModifier | 'theme' | 'add-repr' | 'help'
+    action?: StructureSelectionModifier | 'theme' | 'add-component' | 'help'
 }
 
 const ActionHeader = new Map<StructureSelectionModifier, string>([
@@ -159,7 +159,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
     toggleIntersect = this.showAction('intersect')
     toggleSet = this.showAction('set')
     toggleTheme = this.showAction('theme')
-    toggleAddRepr = this.showAction('add-repr')
+    toggleAddComponent = this.showAction('add-component')
     toggleHelp = this.showAction('help')
 
     setGranuality: ParamOnChange = ({ value }) => {
@@ -196,14 +196,14 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                 <ToggleButton icon={SetSvg} title={`${ActionHeader.get('set')}. Hold shift key to keep menu open.`} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
 
                 <ToggleButton icon={BrushSvg} title='Apply Theme to Selection' toggle={this.toggleTheme} isSelected={this.state.action === 'theme'} disabled={this.isDisabled} style={{ marginLeft: '10px' }}  />
-                <ToggleButton icon={CubeOutlineSvg} title='Create Representation of Selection' toggle={this.toggleAddRepr} isSelected={this.state.action === 'add-repr'} disabled={this.isDisabled} />
-                <IconButton svg={RemoveSvg} title='Subtract Selection from Representations' onClick={this.subtract} disabled={this.isDisabled} />
+                <ToggleButton icon={CubeOutlineSvg} title='Create Component of Selection with Representation' toggle={this.toggleAddComponent} isSelected={this.state.action === 'add-component'} disabled={this.isDisabled} />
+                <IconButton svg={RemoveSvg} title='Remove/subtract Selection from all Components' onClick={this.subtract} disabled={this.isDisabled} />
                 <IconButton svg={RestoreSvg} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />
 
                 <ToggleButton icon={HelpOutlineSvg} title='Show/hide help' toggle={this.toggleHelp} style={{ marginLeft: '10px' }} isSelected={this.state.action === 'help'} />
                 <IconButton svg={CancelOutlinedSvg} title='Turn selection mode off' onClick={this.turnOff} />
             </div>
-            {(this.state.action && this.state.action !== 'theme' && this.state.action !== 'add-repr' && this.state.action !== 'help') && <div className='msp-selection-viewport-controls-actions'>
+            {(this.state.action && this.state.action !== 'theme' && this.state.action !== 'add-component' && this.state.action !== 'help') && <div className='msp-selection-viewport-controls-actions'>
                 <ActionMenu header={ActionHeader.get(this.state.action as StructureSelectionModifier)} title='Click to close.' items={this.queries} onSelect={this.selectQuery} noOffset />
             </div>}
             {this.state.action === 'theme' && <div className='msp-selection-viewport-controls-actions'>
@@ -211,9 +211,9 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                     <ApplyThemeControls onApply={this.toggleTheme} />
                 </ControlGroup>
             </div>}
-            {this.state.action === 'add-repr' && <div className='msp-selection-viewport-controls-actions'>
-                <ControlGroup header='Add Representation' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleAddRepr} topRightIcon={CloseSvg}>
-                    <AddComponentControls onApply={this.toggleAddRepr} forSelection />
+            {this.state.action === 'add-component' && <div className='msp-selection-viewport-controls-actions'>
+                <ControlGroup header='Add Component' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleAddComponent} topRightIcon={CloseSvg}>
+                    <AddComponentControls onApply={this.toggleAddComponent} forSelection />
                 </ControlGroup>
             </div>}
             {this.state.action === 'help' && <div className='msp-selection-viewport-controls-actions'>
@@ -222,7 +222,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                         <HelpText>Use <Icon svg={UnionSvg} inline /> <Icon svg={SubtractSvg} inline /> <Icon svg={IntersectSvg} inline /> <Icon svg={SetSvg} inline /> to modify the selection.</HelpText>
                     </HelpGroup>
                     <HelpGroup header='Representation Operations'>
-                        <HelpText>Use <Icon svg={BrushSvg} inline /> <Icon svg={CubeOutlineSvg} inline /> <Icon svg={RemoveSvg} inline /> <Icon svg={RestoreSvg} inline /> to color, create selection/representation, subtract it, or undo actions.</HelpText>
+                        <HelpText>Use <Icon svg={BrushSvg} inline /> <Icon svg={CubeOutlineSvg} inline /> <Icon svg={RemoveSvg} inline /> <Icon svg={RestoreSvg} inline /> to color, create components, remove from components, or undo actions.</HelpText>
                     </HelpGroup>
                     <ViewportHelpContent selectOnly={true} />
                 </ControlGroup>
@@ -304,22 +304,22 @@ export class StructureSelectionStatsControls extends PluginUIComponent<{ hideOnE
     }
 }
 
-interface ApplyColorControlsState {
+interface ApplyThemeControlsState {
     values: StructureComponentManager.ThemeParams
 }
 
-interface ApplyColorControlsProps {
+interface ApplyThemeControlsProps {
     onApply?: () => void
 }
 
-class ApplyThemeControls extends PurePluginUIComponent<ApplyColorControlsProps, ApplyColorControlsState> {
+class ApplyThemeControls extends PurePluginUIComponent<ApplyThemeControlsProps, ApplyThemeControlsState> {
     _params = memoizeLatest((pivot: StructureRef | undefined) => StructureComponentManager.getThemeParams(this.plugin, pivot));
     get params() { return this._params(this.plugin.managers.structure.component.pivotStructure); }
 
     state = { values: ParamDefinition.getDefaultValues(this.params) };
 
     apply = () => {
-        this.plugin.managers.structure.component.applyTheme(this.state.values);
+        this.plugin.managers.structure.component.applyTheme(this.state.values, this.plugin.managers.structure.hierarchy.current.structures);
         this.props.onApply?.();
     }
 

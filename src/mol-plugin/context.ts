@@ -30,7 +30,7 @@ import { Representation } from '../mol-repr/representation';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
 import { StateTransform } from '../mol-state';
-import { Progress, Task } from '../mol-task';
+import { Progress, Task, RuntimeContext } from '../mol-task';
 import { ColorTheme } from '../mol-theme/color';
 import { SizeTheme } from '../mol-theme/size';
 import { ThemeRegistryContext } from '../mol-theme/theme';
@@ -222,7 +222,7 @@ export class PluginContext {
         this.behaviors.interaction.selectionMode.next(mode);
     }
 
-    dataTransaction(f: () => Promise<void> | void, options?: { canUndo?: string | boolean }) {
+    dataTransaction(f: (ctx: RuntimeContext) => Promise<void> | void, options?: { canUndo?: string | boolean }) {
         return this.runTask(this.state.data.transaction(f, options));
     }
 

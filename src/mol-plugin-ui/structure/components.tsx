@@ -27,7 +27,7 @@ interface StructureComponentControlState extends CollapsableState {
 export class StructureComponentControls extends CollapsableControls<{}, StructureComponentControlState> {
     protected defaultState(): StructureComponentControlState {
         return {
-            header: 'Representation',
+            header: 'Components',
             isCollapsed: false,
             isDisabled: false,
             brand: { accent: 'blue', svg: CubeOutlineSvg }
@@ -147,9 +147,7 @@ interface AddComponentControlsProps {
 
 export class AddComponentControls extends PurePluginUIComponent<AddComponentControlsProps, AddComponentControlsState> {
     createState(): AddComponentControlsState {
-        const params = StructureComponentManager.getAddParams(this.plugin, this.props.forSelection
-            ? { allowNone: false, hideSelection: true, checkExisting: this.props.forSelection }
-            : void 0);
+        const params = StructureComponentManager.getAddParams(this.plugin);
         return { params, values: ParamDefinition.getDefaultValues(params) };
     }
 
@@ -159,8 +157,12 @@ export class AddComponentControls extends PurePluginUIComponent<AddComponentCont
         return this.plugin.managers.structure.component.currentStructures;
     }
 
+    get currentStructures() {
+        return this.plugin.managers.structure.hierarchy.current.structures;
+    }
+
     apply = () => {
-        const structures = this.props.forSelection ? this.plugin.managers.structure.hierarchy.getStructuresWithSelection() : this.selectedStructures;
+        const structures = this.props.forSelection ? this.currentStructures : this.selectedStructures;
         this.props.onApply();
         this.plugin.managers.structure.component.add(this.state.values, structures);
     }

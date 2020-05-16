@@ -21,7 +21,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StructureRepresentationPresetProvider } from '../../builder/structure/representation-preset';
 import { StatefulPluginComponent } from '../../component';
 import { StructureComponentParams } from '../../helpers/structure-component';
-import { clearStructureOverpaint, setStructureOverpaint } from '../../helpers/structure-overpaint';
+import { setStructureOverpaint } from '../../helpers/structure-overpaint';
 import { createStructureColorThemeParams, createStructureSizeThemeParams } from '../../helpers/structure-representation-params';
 import { StructureSelectionQueries, StructureSelectionQuery } from '../../helpers/structure-selection-query';
 import { StructureRepresentation3D } from '../../transforms/representation';
@@ -361,14 +361,14 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     }
 
     async applyTheme(params: StructureComponentManager.ThemeParams, structures?: ReadonlyArray<StructureRef>) {
-        return this.plugin.dataTransaction(async () => {
+        return this.plugin.dataTransaction(async ctx => {
             const xs = structures || this.currentStructures;
             if (xs.length === 0) return;
-            const getLoci = (s: Structure) => this.plugin.managers.structure.selection.getLoci(s);
 
+            const getLoci = async (s: Structure) => StructureSelection.toLociWithSourceUnits(await params.selection.getSelection(this.plugin, ctx, s));
             for (const s of xs) {
                 if (params.action.name === 'reset') {
-                    await clearStructureOverpaint(this.plugin, s.components, params.representations);
+                    await setStructureOverpaint(this.plugin, s.components, -1, getLoci, params.representations, 1);
                 } else if (params.action.name === 'color') {
                     const p = params.action.params;
                     await setStructureOverpaint(this.plugin, s.components, p.color, getLoci, params.representations, p.opacity);
@@ -441,14 +441,13 @@ namespace StructureComponentManager {
     };
     export type Options = PD.Values<typeof OptionsParams>
 
-    export function getAddParams(plugin: PluginContext, params?: { pivot?: StructureRef, allowNone: boolean, hideSelection?: boolean, checkExisting?: boolean, defaultSelection?: StructureSelectionQuery }) {
+    export function getAddParams(plugin: PluginContext, params?: { pivot?: StructureRef, allowNone: boolean, hideSelection?: boolean, checkExisting?: boolean }) {
         const { options } = plugin.query.structure.registry;
         params = {
             pivot: plugin.managers.structure.component.pivotStructure,
             allowNone: true,
             hideSelection: false,
             checkExisting: false,
-            defaultSelection: StructureSelectionQueries.current,
             ...params
         };
         return {
@@ -463,7 +462,9 @@ namespace StructureComponentManager {
     export type AddParams = { selection: StructureSelectionQuery, options: { checkExisting: boolean, label: string }, representation: string }
 
     export function getThemeParams(plugin: PluginContext, pivot: StructureRef | StructureComponentRef | undefined) {
+        const { options } = plugin.query.structure.registry;
         return {
+            selection: PD.Select(options[1][0], options, { isHidden: false }),
             action: PD.MappedStatic('color', {
                 color: PD.Group({
                     color: PD.Color(ColorNames.blue, { isExpanded: true }),
