@@ -369,10 +369,10 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             const getLoci = async (s: Structure) => StructureSelection.toLociWithSourceUnits(await params.selection.getSelection(this.plugin, ctx, s));
             for (const s of xs) {
                 if (params.action.name === 'reset') {
-                    await setStructureOverpaint(this.plugin, s.components, -1, getLoci, params.representations, 1);
+                    await setStructureOverpaint(this.plugin, s.components, -1, getLoci, params.representations);
                 } else if (params.action.name === 'color') {
                     const p = params.action.params;
-                    await setStructureOverpaint(this.plugin, s.components, p.color, getLoci, params.representations, p.opacity);
+                    await setStructureOverpaint(this.plugin, s.components, p.color, getLoci, params.representations);
                 } else if (params.action.name === 'transparency') {
                     const p = params.action.params;
                     await setStructureTransparency(this.plugin, s.components, p.value, getLoci, params.representations);
@@ -472,7 +472,6 @@ namespace StructureComponentManager {
             action: PD.MappedStatic('color', {
                 color: PD.Group({
                     color: PD.Color(ColorNames.blue, { isExpanded: true }),
-                    opacity: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
                 }, { isFlat: true }),
                 reset: PD.EmptyGroup({ label: 'Reset Color' }),
                 transparency: PD.Group({

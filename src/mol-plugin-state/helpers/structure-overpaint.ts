@@ -18,7 +18,7 @@ import { EmptyLoci, Loci } from '../../mol-model/loci';
 type OverpaintEachReprCallback = (update: StateBuilder.Root, repr: StateObjectCell<PluginStateObject.Molecule.Structure.Representation3D, StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>>, overpaint?: StateObjectCell<any, StateTransform<typeof StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle>>) => Promise<void>
 const OverpaintManagerTag = 'overpaint-controls';
 
-export async function setStructureOverpaint(plugin: PluginContext, components: StructureComponentRef[], color: Color | -1, lociGetter: (structure: Structure) => Promise<StructureElement.Loci | EmptyLoci>, types?: string[], alpha = 1) {
+export async function setStructureOverpaint(plugin: PluginContext, components: StructureComponentRef[], color: Color | -1, lociGetter: (structure: Structure) => Promise<StructureElement.Loci | EmptyLoci>, types?: string[]) {
     await eachRepr(plugin, components, async (update, repr, overpaintCell) => {
         if (types && types.length > 0 && !types.includes(repr.params!.values.type.name)) return;
 
@@ -37,11 +37,11 @@ export async function setStructureOverpaint(plugin: PluginContext, components: S
         if (overpaintCell) {
             const bundleLayers = [...overpaintCell.params!.values.layers, layer];
             const filtered = getFilteredBundle(bundleLayers, structure);
-            update.to(overpaintCell).update(Overpaint.toBundle(filtered, alpha));
+            update.to(overpaintCell).update(Overpaint.toBundle(filtered));
         } else {
             const filtered = getFilteredBundle([layer], structure);
             update.to(repr.transform.ref)
-                .apply(StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle, Overpaint.toBundle(filtered, alpha), { tags: OverpaintManagerTag });
+                .apply(StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle, Overpaint.toBundle(filtered), { tags: OverpaintManagerTag });
         }
     });
 }
@@ -70,7 +70,7 @@ async function eachRepr(plugin: PluginContext, components: StructureComponentRef
 
 /** filter overpaint layers for given structure */
 function getFilteredBundle(layers: Overpaint.BundleLayer[], structure: Structure) {
-    const overpaint = Overpaint.ofBundle(layers, 1, structure.root);
+    const overpaint = Overpaint.ofBundle(layers, structure.root);
     const merged = Overpaint.merge(overpaint);
     return Overpaint.filter(merged, structure);
 }

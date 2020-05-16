@@ -99,7 +99,7 @@ namespace Visual {
                 const end = Interval.end(interval);
                 return clear
                     ? clearOverpaint(array, start, end)
-                    : applyOverpaintColor(array, start, end, color, overpaint.alpha);
+                    : applyOverpaintColor(array, start, end, color);
             };
             lociApply(loci, apply, false);
         }

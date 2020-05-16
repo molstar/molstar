@@ -279,7 +279,6 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
                 clear: false
             }]
         }),
-        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
     }
 })({
     canAutoUpdate() {
@@ -287,7 +286,7 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
     },
     apply({ a, params }) {
         const structure = a.data.source.data;
-        const overpaint = Overpaint.ofScript(params.layers, params.alpha, structure);
+        const overpaint = Overpaint.ofScript(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { overpaint },
@@ -301,8 +300,8 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
         const newStructure = a.data.source.data;
         if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate;
         const oldOverpaint = b.data.state.overpaint!;
-        const newOverpaint = Overpaint.ofScript(newParams.layers, newParams.alpha, newStructure);
-        if (oldParams.alpha === newParams.alpha && Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged;
+        const newOverpaint = Overpaint.ofScript(newParams.layers, newStructure);
+        if (Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.overpaint = newOverpaint;
         b.data.source = a;
@@ -330,7 +329,6 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
             }],
             isHidden: true
         }),
-        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
     }
 })({
     canAutoUpdate() {
@@ -338,7 +336,7 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
     },
     apply({ a, params }) {
         const structure = a.data.source.data;
-        const overpaint = Overpaint.ofBundle(params.layers, params.alpha, structure);
+        const overpaint = Overpaint.ofBundle(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { overpaint },
@@ -352,8 +350,8 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
         const newStructure = a.data.source.data;
         if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate;
         const oldOverpaint = b.data.state.overpaint!;
-        const newOverpaint = Overpaint.ofBundle(newParams.layers, newParams.alpha, newStructure);
-        if (oldParams.alpha === newParams.alpha && Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged;
+        const newOverpaint = Overpaint.ofBundle(newParams.layers, newStructure);
+        if (Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.overpaint = newOverpaint;
         b.data.source = a;
