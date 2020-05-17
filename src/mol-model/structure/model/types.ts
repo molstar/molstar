@@ -118,7 +118,7 @@ export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set
         coarseBackbone: new Set(['CA'])
     },
     [PolymerType.RNA]: {
-        trace: new Set(['C4\'', 'C4*']),
+        trace: new Set(['O3\'', 'O3*']),
         directionFrom: new Set(['C4\'', 'C4*']),
         directionTo: new Set(['C3\'', 'C3*']),
         backboneStart: new Set(['P']),
@@ -126,7 +126,7 @@ export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set
         coarseBackbone: new Set(['P'])
     },
     [PolymerType.DNA]: {
-        trace: new Set(['C3\'', 'C3*']),
+        trace: new Set(['O3\'', 'O3*']),
         directionFrom: new Set(['C3\'', 'C3*']),
         directionTo: new Set(['C1\'', 'C1*']),
         backboneStart: new Set(['P']),
