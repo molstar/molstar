@@ -27,6 +27,7 @@ import { SecondaryStructureProvider } from '../../mol-model-props/computed/secon
 import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
 import { AssetManager } from '../../mol-util/assets';
 import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
+import { TopologyProvider } from '../../mol-model-props/computed/topology';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -120,7 +121,7 @@ function getGaussianSurfaceRepr() {
 async function init() {
     const ctx = { runtime: SyncRuntimeContext, assetManager: new AssetManager() };
 
-    const cif = await downloadFromPdb('3pqr');
+    const cif = await downloadFromPdb('1brr');
     const models = await getModels(cif);
     const structure = await getStructure(models[0]);
 
