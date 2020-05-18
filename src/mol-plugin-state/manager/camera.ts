@@ -12,6 +12,7 @@ import { Camera } from '../../mol-canvas3d/camera';
 import { Loci } from '../../mol-model/loci';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
+import { StructureElement } from '../../mol-model/structure';
 
 // TODO: make this customizable somewhere?
 const DefaultCameraFocusOptions = {
@@ -24,6 +25,15 @@ export type CameraFocusOptions = typeof DefaultCameraFocusOptions
 
 export class CameraManager {
     private boundaryHelper = new BoundaryHelper('98');
+
+    private transformedLoci(loci: Loci) {
+        if (StructureElement.Loci.is(loci)) {
+            // use decorated (including 3d transforms) parent structure
+            const parent = this.plugin.helpers.substructureParent.get(loci.structure)?.obj?.data;
+            if (parent) loci = StructureElement.Loci.remap(loci, parent);
+        }
+        return loci;
+    }
 
     focusRenderObjects(objects?: ReadonlyArray<GraphicsRenderObject>, options?: Partial<CameraFocusOptions>) {
         if (!objects) return;
@@ -47,7 +57,7 @@ export class CameraManager {
         if (Array.isArray(loci) && loci.length > 1) {
             const spheres = [];
             for (const l of loci) {
-                const s = Loci.getBoundingSphere(l);
+                const s = Loci.getBoundingSphere(this.transformedLoci(l));
                 if (s) spheres.push(s);
             }
 
@@ -64,9 +74,9 @@ export class CameraManager {
             sphere = this.boundaryHelper.getSphere();
         } else if (Array.isArray(loci)) {
             if (loci.length === 0) return;
-            sphere = Loci.getBoundingSphere(loci[0]);
+            sphere = Loci.getBoundingSphere(this.transformedLoci(loci[0]));
         } else {
-            sphere = Loci.getBoundingSphere(loci);
+            sphere = Loci.getBoundingSphere(this.transformedLoci(loci));
         }
 
         if (sphere) {
