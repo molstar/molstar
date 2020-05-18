@@ -5,7 +5,7 @@
  */
 
 import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
-import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Loci, EmptyLoci } from '../../../mol-model/loci';
 import { Interval } from '../../../mol-data/int';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -33,10 +33,6 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
     const { x, y, z, members, offsets } = features;
     const { edgeCount, a, b, edgeProps: { flag } } = contacts;
     const { sizeFactor } = props;
-    const { matrix } = unit.conformation.operator;
-
-    const operator = Mat4.copy(Mat4(), structure.coordinateSystem.inverse);
-    Mat4.mul(operator, operator, matrix);
 
     if (!edgeCount) return Mesh.createEmpty(mesh);
 
@@ -44,9 +40,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
         linkCount: edgeCount * 2,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             Vec3.set(posA, x[a[edgeIndex]], y[a[edgeIndex]], z[a[edgeIndex]]);
-            Vec3.transformMat4(posA, posA, operator);
             Vec3.set(posB, x[b[edgeIndex]], y[b[edgeIndex]], z[b[edgeIndex]]);
-            Vec3.transformMat4(posB, posB, operator);
         },
         style: (edgeIndex: number) => LinkCylinderStyle.Dashed,
         radius: (edgeIndex: number) => {
