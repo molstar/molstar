@@ -26,7 +26,6 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
     events.object.updated.subscribe(e => {
         if (e.oldObj && SO.isRepresentation3D(e.oldObj)) {
             ctx.canvas3d?.remove(e.oldObj.data.repr);
-            ctx.canvas3d?.requestDraw(true);
             e.oldObj.data.repr.destroy();
         }
 
@@ -43,7 +42,7 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
     events.object.removed.subscribe(e => {
         if (!SO.isRepresentation3D(e.obj)) return;
         ctx.canvas3d?.remove(e.obj.data.repr);
-        ctx.canvas3d?.requestDraw(true);
+
         e.obj.data.repr.destroy();
     });
 }
@@ -57,21 +56,18 @@ export function SyncStructureRepresentation3DState(ctx: PluginContext) {
         const data = e.obj.data as SO.Molecule.Structure.Representation3DStateData;
         data.source.data.repr.setState(data.state);
         ctx.canvas3d?.update(data.source.data.repr);
-        ctx.canvas3d?.requestDraw(true);
     });
     events.object.updated.subscribe(e => {
         if (!SO.Molecule.Structure.Representation3DState.is(e.obj)) return;
         const data = e.obj.data as SO.Molecule.Structure.Representation3DStateData;
         data.source.data.repr.setState(data.state);
         ctx.canvas3d?.update(data.source.data.repr);
-        ctx.canvas3d?.requestDraw(true);
     });
     events.object.removed.subscribe(e => {
         if (!SO.Molecule.Structure.Representation3DState.is(e.obj)) return;
         const data = e.obj.data as SO.Molecule.Structure.Representation3DStateData;
         data.source.data.repr.setState(data.initialState);
         ctx.canvas3d?.update(data.source.data.repr);
-        ctx.canvas3d?.requestDraw(true);
     });
 }
 
@@ -82,7 +78,6 @@ export function UpdateRepresentationVisibility(ctx: PluginContext) {
         if (!SO.isRepresentation3D(cell.obj)) return;
         updateVisibility(cell, cell.obj.data.repr);
         ctx.canvas3d?.syncVisibility();
-        ctx.canvas3d?.requestDraw(true);
     });
 }
 
