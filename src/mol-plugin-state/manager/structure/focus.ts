@@ -93,7 +93,7 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
     }
 
     addFromLoci(anyLoci: Loci) {
-        const union = this.state.current && StructureElement.Loci.is(anyLoci)
+        const union = this.state.current && StructureElement.Loci.is(anyLoci) && anyLoci.structure === this.state.current.loci.structure
             ? StructureElement.Loci.union(anyLoci, this.state.current.loci)
             : anyLoci;
         this.setFromLoci(union);
