@@ -32,7 +32,6 @@ import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Color } from '../../mol-util/color';
 import { createRenderObject } from '../../mol-gl/render-object';
 import { Membrane } from '../../mol-model-props/computed/membrane/ANVIL';
-import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
