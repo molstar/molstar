@@ -50,7 +50,6 @@ namespace Topology {
     const l = StructureElement.Location.create(void 0);
     const centroidHelper = new CentroidHelper();
     const vec = Vec3();
-    const points: Vec3[] = [];
     export async function calculate(runtime: RuntimeContext, structure: Structure, params: ANVILProps): Promise<Topology> {
         const { label_atom_id, x, y, z } = StructureProperties.atom;
         const { label_comp_id } = StructureProperties.residue;
@@ -110,16 +109,14 @@ namespace Topology {
             centroidHelper.radiusStep(vec);
         }
         const extent = 1.2 * Math.sqrt(centroidHelper.radiusSq);
-        points.push(centroid);
-        console.log('centroid: ' + centroid);
 
-        const initialHphobHphil = HphobHphil.filtered(offsets, exposed, structure, label_comp_id, () => true);
+        const initialHphobHphil = HphobHphil.filtered(offsets, exposed, structure, label_comp_id);
         const initialMembrane = findMembrane(generateSpherePoints(params.numberOfSpherePoints, centroid, extent), centroid, params, initialHphobHphil, offsets, exposed, structure, label_comp_id);
         const alternativeMembrane = findMembrane(findProximateAxes(initialMembrane, params.numberOfSpherePoints, centroid, extent), centroid, params, initialHphobHphil, offsets, exposed, structure, label_comp_id);
 
+        // const membrane = initialMembrane;
         const membrane = initialMembrane.qmax! > alternativeMembrane.qmax! ? initialMembrane : alternativeMembrane;
 
-        points.push(centroid);
         return {
             membrane: createMembraneLayers(membrane, extent, params)
         };
@@ -128,7 +125,7 @@ namespace Topology {
     function createMembraneLayers(membrane: Membrane, extent: number, params: ANVILProps): Vec3[] {
         const out: Vec3[] = [];
         const radius = extent * extent;
-        const normalVector = membrane.normalVector;
+        const normalVector = membrane.normalVector!;
 
         createMembraneLayer(out, membrane.planePoint1, normalVector, params.membranePointDensity, radius);
         createMembraneLayer(out, membrane.planePoint2, normalVector, params.membranePointDensity, radius);
@@ -152,35 +149,32 @@ namespace Topology {
         planePoint1: Vec3,
         planePoint2: Vec3,
         stats: HphobHphil,
-        normalVector: Vec3,
-        point: Vec3 | undefined,
-        qmax: number | undefined,
-        membraneAtoms: Vec3[] | undefined
+        normalVector?: Vec3,
+        spherePoint?: Vec3,
+        center?: Vec3,
+        qmax?: number,
+        membraneAtoms?: Vec3[]
     }
 
     namespace Membrane {
-        const out = Vec3();
         export function initial(c1: Vec3, c2: Vec3, stats: HphobHphil): Membrane {
-            Vec3.sub(out, c1, c2);
             return {
                 planePoint1: c1,
                 planePoint2: c2,
-                stats: stats,
-                normalVector: out,
-                point: void 0,
-                qmax: void 0,
-                membraneAtoms: void 0
+                stats: stats
             }
         }
 
-        export function scored(c1: Vec3, c2: Vec3, stats: HphobHphil, spherePoint: Vec3, qmax: number): Membrane {
-            Vec3.sub(out, c1, c2);
+        export function scored(spherePoint: Vec3, c1: Vec3, c2: Vec3, stats: HphobHphil, qmax: number, center: Vec3): Membrane {
+            const diam_vect = Vec3();
+            Vec3.sub(diam_vect, center, spherePoint);
             return {
                 planePoint1: c1,
                 planePoint2: c2,
                 stats: stats,
-                normalVector: out,
-                point: spherePoint,
+                normalVector: diam_vect,
+                spherePoint: spherePoint,
+                center: center,
                 qmax: qmax,
                 membraneAtoms: []
             }
@@ -202,9 +196,9 @@ namespace Topology {
             const diamNorm = Vec3.magnitude(diam);
             const qvartemp = [];
 
-            const c1 = Vec3();
-            const c2 = Vec3();
             for (let i = 0, il = diamNorm - params.stepSize; i < il; i += params.stepSize) {
+                const c1 = Vec3();
+                const c2 = Vec3();
                 Vec3.scaleAndAdd(c1, spherePoint, diam, i / diamNorm);
                 Vec3.scaleAndAdd(c2, spherePoint, diam, (i + params.stepSize) / diamNorm);
 
@@ -215,7 +209,7 @@ namespace Topology {
 
             let jmax = (params.minThickness / params.stepSize) - 1;
 
-            for (let width = 0, widthl = params.maxThickness; width < widthl; width = (jmax + 1) * params.stepSize) {
+            for (let width = 0, widthl = params.maxThickness; width < widthl;) {
                 const imax = qvartemp.length - 1 - jmax;
 
                 for (let i = 0, il = imax; i < il; i++) {
@@ -224,28 +218,32 @@ namespace Topology {
 
                     let hphob = 0;
                     let hphil = 0;
+                    let total = 0;
                     for (let j = 0; j < jmax; j++) {
                         const ij = qvartemp[i + j];
-                        if (j == 0 || j == jmax - 1) {
+                        if (j == 0 || j === jmax - 1) {
                             hphob += 0.5 * ij.stats.hphob;
                             hphil += 0.5 * ij.stats.hphil;
                         } else {
                             hphob += ij.stats.hphob;
                             hphil += ij.stats.hphil;
                         }
+                        total += ij.stats.total;
                     }
 
-                    const stats = HphobHphil.of(hphob, hphil);
+                    const stats = HphobHphil.of(hphob, hphil, total);
 
-                    if (hphob > 0) {
+                    if (hphob !== 0) {
                         const qvaltest = qValue(stats, initialStats);
                         if (qvaltest > qmax) {
                             qmax = qvaltest;
-                            membrane = Membrane.scored(c1, c2, HphobHphil.of(hphob, hphil), spherePoint, qmax);
+                            console.log(Vec3.distance(c1, c2) + ' ' + qmax);
+                            membrane = Membrane.scored(centroid, c1, c2, HphobHphil.of(hphob, hphil, total), qmax, spherePoint);
                         }
                     }
                 }
                 jmax++;
+                width = (jmax + 1) * params.stepSize
             }
         }
 
@@ -261,8 +259,11 @@ namespace Topology {
             initialStats.hphil += 1;
         }
 
+        const tot = initialStats.hphob + initialStats.hphil;
+        const part_tot = currentStats.hphob + currentStats.hphil;
+
         return (currentStats.hphob * (initialStats.hphil - currentStats.hphil) - currentStats.hphil * (initialStats.hphob - currentStats.hphob)) /
-                (currentStats.total * initialStats.hphob * initialStats.hphil * (initialStats.hphob + initialStats.hphil - currentStats.total));
+                (part_tot * initialStats.hphob * initialStats.hphil * (tot - part_tot));
     }
 
     function isInMembranePlane(testPoint: Vec3, normalVector: Vec3, planePoint1: Vec3, planePoint2: Vec3): boolean {
@@ -297,8 +298,23 @@ namespace Topology {
     // generates sphere points close to that of the initial membrane
     function findProximateAxes(membrane: Membrane, numberOfSpherePoints: number, centroid: Vec3, extent: number): Vec3[] {
         const points = generateSpherePoints(30000, centroid, extent);
-        const sorted = points.sort((v1, v2) => Vec3.squaredDistance(v1, membrane.point!) - Vec3.squaredDistance(v2, membrane.point!));
-        return sorted.splice(0, numberOfSpherePoints);
+        // const sorted = points.sort((v1, v2) => Vec3.squaredDistance(v1, membrane.point!) - Vec3.squaredDistance(v2, membrane.point!));
+        // return sorted.splice(0, numberOfSpherePoints);
+        const imax = points.length;
+        let j = 4;
+        let sphere_pts2: Vec3[] = [];
+        while (sphere_pts2.length < numberOfSpherePoints) {
+            const d = 2 * extent / numberOfSpherePoints + j;
+            const dsq = d * d;
+            sphere_pts2 = [];
+            for (let i = 0, il = imax; i < il; i++) {
+                if (Vec3.squaredDistance(points[i], centroid) < dsq) {
+                    sphere_pts2.push(points[i]);
+                }
+            }
+            j += 0.2;
+        }
+        return sphere_pts2
     }
 
     interface HphobHphil {
@@ -308,22 +324,22 @@ namespace Topology {
     }
 
     namespace HphobHphil {
-        export function of(hphob: number, hphil: number) {
+        export function of(hphob: number, hphil: number, total?: number) {
             return {
                 hphob: hphob,
                 hphil: hphil,
-                total: hphob + hphil 
+                total: !!total ? total : hphob + hphil 
             }
         }
 
         const testPoint = Vec3();
-        export function filtered(offsets: ArrayLike<number>, exposed: ArrayLike<boolean>, structure: Structure, label_comp_id: StructureElement.Property<string>, filter: (test: Vec3) => boolean): HphobHphil {
+        export function filtered(offsets: ArrayLike<number>, exposed: ArrayLike<boolean>, structure: Structure, label_comp_id: StructureElement.Property<string>, filter?: (test: Vec3) => boolean): HphobHphil {
             const { x, y, z } = StructureProperties.atom;
             let hphob = 0;
             let hphil = 0;
             for (let k = 0, kl = offsets.length; k < kl; k++) {
-                // ignore exposed residues
-                if (exposed[k]) {
+                // ignore buried residues
+                if (!exposed[k]) {
                     continue;
                 }
     
@@ -331,7 +347,7 @@ namespace Topology {
                 Vec3.set(testPoint, x(l), y(l), z(l));
 
                 // testPoints have to be in putative membrane layer
-                if (!filter(testPoint)) {
+                if (filter && !filter(testPoint)) {
                     continue;
                 }
 
