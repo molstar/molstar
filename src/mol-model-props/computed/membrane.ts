@@ -11,7 +11,6 @@ import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { ANVILParams, Membrane } from './membrane/ANVIL';
-import { strict } from 'assert';
 import { AccessibleSurfaceAreaProvider } from './accessible-surface-area';
 
 export const MembraneParams = {
