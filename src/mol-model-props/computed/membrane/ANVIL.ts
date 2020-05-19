@@ -22,7 +22,7 @@ export const ANVILParams = {
     minThickness: PD.Numeric(20, { min: 10, max: 30, step: 1}, { description: 'Minimum membrane thickness used during refinement' }),
     maxThickness: PD.Numeric(40, { min: 30, max: 50, step: 1}, { description: 'Maximum membrane thickness used during refinement' }),
     afilter: PD.Numeric(40),
-    membranePointDensity: PD.Numeric(2, { min: 0.1, max: 10, step: 0.1 }, { description: 'Distance betwween points representing membrane layer'})
+    membranePointDensity: PD.Numeric(2, { min: 0.1, max: 10, step: 0.1 }, { description: 'Distance between points representing membrane layer'})
 };
 export type ANVILParams = typeof ANVILParams
 export type ANVILProps = PD.Values<ANVILParams>
@@ -128,10 +128,12 @@ namespace Membrane {
 
         const ctx = initialize(structure, params);
         const initialHphobHphil = HphobHphil.filtered(ctx, label_comp_id);
-        const initialMembrane = findMembrane(ctx, generateSpherePoints(ctx, ctx.numberOfSpherePoints), initialHphobHphil, label_comp_id);
-        const refinedMembrane = findMembrane(ctx, findProximateAxes(ctx, initialMembrane), initialHphobHphil, label_comp_id);
 
-        const membrane = initialMembrane.qmax! > refinedMembrane.qmax! ? initialMembrane : refinedMembrane;
+        const initialMembrane = findMembrane(ctx, generateSpherePoints(ctx, ctx.numberOfSpherePoints), initialHphobHphil, label_comp_id);
+        const alternativeMembrane = findMembrane(ctx, findProximateAxes(ctx, initialMembrane), initialHphobHphil, label_comp_id);
+
+        const membrane = initialMembrane.qmax! > alternativeMembrane.qmax! ? initialMembrane : alternativeMembrane;
+
         return createMembraneLayers(ctx, membrane);
     }
 
