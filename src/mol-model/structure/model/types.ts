@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -145,7 +145,7 @@ export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set
 
 export const ProteinBackboneAtoms = new Set([
     'CA', 'C', 'N', 'O',
-    'O1', 'O2', 'OC1', 'OC2', 'OX1', 'OXT',
+    'O1', 'O2', 'OC1', 'OC2', 'OT1', 'OT2', 'OX1', 'OXT',
     'H', 'H1', 'H2', 'H3', 'HA', 'HN', 'HXT',
     'BB'
 ]);
