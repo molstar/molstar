@@ -26,7 +26,6 @@ import { InteractionsProvider } from '../../mol-model-props/computed/interaction
 import { SecondaryStructureProvider } from '../../mol-model-props/computed/secondary-structure';
 import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
 import { AssetManager } from '../../mol-util/assets';
-import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
 import { MembraneProvider } from '../../mol-model-props/computed/membrane';
 import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
@@ -124,6 +123,7 @@ function getGaussianSurfaceRepr() {
 }
 
 function getMembraneRepr(membrane: Membrane) {
+    // TODO is a representation provider the right place for this?
     const spheresBuilder = SpheresBuilder.create(membrane.length, 1);
     for (let i = 0, il = membrane.length; i < il; i++) {
         spheresBuilder.add(membrane[i][0], membrane[i][1], membrane[i][2], 0);
@@ -149,10 +149,6 @@ async function init() {
     await SecondaryStructureProvider.attach(ctx, structure);
     console.timeEnd('compute SecondaryStructure');
 
-    console.time('compute AccessibleSurfaceArea');
-    await AccessibleSurfaceAreaProvider.attach(ctx, structure);
-    console.timeEnd('compute AccessibleSurfaceArea');
-
     console.time('compute Membrane');
     await MembraneProvider.attach(ctx, structure);
     console.timeEnd('compute Membrane');
@@ -164,8 +160,8 @@ async function init() {
 
     const show = {
         cartoon: true,
-        interaction: false,
-        ballAndStick: false,
+        interaction: true,
+        ballAndStick: true,
         molecularSurface: false,
         gaussianSurface: false,
         membrane: true
@@ -221,7 +217,7 @@ async function init() {
         await gaussianSurfaceRepr.createOrUpdate({ ...GaussianSurfaceRepresentationProvider.defaultValues, quality: 'custom', alpha: 1.0, flatShaded: true, doubleSided: true, resolution: 0.3 }, structure).run();
         console.timeEnd('gaussian surface');
     }
-    
+
     if (show.cartoon) canvas3d.add(cartoonRepr);
     if (show.interaction) canvas3d.add(interactionRepr);
     if (show.ballAndStick) canvas3d.add(ballAndStickRepr);
