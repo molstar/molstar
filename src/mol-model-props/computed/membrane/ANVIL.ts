@@ -17,7 +17,7 @@ import { AccessibleSurfaceAreaProvider } from '../accessible-surface-area';
 import { ANVILContext } from './anvil/common';
 
 export const ANVILParams = {
-    numberOfSpherePoints: PD.Numeric(350),
+    numberOfSpherePoints: PD.Numeric(120),
     stepSize: PD.Numeric(1),
     minThickness: PD.Numeric(20, { min: 10, max: 30, step: 1}, { description: 'Minimum membrane thickness used during refinement' }),
     maxThickness: PD.Numeric(40, { min: 30, max: 50, step: 1}, { description: 'Maximum membrane thickness used during refinement' }),
@@ -206,9 +206,9 @@ namespace Membrane {
         let qmax = 0;
 
         // construct slices of thickness 1.0 along the axis connecting the centroid and the spherePoint
+        const diam = Vec3();
         for (let i = 0, il = spherePoints.length; i < il; i++) {
             const spherePoint = spherePoints[i];
-            const diam = Vec3();
             Vec3.sub(diam, centroid, spherePoint);
             Vec3.scale(diam, diam, 2);
             const diamNorm = Vec3.magnitude(diam);
