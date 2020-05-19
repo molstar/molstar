@@ -11,6 +11,8 @@ import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { ANVILParams, Membrane } from './membrane/ANVIL';
+import { strict } from 'assert';
+import { AccessibleSurfaceAreaProvider } from './accessible-surface-area';
 
 export const MembraneParams = {
     ...ANVILParams
@@ -31,6 +33,7 @@ export const MembraneProvider: CustomStructureProperty.Provider<MembraneParams, 
     // TODO needs ASA to be computed (or 'resolved' before trying computing topology) - how to achieve?
     // TODO potentially, this could behave like secondary structure info where data can be either parsed or computed
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<MembraneProps>) => {
+        await AccessibleSurfaceAreaProvider.attach(ctx, data);
         const p = { ...PD.getDefaultValues(MembraneParams), ...props };
         return { value: await Membrane.compute(data, p).runInContext(ctx.runtime) };
     }

@@ -150,10 +150,6 @@ async function init() {
     await SecondaryStructureProvider.attach(ctx, structure);
     console.timeEnd('compute SecondaryStructure');
 
-    console.time('compute AccessibleSurfaceArea');
-    await AccessibleSurfaceAreaProvider.attach(ctx, structure);
-    console.timeEnd('compute AccessibleSurfaceArea');
-
     console.time('compute Membrane');
     await MembraneProvider.attach(ctx, structure);
     console.timeEnd('compute Membrane');
