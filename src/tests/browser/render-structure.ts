@@ -27,12 +27,12 @@ import { SecondaryStructureProvider } from '../../mol-model-props/computed/secon
 import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
 import { AssetManager } from '../../mol-util/assets';
 import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
-import { TopologyProvider } from '../../mol-model-props/computed/topology';
+import { MembraneProvider } from '../../mol-model-props/computed/membrane';
 import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Color } from '../../mol-util/color';
 import { createRenderObject } from '../../mol-gl/render-object';
-import { Topology } from '../../mol-model-props/computed/topology/ANVIL';
+import { Membrane } from '../../mol-model-props/computed/membrane/ANVIL';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -123,14 +123,14 @@ function getGaussianSurfaceRepr() {
     return GaussianSurfaceRepresentationProvider.factory(reprCtx, GaussianSurfaceRepresentationProvider.getParams);
 }
 
-function getMembraneRepr(topology: Topology) {
-    const spheresBuilder = SpheresBuilder.create(topology.membrane.length, 1);
-    for (let i = 0, il = topology.membrane.length; i < il; i++) {
-        spheresBuilder.add(topology.membrane[i][0], topology.membrane[i][1], topology.membrane[i][2], 0);
+function getMembraneRepr(membrane: Membrane) {
+    const spheresBuilder = SpheresBuilder.create(membrane.length, 1);
+    for (let i = 0, il = membrane.length; i < il; i++) {
+        spheresBuilder.add(membrane[i][0], membrane[i][1], membrane[i][2], 0);
     }
     const spheres = spheresBuilder.getSpheres();
 
-    const values = Spheres.Utils.createValuesSimple(spheres, {}, Color(0xFF0000/*666666*/), 1);
+    const values = Spheres.Utils.createValuesSimple(spheres, {}, Color(0xCCCCCC), 1);
     const state = Spheres.Utils.createRenderableState({});
     const renderObject = createRenderObject('spheres', values, state, -1);
     console.log(renderObject);
@@ -141,7 +141,7 @@ function getMembraneRepr(topology: Topology) {
 async function init() {
     const ctx = { runtime: SyncRuntimeContext, assetManager: new AssetManager() };
 
-    const cif = await downloadFromPdb('1brr');
+    const cif = await downloadFromPdb('3pqr');
     const models = await getModels(cif);
     const structure = await getStructure(models[0]);
 
@@ -153,9 +153,9 @@ async function init() {
     await AccessibleSurfaceAreaProvider.attach(ctx, structure);
     console.timeEnd('compute AccessibleSurfaceArea');
 
-    console.time('compute Topology');
-    await TopologyProvider.attach(ctx, structure);
-    console.timeEnd('compute Topology');
+    console.time('compute Membrane');
+    await MembraneProvider.attach(ctx, structure);
+    console.timeEnd('compute Membrane');
 
     console.time('compute Interactions');
     await InteractionsProvider.attach(ctx, structure);
@@ -176,12 +176,11 @@ async function init() {
     const ballAndStickRepr = getBallAndStickRepr();
     const molecularSurfaceRepr = getMolecularSurfaceRepr();
     const gaussianSurfaceRepr = getGaussianSurfaceRepr();
-    const membraneRepr = getMembraneRepr(TopologyProvider.get(structure).value!);
+    const membraneRepr = getMembraneRepr(MembraneProvider.get(structure).value!);
 
     if (show.cartoon) {
         cartoonRepr.setTheme({
-            // TODO remove from mol-theme/color.ts again
-            color: reprCtx.colorThemeRegistry.create('accessible-surface-area', { structure }),
+            color: reprCtx.colorThemeRegistry.create('element-symbol', { structure }),
             size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
         });
         await cartoonRepr.createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure).run();
@@ -222,17 +221,7 @@ async function init() {
         await gaussianSurfaceRepr.createOrUpdate({ ...GaussianSurfaceRepresentationProvider.defaultValues, quality: 'custom', alpha: 1.0, flatShaded: true, doubleSided: true, resolution: 0.3 }, structure).run();
         console.timeEnd('gaussian surface');
     }
-
-    // if (show.membrane) {
-        // membraneRepr.setTheme({
-        //     color: reprCtx.colorThemeRegistry.create('uniform', { structure }),
-        //     size: reprCtx.sizeThemeRegistry.create('physical', { structure })
-        // });
-        // console.time('membrane layer');
-        // await membraneRepr.createOrUpdate({ ...MembraneRepresentationProvider.defaultValues, quality: 'custom', alpha: 1.0, flatShaded: true, doubleSided: true, resolution: 0.3 }, structure).run();
-        // console.timeEnd('membrane layer');
-    // }
-
+    
     if (show.cartoon) canvas3d.add(cartoonRepr);
     if (show.interaction) canvas3d.add(interactionRepr);
     if (show.ballAndStick) canvas3d.add(ballAndStickRepr);

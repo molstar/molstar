@@ -14,6 +14,7 @@ import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { AccessibleSurfaceArea } from '../accessible-surface-area/shrake-rupley';
 import { AccessibleSurfaceAreaProvider } from '../accessible-surface-area';
+import { ANVILContext } from './anvil/common';
 
 export const ANVILParams = {
     numberOfSpherePoints: PD.Numeric(350),
@@ -26,13 +27,10 @@ export const ANVILParams = {
 export type ANVILParams = typeof ANVILParams
 export type ANVILProps = PD.Values<ANVILParams>
 
-export { Topology };
+export { Membrane };
+interface Membrane extends Array<Vec3> {}
 
-interface Topology {
-    readonly membrane: Vec3[]
-}
-
-namespace Topology {
+namespace Membrane {
     /**
      * Implements:
      * Membrane positioning for high- and low-resolution protein structures through a binary classification approach
@@ -50,9 +48,8 @@ namespace Topology {
     const l = StructureElement.Location.create(void 0);
     const centroidHelper = new CentroidHelper();
     const vec = Vec3();
-    export async function calculate(runtime: RuntimeContext, structure: Structure, params: ANVILProps): Promise<Topology> {
+    function initialize(structure: Structure, params: ANVILProps): ANVILContext {
         const { label_atom_id, x, y, z } = StructureProperties.atom;
-        const { label_comp_id } = StructureProperties.residue;
         const elementCount = structure.polymerResidueCount;
         centroidHelper.reset();
         l.structure = structure;
@@ -110,26 +107,43 @@ namespace Topology {
         }
         const extent = 1.2 * Math.sqrt(centroidHelper.radiusSq);
 
-        const initialHphobHphil = HphobHphil.filtered(offsets, exposed, structure, label_comp_id);
-        const initialMembrane = findMembrane(generateSpherePoints(params.numberOfSpherePoints, centroid, extent), centroid, params, initialHphobHphil, offsets, exposed, structure, label_comp_id);
-        const refinedMembrane = findMembrane(findProximateAxes(initialMembrane, params.numberOfSpherePoints, centroid, extent), centroid, params, initialHphobHphil, offsets, exposed, structure, label_comp_id);
-
-        const membrane = initialMembrane.qmax! > refinedMembrane.qmax! ? initialMembrane : refinedMembrane;
         return {
-            membrane: createMembraneLayers(membrane, extent, params)
-        };
+            structure: structure,
+            numberOfSpherePoints: params.numberOfSpherePoints,
+            stepSize: params.stepSize,
+            minThickness: params.maxThickness,
+            maxThickness: params.minThickness,
+            afilter: params.afilter,
+            membranePointDensity: params.membranePointDensity,
+
+            offsets: offsets,
+            exposed: exposed,
+            centroid: centroid,
+            extent: extent
+        }
     }
 
-    function createMembraneLayers(membrane: Membrane, extent: number, params: ANVILProps): Vec3[] {
-        console.time('create membrane layers');
+    export async function calculate(runtime: RuntimeContext, structure: Structure, params: ANVILProps): Promise<Membrane> {
+        const { label_comp_id } = StructureProperties.residue;
+
+        const ctx = initialize(structure, params);
+        const initialHphobHphil = HphobHphil.filtered(ctx, label_comp_id);
+        const initialMembrane = findMembrane(ctx, generateSpherePoints(ctx, ctx.numberOfSpherePoints), initialHphobHphil, label_comp_id);
+        const refinedMembrane = findMembrane(ctx, findProximateAxes(ctx, initialMembrane), initialHphobHphil, label_comp_id);
+
+        const membrane = initialMembrane.qmax! > refinedMembrane.qmax! ? initialMembrane : refinedMembrane;
+        return createMembraneLayers(ctx, membrane);
+    }
+
+    function createMembraneLayers(ctx: ANVILContext, membrane: MembraneCandidate): Vec3[] {
+        const { extent, membranePointDensity } = ctx;
         const out: Vec3[] = [];
         const radius = extent * extent;
         const normalVector = membrane.normalVector!;
 
-        createMembraneLayer(out, membrane.planePoint1, normalVector, params.membranePointDensity, radius);
-        createMembraneLayer(out, membrane.planePoint2, normalVector, params.membranePointDensity, radius);
+        createMembraneLayer(out, membrane.planePoint1, normalVector, membranePointDensity, radius);
+        createMembraneLayer(out, membrane.planePoint2, normalVector, membranePointDensity, radius);
         
-        console.timeEnd('create membrane layers');
         return out;
     }
 
@@ -139,13 +153,14 @@ namespace Topology {
             for (let j = -1000, jl = 1000; j < jl; j += density) {
                 const rep = Vec3.create(i, j, -(d + i * normalVector[0] + j * normalVector[1]) / normalVector[2]);
                 if (Vec3.squaredDistance(rep, point) < radius) {
+                    // TODO it has a nice effect to ensure that membrane points don't overlap with structure representation
                     out.push(rep);
                 }
             }
         }
     }
 
-    interface Membrane {
+    interface MembraneCandidate {
         planePoint1: Vec3,
         planePoint2: Vec3,
         stats: HphobHphil,
@@ -156,8 +171,8 @@ namespace Topology {
         membraneAtoms?: Vec3[]
     }
 
-    namespace Membrane {
-        export function initial(c1: Vec3, c2: Vec3, stats: HphobHphil): Membrane {
+    namespace MembraneCandidate {
+        export function initial(c1: Vec3, c2: Vec3, stats: HphobHphil): MembraneCandidate {
             return {
                 planePoint1: c1,
                 planePoint2: c2,
@@ -165,7 +180,7 @@ namespace Topology {
             }
         }
 
-        export function scored(spherePoint: Vec3, c1: Vec3, c2: Vec3, stats: HphobHphil, qmax: number, centroid: Vec3): Membrane {
+        export function scored(spherePoint: Vec3, c1: Vec3, c2: Vec3, stats: HphobHphil, qmax: number, centroid: Vec3): MembraneCandidate {
             const diam_vect = Vec3();
             Vec3.sub(diam_vect, centroid, spherePoint);
             return {
@@ -181,13 +196,13 @@ namespace Topology {
         }
     }
 
-    function findMembrane(spherePoints: Vec3[], centroid: Vec3, params: ANVILProps, initialStats: HphobHphil, offsets: ArrayLike<number>, exposed: ArrayLike<boolean>, structure: Structure, label_comp_id: StructureElement.Property<string>): Membrane {
+    function findMembrane(ctx: ANVILContext, spherePoints: Vec3[], initialStats: HphobHphil, label_comp_id: StructureElement.Property<string>): MembraneCandidate {
+        const { centroid, stepSize, minThickness, maxThickness } = ctx;
         // best performing membrane
-        let membrane: Membrane;
+        let membrane: MembraneCandidate;
         // score of the best performing membrane
         let qmax = 0;
 
-        console.time('membrane placement iteration');
         // construct slices of thickness 1.0 along the axis connecting the centroid and the spherePoint
         for (let i = 0, il = spherePoints.length; i < il; i++) {
             const spherePoint = spherePoints[i];
@@ -197,20 +212,20 @@ namespace Topology {
             const diamNorm = Vec3.magnitude(diam);
             const qvartemp = [];
 
-            for (let i = 0, il = diamNorm - params.stepSize; i < il; i += params.stepSize) {
+            for (let i = 0, il = diamNorm - stepSize; i < il; i += stepSize) {
                 const c1 = Vec3();
                 const c2 = Vec3();
                 Vec3.scaleAndAdd(c1, spherePoint, diam, i / diamNorm);
-                Vec3.scaleAndAdd(c2, spherePoint, diam, (i + params.stepSize) / diamNorm);
+                Vec3.scaleAndAdd(c2, spherePoint, diam, (i + stepSize) / diamNorm);
 
                 // evaluate how well this membrane slice embeddeds the peculiar residues
-                const stats = HphobHphil.filtered(offsets, exposed, structure, label_comp_id, (testPoint: Vec3) => isInMembranePlane(testPoint, diam, c1, c2));
-                qvartemp.push(Membrane.initial(c1, c2, stats));
+                const stats = HphobHphil.filtered(ctx, label_comp_id, (testPoint: Vec3) => isInMembranePlane(testPoint, diam, c1, c2));
+                qvartemp.push(MembraneCandidate.initial(c1, c2, stats));
             }
 
-            let jmax = (params.minThickness / params.stepSize) - 1;
+            let jmax = (minThickness / stepSize) - 1;
 
-            for (let width = 0, widthl = params.maxThickness; width < widthl;) {
+            for (let width = 0, widthl = maxThickness; width < widthl;) {
                 const imax = qvartemp.length - 1 - jmax;
 
                 for (let i = 0, il = imax; i < il; i++) {
@@ -238,17 +253,14 @@ namespace Topology {
                         const qvaltest = qValue(stats, initialStats);
                         if (qvaltest > qmax) {
                             qmax = qvaltest;
-                            membrane = Membrane.scored(spherePoint, c1, c2, HphobHphil.of(hphob, hphil, total), qmax, centroid);
+                            membrane = MembraneCandidate.scored(spherePoint, c1, c2, HphobHphil.of(hphob, hphil, total), qmax, centroid);
                         }
                     }
                 }
                 jmax++;
-                width = (jmax + 1) * params.stepSize
+                width = (jmax + 1) * stepSize
             }
         }
-
-        console.timeEnd('membrane placement iteration');
-        console.log(`new qvalue: ${ membrane!.qmax }`);
 
         return membrane!;
     }
@@ -262,11 +274,9 @@ namespace Topology {
             initialStats.hphil += 1;
         }
 
-        const tot = initialStats.hphob + initialStats.hphil;
         const part_tot = currentStats.hphob + currentStats.hphil;
-
         return (currentStats.hphob * (initialStats.hphil - currentStats.hphil) - currentStats.hphil * (initialStats.hphob - currentStats.hphob)) /
-                Math.sqrt(part_tot * initialStats.hphob * initialStats.hphil * (tot - part_tot));
+                Math.sqrt(part_tot * initialStats.hphob * initialStats.hphil * (initialStats.hphob + initialStats.hphil - part_tot));
     }
 
     function isInMembranePlane(testPoint: Vec3, normalVector: Vec3, planePoint1: Vec3, planePoint2: Vec3): boolean {
@@ -277,9 +287,9 @@ namespace Topology {
     }
 
     // generates a defined number of points on a sphere with radius = extent around the specified centroid
-    function generateSpherePoints(numberOfSpherePoints: number, centroid: Vec3, extent: number): Vec3[] {
-        const points = new Array<Vec3>(numberOfSpherePoints);
-
+    function generateSpherePoints(ctx: ANVILContext, numberOfSpherePoints: number): Vec3[] {
+        const { centroid, extent } = ctx;
+        const points = [];
         let oldPhi = 0, h, theta, phi;
         for(let k = 1, kl = numberOfSpherePoints + 1; k < kl; k++) {
             h = -1 + 2 * (k - 1) / (numberOfSpherePoints - 1);
@@ -299,9 +309,9 @@ namespace Topology {
     }
 
     // generates sphere points close to that of the initial membrane
-    function findProximateAxes(membrane: Membrane, numberOfSpherePoints: number, centroid: Vec3, extent: number): Vec3[] {
-        console.time('find proximate axes');
-        const points = generateSpherePoints(30000, centroid, extent);
+    function findProximateAxes(ctx: ANVILContext, membrane: MembraneCandidate): Vec3[] {
+        const { numberOfSpherePoints, extent } = ctx;
+        const points = generateSpherePoints(ctx, 30000);
         let j = 4;
         let sphere_pts2: Vec3[] = [];
         while (sphere_pts2.length < numberOfSpherePoints) {
@@ -315,7 +325,6 @@ namespace Topology {
             }
             j += 0.2;
         }
-        console.timeEnd('find proximate axes');
         return sphere_pts2;
     }
 
@@ -335,7 +344,8 @@ namespace Topology {
         }
 
         const testPoint = Vec3();
-        export function filtered(offsets: ArrayLike<number>, exposed: ArrayLike<boolean>, structure: Structure, label_comp_id: StructureElement.Property<string>, filter?: (test: Vec3) => boolean): HphobHphil {
+        export function filtered(ctx: ANVILContext, label_comp_id: StructureElement.Property<string>, filter?: (test: Vec3) => boolean): HphobHphil {
+            const { offsets, exposed, structure } = ctx;
             const { x, y, z } = StructureProperties.atom;
             let hphob = 0;
             let hphil = 0;

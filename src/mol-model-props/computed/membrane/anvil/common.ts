@@ -5,7 +5,6 @@
  */
 
 import { Structure } from '../../../../mol-model/structure';
-import { Topology } from '../ANVIL';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 
 export interface ANVILContext {
@@ -16,8 +15,9 @@ export interface ANVILContext {
     maxThickness: number,
     afilter: number,
     membranePointDensity: number,
-    centerOfMass: Vec3,
-    maxExtent: number,
-    serialResidueIndex: Int32Array,
-    exposure: ArrayLike<Topology>
-}
+
+    offsets: ArrayLike<number>,
+    exposed: ArrayLike<boolean>,
+    centroid: Vec3,
+    extent: number
+};

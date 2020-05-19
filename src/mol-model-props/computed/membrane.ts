@@ -10,30 +10,28 @@ import { Structure } from '../../mol-model/structure';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
-import { ANVILParams, Topology } from './topology/ANVIL';
+import { ANVILParams, Membrane } from './membrane/ANVIL';
 
-export const TopologyParams = {
+export const MembraneParams = {
     ...ANVILParams
 };
-export type TopologyParams = typeof TopologyParams
-export type TopologyProps = PD.Values<TopologyParams>
+export type MembraneParams = typeof MembraneParams
+export type MembraneProps = PD.Values<MembraneParams>
 
-export type TopologyValue = Map<number, Topology>
-
-export const TopologyProvider: CustomStructureProperty.Provider<TopologyParams, Topology> = CustomStructureProperty.createProvider({
-    label: 'Predicted Membrane Topology',
+export const MembraneProvider: CustomStructureProperty.Provider<MembraneParams, Membrane> = CustomStructureProperty.createProvider({
+    label: 'Predicted Membrane',
     descriptor: CustomPropertyDescriptor({
-        name: 'molstar_topology',
+        name: 'molstar_membrane',
         // TODO `cifExport`
     }),
     type: 'root',
-    defaultParams: TopologyParams,
-    getParams: (data: Structure) => TopologyParams,
+    defaultParams: MembraneParams,
+    getParams: (data: Structure) => MembraneParams,
     isApplicable: (data: Structure) => true, 
     // TODO needs ASA to be computed (or 'resolved' before trying computing topology) - how to achieve?
     // TODO potentially, this could behave like secondary structure info where data can be either parsed or computed
-    obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<TopologyProps>) => {
-        const p = { ...PD.getDefaultValues(TopologyParams), ...props };
-        return { value: await Topology.compute(data, p).runInContext(ctx.runtime) };
+    obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<MembraneProps>) => {
+        const p = { ...PD.getDefaultValues(MembraneParams), ...props };
+        return { value: await Membrane.compute(data, p).runInContext(ctx.runtime) };
     }
 });
