@@ -56,11 +56,11 @@
 
 .msp-control-label-short {
     > span {
-        width: $control-label-short-width + $control-spacing;
+        width: $control-label-short-width + $control-spacing !important;
     }
 
     > div:nth-child(2) {
-        left: $control-label-short-width + $control-spacing;
+        left: $control-label-short-width + $control-spacing !important;
     }
 }
 

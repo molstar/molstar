@@ -78,7 +78,7 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
                 control={<Button onClick={this.toggleExpanded} inline className='msp-combined-color-button' style={{ background: Color.toStyle(this.props.value) }} />} />
             {this.state.isExpanded && <div className='msp-control-offset'>
                 {this.swatch()}
-                <ControlRow label='RGB' control={<div style={{ display: 'flex', textAlignLast: 'center' }}>
+                <ControlRow label='RGB' className='msp-control-label-short' control={<div style={{ display: 'flex', textAlignLast: 'center', left: '80px' }}>
                     <TextInput onChange={this.onR} numeric value={r} delayMs={250} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
                     <TextInput onChange={this.onG} numeric value={g} delayMs={250} style={{ order: 2, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
                     <TextInput onChange={this.onB} numeric value={b} delayMs={250} style={{ order: 3, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
