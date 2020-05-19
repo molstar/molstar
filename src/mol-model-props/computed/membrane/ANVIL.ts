@@ -60,7 +60,7 @@ namespace Membrane {
         // ensure ASA
         const accessibleSurfaceArea = structure && AccessibleSurfaceAreaProvider.get(structure);
         const asa = accessibleSurfaceArea.value!;
-        
+
         let m = 0;
         for (let i = 0, il = structure.units.length; i < il; ++i) {
             const unit = structure.units[i];
@@ -120,7 +120,7 @@ namespace Membrane {
             exposed: exposed,
             centroid: centroid,
             extent: extent
-        }
+        };
     }
 
     export async function calculate(runtime: RuntimeContext, structure: Structure, params: ANVILProps): Promise<Membrane> {
@@ -143,7 +143,7 @@ namespace Membrane {
 
         createMembraneLayer(out, membrane.planePoint1, normalVector, membranePointDensity, radius);
         createMembraneLayer(out, membrane.planePoint2, normalVector, membranePointDensity, radius);
-        
+
         return out;
     }
 
@@ -177,7 +177,7 @@ namespace Membrane {
                 planePoint1: c1,
                 planePoint2: c2,
                 stats: stats
-            }
+            };
         }
 
         export function scored(spherePoint: Vec3, c1: Vec3, c2: Vec3, stats: HphobHphil, qmax: number, centroid: Vec3): MembraneCandidate {
@@ -192,7 +192,7 @@ namespace Membrane {
                 centroid: centroid,
                 qmax: qmax,
                 membraneAtoms: []
-            }
+            };
         }
     }
 
@@ -237,7 +237,7 @@ namespace Membrane {
                     let total = 0;
                     for (let j = 0; j < jmax; j++) {
                         const ij = qvartemp[i + j];
-                        if (j == 0 || j === jmax - 1) {
+                        if (j === 0 || j === jmax - 1) {
                             hphob += 0.5 * ij.stats.hphob;
                             hphil += 0.5 * ij.stats.hphil;
                         } else {
@@ -258,7 +258,7 @@ namespace Membrane {
                     }
                 }
                 jmax++;
-                width = (jmax + 1) * stepSize
+                width = (jmax + 1) * stepSize;
             }
         }
 
@@ -294,7 +294,7 @@ namespace Membrane {
         for(let k = 1, kl = numberOfSpherePoints + 1; k < kl; k++) {
             h = -1 + 2 * (k - 1) / (numberOfSpherePoints - 1);
             theta = Math.acos(h);
-            phi = (k == 1 || k == numberOfSpherePoints) ? 0 : (oldPhi + 3.6 / Math.sqrt(numberOfSpherePoints * (1 - h * h))) % (2 * Math.PI);
+            phi = (k === 1 || k === numberOfSpherePoints) ? 0 : (oldPhi + 3.6 / Math.sqrt(numberOfSpherePoints * (1 - h * h))) % (2 * Math.PI);
 
             const point = Vec3.create(
                 extent * Math.sin(phi) * Math.sin(theta) + centroid[0],
@@ -329,7 +329,7 @@ namespace Membrane {
     }
 
     interface HphobHphil {
-        hphob: number, 
+        hphob: number,
         hphil: number,
         total: number
     }
@@ -339,8 +339,8 @@ namespace Membrane {
             return {
                 hphob: hphob,
                 hphil: hphil,
-                total: !!total ? total : hphob + hphil 
-            }
+                total: !!total ? total : hphob + hphil
+            };
         }
 
         const testPoint = Vec3();
@@ -354,7 +354,7 @@ namespace Membrane {
                 if (!exposed[k]) {
                     continue;
                 }
-    
+
                 setLocation(l, structure, offsets[k]);
                 Vec3.set(testPoint, x(l), y(l), z(l));
 
@@ -371,7 +371,7 @@ namespace Membrane {
             }
             return of(hphob, hphil);
         }
-    
+
         // ANVIL-specific (not general) definition of membrane-favoring amino acids
         const HYDROPHOBIC_AMINO_ACIDS = ['ALA', 'CYS', 'GLY', 'HIS', 'ILE', 'LEU', 'MET', 'PHE', 'SER', 'THR', 'VAL'];
         function isHydrophobic(label_comp_id: string): boolean {
