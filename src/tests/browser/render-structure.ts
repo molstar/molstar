@@ -148,6 +148,7 @@ async function init() {
         ballAndStick: false,
         molecularSurface: false,
         gaussianSurface: false,
+        membrane: true
     };
 
     const cartoonRepr = getCartoonRepr();
@@ -155,6 +156,7 @@ async function init() {
     const ballAndStickRepr = getBallAndStickRepr();
     const molecularSurfaceRepr = getMolecularSurfaceRepr();
     const gaussianSurfaceRepr = getGaussianSurfaceRepr();
+    const membraneRepr = getMembraneRepr();
 
     if (show.cartoon) {
         cartoonRepr.setTheme({
@@ -201,11 +203,22 @@ async function init() {
         console.timeEnd('gaussian surface');
     }
 
+    if (show.membrane) {
+        // membraneRepr.setTheme({
+        //     color: reprCtx.colorThemeRegistry.create('uniform', { structure }),
+        //     size: reprCtx.sizeThemeRegistry.create('physical', { structure })
+        // });
+        // console.time('membrane layer');
+        // await membraneRepr.createOrUpdate({ ...MembraneRepresentationProvider.defaultValues, quality: 'custom', alpha: 1.0, flatShaded: true, doubleSided: true, resolution: 0.3 }, structure).run();
+        // console.timeEnd('membrane layer');
+    }
+
     if (show.cartoon) canvas3d.add(cartoonRepr);
     if (show.interaction) canvas3d.add(interactionRepr);
     if (show.ballAndStick) canvas3d.add(ballAndStickRepr);
     if (show.molecularSurface) canvas3d.add(molecularSurfaceRepr);
     if (show.gaussianSurface) canvas3d.add(gaussianSurfaceRepr);
+    if (show.membrane) canvas3d.add(membraneRepr);
     canvas3d.requestCameraReset();
     // canvas3d.setProps({ trackball: { ...canvas3d.props.trackball, spin: true } })
 }

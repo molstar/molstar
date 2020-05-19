@@ -6,12 +6,9 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Structure, Unit } from '../../mol-model/structure';
+import { Structure } from '../../mol-model/structure';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
-import { QuerySymbolRuntime } from '../../mol-script/runtime/query/compiler';
-import { CustomPropSymbol } from '../../mol-script/language/symbol';
-import Type from '../../mol-script/language/type';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { ANVILParams, Topology } from './topology/ANVIL';
 
@@ -20,22 +17,6 @@ export const TopologyParams = {
 };
 export type TopologyParams = typeof TopologyParams
 export type TopologyProps = PD.Values<TopologyParams>
-
-export const TopologySymbols = {
-    // TODO is this delegation needed?
-    isMembrane: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'topology.is-membrane', Type.Bool),
-        ctx => {
-            if (!Unit.isAtomic(ctx.element.unit)) return false;
-            return !TopologyProvider.get(ctx.element.structure).value;
-        }
-    ),
-    isNotMembrane: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'topology.is-not-membrane', Type.Bool),
-        ctx => {
-            if (!Unit.isAtomic(ctx.element.unit)) return false;
-            return TopologyProvider.get(ctx.element.structure).value;
-        }
-    ),
-};
 
 export type TopologyValue = Map<number, Topology>
 
@@ -50,7 +31,7 @@ export const TopologyProvider: CustomStructureProperty.Provider<TopologyParams, 
     getParams: (data: Structure) => TopologyParams,
     isApplicable: (data: Structure) => true, 
     // TODO needs ASA to be computed (or 'resolved' before trying computing topology) - how to achieve?
-    // TODO potentially, this should behave like secondary structure info where data can be either parsed or computed
+    // TODO potentially, this could behave like secondary structure info where data can be either parsed or computed
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<TopologyProps>) => {
         const p = { ...PD.getDefaultValues(TopologyParams), ...props };
         return { value: await Topology.compute(data, p).runInContext(ctx.runtime) };
