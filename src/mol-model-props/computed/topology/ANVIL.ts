@@ -50,6 +50,7 @@ namespace Topology {
     const l = StructureElement.Location.create(void 0);
     const centroidHelper = new CentroidHelper();
     const vec = Vec3();
+    const points: Vec3[] = [];
     export async function calculate(runtime: RuntimeContext, structure: Structure, params: ANVILProps): Promise<Topology> {
         const { label_atom_id, x, y, z } = StructureProperties.atom;
         const { label_comp_id } = StructureProperties.residue;
@@ -109,6 +110,8 @@ namespace Topology {
             centroidHelper.radiusStep(vec);
         }
         const extent = 1.2 * Math.sqrt(centroidHelper.radiusSq);
+        points.push(centroid);
+        console.log('centroid: ' + centroid);
 
         const initialHphobHphil = HphobHphil.filtered(offsets, exposed, structure, label_comp_id, () => true);
         const initialMembrane = findMembrane(generateSpherePoints(params.numberOfSpherePoints, centroid, extent), centroid, params, initialHphobHphil, offsets, exposed, structure, label_comp_id);
@@ -116,6 +119,7 @@ namespace Topology {
 
         const membrane = initialMembrane.qmax! > alternativeMembrane.qmax! ? initialMembrane : alternativeMembrane;
 
+        points.push(centroid);
         return {
             membrane: createMembraneLayers(membrane, extent, params)
         };
@@ -190,25 +194,22 @@ namespace Topology {
         let qmax = 0;
 
         // construct slices of thickness 1.0 along the axis connecting the centroid and the spherePoint
-        const diam = Vec3();
-        const normedDiam = Vec3();
         for (let i = 0, il = spherePoints.length; i < il; i++) {
             const spherePoint = spherePoints[i];
+            const diam = Vec3();
             Vec3.sub(diam, centroid, spherePoint);
             Vec3.scale(diam, diam, 2);
             const diamNorm = Vec3.magnitude(diam);
-            Vec3.scale(normedDiam, diam, 1 / diamNorm);
             const qvartemp = [];
 
             const c1 = Vec3();
             const c2 = Vec3();
             for (let i = 0, il = diamNorm - params.stepSize; i < il; i += params.stepSize) {
-                const norm = Vec3.magnitude(diam);
-                Vec3.scaleAndAdd(c1, spherePoint, diam, i / norm);
-                Vec3.scaleAndAdd(c2, spherePoint, diam, (i + params.stepSize) / norm);
+                Vec3.scaleAndAdd(c1, spherePoint, diam, i / diamNorm);
+                Vec3.scaleAndAdd(c2, spherePoint, diam, (i + params.stepSize) / diamNorm);
 
                 // evaluate how well this membrane slice embeddeds the peculiar residues
-                const stats = HphobHphil.filtered(offsets, exposed, structure, label_comp_id, (testPoint: Vec3) => isInMembranePlane(testPoint, normedDiam, c1, c2));
+                const stats = HphobHphil.filtered(offsets, exposed, structure, label_comp_id, (testPoint: Vec3) => isInMembranePlane(testPoint, diam, c1, c2));
                 qvartemp.push(Membrane.initial(c1, c2, stats));
             }
 
@@ -239,7 +240,6 @@ namespace Topology {
                     if (hphob > 0) {
                         const qvaltest = qValue(stats, initialStats);
                         if (qvaltest > qmax) {
-                            console.log(qmax + ' > ' + qvaltest);
                             qmax = qvaltest;
                             membrane = Membrane.scored(c1, c2, HphobHphil.of(hphob, hphil), spherePoint, qmax);
                         }
