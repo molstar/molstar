@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,20 +11,19 @@ import { Script } from '../mol-script/script';
 
 export { Overpaint };
 
-type Overpaint = { readonly layers: ReadonlyArray<Overpaint.Layer>, readonly alpha: number }
+type Overpaint = { readonly layers: ReadonlyArray<Overpaint.Layer> }
 
-function Overpaint(layers: ReadonlyArray<Overpaint.Layer>, alpha: number): Overpaint {
-    return { layers, alpha };
+function Overpaint(layers: ReadonlyArray<Overpaint.Layer>): Overpaint {
+    return { layers };
 }
 
 namespace Overpaint {
     export type Layer = { readonly loci: StructureElement.Loci, readonly color: Color, readonly clear: boolean }
-    export const Empty: Overpaint = { layers: [], alpha: 1 };
+    export const Empty: Overpaint = { layers: [] };
 
     export function areEqual(oA: Overpaint, oB: Overpaint) {
         if (oA.layers.length === 0 && oB.layers.length === 0) return true;
         if (oA.layers.length !== oB.layers.length) return false;
-        if (oA.alpha !== oB.alpha) return false;
         for (let i = 0, il = oA.layers.length; i < il; ++i) {
             if (oA.layers[i].clear !== oB.layers[i].clear) return false;
             if (oA.layers[i].color !== oB.layers[i].color) return false;
@@ -46,7 +45,7 @@ namespace Overpaint {
                 layers.push({ loci, color, clear });
             }
         }
-        return { layers, alpha: overpaint.alpha };
+        return { layers };
     }
 
     export function merge(overpaint: Overpaint): Overpaint {
@@ -72,7 +71,7 @@ namespace Overpaint {
             const color = colorOrClear === -1 ? Color(0) : colorOrClear;
             layers.push({ loci, color, clear });
         });
-        return { layers, alpha: overpaint.alpha };
+        return { layers };
     }
 
     export function filter(overpaint: Overpaint, filter: Structure): Overpaint {
@@ -89,11 +88,11 @@ namespace Overpaint {
                 layers.push({ loci, color, clear });
             }
         }
-        return { layers, alpha: overpaint.alpha };
+        return { layers };
     }
 
     export type ScriptLayer = { script: Script, color: Color, clear: boolean }
-    export function ofScript(scriptLayers: ScriptLayer[], alpha: number, structure: Structure): Overpaint {
+    export function ofScript(scriptLayers: ScriptLayer[], structure: Structure): Overpaint {
         const layers: Overpaint.Layer[] = [];
         for (let i = 0, il = scriptLayers.length; i < il; ++i) {
             const { script, color, clear } = scriptLayers[i];
@@ -102,27 +101,27 @@ namespace Overpaint {
                 layers.push({ loci, color, clear });
             }
         }
-        return { layers, alpha };
+        return { layers };
     }
 
     export type BundleLayer = { bundle: StructureElement.Bundle, color: Color, clear: boolean }
-    export function ofBundle(bundleLayers: BundleLayer[], alpha: number, structure: Structure): Overpaint {
+    export function ofBundle(bundleLayers: BundleLayer[], structure: Structure): Overpaint {
         const layers: Overpaint.Layer[] = [];
         for (let i = 0, il = bundleLayers.length; i < il; ++i) {
             const { bundle, color, clear } = bundleLayers[i];
             const loci = StructureElement.Bundle.toLoci(bundle, structure.root);
             layers.push({ loci, color, clear });
         }
-        return { layers, alpha };
+        return { layers };
     }
 
-    export function toBundle(overpaint: Overpaint, alpha: number) {
+    export function toBundle(overpaint: Overpaint) {
         const layers: BundleLayer[] = [];
         for (let i = 0, il = overpaint.layers.length; i < il; ++i) {
             let { loci, color, clear } = overpaint.layers[i];
             const bundle = StructureElement.Bundle.fromLoci(loci);
             layers.push({ bundle, color, clear });
         }
-        return { layers, alpha };
+        return { layers };
     }
 }

@@ -178,7 +178,7 @@ class State {
     private inTransactionError = false;
 
     /** Apply series of updates to the state. If any of them fail, revert to the original state. */
-    transaction(edits: () => Promise<void> | void, options?: { canUndo?: string | boolean }) {
+    transaction(edits: (ctx: RuntimeContext) => Promise<void> | void, options?: { canUndo?: string | boolean }) {
         return Task.create('State Transaction', async ctx => {
             const isNested = this.inTransaction;
 
@@ -191,7 +191,7 @@ class State {
 
                 this.inTransaction = true;
                 this.inTransactionError = false;
-                await edits();
+                await edits(ctx);
 
                 if (this.inTransactionError) {
                     restored = true;

@@ -128,7 +128,7 @@ describe('renderer', () => {
         scene.add(points);
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(4);
-        expect(ctx.stats.resourceCounts.texture).toBe(5);
+        expect(ctx.stats.resourceCounts.texture).toBe(6);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(5);
         expect(ctx.stats.resourceCounts.program).toBe(5);
         expect(ctx.stats.resourceCounts.shader).toBe(10);

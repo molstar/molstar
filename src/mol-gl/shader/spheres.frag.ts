@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,6 +12,7 @@ precision highp int;
 #include common_frag_params
 #include color_frag_params
 #include light_frag_params
+#include common_clip
 
 uniform mat4 uProjection;
 
@@ -73,6 +74,8 @@ bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
 }
 
 void main(void){
+    #include clip_pixel
+
     bool flag = Impostor(cameraPos, cameraNormal);
     #ifndef dDoubleSided
         if (interior)

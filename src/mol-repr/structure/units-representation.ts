@@ -224,7 +224,9 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
             }
         }
         if (transparency !== undefined && !Transparency.areEqual(transparency, _state.transparency)) {
-            newState.transparency = transparency;
+            if (_structure) {
+                newState.transparency = Transparency.remap(transparency, _structure);
+            }
         }
         if (clipping !== undefined && !Clipping.areEqual(clipping, _state.clipping)) {
             if (_structure) {

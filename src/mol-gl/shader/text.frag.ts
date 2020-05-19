@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,6 +11,7 @@ precision highp int;
 #include common
 #include common_frag_params
 #include color_frag_params
+#include common_clip
 
 uniform sampler2D tFont;
 
@@ -29,6 +30,7 @@ void main2(){
 }
 
 void main(){
+    #include clip_pixel
     #include assign_material_color
 
     if (vTexCoord.x > 1.0) {

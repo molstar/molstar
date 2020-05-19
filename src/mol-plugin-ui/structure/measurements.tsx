@@ -17,7 +17,7 @@ import { FiniteArray } from '../../mol-util/type-helpers';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ExpandGroup, IconButton, ToggleButton } from '../controls/common';
-import { Icon, RulerSvg, SetSvg, ArrowUpwardSvg, ArrowDownwardSvg, DeleteOutlinedSvg, HelpOutlineSvg, AddSvg, TuneSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, MoreHorizSvg } from '../controls/icons';
+import { Icon, PencilRulerSvg, SetSvg, ArrowUpwardSvg, ArrowDownwardSvg, DeleteOutlinedSvg, HelpOutlineSvg, AddSvg, TuneSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, MoreHorizSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 import { ToggleSelectionModeButton } from './selection';
@@ -29,7 +29,7 @@ export class StructureMeasurementsControls extends CollapsableControls {
         return {
             isCollapsed: false,
             header: 'Measurements',
-            brand: { accent: 'gray' as const, svg: RulerSvg }
+            brand: { accent: 'gray' as const, svg: PencilRulerSvg }
         };
     }
 

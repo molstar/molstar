@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,6 +13,7 @@ precision highp int;
 #include common_vert_params
 #include color_vert_params
 #include size_vert_params
+#include common_clip
 
 uniform float uPixelRatio;
 uniform float uViewportHeight;
@@ -26,6 +27,7 @@ void main(){
     #include assign_group
     #include assign_color_varying
     #include assign_marker_varying
+    #include assign_clipping_varying
     #include assign_position
     #include assign_size
 
@@ -36,5 +38,7 @@ void main(){
     #endif
 
     gl_Position = uProjection * mvPosition;
+
+    #include clip_instance
 }
 `;

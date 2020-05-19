@@ -93,7 +93,7 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
     }
 
     addFromLoci(anyLoci: Loci) {
-        const union = this.state.current && StructureElement.Loci.is(anyLoci)
+        const union = this.state.current && StructureElement.Loci.is(anyLoci) && anyLoci.structure === this.state.current.loci.structure
             ? StructureElement.Loci.union(anyLoci, this.state.current.loci)
             : anyLoci;
         this.setFromLoci(union);
@@ -124,7 +124,10 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
     }
 
     setSnapshot(snapshot: StructureFocusSnapshot) {
-        if (!snapshot.current) return;
+        if (!snapshot.current) {
+            this.clear();
+            return;
+        }
 
         const { label, ref, bundle, category } = snapshot.current;
         const structure = this.plugin.state.data.select(StateSelection.Generators.byRef(ref))[0]?.obj?.data as Structure;

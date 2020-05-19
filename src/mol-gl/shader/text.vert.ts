@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,6 +13,7 @@ precision highp int;
 #include common_vert_params
 #include color_vert_params
 #include size_vert_params
+#include common_clip
 
 uniform mat4 uModelView;
 
@@ -40,6 +41,7 @@ void main(void){
     #include assign_group
     #include assign_color_varying
     #include assign_marker_varying
+    #include assign_clipping_varying
     #include assign_size
 
     vTexCoord = aTexCoord;
@@ -50,7 +52,10 @@ void main(void){
     float offsetY = uOffsetY * scale;
     float offsetZ = (uOffsetZ + aDepth * 0.95) * scale;
 
-    vec4 mvPosition = uModelView * aTransform * vec4(aPosition, 1.0);
+    vec4 position4 = vec4(aPosition, 1.0);
+    vec4 mvPosition = uModelView * aTransform * position4;
+
+    vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
 
     // TODO
     // #ifdef FIXED_SIZE
@@ -83,5 +88,7 @@ void main(void){
     gl_Position = uProjection * mvCorner;
 
     vViewPosition = -mvCorner.xyz;
+
+    #include clip_instance
 }
 `;

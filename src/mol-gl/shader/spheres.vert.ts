@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,6 +13,7 @@ precision highp int;
 #include common_vert_params
 #include color_vert_params
 #include size_vert_params
+#include common_clip
 
 uniform mat4 uModelView;
 uniform mat4 uInvProjection;
@@ -77,11 +78,13 @@ void main(void){
     #include assign_group
     #include assign_color_varying
     #include assign_marker_varying
+    #include assign_clipping_varying
     #include assign_size
 
     vRadius = size * matrixScale(uModelView);
 
-    vec4 mvPosition = uModelView * aTransform * vec4(aPosition, 1.0);
+    vec4 position4 = vec4(aPosition, 1.0);
+    vec4 mvPosition = uModelView * aTransform * position4;
     mvPosition.z -= vRadius; // avoid clipping, added again in fragment shader
 
     gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
@@ -91,5 +94,9 @@ void main(void){
     vec4 vPoint4 = uInvProjection * gl_Position;
     vPoint = vPoint4.xyz / vPoint4.w;
     vPointViewPosition = -mvPosition.xyz / mvPosition.w;
+
+    vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
+
+    #include clip_instance
 }
 `;

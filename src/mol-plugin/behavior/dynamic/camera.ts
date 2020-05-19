@@ -11,7 +11,6 @@ import { PluginBehavior } from '../behavior';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
 import { Binding } from '../../../mol-util/binding';
 import { PluginCommands } from '../../commands';
-import { Structure, StructureElement, Bond } from '../../../mol-model/structure';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
@@ -19,11 +18,13 @@ const Trigger = Binding.Trigger;
 
 const DefaultFocusLociBindings = {
     clickCenterFocus: Binding([
-        Trigger(B.Flag.Primary, M.create())
+        Trigger(B.Flag.Primary, M.create()),
+        Trigger(B.Flag.Secondary, M.create()),
+        Trigger(B.Flag.Primary, M.create({ control: true }))
     ], 'Camera center and focus', 'Click element using ${triggers}'),
     clickCenterFocusSelectMode: Binding([
-        Trigger(B.Flag.Auxilary, M.create()),
-        Trigger(B.Flag.Primary, M.create({ alt: true }))
+        Trigger(B.Flag.Secondary, M.create()),
+        Trigger(B.Flag.Primary, M.create({ control: true }))
     ], 'Camera center and focus', 'Click element using ${triggers}'),
 };
 const FocusLociParams = {
@@ -53,14 +54,8 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                         return;
                     }
 
-                    // The focus is handled in structure-focus-representation
-                    // TODO: is there a better solution for structure-based loci?
-
                     const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
-
-                    if (!Structure.isLoci(loci) && !StructureElement.Loci.is(loci) && !Bond.isLoci(loci)) {
-                        this.ctx.managers.camera.focusLoci(loci, this.params);
-                    }
+                    this.ctx.managers.camera.focusLoci(loci, this.params);
                 }
             });
         }

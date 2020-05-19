@@ -142,8 +142,6 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
         builder.to(refs[StructureFocusRepresentationTags.SurrSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: surroundings, label: this.surrLabel }));
 
         await PluginCommands.State.Update(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
-
-        this.plugin.managers.camera.focusLoci(loci);
     }
 
     register(ref: string): void {

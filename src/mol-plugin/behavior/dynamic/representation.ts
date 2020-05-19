@@ -15,7 +15,7 @@ import { StateSelection } from '../../../mol-state';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
 import { Binding } from '../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { EmptyLoci, Loci, isEmptyLoci } from '../../../mol-model/loci';
+import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Structure, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { arrayMax } from '../../../mol-util/array';
 import { Representation } from '../../../mol-repr/representation';
@@ -206,12 +206,10 @@ const DefaultFocusLociBindings = {
         Trigger(B.Flag.Primary, M.create({ shift: true })),
     ], 'Representation Focus Add', 'Click element using ${triggers}'),
     clickFocusSelectMode: Binding([
-        Trigger(B.Flag.Secondary, M.create()),
-        Trigger(B.Flag.Primary, M.create({ control: true }))
+        // default is empty
     ], 'Representation Focus', 'Click element using ${triggers}'),
     clickFocusAddSelectMode: Binding([
-        Trigger(B.Flag.Secondary, M.create({ shift: true })),
-        Trigger(B.Flag.Primary, M.create({ control: true, shift: true }))
+        // default is empty
     ], 'Representation Focus Add', 'Click element using ${triggers}'),
 };
 const FocusLociParams = {
@@ -227,28 +225,30 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 const { clickFocus, clickFocusAdd, clickFocusSelectMode, clickFocusAddSelectMode } = this.params.bindings;
 
+                // only apply structure focus for appropriate granularity
+                const { granularity } = this.ctx.managers.interactivity.props;
+                if (granularity !== 'residue' && granularity !== 'element') return;
+
                 const binding = this.ctx.selectionMode ? clickFocusSelectMode : clickFocus;
                 const matched = Binding.match(binding, button, modifiers);
-
                 const bindingAdd = this.ctx.selectionMode ? clickFocusAddSelectMode : clickFocusAdd;
                 const matchedAdd = Binding.match(bindingAdd, button, modifiers);
+                if (!matched && !matchedAdd) return;
 
-                if (matched || matchedAdd) {
-                    const loci = Loci.normalize(current.loci, 'residue');
-                    const entry = this.ctx.managers.structure.focus.current;
-                    if (entry && Loci.areEqual(entry.loci, loci)) {
-                        this.ctx.managers.structure.focus.clear();
+                const loci = Loci.normalize(current.loci, 'residue');
+                const entry = this.ctx.managers.structure.focus.current;
+                if (entry && Loci.areEqual(entry.loci, loci)) {
+                    this.ctx.managers.structure.focus.clear();
+                } else {
+                    if (matched) {
+                        this.ctx.managers.structure.focus.setFromLoci(loci);
                     } else {
-                        if (matched) {
-                            this.ctx.managers.structure.focus.setFromLoci(loci);
-                        } else {
-                            this.ctx.managers.structure.focus.addFromLoci(loci);
-                        }
-                        if (isEmptyLoci(loci)) {
-                            this.ctx.managers.camera.reset();
-                        }
+                        this.ctx.managers.structure.focus.addFromLoci(loci);
+
+                        // focus-add is not handled in camera behavior, doing it here
+                        const current = this.ctx.managers.structure.focus.current?.loci;
+                        if (current) this.ctx.managers.camera.focusLoci(current);
                     }
-                    return;
                 }
             });
         }

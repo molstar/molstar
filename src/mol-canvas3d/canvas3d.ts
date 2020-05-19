@@ -265,6 +265,7 @@ namespace Canvas3D {
         }
 
         let forceNextDraw = false;
+        let forceDrawAfterAllCommited = false;
         let currentTime = 0;
 
         function draw(force?: boolean) {
@@ -300,7 +301,13 @@ namespace Canvas3D {
         function commit(isSynchronous: boolean = false) {
             const allCommited = commitScene(isSynchronous);
             // Only reset the camera after the full scene has been commited.
-            if (allCommited) resolveCameraReset();
+            if (allCommited) {
+                resolveCameraReset();
+                if (forceDrawAfterAllCommited) {
+                    draw(true);
+                    forceDrawAfterAllCommited = false;
+                }
+            }
         }
 
         function resolveCameraReset() {
@@ -393,6 +400,7 @@ namespace Canvas3D {
             reprRenderObjects.set(repr, newRO);
 
             scene.update(repr.renderObjects, false);
+            forceDrawAfterAllCommited = true;
             if (isDebugMode) consoleStats();
         }
 
@@ -404,6 +412,7 @@ namespace Canvas3D {
                 renderObjects.forEach(o => scene.remove(o));
                 reprRenderObjects.delete(repr);
                 scene.update(repr.renderObjects, false, true);
+                forceDrawAfterAllCommited = true;
                 if (isDebugMode) consoleStats();
             }
         }
@@ -470,6 +479,7 @@ namespace Canvas3D {
                 } else {
                     scene.update(void 0, !!keepSphere);
                 }
+                forceDrawAfterAllCommited = true;
             },
             clear: () => {
                 reprUpdatedSubscriptions.forEach(v => v.unsubscribe());
@@ -489,6 +499,7 @@ namespace Canvas3D {
                 if (scene.syncVisibility()) {
                     if (debugHelper.isEnabled) debugHelper.update();
                 }
+                requestDraw(true);
             },
 
             // draw,

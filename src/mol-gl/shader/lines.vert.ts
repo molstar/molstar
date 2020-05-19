@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -15,6 +15,7 @@ precision highp int;
 #include common_vert_params
 #include color_vert_params
 #include size_vert_params
+#include common_clip
 
 uniform float uPixelRatio;
 uniform float uViewportHeight;
@@ -42,6 +43,7 @@ void main(){
     #include assign_group
     #include assign_color_varying
     #include assign_marker_varying
+    #include assign_clipping_varying
     #include assign_size
 
     mat4 modelView = uView * uModel * aTransform;
@@ -51,9 +53,11 @@ void main(){
     vec4 end = modelView * vec4(aEnd, 1.0);
 
     // assign position
-    vec3 position = (aMapping.y < 0.5) ? aStart : aEnd;
-    vec4 mvPosition = modelView * vec4(position, 1.0);
+    vec4 position4 = vec4((aMapping.y < 0.5) ? aStart : aEnd, 1.0);
+    vec4 mvPosition = modelView * position4;
     vViewPosition = mvPosition.xyz;
+
+    vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
 
     // special case for perspective projection, and segments that terminate either in, or behind, the camera plane
     // clearly the gpu firmware has a way of addressing this issue when projecting into ndc space
@@ -114,5 +118,7 @@ void main(){
     offset *= clip.w;
     clip.xy += offset;
     gl_Position = clip;
+
+    #include clip_instance
 }
 `;

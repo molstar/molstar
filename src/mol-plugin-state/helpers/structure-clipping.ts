@@ -14,17 +14,17 @@ import { StructureComponentRef } from '../manager/structure/hierarchy-state';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
 import { Clipping } from '../../mol-theme/clipping';
 
-type ClippingEachReprCallback = (update: StateBuilder.Root, repr: StateObjectCell<PluginStateObject.Molecule.Structure.Representation3D, StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>>, clipping?: StateObjectCell<any, StateTransform<typeof StateTransforms.Representation.ClippingStructureRepresentation3DFromBundle>>) => void
+type ClippingEachReprCallback = (update: StateBuilder.Root, repr: StateObjectCell<PluginStateObject.Molecule.Structure.Representation3D, StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>>, clipping?: StateObjectCell<any, StateTransform<typeof StateTransforms.Representation.ClippingStructureRepresentation3DFromBundle>>) => Promise<void>
 const ClippingManagerTag = 'clipping-controls';
 
-export async function setStructureClipping(plugin: PluginContext, components: StructureComponentRef[], groups: Clipping.Groups, lociGetter: (structure: Structure) => StructureElement.Loci | EmptyLoci, types?: string[]) {
-    await eachRepr(plugin, components, (update, repr, clippingCell) => {
+export async function setStructureClipping(plugin: PluginContext, components: StructureComponentRef[], groups: Clipping.Groups, lociGetter: (structure: Structure) => Promise<StructureElement.Loci | EmptyLoci>, types?: string[]) {
+    await eachRepr(plugin, components, async (update, repr, clippingCell) => {
         if (types && types.length > 0 && !types.includes(repr.params!.values.type.name)) return;
 
         const structure = repr.obj!.data.source.data;
         // always use the root structure to get the loci so the clipping
         // stays applicable as long as the root structure does not change
-        const loci = lociGetter(structure.root);
+        const loci = await lociGetter(structure.root);
         if (Loci.isEmpty(loci)) return;
 
         const layer = {
@@ -44,13 +44,13 @@ export async function setStructureClipping(plugin: PluginContext, components: St
     });
 }
 
-function eachRepr(plugin: PluginContext, components: StructureComponentRef[], callback: ClippingEachReprCallback) {
+async function eachRepr(plugin: PluginContext, components: StructureComponentRef[], callback: ClippingEachReprCallback) {
     const state = plugin.state.data;
     const update = state.build();
     for (const c of components) {
         for (const r of c.representations) {
             const clipping = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.ClippingStructureRepresentation3DFromBundle, r.cell.transform.ref).withTag(ClippingManagerTag));
-            callback(update, r.cell, clipping[0]);
+            await callback(update, r.cell, clipping[0]);
         }
     }
 

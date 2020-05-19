@@ -99,7 +99,7 @@ namespace Visual {
                 const end = Interval.end(interval);
                 return clear
                     ? clearOverpaint(array, start, end)
-                    : applyOverpaintColor(array, start, end, color, overpaint.alpha);
+                    : applyOverpaintColor(array, start, end, color);
             };
             lociApply(loci, apply, false);
         }
@@ -112,22 +112,22 @@ namespace Visual {
         const { tTransparency, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
 
-        const { loci, value, variant } = transparency;
-
         // ensure texture has right size and variant
-        createTransparency(value && !isEmptyLoci(loci) ? count : 0, variant, renderObject.values);
+        createTransparency(transparency.layers.length ? count : 0, renderObject.values);
         const { array } = tTransparency.ref.value;
 
         // clear if requested
         if (clear) clearTransparency(array, 0, count);
 
-        const apply = (interval: Interval) => {
-            const start = Interval.start(interval);
-            const end = Interval.end(interval);
-            return applyTransparencyValue(array, start, end, value);
-        };
-        lociApply(loci, apply, false);
-
+        for (let i = 0, il = transparency.layers.length; i < il; ++i) {
+            const { loci, value } = transparency.layers[i];
+            const apply = (interval: Interval) => {
+                const start = Interval.start(interval);
+                const end = Interval.end(interval);
+                return applyTransparencyValue(array, start, end, value);
+            };
+            lociApply(loci, apply, false);
+        }
         ValueCell.update(tTransparency, tTransparency.ref.value);
     }
 
