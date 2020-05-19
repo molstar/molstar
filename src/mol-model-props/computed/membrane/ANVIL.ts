@@ -143,20 +143,35 @@ namespace Membrane {
         const radius = extent * extent;
         const normalVector = membrane.normalVector!;
 
-        createMembraneLayer(out, membrane.planePoint1, normalVector, membranePointDensity, radius);
-        createMembraneLayer(out, membrane.planePoint2, normalVector, membranePointDensity, radius);
+        createMembraneLayer(ctx, out, membrane.planePoint1, normalVector, membranePointDensity, radius);
+        createMembraneLayer(ctx, out, membrane.planePoint2, normalVector, membranePointDensity, radius);
 
         return out;
     }
 
-    function createMembraneLayer(out: Vec3[], point: Vec3, normalVector: Vec3, density: number, radius: number) {
+    function createMembraneLayer(ctx: ANVILContext, out: Vec3[], point: Vec3, normalVector: Vec3, density: number, radius: number) {
+        const { x, y, z } = StructureProperties.atom;
+        const { offsets, structure } = ctx;
+        const test = Vec3();
+
         const d = -Vec3.dot(normalVector, point);
         for (let i = -1000, il = 1000; i < il; i += density) {
             for (let j = -1000, jl = 1000; j < jl; j += density) {
                 const rep = Vec3.create(i, j, -(d + i * normalVector[0] + j * normalVector[1]) / normalVector[2]);
                 if (Vec3.squaredDistance(rep, point) < radius) {
-                    // TODO it has a nice effect to ensure that membrane points don't overlap with structure representation
-                    out.push(rep);
+                    // it has a nice effect to ensure that membrane points don't overlap with structure representation
+                    let valid = true;
+                    for (let k = 0, kl = ctx.offsets.length; k < kl; k++) {
+                        setLocation(l, structure, offsets[k]);
+                        Vec3.set(test, x(l), y(l), z(l));
+                        const dsq = Vec3.squaredDistance(test, rep);
+                        if (dsq < 16) {
+                            valid = false;
+                        }
+                    }
+                    if (valid) {
+                        out.push(rep);
+                    }
                 }
             }
         }
