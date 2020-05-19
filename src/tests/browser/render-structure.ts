@@ -156,7 +156,7 @@ async function init() {
     const ballAndStickRepr = getBallAndStickRepr();
     const molecularSurfaceRepr = getMolecularSurfaceRepr();
     const gaussianSurfaceRepr = getGaussianSurfaceRepr();
-    const membraneRepr = getMembraneRepr();
+    // const membraneRepr = getMembraneRepr();
 
     if (show.cartoon) {
         cartoonRepr.setTheme({
@@ -218,7 +218,7 @@ async function init() {
     if (show.ballAndStick) canvas3d.add(ballAndStickRepr);
     if (show.molecularSurface) canvas3d.add(molecularSurfaceRepr);
     if (show.gaussianSurface) canvas3d.add(gaussianSurfaceRepr);
-    if (show.membrane) canvas3d.add(membraneRepr);
+    // if (show.membrane) canvas3d.add(membraneRepr);
     canvas3d.requestCameraReset();
     // canvas3d.setProps({ trackball: { ...canvas3d.props.trackball, spin: true } })
 }
