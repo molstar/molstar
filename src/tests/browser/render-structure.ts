@@ -32,6 +32,7 @@ import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Color } from '../../mol-util/color';
 import { createRenderObject } from '../../mol-gl/render-object';
 import { Membrane } from '../../mol-model-props/computed/membrane/ANVIL';
+import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -148,6 +149,10 @@ async function init() {
     console.time('compute SecondaryStructure');
     await SecondaryStructureProvider.attach(ctx, structure);
     console.timeEnd('compute SecondaryStructure');
+
+    console.time('compute AccessibleSurfaceArea');
+    await AccessibleSurfaceAreaProvider.attach(ctx, structure);
+    console.timeEnd('compute AccessibleSurfaceArea');
 
     console.time('compute Membrane');
     await MembraneProvider.attach(ctx, structure);
