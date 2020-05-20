@@ -10,7 +10,7 @@ import { Color } from '../../../mol-util/color';
 import { getPalette } from '../../../mol-util/color/palette';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ScaleLegend, TableLegend } from '../../../mol-util/legend';
-import { StructureElement, Bond } from '../../../mol-model/structure';
+import { StructureElement, Bond, Model } from '../../../mol-model/structure';
 import { Location } from '../../../mol-model/location';
 import { CellPackInfoProvider } from '../property';
 import { distinctColors } from '../../../mol-util/color/distinct';
@@ -40,7 +40,7 @@ export function CellPackGenerateColorTheme(ctx: ThemeDataContext, props: PD.Valu
         const { models } = ctx.structure.root;
 
         let size = 0;
-        for (const m of models) size = Math.max(size, m.trajectoryInfo.size);
+        for (const m of models) size = Math.max(size, Model.TrajectoryInfo.get(m).size);
 
         const palette = getPalette(size, { palette: {
             name: 'generate',
@@ -53,15 +53,15 @@ export function CellPackGenerateColorTheme(ctx: ThemeDataContext, props: PD.Valu
         legend = palette.legend;
         const modelColor = new Map<number, Color>();
         for (let i = 0, il = models.length; i < il; ++i) {
-            const idx = models[i].trajectoryInfo.index;
-            modelColor.set(models[i].trajectoryInfo.index, palette.color(idx));
+            const idx = Model.TrajectoryInfo.get(models[i]).index;
+            modelColor.set(Model.TrajectoryInfo.get(models[i]).index, palette.color(idx));
         }
 
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location)) {
-                return modelColor.get(location.unit.model.trajectoryInfo.index)!;
+                return modelColor.get(Model.TrajectoryInfo.get(location.unit.model).index)!;
             } else if (Bond.isLocation(location)) {
-                return modelColor.get(location.aUnit.model.trajectoryInfo.index)!;
+                return modelColor.get(Model.TrajectoryInfo.get(location.aUnit.model).index)!;
             }
             return DefaultColor;
         };
@@ -89,7 +89,7 @@ export const CellPackGenerateColorThemeProvider: ColorTheme.Provider<CellPackGen
     isApplicable: (ctx: ThemeDataContext) => {
         return (
             !!ctx.structure && ctx.structure.elementCount > 0 &&
-            ctx.structure.models[0].trajectoryInfo.size > 1 &&
+            Model.TrajectoryInfo.get(ctx.structure.models[0]).size > 1 &&
             !!CellPackInfoProvider.get(ctx.structure).value
         );
     }

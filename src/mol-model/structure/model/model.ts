@@ -48,14 +48,6 @@ export interface Model extends Readonly<{
      */
     modelNum: number,
 
-    /**
-     * This is a hack to allow "model-index coloring"
-     */
-    trajectoryInfo: {
-        index: number,
-        size: number
-    },
-
     sourceData: ModelFormat,
 
     entities: Entities,
@@ -127,8 +119,7 @@ export namespace Model {
             let index = 0;
             for (const m of trajectory) {
                 IndexPairBonds.Provider.set(m, indexPairBonds);
-                m.trajectoryInfo.index = index++;
-                m.trajectoryInfo.size = trajectory.length;
+                TrajectoryInfo.set(m, { index: index++, size: trajectory.length });
             }
             return trajectory;
         });
@@ -141,6 +132,17 @@ export namespace Model {
         model._dynamicPropertyData[CenterProp] = center;
         return center;
     }
+
+    const TrajectoryInfoProp = '__TrajectoryInfo__';
+    export type TrajectoryInfo = { readonly index: number, readonly size: number }
+    export const TrajectoryInfo = {
+        get(model: Model): TrajectoryInfo {
+            return model._staticPropertyData[TrajectoryInfoProp] || { index: 0, size: 1 };
+        },
+        set(model: Model, trajectoryInfo: TrajectoryInfo) {
+            return model._staticPropertyData[TrajectoryInfoProp] = trajectoryInfo;
+        }
+    };
 
     //
 
