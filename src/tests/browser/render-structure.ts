@@ -31,7 +31,8 @@ import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Color } from '../../mol-util/color';
 import { createRenderObject } from '../../mol-gl/render-object';
-import { MembraneOrientation } from '../../mol-model-props/computed/membrane-orientation/ANVIL';
+import { MembraneOrientation } from '../../mol-model/structure/model/properties/membrane-orientation';
+import { Vec3 } from '../../mol-math/linear-algebra';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -122,12 +123,12 @@ function getGaussianSurfaceRepr() {
     return GaussianSurfaceRepresentationProvider.factory(reprCtx, GaussianSurfaceRepresentationProvider.getParams);
 }
 
-function getMembraneRepr(membrane: MembraneOrientation) {
-    // TODO is a representation provider the right place for this?
-    const spheresBuilder = SpheresBuilder.create(membrane.length, 1);
-    for (let i = 0, il = membrane.length; i < il; i++) {
-        spheresBuilder.add(membrane[i][0], membrane[i][1], membrane[i][2], 0);
-    }
+function getMembraneRepr(structure: Structure, membrane: MembraneOrientation) {
+    const density = 1;
+    const radius = membrane.radius;
+    const spheresBuilder = SpheresBuilder.create();
+    createMembraneLayer(spheresBuilder, membrane.p1, membrane.normal, density, radius);
+    createMembraneLayer(spheresBuilder, membrane.p2, membrane.normal, density, radius);
     const spheres = spheresBuilder.getSpheres();
 
     const values = Spheres.Utils.createValuesSimple(spheres, {}, Color(0xCCCCCC), 1);
@@ -136,6 +137,19 @@ function getMembraneRepr(membrane: MembraneOrientation) {
     console.log(renderObject);
     const repr = Representation.fromRenderObject('spheres', renderObject);
     return repr;
+}
+
+function createMembraneLayer(spheresBuilder: SpheresBuilder, point: Vec3, normalVector: Vec3, density: number, radius: number) {
+    const d = -Vec3.dot(normalVector, point);
+    const rep = Vec3();
+    for (let i = -1000, il = 1000; i < il; i += density) {
+        for (let j = -1000, jl = 1000; j < jl; j += density) {
+            Vec3.set(rep, i, j, -(d + i * normalVector[0] + j * normalVector[1]) / normalVector[2]);
+            if (Vec3.squaredDistance(rep, point) < radius) {
+                spheresBuilder.add(rep[0], rep[1], rep[2], 0);
+            }
+        }
+    }
 }
 
 async function init() {
@@ -172,7 +186,7 @@ async function init() {
     const ballAndStickRepr = getBallAndStickRepr();
     const molecularSurfaceRepr = getMolecularSurfaceRepr();
     const gaussianSurfaceRepr = getGaussianSurfaceRepr();
-    const membraneRepr = getMembraneRepr(MembraneOrientationProvider.get(structure).value!);
+    const membraneRepr = getMembraneRepr(structure, MembraneOrientationProvider.get(structure).value!);
 
     if (show.cartoon) {
         cartoonRepr.setTheme({

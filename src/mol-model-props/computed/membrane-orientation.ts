@@ -10,8 +10,9 @@ import { Structure } from '../../mol-model/structure';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
-import { ANVILParams, MembraneOrientation, ANVILProps } from './membrane-orientation/ANVIL';
+import { ANVILParams, ANVILProps, computeANVIL } from './membrane-orientation/ANVIL';
 import { AccessibleSurfaceAreaProvider } from './accessible-surface-area';
+import { MembraneOrientation } from '../../mol-model/structure/model/properties/membrane-orientation';
 
 function getMembraneOrientationParams(data?: Structure) {
     let defaultType = 'anvil' as 'anvil' | 'opm'; // TODO flip - OPM should be default if PDB identifier is known
@@ -49,7 +50,7 @@ export const MembraneOrientationProvider: CustomStructureProperty.Provider<Membr
 async function computeAnvil(ctx: CustomProperty.Context, data: Structure, props: ANVILProps): Promise<MembraneOrientation> {
     await AccessibleSurfaceAreaProvider.attach(ctx, data);
     const p = { ...PD.getDefaultValues(MembraneOrientationParams), ...props };
-    return await MembraneOrientation.compute(data, p).runInContext(ctx.runtime);
+    return await computeANVIL(data, p).runInContext(ctx.runtime);
 }
 
 async function computeOpm(structure: Structure): Promise<MembraneOrientation> {
