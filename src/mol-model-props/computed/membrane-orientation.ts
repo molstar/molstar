@@ -10,10 +10,10 @@ import { Structure } from '../../mol-model/structure';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
-import { ANVILParams, Membrane, ANVILProps } from './membrane/ANVIL';
+import { ANVILParams, MembraneOrientation, ANVILProps } from './membrane-orientation/ANVIL';
 import { AccessibleSurfaceAreaProvider } from './accessible-surface-area';
 
-function getMembraneParams(data?: Structure) {
+function getMembraneOrientationParams(data?: Structure) {
     let defaultType = 'anvil' as 'anvil' | 'opm'; // TODO flip - OPM should be default if PDB identifier is known
     return {
         type: PD.MappedStatic(defaultType, {
@@ -23,22 +23,22 @@ function getMembraneParams(data?: Structure) {
     };
 }
 
-export const MembraneParams = getMembraneParams();
-export type MembraneParams = typeof MembraneParams
-export type MembraneProps = PD.Values<MembraneParams>
+export const MembraneOrientationParams = getMembraneOrientationParams();
+export type MembraneOrientationParams = typeof MembraneOrientationParams
+export type MembraneOrientationProps = PD.Values<MembraneOrientationParams>
 
-export const MembraneProvider: CustomStructureProperty.Provider<MembraneParams, Membrane> = CustomStructureProperty.createProvider({
-    label: 'Predicted Membrane',
+export const MembraneOrientationProvider: CustomStructureProperty.Provider<MembraneOrientationParams, MembraneOrientation> = CustomStructureProperty.createProvider({
+    label: 'Membrane Orientation',
     descriptor: CustomPropertyDescriptor({
-        name: 'molstar_membrane',
+        name: 'molstar_computed_membrane_orientation',
         // TODO `cifExport`
     }),
     type: 'root',
-    defaultParams: MembraneParams,
-    getParams: (data: Structure) => MembraneParams,
+    defaultParams: MembraneOrientationParams,
+    getParams: (data: Structure) => MembraneOrientationParams,
     isApplicable: (data: Structure) => true,
-    obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<MembraneProps>) => {
-        const p = { ...PD.getDefaultValues(MembraneParams), ...props };
+    obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<MembraneOrientationProps>) => {
+        const p = { ...PD.getDefaultValues(MembraneOrientationParams), ...props };
         switch (p.type.name) {
             case 'anvil': return { value: await computeAnvil(ctx, data, p.type.params) };
             case 'opm': return { value: await computeOpm(data) };
@@ -46,12 +46,12 @@ export const MembraneProvider: CustomStructureProperty.Provider<MembraneParams, 
     }
 });
 
-async function computeAnvil(ctx: CustomProperty.Context, data: Structure, props: ANVILProps): Promise<Membrane> {
+async function computeAnvil(ctx: CustomProperty.Context, data: Structure, props: ANVILProps): Promise<MembraneOrientation> {
     await AccessibleSurfaceAreaProvider.attach(ctx, data);
-    const p = { ...PD.getDefaultValues(MembraneParams), ...props };
-    return await Membrane.compute(data, p).runInContext(ctx.runtime);
+    const p = { ...PD.getDefaultValues(MembraneOrientationParams), ...props };
+    return await MembraneOrientation.compute(data, p).runInContext(ctx.runtime);
 }
 
-async function computeOpm(structure: Structure): Promise<Membrane> {
+async function computeOpm(structure: Structure): Promise<MembraneOrientation> {
     throw Error('TODO impl');
 }

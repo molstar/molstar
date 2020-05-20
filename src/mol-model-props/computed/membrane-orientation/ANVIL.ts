@@ -27,10 +27,10 @@ export const ANVILParams = {
 export type ANVILParams = typeof ANVILParams
 export type ANVILProps = PD.Values<ANVILParams>
 
-export { Membrane };
-interface Membrane extends Array<Vec3> {}
+export { MembraneOrientation };
+interface MembraneOrientation extends Array<Vec3> {}
 
-namespace Membrane {
+namespace MembraneOrientation {
     /**
      * Implements:
      * Membrane positioning for high- and low-resolution protein structures through a binary classification approach
@@ -123,7 +123,7 @@ namespace Membrane {
         };
     }
 
-    export async function calculate(runtime: RuntimeContext, structure: Structure, params: ANVILProps): Promise<Membrane> {
+    export async function calculate(runtime: RuntimeContext, structure: Structure, params: ANVILProps): Promise<MembraneOrientation> {
         const { label_comp_id } = StructureProperties.residue;
 
         const ctx = initialize(structure, params);

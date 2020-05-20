@@ -26,12 +26,12 @@ import { InteractionsProvider } from '../../mol-model-props/computed/interaction
 import { SecondaryStructureProvider } from '../../mol-model-props/computed/secondary-structure';
 import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
 import { AssetManager } from '../../mol-util/assets';
-import { MembraneProvider } from '../../mol-model-props/computed/membrane';
+import { MembraneOrientationProvider } from '../../mol-model-props/computed/membrane-orientation';
 import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Color } from '../../mol-util/color';
 import { createRenderObject } from '../../mol-gl/render-object';
-import { Membrane } from '../../mol-model-props/computed/membrane/ANVIL';
+import { MembraneOrientation } from '../../mol-model-props/computed/membrane-orientation/ANVIL';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -122,7 +122,7 @@ function getGaussianSurfaceRepr() {
     return GaussianSurfaceRepresentationProvider.factory(reprCtx, GaussianSurfaceRepresentationProvider.getParams);
 }
 
-function getMembraneRepr(membrane: Membrane) {
+function getMembraneRepr(membrane: MembraneOrientation) {
     // TODO is a representation provider the right place for this?
     const spheresBuilder = SpheresBuilder.create(membrane.length, 1);
     for (let i = 0, il = membrane.length; i < il; i++) {
@@ -150,7 +150,7 @@ async function init() {
     console.timeEnd('compute SecondaryStructure');
 
     console.time('compute Membrane');
-    await MembraneProvider.attach(ctx, structure);
+    await MembraneOrientationProvider.attach(ctx, structure);
     console.timeEnd('compute Membrane');
 
     console.time('compute Interactions');
@@ -172,7 +172,7 @@ async function init() {
     const ballAndStickRepr = getBallAndStickRepr();
     const molecularSurfaceRepr = getMolecularSurfaceRepr();
     const gaussianSurfaceRepr = getGaussianSurfaceRepr();
-    const membraneRepr = getMembraneRepr(MembraneProvider.get(structure).value!);
+    const membraneRepr = getMembraneRepr(MembraneOrientationProvider.get(structure).value!);
 
     if (show.cartoon) {
         cartoonRepr.setTheme({
