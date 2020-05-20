@@ -68,15 +68,18 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
         // Min/max/mean are reliable (based on LiteMol/DensityServer usage)
         // These, however, calculate sigma, so no data on that.
 
+        // always calculate stats when all stats related values are zero
+        const calcStats = header.AMIN === 0 && header.AMAX === 0 && header.AMEAN === 0 && header.ARMS === 0;
+
         return {
             label: params?.label,
             grid: {
                 transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
                 cells: data,
                 stats: {
-                    min: isNaN(header.AMIN) ? arrayMin(values) : header.AMIN,
-                    max: isNaN(header.AMAX) ? arrayMax(values) : header.AMAX,
-                    mean: isNaN(header.AMEAN) ? arrayMean(values) : header.AMEAN,
+                    min: (isNaN(header.AMIN) || calcStats) ? arrayMin(values) : header.AMIN,
+                    max: (isNaN(header.AMAX) || calcStats) ? arrayMax(values) : header.AMAX,
+                    mean: (isNaN(header.AMEAN) || calcStats) ? arrayMean(values) : header.AMEAN,
                     sigma: (isNaN(header.ARMS) || header.ARMS === 0) ? arrayRms(values) : header.ARMS
                 },
             },
