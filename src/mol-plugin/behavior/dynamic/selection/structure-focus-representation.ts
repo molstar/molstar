@@ -39,9 +39,12 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
                 color: InteractionTypeColorThemeProvider,
                 size: SizeTheme.BuiltIn.uniform
             })
-        })
+        }),
+        components: PD.MultiSelect(FocusComponents, PD.arrayToOptions(FocusComponents))
     };
 };
+
+const FocusComponents = ['target' as const, 'surroundings' as const, 'interactions' as const];
 
 type StructureFocusRepresentationProps = PD.ValuesFor<ReturnType<typeof StructureFocusRepresentationParams>>
 
@@ -78,20 +81,22 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
                     { expression: MS.struct.generator.empty(), label: this.surrLabel }, { tags: StructureFocusRepresentationTags.SurrSel }).ref;
         }
 
+        const components = this.params.components;
+
         // Representations
-        if (!refs[StructureFocusRepresentationTags.TargetRepr]) {
+        if (components.indexOf('target') >= 0 && !refs[StructureFocusRepresentationTags.TargetRepr]) {
             refs[StructureFocusRepresentationTags.TargetRepr] = builder
                 .to(refs[StructureFocusRepresentationTags.TargetSel]!)
                 .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.targetParams, { tags: StructureFocusRepresentationTags.TargetRepr }).ref;
         }
 
-        if (!refs[StructureFocusRepresentationTags.SurrRepr]) {
+        if (components.indexOf('surroundings') >= 0 && !refs[StructureFocusRepresentationTags.SurrRepr]) {
             refs[StructureFocusRepresentationTags.SurrRepr] = builder
                 .to(refs[StructureFocusRepresentationTags.SurrSel]!)
                 .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.surroundingsParams, { tags: StructureFocusRepresentationTags.SurrRepr }).ref;
         }
 
-        if (!refs[StructureFocusRepresentationTags.SurrNciRepr]) {
+        if (components.indexOf('interactions') >= 0 && !refs[StructureFocusRepresentationTags.SurrNciRepr]) {
             refs[StructureFocusRepresentationTags.SurrNciRepr] = builder
                 .to(refs[StructureFocusRepresentationTags.SurrSel]!)
                 .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.nciParams, { tags: StructureFocusRepresentationTags.SurrNciRepr }).ref;
@@ -152,27 +157,40 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
     }
 
     async update(params: StructureFocusRepresentationProps) {
-        let oldRadius = this.params.expandRadius;
+        const old = this.params;
         this.params = params;
 
         const state = this.plugin.state.data;
         const builder = state.build();
 
         const all = StateSelection.Generators.root.subtree();
+
+        const components = this.params.components;
+
+        // TODO: create component if previously didnt exist
+
+        let hasComponent = components.indexOf('target') >= 0;
         for (const repr of state.select(all.withTag(StructureFocusRepresentationTags.TargetRepr))) {
-            builder.to(repr).update(this.params.targetParams);
+            if (!hasComponent) builder.delete(repr.transform.ref);
+            else builder.to(repr).update(this.params.targetParams);
         }
+
+        hasComponent = components.indexOf('surroundings') >= 0;
         for (const repr of state.select(all.withTag(StructureFocusRepresentationTags.SurrRepr))) {
-            builder.to(repr).update(this.params.surroundingsParams);
+            if (!hasComponent) builder.delete(repr.transform.ref);
+            else builder.to(repr).update(this.params.surroundingsParams);
         }
+
+        hasComponent = components.indexOf('interactions') >= 0;
         for (const repr of state.select(all.withTag(StructureFocusRepresentationTags.SurrNciRepr))) {
-            builder.to(repr).update(this.params.nciParams);
+            if (!hasComponent) builder.delete(repr.transform.ref);
+            else builder.to(repr).update(this.params.nciParams);
         }
 
         await PluginCommands.State.Update(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
 
         // TODO: update properly
-        if (params.expandRadius !== oldRadius) await this.clear(StateTransform.RootRef);
+        if (params.expandRadius !== old.expandRadius) await this.clear(StateTransform.RootRef);
 
         return true;
     }
