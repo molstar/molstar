@@ -34,7 +34,7 @@ export class GenericEntryListControls extends PurePluginUIComponent {
         }
         if (refs.length === 0) return null;
 
-        return <GenericEntry refs={refs} labelMultiple='Unitcells' />;
+        return <GenericEntry refs={refs} labelMultiple='Unit Cells' />;
     }
 
     get customControls(): JSX.Element[] | null {

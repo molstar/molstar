@@ -65,21 +65,6 @@ export function elementLabel(model: Model, index: ElementIndex) {
     return `[${label_comp_id.value(residueIndex)}]${auth_seq_id.value(residueIndex)}:${auth_asym_id.value(chainIndex)}.${label_atom_id.value(index)}`;
 }
 
-// const centerPos = Vec3.zero()
-// const centerMin = Vec3.zero()
-// export function getCenterAndRadius(centroid: Vec3, unit: Unit, indices: ArrayLike<number>) {
-//     const pos = unit.conformation.position
-//     const { elements } = unit
-//     Vec3.set(centroid, 0, 0, 0)
-//     for (let i = 0, il = indices.length; i < il; ++i) {
-//         pos(elements[indices[i]], centerPos)
-//         Vec3.add(centroid, centroid, centerPos)
-//         Vec3.min(centerMin, centerMin, centerPos)
-//     }
-//     Vec3.scale(centroid, centroid, 1/indices.length)
-//     return Vec3.distance(centerMin, centroid)
-// }
-
 const tmpPositionsVec = Vec3.zero();
 export function getPositions(unit: Unit, indices: ArrayLike<number>): NumberArray {
     const pos = unit.conformation.position;

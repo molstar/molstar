@@ -699,7 +699,7 @@ export { ModelUnitcell3D };
 type ModelUnitcell3D = typeof ModelUnitcell3D
 const ModelUnitcell3D = PluginStateTransform.BuiltIn({
     name: 'model-unitcell-3d',
-    display: 'Model Unitcell',
+    display: 'Model Unit Cell',
     from: SO.Molecule.Model,
     to: SO.Shape.Representation3D,
     params: {
@@ -711,17 +711,17 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
         return true;
     },
     apply({ a, params }, plugin: PluginContext) {
-        return Task.create('Model Unitcell', async ctx => {
+        return Task.create('Model Unit Cell', async ctx => {
             const symmetry = ModelSymmetry.Provider.get(a.data);
             if (!symmetry) return StateObject.Null;
             const data = getUnitcellData(a.data, symmetry);
             const repr = UnitcellRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => UnitcellParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
-            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Unitcell`, description: symmetry.spacegroup.name });
+            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Unit Cell`, description: symmetry.spacegroup.name });
         });
     },
     update({ a, b, newParams }) {
-        return Task.create('Model Unitcell', async ctx => {
+        return Task.create('Model Unit Cell', async ctx => {
             const symmetry = ModelSymmetry.Provider.get(a.data);
             if (!symmetry) return StateTransformer.UpdateResult.Null;
             const props = { ...b.data.repr.props, ...newParams };

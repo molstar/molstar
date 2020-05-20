@@ -107,5 +107,5 @@ export function getUnitcellData(model: Model, symmetry: Symmetry) {
 
 export type UnitcellRepresentation = Representation<UnitcellData, UnitcellParams>
 export function UnitcellRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<UnitcellData, UnitcellParams>): UnitcellRepresentation {
-    return Representation.createMulti('Unitcell', ctx, getParams, Representation.StateBuilder, UnitcellVisuals as unknown as Representation.Def<UnitcellData, UnitcellParams>);
+    return Representation.createMulti('Unit Cell', ctx, getParams, Representation.StateBuilder, UnitcellVisuals as unknown as Representation.Def<UnitcellData, UnitcellParams>);
 }

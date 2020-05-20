@@ -80,7 +80,7 @@ namespace Symmetry {
         const gamma = radToDeg(anglesInRadians[2]).toFixed(2);
         const label: string[] = [];
         // name
-        label.push(`Unitcell <b>${name}</b> #${num}`);
+        label.push(`Unit Cell <b>${name}</b> #${num}`);
         // sizes
         label.push(`${a}\u00D7${b}\u00D7${c} \u212B`);
         // angles
