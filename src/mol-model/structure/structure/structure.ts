@@ -705,7 +705,8 @@ namespace Structure {
 
             const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
 
-            if (singleAtomResidues) {
+            // check for polymer to exclude CA/P-only models
+            if (singleAtomResidues && !isPolymerChain(model, c)) {
                 partitionAtomicUnitByAtom(model, elements, builder, multiChain, operator);
             } else if (elements.length > 200000 || isWaterChain(model, c)) {
                 // split up very large chains e.g. lipid bilayers, micelles or water with explicit H
@@ -731,6 +732,11 @@ namespace Structure {
     function isWaterChain(model: Model, chainIndex: ChainIndex) {
         const e = model.atomicHierarchy.index.getEntityFromChain(chainIndex);
         return model.entities.data.type.value(e) === 'water';
+    }
+
+    function isPolymerChain(model: Model, chainIndex: ChainIndex) {
+        const e = model.atomicHierarchy.index.getEntityFromChain(chainIndex);
+        return model.entities.data.type.value(e) === 'polymer';
     }
 
     function partitionAtomicUnitByAtom(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean, operator: SymmetryOperator) {
