@@ -42,7 +42,7 @@ export const GaussianSurfaceRepresentationProvider = StructureRepresentationProv
     factory: GaussianSurfaceRepresentation,
     getParams: getGaussianSurfaceParams,
     defaultValues: PD.getDefaultValues(GaussianSurfaceParams),
-    defaultColorTheme: { name: 'polymer-id' },
+    defaultColorTheme: { name: 'chain-id' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
 });

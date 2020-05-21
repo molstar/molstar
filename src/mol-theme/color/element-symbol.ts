@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,6 +13,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
+import { ChainIdColorTheme, getChainIdColorThemeParams } from './chain-id';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors = ColorMap({
@@ -24,9 +25,9 @@ const DefaultElementSymbolColor = Color(0xFFFFFF);
 const Description = 'Assigns a color to every atom according to its chemical element.';
 
 export const ElementSymbolColorThemeParams = {
-    carbon: PD.Color(ElementSymbolColors.C),
+    carbonByChainId: PD.Boolean(true),
     saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
-    lightness: PD.Numeric(0.7, { min: -6, max: 6, step: 0.1 })
+    lightness: PD.Numeric(0.2, { min: -6, max: 6, step: 0.1 })
 };
 export type ElementSymbolColorThemeParams = typeof ElementSymbolColorThemeParams
 export function getElementSymbolColorThemeParams(ctx: ThemeDataContext) {
@@ -40,20 +41,26 @@ export function elementSymbolColor(colorMap: ElementSymbolColors, element: Eleme
 
 export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<ElementSymbolColorThemeParams>): ColorTheme<ElementSymbolColorThemeParams> {
     const colorMap = getAdjustedColorMap(ElementSymbolColors, props.saturation, props.lightness);
-    const carbonColor = Color.darken(Color.saturate(props.carbon, props.saturation), -props.lightness);
+
+    const chainIdColor = ChainIdColorTheme(ctx, PD.getDefaultValues(getChainIdColorThemeParams(ctx))).color;
+
+    function elementColor(element: ElementSymbol, location: Location) {
+        return (props.carbonByChainId && element === 'C')
+            ? chainIdColor(location, false)
+            : elementSymbolColor(colorMap, element);
+    }
 
     function color(location: Location): Color {
         if (StructureElement.Location.is(location)) {
             if (Unit.isAtomic(location.unit)) {
                 const { type_symbol } = location.unit.model.atomicHierarchy.atoms;
-                const element = type_symbol.value(location.element);
-                return element === 'C' ? carbonColor : elementSymbolColor(colorMap, element);
+                return elementColor(type_symbol.value(location.element), location);
             }
         } else if (Bond.isLocation(location)) {
             if (Unit.isAtomic(location.aUnit)) {
                 const { type_symbol } = location.aUnit.model.atomicHierarchy.atoms;
                 const element = type_symbol.value(location.aUnit.elements[location.aIndex]);
-                return element === 'C' ? carbonColor : elementSymbolColor(colorMap, element);
+                return elementColor(element, location);
             }
         }
         return DefaultElementSymbolColor;

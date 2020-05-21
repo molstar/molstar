@@ -63,7 +63,7 @@ export const CartoonRepresentationProvider = StructureRepresentationProvider({
     factory: CartoonRepresentation,
     getParams: getCartoonParams,
     defaultValues: PD.getDefaultValues(CartoonParams),
-    defaultColorTheme: { name: 'polymer-id' },
+    defaultColorTheme: { name: 'chain-id' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.polymerResidueCount > 0,
     ensureCustomProperties: {

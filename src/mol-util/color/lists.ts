@@ -155,6 +155,18 @@ export const ColorLists = {
         [0xfbb4ae, 0xb3cde3, 0xccebc5, 0xdecbe4, 0xfed9a6, 0xffffcc, 0xe5d8bd, 0xfddaec, 0xf2f2f2]
     ),
 
+    'many-distinct': ColorList('Many-Distinct', 'qualitative',
+        '',
+        [
+            // dark-2
+            0x1b9e77, 0xd95f02, 0x7570b3, 0xe7298a, 0x66a61e, 0xe6ab02, 0xa6761d, 0x666666,
+            // set-1
+            0xe41a1c, 0x377eb8, 0x4daf4a, 0x984ea3, 0xff7f00, 0xffff33, 0xa65628, 0xf781bf, 0x999999,
+            // set-2
+            0x66c2a5, 0xfc8d62, 0x8da0cb, 0xe78ac3, 0xa6d854, 0xffd92f, 0xe5c494, 0xb3b3b3
+        ]
+    ),
+
     /**
      * Matplotlib colormaps, including various perceptually uniform shades, see https://bids.github.io/colormap/
      */

@@ -37,7 +37,7 @@ export const OrientationRepresentationProvider = StructureRepresentationProvider
     factory: OrientationRepresentation,
     getParams: getOrientationParams,
     defaultValues: PD.getDefaultValues(OrientationParams),
-    defaultColorTheme: { name: 'polymer-id' },
+    defaultColorTheme: { name: 'chain-id' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
 });

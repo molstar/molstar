@@ -50,7 +50,7 @@ export const PuttyRepresentationProvider = StructureRepresentationProvider({
     factory: PuttyRepresentation,
     getParams: getPuttyParams,
     defaultValues: PD.getDefaultValues(PuttyParams),
-    defaultColorTheme: { name: 'polymer-id' },
+    defaultColorTheme: { name: 'chain-id' },
     defaultSizeTheme: { name: 'uncertainty' },
     isApplicable: (structure: Structure) => structure.polymerResidueCount > 0
 });
