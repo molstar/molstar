@@ -134,7 +134,7 @@ async function readStandard(ctx: RuntimeContext, data: BasicData, properties: Mo
 
     if (data.atom_site) {
         const atomCount = data.atom_site.id.rowCount;
-        const entities = getEntities(data);
+        const entities = getEntities(data, properties);
 
         let modelStart = 0;
         while (modelStart < atomCount) {
@@ -168,7 +168,7 @@ function splitTable<T extends Table<any>>(table: T, col: Column<number>) {
 
 
 async function readIntegrative(ctx: RuntimeContext, data: BasicData, properties: Model['properties'], format: ModelFormat) {
-    const entities = getEntities(data);
+    const entities = getEntities(data, properties);
     // when `atom_site.ihm_model_id` is undefined fall back to `atom_site.pdbx_PDB_model_num`
     const atom_sites_modelColumn = data.atom_site.ihm_model_id.isDefined
         ? data.atom_site.ihm_model_id : data.atom_site.pdbx_PDB_model_num;

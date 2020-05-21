@@ -25,6 +25,7 @@ export type AtomSite = Table<mmCIF_Schema['atom_site']>
 export type IhmSphereObjSite = Table<mmCIF_Schema['ihm_sphere_obj_site']>
 export type IhmGaussianObjSite =Table<mmCIF_Schema['ihm_gaussian_obj_site']>
 export type UnobsOrZeroOccResidues =Table<mmCIF_Schema['pdbx_unobs_or_zero_occ_residues']>
+export type Molecule =Table<mmCIF_Schema['pdbx_molecule']>
 
 export const BasicSchema = {
     entry: mmCIF_Schema.entry,
@@ -43,6 +44,7 @@ export const BasicSchema = {
     ihm_sphere_obj_site: mmCIF_Schema.ihm_sphere_obj_site,
     ihm_gaussian_obj_site: mmCIF_Schema.ihm_gaussian_obj_site,
     pdbx_unobs_or_zero_occ_residues: mmCIF_Schema.pdbx_unobs_or_zero_occ_residues,
+    pdbx_molecule: mmCIF_Schema.pdbx_molecule,
 };
 
 export interface BasicData {
@@ -62,6 +64,7 @@ export interface BasicData {
     ihm_sphere_obj_site: IhmSphereObjSite
     ihm_gaussian_obj_site: IhmGaussianObjSite
     pdbx_unobs_or_zero_occ_residues: UnobsOrZeroOccResidues
+    pdbx_molecule: Molecule
 }
 
 export function createBasic(data: Partial<BasicData>): BasicData {

@@ -301,7 +301,10 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
         MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'entity-test': MS.core.logic.and([
-                    MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
+                    MS.core.logic.or([
+                        MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
+                        MS.core.rel.neq([MS.ammp('entityPrdId'), ''])
+                    ]),
                     MS.core.logic.not([MS.core.str.match([
                         MS.re('oligosaccharide', 'i'),
                         MS.ammp('entitySubtype')

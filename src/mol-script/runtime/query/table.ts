@@ -336,6 +336,7 @@ const symbols = [
 
     D(MolScript.structureQuery.atomProperty.macromolecular.entityType, atomProp(StructureProperties.entity.type)),
     D(MolScript.structureQuery.atomProperty.macromolecular.entitySubtype, atomProp(StructureProperties.entity.subtype)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.entityPrdId, atomProp(StructureProperties.entity.prd_id)),
     D(MolScript.structureQuery.atomProperty.macromolecular.entityDescription, atomProp(StructureProperties.entity.pdbx_description)),
     D(MolScript.structureQuery.atomProperty.macromolecular.objectPrimitive, atomProp(StructureProperties.unit.object_primitive)),
 

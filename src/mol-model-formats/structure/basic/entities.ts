@@ -8,10 +8,10 @@
 import { Column, Table } from '../../../mol-data/db';
 import { Entities, EntitySubtype } from '../../../mol-model/structure/model/properties/common';
 import { getEntityType, getEntitySubtype } from '../../../mol-model/structure/model/types';
-import { ElementIndex, EntityIndex } from '../../../mol-model/structure/model';
+import { ElementIndex, EntityIndex, Model } from '../../../mol-model/structure/model';
 import { BasicData, BasicSchema, Entity } from './schema';
 
-export function getEntities(data: BasicData): Entities {
+export function getEntities(data: BasicData, properties: Model['properties']): Entities {
     let entityData: Entity;
 
     if (!data.entity.id.isDefined) {
@@ -118,5 +118,26 @@ export function getEntities(data: BasicData): Entities {
 
     //
 
-    return { data: entityData, subtype: subtypeColumn, getEntityIndex };
+    const prdIds: string[] = new Array(entityData._rowCount);
+    prdIds.fill('');
+
+    if (data.pdbx_molecule && data.pdbx_molecule.prd_id.isDefined) {
+        const { asym_id, prd_id, _rowCount } = data.pdbx_molecule;
+        for (let i = 0; i < _rowCount; ++i) {
+            const asymId = asym_id.value(i);
+            const entityId = properties.structAsymMap.get(asymId)?.entity_id;
+            if (entityId !== undefined) {
+                prdIds[getEntityIndex(entityId)] = prd_id.value(i);
+            }
+        }
+    }
+
+    const prdIdColumn = Column.ofArray({ array: prdIds, schema: Column.Schema.str });
+
+    return {
+        data: entityData,
+        subtype: subtypeColumn,
+        prd_id: prdIdColumn,
+        getEntityIndex
+    };
 }

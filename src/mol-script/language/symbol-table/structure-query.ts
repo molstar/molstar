@@ -308,6 +308,7 @@ const atomProperty = {
 
         entityType: atomProp(Types.EntityType, 'Type of the entity as defined in mmCIF (polymer, non-polymer, branched, water)'),
         entitySubtype: atomProp(Types.EntitySubtype, 'Subtype of the entity as defined in mmCIF _entity_poly.type and _pdbx_entity_branch.type (other, polypeptide(D), polypeptide(L), polydeoxyribonucleotide, polyribonucleotide, polydeoxyribonucleotide/polyribonucleotide hybrid, cyclic-pseudo-peptide, peptide nucleic acid, oligosaccharide)'),
+        entityPrdId: atomProp(Type.Str, `The PRD ID of the entity.`),
         entityDescription: atomProp(Core.Types.List(Type.Str)),
         objectPrimitive: atomProp(Types.ObjectPrimitive, 'Type of the primitive object used to model this segment as defined in mmCIF/IHM (atomistic, sphere, gaussian, other)'),
 

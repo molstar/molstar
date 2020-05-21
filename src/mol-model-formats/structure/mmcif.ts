@@ -84,15 +84,6 @@ namespace MmcifFormat {
         if (!db) db = CIF.schema.mmCIF(frame);
         return { kind: 'mmCIF', name: db._name, data: { db, frame } };
     }
-
-    export function isBirdMolecule(model: Model, asymId: string) {
-        if (!MmcifFormat.is(model.sourceData)) return false;
-        const { _rowCount, asym_id } = model.sourceData.data.db.pdbx_molecule;
-        for (let i = 0, il = _rowCount; i < il; ++i) {
-            if (asym_id.value(i) === asymId) return true;
-        }
-        return false;
-    }
 }
 
 export function trajectoryFromMmCIF(frame: CifFrame): Task<Model.Trajectory> {

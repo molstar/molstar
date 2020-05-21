@@ -157,7 +157,6 @@ const entity = {
 
     id: p(l => l.unit.model.entities.data.id.value(eK(l))),
     type: p(l => l.unit.model.entities.data.type.value(eK(l))),
-    subtype: p(l => l.unit.model.entities.subtype.value(eK(l))),
     src_method: p(l => l.unit.model.entities.data.src_method.value(eK(l))),
     pdbx_description: p(l => l.unit.model.entities.data.pdbx_description.value(eK(l))),
     formula_weight: p(l => l.unit.model.entities.data.formula_weight.value(eK(l))),
@@ -165,7 +164,10 @@ const entity = {
     details: p(l => l.unit.model.entities.data.details.value(eK(l))),
     pdbx_mutation: p(l => l.unit.model.entities.data.pdbx_mutation.value(eK(l))),
     pdbx_fragment: p(l => l.unit.model.entities.data.pdbx_fragment.value(eK(l))),
-    pdbx_ec: p(l => l.unit.model.entities.data.pdbx_ec.value(eK(l)))
+    pdbx_ec: p(l => l.unit.model.entities.data.pdbx_ec.value(eK(l))),
+
+    subtype: p(l => l.unit.model.entities.subtype.value(eK(l))),
+    prd_id: p(l => l.unit.model.entities.prd_id.value(eK(l))),
 };
 
 const _emptyList: any[] = [];

@@ -6,7 +6,6 @@
 
 import * as React from 'react';
 import { OrderedSet, SortedArray } from '../../mol-data/int';
-import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 import { Structure, StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { UnitIndex } from '../../mol-model/structure/structure/element/element';
 import { FocusEntry } from '../../mol-plugin-state/manager/structure/focus';
@@ -66,8 +65,7 @@ function getFocusEntries(structure: Structure) {
         const entityType = StructureProperties.entity.type(l);
         const isPolymer = entityType === 'non-polymer';
         const isBranched = entityType === 'branched';
-        const asymId = StructureProperties.chain.label_asym_id(l);
-        const isBirdMolecule = MmcifFormat.isBirdMolecule(l.unit.model, asymId);
+        const isBirdMolecule = !!StructureProperties.entity.prd_id(l);
 
         if (isBirdMolecule) {
             addSymmetryGroupEntries(entityEntries, l, ug, 'chain');
