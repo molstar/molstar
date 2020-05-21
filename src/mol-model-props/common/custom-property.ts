@@ -29,6 +29,8 @@ namespace CustomProperty {
     export interface Provider<Data, Params extends PD.Params, Value> {
         readonly label: string
         readonly descriptor: CustomPropertyDescriptor
+        /** hides property in ui and always attaches */
+        readonly isHidden?: boolean
         readonly getParams: (data: Data) => Params
         readonly defaultParams: Params
         readonly isApplicable: (data: Data) => boolean
@@ -57,14 +59,16 @@ namespace CustomProperty {
                     const provider = v.value;
                     if (!provider.isApplicable(data)) continue;
 
-                    autoAttachOptions.push([provider.descriptor.name, provider.label]);
-                    if (this.defaultAutoAttachValues.get(provider.descriptor.name)) {
-                        autoAttachDefault.push(provider.descriptor.name);
+                    if (!provider.isHidden) {
+                        autoAttachOptions.push([provider.descriptor.name, provider.label]);
+                        if (this.defaultAutoAttachValues.get(provider.descriptor.name)) {
+                            autoAttachDefault.push(provider.descriptor.name);
+                        }
                     }
 
                     propertiesParams[provider.descriptor.name] = PD.Group({
                         ...provider.getParams(data)
-                    }, { label: provider.label });
+                    }, { label: provider.label, isHidden: provider.isHidden });
                 }
             }
             return {

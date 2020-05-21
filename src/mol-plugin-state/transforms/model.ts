@@ -887,7 +887,7 @@ async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: Runti
     for (const name of Object.keys(properties)) {
         const property = ctx.customModelProperties.get(name);
         const props = properties[name];
-        if (autoAttach.includes(name)) {
+        if (autoAttach.includes(name) || property.isHidden) {
             try {
                 await property.attach(propertyCtx, model, props, true);
             } catch (e) {
@@ -940,7 +940,7 @@ async function attachStructureProps(structure: Structure, ctx: PluginContext, ta
     for (const name of Object.keys(properties)) {
         const property = ctx.customStructureProperties.get(name);
         const props = properties[name];
-        if (autoAttach.includes(name)) {
+        if (autoAttach.includes(name) || property.isHidden) {
             try {
                 await property.attach(propertyCtx, structure, props, true);
             } catch (e) {

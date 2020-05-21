@@ -9,6 +9,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ValueBox } from '../../mol-util';
 import { CustomProperty } from './custom-property';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
+import { stringToWords } from '../../mol-util/string';
 
 export { CustomStructureProperty };
 
@@ -18,6 +19,7 @@ namespace CustomStructureProperty {
     export interface ProviderBuilder<Params extends PD.Params, Value> {
         readonly label: string
         readonly descriptor: CustomPropertyDescriptor
+        readonly isHidden?: boolean
         readonly defaultParams: Params
         readonly getParams: (data: Structure) => Params
         readonly isApplicable: (data: Structure) => boolean
@@ -49,7 +51,12 @@ namespace CustomStructureProperty {
         return {
             label: builder.label,
             descriptor: builder.descriptor,
-            getParams: builder.getParams,
+            isHidden: builder.isHidden,
+            getParams: (data: Structure) => {
+                const params = PD.clone(builder.getParams(data));
+                PD.setDefaultValues(params, get(data).props);
+                return params;
+            },
             defaultParams: builder.defaultParams,
             isApplicable: builder.isApplicable,
             attach: async (ctx: CustomProperty.Context, data: Structure, props: Partial<PD.Values<Params>> = {}, addRef) => {
@@ -79,5 +86,21 @@ namespace CustomStructureProperty {
             },
             props: (data: Structure) => get(data).props,
         };
+    }
+
+    export function createSimple<T>(name: string, type: 'root' | 'local', defaultValue?: T) {
+        const defaultParams = { value: PD.Value(defaultValue, { isHidden: true }) };
+        return createProvider({
+            label: stringToWords(name),
+            descriptor: CustomPropertyDescriptor({ name }),
+            isHidden: true,
+            type,
+            defaultParams,
+            getParams: () => ({ value: PD.Value(defaultValue, { isHidden: true }) }),
+            isApplicable: () => true,
+            obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<PD.Values<typeof defaultParams>>) => {
+                return { ...PD.getDefaultValues(defaultParams), ...props };
+            }
+        });
     }
 }

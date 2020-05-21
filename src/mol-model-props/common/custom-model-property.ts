@@ -9,6 +9,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ValueBox } from '../../mol-util';
 import { CustomProperty } from './custom-property';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
+import { stringToWords } from '../../mol-util/string';
 
 export { CustomModelProperty };
 
@@ -18,6 +19,7 @@ namespace CustomModelProperty {
     export interface ProviderBuilder<Params extends PD.Params, Value> {
         readonly label: string
         readonly descriptor: CustomPropertyDescriptor
+        readonly isHidden?: boolean
         readonly defaultParams: Params
         readonly getParams: (data: Model) => Params
         readonly isApplicable: (data: Model) => boolean
@@ -49,7 +51,12 @@ namespace CustomModelProperty {
         return {
             label: builder.label,
             descriptor: builder.descriptor,
-            getParams: builder.getParams,
+            isHidden: builder.isHidden,
+            getParams: (data: Model) => {
+                const params = PD.clone(builder.getParams(data));
+                PD.setDefaultValues(params, get(data).props);
+                return params;
+            },
             defaultParams: builder.defaultParams,
             isApplicable: builder.isApplicable,
             attach: async (ctx: CustomProperty.Context, data: Model, props: Partial<PD.Values<Params>> = {}, addRef) => {
@@ -76,5 +83,21 @@ namespace CustomModelProperty {
             },
             props: (data: Model) => get(data).props,
         };
+    }
+
+    export function createSimple<T>(name: string, type: 'static' | 'dynamic', defaultValue?: T) {
+        const defaultParams = { value: PD.Value(defaultValue, { isHidden: true }) };
+        return createProvider({
+            label: stringToWords(name),
+            descriptor: CustomPropertyDescriptor({ name }),
+            isHidden: true,
+            type,
+            defaultParams,
+            getParams: () => ({ value: PD.Value(defaultValue, { isHidden: true }) }),
+            isApplicable: () => true,
+            obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<PD.Values<typeof defaultParams>>) => {
+                return { value: props.value ?? defaultValue };
+            }
+        });
     }
 }
