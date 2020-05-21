@@ -335,6 +335,13 @@ export namespace ParamDefinition {
         return d as Values<T>;
     }
 
+    export function setDefaultValues<T extends Params>(params: T, defaultValues: Values<T>) {
+        for (const k of Object.keys(params)) {
+            if (params[k].isOptional) continue;
+            params[k].defaultValue = defaultValues[k];
+        }
+    }
+
     export function clone<P extends Params>(params: P): P {
         return deepClone(params);
     }
@@ -352,8 +359,6 @@ export namespace ParamDefinition {
 
     export function areEqual(params: Params, a: any, b: any): boolean {
         if (a === b) return true;
-        if (!a) return !b;
-        if (!b) return !a;
 
         if (typeof a !== 'object' || typeof b !== 'object') return false;
         for (const k of Object.keys(params)) {
@@ -364,8 +369,6 @@ export namespace ParamDefinition {
 
     export function isParamEqual(p: Any, a: any, b: any): boolean {
         if (a === b) return true;
-        if (!a) return !b;
-        if (!b) return !a;
 
         if (p.type === 'group') {
             return areEqual(p.params, a, b);
