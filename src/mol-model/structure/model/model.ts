@@ -13,7 +13,7 @@ import { Entities, ChemicalComponentMap, MissingResidues, StructAsymMap } from '
 import { CustomProperties } from '../../custom-property';
 import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
 import { ModelFormat } from '../../../mol-model-formats/format';
-import { calcModelCenter } from './util';
+import { calcModelCenter, getAsymIdCount } from './util';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Mutable } from '../../../mol-util/type-helpers';
 import { Coordinates } from '../coordinates';
@@ -26,6 +26,7 @@ import { ChainIndex } from './indexing';
 import { SymmetryOperator } from '../../../mol-math/geometry';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 import { Column } from '../../../mol-data/db';
+import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -143,6 +144,23 @@ export namespace Model {
             return model._staticPropertyData[TrajectoryInfoProp] = trajectoryInfo;
         }
     };
+
+    const AsymIdCountProp = '__AsymIdCount__';
+    export type AsymIdCount = { readonly auth: number, readonly label: number }
+    export const AsymIdCount = {
+        get(model: Model): AsymIdCount {
+            if (model._staticPropertyData[AsymIdCountProp]) return model._staticPropertyData[AsymIdCountProp];
+            const asymIdCount = getAsymIdCount(model);
+            model._staticPropertyData[AsymIdCountProp] = asymIdCount;
+            return asymIdCount;
+        },
+    };
+
+    export type AsymIdOffset = { auth: number, label: number };
+    export const AsymIdOffset = CustomModelProperty.createSimple<AsymIdOffset>('asym_id_offset', 'static');
+
+    export type Index = number;
+    export const Index = CustomModelProperty.createSimple<Index>('index', 'static');
 
     //
 

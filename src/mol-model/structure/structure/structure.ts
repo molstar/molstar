@@ -30,6 +30,7 @@ import { AtomicHierarchy } from '../model/properties/atomic';
 import { StructureSelection } from '../query/selection';
 import { getBoundary } from '../../../mol-math/geometry/boundary';
 import { ElementSymbol } from '../model/types';
+import { CustomStructureProperty } from '../../../mol-model-props/common/custom-structure-property';
 
 class Structure {
     /** Maps unit.id to unit */
@@ -1124,6 +1125,11 @@ namespace Structure {
             return Size.Large;
         }
     }
+
+    //
+
+    export type Index = number;
+    export const Index = CustomStructureProperty.createSimple<Index>('index', 'root');
 }
 
 export default Structure;

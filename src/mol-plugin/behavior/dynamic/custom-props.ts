@@ -5,6 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+export { StructureInfo } from './custom-props/structure-info';
+
 export { AccessibleSurfaceArea } from './custom-props/computed/accessible-surface-area';
 export { Interactions } from './custom-props/computed/interactions';
 export { SecondaryStructure } from './custom-props/computed/secondary-structure';
