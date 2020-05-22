@@ -12,7 +12,7 @@
         "@typescript-eslint"
     ],
     "rules": {
-        "@typescript-eslint/ban-types": "warn",
+        "@typescript-eslint/ban-types": "off",
         "@typescript-eslint/class-name-casing": "off",
         "indent": "off",
         "@typescript-eslint/indent": [
