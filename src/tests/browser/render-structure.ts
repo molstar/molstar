@@ -27,12 +27,7 @@ import { SecondaryStructureProvider } from '../../mol-model-props/computed/secon
 import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
 import { AssetManager } from '../../mol-util/assets';
 import { MembraneOrientationProvider } from '../../mol-model-props/computed/membrane-orientation';
-import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
-import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
-import { Color } from '../../mol-util/color';
-import { createRenderObject } from '../../mol-gl/render-object';
-import { MembraneOrientation } from '../../mol-model/structure/model/properties/membrane-orientation';
-import { Vec3 } from '../../mol-math/linear-algebra';
+import { MembraneOrientationRepresentationProvider } from '../../extensions/membrane-orientation/representation';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -123,33 +118,8 @@ function getGaussianSurfaceRepr() {
     return GaussianSurfaceRepresentationProvider.factory(reprCtx, GaussianSurfaceRepresentationProvider.getParams);
 }
 
-function getMembraneRepr(structure: Structure, membrane: MembraneOrientation) {
-    const density = 1;
-    const radius = membrane.radius;
-    const spheresBuilder = SpheresBuilder.create();
-    createMembraneLayer(spheresBuilder, membrane.p1, membrane.normal, density, radius);
-    createMembraneLayer(spheresBuilder, membrane.p2, membrane.normal, density, radius);
-    const spheres = spheresBuilder.getSpheres();
-
-    const values = Spheres.Utils.createValuesSimple(spheres, {}, Color(0xCCCCCC), 1);
-    const state = Spheres.Utils.createRenderableState({});
-    const renderObject = createRenderObject('spheres', values, state, -1);
-    console.log(renderObject);
-    const repr = Representation.fromRenderObject('spheres', renderObject);
-    return repr;
-}
-
-function createMembraneLayer(spheresBuilder: SpheresBuilder, point: Vec3, normalVector: Vec3, density: number, radius: number) {
-    const d = -Vec3.dot(normalVector, point);
-    const rep = Vec3();
-    for (let i = -1000, il = 1000; i < il; i += density) {
-        for (let j = -1000, jl = 1000; j < jl; j += density) {
-            Vec3.set(rep, i, j, -(d + i * normalVector[0] + j * normalVector[1]) / normalVector[2]);
-            if (Vec3.squaredDistance(rep, point) < radius) {
-                spheresBuilder.add(rep[0], rep[1], rep[2], 0);
-            }
-        }
-    }
+function getMembraneOrientationRepr() {
+    return MembraneOrientationRepresentationProvider.factory(reprCtx, MembraneOrientationRepresentationProvider.getParams);
 }
 
 async function init() {
@@ -163,9 +133,9 @@ async function init() {
     await SecondaryStructureProvider.attach(ctx, structure);
     console.timeEnd('compute SecondaryStructure');
 
-    console.time('compute Membrane');
+    console.time('compute Membrane Orientation');
     await MembraneOrientationProvider.attach(ctx, structure);
-    console.timeEnd('compute Membrane');
+    console.timeEnd('compute Membrane Orientation');
 
     console.time('compute Interactions');
     await InteractionsProvider.attach(ctx, structure);
@@ -186,7 +156,7 @@ async function init() {
     const ballAndStickRepr = getBallAndStickRepr();
     const molecularSurfaceRepr = getMolecularSurfaceRepr();
     const gaussianSurfaceRepr = getGaussianSurfaceRepr();
-    const membraneRepr = getMembraneRepr(structure, MembraneOrientationProvider.get(structure).value!);
+    const membraneOrientationRepr = getMembraneOrientationRepr();
 
     if (show.cartoon) {
         cartoonRepr.setTheme({
@@ -232,12 +202,22 @@ async function init() {
         console.timeEnd('gaussian surface');
     }
 
+    if (show.membrane) {
+        membraneOrientationRepr.setTheme({
+            color: reprCtx.colorThemeRegistry.create('uniform', { structure }),
+            size: reprCtx.sizeThemeRegistry.create('physical', { structure })
+        });
+        console.time('membrane orientation');
+        await membraneOrientationRepr.createOrUpdate({}, structure).run();
+        console.timeEnd('membrane orientation');
+    }
+
     if (show.cartoon) canvas3d.add(cartoonRepr);
     if (show.interaction) canvas3d.add(interactionRepr);
     if (show.ballAndStick) canvas3d.add(ballAndStickRepr);
     if (show.molecularSurface) canvas3d.add(molecularSurfaceRepr);
     if (show.gaussianSurface) canvas3d.add(gaussianSurfaceRepr);
-    if (show.membrane) canvas3d.add(membraneRepr);
+    if (show.membrane) canvas3d.add(membraneOrientationRepr);
     canvas3d.requestCameraReset();
     // canvas3d.setProps({ trackball: { ...canvas3d.props.trackball, spin: true } })
 }

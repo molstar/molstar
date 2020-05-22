@@ -13,9 +13,10 @@ import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { ANVILParams, ANVILProps, computeANVIL } from './membrane-orientation/ANVIL';
 import { AccessibleSurfaceAreaProvider } from './accessible-surface-area';
 import { MembraneOrientation } from '../../mol-model/structure/model/properties/membrane-orientation';
+import { computeOPM } from './membrane-orientation/OPM';
 
 function getMembraneOrientationParams(data?: Structure) {
-    let defaultType = 'anvil' as 'anvil' | 'opm'; // TODO flip - OPM should be default if PDB identifier is known
+    let defaultType = 'anvil' as 'anvil' | 'opm'; // TODO flip - OPM (or some other db-source) should be default if PDB identifier is known
     return {
         type: PD.MappedStatic(defaultType, {
             'opm': PD.EmptyGroup({ label: 'OPM' }),
@@ -42,7 +43,7 @@ export const MembraneOrientationProvider: CustomStructureProperty.Provider<Membr
         const p = { ...PD.getDefaultValues(MembraneOrientationParams), ...props };
         switch (p.type.name) {
             case 'anvil': return { value: await computeAnvil(ctx, data, p.type.params) };
-            case 'opm': return { value: await computeOpm(data) };
+            case 'opm': return { value: await computeOpm(ctx, data) };
         }
     }
 });
@@ -53,6 +54,6 @@ async function computeAnvil(ctx: CustomProperty.Context, data: Structure, props:
     return await computeANVIL(data, p).runInContext(ctx.runtime);
 }
 
-async function computeOpm(structure: Structure): Promise<MembraneOrientation> {
-    throw Error('TODO impl');
+async function computeOpm(ctx: CustomProperty.Context, data: Structure): Promise<MembraneOrientation> {
+    return await computeOPM(data).runInContext(ctx.runtime);
 }
