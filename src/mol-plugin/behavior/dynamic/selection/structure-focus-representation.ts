@@ -29,7 +29,7 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         }),
         surroundingsParams: PD.Group(reprParams, {
             label: 'Surroundings',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', color: 'element-symbol', size: 'physical', typeParams: { sizeFactor: 0.16 } })
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.16 } })
         }),
         nciParams: PD.Group(reprParams, {
             label: 'Non-covalent Int.',
@@ -57,7 +57,7 @@ export enum StructureFocusRepresentationTags {
 
 const TagSet: Set<StructureFocusRepresentationTags> = new Set([StructureFocusRepresentationTags.TargetSel, StructureFocusRepresentationTags.TargetRepr, StructureFocusRepresentationTags.SurrSel, StructureFocusRepresentationTags.SurrRepr, StructureFocusRepresentationTags.SurrNciRepr]);
 
-export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscribers<StructureFocusRepresentationProps> {
+class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscribers<StructureFocusRepresentationProps> {
     private get surrLabel() { return `[Focus] Surroundings (${this.params.expandRadius} Å)`; }
 
     private ensureShape(cell: StateObjectCell<PluginStateObject.Molecule.Structure>) {

@@ -16,6 +16,8 @@ import { StateObjectRef, StateObjectSelector } from '../../../mol-state';
 import { StaticStructureComponentType } from '../../helpers/structure-component';
 import { StructureSelectionQueries as Q } from '../../helpers/structure-selection-query';
 import { PluginConfig } from '../../../mol-plugin/config';
+import { StructureFocusRepresentation } from '../../../mol-plugin/behavior/dynamic/selection/structure-focus-representation';
+import { createStructureColorThemeParams } from '../../helpers/structure-representation-params';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -30,7 +32,8 @@ export namespace StructureRepresentationPresetProvider {
     export const CommonParams = {
         ignoreHydrogens: PD.Optional(PD.Boolean(false)),
         quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
-        globalThemeName: PD.Optional(PD.Text<ColorTheme.BuiltIn>(''))
+        globalThemeName: PD.Optional(PD.Text<ColorTheme.BuiltIn>('')),
+        focusThemeName: PD.Optional(PD.Text<ColorTheme.BuiltIn>(''))
     };
     export type CommonParams = PD.ValuesFor<typeof CommonParams>
 
@@ -47,6 +50,14 @@ export namespace StructureRepresentationPresetProvider {
 
         return { update, builder, color, typeParams };
     }
+
+    export function updateFocusRepr(plugin: PluginContext, structure: Structure, themeName?: ColorTheme.BuiltIn) {
+        return plugin.state.updateBehavior(StructureFocusRepresentation, p => {
+            const c = createStructureColorThemeParams(plugin, structure, 'ball-and-stick', themeName);
+            p.surroundingsParams.colorTheme = c;
+            p.targetParams.colorTheme = c;
+        });
+    }
 }
 
 type _Result = StructureRepresentationPresetProvider.Result
@@ -54,6 +65,7 @@ type _Result = StructureRepresentationPresetProvider.Result
 const CommonParams = StructureRepresentationPresetProvider.CommonParams;
 type CommonParams = StructureRepresentationPresetProvider.CommonParams
 const reprBuilder = StructureRepresentationPresetProvider.reprBuilder;
+const updateFocusRepr = StructureRepresentationPresetProvider.updateFocusRepr;
 
 const auto = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-auto',
@@ -131,6 +143,7 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: false });
+        await updateFocusRepr(plugin, structure, params.focusThemeName);
 
         return { components, representations };
     }
@@ -168,6 +181,8 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
+        await updateFocusRepr(plugin, structure, params.focusThemeName);
+
         return { components, representations };
     }
 });
@@ -215,6 +230,8 @@ const coarseSurface = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
+        await updateFocusRepr(plugin, structure, params.focusThemeName);
+
         return { components, representations };
     }
 });
@@ -245,6 +262,8 @@ const polymerCartoon = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
+        await updateFocusRepr(plugin, structure, params.focusThemeName);
+
         return { components, representations };
     }
 });

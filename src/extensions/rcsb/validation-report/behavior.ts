@@ -309,15 +309,15 @@ export const ValidationReportGeometryQualityPreset = StructureRepresentationPres
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const model = structureCell?.obj?.data.model;
-        if (!structureCell || !model) return {};
+        const structure = structureCell?.obj?.data;
+        if (!structureCell || !structure) return {};
 
         await plugin.runTask(Task.create('Validation Report', async runtime => {
-            await ValidationReportProvider.attach({ runtime, assetManager: plugin.managers.asset }, model);
+            await ValidationReportProvider.attach({ runtime, assetManager: plugin.managers.asset }, structure.models[0]);
         }));
 
         const colorTheme = GeometryQualityColorThemeProvider.name as any;
-        const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin);
+        const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme, focusThemeName: colorTheme }, plugin);
 
         const clashes = await plugin.builders.structure.tryCreateComponentFromExpression(structureCell, hasClash.expression, 'clashes', { label: 'Clashes' });
 
@@ -329,6 +329,7 @@ export const ValidationReportGeometryQualityPreset = StructureRepresentationPres
         }
 
         await update.commit({ revertOnError: true });
+
         return { components: { ...components, clashes }, representations: { ...representations, clashesBallAndStick, clashesRepr } };
     }
 });
@@ -345,15 +346,15 @@ export const ValidationReportDensityFitPreset = StructureRepresentationPresetPro
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const model = structureCell?.obj?.data.model;
-        if (!structureCell || !model) return {};
+        const structure = structureCell?.obj?.data;
+        if (!structureCell || !structure) return {};
 
         await plugin.runTask(Task.create('Validation Report', async runtime => {
-            await ValidationReportProvider.attach({ runtime, assetManager: plugin.managers.asset }, model);
+            await ValidationReportProvider.attach({ runtime, assetManager: plugin.managers.asset }, structure.models[0]);
         }));
 
         const colorTheme = DensityFitColorThemeProvider.name as any;
-        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin);
+        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme, focusThemeName: colorTheme }, plugin);
     }
 });
 
@@ -369,14 +370,14 @@ export const ValidationReportRandomCoilIndexPreset = StructureRepresentationPres
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const model = structureCell?.obj?.data.model;
-        if (!structureCell || !model) return {};
+        const structure = structureCell?.obj?.data;
+        if (!structureCell || !structure) return {};
 
         await plugin.runTask(Task.create('Validation Report', async runtime => {
-            await ValidationReportProvider.attach({ runtime, assetManager: plugin.managers.asset }, model);
+            await ValidationReportProvider.attach({ runtime, assetManager: plugin.managers.asset }, structure.models[0]);
         }));
 
         const colorTheme = RandomCoilIndexColorThemeProvider.name as any;
-        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin);
+        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme, focusThemeName: colorTheme }, plugin);
     }
 });
