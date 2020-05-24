@@ -32,13 +32,14 @@ const sharedConfig = {
             ],
         }),
         new webpack.DefinePlugin({
-            'process.env.DEBUG': JSON.stringify(process.env.DEBUG)
+            'process.env.DEBUG': JSON.stringify(process.env.DEBUG),
+            '__MOLSTAR_DEBUG_TIMESTAMP__': webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true)
         }),
         new MiniCssExtractPlugin({ filename: 'molstar.css',  }),
         new VersionFile({
             extras: { timestamp: `${new Date().valueOf()}` },
             packageFile: path.resolve(__dirname, 'package.json'),
-            templateString: `export const PLUGIN_VERSION = '<%= package.version %>';\nexport const PLUGIN_VERSION_DATE = new Date(<%= extras.timestamp %>);`,
+            templateString: `export const PLUGIN_VERSION = '<%= package.version %>';\nexport const PLUGIN_VERSION_DATE = new Date(typeof __MOLSTAR_DEBUG_TIMESTAMP__ !== 'undefined' ? __MOLSTAR_DEBUG_TIMESTAMP__ : <%= extras.timestamp %>);`,
             outputFile: path.resolve(__dirname, 'lib/mol-plugin/version.js')
         })
     ],

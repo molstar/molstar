@@ -41,9 +41,24 @@ export const DcdProvider = DataFormatProvider({
     }
 });
 
+export const XtcProvider = DataFormatProvider({
+    label: 'XTC',
+    description: 'XTC',
+    category: Category,
+    binaryExtensions: ['xtc'],
+    parse: (plugin, data) => {
+        const coordinates = plugin.state.data.build()
+            .to(data)
+            .apply(StateTransforms.Model.CoordinatesFromXtc);
+
+        return coordinates.commit();
+    }
+});
+
 export const BuiltInStructureFormats = [
     ['psf', PsfProvider] as const,
     ['dcd', DcdProvider] as const,
+    ['xtc', XtcProvider] as const,
 ] as const;
 
 export type BuildInStructureFormat = (typeof BuiltInStructureFormats)[number][0]
