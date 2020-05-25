@@ -5,6 +5,7 @@ node_modules/
 debug.log
 npm-debug.log
 tsconfig.tsbuildinfo
+tsconfig.servers.tsbuildinfo
 
 *.sublime-workspace
 .idea
