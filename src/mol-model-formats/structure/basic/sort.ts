@@ -8,17 +8,11 @@ import { createRangeArray, makeBuckets } from '../../../mol-data/util';
 import { Column, Table } from '../../../mol-data/db';
 import { RuntimeContext } from '../../../mol-task';
 import { AtomSite } from './schema';
+import { arrayIsIdentity } from '../../../mol-util/array';
 
 export type SortedAtomSite = {
     atom_site: AtomSite
     sourceIndex: Column<number>
-}
-
-function isIdentity(xs: ArrayLike<number>) {
-    for (let i = 0, _i = xs.length; i < _i; i++) {
-        if (xs[i] !== i) return false;
-    }
-    return true;
 }
 
 export async function sortAtomSite(ctx: RuntimeContext, atom_site: AtomSite, start: number, end: number): Promise<SortedAtomSite> {
@@ -40,7 +34,7 @@ export async function sortAtomSite(ctx: RuntimeContext, atom_site: AtomSite, sta
         if (ctx.shouldUpdate) await ctx.update();
     }
 
-    if (isIdentity(indices) && indices.length === atom_site._rowCount) {
+    if (arrayIsIdentity(indices) && indices.length === atom_site._rowCount) {
         return { atom_site, sourceIndex: Column.ofIntArray(indices) };
     }
 

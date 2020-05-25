@@ -101,4 +101,25 @@ namespace Coordinates {
             z: frame.z,
         };
     }
+
+    function reorderCoords(xs: ArrayLike<number>, index: ArrayLike<number>) {
+        const ret = new Float32Array(xs.length);
+        for (let i = 0, _i = xs.length; i < _i; i++) {
+            ret[i] = xs[index[i]];
+        }
+        return ret;
+    }
+
+    export function getAtomicConformationReordered(frame: Frame, atomId: Column<number>, srcIndex: ArrayLike<number>): AtomicConformation {
+        return {
+            id: UUID.create22(),
+            atomId,
+            occupancy: Column.ofConst(1, frame.elementCount, Column.Schema.int),
+            B_iso_or_equiv: Column.ofConst(0, frame.elementCount, Column.Schema.float),
+            xyzDefined: true,
+            x: reorderCoords(frame.x, srcIndex),
+            y: reorderCoords(frame.y, srcIndex),
+            z: reorderCoords(frame.z, srcIndex)
+        };
+    }
 }

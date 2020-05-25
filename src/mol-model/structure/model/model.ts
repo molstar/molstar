@@ -88,16 +88,23 @@ export interface Model extends Readonly<{
 export namespace Model {
     export type Trajectory = ReadonlyArray<Model>
 
-    export function trajectoryFromModelAndCoordinates(model: Model, coordinates: Coordinates): Trajectory {
+    function _trajectoryFromModelAndCoordinates(model: Model, coordinates: Coordinates) {
         const trajectory: Mutable<Model.Trajectory> = [];
         const { frames } = coordinates;
+
+        const srcIndex = model.atomicHierarchy.atoms.sourceIndex;
+        const isIdentity = Column.isIdentity(srcIndex);
+        const srcIndexArray = isIdentity ? void 0 : srcIndex.toArray({ array: Int32Array });
+
         for (let i = 0, il = frames.length; i < il; ++i) {
             const f = frames[i];
             const m = {
                 ...model,
                 id: UUID.create22(),
                 modelNum: i,
-                atomicConformation: Coordinates.getAtomicConformation(f, model.atomicConformation.atomId),
+                atomicConformation: isIdentity
+                    ? Coordinates.getAtomicConformation(f, model.atomicConformation.atomId)
+                    : Coordinates.getAtomicConformationReordered(f, model.atomicConformation.atomId, srcIndexArray!),
                 // TODO: add support for supplying sphere and gaussian coordinates in addition to atomic coordinates?
                 // coarseConformation: coarse.conformation,
                 customProperties: new CustomProperties(),
@@ -106,15 +113,28 @@ export namespace Model {
             };
             trajectory.push(m);
         }
-        return trajectory;
+        return { trajectory, srcIndexArray };
+    }
+
+    export function trajectoryFromModelAndCoordinates(model: Model, coordinates: Coordinates): Trajectory {
+        return _trajectoryFromModelAndCoordinates(model, coordinates).trajectory;
     }
 
     export function trajectoryFromTopologyAndCoordinates(topology: Topology, coordinates: Coordinates): Task<Trajectory> {
         return Task.create('Create Trajectory', async ctx => {
             const model = (await createModels(topology.basic, topology.sourceData, ctx))[0];
             if (!model) throw new Error('found no model');
-            const trajectory = trajectoryFromModelAndCoordinates(model, coordinates);
-            const bondData = { pairs: topology.bonds, count: model.atomicHierarchy.atoms._rowCount };
+            const { trajectory, srcIndexArray } = _trajectoryFromModelAndCoordinates(model, coordinates);
+
+            const pairs = srcIndexArray
+                ? {
+                    indexA: Column.ofIntArray(Column.mapToArray(topology.bonds.indexA, i => srcIndexArray[i], Int32Array)),
+                    indexB: Column.ofIntArray(Column.mapToArray(topology.bonds.indexB, i => srcIndexArray[i], Int32Array)),
+                    order: topology.bonds.order
+                }
+                : topology.bonds;
+
+            const bondData = { pairs, count: model.atomicHierarchy.atoms._rowCount };
             const indexPairBonds = IndexPairBonds.fromData(bondData);
 
             let index = 0;
