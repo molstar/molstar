@@ -95,6 +95,10 @@ and navigate to `build/viewer`
     node ./lib/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/bird.ts -p BIRD
     node ./lib/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/cif-core.ts -p CifCore -aa
 
+**Lipid names**
+
+    node .\lib\cli\lipid-params -o src\mol-model\structure\model\types\lipids.ts
+
 **GraphQL schemas**
 
     ./node_modules/.bin/graphql-codegen -c ./src/extensions/rcsb/graphql/codegen.yml
