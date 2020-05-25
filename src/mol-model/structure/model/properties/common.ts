@@ -11,7 +11,9 @@ import { EntityIndex } from '../indexing';
 
 export type EntitySubtype = (
     mmCIF_Schema['entity_poly']['type']['T'] |
-    mmCIF_Schema['pdbx_entity_branch']['type']['T']
+    mmCIF_Schema['pdbx_entity_branch']['type']['T'] |
+    'ion' |
+    'lipid'
 )
 export const EntitySubtype = Column.Schema.Aliased<EntitySubtype>(Column.Schema.Str(''));
 

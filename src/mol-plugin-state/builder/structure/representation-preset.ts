@@ -123,6 +123,7 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             nonStandard: await presetStaticComponent(plugin, structureCell, 'non-standard'),
             branched: await presetStaticComponent(plugin, structureCell, 'branched', { label: 'Carbohydrate' }),
             water: await presetStaticComponent(plugin, structureCell, 'water'),
+            lipid: await presetStaticComponent(plugin, structureCell, 'lipid'),
             coarse: await presetStaticComponent(plugin, structureCell, 'coarse')
         };
 
@@ -139,6 +140,7 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color }, { tag: 'branched-ball-and-stick' }),
             branchedSnfg3d: builder.buildRepresentation(update, components.branched, { type: 'carbohydrate', typeParams, color }, { tag: 'branched-snfg-3d' }),
             water: builder.buildRepresentation(update, components.water, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.6 }, color }, { tag: 'water' }),
+            lipid: builder.buildRepresentation(update, components.lipid, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.6 }, color, colorParams: { carbonByChainId: false } }, { tag: 'lipid' }),
             coarse: builder.buildRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'chain-id' }, { tag: 'coarse' })
         };
 
