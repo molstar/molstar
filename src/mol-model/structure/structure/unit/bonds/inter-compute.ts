@@ -102,9 +102,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             if (added) continue;
         }
 
-        // ignore atoms with zero occupancy (assuming they are not actually atoms)
         const occA = occupancyA.value(aI);
-        if (hasOccupancy && occA === 0) continue;
 
         const { indices, count, squaredDistances } = lookup3d.find(imageA[0], imageA[1], imageA[2], MAX_RADIUS);
         if (count === 0) continue;
