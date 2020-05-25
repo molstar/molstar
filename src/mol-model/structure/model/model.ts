@@ -120,16 +120,26 @@ export namespace Model {
         return _trajectoryFromModelAndCoordinates(model, coordinates).trajectory;
     }
 
+    function invertIndex(xs: ArrayLike<number>) {
+        const ret = new Int32Array(xs.length);
+        for (let i = 0, _i = xs.length; i < _i; i++) {
+            ret[xs[i]] = i;
+        }
+        return ret;
+    }
+
     export function trajectoryFromTopologyAndCoordinates(topology: Topology, coordinates: Coordinates): Task<Trajectory> {
         return Task.create('Create Trajectory', async ctx => {
             const model = (await createModels(topology.basic, topology.sourceData, ctx))[0];
             if (!model) throw new Error('found no model');
             const { trajectory, srcIndexArray } = _trajectoryFromModelAndCoordinates(model, coordinates);
 
+            // TODO: cache the inverted index somewhere?
+            const invertedIndex = srcIndexArray ? invertIndex(srcIndexArray) : void 0;
             const pairs = srcIndexArray
                 ? {
-                    indexA: Column.ofIntArray(Column.mapToArray(topology.bonds.indexA, i => srcIndexArray[i], Int32Array)),
-                    indexB: Column.ofIntArray(Column.mapToArray(topology.bonds.indexB, i => srcIndexArray[i], Int32Array)),
+                    indexA: Column.ofIntArray(Column.mapToArray(topology.bonds.indexA, i => invertedIndex![i], Int32Array)),
+                    indexB: Column.ofIntArray(Column.mapToArray(topology.bonds.indexB, i => invertedIndex![i], Int32Array)),
                     order: topology.bonds.order
                 }
                 : topology.bonds;
