@@ -160,7 +160,7 @@ namespace MembraneCandidate {
 }
 
 function findMembrane(ctx: ANVILContext, spherePoints: Vec3[], initialStats: HphobHphil, label_comp_id: StructureElement.Property<string>): MembraneCandidate {
-    const { centroid, stepSize, maxThickness } = ctx;
+    const { centroid, stepSize, minThickness, maxThickness } = ctx;
     // best performing membrane
     let membrane: MembraneCandidate;
     // score of the best performing membrane
@@ -186,7 +186,7 @@ function findMembrane(ctx: ANVILContext, spherePoints: Vec3[], initialStats: Hph
             qvartemp.push(MembraneCandidate.initial(c1, c2, stats));
         }
 
-        let jmax = (maxThickness / stepSize) - 1; // TODO should be minThickness but causes weird results if actually in place
+        let jmax = (minThickness / stepSize) - 1;
 
         for (let width = 0, widthl = maxThickness; width < widthl;) {
             const imax = qvartemp.length - 1 - jmax;

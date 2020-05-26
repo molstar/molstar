@@ -66,11 +66,12 @@ function getMembraneSpheres(ctx: RuntimeContext, data: Structure, props: Membran
 }
 
 function createMembraneLayer(spheresBuilder: SpheresBuilder, point: Vec3, normalVector: Vec3, density: number, radius: number) {
+    Vec3.normalize(normalVector, normalVector);
     const d = -Vec3.dot(normalVector, point);
     const rep = Vec3();
     for (let i = -1000, il = 1000; i < il; i += density) {
         for (let j = -1000, jl = 1000; j < jl; j += density) {
-            Vec3.set(rep, i, j, -(d + i * normalVector[0] + j * normalVector[1]) / normalVector[2]);
+            Vec3.set(rep, i, j, normalVector[2] === 0 ? 0 : -(d + i * normalVector[0] + j * normalVector[1]) / normalVector[2]);
             if (Vec3.squaredDistance(rep, point) < radius) {
                 spheresBuilder.add(rep[0], rep[1], rep[2], 0);
             }
