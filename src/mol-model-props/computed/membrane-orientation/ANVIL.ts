@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -35,23 +35,22 @@ export type ANVILProps = PD.Values<ANVILParams>
  * Protein Engineering, Design & Selection, 2015, 1–5
  * doi: 10.1093/protein/gzv063
  */
-export function computeANVIL(structure: Structure, props: Partial<ANVILProps> = {}) {
-    const p = { ...PD.getDefaultValues(ANVILParams), ...props };
+export function computeANVIL(structure: Structure, props: ANVILProps) {
     return Task.create('Compute Membrane Topology', async runtime => {
-        return await calculate(runtime, structure, p);
+        return await calculate(runtime, structure, props);
     });
 }
 
 const l = StructureElement.Location.create(void 0);
 const centroidHelper = new CentroidHelper();
-function initialize(structure: Structure, params: ANVILProps): ANVILContext {
+function initialize(structure: Structure, props: ANVILProps): ANVILContext {
     const { label_atom_id, x, y, z } = StructureProperties.atom;
     const elementCount = structure.polymerResidueCount;
     centroidHelper.reset();
     l.structure = structure;
 
     let offsets = new Int32Array(elementCount);
-    let exposed: boolean[] = new Array<boolean>(elementCount);
+    let exposed = new Array<boolean>(elementCount);
 
     const accessibleSurfaceArea = structure && AccessibleSurfaceAreaProvider.get(structure);
     const asa = accessibleSurfaceArea.value!;
@@ -83,7 +82,7 @@ function initialize(structure: Structure, params: ANVILProps): ANVILContext {
 
             // keep track of offsets and exposed state to reuse
             offsets[m] = l.element;
-            exposed[m] = AccessibleSurfaceArea.getValue(l, asa) > params.afilter;
+            exposed[m] = AccessibleSurfaceArea.getValue(l, asa) > props.afilter;
 
             m++;
         }
@@ -104,13 +103,8 @@ function initialize(structure: Structure, params: ANVILProps): ANVILContext {
     const extent = 1.2 * Math.sqrt(centroidHelper.radiusSq);
 
     return {
+        ...props,
         structure: structure,
-        numberOfSpherePoints: params.numberOfSpherePoints,
-        stepSize: params.stepSize,
-        minThickness: params.maxThickness,
-        maxThickness: params.minThickness,
-        afilter: params.afilter,
-        membranePointDensity: params.membranePointDensity,
 
         offsets: offsets,
         exposed: exposed,
@@ -139,8 +133,7 @@ interface MembraneCandidate {
     stats: HphobHphil,
     normalVector?: Vec3,
     spherePoint?: Vec3,
-    qmax?: number,
-    membraneAtoms?: Vec3[]
+    qmax?: number
 }
 
 namespace MembraneCandidate {
@@ -161,14 +154,13 @@ namespace MembraneCandidate {
             stats: stats,
             normalVector: diam_vect,
             spherePoint: spherePoint,
-            qmax: qmax,
-            membraneAtoms: []
+            qmax: qmax
         };
     }
 }
 
 function findMembrane(ctx: ANVILContext, spherePoints: Vec3[], initialStats: HphobHphil, label_comp_id: StructureElement.Property<string>): MembraneCandidate {
-    const { centroid, stepSize, minThickness, maxThickness } = ctx;
+    const { centroid, stepSize, maxThickness } = ctx;
     // best performing membrane
     let membrane: MembraneCandidate;
     // score of the best performing membrane
@@ -194,7 +186,7 @@ function findMembrane(ctx: ANVILContext, spherePoints: Vec3[], initialStats: Hph
             qvartemp.push(MembraneCandidate.initial(c1, c2, stats));
         }
 
-        let jmax = (minThickness / stepSize) - 1;
+        let jmax = (maxThickness / stepSize) - 1; // TODO should be minThickness but causes weird results if actually in place
 
         for (let width = 0, widthl = maxThickness; width < widthl;) {
             const imax = qvartemp.length - 1 - jmax;

@@ -22,8 +22,9 @@ import { RuntimeContext } from '../../mol-task';
 
 const MembraneOrientationParams = {
     ...Spheres.Params,
-    color: PD.Color(ColorNames.orange),
-    density: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 })
+    color: PD.Color(ColorNames.lightgrey),
+    size: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 }, { description: 'Size of spheres that represent membrane planes' }),
+    density: PD.Numeric(1, { min: 0.25, max: 10, step: 0.25 }, { description: 'Distance between spheres'})
 };
 export type MembraneOrientationParams = typeof MembraneOrientationParams
 export type MembraneOrientationProps = PD.Values<MembraneOrientationParams>
@@ -61,9 +62,7 @@ function getMembraneSpheres(ctx: RuntimeContext, data: Structure, props: Membran
     const spheresBuilder = SpheresBuilder.create();
     createMembraneLayer(spheresBuilder, p1, normal, density, radius);
     createMembraneLayer(spheresBuilder, p2, normal, density, radius);
-    const getLabel = () => '?'; // TODO
-
-    return Shape.create(name, data, spheresBuilder.getSpheres(), () => props.color, () => 1, getLabel);
+    return Shape.create(name, data, spheresBuilder.getSpheres(), () => props.color, () => props.size, () => 'Membrane Boundaries');
 }
 
 function createMembraneLayer(spheresBuilder: SpheresBuilder, point: Vec3, normalVector: Vec3, density: number, radius: number) {

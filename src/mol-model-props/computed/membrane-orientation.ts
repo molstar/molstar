@@ -13,15 +13,14 @@ import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { ANVILParams, ANVILProps, computeANVIL } from './membrane-orientation/ANVIL';
 import { AccessibleSurfaceAreaProvider } from './accessible-surface-area';
 import { MembraneOrientation } from '../../mol-model/structure/model/properties/membrane-orientation';
-import { computeOPM } from './membrane-orientation/OPM';
 
 function getMembraneOrientationParams(data?: Structure) {
-    let defaultType = 'anvil' as 'anvil' | 'opm'; // TODO flip - OPM (or some other db-source) should be default if PDB identifier is known
+    let defaultType = 'anvil' as 'anvil' | 'db'; // TODO flip - OPM (or some other db-source) should be default if PDB identifier is known
     return {
         type: PD.MappedStatic(defaultType, {
-            'opm': PD.EmptyGroup({ label: 'OPM' }),
+            'db': PD.EmptyGroup({ label: 'DB' }),
             'anvil': PD.Group(ANVILParams, { label: 'ANVIL' })
-        }, { options: [['opm', 'OPM'], ['anvil', 'ANVIL']] })
+        }, { options: [['db', 'DB'], ['anvil', 'ANVIL']] })
     };
 }
 
@@ -43,17 +42,13 @@ export const MembraneOrientationProvider: CustomStructureProperty.Provider<Membr
         const p = { ...PD.getDefaultValues(MembraneOrientationParams), ...props };
         switch (p.type.name) {
             case 'anvil': return { value: await computeAnvil(ctx, data, p.type.params) };
-            case 'opm': return { value: await computeOpm(ctx, data) };
+            case 'db': throw Error('TODO impl');
         }
     }
 });
 
-async function computeAnvil(ctx: CustomProperty.Context, data: Structure, props: ANVILProps): Promise<MembraneOrientation> {
+async function computeAnvil(ctx: CustomProperty.Context, data: Structure, props: Partial<ANVILProps>): Promise<MembraneOrientation> {
     await AccessibleSurfaceAreaProvider.attach(ctx, data);
-    const p = { ...PD.getDefaultValues(MembraneOrientationParams), ...props };
+    const p = { ...PD.getDefaultValues(ANVILParams), ...props };
     return await computeANVIL(data, p).runInContext(ctx.runtime);
-}
-
-async function computeOpm(ctx: CustomProperty.Context, data: Structure): Promise<MembraneOrientation> {
-    return await computeOPM(data).runInContext(ctx.runtime);
 }

@@ -9,6 +9,7 @@ import { Vec3 } from '../../../../mol-math/linear-algebra';
 
 export interface ANVILContext {
     structure: Structure,
+
     numberOfSpherePoints: number,
     stepSize: number,
     minThickness: number,

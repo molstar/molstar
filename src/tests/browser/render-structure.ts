@@ -208,7 +208,7 @@ async function init() {
             size: reprCtx.sizeThemeRegistry.create('physical', { structure })
         });
         console.time('membrane orientation');
-        await membraneOrientationRepr.createOrUpdate({}, structure).run();
+        await membraneOrientationRepr.createOrUpdate({ ...MembraneOrientationRepresentationProvider.defaultValues, quality: 'auto' }, structure).run();
         console.timeEnd('membrane orientation');
     }
 
