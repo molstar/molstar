@@ -235,6 +235,8 @@ export namespace VolumeStreaming {
             });
 
             this.subscribeObservable(this.plugin.managers.structure.focus.behaviors.current, (entry) => {
+                if (!this.plugin.state.data.tree.children.has(this.ref)) return;
+
                 const loci = entry ? entry.loci : EmptyLoci;
 
                 if (this.params.entry.params.view.name !== 'selection-box') {
