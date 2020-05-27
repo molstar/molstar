@@ -15,7 +15,6 @@ export interface ANVILContext {
     minThickness: number,
     maxThickness: number,
     afilter: number,
-    membranePointDensity: number,
 
     offsets: ArrayLike<number>,
     exposed: ArrayLike<boolean>,

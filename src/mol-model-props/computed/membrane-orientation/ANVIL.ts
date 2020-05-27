@@ -22,8 +22,7 @@ export const ANVILParams = {
     stepSize: PD.Numeric(1, { min: 0.25, max: 4, step: 0.25 }, { description: 'Thickness of membrane slices that will be tested' }),
     minThickness: PD.Numeric(20, { min: 10, max: 30, step: 1}, { description: 'Minimum membrane thickness used during refinement' }),
     maxThickness: PD.Numeric(40, { min: 30, max: 50, step: 1}, { description: 'Maximum membrane thickness used during refinement' }),
-    afilter: PD.Numeric(40, { min: 10, max: 100, step: 1 }, { description: 'Absolute ASA cutoff above which residues will be considered' }),
-    membranePointDensity: PD.Numeric(2, { min: 0.1, max: 10, step: 0.1 }, { description: 'Distance between points representing membrane layer'})
+    afilter: PD.Numeric(40, { min: 10, max: 100, step: 1 }, { description: 'Absolute ASA cutoff above which residues will be considered' })
 };
 export type ANVILParams = typeof ANVILParams
 export type ANVILProps = PD.Values<ANVILParams>
