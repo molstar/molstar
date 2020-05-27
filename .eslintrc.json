@@ -5,7 +5,7 @@
     },
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "project": ["tsconfig.json", "tsconfig.servers.json"],
+        "project": ["tsconfig.json", "tsconfig.commonjs.json"],
         "sourceType": "module"
     },
     "plugins": [

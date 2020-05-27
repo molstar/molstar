@@ -28,7 +28,7 @@ npm run build-tsc
 and run the server by 
 
 ```
-node lib/servers/servers/volume/server
+node lib/commonjs/servers/volume/server
 ```
 
 ## From NPM
@@ -60,11 +60,11 @@ Sometimes nodejs might run into problems with memory. This is usually resolved b
 ## Preparing the Data
 
 For the server to work, CCP4/MAP (models 0, 1, 2 are supported) input data need to be converted into a custom block format. 
-To achieve this, use the ``pack`` application (``node lib/servers/servers/volume/pack`` or ``volume-server-pack`` binary from the NPM package).
+To achieve this, use the ``pack`` application (``node lib/commonjs/servers/volume/pack`` or ``volume-server-pack`` binary from the NPM package).
 
 ## Local Mode
 
-The program  ``lib/servers/servers/volume/pack`` (``volume-server-query`` in NPM package) can be used to query the data without running a http server.
+The program  ``lib/commonjs/servers/volume/pack`` (``volume-server-query`` in NPM package) can be used to query the data without running a http server.
 
 ## Navigating the Source Code
 

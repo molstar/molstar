@@ -17,7 +17,7 @@
         "jsx": "react",
         "lib": [ "es6", "dom", "esnext.asynciterable", "es2016" ],
         "rootDir": "src",
-        "outDir": "lib"
+        "outDir": "lib/commonjs"
     },
-    "include": [ "src/servers/**/*", "src/perf-tests/*", "src/cli/**/*" ]
+    "include": [ "src/**/*" ]
 }
