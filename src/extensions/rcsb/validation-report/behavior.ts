@@ -317,7 +317,7 @@ export const ValidationReportGeometryQualityPreset = StructureRepresentationPres
         }));
 
         const colorTheme = GeometryQualityColorThemeProvider.name as any;
-        const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme, focusThemeName: colorTheme }, plugin);
+        const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme, focusTheme: { name: colorTheme } }, plugin);
 
         const clashes = await plugin.builders.structure.tryCreateComponentFromExpression(structureCell, hasClash.expression, 'clashes', { label: 'Clashes' });
 
@@ -354,7 +354,7 @@ export const ValidationReportDensityFitPreset = StructureRepresentationPresetPro
         }));
 
         const colorTheme = DensityFitColorThemeProvider.name as any;
-        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme, focusThemeName: colorTheme }, plugin);
+        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme, focusTheme: { name: colorTheme } }, plugin);
     }
 });
 
@@ -378,6 +378,6 @@ export const ValidationReportRandomCoilIndexPreset = StructureRepresentationPres
         }));
 
         const colorTheme = RandomCoilIndexColorThemeProvider.name as any;
-        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme, focusThemeName: colorTheme }, plugin);
+        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme, focusTheme: { name: colorTheme } }, plugin);
     }
 });

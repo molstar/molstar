@@ -33,7 +33,10 @@ export namespace StructureRepresentationPresetProvider {
         ignoreHydrogens: PD.Optional(PD.Boolean(false)),
         quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
         globalThemeName: PD.Optional(PD.Text<ColorTheme.BuiltIn>('')),
-        focusThemeName: PD.Optional(PD.Text<ColorTheme.BuiltIn>(''))
+        focusTheme: PD.Optional(PD.Group({
+            name: PD.Optional(PD.Text<ColorTheme.BuiltIn>('')),
+            params: PD.Optional(PD.Value<ColorTheme.BuiltInParams<ColorTheme.BuiltIn>>({} as any))
+        }))
     };
     export type CommonParams = PD.ValuesFor<typeof CommonParams>
 
@@ -51,9 +54,9 @@ export namespace StructureRepresentationPresetProvider {
         return { update, builder, color, typeParams };
     }
 
-    export function updateFocusRepr(plugin: PluginContext, structure: Structure, themeName?: ColorTheme.BuiltIn) {
+    export function updateFocusRepr<T extends ColorTheme.BuiltIn>(plugin: PluginContext, structure: Structure, themeName: T | undefined, themeParams: ColorTheme.BuiltInParams<T> | undefined) {
         return plugin.state.updateBehavior(StructureFocusRepresentation, p => {
-            const c = createStructureColorThemeParams(plugin, structure, 'ball-and-stick', themeName);
+            const c = createStructureColorThemeParams(plugin, structure, 'ball-and-stick', themeName, themeParams);
             p.surroundingsParams.colorTheme = c;
             p.targetParams.colorTheme = c;
         });
@@ -145,7 +148,7 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: false });
-        await updateFocusRepr(plugin, structure, params.focusThemeName);
+        await updateFocusRepr(plugin, structure, params.focusTheme?.name, params.focusTheme?.params);
 
         return { components, representations };
     }
@@ -183,7 +186,7 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
-        await updateFocusRepr(plugin, structure, params.focusThemeName);
+        await updateFocusRepr(plugin, structure, params.focusTheme?.name, params.focusTheme?.params);
 
         return { components, representations };
     }
@@ -232,7 +235,7 @@ const coarseSurface = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
-        await updateFocusRepr(plugin, structure, params.focusThemeName);
+        await updateFocusRepr(plugin, structure, params.focusTheme?.name, params.focusTheme?.params);
 
         return { components, representations };
     }
@@ -264,7 +267,7 @@ const polymerCartoon = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
-        await updateFocusRepr(plugin, structure, params.focusThemeName);
+        await updateFocusRepr(plugin, structure, params.focusTheme?.name, params.focusTheme?.params);
 
         return { components, representations };
     }

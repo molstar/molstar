@@ -29,7 +29,7 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         }),
         surroundingsParams: PD.Group(reprParams, {
             label: 'Surroundings',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.16 } })
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.16 }, color: 'element-symbol', colorParams: { carbonByChainId: false} })
         }),
         nciParams: PD.Group(reprParams, {
             label: 'Non-covalent Int.',
@@ -167,7 +167,6 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
         const components = this.params.components;
 
         // TODO: create component if previously didnt exist
-
         let hasComponent = components.indexOf('target') >= 0;
         for (const repr of state.select(all.withTag(StructureFocusRepresentationTags.TargetRepr))) {
             if (!hasComponent) builder.delete(repr.transform.ref);
