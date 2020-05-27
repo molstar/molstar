@@ -203,13 +203,7 @@ async function init() {
     }
 
     if (show.membrane) {
-        membraneOrientationRepr.setTheme({
-            color: reprCtx.colorThemeRegistry.create('uniform', { structure }),
-            size: reprCtx.sizeThemeRegistry.create('physical', { structure })
-        });
-        console.time('membrane orientation');
         await membraneOrientationRepr.createOrUpdate({ ...MembraneOrientationRepresentationProvider.defaultValues, quality: 'auto' }, structure).run();
-        console.timeEnd('membrane orientation');
     }
 
     if (show.cartoon) canvas3d.add(cartoonRepr);
