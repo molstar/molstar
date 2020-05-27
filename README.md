@@ -90,10 +90,10 @@ and navigate to `build/viewer`
 ### Code generation
 **CIF schemas**
 
-    node ./lib/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/mmcif.ts -p mmCIF
-    node ./lib/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/ccd.ts -p CCD
-    node ./lib/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/bird.ts -p BIRD
-    node ./lib/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/cif-core.ts -p CifCore -aa
+    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/mmcif.ts -p mmCIF
+    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/ccd.ts -p CCD
+    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/bird.ts -p BIRD
+    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/cif-core.ts -p CifCore -aa
 
 **Lipid names**
 
@@ -106,7 +106,7 @@ and navigate to `build/viewer`
 ### Other scripts
 **Create chem comp bond table**
 
-    node --max-old-space-size=4096 lib/cli/chem-comp-bond/create-table.js build/data/ccb.bcif -b
+    node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-bond/create-table.js build/data/ccb.bcif -b
 
 **Test model server**
 
@@ -124,7 +124,7 @@ To see all available commands, use ``node lib/servers/model/preprocess -h``.
 
 Or
 
-    node ./lib/cli/cif2bcif
+    node ./lib/commonjs/cli/cif2bcif
 
 ## Development
 

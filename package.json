@@ -43,8 +43,8 @@
     "build/viewer/"
   ],
   "bin": {
-    "cif2bcif": "lib/cli/cif2bcif/index.js",
-    "cifschema": "lib/cli/cifschema/index.js",
+    "cif2bcif": "lib/commonjs/cli/cif2bcif/index.js",
+    "cifschema": "lib/commonjs/cli/cifschema/index.js",
     "model-server": "lib/commonjs/servers/model/server.js",
     "model-server-query": "lib/commonjs/servers/model/query.js",
     "model-server-preprocess": "lib/commonjs/servers/model/preprocess.js",
