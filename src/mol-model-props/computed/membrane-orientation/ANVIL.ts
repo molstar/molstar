@@ -336,9 +336,9 @@ namespace HphobHphil {
     }
 
     // ANVIL-specific (not general) definition of membrane-favoring amino acids
-    const HYDROPHOBIC_AMINO_ACIDS = ['ALA', 'CYS', 'GLY', 'HIS', 'ILE', 'LEU', 'MET', 'PHE', 'SER', 'THR', 'VAL'];
+    const HYDROPHOBIC_AMINO_ACIDS = new Set(['ALA', 'CYS', 'GLY', 'HIS', 'ILE', 'LEU', 'MET', 'PHE', 'SER', 'THR', 'VAL']);
     function isHydrophobic(label_comp_id: string): boolean {
-        return HYDROPHOBIC_AMINO_ACIDS.indexOf(label_comp_id) !== -1;
+        return HYDROPHOBIC_AMINO_ACIDS.has(label_comp_id);
     }
 }
 
