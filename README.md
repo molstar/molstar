@@ -97,11 +97,11 @@ and navigate to `build/viewer`
 
 **Lipid names**
 
-    node .\lib\cli\lipid-params -o src\mol-model\structure\model\types\lipids.ts
+    node lib/commonjs/cli/lipid-params -o src/mol-model/structure/model/types/lipids.ts
 
 **GraphQL schemas**
 
-    ./node_modules/.bin/graphql-codegen -c ./src/extensions/rcsb/graphql/codegen.yml
+    node node_modules//@graphql-codegen/cli/bin -c src/extensions/rcsb/graphql/codegen.yml
 
 ### Other scripts
 **Create chem comp bond table**
@@ -124,7 +124,7 @@ To see all available commands, use ``node lib/servers/model/preprocess -h``.
 
 Or
 
-    node ./lib/commonjs/cli/cif2bcif
+    node lib/commonjs/cli/cif2bcif
 
 ## Development
 

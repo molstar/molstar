@@ -160,7 +160,7 @@ async function ensureDicAvailable(dicPath: string, dicUrl: string) {
     }
 }
 
-const DIC_DIR = path.resolve(__dirname, '../../../build/dics/');
+const DIC_DIR = path.resolve(__dirname, '../../../../build/dics/');
 const MMCIF_DIC_PATH = `${DIC_DIR}/mmcif_pdbx_v50.dic`;
 const MMCIF_DIC_URL = 'http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_pdbx_v50.dic';
 const IHM_DIC_PATH = `${DIC_DIR}/ihm-extension.dic`;
@@ -238,22 +238,22 @@ switch (args.preset) {
     case 'mmCIF':
         args.name = 'mmCIF';
         args.dic = 'mmCIF';
-        args.fieldNamesPath = path.resolve(__dirname, '../../../data/cif-field-names/mmcif-field-names.csv');
+        args.fieldNamesPath = path.resolve(__dirname, '../../../../data/cif-field-names/mmcif-field-names.csv');
         break;
     case 'CCD':
         args.name = 'CCD';
         args.dic = 'mmCIF';
-        args.fieldNamesPath = path.resolve(__dirname, '../../../data/cif-field-names/ccd-field-names.csv');
+        args.fieldNamesPath = path.resolve(__dirname, '../../../../data/cif-field-names/ccd-field-names.csv');
         break;
     case 'BIRD':
         args.name = 'BIRD';
         args.dic = 'mmCIF';
-        args.fieldNamesPath = path.resolve(__dirname, '../../../data/cif-field-names/bird-field-names.csv');
+        args.fieldNamesPath = path.resolve(__dirname, '../../../../data/cif-field-names/bird-field-names.csv');
         break;
     case 'CifCore':
         args.name = 'CifCore';
         args.dic = 'CifCore';
-        args.fieldNamesPath = path.resolve(__dirname, '../../../data/cif-field-names/cif-core-field-names.csv');
+        args.fieldNamesPath = path.resolve(__dirname, '../../../../data/cif-field-names/cif-core-field-names.csv');
         break;
 }
 

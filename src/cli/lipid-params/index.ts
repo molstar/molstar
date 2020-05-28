@@ -11,7 +11,7 @@ import * as path from 'path';
 import fetch from 'node-fetch';
 import { UniqueArray } from '../../mol-data/generic';
 
-const LIPIDS_DIR = path.resolve(__dirname, '../../../build/lipids/');
+const LIPIDS_DIR = path.resolve(__dirname, '../../../../build/lipids/');
 
 const MARTINI_LIPIDS_PATH = path.resolve(LIPIDS_DIR, 'martini_lipids.itp');
 const MARTINI_LIPIDS_URL = 'http://www.cgmartini.nl/images/parameters/lipids/Collections/martini_v2.0_lipids_all_201506.itp';

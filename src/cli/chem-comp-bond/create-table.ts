@@ -220,7 +220,7 @@ async function run(out: string, binary = false) {
 
 const TABLE_NAME = 'CHEM_COMP_BONDS';
 
-const DATA_DIR = path.join(__dirname, '..', '..', '..', 'build/data');
+const DATA_DIR = path.join(__dirname, '..', '..', '..', '..', 'build/data');
 const CCD_PATH = path.join(DATA_DIR, 'components.cif');
 const PVCD_PATH = path.join(DATA_DIR, 'aa-variants-v1.cif');
 const CCD_URL = 'http://ftp.wwpdb.org/pub/pdb/data/monomers/components.cif';

@@ -8,7 +8,7 @@
 
 import { Database, Column } from '../../../../mol-data/db';
 
-import Schema = Column.Schema
+import Schema = Column.Schema;
 
 const int = Schema.int;
 const float = Schema.float;
@@ -792,4 +792,4 @@ export const CifCore_Aliases = {
 };
 
 export type CifCore_Schema = typeof CifCore_Schema;
-export interface CifCore_Database extends Database<CifCore_Schema> {}
+export interface CifCore_Database extends Database<CifCore_Schema> {};
