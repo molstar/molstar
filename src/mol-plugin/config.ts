@@ -9,6 +9,7 @@ import { Structure, Model } from '../mol-model/structure';
 import { PluginContext } from './context';
 import { PdbDownloadProvider } from '../mol-plugin-state/actions/structure';
 import { EmdbDownloadProvider } from '../mol-plugin-state/actions/volume';
+import { StructureRepresentationPresetProvider } from '../mol-plugin-state/builder/structure/representation-preset';
 
 export class PluginConfigItem<T = any> {
     toString() { return this.key; }
@@ -45,6 +46,7 @@ export const PluginConfig = {
     },
     Structure: {
         SizeThresholds: item('structure.size-thresholds', Structure.DefaultSizeThresholds),
+        DefaultRepresentationPresetParams: item<StructureRepresentationPresetProvider.CommonParams>('structure.default-representation-preset-params', { theme: { carbonByChainId: false } })
     }
 };
 

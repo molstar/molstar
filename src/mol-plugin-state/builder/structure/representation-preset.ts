@@ -32,10 +32,13 @@ export namespace StructureRepresentationPresetProvider {
     export const CommonParams = {
         ignoreHydrogens: PD.Optional(PD.Boolean(false)),
         quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
-        globalThemeName: PD.Optional(PD.Text<ColorTheme.BuiltIn>('')),
-        focusTheme: PD.Optional(PD.Group({
-            name: PD.Optional(PD.Text<ColorTheme.BuiltIn>('')),
-            params: PD.Optional(PD.Value<ColorTheme.BuiltInParams<ColorTheme.BuiltIn>>({} as any))
+        theme: PD.Optional(PD.Group({
+            globalName: PD.Optional(PD.Text<ColorTheme.BuiltIn>('')),
+            carbonByChainId: PD.Optional(PD.Boolean(true)),
+            focus: PD.Optional(PD.Group({
+                name: PD.Optional(PD.Text<ColorTheme.BuiltIn>('')),
+                params: PD.Optional(PD.Value<ColorTheme.BuiltInParams<ColorTheme.BuiltIn>>({} as any))
+            }))
         }))
     };
     export type CommonParams = PD.ValuesFor<typeof CommonParams>
@@ -49,9 +52,10 @@ export namespace StructureRepresentationPresetProvider {
         };
         if (params.quality && params.quality !== 'auto') typeParams.quality = params.quality;
         if (params.ignoreHydrogens !== void 0) typeParams.ignoreHydrogens = !!params.ignoreHydrogens;
-        const color: ColorTheme.BuiltIn | undefined = params.globalThemeName ? params.globalThemeName : void 0;
+        const color: ColorTheme.BuiltIn | undefined = params.theme?.globalName ? params.theme?.globalName : void 0;
+        const ballAndStickColor: ColorTheme.BuiltInParams<'element-symbol'> = typeof params.theme?.carbonByChainId !== 'undefined' ? { carbonByChainId: !!params.theme?.carbonByChainId } : { };
 
-        return { update, builder, color, typeParams };
+        return { update, builder, color, typeParams, ballAndStickColor };
     }
 
     export function updateFocusRepr<T extends ColorTheme.BuiltIn>(plugin: PluginContext, structure: Structure, themeName: T | undefined, themeParams: ColorTheme.BuiltInParams<T> | undefined) {
@@ -137,12 +141,13 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             sizeFactor: structure.isCoarseGrained ? 0.8 : 0.2,
         };
 
-        const { update, builder, typeParams, color } = reprBuilder(plugin, params);
+        const { update, builder, typeParams, color, ballAndStickColor } = reprBuilder(plugin, params);
+
         const representations = {
             polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams: { ...typeParams, ...cartoonProps }, color }, { tag: 'polymer' }),
-            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams, color }, { tag: 'ligand' }),
-            nonStandard: builder.buildRepresentation(update, components.nonStandard, { type: 'ball-and-stick', typeParams, color }, { tag: 'non-standard' }),
-            branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color }, { tag: 'branched-ball-and-stick' }),
+            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams, color, colorParams: ballAndStickColor }, { tag: 'ligand' }),
+            nonStandard: builder.buildRepresentation(update, components.nonStandard, { type: 'ball-and-stick', typeParams, color, colorParams: ballAndStickColor }, { tag: 'non-standard' }),
+            branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color, colorParams: ballAndStickColor }, { tag: 'branched-ball-and-stick' }),
             branchedSnfg3d: builder.buildRepresentation(update, components.branched, { type: 'carbohydrate', typeParams, color }, { tag: 'branched-snfg-3d' }),
             water: builder.buildRepresentation(update, components.water, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.6 }, color }, { tag: 'water' }),
             lipid: builder.buildRepresentation(update, components.lipid, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.6 }, color, colorParams: { carbonByChainId: false } }, { tag: 'lipid' }),
@@ -150,7 +155,7 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: false });
-        await updateFocusRepr(plugin, structure, params.focusTheme?.name, params.focusTheme?.params);
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
 
         return { components, representations };
     }
@@ -188,7 +193,7 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
-        await updateFocusRepr(plugin, structure, params.focusTheme?.name, params.focusTheme?.params);
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
 
         return { components, representations };
     }
@@ -237,7 +242,7 @@ const coarseSurface = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
-        await updateFocusRepr(plugin, structure, params.focusTheme?.name, params.focusTheme?.params);
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
 
         return { components, representations };
     }
@@ -269,7 +274,7 @@ const polymerCartoon = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
-        await updateFocusRepr(plugin, structure, params.focusTheme?.name, params.focusTheme?.params);
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
 
         return { components, representations };
     }
@@ -299,9 +304,9 @@ const atomicDetail = StructureRepresentationPresetProvider({
             });
         }
 
-        const { update, builder, typeParams, color } = reprBuilder(plugin, params);
+        const { update, builder, typeParams, color, ballAndStickColor } = reprBuilder(plugin, params);
         const representations = {
-            all: builder.buildRepresentation(update, components.all, { type: 'ball-and-stick', typeParams, color }, { tag: 'all' }),
+            all: builder.buildRepresentation(update, components.all, { type: 'ball-and-stick', typeParams, color, colorParams: ballAndStickColor }, { tag: 'all' }),
         };
         if (params.showCarbohydrateSymbol) {
             Object.assign(representations, {

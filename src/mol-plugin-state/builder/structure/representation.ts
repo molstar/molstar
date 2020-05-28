@@ -16,6 +16,7 @@ import { PluginStateObject } from '../../objects';
 import { StructureRepresentation3D } from '../../transforms/representation';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from './representation-preset';
 import { arrayRemoveInPlace } from '../../../mol-util/array';
+import { PluginConfig } from '../../../mol-plugin/config';
 
 // TODO factor out code shared with TrajectoryHierarchyBuilder?
 
@@ -102,9 +103,13 @@ export class StructureRepresentationBuilder {
             return;
         }
 
-        const prms = params || (provider.params
-            ? PD.getDefaultValues(provider.params(cell.obj, this.plugin) as PD.Params)
+        const pd = provider.params?.(cell.obj, this.plugin) as PD.Params || {};
+        let prms = params || (provider.params
+            ? PD.getDefaultValues(pd)
             : {});
+
+        const defaults = this.plugin.config.get(PluginConfig.Structure.DefaultRepresentationPresetParams);
+        prms = PD.merge(pd, defaults, prms);
 
         const task = Task.create(`${provider.display.name}`, () => provider.apply(cell, prms, this.plugin) as Promise<any>);
         return this.plugin.runTask(task);
