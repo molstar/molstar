@@ -29,7 +29,7 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         }),
         surroundingsParams: PD.Group(reprParams, {
             label: 'Surroundings',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.16 }, color: 'element-symbol', colorParams: { carbonByChainId: false} })
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.16 } })
         }),
         nciParams: PD.Group(reprParams, {
             label: 'Non-covalent Int.',
