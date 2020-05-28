@@ -46,7 +46,7 @@ export const PluginConfig = {
     },
     Structure: {
         SizeThresholds: item('structure.size-thresholds', Structure.DefaultSizeThresholds),
-        DefaultRepresentationPresetParams: item<StructureRepresentationPresetProvider.CommonParams>('structure.default-representation-preset-params', { theme: { carbonByChainId: false } })
+        DefaultRepresentationPresetParams: item<StructureRepresentationPresetProvider.CommonParams>('structure.default-representation-preset-params', { })
     }
 };
 
