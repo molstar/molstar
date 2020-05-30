@@ -408,7 +408,7 @@ function getModels(s: Structure) {
 }
 
 function getUniqueResidueNames(s: Structure) {
-    const prop = StructureProperties.atom.label_comp_id;
+    const { microheterogeneityCompIds } = StructureProperties.residue;
     const names = new Set<string>();
     const loc = StructureElement.Location.create(s);
     for (const unitGroup of s.unitSymmetryGroups) {
@@ -420,8 +420,8 @@ function getUniqueResidueNames(s: Structure) {
         while (residues.hasNext) {
             const seg = residues.move();
             loc.element = unit.elements[seg.start];
-            // TODO check for microhet
-            names.add(prop(loc));
+            const compIds = microheterogeneityCompIds(loc);
+            for (const compId of compIds) names.add(compId);
         }
     }
     return names;
