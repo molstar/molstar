@@ -58,7 +58,7 @@ export namespace ModelInfo {
             const entityType = model.entities.data.type.value(eI);
             if (entityType !== 'non-polymer' && entityType !== 'branched') continue;
 
-            const comp_id = model.atomicHierarchy.residues.label_comp_id.value(rI);
+            const comp_id = model.atomicHierarchy.atoms.label_comp_id.value(rI);
 
             let lig = hetMap.get(comp_id);
             if (!lig) {

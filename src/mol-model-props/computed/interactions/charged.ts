@@ -62,7 +62,7 @@ function addUnitPositiveCharges(structure: Structure, unit: Unit.Atomic, builder
 
     const addedElements = new Set<StructureElement.UnitIndex>();
 
-    const { label_comp_id } = unit.model.atomicHierarchy.residues;
+    const { label_comp_id } = unit.model.atomicHierarchy.atoms;
     const residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
 
     while (residueIt.hasNext) {
@@ -115,7 +115,7 @@ function addUnitNegativeCharges(structure: Structure, unit: Unit.Atomic, builder
 
     const addedElements = new Set<StructureElement.UnitIndex>();
 
-    const { label_comp_id } = unit.model.atomicHierarchy.residues;
+    const { label_comp_id } = unit.model.atomicHierarchy.atoms;
     const residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
 
     while (residueIt.hasNext) {

@@ -74,14 +74,14 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
         for (let i = 0, il = data.units.length; i < il; ++i) {
             const unit = data.units[i];
-            const { residueAtomSegments, residues } = unit.model.atomicHierarchy;
+            const { residueAtomSegments, atoms } = unit.model.atomicHierarchy;
             const residueIt = Segmentation.transientSegments(residueAtomSegments, unit.elements);
             while (residueIt.hasNext) {
                 const { index } = residueIt.move();
                 sequenceIndices.set(index, sequence.length);
                 residueIndices.set(sequence.length, index);
                 seqToUnit.set(sequence.length, unit);
-                sequence.push(residues.label_comp_id.value(index));
+                sequence.push(atoms.label_comp_id.value(index));
             }
         }
 

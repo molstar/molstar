@@ -38,8 +38,8 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
     const { x, y, z } = unit.model.atomicConformation;
     const atomCount = unit.elements.length;
     const { elements: atoms, residueIndex, chainIndex } = unit;
-    const { type_symbol, label_atom_id, label_alt_id } = unit.model.atomicHierarchy.atoms;
-    const { label_comp_id, label_seq_id } = unit.model.atomicHierarchy.residues;
+    const { type_symbol, label_atom_id, label_alt_id, label_comp_id } = unit.model.atomicHierarchy.atoms;
+    const { label_seq_id } = unit.model.atomicHierarchy.residues;
     const { index } = unit.model.atomicHierarchy;
     const { byEntityKey } = unit.model.sequence;
     const query3d = unit.lookup3d;

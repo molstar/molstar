@@ -74,7 +74,7 @@ export function getResidueNameColorThemeParams(ctx: ThemeDataContext) {
 }
 
 function getAtomicCompId(unit: Unit.Atomic, element: ElementIndex) {
-    return unit.model.atomicHierarchy.residues.label_comp_id.value(unit.residueIndex[element]);
+    return unit.model.atomicHierarchy.atoms.label_comp_id.value(unit.residueIndex[element]);
 }
 
 function getCoarseCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIndex) {

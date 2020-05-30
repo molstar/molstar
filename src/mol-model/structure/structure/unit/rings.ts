@@ -99,8 +99,7 @@ namespace UnitRing {
 
     export function isAromatic(unit: Unit.Atomic, ring: UnitRing): boolean {
         const { elements, bonds: { b, offset, edgeProps: { flags } } } = unit;
-        const { type_symbol } = unit.model.atomicHierarchy.atoms;
-        const { label_comp_id } = unit.model.atomicHierarchy.residues;
+        const { type_symbol, label_comp_id } = unit.model.atomicHierarchy.atoms;
 
         // ignore Proline (can be flat because of bad geometry)
         if (label_comp_id.value(unit.getResidueIndex(ring[0])) === 'PRO') return false;

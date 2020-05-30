@@ -38,10 +38,10 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const { elements: atomsB, residueIndex: residueIndexB } = unitB;
     const atomCount = unitA.elements.length;
 
-    const { type_symbol: type_symbolA, label_alt_id: label_alt_idA, label_atom_id: label_atom_idA } = unitA.model.atomicHierarchy.atoms;
-    const { type_symbol: type_symbolB, label_alt_id: label_alt_idB, label_atom_id: label_atom_idB } = unitB.model.atomicHierarchy.atoms;
-    const { label_comp_id: label_comp_idA, auth_seq_id: auth_seq_idA } = unitA.model.atomicHierarchy.residues;
-    const { label_comp_id: label_comp_idB, auth_seq_id: auth_seq_idB } = unitB.model.atomicHierarchy.residues;
+    const { type_symbol: type_symbolA, label_alt_id: label_alt_idA, label_atom_id: label_atom_idA, label_comp_id: label_comp_idA } = unitA.model.atomicHierarchy.atoms;
+    const { type_symbol: type_symbolB, label_alt_id: label_alt_idB, label_atom_id: label_atom_idB, label_comp_id: label_comp_idB } = unitB.model.atomicHierarchy.atoms;
+    const { auth_seq_id: auth_seq_idA } = unitA.model.atomicHierarchy.residues;
+    const { auth_seq_id: auth_seq_idB } = unitB.model.atomicHierarchy.residues;
     const { occupancy: occupancyA } = unitA.model.atomicConformation;
     const { occupancy: occupancyB } = unitB.model.atomicConformation;
     const hasOccupancy = occupancyA.isDefined && occupancyB.isDefined;

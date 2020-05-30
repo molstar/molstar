@@ -51,20 +51,17 @@ const atom = {
     label_atom_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.label_atom_id.value(l.element)),
     auth_atom_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.auth_atom_id.value(l.element)),
     label_alt_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.label_alt_id.value(l.element)),
+    label_comp_id: p(compId),
+    auth_comp_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.auth_comp_id.value(l.unit.residueIndex[l.element])),
     pdbx_formal_charge: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.pdbx_formal_charge.value(l.element)),
 
     // Derived
     vdw_radius: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : VdwRadius(l.unit.model.atomicHierarchy.atoms.type_symbol.value(l.element))),
 };
 
-function _compId(l: StructureElement.Location) {
-    return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element]);
-}
-
 function compId(l: StructureElement.Location) {
     if (!Unit.isAtomic(l.unit)) notAtomic();
-    if (!hasMicroheterogeneity(l)) return _compId(l);
-    return l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element]);
+    return l.unit.model.atomicHierarchy.atoms.label_comp_id.value(l.element);
 }
 
 function seqId(l: StructureElement.Location) {
@@ -91,8 +88,6 @@ const residue = {
     key: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.residueIndex[l.element]),
 
     group_PDB: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.group_PDB.value(l.unit.residueIndex[l.element])),
-    label_comp_id: p(compId),
-    auth_comp_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.element])),
     label_seq_id: p(seqId),
     auth_seq_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.element])),
     pdbx_PDB_ins_code: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.element])),

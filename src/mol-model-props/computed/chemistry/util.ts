@@ -27,7 +27,7 @@ export function altLoc(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
 }
 
 export function compId(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    return unit.model.atomicHierarchy.residues.label_comp_id.value(unit.getResidueIndex(index));
+    return unit.model.atomicHierarchy.atoms.label_comp_id.value(unit.getResidueIndex(index));
 }
 
 //

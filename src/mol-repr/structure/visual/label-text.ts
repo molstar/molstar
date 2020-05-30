@@ -94,7 +94,8 @@ function createChainText(ctx: VisualContext, structure: Structure, theme: Theme,
 function createResidueText(ctx: VisualContext, structure: Structure, theme: Theme, props: LabelTextProps, text?: Text): Text {
     const l = StructureElement.Location.create(structure);
     const { units, serialMapping } = structure;
-    const { auth_seq_id, label_comp_id } = StructureProperties.residue;
+    const { label_comp_id } = StructureProperties.atom;
+    const { auth_seq_id } = StructureProperties.residue;
     const { cumulativeUnitElementCount } = serialMapping;
 
     const count = structure.polymerResidueCount * 2;

@@ -35,6 +35,16 @@ export const AtomsSchema = {
      */
     label_alt_id: mmCIF.atom_site.label_alt_id,
     /**
+     * A component of the identifier for this atom site.
+     * For mmCIF files, this points to chem_comp.id in the CHEM_COMP category.
+     */
+    label_comp_id: mmCIF.atom_site.label_comp_id,
+    /**
+     * An alternative identifier for atom_site.label_comp_id that may be provided by an author
+     * in order to match the identification used in the publication that describes the structure.
+     */
+    auth_comp_id: mmCIF.atom_site.auth_comp_id,
+    /**
      * The net integer charge assigned to this atom.
      * This is the formal charge assignment normally found in chemical diagrams.
      */
@@ -59,16 +69,6 @@ export const ResiduesSchema = {
      */
     group_PDB: mmCIF.atom_site.group_PDB,
     /**
-     * A component of the identifier for this atom site.
-     * For mmCIF files, this points to chem_comp.id in the CHEM_COMP category.
-     */
-    label_comp_id: mmCIF.atom_site.label_comp_id,
-    /**
-     * An alternative identifier for atom_site.label_comp_id that may be provided by an author
-     * in order to match the identification used in the publication that describes the structure.
-     */
-    auth_comp_id: mmCIF.atom_site.auth_comp_id,
-    /**
      * For mmCIF files, this points to entity_poly_seq.num in the ENTITY_POLY_SEQ category.
      */
     label_seq_id: mmCIF.atom_site.label_seq_id,
@@ -81,6 +81,8 @@ export const ResiduesSchema = {
      * PDB insertion code.
      */
     pdbx_PDB_ins_code: mmCIF.atom_site.pdbx_PDB_ins_code,
+
+    // comp_id is part of atoms because of microheterogeneity
 };
 export type ResiduesSchema = typeof ResiduesSchema
 export type Residues = Table<ResiduesSchema>

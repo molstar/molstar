@@ -55,9 +55,9 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
 
     const { elements, model } = unit;
-    const { chainAtomSegments, residueAtomSegments, residues, index: atomicIndex } = model.atomicHierarchy;
+    const { chainAtomSegments, residueAtomSegments, atoms, index: atomicIndex } = model.atomicHierarchy;
     const { moleculeType, traceElementIndex } = model.atomicHierarchy.derived.residue;
-    const { label_comp_id } = residues;
+    const { label_comp_id } = atoms;
     const pos = unit.conformation.invariantPosition;
 
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);

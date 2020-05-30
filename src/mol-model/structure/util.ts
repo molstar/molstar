@@ -46,8 +46,9 @@ export function getAtomIdForAtomRole(polymerType: PolymerType, atomRole: AtomRol
 }
 
 export function residueLabel(model: Model, rI: number) {
-    const { residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
-    const { label_comp_id, label_seq_id } = residues;
+    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
+    const { label_comp_id } = atoms;
+    const { label_seq_id } = residues;
     const { label_asym_id } = chains;
     const cI = chainAtomSegments.index[residueAtomSegments.offsets[rI]];
     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`;
@@ -55,8 +56,8 @@ export function residueLabel(model: Model, rI: number) {
 
 export function elementLabel(model: Model, index: ElementIndex) {
     const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
-    const { label_atom_id } = atoms;
-    const { auth_seq_id, label_comp_id } = residues;
+    const { label_atom_id, label_comp_id } = atoms;
+    const { auth_seq_id } = residues;
     const { auth_asym_id } = chains;
 
     const residueIndex = residueAtomSegments.index[index];

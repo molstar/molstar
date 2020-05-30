@@ -34,8 +34,8 @@ export async function readCifFile(path: string) {
 
 export function atomLabel(model: Model, aI: number) {
     const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
-    const { label_atom_id } = atoms;
-    const { label_comp_id, label_seq_id } = residues;
+    const { label_atom_id, label_comp_id } = atoms;
+    const { label_seq_id } = residues;
     const { label_asym_id } = chains;
     const rI = residueAtomSegments.index[aI];
     const cI = chainAtomSegments.index[aI];
@@ -43,8 +43,9 @@ export function atomLabel(model: Model, aI: number) {
 }
 
 export function residueLabel(model: Model, rI: number) {
-    const { residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
-    const { label_comp_id, label_seq_id } = residues;
+    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
+    const { label_comp_id } = atoms;
+    const { label_seq_id } = residues;
     const { label_asym_id } = chains;
     const cI = chainAtomSegments.index[residueAtomSegments.offsets[rI]];
     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`;

@@ -108,7 +108,7 @@ namespace AccessibleSurfaceArea {
 
     export function getNormalizedValue(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
         const value = getValue(location, accessibleSurfaceArea);
-        return value === -1 ? -1 : normalize(StructureProperties.residue.label_comp_id(location), value);
+        return value === -1 ? -1 : normalize(StructureProperties.atom.label_comp_id(location), value);
     }
 
     export function getFlag(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
