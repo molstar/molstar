@@ -123,7 +123,7 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
 
     const membrane = initialMembrane.qmax! > alternativeMembrane.qmax! ? initialMembrane : alternativeMembrane;
 
-    return MembraneOrientation(membrane.planePoint1, membrane.planePoint2, membrane.normalVector!, ctx.extent * ctx.extent);
+    return MembraneOrientation(membrane.planePoint1, membrane.planePoint2, membrane.normalVector!, ctx.extent, ctx.centroid);
 }
 
 interface MembraneCandidate {
