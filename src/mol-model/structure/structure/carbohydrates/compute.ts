@@ -168,7 +168,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
             while (residueIt.hasNext) {
                 const { index: residueIndex } = residueIt.move();
 
-                const saccharideComp = getSaccharideComp(label_comp_id.value(residueIndex), model);
+                const saccharideComp = getSaccharideComp(label_comp_id.value(residueAtomSegments.offsets[residueIndex]), model);
                 if (!saccharideComp) continue;
 
                 if (!sugarResidueMap) {

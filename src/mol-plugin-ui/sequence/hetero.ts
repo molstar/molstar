@@ -81,7 +81,7 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
                 sequenceIndices.set(index, sequence.length);
                 residueIndices.set(sequence.length, index);
                 seqToUnit.set(sequence.length, unit);
-                sequence.push(atoms.label_comp_id.value(index));
+                sequence.push(atoms.label_comp_id.value(residueAtomSegments.offsets[index]));
             }
         }
 

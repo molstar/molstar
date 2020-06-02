@@ -99,7 +99,7 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
         }
 
         const raI = residueIndex[aI];
-        const compId = label_comp_id.value(raI);
+        const compId = label_comp_id.value(aI);
 
         if (!props.forceCompute && raI !== lastResidue) {
             if (!!component && component.entries.has(compId)) {

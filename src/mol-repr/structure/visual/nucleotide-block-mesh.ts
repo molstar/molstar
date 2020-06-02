@@ -75,7 +75,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
             const { index: residueIndex } = residueIt.move();
 
             if (isNucleic(moleculeType[residueIndex])) {
-                const compId = label_comp_id.value(residueIndex);
+                const compId = label_comp_id.value(residueAtomSegments.offsets[residueIndex]);
                 let idx1: ElementIndex | -1 = -1, idx2: ElementIndex | -1 = -1, idx3: ElementIndex | -1 = -1, idx4: ElementIndex | -1 = -1, idx5: ElementIndex | -1 = -1, idx6: ElementIndex | -1 = -1;
                 let width = 4.5, height = 4.5, depth = 2.5 * sizeFactor;
 

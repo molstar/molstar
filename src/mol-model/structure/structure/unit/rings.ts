@@ -102,7 +102,7 @@ namespace UnitRing {
         const { type_symbol, label_comp_id } = unit.model.atomicHierarchy.atoms;
 
         // ignore Proline (can be flat because of bad geometry)
-        if (label_comp_id.value(unit.getResidueIndex(ring[0])) === 'PRO') return false;
+        if (label_comp_id.value(unit.elements[ring[0]]) === 'PRO') return false;
 
         let aromaticBondCount = 0;
         let hasAromaticRingElement = false;
