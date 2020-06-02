@@ -23,6 +23,8 @@ import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
 
+// TODO support rings for multiple locations (including from microheterogeneity)
+
 const pTrace = Vec3.zero();
 const pN1 = Vec3.zero();
 const pC2 = Vec3.zero();

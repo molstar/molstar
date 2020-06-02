@@ -2,7 +2,9 @@
 * B-DNA (1bna)
 * Missing carbonyl oxygen (1gfl)
 * Mono-saccharides with alt locs (1B5F)
-* Microheterogeneity (1EJG, 3NIR)
+* Microheterogeneity
+    * Protein (1EJG, 3NIR)
+    * DNA (3VOK)
 * PNA: peptide nucleic acid (5eme, 1xj9)
 * Peptide derived residues
     * GFP chromophores (5Z6Y)

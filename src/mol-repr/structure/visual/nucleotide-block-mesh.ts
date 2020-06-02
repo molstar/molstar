@@ -22,6 +22,8 @@ import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
 
+// TODO support blocks for multiple locations (including from microheterogeneity)
+
 const p1 = Vec3.zero();
 const p2 = Vec3.zero();
 const p3 = Vec3.zero();
