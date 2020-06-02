@@ -62,16 +62,6 @@ function residueTest(params: AtomSiteSchemaElement): QueryPredicate | undefined 
         values.push(+params.auth_seq_id);
     }
 
-    if (typeof params.label_comp_id !== 'undefined') {
-        props.push(Props.residue.label_comp_id);
-        values.push(params.label_comp_id);
-    }
-
-    if (typeof params.auth_comp_id !== 'undefined') {
-        props.push(Props.residue.auth_comp_id);
-        values.push(params.auth_comp_id);
-    }
-
     if (typeof params.pdbx_PDB_ins_code !== 'undefined') {
         props.push(Props.residue.pdbx_PDB_ins_code);
         values.push(params.pdbx_PDB_ins_code);
@@ -98,6 +88,16 @@ function atomTest(params: AtomSiteSchemaElement): QueryPredicate | undefined {
     if (typeof params.type_symbol !== 'undefined') {
         props.push(Props.atom.type_symbol);
         values.push(ElementSymbol(params.type_symbol));
+    }
+
+    if (typeof params.label_comp_id !== 'undefined') {
+        props.push(Props.atom.label_comp_id);
+        values.push(params.label_comp_id);
+    }
+
+    if (typeof params.auth_comp_id !== 'undefined') {
+        props.push(Props.atom.auth_comp_id);
+        values.push(params.auth_comp_id);
     }
 
     return andEqual(props, values);
