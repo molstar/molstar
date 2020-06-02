@@ -67,7 +67,7 @@ export const MembraneOrientationParams = {
     ...BilayerSpheresParams,
     ...BilayerPlanesParams,
     ...BilayerRimsParams,
-    visuals: PD.MultiSelect(['bilayer-spheres', 'bilayer-planes', 'bilayer-rims'], PD.objectToOptions(MembraneOrientationVisuals)),
+    visuals: PD.MultiSelect(['bilayer-planes', 'bilayer-rims'], PD.objectToOptions(MembraneOrientationVisuals)),
 };
 export type MembraneOrientationParams = typeof MembraneOrientationParams
 export type MembraneOrientationProps = PD.Values<MembraneOrientationParams>
