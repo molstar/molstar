@@ -13,6 +13,8 @@ import { ColorTheme } from '../../../mol-theme/color';
 import { ThemeDataContext } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { TableLegend } from '../../../mol-util/legend';
+import { iterableToArray } from '../../../mol-data/util';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Assigns colors to confal pyramids';
@@ -160,6 +162,12 @@ export function ConfalPyramidsColorTheme(ctx: ThemeDataContext, props: PD.Values
         color,
         props,
         description: Description,
+        legend: TableLegend(iterableToArray(ColorMapping.entries()).map(([conformer, color]) => {
+            return [conformer, color] as [string, Color];
+        }).concat([
+            [ 'Error', ErrorColor ],
+            [ 'Unknown', DefaultColor ]
+        ]))
     };
 }
 

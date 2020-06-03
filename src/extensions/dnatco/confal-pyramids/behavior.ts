@@ -18,7 +18,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 export const DnatcoConfalPyramidsPreset = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-confal-pyramids',
     display: {
-        name: 'Confal Pyramids',
+        name: 'Confal Pyramids', group: 'Annotation',
         description: 'Schematic depiction of conformer class and confal value.',
     },
     isApplicable(a) {
