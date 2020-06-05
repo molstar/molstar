@@ -52,7 +52,7 @@ const BilayerRimsParams = {
     ...Lines.Params,
     lineSizeAttenuation: PD.Boolean(true),
     linesSize: PD.Numeric(1, { min: 0.01, max: 50, step: 0.01 }),
-    alternate: PD.Boolean(true)
+    dashedLines: PD.Boolean(true)
 };
 export type BilayerRimsParams = typeof BilayerRimsParams
 export type BilayerRimsProps = PD.Values<BilayerRimsParams>
@@ -105,7 +105,7 @@ function getLayerCircle(builder: LinesBuilder, p: Vec3, centroid: Vec3, normal: 
     const circle = getCircle(p, centroid, normal, radius);
     const { indices, vertices } = circle;
     for (let j = 0, jl = indices.length; j < jl; j += 3) {
-        if (props.alternate && j % 2 === 1) continue; // draw every other segment to get dashes
+        if (props.dashedLines && j % 2 === 1) continue; // draw every other segment to get dashes
         const start = indices[j] * 3;
         const end = indices[j + 1] * 3;
         const startX = vertices[start];
