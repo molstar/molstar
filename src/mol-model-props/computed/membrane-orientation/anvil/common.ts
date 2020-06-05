@@ -14,7 +14,7 @@ export interface ANVILContext {
     stepSize: number,
     minThickness: number,
     maxThickness: number,
-    afilter: number,
+    asaCutoff: number,
 
     offsets: ArrayLike<number>,
     exposed: ArrayLike<boolean>,
