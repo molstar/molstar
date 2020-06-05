@@ -27,7 +27,8 @@ import { transformPrimitive } from '../../mol-geo/primitive/primitive';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 
 const SharedParams = {
-    color: PD.Color(ColorNames.lightgrey)
+    color: PD.Color(ColorNames.lightgrey),
+    radiusFactor: PD.Numeric(0.8333, { min: 0.1, max: 3.0, step: 0.01 }, { description: 'Scale the radius of the membrane layer' })
 };
 
 const BilayerSpheresParams = {
@@ -95,9 +96,10 @@ export const MembraneOrientationRepresentationProvider = StructureRepresentation
 
 function getBilayerRims(ctx: RuntimeContext, data: Structure, props: BilayerRimsProps): Shape<Lines> {
     const { p1, p2, centroid, normal, radius } = MembraneOrientationProvider.get(data).value!;
+    const scaledRadius = props.radiusFactor * radius;
     const builder = LinesBuilder.create(128, 64);
-    getLayerCircle(builder, p1, centroid, normal, radius, props);
-    getLayerCircle(builder, p2, centroid, normal, radius, props);
+    getLayerCircle(builder, p1, centroid, normal, scaledRadius, props);
+    getLayerCircle(builder, p2, centroid, normal, scaledRadius, props);
     return Shape.create(name, data, builder.getLines(), () => props.color, () => props.linesSize, () => '');
 }
 
@@ -131,8 +133,9 @@ function getCircle(p: Vec3, centroid: Vec3, normal: Vec3, radius: number) {
 function getBilayerPlanes(ctx: RuntimeContext, data: Structure, props: BilayerPlanesProps, shape?: Shape<Mesh>): Shape<Mesh> {
     const { p1, p2, centroid, normal, radius } = MembraneOrientationProvider.get(data).value!;
     const state = MeshBuilder.createState(128, 64, shape && shape.geometry);
-    getLayerPlane(state, p1, centroid, normal, radius);
-    getLayerPlane(state, p2, centroid, normal, radius);
+    const scaledRadius = props.radiusFactor * radius;
+    getLayerPlane(state, p1, centroid, normal, scaledRadius);
+    getLayerPlane(state, p2, centroid, normal, scaledRadius);
     return Shape.create(name, data, MeshBuilder.getMesh(state), () => props.color, () => 1, () => '');
 }
 
@@ -146,10 +149,11 @@ function getLayerPlane(state: MeshBuilder.State, p: Vec3, centroid: Vec3, normal
 function getBilayerSpheres(ctx: RuntimeContext, data: Structure, props: BilayerSpheresProps): Shape<Spheres> {
     const { density } = props;
     const { radius, p1, p2, normal } = MembraneOrientationProvider.get(data).value!;
+    const scaledRadius = (props.radiusFactor * radius) * (props.radiusFactor * radius);
 
     const spheresBuilder = SpheresBuilder.create();
-    getLayerSpheres(spheresBuilder, p1, normal, density, radius * radius);
-    getLayerSpheres(spheresBuilder, p2, normal, density, radius * radius);
+    getLayerSpheres(spheresBuilder, p1, normal, density, scaledRadius);
+    getLayerSpheres(spheresBuilder, p2, normal, density, scaledRadius);
     return Shape.create(name, data, spheresBuilder.getSpheres(), () => props.color, () => props.sphereSize, () => '');
 }
 
