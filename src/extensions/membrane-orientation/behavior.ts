@@ -74,7 +74,7 @@ const isTransmembraneSymbol = QuerySymbolRuntime.Dynamic(CustomPropSymbol('membr
     ctx => {
         const structure = ctx.currentStructure;
         const { x, y, z } = StructureProperties.atom;
-        if (!structure.isAtomic) return 0;
+        if (!structure.isAtomic) return false;
         const membraneOrientation = MembraneOrientationProvider.get(structure).value;
         if (!membraneOrientation) return false;
         Vec3.set(pos, x(ctx.element), y(ctx.element), z(ctx.element));
