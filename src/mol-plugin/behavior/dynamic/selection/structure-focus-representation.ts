@@ -39,7 +39,8 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
                 size: SizeTheme.BuiltIn.uniform
             })
         }),
-        components: PD.MultiSelect(FocusComponents, PD.arrayToOptions(FocusComponents))
+        components: PD.MultiSelect(FocusComponents, PD.arrayToOptions(FocusComponents)),
+        excludeTargetFromSurroundings: PD.Boolean(false, { label: 'Exclude Target', description: 'Exclude the focus "target" from the surroudings component.' })
     };
 };
 
@@ -106,6 +107,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
 
     private clear(root: StateTransform.Ref) {
         const state = this.plugin.state.data;
+        this.currentSource = void 0;
 
         const foci = state.select(StateSelection.Generators.byRef(root).subtree().withTag(StructureFocusRepresentationTags.TargetSel));
         const surrs = state.select(StateSelection.Generators.byRef(root).subtree().withTag(StructureFocusRepresentationTags.SurrSel));
@@ -125,20 +127,30 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
         return PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
     }
 
+    private currentSource: StructureElement.Loci | undefined = void 0;
     private async focus(sourceLoci: StructureElement.Loci) {
         const parent = this.plugin.helpers.substructureParent.get(sourceLoci.structure);
         if (!parent || !parent.obj) return;
 
+        this.currentSource = sourceLoci;
         const loci = StructureElement.Loci.remap(sourceLoci, parent.obj!.data);
 
         const residueLoci = StructureElement.Loci.extendToWholeResidues(loci);
         const residueBundle = StructureElement.Bundle.fromLoci(residueLoci);
 
-        const surroundings = MS.struct.modifier.includeSurroundings({
-            0: StructureElement.Bundle.toExpression(residueBundle),
+        const target = StructureElement.Bundle.toExpression(residueBundle);
+        let surroundings = MS.struct.modifier.includeSurroundings({
+            0: target,
             radius: this.params.expandRadius,
             'as-whole-residues': true
         });
+
+        if (this.params.excludeTargetFromSurroundings) {
+            surroundings =  MS.struct.modifier.exceptBy({
+                0: surroundings,
+                by: target
+            });
+        }
 
         const { state, builder, refs } = this.ensureShape(parent);
 
@@ -158,6 +170,13 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
     async update(params: StructureFocusRepresentationProps) {
         const old = this.params;
         this.params = params;
+
+        if (old.excludeTargetFromSurroundings !== params.excludeTargetFromSurroundings) {
+            if (this.currentSource) {
+                this.focus(this.currentSource);
+            }
+            return true;
+        }
 
         const state = this.plugin.state.data;
         const builder = state.build();
@@ -187,8 +206,12 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
 
         await PluginCommands.State.Update(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
 
-        // TODO: update properly
-        if (params.expandRadius !== old.expandRadius) await this.clear(StateTransform.RootRef);
+        if (params.expandRadius !== old.expandRadius) {
+            if (this.currentSource) {
+                this.focus(this.currentSource);
+            }
+            return true;
+        }
 
         return true;
     }
