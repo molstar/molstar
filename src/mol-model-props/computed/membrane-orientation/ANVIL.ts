@@ -241,7 +241,7 @@ function qValue(currentStats: HphobHphil, initialStats: HphobHphil): number {
             Math.sqrt(part_tot * initialStats.hphob * initialStats.hphil * (initialStats.hphob + initialStats.hphil - part_tot));
 }
 
-function isInMembranePlane(testPoint: Vec3, normalVector: Vec3, planePoint1: Vec3, planePoint2: Vec3): boolean {
+export function isInMembranePlane(testPoint: Vec3, normalVector: Vec3, planePoint1: Vec3, planePoint2: Vec3): boolean {
     const d1 = -Vec3.dot(normalVector, planePoint1);
     const d2 = -Vec3.dot(normalVector, planePoint2);
     const d = -Vec3.dot(normalVector, testPoint);

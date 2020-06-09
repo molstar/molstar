@@ -15,7 +15,7 @@ import { AccessibleSurfaceAreaProvider } from './accessible-surface-area';
 import { MembraneOrientation } from '../../mol-model/structure/model/properties/membrane-orientation';
 
 function getMembraneOrientationParams(data?: Structure) {
-    let defaultType = 'anvil' as 'anvil' | 'db'; // TODO flip - OPM (or some other db-source) should be default if PDB identifier is known
+    let defaultType = 'anvil' as 'anvil' | 'db'; // TODO flip - db should be default if PDB identifier is known
     return {
         type: PD.MappedStatic(defaultType, {
             'db': PD.EmptyGroup({ label: 'DB' }),
@@ -42,7 +42,7 @@ export const MembraneOrientationProvider: CustomStructureProperty.Provider<Membr
         const p = { ...PD.getDefaultValues(MembraneOrientationParams), ...props };
         switch (p.type.name) {
             case 'anvil': return { value: await computeAnvil(ctx, data, p.type.params) };
-            case 'db': throw Error('TODO impl');
+            case 'db': throw Error('TODO impl'); // TODO RCSB integration
         }
     }
 });

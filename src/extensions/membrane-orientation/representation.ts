@@ -52,7 +52,7 @@ const BilayerRimsParams = {
     ...SharedParams,
     ...Lines.Params,
     lineSizeAttenuation: PD.Boolean(true),
-    linesSize: PD.Numeric(1, { min: 0.01, max: 50, step: 0.01 }),
+    linesSize: PD.Numeric(0.5, { min: 0.01, max: 50, step: 0.01 }),
     dashedLines: PD.Boolean(true)
 };
 export type BilayerRimsParams = typeof BilayerRimsParams
