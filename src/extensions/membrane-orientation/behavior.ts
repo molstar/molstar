@@ -10,7 +10,6 @@ import { StructureRepresentationPresetProvider, PresetStructureRepresentations }
 import { MembraneOrientationProvider } from '../../mol-model-props/computed/membrane-orientation';
 import { StateObjectRef } from '../../mol-state';
 import { Task } from '../../mol-task';
-import { AccessibleSurfaceAreaColorThemeProvider } from '../../mol-model-props/computed/themes/accessible-surface-area';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { StructureSelectionQuery, StructureSelectionCategory } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
@@ -21,6 +20,7 @@ import Type from '../../mol-script/language/type';
 import { isInMembranePlane } from '../../mol-model-props/computed/membrane-orientation/ANVIL';
 import { StructureProperties } from '../../mol-model/structure';
 import { Vec3 } from '../../mol-math/linear-algebra';
+import { HydrophobicityColorThemeProvider } from '../../mol-theme/color/hydrophobicity';
 
 export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'membrane-orientation-prop',
@@ -37,7 +37,7 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
 
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
 
-            this.ctx.representation.structure.themes.colorThemeRegistry.add(AccessibleSurfaceAreaColorThemeProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(HydrophobicityColorThemeProvider);
 
             this.ctx.representation.structure.registry.add(MembraneOrientationRepresentationProvider);
             this.ctx.query.structure.registry.add(isTransmembrane);
@@ -56,7 +56,7 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
             DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
 
-            this.ctx.representation.structure.themes.colorThemeRegistry.remove(AccessibleSurfaceAreaColorThemeProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(HydrophobicityColorThemeProvider);
 
             this.ctx.representation.structure.registry.remove(MembraneOrientationRepresentationProvider);
             this.ctx.query.structure.registry.remove(isTransmembrane);
@@ -118,7 +118,7 @@ export const MembraneOrientationPreset = StructureRepresentationPresetProvider({
             await MembraneOrientationProvider.attach({ runtime, assetManager: plugin.managers.asset }, structure);
         }));
 
-        const colorTheme = AccessibleSurfaceAreaColorThemeProvider.name as any;
+        const colorTheme = HydrophobicityColorThemeProvider.name as any;
         return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin);
     }
 });

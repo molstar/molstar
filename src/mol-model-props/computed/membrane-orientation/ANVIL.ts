@@ -333,12 +333,12 @@ namespace HphobHphil {
         }
         return of(hphob, hphil);
     }
+}
 
-    // ANVIL-specific (not general) definition of membrane-favoring amino acids
-    const HYDROPHOBIC_AMINO_ACIDS = new Set(['ALA', 'CYS', 'GLY', 'HIS', 'ILE', 'LEU', 'MET', 'PHE', 'SER', 'THR', 'VAL']);
-    function isHydrophobic(label_comp_id: string): boolean {
-        return HYDROPHOBIC_AMINO_ACIDS.has(label_comp_id);
-    }
+// ANVIL-specific (not general) definition of membrane-favoring amino acids
+const HYDROPHOBIC_AMINO_ACIDS = new Set(['ALA', 'CYS', 'GLY', 'HIS', 'ILE', 'LEU', 'MET', 'PHE', 'SER', 'THR', 'VAL']);
+export function isHydrophobic(label_comp_id: string): boolean {
+    return HYDROPHOBIC_AMINO_ACIDS.has(label_comp_id);
 }
 
 function setLocation(l: StructureElement.Location, structure: Structure, serialIndex: number) {
