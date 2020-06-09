@@ -14,17 +14,9 @@ import { ANVILParams, ANVILProps, computeANVIL } from './membrane-orientation/AN
 import { AccessibleSurfaceAreaProvider } from './accessible-surface-area';
 import { MembraneOrientation } from '../../mol-model/structure/model/properties/membrane-orientation';
 
-function getMembraneOrientationParams(data?: Structure) {
-    let defaultType = 'anvil' as 'anvil' | 'db'; // TODO flip - db should be default if PDB identifier is known
-    return {
-        type: PD.MappedStatic(defaultType, {
-            'db': PD.EmptyGroup({ label: 'DB' }),
-            'anvil': PD.Group(ANVILParams, { label: 'ANVIL' })
-        }, { options: [['db', 'DB'], ['anvil', 'ANVIL']] })
-    };
-}
-
-export const MembraneOrientationParams = getMembraneOrientationParams();
+export const MembraneOrientationParams = {
+    ...ANVILParams
+};
 export type MembraneOrientationParams = typeof MembraneOrientationParams
 export type MembraneOrientationProps = PD.Values<MembraneOrientationParams>
 
@@ -40,10 +32,7 @@ export const MembraneOrientationProvider: CustomStructureProperty.Provider<Membr
     isApplicable: (data: Structure) => true,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<MembraneOrientationProps>) => {
         const p = { ...PD.getDefaultValues(MembraneOrientationParams), ...props };
-        switch (p.type.name) {
-            case 'anvil': return { value: await computeAnvil(ctx, data, p.type.params) };
-            case 'db': throw Error('TODO impl'); // TODO RCSB integration
-        }
+        return { value: await computeAnvil(ctx, data, p) };
     }
 });
 
