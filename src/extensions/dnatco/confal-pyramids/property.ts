@@ -74,7 +74,7 @@ export namespace ConfalPyramids {
     }
 
     function hasNdbStructNtcCategories(model: Model): boolean {
-        if (!MmcifFormat.is(model.sourceData)) throw new Error('Data format must be mmCIF');
+        if (!MmcifFormat.is(model.sourceData)) return false;
         const names = (model.sourceData).data.frame.categoryNames;
         return names.includes('ndb_struct_ntc_step') && names.includes('ndb_struct_ntc_step_summary');
     }
