@@ -15,7 +15,7 @@ import { Interval } from '../../../mol-data/int';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../../../mol-repr/representation';
 import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
 import { VisualContext } from '../../../mol-repr/visual';
-import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from '../../../mol-repr/structure/visual/util/link';
+import { createLinkCylinderMesh, LinkCylinderParams, LinkStyle } from '../../../mol-repr/structure/visual/util/link';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
@@ -50,7 +50,7 @@ function createIntraUnitClashCylinderMesh(ctx: VisualContext, unit: Unit, struct
             pos(elements[a[edgeIndex]], posA);
             pos(elements[b[edgeIndex]], posB);
         },
-        style: (edgeIndex: number) => LinkCylinderStyle.Disk,
+        style: (edgeIndex: number) => LinkStyle.Disk,
         radius: (edgeIndex: number) => magnitude[edgeIndex] * sizeFactor,
     };
 
@@ -163,7 +163,7 @@ function createInterUnitClashCylinderMesh(ctx: VisualContext, structure: Structu
             uA.conformation.position(uA.elements[b.indexA], posA);
             uB.conformation.position(uB.elements[b.indexB], posB);
         },
-        style: (edgeIndex: number) => LinkCylinderStyle.Disk,
+        style: (edgeIndex: number) => LinkStyle.Disk,
         radius: (edgeIndex: number) => edges[edgeIndex].props.magnitude * sizeFactor
     };
 

@@ -10,7 +10,7 @@ import { Structure, StructureElement } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from '../../../mol-repr/structure/visual/util/link';
+import { createLinkCylinderMesh, LinkCylinderParams, LinkStyle } from '../../../mol-repr/structure/visual/util/link';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../../../mol-repr/structure/complex-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { PickingId } from '../../../mol-geo/geometry/picking';
@@ -47,7 +47,7 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
             Vec3.set(posB, fB.x[indexB], fB.y[indexB], fB.z[indexB]);
             Vec3.transformMat4(posB, posB, unitB.conformation.operator.matrix);
         },
-        style: (edgeIndex: number) => LinkCylinderStyle.Dashed,
+        style: (edgeIndex: number) => LinkStyle.Dashed,
         radius: (edgeIndex: number) => {
             const b = edges[edgeIndex];
             const fA = unitsFeatures.get(b.unitA.id);

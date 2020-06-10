@@ -29,8 +29,9 @@ import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
-import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams } from './params';
+import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
+import { Lines } from '../../mol-geo/geometry/lines/lines';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -243,6 +244,24 @@ export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexM
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true;
         },
         geometryUtils: Mesh.Utils
+    }, materialId);
+}
+
+// lines
+
+export const ComplexLinesParams = { ...StructureLinesParams, ...StructureParams };
+export type ComplexLinesParams = typeof ComplexLinesParams
+
+export interface ComplexLinesVisualBuilder<P extends ComplexLinesParams> extends ComplexVisualBuilder<P, Lines> { }
+
+export function ComplexLinesVisual<P extends ComplexLinesParams>(builder: ComplexLinesVisualBuilder<P>, materialId: number): ComplexVisual<P> {
+    return ComplexVisual<Lines, P>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true;
+        },
+        geometryUtils: Lines.Utils
     }, materialId);
 }
 

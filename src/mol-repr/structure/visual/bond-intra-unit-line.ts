@@ -1,27 +1,26 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualContext } from '../../visual';
 import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
-import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BitFlags, arrayEqual } from '../../../mol-util';
-import { createLinkCylinderMesh, LinkStyle } from './util/link';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
+import { LinkStyle, createLinkLines } from './util/link';
+import { UnitsVisual, UnitsLinesParams, UnitsLinesVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { ignoreBondType, BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci } from './util/bond';
+import { ignoreBondType, BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { Lines } from '../../../mol-geo/geometry/lines/lines';
 
-function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondCylinderParams>, mesh?: Mesh) {
-    if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
+function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondLineParams>, lines?: Lines) {
+    if (!Unit.isAtomic(unit)) return Lines.createEmpty(lines);
 
     const location = StructureElement.Location.create(structure, unit);
 
@@ -29,7 +28,7 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
     const { order: _order, flags: _flags } = edgeProps;
-    const { sizeFactor, sizeAspectRatio, ignoreHydrogens, includeTypes, excludeTypes } = props;
+    const { sizeFactor, ignoreHydrogens, includeTypes, excludeTypes } = props;
 
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
@@ -38,7 +37,7 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
         return isHydrogen(unit, elements[a[edgeIndex]]) || isHydrogen(unit, elements[b[edgeIndex]]);
     } : () => false;
 
-    if (!edgeCount) return Mesh.createEmpty(mesh);
+    if (!edgeCount) return Lines.createEmpty(lines);
 
     const vRef = Vec3.zero();
     const pos = unit.conformation.invariantPosition;
@@ -85,44 +84,39 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
             const sizeA = theme.size.size(location);
             location.element = elements[b[edgeIndex]];
             const sizeB = theme.size.size(location);
-            return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio;
+            return Math.min(sizeA, sizeB) * sizeFactor;
         },
         ignore: (edgeIndex: number) => ignoreHydrogen(edgeIndex) || ignoreBondType(include, exclude, _flags[edgeIndex])
     };
 
-    const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const l = createLinkLines(ctx, builderProps, props, lines);
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * sizeFactor);
-    m.setBoundingSphere(sphere);
+    l.setBoundingSphere(sphere);
 
-    return m;
+    return l;
 }
 
-export const IntraUnitBondCylinderParams = {
-    ...UnitsMeshParams,
-    ...BondCylinderParams,
-    sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
-    sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
+export const IntraUnitBondLineParams = {
+    ...UnitsLinesParams,
+    ...BondLineParams,
     ignoreHydrogens: PD.Boolean(false),
 };
-export type IntraUnitBondCylinderParams = typeof IntraUnitBondCylinderParams
+export type IntraUnitBondLineParams = typeof IntraUnitBondLineParams
 
-export function IntraUnitBondCylinderVisual(materialId: number): UnitsVisual<IntraUnitBondCylinderParams> {
-    return UnitsMeshVisual<IntraUnitBondCylinderParams>({
-        defaultProps: PD.getDefaultValues(IntraUnitBondCylinderParams),
-        createGeometry: createIntraUnitBondCylinderMesh,
+export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUnitBondLineParams> {
+    return UnitsLinesVisual<IntraUnitBondLineParams>({
+        defaultProps: PD.getDefaultValues(IntraUnitBondLineParams),
+        createGeometry: createIntraUnitBondLines,
         createLocationIterator: BondIterator.fromGroup,
         getLoci: getIntraBondLoci,
         eachLocation: eachIntraBond,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondCylinderParams>, currentProps: PD.Values<IntraUnitBondCylinderParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondLineParams>, currentProps: PD.Values<IntraUnitBondLineParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
-                newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
-                newProps.radialSegments !== currentProps.radialSegments ||
                 newProps.linkScale !== currentProps.linkScale ||
                 newProps.linkSpacing !== currentProps.linkSpacing ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-                newProps.linkCap !== currentProps.linkCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );

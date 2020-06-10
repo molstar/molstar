@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,15 +8,15 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualContext } from '../../visual';
 import { Structure, StructureElement, Bond, Unit } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
-import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BitFlags, arrayEqual } from '../../../mol-util';
-import { createLinkCylinderMesh, LinkStyle } from './util/link';
-import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../complex-visual';
+import { LinkStyle, createLinkLines } from './util/link';
+import { ComplexVisual, ComplexLinesVisual, ComplexLinesParams } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
 import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
 import { ignoreBondType, BondCylinderParams, BondIterator, getInterBondLoci, eachInterBond } from './util/bond';
+import { Lines } from '../../../mol-geo/geometry/lines/lines';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator();
 function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
@@ -32,7 +32,7 @@ function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, inde
 const tmpRef = Vec3();
 const tmpLoc = StructureElement.Location.create(void 0);
 
-function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondCylinderParams>, mesh?: Mesh) {
+function createInterUnitBondLines(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondLineParams>, lines?: Lines) {
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
     const { sizeFactor, sizeAspectRatio, ignoreHydrogens, includeTypes, excludeTypes } = props;
@@ -46,7 +46,7 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
         return isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB]);
     } : () => false;
 
-    if (!edgeCount) return Mesh.createEmpty(mesh);
+    if (!edgeCount) return Lines.createEmpty(lines);
 
     const builderProps = {
         linkCount: edgeCount,
@@ -99,26 +99,26 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
         ignore: (edgeIndex: number) => ignoreHydrogen(edgeIndex) || ignoreBondType(include, exclude, edges[edgeIndex].props.flag)
     };
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    return createLinkLines(ctx, builderProps, props, lines);
 }
 
-export const InterUnitBondCylinderParams = {
-    ...ComplexMeshParams,
+export const InterUnitBondLineParams = {
+    ...ComplexLinesParams,
     ...BondCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
     ignoreHydrogens: PD.Boolean(false),
 };
-export type InterUnitBondCylinderParams = typeof InterUnitBondCylinderParams
+export type InterUnitBondLineParams = typeof InterUnitBondLineParams
 
-export function InterUnitBondCylinderVisual(materialId: number): ComplexVisual<InterUnitBondCylinderParams> {
-    return ComplexMeshVisual<InterUnitBondCylinderParams>({
-        defaultProps: PD.getDefaultValues(InterUnitBondCylinderParams),
-        createGeometry: createInterUnitBondCylinderMesh,
+export function InterUnitBondLineVisual(materialId: number): ComplexVisual<InterUnitBondLineParams> {
+    return ComplexLinesVisual<InterUnitBondLineParams>({
+        defaultProps: PD.getDefaultValues(InterUnitBondLineParams),
+        createGeometry: createInterUnitBondLines,
         createLocationIterator: BondIterator.fromStructure,
         getLoci: getInterBondLoci,
         eachLocation: eachInterBond,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondLineParams>, currentProps: PD.Values<InterUnitBondLineParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
