@@ -38,7 +38,8 @@ function createPlyShapeParams(plyFile?: PlyFile) {
             if (
                 type === 'uchar' || type === 'uint8' ||
                 type === 'ushort' || type === 'uint16' ||
-                type === 'uint' || type === 'uint32'
+                type === 'uint' || type === 'uint32' ||
+                type === 'int'
             ) groupOptions.push([ name, name ]);
             if (type === 'uchar' || type === 'uint8') colorOptions.push([ name, name ]);
         }
