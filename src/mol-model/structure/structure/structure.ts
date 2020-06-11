@@ -660,6 +660,8 @@ namespace Structure {
         return create(units, { representativeModel: trajectory[0], label: trajectory[0].label });
     }
 
+    const PARTITION = false;
+
     /**
      * Construct a Structure from a model.
      *
@@ -706,12 +708,16 @@ namespace Structure {
 
             const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
 
-            // check for polymer to exclude CA/P-only models
-            if (singleAtomResidues && !isPolymerChain(model, c)) {
-                partitionAtomicUnitByAtom(model, elements, builder, multiChain, operator);
-            } else if (elements.length > 200000 || isWaterChain(model, c)) {
-                // split up very large chains e.g. lipid bilayers, micelles or water with explicit H
-                partitionAtomicUnitByResidue(model, elements, builder, multiChain, operator);
+            if (PARTITION) {
+                // check for polymer to exclude CA/P-only models
+                if (singleAtomResidues && !isPolymerChain(model, c)) {
+                    partitionAtomicUnitByAtom(model, elements, builder, multiChain, operator);
+                } else if (elements.length > 200000 || isWaterChain(model, c)) {
+                    // split up very large chains e.g. lipid bilayers, micelles or water with explicit H
+                    partitionAtomicUnitByResidue(model, elements, builder, multiChain, operator);
+                } else {
+                    builder.addUnit(Unit.Kind.Atomic, model, operator, elements, multiChain ? Unit.Trait.MultiChain : Unit.Trait.None);
+                }
             } else {
                 builder.addUnit(Unit.Kind.Atomic, model, operator, elements, multiChain ? Unit.Trait.MultiChain : Unit.Trait.None);
             }
