@@ -679,7 +679,7 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Shape Representation', async ctx => {
-            const props = { ...PD.getDefaultValues(a.data.params), params };
+            const props = { ...PD.getDefaultValues(a.data.params), ...params };
             const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils);
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data.data).runInContext(ctx);
