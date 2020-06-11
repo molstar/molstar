@@ -9,7 +9,7 @@ import { Unit, StructureElement, Structure, Bond } from '../../../../mol-model/s
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
 import { StructureGroup } from '../../units-visual';
-import { LinkCylinderParams, LinkParams } from './link';
+import { LinkCylinderParams, LinkLineParams } from './link';
 import { ObjectKeys } from '../../../../mol-util/type-helpers';
 import { PickingId } from '../../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../../mol-model/loci';
@@ -30,7 +30,7 @@ export const DefaultBondCylinderProps = PD.getDefaultValues(BondCylinderParams);
 export type BondCylinderProps = typeof DefaultBondCylinderProps
 
 export const BondLineParams = {
-    ...LinkParams,
+    ...LinkLineParams,
     ...BondParams
 };
 export const DefaultBondLineProps = PD.getDefaultValues(BondLineParams);

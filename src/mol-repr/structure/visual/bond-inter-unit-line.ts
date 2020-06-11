@@ -15,7 +15,7 @@ import { ComplexVisual, ComplexLinesVisual, ComplexLinesParams } from '../comple
 import { VisualUpdateState } from '../../util';
 import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { ignoreBondType, BondCylinderParams, BondIterator, getInterBondLoci, eachInterBond } from './util/bond';
+import { ignoreBondType, BondIterator, getInterBondLoci, eachInterBond, BondLineParams } from './util/bond';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator();
@@ -35,7 +35,7 @@ const tmpLoc = StructureElement.Location.create(void 0);
 function createInterUnitBondLines(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondLineParams>, lines?: Lines) {
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
-    const { sizeFactor, sizeAspectRatio, ignoreHydrogens, includeTypes, excludeTypes } = props;
+    const { sizeFactor, ignoreHydrogens, includeTypes, excludeTypes } = props;
 
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
@@ -94,7 +94,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
             tmpLoc.unit = b.unitB;
             tmpLoc.element = b.unitB.elements[b.indexB];
             const sizeB = theme.size.size(tmpLoc);
-            return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio;
+            return Math.min(sizeA, sizeB) * sizeFactor;
         },
         ignore: (edgeIndex: number) => ignoreHydrogen(edgeIndex) || ignoreBondType(include, exclude, edges[edgeIndex].props.flag)
     };
@@ -104,9 +104,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
 
 export const InterUnitBondLineParams = {
     ...ComplexLinesParams,
-    ...BondCylinderParams,
-    sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
-    sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
+    ...BondLineParams,
     ignoreHydrogens: PD.Boolean(false),
 };
 export type InterUnitBondLineParams = typeof InterUnitBondLineParams
@@ -121,12 +119,9 @@ export function InterUnitBondLineVisual(materialId: number): ComplexVisual<Inter
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondLineParams>, currentProps: PD.Values<InterUnitBondLineParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
-                newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
-                newProps.radialSegments !== currentProps.radialSegments ||
                 newProps.linkScale !== currentProps.linkScale ||
                 newProps.linkSpacing !== currentProps.linkSpacing ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-                newProps.linkCap !== currentProps.linkCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );

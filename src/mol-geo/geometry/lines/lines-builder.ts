@@ -83,7 +83,7 @@ export namespace LinesBuilder {
                 const gb = ChunkedArray.compact(groups, true) as Float32Array;
                 const sb = ChunkedArray.compact(starts, true) as Float32Array;
                 const eb = ChunkedArray.compact(ends, true) as Float32Array;
-                return Lines.create(mb, ib, gb, sb, eb, indices.elementCount / 2);
+                return Lines.create(mb, ib, gb, sb, eb, indices.elementCount / 2, lines);
             }
         };
     }

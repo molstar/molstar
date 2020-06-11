@@ -15,20 +15,21 @@ import { BaseGeometry } from '../../../../mol-geo/geometry/base';
 import { Lines } from '../../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../../mol-geo/geometry/lines/lines-builder';
 
-export const LinkParams = {
+export const LinkCylinderParams = {
     linkScale: PD.Numeric(0.4, { min: 0, max: 1, step: 0.1 }),
     linkSpacing: PD.Numeric(1, { min: 0, max: 2, step: 0.01 }),
-};
-export const DefaultLinkProps = PD.getDefaultValues(LinkParams);
-export type LinkProps = typeof DefaultLinkProps
-
-export const LinkCylinderParams = {
-    ...LinkParams,
     linkCap: PD.Boolean(false),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
 };
 export const DefaultLinkCylinderProps = PD.getDefaultValues(LinkCylinderParams);
 export type LinkCylinderProps = typeof DefaultLinkCylinderProps
+
+export const LinkLineParams = {
+    linkScale: PD.Numeric(0.5, { min: 0, max: 1, step: 0.1 }),
+    linkSpacing: PD.Numeric(0.1, { min: 0, max: 2, step: 0.01 }),
+};
+export const DefaultLinkLineProps = PD.getDefaultValues(LinkLineParams);
+export type LinkLineProps = typeof DefaultLinkLineProps
 
 const tmpV12 = Vec3();
 const tmpShiftV12 = Vec3();
@@ -160,8 +161,8 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
  * Each edge is included twice to allow for coloring/picking
  * the half closer to the first vertex, i.e. vertex a.
  */
-export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkProps, lines?: Lines) {
-    const { linkCount, referencePosition, position, style, radius, ignore } = linkBuilder;
+export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkLineProps, lines?: Lines) {
+    const { linkCount, referencePosition, position, style, ignore } = linkBuilder;
 
     if (!linkCount) return Lines.createEmpty(lines);
 
@@ -181,15 +182,14 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
         Vec3.scale(vb, Vec3.add(vb, va, vb), 0.5);
 
         // TODO use line width?
-        const linkRadius = radius(edgeIndex);
         const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
 
         if (linkStyle === LinkStyle.Dashed) {
             builder.addFixedCountDashes(va, vb, 7, edgeIndex);
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.Triple) {
             const order = LinkStyle.Double ? 2 : 3;
-            const multiRadius = linkRadius * (linkScale / (0.5 * order));
-            const absOffset = (linkRadius - multiRadius) * linkSpacing;
+            const multiRadius = 1 * (linkScale / (0.5 * order));
+            const absOffset = (1 - multiRadius) * linkSpacing;
 
             calculateShiftDir(vShift, va, vb, referencePosition ? referencePosition(edgeIndex) : null);
             Vec3.setMagnitude(vShift, vShift, absOffset);
