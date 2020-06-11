@@ -67,6 +67,7 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
                 const _bI = SortedArray.indexOf(unit.elements, indexPairs.b[i]) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
                 if (edgeProps.symmetryA[i] !== edgeProps.symmetryB[i]) continue;
+                if (type_symbol.value(aI) === 'H' && type_symbol.value(indexPairs.b[i]) === 'H') continue;
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;
                 order[order.length] = edgeProps.order[i];

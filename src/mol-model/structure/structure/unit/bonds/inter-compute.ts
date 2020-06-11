@@ -75,6 +75,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
                 const _bI = SortedArray.indexOf(unitA.elements, indexPairs.b[i]) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
                 if (symmetryA[i] === symmetryB[i]) continue;
+                if (type_symbolA.value(aI) === 'H' && type_symbolB.value(indexPairs.b[i]) === 'H') continue;
                 if (symmUnitA === symmetryA[i] && symmUnitB === symmetryB[i]) {
                     builder.add(_aI, _bI, { order: order[i], flag: BondType.Flag.Covalent });
                 }
