@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,19 +15,21 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { isTrace, isHydrogen } from './util/common';
 
 export const ElementPointParams = {
     ...UnitsPointsParams,
     // sizeFactor: PD.Numeric(1.0, { min: 0, max: 10, step: 0.01 }),
     pointSizeAttenuation: PD.Boolean(false),
-    showHydrogens: PD.Boolean(true),
+    ignoreHydrogens: PD.Boolean(false),
+    traceOnly: PD.Boolean(false),
 };
 export type ElementPointParams = typeof ElementPointParams
 
 // TODO size
 
 export function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ElementPointParams>, points: Points) {
-    // const { sizeFactor } = props
+    const { ignoreHydrogens, traceOnly } = props; // TODO sizeFactor
 
     const elements = unit.elements;
     const n = elements.length;
@@ -37,6 +39,9 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
     const p = Vec3.zero();
 
     for (let i = 0; i < n; ++i) {
+        if (ignoreHydrogens && isHydrogen(unit, elements[i])) continue;
+        if (traceOnly && !isTrace(unit, elements[i])) continue;
+
         pos(elements[i], p);
         builder.add(p[0], p[1], p[2], i);
     }
@@ -57,7 +62,10 @@ export function ElementPointVisual(materialId: number): UnitsVisual<ElementPoint
         getLoci: getElementLoci,
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementPointParams>, currentProps: PD.Values<ElementPointParams>) => {
-
+            state.createGeometry = (
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.traceOnly !== currentProps.traceOnly
+            );
         }
     }, materialId);
 }
