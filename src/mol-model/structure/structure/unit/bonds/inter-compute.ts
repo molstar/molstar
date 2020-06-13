@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { BondType } from '../../../model/types';
+import { BondType, MoleculeType } from '../../../model/types';
 import Structure from '../../structure';
 import Unit from '../../unit';
 import { getElementIdx, getElementPairThreshold, getElementThreshold, isHydrogen, BondComputationProps, MetalsSet, DefaultBondComputationProps } from './common';
@@ -192,7 +192,15 @@ function findBonds(structure: Structure, props: InterBondComputationProps) {
 function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondComputationProps>): InterUnitBonds {
     return findBonds(structure, {
         ...DefaultBondComputationProps,
-        validUnitPair: (props && props.validUnitPair) || Structure.validUnitPair,
+        validUnitPair: (props && props.validUnitPair) || ((s, a, b) => {
+            const mtA = a.model.atomicHierarchy.derived.residue.moleculeType;
+            const mtB = b.model.atomicHierarchy.derived.residue.moleculeType;
+            const notWater = (
+                (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Water) &&
+                (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Water)
+            );
+            return Structure.validUnitPair(s, a, b) && notWater;
+        }),
     });
 }
 
