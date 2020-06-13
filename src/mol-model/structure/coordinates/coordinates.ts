@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,13 +11,15 @@ import { Column } from '../../../mol-data/db';
 
 export interface Frame {
     readonly elementCount: number
-    readonly cell: Cell
     readonly time: Time
 
     // positions
     readonly x: ArrayLike<number>
     readonly y: ArrayLike<number>
     readonly z: ArrayLike<number>
+
+    // optional cell
+    readonly cell?: Cell
 
     // optional velocities
     readonly velocities?: {
@@ -62,9 +64,7 @@ interface Coordinates {
 
     readonly frames: Frame[]
 
-    /** Number of elements (e.g. atoms) in frames */
-    readonly elementCount: number
-
+    readonly hasCell: boolean
     readonly hasVelocities: boolean
     readonly hasForces: boolean
 
@@ -74,14 +74,14 @@ interface Coordinates {
 
 namespace Coordinates {
     export function create(frames: Frame[], deltaTime: Time, timeOffset: Time): Coordinates {
-        const elementCount = frames[0].elementCount;
+        const hasCell = !!frames[0].cell;
         const hasVelocities = !!frames[0].velocities;
         const hasForces = !!frames[0].forces;
 
         return {
             id: UUID.create22(),
             frames,
-            elementCount,
+            hasCell,
             hasVelocities,
             hasForces,
             deltaTime,
