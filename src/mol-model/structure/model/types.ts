@@ -11,6 +11,7 @@ import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { SetUtils } from '../../../mol-util/set';
 import { EntitySubtype, ChemicalComponent } from './properties/common';
 import { LipidNames } from './types/lipids';
+import { mmCIF_chemComp_schema } from '../../../mol-io/reader/cif/schema/mmcif-extras';
 
 const _esCache = (function () {
     const cache = Object.create(null);
@@ -225,6 +226,16 @@ export const OtherComponentTypeNames = new Set([
     'NON-POLYMER', 'OTHER'
 ]);
 
+/** Chemical component type names for ion (extension to mmcif) */
+export const IonComponentTypeNames = new Set([
+    'ION'
+]);
+
+/** Chemical component type names for lipid (extension to mmcif) */
+export const LipidComponentTypeNames = new Set([
+    'LIPID'
+]);
+
 /** Common names for water molecules */
 export const WaterNames = new Set([
     'SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP', 'TIP3', 'TIP4', 'SPC'
@@ -333,7 +344,7 @@ export function getPolymerType(compType: string, molType: MoleculeType): Polymer
     }
 }
 
-export function getComponentType(compId: string): mmCIF_Schema['chem_comp']['type']['T'] {
+export function getComponentType(compId: string): mmCIF_chemComp_schema['type']['T'] {
     compId = compId.toUpperCase();
     if (AminoAcidNames.has(compId)) {
         return 'peptide linking';
@@ -400,9 +411,9 @@ export function getEntitySubtype(compId: string, compType: string): EntitySubtyp
         return 'polyribonucleotide';
     } else if (DnaBaseNames.has(compId)) {
         return 'polydeoxyribonucleotide';
-    } else if (IonNames.has(compId)) {
+    } else if (IonComponentTypeNames.has(compType) || IonNames.has(compId)) {
         return 'ion';
-    } else if (LipidNames.has(compId)) {
+    } else if (LipidComponentTypeNames.has(compType) || LipidNames.has(compId)) {
         return 'lipid';
     } else {
         return 'other';

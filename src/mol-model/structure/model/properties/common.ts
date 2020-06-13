@@ -8,6 +8,7 @@
 import { mmCIF_Database, mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { Table, Column } from '../../../../mol-data/db';
 import { EntityIndex } from '../indexing';
+import { mmCIF_chemComp_schema } from '../../../../mol-io/reader/cif/schema/mmcif-extras';
 
 export type EntitySubtype = (
     mmCIF_Schema['entity_poly']['type']['T'] |
@@ -24,7 +25,7 @@ export interface Entities {
     getEntityIndex(id: string): EntityIndex
 }
 
-export type ChemicalComponent = Table.Row<mmCIF_Schema['chem_comp']>
+export type ChemicalComponent = Table.Row<mmCIF_chemComp_schema>
 export type ChemicalComponentMap = ReadonlyMap<string, ChemicalComponent>
 
 export type MissingResidue = Table.Row<Pick<mmCIF_Schema['pdbx_unobs_or_zero_occ_residues'], 'polymer_flag' | 'occupancy_flag'>>

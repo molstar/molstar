@@ -6,6 +6,7 @@
 
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { Table } from '../../../mol-data/db';
+import { mmCIF_chemComp_schema } from '../../../mol-io/reader/cif/schema/mmcif-extras';
 
 // TODO split into conformation and hierarchy parts
 
@@ -19,7 +20,7 @@ export type Entity = Table<mmCIF_Schema['entity']>
 export type EntityPoly = Table<mmCIF_Schema['entity_poly']>
 export type EntityPolySeq = Table<mmCIF_Schema['entity_poly_seq']>
 export type EntityBranch = Table<mmCIF_Schema['pdbx_entity_branch']>
-export type ChemComp = Table<mmCIF_Schema['chem_comp']>
+export type ChemComp = Table<mmCIF_chemComp_schema>
 export type ChemCompIdentifier = Table<mmCIF_Schema['pdbx_chem_comp_identifier']>
 export type AtomSite = Table<mmCIF_Schema['atom_site']>
 export type IhmSphereObjSite = Table<mmCIF_Schema['ihm_sphere_obj_site']>
@@ -38,7 +39,7 @@ export const BasicSchema = {
     entity_poly: mmCIF_Schema.entity_poly,
     entity_poly_seq: mmCIF_Schema.entity_poly_seq,
     pdbx_entity_branch: mmCIF_Schema.pdbx_entity_branch,
-    chem_comp: mmCIF_Schema.chem_comp,
+    chem_comp: mmCIF_chemComp_schema,
     pdbx_chem_comp_identifier: mmCIF_Schema.pdbx_chem_comp_identifier,
     atom_site: mmCIF_Schema.atom_site,
     ihm_sphere_obj_site: mmCIF_Schema.ihm_sphere_obj_site,
