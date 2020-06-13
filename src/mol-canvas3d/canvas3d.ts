@@ -304,6 +304,7 @@ namespace Canvas3D {
             if (allCommited) {
                 resolveCameraReset();
                 if (forceDrawAfterAllCommited) {
+                    if (debugHelper.isEnabled) debugHelper.update();
                     draw(true);
                     forceDrawAfterAllCommited = false;
                 }
