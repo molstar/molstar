@@ -17,9 +17,7 @@ import { EntityBuilder } from './common/entity';
 import { BasicData, BasicSchema, createBasic } from './basic/schema';
 import { createModels } from './basic/parser';
 
-// TODO multi model files
-
-function getBasic(atoms: GroAtoms): BasicData {
+function getBasic(atoms: GroAtoms, modelNum: number): BasicData {
     const auth_atom_id = atoms.atomName;
     const auth_comp_id = atoms.residueName;
 
@@ -89,7 +87,7 @@ function getBasic(atoms: GroAtoms): BasicData {
         occupancy: Column.ofConst(1, atoms.count, Column.Schema.float),
         type_symbol: Column.ofStringArray(Column.mapToArray(atoms.atomName, s => guessElementSymbolString(s))),
 
-        pdbx_PDB_model_num: Column.ofConst(1, atoms.count, Column.Schema.int),
+        pdbx_PDB_model_num: Column.ofConst(modelNum, atoms.count, Column.Schema.int),
     }, atoms.count);
 
     return createBasic({
@@ -118,7 +116,12 @@ namespace GroFormat {
 export function trajectoryFromGRO(gro: GroFile): Task<Model.Trajectory> {
     return Task.create('Parse GRO', async ctx => {
         const format = GroFormat.fromGro(gro);
-        const basic = getBasic(gro.structures[0].atoms);
-        return createModels(basic, format, ctx);
+        const models: Model[] = [];
+        for (let i = 0, il = gro.structures.length; i < il; ++i) {
+            const basic = getBasic(gro.structures[i].atoms, i + 1);
+            const m = await createModels(basic, format, ctx);
+            if (m.length === 1) models.push(m[0]);
+        }
+        return models;
     });
 }
