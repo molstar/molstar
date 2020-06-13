@@ -132,6 +132,7 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             nonStandard: await presetStaticComponent(plugin, structureCell, 'non-standard'),
             branched: await presetStaticComponent(plugin, structureCell, 'branched', { label: 'Carbohydrate' }),
             water: await presetStaticComponent(plugin, structureCell, 'water'),
+            ion: await presetStaticComponent(plugin, structureCell, 'ion'),
             lipid: await presetStaticComponent(plugin, structureCell, 'lipid'),
             coarse: await presetStaticComponent(plugin, structureCell, 'coarse')
         };
@@ -141,6 +142,10 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             sizeFactor: structure.isCoarseGrained ? 0.8 : 0.2,
         };
 
+        // TODO make configurable
+        const waterType = (components.water?.obj?.data?.elementCount || 0) > 50_000 ? 'line' : 'ball-and-stick';
+        const lipidType = (components.lipid?.obj?.data?.elementCount || 0) > 20_000 ? 'line' : 'ball-and-stick';
+
         const { update, builder, typeParams, color, ballAndStickColor } = reprBuilder(plugin, params);
 
         const representations = {
@@ -149,8 +154,9 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             nonStandard: builder.buildRepresentation(update, components.nonStandard, { type: 'ball-and-stick', typeParams, color, colorParams: ballAndStickColor }, { tag: 'non-standard' }),
             branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color, colorParams: ballAndStickColor }, { tag: 'branched-ball-and-stick' }),
             branchedSnfg3d: builder.buildRepresentation(update, components.branched, { type: 'carbohydrate', typeParams, color }, { tag: 'branched-snfg-3d' }),
-            water: builder.buildRepresentation(update, components.water, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.6 }, color }, { tag: 'water' }),
-            lipid: builder.buildRepresentation(update, components.lipid, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.6 }, color, colorParams: { carbonByChainId: false } }, { tag: 'lipid' }),
+            water: builder.buildRepresentation(update, components.water, { type: waterType, typeParams: { ...typeParams, alpha: 0.6 }, color }, { tag: 'water' }),
+            ion: builder.buildRepresentation(update, components.ion, { type: 'ball-and-stick', typeParams, color, colorParams: { carbonByChainId: false } }, { tag: 'ion' }),
+            lipid: builder.buildRepresentation(update, components.lipid, { type: lipidType, typeParams: { ...typeParams, alpha: 0.6 }, color, colorParams: { carbonByChainId: false } }, { tag: 'lipid' }),
             coarse: builder.buildRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'chain-id' }, { tag: 'coarse' })
         };
 
@@ -298,7 +304,13 @@ const atomicDetail = StructureRepresentationPresetProvider({
             all: await presetStaticComponent(plugin, structureCell, 'all'),
             branched: undefined
         };
-        if (params.showCarbohydrateSymbol) {
+
+        const structure = structureCell.obj!.data;
+        const highElementCount = structure.elementCount > 200_000; // TODO make configurable
+        const atomicType = highElementCount ? 'line' : 'ball-and-stick';
+        const showCarbohydrateSymbol = params.showCarbohydrateSymbol && !highElementCount;
+
+        if (showCarbohydrateSymbol) {
             Object.assign(components, {
                 branched: await presetStaticComponent(plugin, structureCell, 'branched', { label: 'Carbohydrate' }),
             });
@@ -306,9 +318,9 @@ const atomicDetail = StructureRepresentationPresetProvider({
 
         const { update, builder, typeParams, color, ballAndStickColor } = reprBuilder(plugin, params);
         const representations = {
-            all: builder.buildRepresentation(update, components.all, { type: 'ball-and-stick', typeParams, color, colorParams: ballAndStickColor }, { tag: 'all' }),
+            all: builder.buildRepresentation(update, components.all, { type: atomicType, typeParams, color, colorParams: ballAndStickColor }, { tag: 'all' }),
         };
-        if (params.showCarbohydrateSymbol) {
+        if (showCarbohydrateSymbol) {
             Object.assign(representations, {
                 snfg3d: builder.buildRepresentation(update, components.branched, { type: 'carbohydrate', typeParams: { ...typeParams, alpha: 0.4, visuals: ['carbohydrate-symbol'] }, color }, { tag: 'snfg-3d' }),
             });

@@ -22,6 +22,7 @@ export const StaticStructureComponentTypes = [
     'protein',
     'nucleic',
     'water',
+    'ion',
     'lipid',
 
     'branched',
@@ -61,6 +62,7 @@ export function createStructureComponent(a: Structure, params: StructureComponen
                 case 'protein': query = StructureSelectionQueries.protein.query; label = 'Protein'; break;
                 case 'nucleic': query = StructureSelectionQueries.nucleic.query; label = 'Nucleic'; break;
                 case 'water': query = Queries.internal.water(); label = 'Water'; break;
+                case 'ion': query = StructureSelectionQueries.ion.query; label = 'Ion'; break;
                 case 'lipid': query = StructureSelectionQueries.lipid.query; label = 'Lipid'; break;
 
                 case 'branched': query = StructureSelectionQueries.branchedPlusConnected.query; label = 'Branched'; break;

@@ -318,7 +318,7 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
                         MS.core.rel.neq([MS.ammp('entityPrdId'), ''])
                     ]),
                     MS.core.logic.not([MS.core.str.match([
-                        MS.re('(oligosaccharide|lipid)', 'i'),
+                        MS.re('(oligosaccharide|lipid|ion)', 'i'),
                         MS.ammp('entitySubtype')
                     ])])
                 ]),
