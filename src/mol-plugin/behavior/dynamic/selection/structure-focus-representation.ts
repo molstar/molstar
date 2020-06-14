@@ -40,7 +40,8 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
             })
         }),
         components: PD.MultiSelect(FocusComponents, PD.arrayToOptions(FocusComponents)),
-        excludeTargetFromSurroundings: PD.Boolean(false, { label: 'Exclude Target', description: 'Exclude the focus "target" from the surroudings component.' })
+        excludeTargetFromSurroundings: PD.Boolean(false, { label: 'Exclude Target', description: 'Exclude the focus "target" from the surroudings component.' }),
+        ignoreHydrogens: PD.Boolean(false)
     };
 };
 
@@ -60,6 +61,16 @@ const TagSet: Set<StructureFocusRepresentationTags> = new Set([StructureFocusRep
 
 class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscribers<StructureFocusRepresentationProps> {
     private get surrLabel() { return `[Focus] Surroundings (${this.params.expandRadius} Å)`; }
+
+    private getReprParams(reprParams: PD.Values<PD.Params>) {
+        return {
+            ...this.params.targetParams,
+            type: {
+                name: reprParams.type.name,
+                params: { ...reprParams.type.params, ignoreHydrogens: this.params.ignoreHydrogens }
+            }
+        };
+    }
 
     private ensureShape(cell: StateObjectCell<PluginStateObject.Molecule.Structure>) {
         const state = this.plugin.state.data, tree = state.tree;
@@ -87,13 +98,13 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
         if (components.indexOf('target') >= 0 && !refs[StructureFocusRepresentationTags.TargetRepr]) {
             refs[StructureFocusRepresentationTags.TargetRepr] = builder
                 .to(refs[StructureFocusRepresentationTags.TargetSel]!)
-                .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.targetParams, { tags: StructureFocusRepresentationTags.TargetRepr }).ref;
+                .apply(StateTransforms.Representation.StructureRepresentation3D, this.getReprParams(this.params.targetParams), { tags: StructureFocusRepresentationTags.TargetRepr }).ref;
         }
 
         if (components.indexOf('surroundings') >= 0 && !refs[StructureFocusRepresentationTags.SurrRepr]) {
             refs[StructureFocusRepresentationTags.SurrRepr] = builder
                 .to(refs[StructureFocusRepresentationTags.SurrSel]!)
-                .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.surroundingsParams, { tags: StructureFocusRepresentationTags.SurrRepr }).ref;
+                .apply(StateTransforms.Representation.StructureRepresentation3D, this.getReprParams(this.params.surroundingsParams), { tags: StructureFocusRepresentationTags.SurrRepr }).ref;
         }
 
         if (components.indexOf('interactions') >= 0 && !refs[StructureFocusRepresentationTags.SurrNciRepr]) {
@@ -189,13 +200,13 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
         let hasComponent = components.indexOf('target') >= 0;
         for (const repr of state.select(all.withTag(StructureFocusRepresentationTags.TargetRepr))) {
             if (!hasComponent) builder.delete(repr.transform.ref);
-            else builder.to(repr).update(this.params.targetParams);
+            else builder.to(repr).update(this.getReprParams(this.params.targetParams));
         }
 
         hasComponent = components.indexOf('surroundings') >= 0;
         for (const repr of state.select(all.withTag(StructureFocusRepresentationTags.SurrRepr))) {
             if (!hasComponent) builder.delete(repr.transform.ref);
-            else builder.to(repr).update(this.params.surroundingsParams);
+            else builder.to(repr).update(this.getReprParams(this.params.surroundingsParams));
         }
 
         hasComponent = components.indexOf('interactions') >= 0;

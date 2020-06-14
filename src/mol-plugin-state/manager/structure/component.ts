@@ -29,6 +29,7 @@ import { StructureHierarchyRef, StructureComponentRef, StructureRef, StructureRe
 import { Clipping } from '../../../mol-theme/clipping';
 import { setStructureClipping } from '../../helpers/structure-clipping';
 import { setStructureTransparency } from '../../helpers/structure-transparency';
+import { StructureFocusRepresentation } from '../../../mol-plugin/behavior/dynamic/selection/structure-focus-representation';
 
 export { StructureComponentManager };
 
@@ -64,6 +65,9 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
 
         return this.plugin.dataTransaction(async () => {
             await update.commit();
+            await this.plugin.state.updateBehavior(StructureFocusRepresentation, p => {
+                p.ignoreHydrogens = !options.showHydrogens;
+            });
             if (interactionChanged) await this.updateInterationProps();
         });
     }
