@@ -113,6 +113,9 @@ namespace GroFormat {
     }
 }
 
+// TODO reuse static model parts when hierarchy is identical
+//      need to pass all gro.structures as one table into createModels
+
 export function trajectoryFromGRO(gro: GroFile): Task<Model.Trajectory> {
     return Task.create('Parse GRO', async ctx => {
         const format = GroFormat.fromGro(gro);
