@@ -7,17 +7,17 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../mol-plugin-state/builder/structure/representation-preset';
-import { MembraneOrientationProvider } from '../../mol-model-props/computed/membrane-orientation';
+import { MembraneOrientationProvider } from './membrane-orientation';
 import { StateObjectRef } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { StructureSelectionQuery, StructureSelectionCategory } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
-import { DefaultQueryRuntimeTable, QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
+import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
 import { MembraneOrientationRepresentationProvider } from './representation';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
 import Type from '../../mol-script/language/type';
-import { isInMembranePlane } from '../../mol-model-props/computed/membrane-orientation/ANVIL';
+import { isInMembranePlane } from './ANVIL';
 import { StructureProperties } from '../../mol-model/structure';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { HydrophobicityColorThemeProvider } from '../../mol-theme/color/hydrophobicity';
@@ -33,8 +33,6 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
         private provider = MembraneOrientationProvider
 
         register(): void {
-            DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
-
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
 
             this.ctx.representation.structure.themes.colorThemeRegistry.add(HydrophobicityColorThemeProvider);
@@ -53,7 +51,6 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
         }
 
         unregister() {
-            DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
 
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(HydrophobicityColorThemeProvider);
@@ -119,6 +116,6 @@ export const MembraneOrientationPreset = StructureRepresentationPresetProvider({
         }));
 
         const colorTheme = HydrophobicityColorThemeProvider.name as any;
-        return await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName: colorTheme }, plugin);
+        return await PresetStructureRepresentations.auto.apply(ref, { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } }, plugin);
     }
 });

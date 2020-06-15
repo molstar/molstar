@@ -7,12 +7,12 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Structure } from '../../mol-model/structure';
-import { CustomStructureProperty } from '../common/custom-structure-property';
-import { CustomProperty } from '../common/custom-property';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
-import { ANVILParams, ANVILProps, computeANVIL } from './membrane-orientation/ANVIL';
-import { AccessibleSurfaceAreaProvider } from './accessible-surface-area';
+import { ANVILParams, ANVILProps, computeANVIL } from './ANVIL';
 import { MembraneOrientation } from '../../mol-model/structure/model/properties/membrane-orientation';
+import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
+import { CustomProperty } from '../../mol-model-props/common/custom-property';
+import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
 
 export const MembraneOrientationParams = {
     ...ANVILParams

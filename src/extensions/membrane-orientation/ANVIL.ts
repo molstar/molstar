@@ -5,17 +5,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Task, RuntimeContext } from '../../../mol-task';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { Structure, StructureElement, StructureProperties } from '../../../mol-model/structure';
-import { getElementMoleculeType } from '../../../mol-model/structure/util';
-import { MoleculeType } from '../../../mol-model/structure/model/types';
-import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
-import { Vec3 } from '../../../mol-math/linear-algebra';
-import { AccessibleSurfaceArea } from '../accessible-surface-area/shrake-rupley';
-import { AccessibleSurfaceAreaProvider } from '../accessible-surface-area';
 import { ANVILContext } from './anvil/common';
-import { MembraneOrientation } from '../../../mol-model/structure/model/properties/membrane-orientation';
+import { Structure, StructureElement, StructureProperties } from '../../mol-model/structure';
+import { Task, RuntimeContext } from '../../mol-task';
+import { CentroidHelper } from '../../mol-math/geometry/centroid-helper';
+import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
+import { Vec3 } from '../../mol-math/linear-algebra';
+import { getElementMoleculeType } from '../../mol-model/structure/util';
+import { MoleculeType } from '../../mol-model/structure/model/types';
+import { AccessibleSurfaceArea } from '../../mol-model-props/computed/accessible-surface-area/shrake-rupley';
+import { MembraneOrientation } from '../../mol-model/structure/model/properties/membrane-orientation';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 export const ANVILParams = {
     numberOfSpherePoints: PD.Numeric(120, { min: 35, max: 700, step: 1 }, { description: 'Number of spheres/directions to test for membrane placement. Original value is 350.' }),

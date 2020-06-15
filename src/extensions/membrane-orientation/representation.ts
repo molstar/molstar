@@ -11,7 +11,6 @@ import { Representation, RepresentationContext, RepresentationParamsGetter } fro
 import { Structure } from '../../mol-model/structure';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
-import { MembraneOrientationProvider } from '../../mol-model-props/computed/membrane-orientation';
 import { StructureRepresentationProvider, StructureRepresentation, StructureRepresentationStateBuilder } from '../../mol-repr/structure/representation';
 import { MembraneOrientation } from '../../mol-model/structure/model/properties/membrane-orientation';
 import { ThemeRegistryContext } from '../../mol-theme/theme';
@@ -25,6 +24,7 @@ import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
 import { Circle } from '../../mol-geo/primitive/circle';
 import { transformPrimitive } from '../../mol-geo/primitive/primitive';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
+import { MembraneOrientationProvider } from './membrane-orientation';
 
 const SharedParams = {
     color: PD.Color(ColorNames.lightgrey),
