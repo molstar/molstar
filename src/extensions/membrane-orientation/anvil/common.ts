@@ -4,8 +4,8 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { Structure } from '../../../../mol-model/structure';
-import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { Structure } from '../../../mol-model/structure';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 
 export interface ANVILContext {
     structure: Structure,

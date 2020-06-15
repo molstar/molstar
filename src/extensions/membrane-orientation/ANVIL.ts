@@ -113,7 +113,7 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
 }
 
 export async function calculate(runtime: RuntimeContext, structure: Structure, params: ANVILProps): Promise<MembraneOrientation> {
-    const { label_comp_id } = StructureProperties.residue;
+    const { label_comp_id } = StructureProperties.atom;
 
     const ctx = initialize(structure, params);
     const initialHphobHphil = HphobHphil.filtered(ctx, label_comp_id);
