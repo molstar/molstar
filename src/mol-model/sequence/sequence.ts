@@ -130,7 +130,15 @@ namespace Sequence {
             const labels: string[] = [];
             for (let i = 0, il = idx; i < il; ++i) {
                 const mh = microHet.get(seqIds[i]);
-                labels[i] = mh ? `(${mh.join('|')})` : codes[i];
+                if (mh) {
+                    const l = mh.map(id => {
+                        const c = codeFromName(id);
+                        return c === 'X' ? id : c;
+                    });
+                    labels[i] = `(${l.join('|')})`;
+                } else {
+                    labels[i] = codes[i] === 'X' ? compIds[idx] : codes[i];
+                }
             }
 
             this.length = idx;

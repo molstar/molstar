@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -33,20 +34,22 @@ export async function readCifFile(path: string) {
 
 export function atomLabel(model: Model, aI: number) {
     const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
-    const { label_atom_id } = atoms;
-    const { label_comp_id, label_seq_id } = residues;
+    const { label_atom_id, label_comp_id } = atoms;
+    const { label_seq_id } = residues;
     const { label_asym_id } = chains;
     const rI = residueAtomSegments.index[aI];
     const cI = chainAtomSegments.index[aI];
-    return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)} ${label_atom_id.value(aI)}`;
+    return `${label_asym_id.value(cI)} ${label_comp_id.value(aI)} ${label_seq_id.value(rI)} ${label_atom_id.value(aI)}`;
 }
 
 export function residueLabel(model: Model, rI: number) {
-    const { residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
-    const { label_comp_id, label_seq_id } = residues;
+    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
+    const { label_comp_id } = atoms;
+    const { label_seq_id } = residues;
     const { label_asym_id } = chains;
-    const cI = chainAtomSegments.index[residueAtomSegments.offsets[rI]];
-    return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`;
+    const aI = residueAtomSegments.offsets[rI];
+    const cI = chainAtomSegments.index[aI];
+    return `${label_asym_id.value(cI)} ${label_comp_id.value(aI)} ${label_seq_id.value(rI)}`;
 }
 
 export function printSecStructure(model: Model) {

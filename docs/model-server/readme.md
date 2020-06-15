@@ -54,12 +54,12 @@ Sometimes nodejs might run into problems with memory. This is usually resolved b
 
 ## Preprocessor
 
-The preprocessor application allows to add custom data to CIF files and/or convert CIF to BinaryCIF. ``node lib/servers/servers/model/preprocess`` or ``model-server-preprocess`` binary from the NPM package.
+The preprocessor application allows to add custom data to CIF files and/or convert CIF to BinaryCIF. ``node lib/commonjs/servers/model/preprocess`` or ``model-server-preprocess`` binary from the NPM package.
 
 
 ## Local Mode
 
-The server can be run in local/file based mode using ``node lib/servers/servers/model/query`` (``model-server-query`` binary from the NPM package).
+The server can be run in local/file based mode using ``node lib/commonjs/servers/model/query`` (``model-server-query`` binary from the NPM package).
 
 Custom Properties
 =================

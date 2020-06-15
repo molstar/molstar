@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,6 +12,8 @@ import { StructureRepresentation, StructureRepresentationProvider, StructureRepr
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { Structure, Unit } from '../../../mol-model/structure';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
+import { CustomProperty } from '../../../mol-model-props/common/custom-property';
+import { SecondaryStructureProvider } from '../../../mol-model-props/computed/secondary-structure';
 
 const PuttyVisuals = {
     'polymer-tube': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerTubeParams>) => UnitsRepresentation('Polymer tube mesh', ctx, getParams, PolymerTubeVisual),
@@ -50,7 +52,11 @@ export const PuttyRepresentationProvider = StructureRepresentationProvider({
     factory: PuttyRepresentation,
     getParams: getPuttyParams,
     defaultValues: PD.getDefaultValues(PuttyParams),
-    defaultColorTheme: { name: 'polymer-id' },
+    defaultColorTheme: { name: 'chain-id' },
     defaultSizeTheme: { name: 'uncertainty' },
-    isApplicable: (structure: Structure) => structure.polymerResidueCount > 0
+    isApplicable: (structure: Structure) => structure.polymerResidueCount > 0,
+    ensureCustomProperties: {
+        attach: (ctx: CustomProperty.Context, structure: Structure) => SecondaryStructureProvider.attach(ctx, structure, void 0, true),
+        detach: (data) => SecondaryStructureProvider.ref(data, false)
+    }
 });

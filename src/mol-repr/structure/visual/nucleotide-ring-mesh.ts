@@ -23,6 +23,8 @@ import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
 
+// TODO support rings for multiple locations (including from microheterogeneity)
+
 const pTrace = Vec3.zero();
 const pN1 = Vec3.zero();
 const pC2 = Vec3.zero();
@@ -74,9 +76,9 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
 
     const { elements, model } = unit;
-    const { chainAtomSegments, residueAtomSegments, residues, index: atomicIndex } = model.atomicHierarchy;
+    const { chainAtomSegments, residueAtomSegments, atoms, index: atomicIndex } = model.atomicHierarchy;
     const { moleculeType, traceElementIndex } = model.atomicHierarchy.derived.residue;
-    const { label_comp_id } = residues;
+    const { label_comp_id } = atoms;
     const pos = unit.conformation.invariantPosition;
 
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
@@ -94,7 +96,7 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
             const { index: residueIndex } = residueIt.move();
 
             if (isNucleic(moleculeType[residueIndex])) {
-                const compId = label_comp_id.value(residueIndex);
+                const compId = label_comp_id.value(residueAtomSegments.offsets[residueIndex]);
 
                 let idxTrace: ElementIndex | -1 = -1, idxN1: ElementIndex | -1 = -1, idxC2: ElementIndex | -1 = -1, idxN3: ElementIndex | -1 = -1, idxC4: ElementIndex | -1 = -1, idxC5: ElementIndex | -1 = -1, idxC6: ElementIndex | -1 = -1, idxN7: ElementIndex | -1 = -1, idxC8: ElementIndex | -1 = -1, idxN9: ElementIndex | -1 = -1;
 

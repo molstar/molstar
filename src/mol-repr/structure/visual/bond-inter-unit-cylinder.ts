@@ -11,15 +11,12 @@ import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BitFlags, arrayEqual } from '../../../mol-util';
-import { createLinkCylinderMesh, LinkCylinderStyle } from './util/link';
+import { createLinkCylinderMesh, LinkStyle } from './util/link';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
-import { PickingId } from '../../../mol-geo/geometry/picking';
-import { EmptyLoci, Loci } from '../../../mol-model/loci';
-import { Interval, OrderedSet } from '../../../mol-data/int';
 import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { ignoreBondType, BondCylinderParams, BondIterator } from './util/bond';
+import { ignoreBondType, BondCylinderParams, BondIterator, getInterBondLoci, eachInterBond } from './util/bond';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator();
 function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
@@ -35,7 +32,7 @@ function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, inde
 const tmpRef = Vec3();
 const tmpLoc = StructureElement.Location.create(void 0);
 
-function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondParams>, mesh?: Mesh) {
+function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondCylinderParams>, mesh?: Mesh) {
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
     const { sizeFactor, sizeAspectRatio, ignoreHydrogens, includeTypes, excludeTypes } = props;
@@ -79,13 +76,13 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
             const f = BitFlags.create(edges[edgeIndex].props.flag);
             if (BondType.is(f, BondType.Flag.MetallicCoordination) || BondType.is(f, BondType.Flag.HydrogenBond)) {
                 // show metall coordinations and hydrogen bonds with dashed cylinders
-                return LinkCylinderStyle.Dashed;
+                return LinkStyle.Dashed;
             } else if (o === 2) {
-                return LinkCylinderStyle.Double;
+                return LinkStyle.Double;
             } else if (o === 3) {
-                return LinkCylinderStyle.Triple;
+                return LinkStyle.Triple;
             } else {
-                return LinkCylinderStyle.Solid;
+                return LinkStyle.Solid;
             }
         },
         radius: (edgeIndex: number) => {
@@ -105,23 +102,23 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
     return createLinkCylinderMesh(ctx, builderProps, props, mesh);
 }
 
-export const InterUnitBondParams = {
+export const InterUnitBondCylinderParams = {
     ...ComplexMeshParams,
     ...BondCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
     ignoreHydrogens: PD.Boolean(false),
 };
-export type InterUnitBondParams = typeof InterUnitBondParams
+export type InterUnitBondCylinderParams = typeof InterUnitBondCylinderParams
 
-export function InterUnitBondVisual(materialId: number): ComplexVisual<InterUnitBondParams> {
-    return ComplexMeshVisual<InterUnitBondParams>({
-        defaultProps: PD.getDefaultValues(InterUnitBondParams),
+export function InterUnitBondCylinderVisual(materialId: number): ComplexVisual<InterUnitBondCylinderParams> {
+    return ComplexMeshVisual<InterUnitBondCylinderParams>({
+        defaultProps: PD.getDefaultValues(InterUnitBondCylinderParams),
         createGeometry: createInterUnitBondCylinderMesh,
         createLocationIterator: BondIterator.fromStructure,
-        getLoci: getBondLoci,
-        eachLocation: eachBond,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondParams>, currentProps: PD.Values<InterUnitBondParams>) => {
+        getLoci: getInterBondLoci,
+        eachLocation: eachInterBond,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
@@ -135,61 +132,4 @@ export function InterUnitBondVisual(materialId: number): ComplexVisual<InterUnit
             );
         }
     }, materialId);
-}
-
-function getBondLoci(pickingId: PickingId, structure: Structure, id: number) {
-    const { objectId, groupId } = pickingId;
-    if (id === objectId) {
-        const bond = structure.interUnitBonds.edges[groupId];
-        return Bond.Loci(structure, [
-            Bond.Location(
-                structure, bond.unitA, bond.indexA as StructureElement.UnitIndex,
-                structure, bond.unitB, bond.indexB as StructureElement.UnitIndex
-            ),
-            Bond.Location(
-                structure, bond.unitB, bond.indexB as StructureElement.UnitIndex,
-                structure, bond.unitA, bond.indexA as StructureElement.UnitIndex
-            )
-        ]);
-    }
-    return EmptyLoci;
-}
-
-function eachBond(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean) {
-    let changed = false;
-    if (Bond.isLoci(loci)) {
-        if (!Structure.areEquivalent(loci.structure, structure)) return false;
-        for (const b of loci.bonds) {
-            const idx = structure.interUnitBonds.getBondIndexFromLocation(b);
-            if (idx !== -1) {
-                if (apply(Interval.ofSingleton(idx))) changed = true;
-            }
-        }
-    } else if (StructureElement.Loci.is(loci)) {
-        if (!Structure.areEquivalent(loci.structure, structure)) return false;
-        if (loci.elements.length === 1) return false; // only a single unit
-
-        const map = new Map<number, OrderedSet<StructureElement.UnitIndex>>();
-        for (const e of loci.elements) map.set(e.unit.id, e.indices);
-
-        for (const e of loci.elements) {
-            const { unit } = e;
-            if (!Unit.isAtomic(unit)) continue;
-            structure.interUnitBonds.getConnectedUnits(unit).forEach(b => {
-                const otherLociIndices = map.get(b.unitB.id);
-                if (otherLociIndices) {
-                    OrderedSet.forEach(e.indices, v => {
-                        if (!b.connectedIndices.includes(v)) return;
-                        b.getEdges(v).forEach(bi => {
-                            if (!isMarking || OrderedSet.has(otherLociIndices, bi.indexB)) {
-                                const idx = structure.interUnitBonds.getEdgeIndex(v, unit, bi.indexB, b.unitB);
-                                if (apply(Interval.ofSingleton(idx))) changed = true;
-                            }
-                        });
-                    });
-                }
-            });
-        }
-    }
-    return changed;
 }

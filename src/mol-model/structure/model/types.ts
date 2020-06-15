@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -10,6 +10,8 @@ import { SaccharideCompIdMap } from '../structure/carbohydrates/constants';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { SetUtils } from '../../../mol-util/set';
 import { EntitySubtype, ChemicalComponent } from './properties/common';
+import { LipidNames } from './types/lipids';
+import { mmCIF_chemComp_schema } from '../../../mol-io/reader/cif/schema/mmcif-extras';
 
 const _esCache = (function () {
     const cache = Object.create(null);
@@ -57,6 +59,8 @@ export const enum MoleculeType {
     Water,
     /** Small ionic molecule */
     Ion,
+    /** Lipid molecule */
+    Lipid,
     /** Protein, e.g. component type included in `ProteinComponentTypeNames` */
     Protein,
     /** RNA, e.g. component type included in `RNAComponentTypeNames` */
@@ -145,7 +149,7 @@ export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set
 
 export const ProteinBackboneAtoms = new Set([
     'CA', 'C', 'N', 'O',
-    'O1', 'O2', 'OC1', 'OC2', 'OX1', 'OXT',
+    'O1', 'O2', 'OC1', 'OC2', 'OT1', 'OT2', 'OX1', 'OXT',
     'H', 'H1', 'H2', 'H3', 'HA', 'HN', 'HXT',
     'BB'
 ]);
@@ -222,9 +226,19 @@ export const OtherComponentTypeNames = new Set([
     'NON-POLYMER', 'OTHER'
 ]);
 
+/** Chemical component type names for ion (extension to mmcif) */
+export const IonComponentTypeNames = new Set([
+    'ION'
+]);
+
+/** Chemical component type names for lipid (extension to mmcif) */
+export const LipidComponentTypeNames = new Set([
+    'LIPID'
+]);
+
 /** Common names for water molecules */
 export const WaterNames = new Set([
-    'SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP3', 'TIP4', 'SPC'
+    'SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP', 'TIP3', 'TIP4', 'SPC'
 ]);
 
 export const AminoAcidNamesL = new Set([
@@ -293,6 +307,8 @@ export function getMoleculeType(compType: string, compId: string): MoleculeType 
         return MoleculeType.Water;
     } else if (IonNames.has(compId)) {
         return MoleculeType.Ion;
+    } else if (LipidNames.has(compId)) {
+        return MoleculeType.Lipid;
     } else if (OtherComponentTypeNames.has(compType)) {
         if (SaccharideCompIdMap.has(compId)) {
             // trust our saccharide table more than given 'non-polymer' or 'other' component type
@@ -328,7 +344,7 @@ export function getPolymerType(compType: string, molType: MoleculeType): Polymer
     }
 }
 
-export function getComponentType(compId: string): mmCIF_Schema['chem_comp']['type']['T'] {
+export function getComponentType(compId: string): mmCIF_chemComp_schema['type']['T'] {
     compId = compId.toUpperCase();
     if (AminoAcidNames.has(compId)) {
         return 'peptide linking';
@@ -395,6 +411,10 @@ export function getEntitySubtype(compId: string, compType: string): EntitySubtyp
         return 'polyribonucleotide';
     } else if (DnaBaseNames.has(compId)) {
         return 'polydeoxyribonucleotide';
+    } else if (IonComponentTypeNames.has(compType) || IonNames.has(compId)) {
+        return 'ion';
+    } else if (LipidComponentTypeNames.has(compType) || LipidNames.has(compId)) {
+        return 'lipid';
     } else {
         return 'other';
     }

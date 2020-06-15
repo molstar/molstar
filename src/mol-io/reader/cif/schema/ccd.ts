@@ -1,14 +1,14 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'CCD' schema file. Dictionary versions: mmCIF 5.324, IHM 1.09, CARB draft.
+ * Code-generated 'CCD' schema file. Dictionary versions: mmCIF 5.326, IHM 1.09, CARB draft.
  *
  * @author molstar/ciftools package
  */
 
 import { Database, Column } from '../../../../mol-data/db';
 
-import Schema = Column.Schema
+import Schema = Column.Schema;
 
 const str = Schema.str;
 const float = Schema.float;
@@ -397,4 +397,4 @@ export const CCD_Schema = {
 };
 
 export type CCD_Schema = typeof CCD_Schema;
-export interface CCD_Database extends Database<CCD_Schema> {}
+export interface CCD_Database extends Database<CCD_Schema> {};

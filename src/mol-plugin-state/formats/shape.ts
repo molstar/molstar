@@ -7,6 +7,9 @@
 
 import { StateTransforms } from '../transforms';
 import { DataFormatProvider } from './provider';
+import { PluginContext } from '../../mol-plugin/context';
+import { StateObjectRef } from '../../mol-state';
+import { PluginStateObject } from '../objects';
 
 const Category = 'Shape';
 
@@ -25,6 +28,12 @@ export const PlyProvider = DataFormatProvider({
         await format.commit();
 
         return { format: format.selector, shape: shape.selector };
+    },
+    visuals(plugin: PluginContext, data: { shape: StateObjectRef<PluginStateObject.Shape.Provider> }) {
+        const repr = plugin.state.data.build()
+            .to(data.shape)
+            .apply(StateTransforms.Representation.ShapeRepresentation3D);
+        return repr.commit();
     }
 });
 

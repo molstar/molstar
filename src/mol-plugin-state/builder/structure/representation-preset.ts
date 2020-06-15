@@ -16,6 +16,8 @@ import { StateObjectRef, StateObjectSelector } from '../../../mol-state';
 import { StaticStructureComponentType } from '../../helpers/structure-component';
 import { StructureSelectionQueries as Q } from '../../helpers/structure-selection-query';
 import { PluginConfig } from '../../../mol-plugin/config';
+import { StructureFocusRepresentation } from '../../../mol-plugin/behavior/dynamic/selection/structure-focus-representation';
+import { createStructureColorThemeParams } from '../../helpers/structure-representation-params';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -30,7 +32,14 @@ export namespace StructureRepresentationPresetProvider {
     export const CommonParams = {
         ignoreHydrogens: PD.Optional(PD.Boolean(false)),
         quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
-        globalThemeName: PD.Optional(PD.Text<ColorTheme.BuiltIn>(''))
+        theme: PD.Optional(PD.Group({
+            globalName: PD.Optional(PD.Text<ColorTheme.BuiltIn>('')),
+            carbonByChainId: PD.Optional(PD.Boolean(true)),
+            focus: PD.Optional(PD.Group({
+                name: PD.Optional(PD.Text<ColorTheme.BuiltIn>('')),
+                params: PD.Optional(PD.Value<ColorTheme.BuiltInParams<ColorTheme.BuiltIn>>({} as any))
+            }))
+        }))
     };
     export type CommonParams = PD.ValuesFor<typeof CommonParams>
 
@@ -43,9 +52,20 @@ export namespace StructureRepresentationPresetProvider {
         };
         if (params.quality && params.quality !== 'auto') typeParams.quality = params.quality;
         if (params.ignoreHydrogens !== void 0) typeParams.ignoreHydrogens = !!params.ignoreHydrogens;
-        const color: ColorTheme.BuiltIn | undefined = params.globalThemeName ? params.globalThemeName : void 0;
+        const color: ColorTheme.BuiltIn | undefined = params.theme?.globalName ? params.theme?.globalName : void 0;
+        const ballAndStickColor: ColorTheme.BuiltInParams<'element-symbol'> = typeof params.theme?.carbonByChainId !== 'undefined' ? { carbonByChainId: !!params.theme?.carbonByChainId } : { };
 
-        return { update, builder, color, typeParams };
+        return { update, builder, color, typeParams, ballAndStickColor };
+    }
+
+    export function updateFocusRepr<T extends ColorTheme.BuiltIn>(plugin: PluginContext, structure: Structure, themeName: T | undefined, themeParams: ColorTheme.BuiltInParams<T> | undefined) {
+        if (!themeName && !themeParams) return;
+
+        return plugin.state.updateBehavior(StructureFocusRepresentation, p => {
+            const c = createStructureColorThemeParams(plugin, structure, 'ball-and-stick', themeName, themeParams);
+            p.surroundingsParams.colorTheme = c;
+            p.targetParams.colorTheme = c;
+        });
     }
 }
 
@@ -54,6 +74,7 @@ type _Result = StructureRepresentationPresetProvider.Result
 const CommonParams = StructureRepresentationPresetProvider.CommonParams;
 type CommonParams = StructureRepresentationPresetProvider.CommonParams
 const reprBuilder = StructureRepresentationPresetProvider.reprBuilder;
+const updateFocusRepr = StructureRepresentationPresetProvider.updateFocusRepr;
 
 const auto = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-auto',
@@ -111,6 +132,8 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             nonStandard: await presetStaticComponent(plugin, structureCell, 'non-standard'),
             branched: await presetStaticComponent(plugin, structureCell, 'branched', { label: 'Carbohydrate' }),
             water: await presetStaticComponent(plugin, structureCell, 'water'),
+            ion: await presetStaticComponent(plugin, structureCell, 'ion'),
+            lipid: await presetStaticComponent(plugin, structureCell, 'lipid'),
             coarse: await presetStaticComponent(plugin, structureCell, 'coarse')
         };
 
@@ -119,18 +142,26 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             sizeFactor: structure.isCoarseGrained ? 0.8 : 0.2,
         };
 
-        const { update, builder, typeParams, color } = reprBuilder(plugin, params);
+        // TODO make configurable
+        const waterType = (components.water?.obj?.data?.elementCount || 0) > 50_000 ? 'line' : 'ball-and-stick';
+        const lipidType = (components.lipid?.obj?.data?.elementCount || 0) > 20_000 ? 'line' : 'ball-and-stick';
+
+        const { update, builder, typeParams, color, ballAndStickColor } = reprBuilder(plugin, params);
+
         const representations = {
             polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams: { ...typeParams, ...cartoonProps }, color }, { tag: 'polymer' }),
-            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams, color }, { tag: 'ligand' }),
-            nonStandard: builder.buildRepresentation(update, components.nonStandard, { type: 'ball-and-stick', typeParams, color: color || 'polymer-id' }, { tag: 'non-standard' }),
-            branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color }, { tag: 'branched-ball-and-stick' }),
+            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams, color, colorParams: ballAndStickColor }, { tag: 'ligand' }),
+            nonStandard: builder.buildRepresentation(update, components.nonStandard, { type: 'ball-and-stick', typeParams, color, colorParams: ballAndStickColor }, { tag: 'non-standard' }),
+            branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color, colorParams: ballAndStickColor }, { tag: 'branched-ball-and-stick' }),
             branchedSnfg3d: builder.buildRepresentation(update, components.branched, { type: 'carbohydrate', typeParams, color }, { tag: 'branched-snfg-3d' }),
-            water: builder.buildRepresentation(update, components.water, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.6 }, color }, { tag: 'water' }),
-            coarse: builder.buildRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'polymer-id' }, { tag: 'coarse' })
+            water: builder.buildRepresentation(update, components.water, { type: waterType, typeParams: { ...typeParams, alpha: 0.6 }, color }, { tag: 'water' }),
+            ion: builder.buildRepresentation(update, components.ion, { type: 'ball-and-stick', typeParams, color, colorParams: { carbonByChainId: false } }, { tag: 'ion' }),
+            lipid: builder.buildRepresentation(update, components.lipid, { type: lipidType, typeParams: { ...typeParams, alpha: 0.6 }, color, colorParams: { carbonByChainId: false } }, { tag: 'lipid' }),
+            coarse: builder.buildRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'chain-id' }, { tag: 'coarse' })
         };
 
         await update.commit({ revertOnError: false });
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
 
         return { components, representations };
     }
@@ -168,6 +199,8 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
+
         return { components, representations };
     }
 });
@@ -215,6 +248,8 @@ const coarseSurface = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
+
         return { components, representations };
     }
 });
@@ -245,6 +280,8 @@ const polymerCartoon = StructureRepresentationPresetProvider({
         };
 
         await update.commit({ revertOnError: true });
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
+
         return { components, representations };
     }
 });
@@ -267,17 +304,23 @@ const atomicDetail = StructureRepresentationPresetProvider({
             all: await presetStaticComponent(plugin, structureCell, 'all'),
             branched: undefined
         };
-        if (params.showCarbohydrateSymbol) {
+
+        const structure = structureCell.obj!.data;
+        const highElementCount = structure.elementCount > 200_000; // TODO make configurable
+        const atomicType = highElementCount ? 'line' : 'ball-and-stick';
+        const showCarbohydrateSymbol = params.showCarbohydrateSymbol && !highElementCount;
+
+        if (showCarbohydrateSymbol) {
             Object.assign(components, {
                 branched: await presetStaticComponent(plugin, structureCell, 'branched', { label: 'Carbohydrate' }),
             });
         }
 
-        const { update, builder, typeParams, color } = reprBuilder(plugin, params);
+        const { update, builder, typeParams, color, ballAndStickColor } = reprBuilder(plugin, params);
         const representations = {
-            all: builder.buildRepresentation(update, components.all, { type: 'ball-and-stick', typeParams, color }, { tag: 'all' }),
+            all: builder.buildRepresentation(update, components.all, { type: atomicType, typeParams, color, colorParams: ballAndStickColor }, { tag: 'all' }),
         };
-        if (params.showCarbohydrateSymbol) {
+        if (showCarbohydrateSymbol) {
             Object.assign(representations, {
                 snfg3d: builder.buildRepresentation(update, components.branched, { type: 'carbohydrate', typeParams: { ...typeParams, alpha: 0.4, visuals: ['carbohydrate-symbol'] }, color }, { tag: 'snfg-3d' }),
             });

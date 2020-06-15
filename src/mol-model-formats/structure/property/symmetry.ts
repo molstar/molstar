@@ -36,8 +36,8 @@ namespace ModelSymmetry {
     export function fromData(data: Data): Symmetry {
         const assemblies = createAssemblies(data.pdbx_struct_assembly, data.pdbx_struct_assembly_gen, data.pdbx_struct_oper_list);
         const spacegroup = getSpacegroup(data.symmetry, data.cell);
-        const isNonStandardCrytalFrame = checkNonStandardCrystalFrame(data.atom_sites, spacegroup);
-        return { assemblies, spacegroup, isNonStandardCrytalFrame, ncsOperators: getNcsOperators(data.struct_ncs_oper) };
+        const isNonStandardCrystalFrame = checkNonStandardCrystalFrame(data.atom_sites, spacegroup);
+        return { assemblies, spacegroup, isNonStandardCrystalFrame, ncsOperators: getNcsOperators(data.struct_ncs_oper) };
     }
 }
 

@@ -7,23 +7,20 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualContext } from '../../visual';
-import { Unit, Structure, StructureElement, Bond } from '../../../mol-model/structure';
+import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BitFlags, arrayEqual } from '../../../mol-util';
-import { createLinkCylinderMesh, LinkCylinderStyle } from './util/link';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
+import { createLinkCylinderMesh, LinkStyle } from './util/link';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
-import { PickingId } from '../../../mol-geo/geometry/picking';
-import { EmptyLoci, Loci } from '../../../mol-model/loci';
-import { Interval, OrderedSet } from '../../../mol-data/int';
 import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { ignoreBondType, BondCylinderParams, BondIterator } from './util/bond';
+import { ignoreBondType, BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 
-function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondParams>, mesh?: Mesh) {
+function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondCylinderParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
 
     const location = StructureElement.Location.create(structure, unit);
@@ -74,13 +71,13 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
             const f = BitFlags.create(_flags[edgeIndex]);
             if (BondType.is(f, BondType.Flag.MetallicCoordination) || BondType.is(f, BondType.Flag.HydrogenBond)) {
                 // show metall coordinations and hydrogen bonds with dashed cylinders
-                return LinkCylinderStyle.Dashed;
+                return LinkStyle.Dashed;
             } else if (o === 2) {
-                return LinkCylinderStyle.Double;
+                return LinkStyle.Double;
             } else if (o === 3) {
-                return LinkCylinderStyle.Triple;
+                return LinkStyle.Triple;
             } else {
-                return LinkCylinderStyle.Solid;
+                return LinkStyle.Solid;
             }
         },
         radius: (edgeIndex: number) => {
@@ -101,23 +98,23 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
     return m;
 }
 
-export const IntraUnitBondParams = {
+export const IntraUnitBondCylinderParams = {
     ...UnitsMeshParams,
     ...BondCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
     ignoreHydrogens: PD.Boolean(false),
 };
-export type IntraUnitBondParams = typeof IntraUnitBondParams
+export type IntraUnitBondCylinderParams = typeof IntraUnitBondCylinderParams
 
-export function IntraUnitBondVisual(materialId: number): UnitsVisual<IntraUnitBondParams> {
-    return UnitsMeshVisual<IntraUnitBondParams>({
-        defaultProps: PD.getDefaultValues(IntraUnitBondParams),
+export function IntraUnitBondCylinderVisual(materialId: number): UnitsVisual<IntraUnitBondCylinderParams> {
+    return UnitsMeshVisual<IntraUnitBondCylinderParams>({
+        defaultProps: PD.getDefaultValues(IntraUnitBondCylinderParams),
         createGeometry: createIntraUnitBondCylinderMesh,
         createLocationIterator: BondIterator.fromGroup,
-        getLoci: getBondLoci,
-        eachLocation: eachBond,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondParams>, currentProps: PD.Values<IntraUnitBondParams>) => {
+        getLoci: getIntraBondLoci,
+        eachLocation: eachIntraBond,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondCylinderParams>, currentProps: PD.Values<IntraUnitBondCylinderParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
@@ -131,65 +128,4 @@ export function IntraUnitBondVisual(materialId: number): UnitsVisual<IntraUnitBo
             );
         }
     }, materialId);
-}
-
-function getBondLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {
-    const { objectId, instanceId, groupId } = pickingId;
-    if (id === objectId) {
-        const { structure, group } = structureGroup;
-        const unit = group.units[instanceId];
-        if (Unit.isAtomic(unit)) {
-            return Bond.Loci(structure, [
-                Bond.Location(
-                    structure, unit, unit.bonds.a[groupId] as StructureElement.UnitIndex,
-                    structure, unit, unit.bonds.b[groupId] as StructureElement.UnitIndex
-                ),
-                Bond.Location(
-                    structure, unit, unit.bonds.b[groupId] as StructureElement.UnitIndex,
-                    structure, unit, unit.bonds.a[groupId] as StructureElement.UnitIndex
-                )
-            ]);
-        }
-    }
-    return EmptyLoci;
-}
-
-function eachBond(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean) {
-    let changed = false;
-    if (Bond.isLoci(loci)) {
-        const { structure, group } = structureGroup;
-        if (!Structure.areEquivalent(loci.structure, structure)) return false;
-        const unit = group.units[0];
-        if (!Unit.isAtomic(unit)) return false;
-        const groupCount = unit.bonds.edgeCount * 2;
-        for (const b of loci.bonds) {
-            const unitIdx = group.unitIndexMap.get(b.aUnit.id);
-            if (unitIdx !== undefined) {
-                const idx = unit.bonds.getDirectedEdgeIndex(b.aIndex, b.bIndex);
-                if (idx !== -1) {
-                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true;
-                }
-            }
-        }
-    } else if (StructureElement.Loci.is(loci)) {
-        const { structure, group } = structureGroup;
-        if (!Structure.areEquivalent(loci.structure, structure)) return false;
-        const unit = group.units[0];
-        if (!Unit.isAtomic(unit)) return false;
-        const groupCount = unit.bonds.edgeCount * 2;
-        for (const e of loci.elements) {
-            const unitIdx = group.unitIndexMap.get(e.unit.id);
-            if (unitIdx !== undefined) {
-                const { offset, b } = unit.bonds;
-                OrderedSet.forEach(e.indices, v => {
-                    for (let t = offset[v], _t = offset[v + 1]; t < _t; t++) {
-                        if (!isMarking || OrderedSet.has(e.indices, b[t])) {
-                            if (apply(Interval.ofSingleton(unitIdx * groupCount + t))) changed = true;
-                        }
-                    }
-                });
-            }
-        }
-    }
-    return changed;
 }

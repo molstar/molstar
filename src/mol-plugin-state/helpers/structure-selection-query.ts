@@ -268,6 +268,18 @@ const water = StructureSelectionQuery('Water', MS.struct.modifier.union([
     })
 ]), { category: StructureSelectionCategory.Type });
 
+const ion = StructureSelectionQuery('Ion', MS.struct.modifier.union([
+    MS.struct.generator.atomGroups({
+        'entity-test': MS.core.rel.eq([MS.ammp('entitySubtype'), 'ion'])
+    })
+]), { category: StructureSelectionCategory.Type });
+
+const lipid = StructureSelectionQuery('Lipid', MS.struct.modifier.union([
+    MS.struct.generator.atomGroups({
+        'entity-test': MS.core.rel.eq([MS.ammp('entitySubtype'), 'lipid'])
+    })
+]), { category: StructureSelectionCategory.Type });
+
 const branched = StructureSelectionQuery('Carbohydrate', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.logic.or([
@@ -301,9 +313,12 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
         MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'entity-test': MS.core.logic.and([
-                    MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
+                    MS.core.logic.or([
+                        MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
+                        MS.core.rel.neq([MS.ammp('entityPrdId'), ''])
+                    ]),
                     MS.core.logic.not([MS.core.str.match([
-                        MS.re('oligosaccharide', 'i'),
+                        MS.re('(oligosaccharide|lipid|ion)', 'i'),
                         MS.ammp('entitySubtype')
                     ])])
                 ]),
@@ -605,6 +620,8 @@ export const StructureSelectionQueries = {
     helix,
     beta,
     water,
+    ion,
+    lipid,
     branched,
     branchedPlusConnected,
     branchedConnectedOnly,

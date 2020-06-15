@@ -20,5 +20,5 @@
         "outDir": "lib"
     },
     "include": [ "src/**/*" ],
-    "exclude": [ "src/servers/**/*" ]
+    "exclude": [ "src/servers/**/*", "src/perf-tests/*", "src/cli/**/*" ]
 }

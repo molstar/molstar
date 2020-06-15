@@ -220,7 +220,13 @@ namespace Column {
         } else {
             for (let i = 0, _i = c.rowCount; i < _i; i++) array[offset + i] = c.value(i);
         }
+    }
 
+    export function isIdentity<T extends number>(c: Column<T>) {
+        for (let i = 0, _i = c.rowCount; i < _i; i++) {
+            if (i !== c.value(i)) return false;
+        }
+        return true;
     }
 }
 

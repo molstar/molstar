@@ -5,12 +5,12 @@
  */
 
 import { Table, Column } from '../../../mol-data/db';
-import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { WaterNames, PolymerNames } from '../../../mol-model/structure/model/types';
 import { SetUtils } from '../../../mol-util/set';
 import { BasicSchema } from '../basic/schema';
+import { mmCIF_chemComp_schema } from '../../../mol-io/reader/cif/schema/mmcif-extras';
 
-type Component = Table.Row<Pick<mmCIF_Schema['chem_comp'], 'id' | 'name' | 'type'>>
+type Component = Table.Row<Pick<mmCIF_chemComp_schema, 'id' | 'name' | 'type'>>
 
 const ProteinAtomIdsList = [
     new Set([ 'CA' ]),
@@ -71,13 +71,27 @@ const StandardComponents = (function() {
     return map;
 })();
 
+const CharmmIonComponents = (function() {
+    const map = new Map<string, Component>();
+    const components: Component[] = [
+        { id: 'ZN2', name: 'ZINC ION', type: 'Ion' },
+        { id: 'SOD', name: 'SODIUM ION', type: 'Ion' },
+        { id: 'CES', name: 'CESIUM ION', type: 'Ion' },
+        { id: 'CLA', name: 'CHLORIDE ION', type: 'Ion' },
+        { id: 'CAL', name: 'CALCIUM ION', type: 'Ion' },
+        { id: 'POT', name: 'POTASSIUM ION', type: 'Ion' },
+    ];
+    components.forEach(c => map.set(c.id, c));
+    return map;
+})();
+
 export class ComponentBuilder {
     private namesMap = new Map<string, string>()
     private comps = new Map<string, Component>()
     private ids: string[] = []
     private names: string[] = []
-    private types: mmCIF_Schema['chem_comp']['type']['T'][] = []
-    private mon_nstd_flags: mmCIF_Schema['chem_comp']['mon_nstd_flag']['T'][] = []
+    private types: mmCIF_chemComp_schema['type']['T'][] = []
+    private mon_nstd_flags: mmCIF_chemComp_schema['mon_nstd_flag']['T'][] = []
 
     private set(c: Component) {
         this.comps.set(c.id, c);
@@ -131,8 +145,13 @@ export class ComponentBuilder {
             } else if (WaterNames.has(compId)) {
                 this.set({ id: compId, name: 'WATER', type: 'non-polymer' });
             } else {
-                const type = this.getType(this.getAtomIds(index));
-                this.set({ id: compId, name: this.namesMap.get(compId) || compId, type });
+                const atomIds = this.getAtomIds(index);
+                if (CharmmIonComponents.has(compId) && atomIds.size === 1) {
+                    this.set(CharmmIonComponents.get(compId)!);
+                } else {
+                    const type = this.getType(atomIds);
+                    this.set({ id: compId, name: this.namesMap.get(compId) || compId, type });
+                }
             }
         }
         return this.get(compId)!;

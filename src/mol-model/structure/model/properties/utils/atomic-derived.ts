@@ -5,15 +5,17 @@
  */
 
 import { AtomicData } from '../atomic';
-import { AtomicIndex, AtomicDerivedData } from '../atomic/hierarchy';
+import { AtomicIndex, AtomicDerivedData, AtomicSegments } from '../atomic/hierarchy';
 import { ElementIndex, ResidueIndex } from '../../indexing';
 import { MoleculeType, getMoleculeType, getComponentType, PolymerType, getPolymerType } from '../../types';
 import { getAtomIdForAtomRole } from '../../../../../mol-model/structure/util';
 import { ChemicalComponentMap } from '../common';
 import { isProductionMode } from '../../../../../mol-util/debug';
 
-export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemicalComponentMap: ChemicalComponentMap): AtomicDerivedData {
-    const { label_comp_id, _rowCount: n } = data.residues;
+export function getAtomicDerivedData(data: AtomicData, segments: AtomicSegments, index: AtomicIndex, chemicalComponentMap: ChemicalComponentMap): AtomicDerivedData {
+    const { label_comp_id } = data.atoms;
+    const { _rowCount: n } = data.residues;
+    const { offsets } = segments.residueAtomSegments;
 
     const traceElementIndex = new Int32Array(n);
     const directionFromElementIndex = new Int32Array(n);
@@ -25,7 +27,7 @@ export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemi
     const polymerTypeMap = new Map<string, PolymerType>();
 
     for (let i = 0 as ResidueIndex; i < n; ++i) {
-        const compId = label_comp_id.value(i);
+        const compId = label_comp_id.value(offsets[i]);
         const chemCompMap = chemicalComponentMap;
 
         let molType: MoleculeType;

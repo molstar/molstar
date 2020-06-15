@@ -37,8 +37,11 @@ import { trajectoryFromCifCore } from '../../mol-model-formats/structure/cif-cor
 import { trajectoryFromCube } from '../../mol-model-formats/structure/cube';
 import { parseMol2 } from '../../mol-io/reader/mol2/parser';
 import { trajectoryFromMol2 } from '../../mol-model-formats/structure/mol2';
+import { parseXtc } from '../../mol-io/reader/xtc/parser';
+import { coordinatesFromXtc } from '../../mol-model-formats/structure/xtc';
 
 export { CoordinatesFromDcd };
+export { CoordinatesFromXtc };
 export { TopologyFromPsf };
 export { TrajectoryFromModelAndCoordinates };
 export { TrajectoryFromBlob };
@@ -76,6 +79,23 @@ const CoordinatesFromDcd = PluginStateTransform.BuiltIn({
             const parsed = await parseDcd(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const coordinates = await coordinatesFromDcd(parsed.result).runInContext(ctx);
+            return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });
+        });
+    }
+});
+
+type CoordinatesFromXtc = typeof CoordinatesFromDcd
+const CoordinatesFromXtc = PluginStateTransform.BuiltIn({
+    name: 'coordinates-from-xtc',
+    display: { name: 'Parse XTC', description: 'Parse XTC binary data.' },
+    from: [SO.Data.Binary],
+    to: SO.Molecule.Coordinates
+})({
+    apply({ a }) {
+        return Task.create('Parse XTC', async ctx => {
+            const parsed = await parseXtc(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const coordinates = await coordinatesFromXtc(parsed.result).runInContext(ctx);
             return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });
         });
     }
@@ -887,7 +907,7 @@ async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: Runti
     for (const name of Object.keys(properties)) {
         const property = ctx.customModelProperties.get(name);
         const props = properties[name];
-        if (autoAttach.includes(name)) {
+        if (autoAttach.includes(name) || property.isHidden) {
             try {
                 await property.attach(propertyCtx, model, props, true);
             } catch (e) {
@@ -940,7 +960,7 @@ async function attachStructureProps(structure: Structure, ctx: PluginContext, ta
     for (const name of Object.keys(properties)) {
         const property = ctx.customStructureProperties.get(name);
         const props = properties[name];
-        if (autoAttach.includes(name)) {
+        if (autoAttach.includes(name) || property.isHidden) {
             try {
                 await property.attach(propertyCtx, structure, props, true);
             } catch (e) {

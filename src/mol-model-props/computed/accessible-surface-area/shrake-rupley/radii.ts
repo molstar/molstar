@@ -15,8 +15,8 @@ import { getElementMoleculeType } from '../../../../mol-model/structure/util';
 const l = StructureElement.Location.create(void 0);
 
 export function assignRadiusForHeavyAtoms(ctx: ShrakeRupleyContext) {
-    const { label_comp_id, key } = StructureProperties.residue;
-    const { type_symbol, label_atom_id } = StructureProperties.atom;
+    const { key } = StructureProperties.residue;
+    const { type_symbol, label_atom_id, label_comp_id } = StructureProperties.atom;
     const { structure, atomRadiusType, serialResidueIndex } = ctx;
 
     let prevResidueIdx = 0;

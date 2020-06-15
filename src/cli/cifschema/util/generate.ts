@@ -17,15 +17,15 @@ function header (name: string, info: string, moldataImportPath: string) {
  * @author molstar/ciftools package
  */
 
-import { Database, Column } from '${moldataImportPath}/db'
+import { Database, Column } from '${moldataImportPath}/db';
 
-import Schema = Column.Schema`;
+import Schema = Column.Schema;`;
 }
 
 function footer (name: string) {
     return `
 export type ${name}_Schema = typeof ${name}_Schema;
-export interface ${name}_Database extends Database<${name}_Schema> {}`;
+export interface ${name}_Database extends Database<${name}_Schema> {};`;
 }
 
 function getTypeShorthands(schema: Database, fields?: Filter) {
@@ -122,7 +122,7 @@ export function generate (name: string, info: string, schema: Database, fields: 
         });
         codeLines.push('    },');
     });
-    codeLines.push('}');
+    codeLines.push('};');
 
     if (addAliases) {
         codeLines.push('');
@@ -144,7 +144,7 @@ export function generate (name: string, info: string, schema: Database, fields: 
             });
             codeLines.push('    ],');
         });
-        codeLines.push('}');
+        codeLines.push('};');
     }
 
     return `${header(name, info, moldataImportPath)}\n\n${getTypeShorthands(schema, fields)}\n\n${codeLines.join('\n')}\n${footer(name)}`;

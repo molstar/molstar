@@ -62,12 +62,12 @@ function addUnitPositiveCharges(structure: Structure, unit: Unit.Atomic, builder
 
     const addedElements = new Set<StructureElement.UnitIndex>();
 
-    const { label_comp_id } = unit.model.atomicHierarchy.residues;
+    const { label_comp_id } = unit.model.atomicHierarchy.atoms;
     const residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
 
     while (residueIt.hasNext) {
         const { index: residueIndex, start, end } = residueIt.move();
-        const compId = label_comp_id.value(residueIndex);
+        const compId = label_comp_id.value(unit.model.atomicHierarchy.residueAtomSegments.offsets[residueIndex]);
 
         if (PositvelyCharged.includes(compId)) {
             builder.startState();
@@ -115,12 +115,12 @@ function addUnitNegativeCharges(structure: Structure, unit: Unit.Atomic, builder
 
     const addedElements = new Set<StructureElement.UnitIndex>();
 
-    const { label_comp_id } = unit.model.atomicHierarchy.residues;
+    const { label_comp_id } = unit.model.atomicHierarchy.atoms;
     const residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
 
     while (residueIt.hasNext) {
         const { index: residueIndex, start, end } = residueIt.move();
-        const compId = label_comp_id.value(residueIndex);
+        const compId = label_comp_id.value(unit.model.atomicHierarchy.residueAtomSegments.offsets[residueIndex]);
 
         if (NegativelyCharged.includes(compId)) {
             builder.startState();

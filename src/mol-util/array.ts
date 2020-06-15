@@ -116,3 +116,10 @@ export function arrayEqual<T>(xs?: ArrayLike<T>, ys?: ArrayLike<T>) {
     }
     return true;
 }
+
+export function arrayIsIdentity(xs: ArrayLike<number>) {
+    for (let i = 0, _i = xs.length; i < _i; i++) {
+        if (xs[i] !== i) return false;
+    }
+    return true;
+}

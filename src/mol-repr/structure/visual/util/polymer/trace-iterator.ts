@@ -121,7 +121,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private updateResidueSegmentRange(polymerSegment: Segmentation.Segment<number>) {
         const { index } = this.residueAtomSegments;
         this.residueSegmentMin = index[this.polymerRanges[polymerSegment.index * 2]];
-        this.residueSegmentMax = index[this.polymerRanges[polymerSegment.index * 2 + 1] - 1];
+        this.residueSegmentMax = index[this.polymerRanges[polymerSegment.index * 2 + 1]];
     }
 
     private getResidueIndex(residueIndex: number) {
@@ -186,7 +186,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                     const residueIndexBegPrev = this.getResidueIndex(residueIndexBeg - 1);
                     this.currSecStrucType = residueIndexBeg === residueIndexBegPrev ? SecStrucTypeNA : this.getSecStruc(residueIndexBegPrev);
                     this.nextSecStrucType = this.getSecStruc(residueIndexBeg);
-                    this.currCoarseBackbone = false;
+                    this.currCoarseBackbone = this.directionFromElementIndex[residueIndexBegPrev] === -1 || this.directionToElementIndex[residueIndexBegPrev] === -1;
                     this.nextCoarseBackbone = this.directionFromElementIndex[residueIndexBeg] === -1 || this.directionToElementIndex[residueIndexBeg] === -1;
                     break;
                 }

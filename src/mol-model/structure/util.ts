@@ -45,41 +45,6 @@ export function getAtomIdForAtomRole(polymerType: PolymerType, atomRole: AtomRol
     return EmptyAtomIds;
 }
 
-export function residueLabel(model: Model, rI: number) {
-    const { residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
-    const { label_comp_id, label_seq_id } = residues;
-    const { label_asym_id } = chains;
-    const cI = chainAtomSegments.index[residueAtomSegments.offsets[rI]];
-    return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`;
-}
-
-export function elementLabel(model: Model, index: ElementIndex) {
-    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
-    const { label_atom_id } = atoms;
-    const { auth_seq_id, label_comp_id } = residues;
-    const { auth_asym_id } = chains;
-
-    const residueIndex = residueAtomSegments.index[index];
-    const chainIndex = chainAtomSegments.index[residueIndex];
-
-    return `[${label_comp_id.value(residueIndex)}]${auth_seq_id.value(residueIndex)}:${auth_asym_id.value(chainIndex)}.${label_atom_id.value(index)}`;
-}
-
-// const centerPos = Vec3.zero()
-// const centerMin = Vec3.zero()
-// export function getCenterAndRadius(centroid: Vec3, unit: Unit, indices: ArrayLike<number>) {
-//     const pos = unit.conformation.position
-//     const { elements } = unit
-//     Vec3.set(centroid, 0, 0, 0)
-//     for (let i = 0, il = indices.length; i < il; ++i) {
-//         pos(elements[indices[i]], centerPos)
-//         Vec3.add(centroid, centroid, centerPos)
-//         Vec3.min(centerMin, centerMin, centerPos)
-//     }
-//     Vec3.scale(centroid, centroid, 1/indices.length)
-//     return Vec3.distance(centerMin, centroid)
-// }
-
 const tmpPositionsVec = Vec3.zero();
 export function getPositions(unit: Unit, indices: ArrayLike<number>): NumberArray {
     const pos = unit.conformation.position;

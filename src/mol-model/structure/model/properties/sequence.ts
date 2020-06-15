@@ -44,7 +44,8 @@ namespace StructureSequence {
     }
 
     export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy): StructureSequence {
-        const { label_comp_id, label_seq_id } = hierarchy.residues;
+        const { label_comp_id } = hierarchy.atoms;
+        const { label_seq_id } = hierarchy.residues;
         const { chainAtomSegments, residueAtomSegments } = hierarchy;
         const { count, offsets } = chainAtomSegments;
 
@@ -70,12 +71,17 @@ namespace StructureSequence {
 
             const rStart = residueAtomSegments.index[offsets[start]];
             const rEnd = residueAtomSegments.index[offsets[cI + 1] - 1] + 1;
+            const seqId = Column.window(label_seq_id, rStart, rEnd);
 
-            const compId = Column.window(label_comp_id, rStart, rEnd);
-            const num = Column.window(label_seq_id, rStart, rEnd);
+            const _compId: string[] = [];
+            for (let rI = rStart; rI < rEnd; ++rI) {
+                _compId.push(label_comp_id.value(residueAtomSegments.offsets[rI]));
+            }
+            const compId = Column.ofStringArray(_compId);
+
             byEntityKey[entityKey] = {
                 entityId: entities.data.id.value(entityKey),
-                sequence: Sequence.ofResidueNames(compId, num)
+                sequence: Sequence.ofResidueNames(compId, seqId)
             };
 
             sequences.push(byEntityKey[entityKey]);

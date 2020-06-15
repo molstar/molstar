@@ -6,7 +6,7 @@
 
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
-import { StructureElement, Bond } from '../../mol-model/structure';
+import { StructureElement, Bond, Model } from '../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
@@ -32,21 +32,21 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
         const { models } = ctx.structure.root;
 
         let size = 0;
-        for (const m of models) size = Math.max(size, m.trajectoryInfo.size);
+        for (const m of models) size = Math.max(size, Model.TrajectoryInfo.get(m)?.size || 0);
 
         const palette = getPalette(size, props);
         legend = palette.legend;
         const modelColor = new Map<number, Color>();
         for (let i = 0, il = models.length; i < il; ++i) {
-            const idx = models[i].trajectoryInfo.index;
-            modelColor.set(models[i].trajectoryInfo.index, palette.color(idx));
+            const idx = Model.TrajectoryInfo.get(models[i])?.index || 0;
+            modelColor.set(idx, palette.color(idx));
         }
 
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location)) {
-                return modelColor.get(location.unit.model.trajectoryInfo.index)!;
+                return modelColor.get(Model.TrajectoryInfo.get(location.unit.model).index)!;
             } else if (Bond.isLocation(location)) {
-                return modelColor.get(location.aUnit.model.trajectoryInfo.index)!;
+                return modelColor.get(Model.TrajectoryInfo.get(location.aUnit.model).index)!;
             }
             return DefaultColor;
         };
@@ -71,5 +71,5 @@ export const ModelIndexColorThemeProvider: ColorTheme.Provider<ModelIndexColorTh
     factory: ModelIndexColorTheme,
     getParams: getModelIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(ModelIndexColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.elementCount > 0 && ctx.structure.models[0].trajectoryInfo.size > 1
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.elementCount > 0 && Model.TrajectoryInfo.get(ctx.structure.models[0]).size > 1
 };

@@ -19,6 +19,7 @@ import { OrientationRepresentationProvider } from './representation/orientation'
 import { PointRepresentationProvider } from './representation/point';
 import { PuttyRepresentationProvider } from './representation/putty';
 import { SpacefillRepresentationProvider } from './representation/spacefill';
+import { LineRepresentationProvider } from './representation/line';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
     constructor() {
@@ -39,6 +40,7 @@ export namespace StructureRepresentationRegistry {
         'gaussian-surface': GaussianSurfaceRepresentationProvider,
         // 'gaussian-volume': GaussianVolumeRepresentationProvider, // TODO disabled for now, needs more work
         'label': LabelRepresentationProvider,
+        'line': LineRepresentationProvider,
         'molecular-surface': MolecularSurfaceRepresentationProvider,
         'orientation': OrientationRepresentationProvider,
         'point': PointRepresentationProvider,

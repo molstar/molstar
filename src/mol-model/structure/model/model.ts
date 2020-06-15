@@ -13,7 +13,7 @@ import { Entities, ChemicalComponentMap, MissingResidues, StructAsymMap } from '
 import { CustomProperties } from '../../custom-property';
 import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
 import { ModelFormat } from '../../../mol-model-formats/format';
-import { calcModelCenter } from './util';
+import { calcModelCenter, getAsymIdCount } from './util';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Mutable } from '../../../mol-util/type-helpers';
 import { Coordinates } from '../coordinates';
@@ -26,6 +26,7 @@ import { ChainIndex } from './indexing';
 import { SymmetryOperator } from '../../../mol-math/geometry';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 import { Column } from '../../../mol-data/db';
+import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -47,14 +48,6 @@ export interface Model extends Readonly<{
      * - for models from coordinates: frame index
      */
     modelNum: number,
-
-    /**
-     * This is a hack to allow "model-index coloring"
-     */
-    trajectoryInfo: {
-        index: number,
-        size: number
-    },
 
     sourceData: ModelFormat,
 
@@ -95,16 +88,23 @@ export interface Model extends Readonly<{
 export namespace Model {
     export type Trajectory = ReadonlyArray<Model>
 
-    export function trajectoryFromModelAndCoordinates(model: Model, coordinates: Coordinates): Trajectory {
+    function _trajectoryFromModelAndCoordinates(model: Model, coordinates: Coordinates) {
         const trajectory: Mutable<Model.Trajectory> = [];
         const { frames } = coordinates;
+
+        const srcIndex = model.atomicHierarchy.atoms.sourceIndex;
+        const isIdentity = Column.isIdentity(srcIndex);
+        const srcIndexArray = isIdentity ? void 0 : srcIndex.toArray({ array: Int32Array });
+
         for (let i = 0, il = frames.length; i < il; ++i) {
             const f = frames[i];
             const m = {
                 ...model,
                 id: UUID.create22(),
                 modelNum: i,
-                atomicConformation: Coordinates.getAtomicConformation(f, model.atomicConformation.atomId),
+                atomicConformation: isIdentity
+                    ? Coordinates.getAtomicConformation(f, model.atomicConformation.atomId)
+                    : Coordinates.getAtomicConformationReordered(f, model.atomicConformation.atomId, srcIndexArray!),
                 // TODO: add support for supplying sphere and gaussian coordinates in addition to atomic coordinates?
                 // coarseConformation: coarse.conformation,
                 customProperties: new CustomProperties(),
@@ -113,22 +113,44 @@ export namespace Model {
             };
             trajectory.push(m);
         }
-        return trajectory;
+        return { trajectory, srcIndexArray };
+    }
+
+    export function trajectoryFromModelAndCoordinates(model: Model, coordinates: Coordinates): Trajectory {
+        return _trajectoryFromModelAndCoordinates(model, coordinates).trajectory;
+    }
+
+    function invertIndex(xs: ArrayLike<number>) {
+        const ret = new Int32Array(xs.length);
+        for (let i = 0, _i = xs.length; i < _i; i++) {
+            ret[xs[i]] = i;
+        }
+        return ret;
     }
 
     export function trajectoryFromTopologyAndCoordinates(topology: Topology, coordinates: Coordinates): Task<Trajectory> {
         return Task.create('Create Trajectory', async ctx => {
             const model = (await createModels(topology.basic, topology.sourceData, ctx))[0];
             if (!model) throw new Error('found no model');
-            const trajectory = trajectoryFromModelAndCoordinates(model, coordinates);
-            const bondData = { pairs: topology.bonds, count: model.atomicHierarchy.atoms._rowCount };
+            const { trajectory, srcIndexArray } = _trajectoryFromModelAndCoordinates(model, coordinates);
+
+            // TODO: cache the inverted index somewhere?
+            const invertedIndex = srcIndexArray ? invertIndex(srcIndexArray) : void 0;
+            const pairs = srcIndexArray
+                ? {
+                    indexA: Column.ofIntArray(Column.mapToArray(topology.bonds.indexA, i => invertedIndex![i], Int32Array)),
+                    indexB: Column.ofIntArray(Column.mapToArray(topology.bonds.indexB, i => invertedIndex![i], Int32Array)),
+                    order: topology.bonds.order
+                }
+                : topology.bonds;
+
+            const bondData = { pairs, count: model.atomicHierarchy.atoms._rowCount };
             const indexPairBonds = IndexPairBonds.fromData(bondData);
 
             let index = 0;
             for (const m of trajectory) {
                 IndexPairBonds.Provider.set(m, indexPairBonds);
-                m.trajectoryInfo.index = index++;
-                m.trajectoryInfo.size = trajectory.length;
+                TrajectoryInfo.set(m, { index: index++, size: trajectory.length });
             }
             return trajectory;
         });
@@ -141,6 +163,34 @@ export namespace Model {
         model._dynamicPropertyData[CenterProp] = center;
         return center;
     }
+
+    const TrajectoryInfoProp = '__TrajectoryInfo__';
+    export type TrajectoryInfo = { readonly index: number, readonly size: number }
+    export const TrajectoryInfo = {
+        get(model: Model): TrajectoryInfo {
+            return model._staticPropertyData[TrajectoryInfoProp] || { index: 0, size: 1 };
+        },
+        set(model: Model, trajectoryInfo: TrajectoryInfo) {
+            return model._staticPropertyData[TrajectoryInfoProp] = trajectoryInfo;
+        }
+    };
+
+    const AsymIdCountProp = '__AsymIdCount__';
+    export type AsymIdCount = { readonly auth: number, readonly label: number }
+    export const AsymIdCount = {
+        get(model: Model): AsymIdCount {
+            if (model._staticPropertyData[AsymIdCountProp]) return model._staticPropertyData[AsymIdCountProp];
+            const asymIdCount = getAsymIdCount(model);
+            model._staticPropertyData[AsymIdCountProp] = asymIdCount;
+            return asymIdCount;
+        },
+    };
+
+    export type AsymIdOffset = { auth: number, label: number };
+    export const AsymIdOffset = CustomModelProperty.createSimple<AsymIdOffset>('asym_id_offset', 'static');
+
+    export type Index = number;
+    export const Index = CustomModelProperty.createSimple<Index>('index', 'static');
 
     //
 

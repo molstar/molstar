@@ -17,6 +17,7 @@ import { UpdateTransformControl } from '../state/update-transform';
 import { StructureSelectionStatsControls } from './selection';
 import { StateSelection } from '../../mol-state';
 import { MoleculeSvg, BookmarksOutlinedSvg } from '../controls/icons';
+import { Model } from '../../mol-model/structure';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
@@ -47,15 +48,15 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         switch (ref.kind) {
             case 'model': {
                 const model = ref.cell.obj?.data;
-                if (model?.trajectoryInfo.size! > 1) {
-                    label = `${ref.cell.obj?.data.entryId} | Model ${model?.trajectoryInfo.index! + 1} of ${model?.trajectoryInfo.size}`;
+                if (model && Model.TrajectoryInfo.get(model).size > 1) {
+                    label = `${ref.cell.obj?.data.entryId} | Model ${Model.TrajectoryInfo.get(model).index + 1} of ${Model.TrajectoryInfo.get(model).size}`;
                 }
                 label = `${ref.cell.obj?.data.entryId} | ${ref.cell.obj?.label}`; break;
             }
             case 'structure': {
                 const model = ref.cell.obj?.data.models[0];
-                if (model && model.trajectoryInfo.size! > 1) {
-                    label = `${model.entryId} | ${ref.cell.obj?.label} (Model ${model?.trajectoryInfo.index! + 1} of ${model?.trajectoryInfo.size})`; break;
+                if (model && Model.TrajectoryInfo.get(model).size! > 1) {
+                    label = `${model.entryId} | ${ref.cell.obj?.label} (Model ${Model.TrajectoryInfo.get(model).index + 1} of ${Model.TrajectoryInfo.get(model).size})`; break;
                 } else if (model) {
                     label = `${model.entryId} | ${ref.cell.obj?.label}`; break;
                 } else {
@@ -148,8 +149,8 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
 
             if (models.length === 1) {
                 const model = models[0].cell.obj?.data;
-                if (model?.trajectoryInfo.size! > 1) {
-                    return `${t?.cell.obj?.label} | Model ${model?.trajectoryInfo.index! + 1} of ${model?.trajectoryInfo.size}`;
+                if (model && Model.TrajectoryInfo.get(model).size > 1) {
+                    return `${t?.cell.obj?.label} | Model ${Model.TrajectoryInfo.get(model).index + 1} of ${Model.TrajectoryInfo.get(model).size}`;
                 } else {
                     return `${t?.cell.obj?.label} | Model`;
                 }
@@ -225,7 +226,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         if (selection.structures.length !== 1) return null;
         const m = selection.structures[0].model;
         if (!m || m.cell.transform.transformer !== StateTransforms.Model.ModelFromTrajectory) return null;
-        if (m.cell.obj?.data.trajectoryInfo.size! <= 1) return null;
+        if (!m.cell.obj || Model.TrajectoryInfo.get(m.cell.obj.data).size <= 1) return null;
 
         const params = m.cell.params?.definition;
         if (!params) return null;

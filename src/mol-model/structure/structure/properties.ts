@@ -51,20 +51,17 @@ const atom = {
     label_atom_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.label_atom_id.value(l.element)),
     auth_atom_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.auth_atom_id.value(l.element)),
     label_alt_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.label_alt_id.value(l.element)),
+    label_comp_id: p(compId),
+    auth_comp_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.auth_comp_id.value(l.unit.residueIndex[l.element])),
     pdbx_formal_charge: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.pdbx_formal_charge.value(l.element)),
 
     // Derived
     vdw_radius: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : VdwRadius(l.unit.model.atomicHierarchy.atoms.type_symbol.value(l.element))),
 };
 
-function _compId(l: StructureElement.Location) {
-    return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element]);
-}
-
 function compId(l: StructureElement.Location) {
     if (!Unit.isAtomic(l.unit)) notAtomic();
-    if (!hasMicroheterogeneity(l)) return _compId(l);
-    return l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element]);
+    return l.unit.model.atomicHierarchy.atoms.label_comp_id.value(l.element);
 }
 
 function seqId(l: StructureElement.Location) {
@@ -91,14 +88,12 @@ const residue = {
     key: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.residueIndex[l.element]),
 
     group_PDB: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.group_PDB.value(l.unit.residueIndex[l.element])),
-    label_comp_id: p(compId),
-    auth_comp_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.element])),
     label_seq_id: p(seqId),
     auth_seq_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.element])),
     pdbx_PDB_ins_code: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.element])),
 
     // Properties
-    isNonStandard: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.chemicalComponentMap.get(compId(l))!.mon_nstd_flag[0] !== 'y'),
+    isNonStandard: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : microheterogeneityCompIds(l).some(c => l.unit.model.properties.chemicalComponentMap.get(c)!.mon_nstd_flag[0] !== 'y')),
     hasMicroheterogeneity: p(hasMicroheterogeneity),
     microheterogeneityCompIds: p(microheterogeneityCompIds),
     secondary_structure_type: p(l => {
@@ -157,7 +152,6 @@ const entity = {
 
     id: p(l => l.unit.model.entities.data.id.value(eK(l))),
     type: p(l => l.unit.model.entities.data.type.value(eK(l))),
-    subtype: p(l => l.unit.model.entities.subtype.value(eK(l))),
     src_method: p(l => l.unit.model.entities.data.src_method.value(eK(l))),
     pdbx_description: p(l => l.unit.model.entities.data.pdbx_description.value(eK(l))),
     formula_weight: p(l => l.unit.model.entities.data.formula_weight.value(eK(l))),
@@ -165,7 +159,10 @@ const entity = {
     details: p(l => l.unit.model.entities.data.details.value(eK(l))),
     pdbx_mutation: p(l => l.unit.model.entities.data.pdbx_mutation.value(eK(l))),
     pdbx_fragment: p(l => l.unit.model.entities.data.pdbx_fragment.value(eK(l))),
-    pdbx_ec: p(l => l.unit.model.entities.data.pdbx_ec.value(eK(l)))
+    pdbx_ec: p(l => l.unit.model.entities.data.pdbx_ec.value(eK(l))),
+
+    subtype: p(l => l.unit.model.entities.subtype.value(eK(l))),
+    prd_id: p(l => l.unit.model.entities.prd_id.value(eK(l))),
 };
 
 const _emptyList: any[] = [];

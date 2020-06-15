@@ -18,7 +18,6 @@ import { SizeTheme } from '../../../../mol-theme/size';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { PluginCommands } from '../../../commands';
 import { PluginContext } from '../../../context';
-import { Color } from '../../../../mol-util/color';
 
 const StructureFocusRepresentationParams = (plugin: PluginContext) => {
     const reprParams = StateTransforms.Representation.StructureRepresentation3D.definition.params!(void 0, plugin) as PD.Params;
@@ -26,11 +25,11 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         expandRadius: PD.Numeric(5, { min: 1, max: 10, step: 1 }),
         targetParams: PD.Group(reprParams, {
             label: 'Target',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.17 }, colorParams: { carbon: Color.fromRgb(100, 100, 100) } })
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.26, alpha: 0.51 } })
         }),
         surroundingsParams: PD.Group(reprParams, {
             label: 'Surroundings',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', color: 'element-symbol', size: 'physical', typeParams: { sizeFactor: 0.16 }, colorParams: { carbon: Color.fromRgb(160, 160, 160) } })
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.16 } })
         }),
         nciParams: PD.Group(reprParams, {
             label: 'Non-covalent Int.',
@@ -39,9 +38,14 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
                 color: InteractionTypeColorThemeProvider,
                 size: SizeTheme.BuiltIn.uniform
             })
-        })
+        }),
+        components: PD.MultiSelect(FocusComponents, PD.arrayToOptions(FocusComponents)),
+        excludeTargetFromSurroundings: PD.Boolean(false, { label: 'Exclude Target', description: 'Exclude the focus "target" from the surroudings component.' }),
+        ignoreHydrogens: PD.Boolean(false)
     };
 };
+
+const FocusComponents = ['target' as const, 'surroundings' as const, 'interactions' as const];
 
 type StructureFocusRepresentationProps = PD.ValuesFor<ReturnType<typeof StructureFocusRepresentationParams>>
 
@@ -55,8 +59,18 @@ export enum StructureFocusRepresentationTags {
 
 const TagSet: Set<StructureFocusRepresentationTags> = new Set([StructureFocusRepresentationTags.TargetSel, StructureFocusRepresentationTags.TargetRepr, StructureFocusRepresentationTags.SurrSel, StructureFocusRepresentationTags.SurrRepr, StructureFocusRepresentationTags.SurrNciRepr]);
 
-export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscribers<StructureFocusRepresentationProps> {
+class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscribers<StructureFocusRepresentationProps> {
     private get surrLabel() { return `[Focus] Surroundings (${this.params.expandRadius} Å)`; }
+
+    private getReprParams(reprParams: PD.Values<PD.Params>) {
+        return {
+            ...this.params.targetParams,
+            type: {
+                name: reprParams.type.name,
+                params: { ...reprParams.type.params, ignoreHydrogens: this.params.ignoreHydrogens }
+            }
+        };
+    }
 
     private ensureShape(cell: StateObjectCell<PluginStateObject.Molecule.Structure>) {
         const state = this.plugin.state.data, tree = state.tree;
@@ -78,20 +92,22 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
                     { expression: MS.struct.generator.empty(), label: this.surrLabel }, { tags: StructureFocusRepresentationTags.SurrSel }).ref;
         }
 
+        const components = this.params.components;
+
         // Representations
-        if (!refs[StructureFocusRepresentationTags.TargetRepr]) {
+        if (components.indexOf('target') >= 0 && !refs[StructureFocusRepresentationTags.TargetRepr]) {
             refs[StructureFocusRepresentationTags.TargetRepr] = builder
                 .to(refs[StructureFocusRepresentationTags.TargetSel]!)
-                .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.targetParams, { tags: StructureFocusRepresentationTags.TargetRepr }).ref;
+                .apply(StateTransforms.Representation.StructureRepresentation3D, this.getReprParams(this.params.targetParams), { tags: StructureFocusRepresentationTags.TargetRepr }).ref;
         }
 
-        if (!refs[StructureFocusRepresentationTags.SurrRepr]) {
+        if (components.indexOf('surroundings') >= 0 && !refs[StructureFocusRepresentationTags.SurrRepr]) {
             refs[StructureFocusRepresentationTags.SurrRepr] = builder
                 .to(refs[StructureFocusRepresentationTags.SurrSel]!)
-                .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.surroundingsParams, { tags: StructureFocusRepresentationTags.SurrRepr }).ref;
+                .apply(StateTransforms.Representation.StructureRepresentation3D, this.getReprParams(this.params.surroundingsParams), { tags: StructureFocusRepresentationTags.SurrRepr }).ref;
         }
 
-        if (!refs[StructureFocusRepresentationTags.SurrNciRepr]) {
+        if (components.indexOf('interactions') >= 0 && !refs[StructureFocusRepresentationTags.SurrNciRepr]) {
             refs[StructureFocusRepresentationTags.SurrNciRepr] = builder
                 .to(refs[StructureFocusRepresentationTags.SurrSel]!)
                 .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.nciParams, { tags: StructureFocusRepresentationTags.SurrNciRepr }).ref;
@@ -102,6 +118,7 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
 
     private clear(root: StateTransform.Ref) {
         const state = this.plugin.state.data;
+        this.currentSource = void 0;
 
         const foci = state.select(StateSelection.Generators.byRef(root).subtree().withTag(StructureFocusRepresentationTags.TargetSel));
         const surrs = state.select(StateSelection.Generators.byRef(root).subtree().withTag(StructureFocusRepresentationTags.SurrSel));
@@ -121,20 +138,30 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
         return PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
     }
 
+    private currentSource: StructureElement.Loci | undefined = void 0;
     private async focus(sourceLoci: StructureElement.Loci) {
         const parent = this.plugin.helpers.substructureParent.get(sourceLoci.structure);
         if (!parent || !parent.obj) return;
 
+        this.currentSource = sourceLoci;
         const loci = StructureElement.Loci.remap(sourceLoci, parent.obj!.data);
 
         const residueLoci = StructureElement.Loci.extendToWholeResidues(loci);
         const residueBundle = StructureElement.Bundle.fromLoci(residueLoci);
 
-        const surroundings = MS.struct.modifier.includeSurroundings({
-            0: StructureElement.Bundle.toExpression(residueBundle),
+        const target = StructureElement.Bundle.toExpression(residueBundle);
+        let surroundings = MS.struct.modifier.includeSurroundings({
+            0: target,
             radius: this.params.expandRadius,
             'as-whole-residues': true
         });
+
+        if (this.params.excludeTargetFromSurroundings) {
+            surroundings =  MS.struct.modifier.exceptBy({
+                0: surroundings,
+                by: target
+            });
+        }
 
         const { state, builder, refs } = this.ensureShape(parent);
 
@@ -152,27 +179,50 @@ export class StructureFocusRepresentationBehavior extends PluginBehavior.WithSub
     }
 
     async update(params: StructureFocusRepresentationProps) {
-        let oldRadius = this.params.expandRadius;
+        const old = this.params;
         this.params = params;
+
+        if (old.excludeTargetFromSurroundings !== params.excludeTargetFromSurroundings) {
+            if (this.currentSource) {
+                this.focus(this.currentSource);
+            }
+            return true;
+        }
 
         const state = this.plugin.state.data;
         const builder = state.build();
 
         const all = StateSelection.Generators.root.subtree();
+
+        const components = this.params.components;
+
+        // TODO: create component if previously didnt exist
+        let hasComponent = components.indexOf('target') >= 0;
         for (const repr of state.select(all.withTag(StructureFocusRepresentationTags.TargetRepr))) {
-            builder.to(repr).update(this.params.targetParams);
+            if (!hasComponent) builder.delete(repr.transform.ref);
+            else builder.to(repr).update(this.getReprParams(this.params.targetParams));
         }
+
+        hasComponent = components.indexOf('surroundings') >= 0;
         for (const repr of state.select(all.withTag(StructureFocusRepresentationTags.SurrRepr))) {
-            builder.to(repr).update(this.params.surroundingsParams);
+            if (!hasComponent) builder.delete(repr.transform.ref);
+            else builder.to(repr).update(this.getReprParams(this.params.surroundingsParams));
         }
+
+        hasComponent = components.indexOf('interactions') >= 0;
         for (const repr of state.select(all.withTag(StructureFocusRepresentationTags.SurrNciRepr))) {
-            builder.to(repr).update(this.params.nciParams);
+            if (!hasComponent) builder.delete(repr.transform.ref);
+            else builder.to(repr).update(this.params.nciParams);
         }
 
         await PluginCommands.State.Update(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
 
-        // TODO: update properly
-        if (params.expandRadius !== oldRadius) await this.clear(StateTransform.RootRef);
+        if (params.expandRadius !== old.expandRadius) {
+            if (this.currentSource) {
+                this.focus(this.currentSource);
+            }
+            return true;
+        }
 
         return true;
     }

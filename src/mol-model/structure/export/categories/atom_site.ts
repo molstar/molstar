@@ -34,7 +34,7 @@ const atom_site_fields = CifWriter.fields<StructureElement.Location, Structure>(
     .str('type_symbol', P.atom.type_symbol as any)
     .str('label_atom_id', P.atom.label_atom_id)
 
-    .str('label_comp_id', P.residue.label_comp_id)
+    .str('label_comp_id', P.atom.label_comp_id)
     .int('label_seq_id', P.residue.label_seq_id, {
         encoder: E.deltaRLE,
         valueKind: (k, d) => {
@@ -58,7 +58,7 @@ const atom_site_fields = CifWriter.fields<StructureElement.Location, Structure>(
     })
 
     .str('auth_atom_id', P.atom.auth_atom_id)
-    .str('auth_comp_id', P.residue.auth_comp_id)
+    .str('auth_comp_id', P.atom.auth_comp_id)
     .int('auth_seq_id', P.residue.auth_seq_id, { encoder: E.deltaRLE })
     .str('auth_asym_id', atom_site_auth_asym_id)
 
@@ -108,7 +108,7 @@ export interface IdFieldsOptions {
 export function residueIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement.Location, options?: IdFieldsOptions): CifField<K, D>[] {
     const prefix = options && options.prefix, postfix = options && options.postfix;
     const ret = CifWriter.fields<K, D>()
-        .str(prepostfixed(prefix, postfix, `label_comp_id`), mappedProp(getLocation, P.residue.label_comp_id))
+        .str(prepostfixed(prefix, postfix, `label_comp_id`), mappedProp(getLocation, P.atom.label_comp_id))
         .int(prepostfixed(prefix, postfix, `label_seq_id`), mappedProp(getLocation, P.residue.label_seq_id), {
             encoder: E.deltaRLE,
             valueKind: (k, d) => {
@@ -122,7 +122,7 @@ export function residueIdFields<K, D>(getLocation: (key: K, data: D) => Structur
         .str(prepostfixed(prefix, postfix, `label_asym_id`), mappedProp(getLocation, P.chain.label_asym_id))
         .str(prepostfixed(prefix, postfix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id))
 
-        .str(prepostfixed(prefix, postfix, `auth_comp_id`), mappedProp(getLocation, P.residue.auth_comp_id))
+        .str(prepostfixed(prefix, postfix, `auth_comp_id`), mappedProp(getLocation, P.atom.auth_comp_id))
         .int(prepostfixed(prefix, postfix, `auth_seq_id`), mappedProp(getLocation, P.residue.auth_seq_id), { encoder: E.deltaRLE })
         .str(prepostfixed(prefix, postfix, `auth_asym_id`), mappedProp(getLocation, P.chain.auth_asym_id));
 
@@ -154,7 +154,7 @@ export function atomIdFields<K, D>(getLocation: (key: K, data: D) => StructureEl
     const prefix = options && options.prefix, postfix = options && options.postfix;
     const ret = CifWriter.fields<K, D>()
         .str(prepostfixed(prefix, postfix, `label_atom_id`), mappedProp(getLocation, P.atom.label_atom_id))
-        .str(prepostfixed(prefix, postfix, `label_comp_id`), mappedProp(getLocation, P.residue.label_comp_id))
+        .str(prepostfixed(prefix, postfix, `label_comp_id`), mappedProp(getLocation, P.atom.label_comp_id))
         .int(prepostfixed(prefix, postfix, `label_seq_id`), mappedProp(getLocation, P.residue.label_seq_id), {
             encoder: E.deltaRLE,
             valueKind: (k, d) => {
@@ -170,7 +170,7 @@ export function atomIdFields<K, D>(getLocation: (key: K, data: D) => StructureEl
         .str(prepostfixed(prefix, postfix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id))
 
         .str(prepostfixed(prefix, postfix, `auth_atom_id`), mappedProp(getLocation, P.atom.auth_atom_id))
-        .str(prepostfixed(prefix, postfix, `auth_comp_id`), mappedProp(getLocation, P.residue.auth_comp_id))
+        .str(prepostfixed(prefix, postfix, `auth_comp_id`), mappedProp(getLocation, P.atom.auth_comp_id))
         .int(prepostfixed(prefix, postfix, `auth_seq_id`), mappedProp(getLocation, P.residue.auth_seq_id), { encoder: E.deltaRLE })
         .str(prepostfixed(prefix, postfix, `auth_asym_id`), mappedProp(getLocation, P.chain.auth_asym_id));
 

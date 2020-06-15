@@ -5,8 +5,8 @@
  */
 
 import { getElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
-import { IntraUnitBondVisual, IntraUnitBondParams } from '../visual/bond-intra-unit-cylinder';
-import { InterUnitBondVisual, InterUnitBondParams } from '../visual/bond-inter-unit-cylinder';
+import { IntraUnitBondCylinderVisual, IntraUnitBondCylinderParams } from '../visual/bond-intra-unit-cylinder';
+import { InterUnitBondCylinderVisual, InterUnitBondCylinderParams } from '../visual/bond-inter-unit-cylinder';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';
 import { ComplexRepresentation } from '../complex-representation';
@@ -18,14 +18,14 @@ import { getUnitKindsParam } from '../params';
 
 const BallAndStickVisuals = {
     'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Element sphere mesh', ctx, getParams, getElementSphereVisual(ctx.webgl)),
-    'intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitBondParams>) => UnitsRepresentation('Intra-unit bond cylinder', ctx, getParams, IntraUnitBondVisual),
-    'inter-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitBondParams>) => ComplexRepresentation('Inter-unit bond cylinder', ctx, getParams, InterUnitBondVisual),
+    'intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitBondCylinderParams>) => UnitsRepresentation('Intra-unit bond cylinder', ctx, getParams, IntraUnitBondCylinderVisual),
+    'inter-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitBondCylinderParams>) => ComplexRepresentation('Inter-unit bond cylinder', ctx, getParams, InterUnitBondCylinderVisual),
 };
 
 export const BallAndStickParams = {
     ...ElementSphereParams,
-    ...IntraUnitBondParams,
-    ...InterUnitBondParams,
+    ...IntraUnitBondCylinderParams,
+    ...InterUnitBondCylinderParams,
     unitKinds: getUnitKindsParam(['atomic']),
     sizeFactor: PD.Numeric(0.15, { min: 0.01, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0.01, max: 3, step: 0.01 }),

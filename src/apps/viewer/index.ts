@@ -25,6 +25,7 @@ import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { MembraneOrientationData } from '../../extensions/membrane-orientation/behavior';
+import { DnatcoConfalPyramids } from '../../extensions/dnatco';
 
 require('mol-plugin-ui/skin/light.scss');
 
@@ -33,6 +34,7 @@ export { setProductionMode, setDebugMode } from '../../mol-util/debug';
 
 const Extensions = {
     'cellpack': PluginSpec.Behavior(CellPack),
+    'dnatco-confal-pyramids': PluginSpec.Behavior(DnatcoConfalPyramids),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
     'rcsb-assembly-symmetry': PluginSpec.Behavior(RCSBAssemblySymmetry),
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),

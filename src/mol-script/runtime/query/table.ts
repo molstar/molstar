@@ -319,15 +319,15 @@ const symbols = [
 
     D(MolScript.structureQuery.atomProperty.macromolecular.label_atom_id, atomProp(StructureProperties.atom.label_atom_id)),
     D(MolScript.structureQuery.atomProperty.macromolecular.label_alt_id, atomProp(StructureProperties.atom.label_alt_id)),
-    D(MolScript.structureQuery.atomProperty.macromolecular.label_asym_id, atomProp(StructureProperties.chain.label_asym_id)),
-    D(MolScript.structureQuery.atomProperty.macromolecular.label_comp_id, atomProp(StructureProperties.residue.label_comp_id)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.label_comp_id, atomProp(StructureProperties.atom.label_comp_id)),
     D(MolScript.structureQuery.atomProperty.macromolecular.label_seq_id, atomProp(StructureProperties.residue.label_seq_id)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.label_asym_id, atomProp(StructureProperties.chain.label_asym_id)),
     D(MolScript.structureQuery.atomProperty.macromolecular.label_entity_id, atomProp(StructureProperties.entity.id)),
 
     D(MolScript.structureQuery.atomProperty.macromolecular.auth_atom_id, atomProp(StructureProperties.atom.auth_atom_id)),
-    D(MolScript.structureQuery.atomProperty.macromolecular.auth_asym_id, atomProp(StructureProperties.chain.auth_asym_id)),
-    D(MolScript.structureQuery.atomProperty.macromolecular.auth_comp_id, atomProp(StructureProperties.residue.auth_comp_id)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.auth_comp_id, atomProp(StructureProperties.atom.auth_comp_id)),
     D(MolScript.structureQuery.atomProperty.macromolecular.auth_seq_id, atomProp(StructureProperties.residue.auth_seq_id)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.auth_asym_id, atomProp(StructureProperties.chain.auth_asym_id)),
 
     D(MolScript.structureQuery.atomProperty.macromolecular.pdbx_PDB_ins_code, atomProp(StructureProperties.residue.pdbx_PDB_ins_code)),
     D(MolScript.structureQuery.atomProperty.macromolecular.pdbx_formal_charge, atomProp(StructureProperties.atom.pdbx_formal_charge)),
@@ -336,6 +336,7 @@ const symbols = [
 
     D(MolScript.structureQuery.atomProperty.macromolecular.entityType, atomProp(StructureProperties.entity.type)),
     D(MolScript.structureQuery.atomProperty.macromolecular.entitySubtype, atomProp(StructureProperties.entity.subtype)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.entityPrdId, atomProp(StructureProperties.entity.prd_id)),
     D(MolScript.structureQuery.atomProperty.macromolecular.entityDescription, atomProp(StructureProperties.entity.pdbx_description)),
     D(MolScript.structureQuery.atomProperty.macromolecular.objectPrimitive, atomProp(StructureProperties.unit.object_primitive)),
 

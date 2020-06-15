@@ -9,7 +9,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Color } from '../../../mol-util/color';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ScaleLegend, TableLegend } from '../../../mol-util/legend';
-import { StructureElement } from '../../../mol-model/structure';
+import { StructureElement, Model } from '../../../mol-model/structure';
 import { Location } from '../../../mol-model/location';
 import { CellPackInfoProvider } from '../property';
 
@@ -32,13 +32,13 @@ export function CellPackProvidedColorTheme(ctx: ThemeDataContext, props: PD.Valu
         const { models } = ctx.structure.root;
         const modelColor = new Map<number, Color>();
         for (let i = 0, il = models.length; i < il; ++i) {
-            const idx = models[i].trajectoryInfo.index;
-            modelColor.set(models[i].trajectoryInfo.index, info.colors[idx]);
+            const idx = Model.TrajectoryInfo.get(models[i]).index;
+            modelColor.set(Model.TrajectoryInfo.get(models[i]).index, info.colors[idx]);
         }
 
         color = (location: Location): Color => {
             return StructureElement.Location.is(location)
-                ? modelColor.get(location.unit.model.trajectoryInfo.index)!
+                ? modelColor.get(Model.TrajectoryInfo.get(location.unit.model).index)!
                 : DefaultColor;
         };
     } else {
@@ -65,7 +65,7 @@ export const CellPackProvidedColorThemeProvider: ColorTheme.Provider<CellPackPro
     isApplicable: (ctx: ThemeDataContext) => {
         return (
             !!ctx.structure && ctx.structure.elementCount > 0 &&
-            ctx.structure.models[0].trajectoryInfo.size > 1 &&
+            Model.TrajectoryInfo.get(ctx.structure.models[0]).size > 1 &&
             !!CellPackInfoProvider.get(ctx.structure).value?.colors
         );
     }

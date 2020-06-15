@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -24,3 +24,10 @@ export const mmCIF_chemCompBond_schema = {
     /** Indicates if the bond entry was taken from the protonation variant dictionary */
     molstar_protonation_variant: Column.Schema.Str()
 };
+
+/** Has `type` extended with 'Ion' and 'Lipid' */
+export const mmCIF_chemComp_schema = {
+    ...mmCIF_Schema.chem_comp,
+    type: Column.Schema.Aliased<mmCIF_Schema['chem_comp']['type']['T'] | 'Ion' | 'Lipid'>(Column.Schema.str)
+};
+export type mmCIF_chemComp_schema = typeof mmCIF_chemComp_schema;

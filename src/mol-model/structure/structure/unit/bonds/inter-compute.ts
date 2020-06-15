@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { BondType } from '../../../model/types';
+import { BondType, MoleculeType } from '../../../model/types';
 import Structure from '../../structure';
 import Unit from '../../unit';
 import { getElementIdx, getElementPairThreshold, getElementThreshold, isHydrogen, BondComputationProps, MetalsSet, DefaultBondComputationProps } from './common';
@@ -38,10 +38,10 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const { elements: atomsB, residueIndex: residueIndexB } = unitB;
     const atomCount = unitA.elements.length;
 
-    const { type_symbol: type_symbolA, label_alt_id: label_alt_idA, label_atom_id: label_atom_idA } = unitA.model.atomicHierarchy.atoms;
-    const { type_symbol: type_symbolB, label_alt_id: label_alt_idB, label_atom_id: label_atom_idB } = unitB.model.atomicHierarchy.atoms;
-    const { label_comp_id: label_comp_idA, auth_seq_id: auth_seq_idA } = unitA.model.atomicHierarchy.residues;
-    const { label_comp_id: label_comp_idB, auth_seq_id: auth_seq_idB } = unitB.model.atomicHierarchy.residues;
+    const { type_symbol: type_symbolA, label_alt_id: label_alt_idA, label_atom_id: label_atom_idA, label_comp_id: label_comp_idA } = unitA.model.atomicHierarchy.atoms;
+    const { type_symbol: type_symbolB, label_alt_id: label_alt_idB, label_atom_id: label_atom_idB, label_comp_id: label_comp_idB } = unitB.model.atomicHierarchy.atoms;
+    const { auth_seq_id: auth_seq_idA } = unitA.model.atomicHierarchy.residues;
+    const { auth_seq_id: auth_seq_idB } = unitB.model.atomicHierarchy.residues;
     const { occupancy: occupancyA } = unitA.model.atomicConformation;
     const { occupancy: occupancyB } = unitB.model.atomicConformation;
     const hasOccupancy = occupancyA.isDefined && occupancyB.isDefined;
@@ -75,6 +75,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
                 const _bI = SortedArray.indexOf(unitA.elements, indexPairs.b[i]) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
                 if (symmetryA[i] === symmetryB[i]) continue;
+                if (type_symbolA.value(aI) === 'H' && type_symbolB.value(indexPairs.b[i]) === 'H') continue;
                 if (symmUnitA === symmetryA[i] && symmUnitB === symmetryB[i]) {
                     builder.add(_aI, _bI, { order: order[i], flag: BondType.Flag.Covalent });
                 }
@@ -102,9 +103,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             if (added) continue;
         }
 
-        // ignore atoms with zero occupancy (assuming they are not actually atoms)
         const occA = occupancyA.value(aI);
-        if (hasOccupancy && occA === 0) continue;
 
         const { indices, count, squaredDistances } = lookup3d.find(imageA[0], imageA[1], imageA[2], MAX_RADIUS);
         if (count === 0) continue;
@@ -193,7 +192,15 @@ function findBonds(structure: Structure, props: InterBondComputationProps) {
 function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondComputationProps>): InterUnitBonds {
     return findBonds(structure, {
         ...DefaultBondComputationProps,
-        validUnitPair: (props && props.validUnitPair) || Structure.validUnitPair,
+        validUnitPair: (props && props.validUnitPair) || ((s, a, b) => {
+            const mtA = a.model.atomicHierarchy.derived.residue.moleculeType;
+            const mtB = b.model.atomicHierarchy.derived.residue.moleculeType;
+            const notWater = (
+                (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Water) &&
+                (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Water)
+            );
+            return Structure.validUnitPair(s, a, b) && notWater;
+        }),
     });
 }
 

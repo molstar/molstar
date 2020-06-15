@@ -104,7 +104,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
                 }
                 oldVisuals.forEach(({ visual }) => {
-                    // console.log(label, 'removed unused visual')
+                    // console.log(label, 'removed unused visual');
                     visual.destroy();
                 });
 

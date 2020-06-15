@@ -155,6 +155,8 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             break;
     }
 
+    resolution = Math.min(resolution, 20);
+
     if (props.alpha !== undefined && props.alpha < 1) {
         doubleSided = false;
     }

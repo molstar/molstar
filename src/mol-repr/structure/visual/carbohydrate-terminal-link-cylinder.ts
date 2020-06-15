@@ -10,7 +10,7 @@ import { Structure, StructureElement, Unit } from '../../../mol-model/structure'
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from './util/link';
+import { createLinkCylinderMesh, LinkCylinderParams, LinkStyle } from './util/link';
 import { UnitsMeshParams } from '../units-visual';
 import { ComplexVisual, ComplexMeshVisual } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
@@ -56,7 +56,7 @@ function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structur
             const l = terminalLinks[edgeIndex];
             const eI = l.elementUnit.elements[l.elementIndex];
             const beI = getElementIdx(l.elementUnit.model.atomicHierarchy.atoms.type_symbol.value(eI));
-            return MetalsSet.has(beI) ? LinkCylinderStyle.Dashed : LinkCylinderStyle.Solid;
+            return MetalsSet.has(beI) ? LinkStyle.Dashed : LinkStyle.Solid;
         }
     };
 

@@ -1,14 +1,14 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.324, IHM 1.09, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.326, IHM 1.09, CARB draft.
  *
  * @author molstar/ciftools package
  */
 
 import { Database, Column } from '../../../../mol-data/db';
 
-import Schema = Column.Schema
+import Schema = Column.Schema;
 
 const str = Schema.str;
 const int = Schema.int;
@@ -2559,7 +2559,7 @@ export const mmCIF_Schema = {
         /**
          * This data item contains the descriptor type.
          */
-        type: Aliased<'LINUCS' | 'Glycam Condensed Sequence' | 'Glycam Condensed Core Sequence'>(str),
+        type: Aliased<'LINUCS' | 'Glycam Condensed Sequence' | 'Glycam Condensed Core Sequence' | 'WURCS'>(str),
         /**
          * This data item contains the name of the program
          * or library used to compute the descriptor.
@@ -2616,6 +2616,188 @@ export const mmCIF_Schema = {
          * An ordinal index for this category
          */
         ordinal: int,
+    },
+    /**
+     * Data items in the PDBX_ENTITY_BRANCH_LIST category specify the list
+     * of monomers in a branched entity.  Allowance is made for the possibility
+     * of microheterogeneity in a sample by allowing a given sequence
+     * number to be correlated with more than one monomer ID. The
+     * corresponding ATOM_SITE entries should reflect this
+     * heterogeneity.
+     */
+    pdbx_entity_branch_list: {
+        /**
+         * This data item is a pointer to _entity.id in the ENTITY category.
+         */
+        entity_id: str,
+        /**
+         * A flag to indicate whether this monomer in the entity is
+         * heterogeneous in sequence.
+         */
+        hetero: Aliased<'no' | 'n' | 'yes' | 'y'>(str),
+        /**
+         * This data item is a pointer to _chem_comp.id in the CHEM_COMP
+         * category.
+         */
+        comp_id: str,
+        /**
+         * The value pair  _pdbx_entity_branch_list.num and _pdbx_entity_branch_list.comp_id
+         * must uniquely identify a record in the PDBX_ENTITY_BRANCH_LIST list.
+         */
+        num: int,
+    },
+    /**
+     * Data items in the PDBX_ENTITY_BRANCH_LINK category give details about
+     * the linkages between components within a branched entity.
+     */
+    pdbx_entity_branch_link: {
+        /**
+         * The value of _pdbx_entity_branch_link.link_id uniquely identifies
+         * linkages within the branched entity.
+         */
+        link_id: int,
+        /**
+         * A description of special aspects of this linkage.
+         */
+        details: str,
+        /**
+         * The entity id for this branched entity.
+         *
+         * This data item is a pointer to _pdbx_entity_branch_list.entity_id
+         * in the PDBX_ENTITY_BRANCH_LIST category.
+         */
+        entity_id: str,
+        /**
+         * The component number for the first component making the linkage.
+         *
+         * This data item is a pointer to _pdbx_entity_branch_list.num
+         * in the PDBX_ENTITY_BRANCH_LIST category.
+         */
+        entity_branch_list_num_1: int,
+        /**
+         * The component number for the second component making the linkage.
+         *
+         * This data item is a pointer to _pdbx_entity_branch_list.num
+         * in the PDBX_ENTITY_BRANCH_LIST category.
+         */
+        entity_branch_list_num_2: int,
+        /**
+         * The component identifier for the first component making the linkage.
+         *
+         * This data item is a pointer to _pdbx_entity_branch_list.comp_id
+         * in the PDBX_ENTITY_BRANCH_LIST category.
+         */
+        comp_id_1: str,
+        /**
+         * The component identifier for the second component making the linkage.
+         *
+         * This data item is a pointer to _pdbx_entity_branch_list.comp_id
+         * in the PDBX_ENTITY_BRANCH_LIST category.
+         */
+        comp_id_2: str,
+        /**
+         * The atom identifier/name for the first atom making the linkage.
+         */
+        atom_id_1: str,
+        /**
+         * The leaving atom identifier/name bonded to the first atom making the linkage.
+         */
+        leaving_atom_id_1: str,
+        /**
+         * The chiral configuration of the first atom making the linkage.
+         */
+        atom_stereo_config_1: Aliased<'R' | 'S' | 'N'>(str),
+        /**
+         * The atom identifier/name for the second atom making the linkage.
+         */
+        atom_id_2: str,
+        /**
+         * The leaving atom identifier/name bonded to the second atom making the linkage.
+         */
+        leaving_atom_id_2: str,
+        /**
+         * The chiral configuration of the second atom making the linkage.
+         */
+        atom_stereo_config_2: Aliased<'R' | 'S' | 'N'>(str),
+        /**
+         * The bond order target for the chemical linkage.
+         */
+        value_order: Aliased<'sing' | 'doub' | 'trip' | 'quad' | 'arom' | 'poly' | 'delo' | 'pi'>(str),
+    },
+    /**
+     * Data items in the PDBX_ENTITY_BRANCH category specify the list
+     * of branched entities and the type.
+     */
+    pdbx_entity_branch: {
+        /**
+         * The entity id for this branched entity.
+         *
+         * This data item is a pointer to _entity.id
+         */
+        entity_id: str,
+        /**
+         * The type of this branched oligosaccharide.
+         */
+        type: Aliased<'oligosaccharide'>(str),
+    },
+    /**
+     * The PDBX_BRANCH_SCHEME category provides residue level nomenclature
+     * mapping for branch chain entities.
+     */
+    pdbx_branch_scheme: {
+        /**
+         * This data item is a pointer to _entity.id in the ENTITY category.
+         */
+        entity_id: str,
+        /**
+         * A flag to indicate whether this monomer in the entity is
+         * heterogeneous in sequence.
+         */
+        hetero: Aliased<'no' | 'n' | 'yes' | 'y'>(str),
+        /**
+         * Pointer to _atom_site.label_asym_id.
+         */
+        asym_id: str,
+        /**
+         * This data item is a pointer to _atom_site.label_comp_id in the
+         * PDBX_ENTITY_BRANCH_LIST category.
+         */
+        mon_id: str,
+        /**
+         * This data item is a pointer to _pdbx_entity_branch_list.num in the
+         * PDBX_ENTITY_BRANCH_LIST category.
+         */
+        num: int,
+        /**
+         * This data item is a pointer to _atom_site.auth_asym_id in the
+         * ATOM_SITE category.
+         */
+        pdb_asym_id: str,
+        /**
+         * This data item is a pointer to _atom_site.auth_seq_id in the
+         * ATOM_SITE category.
+         */
+        pdb_seq_num: str,
+        /**
+         * This data item is a pointer to _atom_site.auth_comp_id in the
+         * ATOM_SITE category.
+         */
+        pdb_mon_id: str,
+        /**
+         * This data item is a pointer to _atom_site.pdbx_auth_asym_id in the
+         * ATOM_SITE category.
+         */
+        auth_asym_id: str,
+        /**
+         * This data item is a pointer to _atom_site.pdbx_auth_seq_id in the
+         * ATOM_SITE category.
+         */
+        auth_seq_num: str,
+        /**
+         * This data item is a pointer to _atom_site.pdbx_auth_comp_id in the
+         * ATOM_SITE category.
+         */
+        auth_mon_id: str,
     },
     /**
      * Data items in the IHM_STARTING_MODEL_DETAILS category records the
@@ -4477,188 +4659,6 @@ export const mmCIF_Schema = {
         dataset_list_id: int,
     },
     /**
-     * Data items in the PDBX_ENTITY_BRANCH_LIST category specify the list
-     * of monomers in a branched entity.  Allowance is made for the possibility
-     * of microheterogeneity in a sample by allowing a given sequence
-     * number to be correlated with more than one monomer ID. The
-     * corresponding ATOM_SITE entries should reflect this
-     * heterogeneity.
-     */
-    pdbx_entity_branch_list: {
-        /**
-         * This data item is a pointer to _entity.id in the ENTITY category.
-         */
-        entity_id: str,
-        /**
-         * A flag to indicate whether this monomer in the entity is
-         * heterogeneous in sequence.
-         */
-        hetero: Aliased<'no' | 'n' | 'yes' | 'y'>(str),
-        /**
-         * This data item is a pointer to _chem_comp.id in the CHEM_COMP
-         * category.
-         */
-        comp_id: str,
-        /**
-         * The value pair  _pdbx_entity_branch_list.num and _pdbx_entity_branch_list.comp_id
-         * must uniquely identify a record in the PDBX_ENTITY_BRANCH_LIST list.
-         */
-        num: int,
-    },
-    /**
-     * Data items in the PDBX_ENTITY_BRANCH_LINK category give details about
-     * the linkages between components within a branched entity.
-     */
-    pdbx_entity_branch_link: {
-        /**
-         * The value of _pdbx_entity_branch_link.link_id uniquely identifies
-         * linkages within the branched entity.
-         */
-        link_id: int,
-        /**
-         * A description of special aspects of this linkage.
-         */
-        details: str,
-        /**
-         * The entity id for this branched entity.
-         *
-         * This data item is a pointer to _pdbx_entity_branch_list.entity_id
-         * in the PDBX_ENTITY_BRANCH_LIST category.
-         */
-        entity_id: str,
-        /**
-         * The component number for the first component making the linkage.
-         *
-         * This data item is a pointer to _pdbx_entity_branch_list.num
-         * in the PDBX_ENTITY_BRANCH_LIST category.
-         */
-        entity_branch_list_num_1: int,
-        /**
-         * The component number for the second component making the linkage.
-         *
-         * This data item is a pointer to _pdbx_entity_branch_list.num
-         * in the PDBX_ENTITY_BRANCH_LIST category.
-         */
-        entity_branch_list_num_2: int,
-        /**
-         * The component identifier for the first component making the linkage.
-         *
-         * This data item is a pointer to _pdbx_entity_branch_list.comp_id
-         * in the PDBX_ENTITY_BRANCH_LIST category.
-         */
-        comp_id_1: str,
-        /**
-         * The component identifier for the second component making the linkage.
-         *
-         * This data item is a pointer to _pdbx_entity_branch_list.comp_id
-         * in the PDBX_ENTITY_BRANCH_LIST category.
-         */
-        comp_id_2: str,
-        /**
-         * The atom identifier/name for the first atom making the linkage.
-         */
-        atom_id_1: str,
-        /**
-         * The leaving atom identifier/name bonded to the first atom making the linkage.
-         */
-        leaving_atom_id_1: str,
-        /**
-         * The chiral configuration of the first atom making the linkage.
-         */
-        atom_stereo_config_1: Aliased<'R' | 'S' | 'N'>(str),
-        /**
-         * The atom identifier/name for the second atom making the linkage.
-         */
-        atom_id_2: str,
-        /**
-         * The leaving atom identifier/name bonded to the second atom making the linkage.
-         */
-        leaving_atom_id_2: str,
-        /**
-         * The chiral configuration of the second atom making the linkage.
-         */
-        atom_stereo_config_2: Aliased<'R' | 'S' | 'N'>(str),
-        /**
-         * The bond order target for the chemical linkage.
-         */
-        value_order: Aliased<'sing' | 'doub' | 'trip' | 'quad' | 'arom' | 'poly' | 'delo' | 'pi'>(str),
-    },
-    /**
-     * Data items in the PDBX_ENTITY_BRANCH category specify the list
-     * of branched entities and the type.
-     */
-    pdbx_entity_branch: {
-        /**
-         * The entity id for this branched entity.
-         *
-         * This data item is a pointer to _entity.id
-         */
-        entity_id: str,
-        /**
-         * The type of this branched oligosaccharide.
-         */
-        type: Aliased<'oligosaccharide'>(str),
-    },
-    /**
-     * The PDBX_BRANCH_SCHEME category provides residue level nomenclature
-     * mapping for branch chain entities.
-     */
-    pdbx_branch_scheme: {
-        /**
-         * This data item is a pointer to _entity.id in the ENTITY category.
-         */
-        entity_id: str,
-        /**
-         * A flag to indicate whether this monomer in the entity is
-         * heterogeneous in sequence.
-         */
-        hetero: Aliased<'no' | 'n' | 'yes' | 'y'>(str),
-        /**
-         * Pointer to _atom_site.label_asym_id.
-         */
-        asym_id: str,
-        /**
-         * This data item is a pointer to _atom_site.label_comp_id in the
-         * PDBX_ENTITY_BRANCH_LIST category.
-         */
-        mon_id: str,
-        /**
-         * This data item is a pointer to _pdbx_entity_branch_list.num in the
-         * PDBX_ENTITY_BRANCH_LIST category.
-         */
-        num: int,
-        /**
-         * This data item is a pointer to _atom_site.auth_asym_id in the
-         * ATOM_SITE category.
-         */
-        pdb_asym_id: str,
-        /**
-         * This data item is a pointer to _atom_site.auth_seq_id in the
-         * ATOM_SITE category.
-         */
-        pdb_seq_num: str,
-        /**
-         * This data item is a pointer to _atom_site.auth_comp_id in the
-         * ATOM_SITE category.
-         */
-        pdb_mon_id: str,
-        /**
-         * This data item is a pointer to _atom_site.pdbx_auth_asym_id in the
-         * ATOM_SITE category.
-         */
-        auth_asym_id: str,
-        /**
-         * This data item is a pointer to _atom_site.pdbx_auth_seq_id in the
-         * ATOM_SITE category.
-         */
-        auth_seq_num: str,
-        /**
-         * This data item is a pointer to _atom_site.pdbx_auth_comp_id in the
-         * ATOM_SITE category.
-         */
-        auth_mon_id: str,
-    },
-    /**
      * PDBX_CHEM_COMP_RELATED describes the relationship between two chemical components.
      */
     pdbx_chem_comp_related: {
@@ -4682,4 +4682,4 @@ export const mmCIF_Schema = {
 };
 
 export type mmCIF_Schema = typeof mmCIF_Schema;
-export interface mmCIF_Database extends Database<mmCIF_Schema> {}
+export interface mmCIF_Database extends Database<mmCIF_Schema> {};

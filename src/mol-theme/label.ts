@@ -239,7 +239,7 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
     const label_seq_id = Props.residue.label_seq_id(location);
     const auth_seq_id = Props.residue.auth_seq_id(location);
     const ins_code = Props.residue.pdbx_PDB_ins_code(location);
-    const comp_id = Props.residue.label_comp_id(location);
+    const comp_id = Props.atom.label_comp_id(location);
     const atom_id = Props.atom.label_atom_id(location);
     const alt_id = Props.atom.label_alt_id(location);
     const occupancy = Props.atom.occupancy(location);

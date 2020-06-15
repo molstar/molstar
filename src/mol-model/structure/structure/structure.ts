@@ -30,6 +30,7 @@ import { AtomicHierarchy } from '../model/properties/atomic';
 import { StructureSelection } from '../query/selection';
 import { getBoundary } from '../../../mol-math/geometry/boundary';
 import { ElementSymbol } from '../model/types';
+import { CustomStructureProperty } from '../../../mol-model-props/common/custom-structure-property';
 
 class Structure {
     /** Maps unit.id to unit */
@@ -407,7 +408,7 @@ function getModels(s: Structure) {
 }
 
 function getUniqueResidueNames(s: Structure) {
-    const prop = StructureProperties.residue.label_comp_id;
+    const { microheterogeneityCompIds } = StructureProperties.residue;
     const names = new Set<string>();
     const loc = StructureElement.Location.create(s);
     for (const unitGroup of s.unitSymmetryGroups) {
@@ -419,7 +420,8 @@ function getUniqueResidueNames(s: Structure) {
         while (residues.hasNext) {
             const seg = residues.move();
             loc.element = unit.elements[seg.start];
-            names.add(prop(loc));
+            const compIds = microheterogeneityCompIds(loc);
+            for (const compId of compIds) names.add(compId);
         }
     }
     return names;
@@ -658,6 +660,8 @@ namespace Structure {
         return create(units, { representativeModel: trajectory[0], label: trajectory[0].label });
     }
 
+    const PARTITION = false;
+
     /**
      * Construct a Structure from a model.
      *
@@ -704,11 +708,16 @@ namespace Structure {
 
             const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
 
-            if (singleAtomResidues) {
-                partitionAtomicUnitByAtom(model, elements, builder, multiChain, operator);
-            } else if (elements.length > 200000 || isWaterChain(model, c)) {
-                // split up very large chains e.g. lipid bilayers, micelles or water with explicit H
-                partitionAtomicUnitByResidue(model, elements, builder, multiChain, operator);
+            if (PARTITION) {
+                // check for polymer to exclude CA/P-only models
+                if (singleAtomResidues && !isPolymerChain(model, c)) {
+                    partitionAtomicUnitByAtom(model, elements, builder, multiChain, operator);
+                } else if (elements.length > 200000 || isWaterChain(model, c)) {
+                    // split up very large chains e.g. lipid bilayers, micelles or water with explicit H
+                    partitionAtomicUnitByResidue(model, elements, builder, multiChain, operator);
+                } else {
+                    builder.addUnit(Unit.Kind.Atomic, model, operator, elements, multiChain ? Unit.Trait.MultiChain : Unit.Trait.None);
+                }
             } else {
                 builder.addUnit(Unit.Kind.Atomic, model, operator, elements, multiChain ? Unit.Trait.MultiChain : Unit.Trait.None);
             }
@@ -730,6 +739,11 @@ namespace Structure {
     function isWaterChain(model: Model, chainIndex: ChainIndex) {
         const e = model.atomicHierarchy.index.getEntityFromChain(chainIndex);
         return model.entities.data.type.value(e) === 'water';
+    }
+
+    function isPolymerChain(model: Model, chainIndex: ChainIndex) {
+        const e = model.atomicHierarchy.index.getEntityFromChain(chainIndex);
+        return model.entities.data.type.value(e) === 'polymer';
     }
 
     function partitionAtomicUnitByAtom(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean, operator: SymmetryOperator) {
@@ -1124,6 +1138,11 @@ namespace Structure {
             return Size.Large;
         }
     }
+
+    //
+
+    export type Index = number;
+    export const Index = CustomStructureProperty.createSimple<Index>('index', 'root');
 }
 
 export default Structure;

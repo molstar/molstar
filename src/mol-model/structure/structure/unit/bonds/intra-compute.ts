@@ -38,9 +38,8 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
     const { x, y, z } = unit.model.atomicConformation;
     const atomCount = unit.elements.length;
     const { elements: atoms, residueIndex, chainIndex } = unit;
-    const { type_symbol, label_atom_id, label_alt_id } = unit.model.atomicHierarchy.atoms;
-    const { occupancy } = unit.model.atomicConformation;
-    const { label_comp_id, label_seq_id } = unit.model.atomicHierarchy.residues;
+    const { type_symbol, label_atom_id, label_alt_id, label_comp_id } = unit.model.atomicHierarchy.atoms;
+    const { label_seq_id } = unit.model.atomicHierarchy.residues;
     const { index } = unit.model.atomicHierarchy;
     const { byEntityKey } = unit.model.sequence;
     const query3d = unit.lookup3d;
@@ -68,6 +67,7 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
                 const _bI = SortedArray.indexOf(unit.elements, indexPairs.b[i]) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
                 if (edgeProps.symmetryA[i] !== edgeProps.symmetryB[i]) continue;
+                if (type_symbol.value(aI) === 'H' && type_symbol.value(indexPairs.b[i]) === 'H') continue;
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;
                 order[order.length] = edgeProps.order[i];
@@ -100,7 +100,7 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
         }
 
         const raI = residueIndex[aI];
-        const compId = label_comp_id.value(raI);
+        const compId = label_comp_id.value(aI);
 
         if (!props.forceCompute && raI !== lastResidue) {
             if (!!component && component.entries.has(compId)) {
@@ -116,9 +116,6 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
             }
         }
         lastResidue = raI;
-
-        // ignore atoms with zero occupancy (assuming they are not actually atoms)
-        if (occupancy.isDefined && occupancy.value(aI) === 0) continue;
 
         const aeI = getElementIdx(type_symbol.value(aI));
         const atomIdA = label_atom_id.value(aI);

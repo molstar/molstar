@@ -140,8 +140,8 @@ async function applyCrystalSymmetry(props: { ijkMin: Vec3, ijkMax: Vec3, theme?:
 const unitcell = TrajectoryHierarchyPresetProvider({
     id: 'preset-trajectory-unitcell',
     display: {
-        name: 'Unitcell', group: 'Preset',
-        description: 'Shows the fully populated unitcell.'
+        name: 'Unit Cell', group: 'Preset',
+        description: 'Shows the fully populated unit cell.'
     },
     isApplicable: o => {
         return Model.hasCrystalSymmetry(o.data[0]);
@@ -155,8 +155,8 @@ const unitcell = TrajectoryHierarchyPresetProvider({
 const supercell = TrajectoryHierarchyPresetProvider({
     id: 'preset-trajectory-supercell',
     display: {
-        name: 'Supercell', group: 'Preset',
-        description: 'Shows the supercell, i.e. the central unitcell and all adjacent unitcells.'
+        name: 'Super Cell', group: 'Preset',
+        description: 'Shows the super cell, i.e. the central unit cell and all adjacent unit cells.'
     },
     isApplicable: o => {
         return Model.hasCrystalSymmetry(o.data[0]);

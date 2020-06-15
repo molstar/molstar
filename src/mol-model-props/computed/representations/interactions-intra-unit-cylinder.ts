@@ -14,7 +14,7 @@ import { PickingId } from '../../../mol-geo/geometry/picking';
 import { VisualContext } from '../../../mol-repr/visual';
 import { Theme } from '../../../mol-theme/theme';
 import { InteractionsProvider } from '../interactions';
-import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from '../../../mol-repr/structure/visual/util/link';
+import { createLinkCylinderMesh, LinkCylinderParams, LinkStyle } from '../../../mol-repr/structure/visual/util/link';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
@@ -42,7 +42,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
             Vec3.set(posA, x[a[edgeIndex]], y[a[edgeIndex]], z[a[edgeIndex]]);
             Vec3.set(posB, x[b[edgeIndex]], y[b[edgeIndex]], z[b[edgeIndex]]);
         },
-        style: (edgeIndex: number) => LinkCylinderStyle.Dashed,
+        style: (edgeIndex: number) => LinkStyle.Dashed,
         radius: (edgeIndex: number) => {
             location.element = unit.elements[members[offsets[a[edgeIndex]]]];
             const sizeA = theme.size.size(location);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,13 +22,15 @@ export interface DcdHeader {
 }
 
 export interface DcdFrame {
-    readonly cell: Cell
     readonly elementCount: number
 
     // positions
     readonly x: ArrayLike<number>
     readonly y: ArrayLike<number>
     readonly z: ArrayLike<number>
+
+    // optional cell
+    readonly cell?: Cell
 }
 
 export interface DcdFile {
@@ -147,17 +149,16 @@ export function _parseDcd(data: Uint8Array): DcdFile {
     }
 
     // frames
-
     const natom = header.NATOM;
     const natom4 = natom * 4;
 
     for (let i = 0, n = header.NSET; i < n; ++i) {
-        const frame: Mutable<DcdFrame> = Object.create({
-            elementCount: natom
-        });
+        const frame: Mutable<DcdFrame> = Object.create(null);
+        frame.elementCount = natom;
 
         if (extraBlock) {
             nextPos += 4; // block start
+            // TODO this is not standardized and we need to add heuristics to handle more variants
             // cell: A, alpha, B, beta, gamma, C (doubles)
             const size = Vec3.create(
                 dv.getFloat64(nextPos, ef),
@@ -199,7 +200,6 @@ export function _parseDcd(data: Uint8Array): DcdFile {
 
         frames.push(frame);
     }
-
     return { header, frames };
 }
 

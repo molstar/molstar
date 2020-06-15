@@ -4,17 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PsfFile } from '../../mol-io/reader/psf/parser';
 import { Column, Table } from '../../mol-data/db';
-import { EntityBuilder } from './common/entity';
-import { ComponentBuilder } from './common/component';
-import { guessElementSymbolString } from './util';
-import { MoleculeType, getMoleculeType } from '../../mol-model/structure/model/types';
-import { getChainId } from './common/util';
+import { PsfFile } from '../../mol-io/reader/psf/parser';
+import { getMoleculeType, MoleculeType } from '../../mol-model/structure/model/types';
+import { Topology } from '../../mol-model/structure/topology/topology';
 import { Task } from '../../mol-task';
 import { ModelFormat } from '../format';
-import { Topology } from '../../mol-model/structure/topology/topology';
-import { createBasic, BasicSchema } from './basic/schema';
+import { BasicSchema, createBasic } from './basic/schema';
+import { ComponentBuilder } from './common/component';
+import { EntityBuilder } from './common/entity';
+import { getChainId } from './common/util';
+import { guessElementSymbolString } from './util';
 
 function getBasic(atoms: PsfFile['atoms']) {
     const auth_atom_id = atoms.atomName;
@@ -32,16 +32,28 @@ function getBasic(atoms: PsfFile['atoms']) {
     let currentAsymIndex = 0;
     let currentAsymId = '';
     let currentSeqId = 0;
+    let currentSegmentName = atoms.segmentName.value(0), segmentChanged = false;
     let prevMoleculeType = MoleculeType.Unknown;
     let prevResidueNumber = -1;
 
     for (let i = 0, il = atoms.count; i < il; ++i) {
         const residueNumber = atoms.residueId.value(i);
-        if (residueNumber !== prevResidueNumber) {
+
+        if (currentSegmentName !== atoms.segmentName.value(i)) {
+            currentAsymId = getChainId(currentAsymIndex);
+            currentAsymIndex += 1;
+            currentSeqId = 0;
+            segmentChanged = true;
+            currentSegmentName = atoms.segmentName.value(i);
+        } else {
+            segmentChanged = false;
+        }
+
+        if (segmentChanged || residueNumber !== prevResidueNumber) {
             const compId = atoms.residueName.value(i);
             const moleculeType = getMoleculeType(componentBuilder.add(compId, i).type, compId);
 
-            if (moleculeType !== prevMoleculeType || residueNumber !== prevResidueNumber + 1) {
+            if (!segmentChanged && (moleculeType !== prevMoleculeType || residueNumber !== prevResidueNumber + 1)) {
                 currentAsymId = getChainId(currentAsymIndex);
                 currentAsymIndex += 1;
                 currentSeqId = 0;

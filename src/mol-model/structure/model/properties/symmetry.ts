@@ -47,7 +47,7 @@ export namespace Assembly {
 interface Symmetry {
     readonly assemblies: ReadonlyArray<Assembly>,
     readonly spacegroup: Spacegroup,
-    readonly isNonStandardCrytalFrame: boolean,
+    readonly isNonStandardCrystalFrame: boolean,
     readonly ncsOperators?: ReadonlyArray<SymmetryOperator>,
 
     /**
@@ -61,7 +61,7 @@ interface Symmetry {
 }
 
 namespace Symmetry {
-    export const Default: Symmetry = { assemblies: [], spacegroup: Spacegroup.ZeroP1, isNonStandardCrytalFrame: false };
+    export const Default: Symmetry = { assemblies: [], spacegroup: Spacegroup.ZeroP1, isNonStandardCrystalFrame: false };
 
     export function findAssembly(model: Model, id: string): Assembly | undefined {
         const _id = id.toLocaleLowerCase();
@@ -80,7 +80,7 @@ namespace Symmetry {
         const gamma = radToDeg(anglesInRadians[2]).toFixed(2);
         const label: string[] = [];
         // name
-        label.push(`Unitcell <b>${name}</b> #${num}`);
+        label.push(`Unit Cell <b>${name}</b> #${num}`);
         // sizes
         label.push(`${a}\u00D7${b}\u00D7${c} \u212B`);
         // angles

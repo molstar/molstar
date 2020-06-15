@@ -60,6 +60,8 @@ function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, o
         label_atom_id: atom_site.label_atom_id,
         auth_atom_id: atom_site.auth_atom_id,
         label_alt_id: atom_site.label_alt_id,
+        label_comp_id: atom_site.label_comp_id,
+        auth_comp_id: atom_site.auth_comp_id,
         pdbx_formal_charge: atom_site.pdbx_formal_charge,
         sourceIndex
     });
@@ -74,8 +76,8 @@ function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, o
 
     // Fix possibly missing auth_/label_ columns
     substUndefinedColumn(atoms, 'label_atom_id', 'auth_atom_id');
+    substUndefinedColumn(atoms, 'label_comp_id', 'auth_comp_id');
     substUndefinedColumn(residues, 'label_seq_id', 'auth_seq_id');
-    substUndefinedColumn(residues, 'label_comp_id', 'auth_comp_id');
     substUndefinedColumn(chains, 'label_asym_id', 'auth_asym_id');
 
     return { atoms, residues, chains };
@@ -174,7 +176,7 @@ function getAtomicHierarchy(atom_site: AtomSite, sourceIndex: Column<number>, en
     };
 
     const index = getAtomicIndex(hierarchyData, entities, hierarchySegments);
-    const derived = getAtomicDerivedData(hierarchyData, index, chemicalComponentMap);
+    const derived = getAtomicDerivedData(hierarchyData, hierarchySegments, index, chemicalComponentMap);
     const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchySegments, index, derived };
     return { sameAsPrevious: false, hierarchy, chainOperatorMapping };
 }

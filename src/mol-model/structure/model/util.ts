@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,6 +8,7 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 import { AtomicConformation } from './properties/atomic';
 import { CoarseConformation } from './properties/coarse';
 import { arrayMinMax } from '../../../mol-util/array';
+import { Model } from './model';
 
 export function calcModelCenter(atomicConformation: AtomicConformation, coarseConformation?: CoarseConformation) {
     let rangesX: number[] = [];
@@ -42,4 +43,14 @@ export function calcModelCenter(atomicConformation: AtomicConformation, coarseCo
     const z = minZ + (maxZ - minZ) / 2;
 
     return Vec3.create(x, y, z);
+}
+
+export function getAsymIdCount(model: Model) {
+    const auth = new Set<string>();
+    const label = new Set<string>();
+    model.properties.structAsymMap.forEach(({ auth_id }, label_id) => {
+        auth.add(auth_id);
+        label.add(label_id);
+    });
+    return { auth: auth.size, label: label.size };
 }

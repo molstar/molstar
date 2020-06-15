@@ -41,7 +41,7 @@ Moreover, the project contains the implementation of `servers`, including
 - `servers/volume` A tool for accessing volumetric experimental data related to molecular structures.
 - `servers/plugin-state` A basic server to store Mol* Plugin states.
 
-The project also contains performance tests (`perf-tests`), `examples`, and basic proof of concept `apps` (CIF to BinaryCIF converter and JSON domain annotation to CIF converter).
+The project also contains performance tests (`perf-tests`), `examples`, and basic proof of concept `cli` apps (CIF to BinaryCIF converter and JSON domain annotation to CIF converter).
 
 ## Previous Work
 This project builds on experience from previous solutions:
@@ -90,19 +90,23 @@ and navigate to `build/viewer`
 ### Code generation
 **CIF schemas**
 
-    node ./lib/apps/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/mmcif.ts -p mmCIF
-    node ./lib/apps/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/ccd.ts -p CCD
-    node ./lib/apps/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/bird.ts -p BIRD
-    node ./lib/apps/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/cif-core.ts -p CifCore -aa
+    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/mmcif.ts -p mmCIF
+    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/ccd.ts -p CCD
+    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/bird.ts -p BIRD
+    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/cif-core.ts -p CifCore -aa
+
+**Lipid names**
+
+    node lib/commonjs/cli/lipid-params -o src/mol-model/structure/model/types/lipids.ts
 
 **GraphQL schemas**
 
-    ./node_modules/.bin/graphql-codegen -c ./src/extensions/rcsb/graphql/codegen.yml
+    node node_modules//@graphql-codegen/cli/bin -c src/extensions/rcsb/graphql/codegen.yml
 
 ### Other scripts
 **Create chem comp bond table**
 
-    node --max-old-space-size=4096 lib/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
+    node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-bond/create-table.js build/data/ccb.bcif -b
 
 **Test model server**
 
@@ -120,7 +124,7 @@ To see all available commands, use ``node lib/servers/model/preprocess -h``.
 
 Or
 
-    node ./lib/apps/cif2bcif
+    node lib/commonjs/cli/cif2bcif
 
 ## Development
 

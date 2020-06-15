@@ -181,8 +181,8 @@ export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({
         }
 
         const assemblySymmetry = await tryCreateAssemblySymmetry(plugin, structureCell);
-        const globalThemeName = assemblySymmetry.isOk ? Tag.Cluster as any : undefined;
-        const preset = await PresetStructureRepresentations.auto.apply(ref, { ...params, globalThemeName }, plugin);
+        const colorTheme = assemblySymmetry.isOk ? Tag.Cluster as any : undefined;
+        const preset = await PresetStructureRepresentations.auto.apply(ref, { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } }, plugin);
 
         return { components: preset.components, representations: { ...preset.representations, assemblySymmetry } };
     }

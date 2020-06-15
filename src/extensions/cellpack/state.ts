@@ -13,7 +13,7 @@ import { IngredientFiles } from './util';
 import { Asset } from '../../mol-util/assets';
 import { PluginContext } from '../../mol-plugin/context';
 import { CellPackInfoProvider } from './property';
-import { Structure, StructureSymmetry, Unit } from '../../mol-model/structure';
+import { Structure, StructureSymmetry, Unit, Model } from '../../mol-model/structure';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 
 export const DefaultCellPackBaseUrl = 'https://mesoscope.scripps.edu/data/cellPACK_data/cellPACK_database_1.1.0/';
@@ -138,9 +138,7 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
                 }
                 structure = builder.getStructure();
                 for( let i = 0, il = structure.models.length; i < il; ++i) {
-                    const { trajectoryInfo } = structure.models[i];
-                    trajectoryInfo.size = il;
-                    trajectoryInfo.index = i;
+                    Model.TrajectoryInfo.set(structure.models[i], { size: il, index: i });
                 }
             }
             return new PSO.Molecule.Structure(structure, { label: a.label, description: `${a.description}` });
@@ -150,55 +148,3 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
         b?.data.customPropertyDescriptors.dispose();
     }
 });
-
-// export { GetAllAssamblyinOneStructure };
-// type GetAllAssamblyinOneStructure = typeof GetAllAssamblyinOneStructure
-// const GetAllAssamblyinOneStructure = PluginStateTransform.BuiltIn({
-//     name: 'get assambly from structure',
-//     display: { name: 'get assambly from structure' },
-//     isDecorator: true,
-//     from: PSO.Molecule.Structure,
-//     to: PSO.Molecule.Structure,
-//     params(a) {
-//         return { };
-//     }
-// })({
-//     apply({ a, params }) {
-//         return Task.create('Build Structure Assemblies', async ctx => {
-//             // TODO: optimze
-//             // TODO: think of ways how to fast-track changes to this for animations
-//             const initial_structure = a.data;
-//             const structures: Structure[] = [];
-//             let structure: Structure = initial_structure;
-//             // the list of asambly *?
-//             const symmetry = ModelSymmetry.Provider.get(initial_structure.model);
-//             if (symmetry){
-//                 if (symmetry.assemblies.length !== 0) {
-//                     for (const a of symmetry.assemblies) {
-//                         const s = await StructureSymmetry.buildAssembly(initial_structure, a.id!).runInContext(ctx);
-//                         structures.push(s);
-//                     }
-//                     const builder = Structure.Builder({ label: name });
-//                     let offsetInvariantId = 0;
-//                     for (const s of structures) {
-//                         let maxInvariantId = 0;
-//                         for (const u of s.units) {
-//                             const invariantId = u.invariantId + offsetInvariantId;
-//                             if (u.invariantId > maxInvariantId) maxInvariantId = u.invariantId;
-//                             builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, Unit.Trait.None, invariantId);
-//                         }
-//                         offsetInvariantId += maxInvariantId + 1;
-//                     }
-//                     structure = builder.getStructure();
-//                     for( let i = 0, il = structure.models.length; i < il; ++i) {
-//                         const { trajectoryInfo } = structure.models[i];
-//                         trajectoryInfo.size = il;
-//                         trajectoryInfo.index = i;
-//                     }
-//                 }
-//             }
-//             return new PSO.Molecule.Structure(structure, { label: a.label, description: `${a.description}` });
-//         });
-//     }
-// });
-

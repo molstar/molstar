@@ -1,7 +1,7 @@
 import { MolScriptBuilder } from '../mol-script/language/builder';
 import { compile, QuerySymbolRuntime, DefaultQueryRuntimeTable } from '../mol-script/runtime/query/compiler';
 import { QueryContext, Structure, StructureQuery } from '../mol-model/structure';
-import { readCifFile, getModelsAndStructure } from '../apps/structure-info/model';
+import { readCifFile, getModelsAndStructure } from '../cli/structure-info/model';
 import { CustomPropSymbol } from '../mol-script/language/symbol';
 import Type from '../mol-script/language/type';
 import { parseMolScript } from '../mol-script/language/parser';

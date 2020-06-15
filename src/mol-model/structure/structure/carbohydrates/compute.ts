@@ -154,8 +154,8 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
         if (!Unit.isAtomic(unit)) continue;
 
         const { model, rings } = unit;
-        const { chainAtomSegments, residueAtomSegments, residues } = model.atomicHierarchy;
-        const { label_comp_id } = residues;
+        const { chainAtomSegments, residueAtomSegments, atoms } = model.atomicHierarchy;
+        const { label_comp_id } = atoms;
 
         const chainIt = Segmentation.transientSegments(chainAtomSegments, unit.elements);
         const residueIt = Segmentation.transientSegments(residueAtomSegments, unit.elements);
@@ -168,7 +168,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
             while (residueIt.hasNext) {
                 const { index: residueIndex } = residueIt.move();
 
-                const saccharideComp = getSaccharideComp(label_comp_id.value(residueIndex), model);
+                const saccharideComp = getSaccharideComp(label_comp_id.value(residueAtomSegments.offsets[residueIndex]), model);
                 if (!saccharideComp) continue;
 
                 if (!sugarResidueMap) {
