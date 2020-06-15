@@ -46,11 +46,11 @@ async function processNextJob() {
     }
 }
 
-export function createResultWriter(response: express.Response, isBinary: boolean, entryId?: string, queryName?: string) {
+export function createResultWriter(response: express.Response, encoding: string, entryId?: string, queryName?: string) {
     const filenameBase = entryId && queryName
         ? `${entryId}_${splitCamelCase(queryName.replace(/\s/g, '_'), '-').toLowerCase()}`
         : `result`;
-    return new SimpleResponseResultWriter(isBinary ? `${filenameBase}.bcif` : `${filenameBase}.cif`, response, isBinary);
+    return new SimpleResponseResultWriter(`${filenameBase}.${encoding}`, response, encoding === 'bcif');
 }
 
 function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
@@ -66,8 +66,8 @@ function mapQuery(app: express.Express, queryName: string, queryDefinition: Quer
                 modelNums: commonParams.model_nums,
                 copyAllCategories: !!commonParams.copy_all_categories
             })],
-            writer: createResultWriter(res, commonParams.encoding === 'bcif', entryId, queryName),
-            options: { binary: commonParams.encoding === 'bcif' }
+            writer: createResultWriter(res, commonParams.encoding!, entryId, queryName),
+            options: { binary: commonParams.encoding === 'bcif', encoding: commonParams.encoding }
         });
         responseMap.set(jobId, res);
         if (JobManager.size === 1) processNextJob();
@@ -122,7 +122,7 @@ function serveStatic(req: express.Request, res: express.Response) {
 function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
     const writer = spec.asTarGz
         ? new TarballResponseResultWriter(getMultiQuerySpecFilename(), res)
-        : createResultWriter(res, spec.encoding?.toLowerCase() === 'bcif');
+        : createResultWriter(res, spec.encoding!);
 
     if (spec.queries.length > ModelServerConfig.maxQueryManyQueries) {
         writer.doError(400, `query-many queries limit (${ModelServerConfig.maxQueryManyQueries}) exceeded.`);

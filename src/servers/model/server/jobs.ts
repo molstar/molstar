@@ -5,13 +5,13 @@
  */
 
 import { UUID } from '../../../mol-util';
-import { getQueryByName, QueryDefinition, QueryName, QueryParams } from './api';
+import { getQueryByName, QueryDefinition, QueryName, QueryParams, Encoding } from './api';
 import { LinkedList } from '../../../mol-data/generic';
 import { ResultWriter } from '../utils/writer';
 
 export interface ResponseFormat {
     tarball: boolean,
-    isBinary: boolean
+    encoding: Encoding
 }
 
 export interface Job {
@@ -29,7 +29,7 @@ export interface Job {
 export interface JobDefinition {
     entries: JobEntry[],
     writer: ResultWriter,
-    options?: { outputFilename?: string, binary?: boolean, tarball?: boolean }
+    options?: { outputFilename?: string, binary?: boolean, tarball?: boolean, encoding?: Encoding }
 }
 
 export interface JobEntry {
@@ -78,7 +78,10 @@ export function createJob(definition: JobDefinition): Job {
         datetime_utc: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')}`,
         entries: definition.entries,
         writer: definition.writer,
-        responseFormat: { isBinary: !!(definition.options && definition.options.binary), tarball: !!definition?.options?.tarball },
+        responseFormat: { 
+            tarball: !!definition?.options?.tarball, 
+            encoding: definition?.options?.encoding ? definition.options.encoding : !!(definition.options && definition.options.binary) ? 'bcif' : 'cif'
+        },
         outputFilename: definition.options && definition.options.outputFilename
     };
     definition.entries.forEach(e => e.job = job);

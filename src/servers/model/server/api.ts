@@ -44,14 +44,15 @@ export interface QueryDefinition<Params = any> {
 
 export const CommonQueryParamsInfo: QueryParamInfo[] = [
     { name: 'model_nums', type: QueryParamType.String, description: `A comma-separated list of model ids (i.e. 1,2). If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field.` },
-    { name: 'encoding', type: QueryParamType.String, defaultValue: 'cif', description: `Determines the output encoding (text based 'CIF' or binary 'BCIF').`, supportedValues: ['cif', 'bcif'] },
+    { name: 'encoding', type: QueryParamType.String, defaultValue: 'cif', description: `Determines the output encoding (text based 'CIF' or binary 'BCIF'). Ligands can also be exported as 'SDF' or 'MOL2'.`, supportedValues: ['cif', 'bcif', 'mol2', 'sdf'] },
     { name: 'copy_all_categories', type: QueryParamType.Boolean, defaultValue: false, description: 'If true, copy all categories from the input file.' },
     { name: 'data_source', type: QueryParamType.String, defaultValue: '', description: 'Allows to control how the provided data source ID maps to input file (as specified by the server instance config).' }
 ];
 
+export type Encoding = 'cif' | 'bcif' | 'mol2' | 'sdf';
 export interface CommonQueryParamsInfo {
     model_nums?: number[],
-    encoding?: 'cif' | 'bcif',
+    encoding?: Encoding,
     copy_all_categories?: boolean
     data_source?: string
 }
@@ -261,10 +262,24 @@ export function normalizeRestQueryParams(query: QueryDefinition, params: any) {
 }
 
 export function normalizeRestCommonParams(params: any): CommonQueryParamsInfo {
+    console.log(params);
     return {
         model_nums: params.model_nums ? ('' + params.model_nums).split(',').map(n => n.trim()).filter(n => !!n).map(n => +n) : void 0,
         data_source: params.data_source,
         copy_all_categories: Boolean(params.copy_all_categories),
-        encoding: ('' + params.encoding).toLocaleLowerCase() === 'bcif' ? 'bcif' : 'cif'
+        encoding: mapEncoding(('' + params.encoding).toLocaleLowerCase())
     };
+}
+
+function mapEncoding(value: string) {
+    switch (value) {
+        case 'bcif':
+            return 'bcif';
+        case 'mol2':
+            return 'mol2';
+        case 'sdf':
+            return 'sdf';
+        default:
+            return 'cif';
+    }
 }

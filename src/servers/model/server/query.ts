@@ -7,6 +7,7 @@
 import * as path from 'path';
 import { Column } from '../../../mol-data/db';
 import { CifWriter } from '../../../mol-io/writer/cif';
+import { SdfWriter } from '../../../mol-io/writer/sdf';
 import { Structure, StructureQuery, StructureSelection } from '../../../mol-model/structure';
 import { encode_mmCIF_categories } from '../../../mol-model/structure/export/mmcif';
 import { Progress } from '../../../mol-task';
@@ -16,10 +17,12 @@ import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { ModelServerConfig as Config } from '../config';
 import { createModelPropertiesProviderFromConfig, ModelPropertiesProvider } from '../property-provider';
 import Version from '../version';
-import { Job, JobEntry } from './jobs';
+import { Job, JobEntry, ResponseFormat } from './jobs';
 import { createStructureWrapperFromJobEntry, resolveStructures, StructureWrapper } from './structure-wrapper';
 import CifField = CifWriter.Field
 import { splitCamelCase } from '../../../mol-util/string';
+import { Encoder } from '../../../mol-io/writer/cif/encoder';
+import { Encoding } from './api';
 
 export interface Stats {
     structure: StructureWrapper,
@@ -45,14 +48,34 @@ export async function resolveJob(job: Job) {
     }
 }
 
-async function resolveSingleFile(job: Job) {
-    ConsoleLogger.logId(job.id, 'Query', 'Starting.');
+function createEncoder(responseFormat: ResponseFormat): Encoder {
+    switch (responseFormat.encoding) {
+        case 'bcif':
+            return CifWriter.createEncoder({
+            binary: true,
+            encoderName: `ModelServer ${Version}`,
+            binaryAutoClassifyEncoding: true
+        });
+        case 'sdf': 
+            return SdfWriter.createEncoder({ 
+                encoderName: `ModelServer ${Version}`,
+                hideMetaInformation: true
+            })
+        case 'mol2':
+            throw Error('impl me');
+        default:
+            return CifWriter.createEncoder({
+                binary: false,
+                encoderName: `ModelServer ${Version}`,
+                binaryAutoClassifyEncoding: true
+            });
+    }
+}
 
-    const encoder = CifWriter.createEncoder({
-        binary: job.responseFormat.isBinary,
-        encoderName: `ModelServer ${Version}`,
-        binaryAutoClassifyEncoding: true
-    });
+async function resolveSingleFile(job: Job) {
+    ConsoleLogger.logId(job.id, 'Query', `Starting (format: ${job.responseFormat.encoding}).`);
+
+    const encoder = createEncoder(job.responseFormat);
 
     const headerMap = new Map<string, number>();
 
@@ -60,7 +83,6 @@ async function resolveSingleFile(job: Job) {
         let hasDataBlock = false;
         try {
             const structure = await createStructureWrapperFromJobEntry(entry, propertyProvider());
-
             let header = structure.cifFrame.header.toUpperCase();
             if (headerMap.has(header)) {
                 const i = headerMap.get(header)! + 1;
@@ -91,8 +113,8 @@ async function resolveSingleFile(job: Job) {
     encoder.writeTo(job.writer);
 }
 
-function getFilename(i: number, entry: JobEntry, header: string, isBinary: boolean) {
-    return `${i}_${header.toLowerCase()}_${splitCamelCase(entry.queryDefinition.name.replace(/\s/g, '_'), '-').toLowerCase()}.${isBinary ? 'bcif' : 'cif'}`;
+function getFilename(i: number, entry: JobEntry, header: string, encoding: Encoding) {
+    return `${i}_${header.toLowerCase()}_${splitCamelCase(entry.queryDefinition.name.replace(/\s/g, '_'), '-').toLowerCase()}.${encoding}`;
 }
 
 async function resolveMultiFile(job: Job) {
@@ -101,11 +123,7 @@ async function resolveMultiFile(job: Job) {
     let i = 0;
     for (const entry of job.entries) {
 
-        const encoder = CifWriter.createEncoder({
-            binary: job.responseFormat.isBinary,
-            encoderName: `ModelServer ${Version}`,
-            binaryAutoClassifyEncoding: true
-        });
+        const encoder = createEncoder(job.responseFormat);
 
         let hasDataBlock = false;
         let header = '';
@@ -126,7 +144,7 @@ async function resolveMultiFile(job: Job) {
         ConsoleLogger.logId(job.id, 'Query', `Encoding ${entry.key}/${entry.queryDefinition.name}`);
         encoder.encode();
 
-        job.writer.beginEntry(getFilename(++i, entry, header, job.responseFormat.isBinary), encoder.getSize());
+        job.writer.beginEntry(getFilename(++i, entry, header, job.responseFormat.encoding), encoder.getSize());
         encoder.writeTo(job.writer);
         job.writer.endEntry();
         ConsoleLogger.logId(job.id, 'Query', `Written ${entry.key}/${entry.queryDefinition.name}`);
@@ -177,6 +195,7 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
         // TODO: this actually needs to "reversible" in case of error.
         encoder.writeCategory(_model_server_result, entry);
         encoder.writeCategory(_model_server_params, entry);
+        console.log(structure.models[0]._staticPropertyData['chem_comp_data'].entries['THA']);
 
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter(entry.queryDefinition.filter);
         if (result.length > 0) encode_mmCIF_categories(encoder, result, { copyAllCategories: entry.copyAllCategories });
