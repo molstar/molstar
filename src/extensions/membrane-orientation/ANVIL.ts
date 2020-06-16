@@ -14,8 +14,8 @@ import { Vec3 } from '../../mol-math/linear-algebra';
 import { getElementMoleculeType } from '../../mol-model/structure/util';
 import { MoleculeType } from '../../mol-model/structure/model/types';
 import { AccessibleSurfaceArea } from '../../mol-model-props/computed/accessible-surface-area/shrake-rupley';
-import { MembraneOrientation } from '../../mol-model/structure/model/properties/membrane-orientation';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { MembraneOrientation } from './membrane-orientation';
 
 export const ANVILParams = {
     numberOfSpherePoints: PD.Numeric(120, { min: 35, max: 700, step: 1 }, { description: 'Number of spheres/directions to test for membrane placement. Original value is 350.' }),
@@ -123,7 +123,13 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
 
     const membrane = initialMembrane.qmax! > alternativeMembrane.qmax! ? initialMembrane : alternativeMembrane;
 
-    return MembraneOrientation(membrane.planePoint1, membrane.planePoint2, membrane.normalVector!, ctx.extent, ctx.centroid);
+    return {
+        p1: membrane.planePoint1,
+        p2: membrane.planePoint2,
+        normal: membrane.normalVector!,
+        radius: ctx.extent,
+        centroid: ctx.centroid
+    };
 }
 
 interface MembraneCandidate {

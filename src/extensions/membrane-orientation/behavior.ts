@@ -7,19 +7,11 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../mol-plugin-state/builder/structure/representation-preset';
-import { MembraneOrientationProvider } from './membrane-orientation';
+import { MembraneOrientationProvider, MembraneOrientation } from './membrane-orientation';
 import { StateObjectRef } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { PluginBehavior } from '../../mol-plugin/behavior';
-import { StructureSelectionQuery, StructureSelectionCategory } from '../../mol-plugin-state/helpers/structure-selection-query';
-import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
-import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
 import { MembraneOrientationRepresentationProvider } from './representation';
-import { CustomPropSymbol } from '../../mol-script/language/symbol';
-import Type from '../../mol-script/language/type';
-import { isInMembranePlane } from './ANVIL';
-import { StructureProperties } from '../../mol-model/structure';
-import { Vec3 } from '../../mol-math/linear-algebra';
 import { HydrophobicityColorThemeProvider } from '../../mol-theme/color/hydrophobicity';
 
 export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boolean }>({
@@ -38,7 +30,7 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
             this.ctx.representation.structure.themes.colorThemeRegistry.add(HydrophobicityColorThemeProvider);
 
             this.ctx.representation.structure.registry.add(MembraneOrientationRepresentationProvider);
-            this.ctx.query.structure.registry.add(isTransmembrane);
+            this.ctx.query.structure.registry.add(MembraneOrientation.isTransmembrane);
 
             this.ctx.builders.structure.representation.registerPreset(MembraneOrientationPreset);
         }
@@ -56,7 +48,7 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(HydrophobicityColorThemeProvider);
 
             this.ctx.representation.structure.registry.remove(MembraneOrientationRepresentationProvider);
-            this.ctx.query.structure.registry.remove(isTransmembrane);
+            this.ctx.query.structure.registry.remove(MembraneOrientation.isTransmembrane);
 
             this.ctx.builders.structure.representation.unregisterPreset(MembraneOrientationPreset);
         }
@@ -64,36 +56,6 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
     params: () => ({
         autoAttach: PD.Boolean(false)
     })
-});
-
-const pos = Vec3();
-const isTransmembraneSymbol = QuerySymbolRuntime.Dynamic(CustomPropSymbol('membrane-orientation', 'is-transmembrane', Type.Bool),
-    ctx => {
-        const structure = ctx.currentStructure;
-        const { x, y, z } = StructureProperties.atom;
-        if (!structure.isAtomic) return false;
-        const membraneOrientation = MembraneOrientationProvider.get(structure).value;
-        if (!membraneOrientation) return false;
-        Vec3.set(pos, x(ctx.element), y(ctx.element), z(ctx.element));
-        const { normal, p1, p2 } = membraneOrientation!;
-        return isInMembranePlane(pos, normal, p1, p2);
-    });
-
-const isTransmembrane = StructureSelectionQuery('Residues embedded in membrane', MS.struct.modifier.union([
-    MS.struct.modifier.wholeResidues([
-        MS.struct.modifier.union([
-            MS.struct.generator.atomGroups({
-                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'atom-test': isTransmembraneSymbol.symbol(),
-            })
-        ])
-    ])
-]), {
-    description: 'Select residues that are embedded between the membrane layers.',
-    category: StructureSelectionCategory.Residue,
-    ensureCustomProperties: (ctx, structure) => {
-        return MembraneOrientationProvider.attach(ctx, structure);
-    }
 });
 
 export const MembraneOrientationPreset = StructureRepresentationPresetProvider({

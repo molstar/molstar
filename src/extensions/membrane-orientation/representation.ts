@@ -12,7 +12,7 @@ import { Structure } from '../../mol-model/structure';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 import { StructureRepresentationProvider, StructureRepresentation, StructureRepresentationStateBuilder } from '../../mol-repr/structure/representation';
-import { MembraneOrientation } from '../../mol-model/structure/model/properties/membrane-orientation';
+import { MembraneOrientation } from './membrane-orientation';
 import { ThemeRegistryContext } from '../../mol-theme/theme';
 import { ShapeRepresentation } from '../../mol-repr/shape/representation';
 import { Shape } from '../../mol-model/shape';
