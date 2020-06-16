@@ -74,11 +74,13 @@ export type MembraneOrientationParams = typeof MembraneOrientationParams
 export type MembraneOrientationProps = PD.Values<MembraneOrientationParams>
 
 export function getMembraneOrientationParams(ctx: ThemeRegistryContext, structure: Structure) {
+    console.log('rep @ getParams');
     return PD.clone(MembraneOrientationParams);
 }
 
 export type MembraneOrientationRepresentation = StructureRepresentation<MembraneOrientationParams>
 export function MembraneOrientationRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MembraneOrientationParams>): MembraneOrientationRepresentation {
+    console.log('rep @ create');
     return Representation.createMulti('Membrane Orientation', ctx, getParams, StructureRepresentationStateBuilder, MembraneOrientationVisuals as unknown as Representation.Def<Structure, MembraneOrientationParams>);
 }
 
@@ -95,6 +97,7 @@ export const MembraneOrientationRepresentationProvider = StructureRepresentation
 });
 
 function getBilayerRims(ctx: RuntimeContext, data: Structure, props: BilayerRimsProps): Shape<Lines> {
+    console.log('rims');
     const { p1, p2, centroid, normal, radius } = MembraneOrientationProvider.get(data).value!;
     const scaledRadius = props.radiusFactor * radius;
     const builder = LinesBuilder.create(128, 64);
@@ -131,6 +134,7 @@ function getCircle(p: Vec3, centroid: Vec3, normal: Vec3, radius: number) {
 }
 
 function getBilayerPlanes(ctx: RuntimeContext, data: Structure, props: BilayerPlanesProps, shape?: Shape<Mesh>): Shape<Mesh> {
+    console.log('planes');
     const { p1, p2, centroid, normal, radius } = MembraneOrientationProvider.get(data).value!;
     const state = MeshBuilder.createState(128, 64, shape && shape.geometry);
     const scaledRadius = props.radiusFactor * radius;
