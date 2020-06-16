@@ -35,7 +35,7 @@ export type ANVILProps = PD.Values<ANVILParams>
  * doi: 10.1093/protein/gzv063
  */
 export function computeANVIL(structure: Structure, props: ANVILProps) {
-    return Task.create('Compute Membrane Topology', async runtime => {
+    return Task.create('Compute Membrane Orientation', async runtime => {
         return await calculate(runtime, structure, props);
     });
 }
@@ -124,9 +124,9 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
     const membrane = initialMembrane.qmax! > alternativeMembrane.qmax! ? initialMembrane : alternativeMembrane;
 
     return {
-        p1: membrane.planePoint1,
-        p2: membrane.planePoint2,
-        normal: membrane.normalVector!,
+        planePoint1: membrane.planePoint1,
+        planePoint2: membrane.planePoint2,
+        normalVector: membrane.normalVector!,
         radius: ctx.extent,
         centroid: ctx.centroid
     };

@@ -27,7 +27,6 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
         private provider = MembraneOrientationProvider
 
         register(): void {
-            console.log('beh @ register');
             this.ctx.state.data.actions.add(InitMembraneOrientation3D);
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
 
@@ -127,7 +126,6 @@ export const MembraneOrientationPreset = StructureRepresentationPresetProvider({
         description: 'Shows orientation of membrane layers. Data calculated with ANVIL algorithm.' // TODO add ' or obtained via RCSB PDB'
     },
     isApplicable(a) {
-        console.log(`present applicable: ${MembraneOrientationProvider.isApplicable(a.data)}`);
         return MembraneOrientationProvider.isApplicable(a.data);
     },
     params: () => StructureRepresentationPresetProvider.CommonParams,
@@ -138,7 +136,6 @@ export const MembraneOrientationPreset = StructureRepresentationPresetProvider({
 
         if (!MembraneOrientationProvider.get(structure).value) {
             await plugin.runTask(Task.create('Membrane Orientation', async runtime => {
-                console.log('present: attaching');
                 await MembraneOrientationProvider.attach({ runtime, assetManager: plugin.managers.asset }, structure);
             }));
         }

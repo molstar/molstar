@@ -27,11 +27,11 @@ export type MembraneOrientationProps = PD.Values<MembraneOrientationParams>
 
 interface MembraneOrientation {
     // point in membrane boundary
-    readonly p1: Vec3,
+    readonly planePoint1: Vec3,
     // point in opposite side of membrane boundary
-    readonly p2: Vec3,
+    readonly planePoint2: Vec3,
     // normal vector of membrane layer
-    readonly normal: Vec3,
+    readonly normalVector: Vec3,
     // the radius of the membrane layer
     readonly radius: number,
     readonly centroid: Vec3
@@ -48,7 +48,7 @@ namespace MembraneOrientation {
                 const membraneOrientation = MembraneOrientationProvider.get(structure).value;
                 if (!membraneOrientation) return false;
                 Vec3.set(pos, x(ctx.element), y(ctx.element), z(ctx.element));
-                const { normal, p1, p2 } = membraneOrientation!;
+                const { normalVector: normal, planePoint1: p1, planePoint2: p2 } = membraneOrientation!;
                 return isInMembranePlane(pos, normal, p1, p2);
             })
     };
