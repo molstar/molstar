@@ -80,14 +80,14 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
             centroidHelper.includeStep(vec);
 
             // keep track of offsets and exposed state to reuse
-            offsets[m] = l.element;
+            offsets[m] = structure.serialMapping.getSerialIndex(l.unit, l.element);
             exposed[m] = AccessibleSurfaceArea.getValue(l, asa) > props.asaCutoff;
 
             m++;
         }
     }
 
-    // omit potentially empty tail
+    // omit potentially empty tail1
     offsets = offsets.slice(0, m);
     exposed = exposed.slice(0, m);
 
