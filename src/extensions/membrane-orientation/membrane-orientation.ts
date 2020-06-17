@@ -53,7 +53,7 @@ namespace MembraneOrientation {
             })
     };
 
-    export const isTransmembrane = StructureSelectionQuery('Residues embedded in membrane', MS.struct.modifier.union([
+    export const isTransmembrane = StructureSelectionQuery('Residues Embedded in Membrane', MS.struct.modifier.union([
         MS.struct.modifier.wholeResidues([
             MS.struct.modifier.union([
                 MS.struct.generator.atomGroups({
