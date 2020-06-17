@@ -7,7 +7,7 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../mol-plugin-state/builder/structure/representation-preset';
-import { MembraneOrientationProvider, MembraneOrientation } from './membrane-orientation';
+import { MembraneOrientationProvider, isTransmembrane } from './membrane-orientation';
 import { StateObjectRef, StateAction, StateTransformer, StateTransform } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { PluginBehavior } from '../../mol-plugin/behavior';
@@ -15,6 +15,7 @@ import { MembraneOrientationRepresentationProvider, MembraneOrientationParams, M
 import { HydrophobicityColorThemeProvider } from '../../mol-theme/color/hydrophobicity';
 import { PluginStateObject, PluginStateTransform } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
+import { DefaultQueryRuntimeTable } from '../../mol-script/runtime/query/compiler';
 
 export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'membrane-orientation-prop',
@@ -27,11 +28,13 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
         private provider = MembraneOrientationProvider
 
         register(): void {
+            DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
+
             this.ctx.state.data.actions.add(InitMembraneOrientation3D);
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
 
             this.ctx.representation.structure.registry.add(MembraneOrientationRepresentationProvider);
-            this.ctx.query.structure.registry.add(MembraneOrientation.isTransmembrane);
+            this.ctx.query.structure.registry.add(isTransmembrane);
 
             this.ctx.builders.structure.representation.registerPreset(MembraneOrientationPreset);
         }
@@ -44,11 +47,13 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
         }
 
         unregister() {
+            DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
+
             this.ctx.state.data.actions.remove(InitMembraneOrientation3D);
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
 
             this.ctx.representation.structure.registry.remove(MembraneOrientationRepresentationProvider);
-            this.ctx.query.structure.registry.remove(MembraneOrientation.isTransmembrane);
+            this.ctx.query.structure.registry.remove(isTransmembrane);
 
             this.ctx.builders.structure.representation.unregisterPreset(MembraneOrientationPreset);
         }

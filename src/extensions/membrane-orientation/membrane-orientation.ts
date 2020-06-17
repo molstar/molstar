@@ -37,39 +37,37 @@ interface MembraneOrientation {
     readonly centroid: Vec3
 }
 
-namespace MembraneOrientation {
-    const pos = Vec3();
-    export const symbols = {
-        isTransmembrane: QuerySymbolRuntime.Dynamic(CustomPropSymbol('membrane-orientation', 'is-transmembrane', Type.Bool),
-            ctx => {
-                const structure = ctx.currentStructure;
-                const { x, y, z } = StructureProperties.atom;
-                if (!structure.isAtomic) return false;
-                const membraneOrientation = MembraneOrientationProvider.get(structure).value;
-                if (!membraneOrientation) return false;
-                Vec3.set(pos, x(ctx.element), y(ctx.element), z(ctx.element));
-                const { normalVector: normal, planePoint1: p1, planePoint2: p2 } = membraneOrientation!;
-                return isInMembranePlane(pos, normal, p1, p2);
-            })
-    };
-
-    export const isTransmembrane = StructureSelectionQuery('Residues Embedded in Membrane', MS.struct.modifier.union([
-        MS.struct.modifier.wholeResidues([
-            MS.struct.modifier.union([
-                MS.struct.generator.atomGroups({
-                    'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                    'atom-test': symbols.isTransmembrane.symbol(),
-                })
-            ])
-        ])
-    ]), {
-        description: 'Select residues that are embedded between the membrane layers.',
-        category: StructureSelectionCategory.Residue,
-        ensureCustomProperties: (ctx, structure) => {
-            return MembraneOrientationProvider.attach(ctx, structure);
-        }
-    });
+const pos = Vec3();
+export const MembraneOrientationSymbols = {
+    isTransmembrane: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'membrane-orientation.is-transmembrane', Type.Bool),
+        ctx => {
+            const structure = ctx.currentStructure;
+            const { x, y, z } = StructureProperties.atom;
+            if (!structure.isAtomic) return false;
+            const membraneOrientation = MembraneOrientationProvider.get(structure).value;
+            if (!membraneOrientation) return false;
+            Vec3.set(pos, x(ctx.element), y(ctx.element), z(ctx.element));
+            const { normalVector, planePoint1, planePoint2 } = membraneOrientation!;
+            return isInMembranePlane(pos, normalVector, planePoint1, planePoint2);
+        })
 }
+
+export const isTransmembrane = StructureSelectionQuery('Residues Embedded in Membrane', MS.struct.modifier.union([
+    MS.struct.modifier.wholeResidues([
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'atom-test': MembraneOrientationSymbols.isTransmembrane.symbol(),
+            })
+        ])
+    ])
+]), {
+    description: 'Select residues that are embedded between the membrane layers.',
+    category: StructureSelectionCategory.Residue,
+    ensureCustomProperties: (ctx, structure) => {
+        return MembraneOrientationProvider.attach(ctx, structure);
+    }
+});
 
 export { MembraneOrientation };
 
@@ -77,7 +75,7 @@ export const MembraneOrientationProvider: CustomStructureProperty.Provider<Membr
     label: 'Membrane Orientation',
     descriptor: CustomPropertyDescriptor({
         name: 'molstar_computed_membrane_orientation',
-        symbols: MembraneOrientation.symbols
+        symbols: MembraneOrientationSymbols,
         // TODO `cifExport`
     }),
     type: 'root',
