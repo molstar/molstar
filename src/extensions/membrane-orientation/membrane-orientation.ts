@@ -6,7 +6,7 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Structure, StructureProperties } from '../../mol-model/structure';
+import { Structure, StructureProperties, Unit } from '../../mol-model/structure';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { ANVILParams, ANVILProps, computeANVIL, isInMembranePlane } from './ANVIL';
 import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
@@ -41,11 +41,11 @@ const pos = Vec3();
 export const MembraneOrientationSymbols = {
     isTransmembrane: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'membrane-orientation.is-transmembrane', Type.Bool),
         ctx => {
-            const structure = ctx.currentStructure;
+            const { unit, structure } = ctx.element;
             const { x, y, z } = StructureProperties.atom;
-            if (!structure.isAtomic) return false;
+            if (!Unit.isAtomic(unit)) return 0;
             const membraneOrientation = MembraneOrientationProvider.get(structure).value;
-            if (!membraneOrientation) return false;
+            if (!membraneOrientation) return 0;
             Vec3.set(pos, x(ctx.element), y(ctx.element), z(ctx.element));
             const { normalVector, planePoint1, planePoint2 } = membraneOrientation!;
             return isInMembranePlane(pos, normalVector, planePoint1, planePoint2);
