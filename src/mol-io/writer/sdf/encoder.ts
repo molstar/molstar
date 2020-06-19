@@ -72,10 +72,11 @@ export class SdfEncoder implements Encoder<string> {
 
         // write Atom block and gather data for Bonds and Charges
         // 'Specifies the atomic symbol and any mass difference, charge, stereochemistry, and associated hydrogens for each atom.'
-        const { instance, source, rowCount } = getCategoryInstanceData(category, context);
-        const fields = this.getSortedFields(instance);
+        const { instance, source } = getCategoryInstanceData(category, context);
+        const sortedFields = this.getSortedFields(instance);
         const label_atom_id = this.getField(instance, 'label_atom_id');
         const label_comp_id = this.getField(instance, 'label_comp_id');
+        const pdbx_PDB_model_num = this.getField(instance, 'pdbx_PDB_model_num');
 
         // write header
         const name = label_comp_id.value(source[0].keys().move(), source[0].data, 0) as string;
@@ -85,13 +86,12 @@ export class SdfEncoder implements Encoder<string> {
         let bondCount = 0;
 
         // traverse once to determine all actually present atoms
-        const atoms = this.getAtoms(source, fields, label_atom_id, ctab);
-
+        const atoms = this.getAtoms(source, sortedFields, label_atom_id, pdbx_PDB_model_num, ctab);
         atoms.forEach((av, ak) => {
             const { id } = this.split(ak);
             bondMap.map.get(ak)!.forEach((bv, bk) => {
                 const { id: partnerId, label: partnerLabel } = this.split(bk);
-                if (id <= partnerId && atoms.has(bk) && !this.skipHydrogen(partnerLabel)) {
+                if (id < partnerId && atoms.has(bk) && !this.skipHydrogen(partnerLabel)) {
                     const { order } = bv;
                     StringBuilder.writeIntegerPadLeft(bonds, id, 3);
                     StringBuilder.writeIntegerPadLeft(bonds, partnerId, 3);
@@ -106,7 +106,7 @@ export class SdfEncoder implements Encoder<string> {
 
         // write counts line
         // 'Important specifications here relate to the number of atoms, bonds, and atom lists, the chiral flag setting, and the Ctab version.'
-        StringBuilder.writeIntegerPadLeft(this.builder, rowCount, 3);
+        StringBuilder.writeIntegerPadLeft(this.builder, atoms.size, 3);
         StringBuilder.writeIntegerPadLeft(this.builder, bondCount, 3);
         StringBuilder.write(this.builder, '  0     0  0  0  0  0  0999 V2000\n'); // TODO 2nd value: chiral flag: 0=not chiral, 1=chiral 
 
@@ -117,7 +117,7 @@ export class SdfEncoder implements Encoder<string> {
         StringBuilder.writeSafe(this.builder, 'M  END\n');
     }
 
-    private getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, ctab: StringBuilder): Map<string, { id: number, label: string }> {
+    private getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, pdbx_PDB_model_num: Field<any, any>, ctab: StringBuilder): Map<string, { id: number, label: string }> {
         const atoms = new Map<string, any>();
         let index = 0;
 
@@ -130,19 +130,22 @@ export class SdfEncoder implements Encoder<string> {
             const it = src.keys();
             while (it.hasNext)  {
                 const key = it.move();
+                if (pdbx_PDB_model_num.value(key, data, index) !== 1) {
+                    continue; // TODO model support
+                }
+
+                const laiv = label_atom_id.value(key, data, index) as string;
+                const lai = this.split(laiv);
+                if (this.skipHydrogen(lai.label)) {
+                    index++;
+                    continue;
+                }
+                atoms.set(laiv, lai);
+                
                 for (let _f = 0, _fl = fields.length; _f < _fl; _f++) {
                     const f: Field<any, any> = fields[_f]!;
-                    const val = f.value(key, data, index);
-                    if (f.name === 'type_symbol') {
-                        const val = label_atom_id.value(key, data, index) as string;
-                        const lai = this.split(val);
-                        const { label } = lai;
-                        if (this.skipHydrogen(label)) {
-                            continue;
-                        }
-                        atoms.set(val, lai);
-                    }
-                    this.writeValue(ctab, val, f.type);
+                    const v = f.value(key, data, index);
+                    this.writeValue(ctab, v, f.type);
                 }
                 
                 StringBuilder.writeSafe(ctab, '  0  0  0  0  0  0  0  0  0  0  0  0\n');
