@@ -8,14 +8,19 @@ import { StringBuilder } from '../../../mol-util';
 import Writer from '../writer';
 import { Encoder, Category, Field } from '../cif/encoder';
 import { getCategoryInstanceData } from '../cif/encoder/util';
+import { ComponentBond } from '../../../mol-model-formats/structure/property/bonds/comp';
 
 // specification: http://c4.cabrillo.edu/404/ctfile.pdf
 export class SdfEncoder implements Encoder<string> {
     private builder: StringBuilder;
     private meta: StringBuilder;
     private encoded = false;
-    private dataBlockCreated = false;
     private error = false;
+    private componentData: ComponentBond;
+
+    setComponentBondData(componentData: ComponentBond) {
+        this.componentData = componentData;
+    }
 
     writeTo(stream: Writer) {
         const chunks = StringBuilder.getChunks(this.builder);
@@ -32,18 +37,13 @@ export class SdfEncoder implements Encoder<string> {
         return StringBuilder.getString(this.builder);
     }
 
-    startDataBlock(name: string) {
-        this.dataBlockCreated = true;
-        StringBuilder.write(this.builder, `${name}\nCreated by ${this.encoder}\n\n`);
+    startDataBlock() {
+        
     }
 
     writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx) {
         if (this.encoded) {
             throw new Error('The writer contents have already been encoded, no more writing.');
-        }
-
-        if (!this.dataBlockCreated) {
-            throw new Error('No data block created.');
         }
 
         if (!this.hideMetaInformation && (category.name === 'model_server_result' || category.name === 'model_server_params' || category.name === 'model_server_stats' || category.name === 'model_server_error')) {
@@ -69,7 +69,15 @@ export class SdfEncoder implements Encoder<string> {
         // 'Specifies the atomic symbol and any mass difference, charge, stereochemistry, and associated hydrogens for each atom.'
         const { instance, source, rowCount: atomCount } = getCategoryInstanceData(category, context);
         const fields = this.getSortedFields(instance);
+        const label_atom_id = this.getField(instance, 'label_atom_id');
+        const label_comp_id = this.getField(instance, 'label_comp_id');
         const fieldCount = fields.length;
+
+        // write header
+        const name = label_comp_id.value(source[0].keys().move(), source[0].data, 0) as string;
+        StringBuilder.write(this.builder, `${name}\nCreated by ${this.encoder}\n\n`);
+
+        const bondMap = this.componentData.entries.get(name)!;
         let bondCount = 0;
 
         let index = 0;
@@ -82,14 +90,33 @@ export class SdfEncoder implements Encoder<string> {
             const it = src.keys();
             while (it.hasNext)  {
                 const key = it.move();
-
                 for (let _f = 0; _f < fieldCount; _f++) {
                     const f: Field<any, any> = fields[_f]!;
                     const val = f.value(key, data, index);
+                    if (f.name === 'type_symbol') {
+                        const lai = label_atom_id.value(key, data, index) as string;
+                        const { id, label } = this.split(lai);
+                        if (label.startsWith('H')) { // TODO consider hydrogen option
+                            continue;
+                        }
+
+                        bondMap.map.get(lai)!.forEach((v, k) => {
+                            const { id: partnerId, label: partnerLabel } = this.split(k);
+                            if (id <= partnerId && !partnerLabel.startsWith('H')) { // TODO consider hydrogen option
+                                const { order } = v;
+                                StringBuilder.writeIntegerPadLeft(bonds, id, 3);
+                                StringBuilder.writeIntegerPadLeft(bonds, partnerId, 3);
+                                StringBuilder.writeIntegerPadLeft(bonds, order, 3);
+                                StringBuilder.writeSafe(bonds, '  0  0  0  0\n'); 
+                                // TODO 2nd value: Single bonds: 0 = not stereo, 1 = Up, 4 = Either, 6 = Down, Double bonds: 0 = Use x-, y-, z-coords from atom block to determine cis or trans, 3 = Cis or trans (either) double bond
+                                bondCount++;
+                            }
+                        });
+                    }
                     this.writeValue(ctab, val, f.type);
                 }
                 
-                StringBuilder.writeSafe(ctab, '  0  0  0  0  0\n');
+                StringBuilder.writeSafe(ctab, '  0  0  0  0  0  0  0  0  0  0  0  0\n');
 
                 index++;
             }
@@ -99,13 +126,20 @@ export class SdfEncoder implements Encoder<string> {
         // 'Important specifications here relate to the number of atoms, bonds, and atom lists, the chiral flag setting, and the Ctab version.'
         StringBuilder.writeIntegerPadLeft(this.builder, atomCount, 3);
         StringBuilder.writeIntegerPadLeft(this.builder, bondCount, 3);
-        StringBuilder.write(this.builder, '  0  0  0  0  0  0  0  0999 V2000\n');
+        StringBuilder.write(this.builder, '  0     0  0  0  0  0  0999 V2000\n'); // TODO 2nd value: chiral flag: 0=not chiral, 1=chiral 
 
         StringBuilder.writeSafe(this.builder, StringBuilder.getString(ctab));
         StringBuilder.writeSafe(this.builder, StringBuilder.getString(bonds));
-        StringBuilder.writeSafe(this.builder, StringBuilder.getString(charges));
+        StringBuilder.writeSafe(this.builder, StringBuilder.getString(charges)); // TODO charges
         
         StringBuilder.writeSafe(this.builder, 'M  END\n');
+    }
+
+    private split(s: string) {
+        return {
+            id: Number.parseInt(s.replace(/[^0-9]+/, '')),
+            label: s.replace(/[^A-Z]+/, '')
+        }
     }
 
     private writeFullCategory<Ctx>(sb: StringBuilder, category: Category<Ctx>, context?: Ctx) {
@@ -141,7 +175,11 @@ export class SdfEncoder implements Encoder<string> {
 
     private getSortedFields<Ctx>(instance: Category.Instance<Ctx>) {
         return ['Cartn_x', 'Cartn_y', 'Cartn_z', 'type_symbol']
-            .map(n => instance.fields.find(f => f.name === n));
+            .map(n => this.getField(instance, n));
+    }
+
+    private getField<Ctx>(instance: Category.Instance<Ctx>, name: string) {
+        return instance.fields.find(f => f.name === name)!;
     }
 
     readonly isBinary = false;

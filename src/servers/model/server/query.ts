@@ -23,6 +23,8 @@ import CifField = CifWriter.Field
 import { splitCamelCase } from '../../../mol-util/string';
 import { Encoder } from '../../../mol-io/writer/cif/encoder';
 import { Encoding } from './api';
+import { ComponentBond } from '../../../mol-model-formats/structure/property/bonds/comp';
+import { SdfEncoder } from '../../../mol-io/writer/sdf/encoder';
 
 export interface Stats {
     structure: StructureWrapper,
@@ -195,7 +197,10 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
         // TODO: this actually needs to "reversible" in case of error.
         encoder.writeCategory(_model_server_result, entry);
         encoder.writeCategory(_model_server_params, entry);
-        console.log(structure.models[0]._staticPropertyData['chem_comp_data'].entries['THA']);
+
+        if (encoder instanceof SdfEncoder) {
+            encoder.setComponentBondData(ComponentBond.Provider.get(structure.models[0])!);
+        }
 
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter(entry.queryDefinition.filter);
         if (result.length > 0) encode_mmCIF_categories(encoder, result, { copyAllCategories: entry.copyAllCategories });
