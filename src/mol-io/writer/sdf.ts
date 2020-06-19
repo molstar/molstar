@@ -17,7 +17,7 @@ export namespace SdfWriter {
     }
 
     export function createEncoder(params?: EncoderParams): Encoder {
-        const { encoderName = 'mol*', metaInformation = false, hydrogens = true } = params || {};
+        const { encoderName = 'mol*', metaInformation = false, hydrogens = false } = params || {};
         return new SdfEncoder(encoderName, metaInformation, hydrogens);
     }
 }
