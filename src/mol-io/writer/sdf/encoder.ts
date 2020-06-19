@@ -46,16 +46,19 @@ export class SdfEncoder implements Encoder<string> {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
 
-        if (!this.hideMetaInformation && (category.name === 'model_server_result' || category.name === 'model_server_params' || category.name === 'model_server_stats' || category.name === 'model_server_error')) {
+        if (!this.hideMetaInformation && (category.name === 'model_server_result' || category.name === 'model_server_params' || category.name === 'model_server_stats')) {
             this.writeFullCategory(this.meta, category, context);
-            // if error: force writing of meta information
-            if (category.name === 'model_server_error') {
-                this.error = true;
-            }
             return;
         }
 
-        // ignore meta, error, and misc categories when writing SDF
+        // if error: force writing of meta information
+        if (category.name === 'model_server_error') {
+            this.writeFullCategory(this.meta, category, context);
+            this.error = true;
+            return;
+        }
+
+        // only care about atom_site category when writing SDF
         if (category.name !== 'atom_site') {
             return;
         }
@@ -108,7 +111,8 @@ export class SdfEncoder implements Encoder<string> {
                                 StringBuilder.writeIntegerPadLeft(bonds, partnerId, 3);
                                 StringBuilder.writeIntegerPadLeft(bonds, order, 3);
                                 StringBuilder.writeSafe(bonds, '  0  0  0  0\n'); 
-                                // TODO 2nd value: Single bonds: 0 = not stereo, 1 = Up, 4 = Either, 6 = Down, Double bonds: 0 = Use x-, y-, z-coords from atom block to determine cis or trans, 3 = Cis or trans (either) double bond
+                                // TODO 2nd value: Single bonds: 0 = not stereo, 1 = Up, 4 = Either, 6 = Down, 
+                                // Double bonds: 0 = Use x-, y-, z-coords from atom block to determine cis or trans, 3 = Cis or trans (either) double bond
                                 bondCount++;
                             }
                         });
