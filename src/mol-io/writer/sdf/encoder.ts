@@ -46,7 +46,7 @@ export class SdfEncoder implements Encoder<string> {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
 
-        if (!this.hideMetaInformation && (category.name === 'model_server_result' || category.name === 'model_server_params' || category.name === 'model_server_stats')) {
+        if (this.metaInformation && (category.name === 'model_server_result' || category.name === 'model_server_params' || category.name === 'model_server_stats')) {
             this.writeFullCategory(this.meta, category, context);
             return;
         }
@@ -70,7 +70,7 @@ export class SdfEncoder implements Encoder<string> {
 
         // write Atom block and gather data for Bonds and Charges
         // 'Specifies the atomic symbol and any mass difference, charge, stereochemistry, and associated hydrogens for each atom.'
-        const { instance, source, rowCount: atomCount } = getCategoryInstanceData(category, context);
+        const { instance, source, rowCount } = getCategoryInstanceData(category, context);
         const fields = this.getSortedFields(instance);
         const label_atom_id = this.getField(instance, 'label_atom_id');
         const label_comp_id = this.getField(instance, 'label_comp_id');
@@ -99,13 +99,13 @@ export class SdfEncoder implements Encoder<string> {
                     if (f.name === 'type_symbol') {
                         const lai = label_atom_id.value(key, data, index) as string;
                         const { id, label } = this.split(lai);
-                        if (label.startsWith('H')) { // TODO consider hydrogen option
+                        if (this.skipHydrogen(label)) {
                             continue;
                         }
 
                         bondMap.map.get(lai)!.forEach((v, k) => {
                             const { id: partnerId, label: partnerLabel } = this.split(k);
-                            if (id <= partnerId && !partnerLabel.startsWith('H')) { // TODO consider hydrogen option
+                            if (id <= partnerId && !this.skipHydrogen(partnerLabel)) {
                                 const { order } = v;
                                 StringBuilder.writeIntegerPadLeft(bonds, id, 3);
                                 StringBuilder.writeIntegerPadLeft(bonds, partnerId, 3);
@@ -128,7 +128,7 @@ export class SdfEncoder implements Encoder<string> {
 
         // write counts line
         // 'Important specifications here relate to the number of atoms, bonds, and atom lists, the chiral flag setting, and the Ctab version.'
-        StringBuilder.writeIntegerPadLeft(this.builder, atomCount, 3);
+        StringBuilder.writeIntegerPadLeft(this.builder, rowCount, 3);
         StringBuilder.writeIntegerPadLeft(this.builder, bondCount, 3);
         StringBuilder.write(this.builder, '  0     0  0  0  0  0  0999 V2000\n'); // TODO 2nd value: chiral flag: 0=not chiral, 1=chiral 
 
@@ -137,6 +137,13 @@ export class SdfEncoder implements Encoder<string> {
         StringBuilder.writeSafe(this.builder, StringBuilder.getString(charges)); // TODO charges
         
         StringBuilder.writeSafe(this.builder, 'M  END\n');
+    }
+
+    private skipHydrogen(label: string) {
+        if (this.hydrogens) {
+            return false;
+        }
+        return label.startsWith('H');
     }
 
     private split(s: string) {
@@ -191,7 +198,7 @@ export class SdfEncoder implements Encoder<string> {
 
     encode() {
         // write meta-information, do so after ctab
-        if (this.error || !this.hideMetaInformation) {
+        if (this.error || this.metaInformation) {
             StringBuilder.writeSafe(this.builder, StringBuilder.getString(this.meta));
         }
 
@@ -209,7 +216,7 @@ export class SdfEncoder implements Encoder<string> {
         return true;
     }
 
-    constructor(readonly encoder: string, readonly hideMetaInformation: boolean) {
+    constructor(readonly encoder: string, readonly metaInformation: boolean, readonly hydrogens: boolean) {
         this.builder = StringBuilder.create();
         this.meta = StringBuilder.create();
     }

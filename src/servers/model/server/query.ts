@@ -58,10 +58,9 @@ function createEncoder(responseFormat: ResponseFormat): Encoder {
             encoderName: `ModelServer ${Version}`,
             binaryAutoClassifyEncoding: true
         });
-        case 'sdf': 
+        case 'sdf':
             return SdfWriter.createEncoder({ 
-                encoderName: `ModelServer ${Version}`,
-                hideMetaInformation: true
+                encoderName: `ModelServer ${Version}`
             })
         case 'mol2':
             throw Error('impl me');
