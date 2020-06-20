@@ -76,7 +76,6 @@ export class SdfEncoder implements Encoder<string> {
         const sortedFields = this.getSortedFields(instance);
         const label_atom_id = this.getField(instance, 'label_atom_id');
         const label_comp_id = this.getField(instance, 'label_comp_id');
-        const pdbx_PDB_model_num = this.getField(instance, 'pdbx_PDB_model_num');
 
         // write header
         const name = label_comp_id.value(source[0].keys().move(), source[0].data, 0) as string;
@@ -86,16 +85,16 @@ export class SdfEncoder implements Encoder<string> {
         let bondCount = 0;
 
         // traverse once to determine all actually present atoms
-        const atoms = this.getAtoms(source, sortedFields, label_atom_id, pdbx_PDB_model_num, ctab);
-        for (let i = 0, il = atoms.length; i < il; i++) {
-            const name = atoms[i];
-            bondMap.map.get(name)!.forEach((bv, bk) => {
-                const partnerId = atoms.indexOf(bk);
-                const partnerLabel = this.getLabel(bk);
-                if (i < partnerId && atoms.indexOf(bk) > -1 && !this.skipHydrogen(partnerLabel)) {
+        const atoms = this.getAtoms(source, sortedFields, label_atom_id, ctab);
+        for (let i1 = 0, il = atoms.length; i1 < il; i1++) {
+            const name1 = atoms[i1];
+            bondMap.map.get(name1)!.forEach((bv, bk) => {
+                const i2 = atoms.indexOf(bk);
+                const label2 = this.getLabel(bk);
+                if (i1 < i2 && atoms.indexOf(bk) > -1 && !this.skipHydrogen(label2)) {
                     const { order } = bv;
-                    StringBuilder.writeIntegerPadLeft(bonds, i + 1, 3);
-                    StringBuilder.writeIntegerPadLeft(bonds, partnerId + 1, 3);
+                    StringBuilder.writeIntegerPadLeft(bonds, i1 + 1, 3);
+                    StringBuilder.writeIntegerPadLeft(bonds, i2 + 1, 3);
                     StringBuilder.writeIntegerPadLeft(bonds, order, 3);
                     StringBuilder.writeSafe(bonds, '  0  0  0  0\n'); 
                     // TODO 2nd value: Single bonds: 0 = not stereo, 1 = Up, 4 = Either, 6 = Down, 
@@ -118,7 +117,7 @@ export class SdfEncoder implements Encoder<string> {
         StringBuilder.writeSafe(this.builder, 'M  END\n');
     }
 
-    private getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, pdbx_PDB_model_num: Field<any, any>, ctab: StringBuilder): string[] {
+    private getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, ctab: StringBuilder): string[] {
         const atoms = [];
         let index = 0;
 
@@ -131,17 +130,14 @@ export class SdfEncoder implements Encoder<string> {
             const it = src.keys();
             while (it.hasNext)  {
                 const key = it.move();
-                if (pdbx_PDB_model_num.value(key, data, index) !== 1) {
-                    continue; // TODO model support
-                }
 
-                const laiv = label_atom_id.value(key, data, index) as string;
-                const lai = this.getLabel(laiv);
-                if (this.skipHydrogen(lai)) {
+                const lai = label_atom_id.value(key, data, index) as string;
+                const label = this.getLabel(lai);
+                if (this.skipHydrogen(label)) {
                     index++;
                     continue;
                 }
-                atoms.push(laiv);
+                atoms.push(lai);
                 
                 for (let _f = 0, _fl = fields.length; _f < _fl; _f++) {
                     const f: Field<any, any> = fields[_f]!;
