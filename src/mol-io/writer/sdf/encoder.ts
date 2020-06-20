@@ -87,14 +87,15 @@ export class SdfEncoder implements Encoder<string> {
 
         // traverse once to determine all actually present atoms
         const atoms = this.getAtoms(source, sortedFields, label_atom_id, pdbx_PDB_model_num, ctab);
-        atoms.forEach((av, ak) => {
-            const { id } = this.split(ak);
-            bondMap.map.get(ak)!.forEach((bv, bk) => {
-                const { id: partnerId, label: partnerLabel } = this.split(bk);
-                if (id < partnerId && atoms.has(bk) && !this.skipHydrogen(partnerLabel)) {
+        for (let i = 0, il = atoms.length; i < il; i++) {
+            const name = atoms[i];
+            bondMap.map.get(name)!.forEach((bv, bk) => {
+                const partnerId = atoms.indexOf(bk);
+                const partnerLabel = this.getLabel(bk);
+                if (i < partnerId && atoms.indexOf(bk) > -1 && !this.skipHydrogen(partnerLabel)) {
                     const { order } = bv;
-                    StringBuilder.writeIntegerPadLeft(bonds, id, 3);
-                    StringBuilder.writeIntegerPadLeft(bonds, partnerId, 3);
+                    StringBuilder.writeIntegerPadLeft(bonds, i + 1, 3);
+                    StringBuilder.writeIntegerPadLeft(bonds, partnerId + 1, 3);
                     StringBuilder.writeIntegerPadLeft(bonds, order, 3);
                     StringBuilder.writeSafe(bonds, '  0  0  0  0\n'); 
                     // TODO 2nd value: Single bonds: 0 = not stereo, 1 = Up, 4 = Either, 6 = Down, 
@@ -102,11 +103,11 @@ export class SdfEncoder implements Encoder<string> {
                     bondCount++;
                 }
             });
-        });
+        }
 
         // write counts line
         // 'Important specifications here relate to the number of atoms, bonds, and atom lists, the chiral flag setting, and the Ctab version.'
-        StringBuilder.writeIntegerPadLeft(this.builder, atoms.size, 3);
+        StringBuilder.writeIntegerPadLeft(this.builder, atoms.length, 3);
         StringBuilder.writeIntegerPadLeft(this.builder, bondCount, 3);
         StringBuilder.write(this.builder, '  0     0  0  0  0  0  0999 V2000\n'); // TODO 2nd value: chiral flag: 0=not chiral, 1=chiral 
 
@@ -117,8 +118,8 @@ export class SdfEncoder implements Encoder<string> {
         StringBuilder.writeSafe(this.builder, 'M  END\n');
     }
 
-    private getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, pdbx_PDB_model_num: Field<any, any>, ctab: StringBuilder): Map<string, { id: number, label: string }> {
-        const atoms = new Map<string, any>();
+    private getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, pdbx_PDB_model_num: Field<any, any>, ctab: StringBuilder): string[] {
+        const atoms = [];
         let index = 0;
 
         for (let _c = 0; _c < source.length; _c++) {
@@ -135,12 +136,12 @@ export class SdfEncoder implements Encoder<string> {
                 }
 
                 const laiv = label_atom_id.value(key, data, index) as string;
-                const lai = this.split(laiv);
-                if (this.skipHydrogen(lai.label)) {
+                const lai = this.getLabel(laiv);
+                if (this.skipHydrogen(lai)) {
                     index++;
                     continue;
                 }
-                atoms.set(laiv, lai);
+                atoms.push(laiv);
                 
                 for (let _f = 0, _fl = fields.length; _f < _fl; _f++) {
                     const f: Field<any, any> = fields[_f]!;
@@ -163,11 +164,8 @@ export class SdfEncoder implements Encoder<string> {
         return label.startsWith('H');
     }
 
-    private split(s: string) {
-        return {
-            id: Number.parseInt(s.replace(/[^0-9]+/, '')),
-            label: s.replace(/[^A-Z]+/, '')
-        }
+    private getLabel(s: string) {
+        return s.replace(/[^A-Z]+/g, '');
     }
 
     private writeFullCategory<Ctx>(sb: StringBuilder, category: Category<Ctx>, context?: Ctx) {
