@@ -54,14 +54,14 @@ function createEncoder(responseFormat: ResponseFormat): Encoder {
     switch (responseFormat.encoding) {
         case 'bcif':
             return CifWriter.createEncoder({
-            binary: true,
-            encoderName: `ModelServer ${Version}`,
-            binaryAutoClassifyEncoding: true
-        });
+                binary: true,
+                encoderName: `ModelServer ${Version}`,
+                binaryAutoClassifyEncoding: true
+            });
         case 'sdf':
-            return SdfWriter.createEncoder({ 
+            return SdfWriter.createEncoder({
                 encoderName: `ModelServer ${Version}`
-            })
+            });
         case 'mol2':
             throw Error('impl me');
         default:

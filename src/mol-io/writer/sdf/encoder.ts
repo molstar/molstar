@@ -4,7 +4,7 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { StringBuilder } from '../../../mol-util';
+import { StringBuilder, deepEqual } from '../../../mol-util';
 import Writer from '../writer';
 import { Encoder, Category, Field } from '../cif/encoder';
 import { getCategoryInstanceData } from '../cif/encoder/util';
@@ -40,7 +40,7 @@ export class SdfEncoder implements Encoder<string> {
     }
 
     startDataBlock() {
-        
+
     }
 
     writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx) {
@@ -71,11 +71,14 @@ export class SdfEncoder implements Encoder<string> {
         const charges = StringBuilder.create();
 
         // write Atom block and gather data for Bonds and Charges
-        // 'Specifies the atomic symbol and any mass difference, charge, stereochemistry, and associated hydrogens for each atom.'
         const { instance, source } = getCategoryInstanceData(category, context);
-        const sortedFields = this.getSortedFields(instance);
-        const label_atom_id = this.getField(instance, 'label_atom_id');
+        const sortedFields = this.getSortedFields(instance, ['Cartn_x', 'Cartn_y', 'Cartn_z', 'type_symbol']);
         const label_comp_id = this.getField(instance, 'label_comp_id');
+        const label_atom_id = this.getField(instance, 'label_atom_id');
+
+        // all of this is used to ensure that only 1 residue is written
+        // TODO potentially we could use a dedicated query mode or use the 'correct' SDF definition and allow an arbitrary number of molecules in a file
+        const auxiliaryFields = this.getSortedFields(instance, ['label_seq_id', 'label_asym_id', 'pdbx_PDB_ins_code', 'pdbx_PDB_model_num']);
 
         // write header
         const name = label_comp_id.value(source[0].keys().move(), source[0].data, 0) as string;
@@ -85,43 +88,44 @@ export class SdfEncoder implements Encoder<string> {
         let bondCount = 0;
 
         // traverse once to determine all actually present atoms
-        const atoms = this.getAtoms(source, sortedFields, label_atom_id, ctab);
+        const atoms = this.getAtoms(source, sortedFields, label_atom_id, auxiliaryFields, ctab);
         for (let i1 = 0, il = atoms.length; i1 < il; i1++) {
-            const name1 = atoms[i1];
-            bondMap.map.get(name1)!.forEach((bv, bk) => {
-                const i2 = atoms.indexOf(bk);
-                const label2 = this.getLabel(bk);
-                if (i1 < i2 && atoms.indexOf(bk) > -1 && !this.skipHydrogen(label2)) {
-                    const { order } = bv;
+            bondMap.map.get(atoms[i1])!.forEach((v, k) => {
+                const i2 = atoms.indexOf(k);
+                const label2 = this.getLabel(k);
+                if (i1 < i2 && atoms.indexOf(k) > -1 && !this.skipHydrogen(label2)) {
+                    const { order } = v;
                     StringBuilder.writeIntegerPadLeft(bonds, i1 + 1, 3);
                     StringBuilder.writeIntegerPadLeft(bonds, i2 + 1, 3);
                     StringBuilder.writeIntegerPadLeft(bonds, order, 3);
-                    StringBuilder.writeSafe(bonds, '  0  0  0  0\n'); 
-                    // TODO 2nd value: Single bonds: 0 = not stereo, 1 = Up, 4 = Either, 6 = Down, 
-                    // Double bonds: 0 = Use x-, y-, z-coords from atom block to determine cis or trans, 3 = Cis or trans (either) double bond
+                    StringBuilder.writeSafe(bonds, '  0  0  0  0\n');
+                    // TODO 2nd value: Single bonds: 0 = not stereo, 1 = Up, 4 = Either, 6 = Down, Double bonds: 0 = Use x-, y-, z-coords from atom block to determine cis or trans, 3 = Cis or trans (either) double bond
                     bondCount++;
                 }
             });
         }
 
         // write counts line
-        // 'Important specifications here relate to the number of atoms, bonds, and atom lists, the chiral flag setting, and the Ctab version.'
         StringBuilder.writeIntegerPadLeft(this.builder, atoms.length, 3);
         StringBuilder.writeIntegerPadLeft(this.builder, bondCount, 3);
-        StringBuilder.write(this.builder, '  0     0  0  0  0  0  0999 V2000\n'); // TODO 2nd value: chiral flag: 0=not chiral, 1=chiral 
+        StringBuilder.write(this.builder, '  0     0  0  0  0  0  0999 V2000\n');
+        // TODO 2nd value: chiral flag: 0=not chiral, 1=chiral
 
         StringBuilder.writeSafe(this.builder, StringBuilder.getString(ctab));
         StringBuilder.writeSafe(this.builder, StringBuilder.getString(bonds));
-        StringBuilder.writeSafe(this.builder, StringBuilder.getString(charges)); // TODO charges
-        
+        StringBuilder.writeSafe(this.builder, StringBuilder.getString(charges));
+        // TODO charges?
+
         StringBuilder.writeSafe(this.builder, 'M  END\n');
     }
 
-    private getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, ctab: StringBuilder): string[] {
+    private getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, auxiliaryFields: Field<any, any>[], ctab: StringBuilder): string[] {
         const atoms = [];
         let index = 0;
+        let id;
 
-        for (let _c = 0; _c < source.length; _c++) {
+        // is this loop needed?
+        l: for (let _c = 0; _c < source.length; _c++) {
             const src = source[_c];
             const data = src.data;
 
@@ -131,6 +135,16 @@ export class SdfEncoder implements Encoder<string> {
             while (it.hasNext)  {
                 const key = it.move();
 
+                // ensure only a single residue is written
+                // TODO fairly certain this can be done at query level
+                if (!id) {
+                    id = auxiliaryFields.map(af => af.value(key, data, 0));
+                } else {
+                    if (!deepEqual(id, auxiliaryFields.map(af => af.value(key, data, index)))) {
+                        break l;
+                    }
+                }
+
                 const lai = label_atom_id.value(key, data, index) as string;
                 const label = this.getLabel(lai);
                 if (this.skipHydrogen(label)) {
@@ -138,13 +152,13 @@ export class SdfEncoder implements Encoder<string> {
                     continue;
                 }
                 atoms.push(lai);
-                
+
                 for (let _f = 0, _fl = fields.length; _f < _fl; _f++) {
                     const f: Field<any, any> = fields[_f]!;
                     const v = f.value(key, data, index);
                     this.writeValue(ctab, v, f.type);
                 }
-                
+
                 StringBuilder.writeSafe(ctab, '  0  0  0  0  0  0  0  0  0  0  0  0\n');
                 index++;
             }
@@ -174,7 +188,7 @@ export class SdfEncoder implements Encoder<string> {
         const key = it.move();
         for (let _f = 0; _f < fields.length; _f++) {
             const f = fields[_f]!;
-    
+
             StringBuilder.writeSafe(sb, `> <${category.name}.${f.name}>\n`);
             const val = f.value(key, data, 0);
             StringBuilder.writeSafe(sb, val as string);
@@ -195,9 +209,8 @@ export class SdfEncoder implements Encoder<string> {
         }
     }
 
-    private getSortedFields<Ctx>(instance: Category.Instance<Ctx>) {
-        return ['Cartn_x', 'Cartn_y', 'Cartn_z', 'type_symbol']
-            .map(n => this.getField(instance, n));
+    private getSortedFields<Ctx>(instance: Category.Instance<Ctx>, names: string[]) {
+        return names.map(n => this.getField(instance, n));
     }
 
     private getField<Ctx>(instance: Category.Instance<Ctx>, name: string) {
