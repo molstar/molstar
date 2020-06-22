@@ -10,8 +10,8 @@ import { Encoder, Category, Field } from '../cif/encoder';
 import { getCategoryInstanceData } from '../cif/encoder/util';
 import { ComponentBond } from '../../../mol-model-formats/structure/property/bonds/comp';
 
-// specification: http://c4.cabrillo.edu/404/ctfile.pdf
-export class SdfEncoder implements Encoder<string> {
+// specification: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
+export class Mol2Encoder implements Encoder<string> {
     private builder: StringBuilder;
     private meta: StringBuilder;
     private encoded = false;
@@ -82,7 +82,7 @@ export class SdfEncoder implements Encoder<string> {
 
         // write header
         const name = label_comp_id.value(source[0].keys().move(), source[0].data, 0) as string;
-        StringBuilder.write(this.builder, `${name}\nCreated by ${this.encoder}\n\n`);
+        StringBuilder.write(this.builder, `# Name: ${name}\n# Created by ${this.encoder}\n\n`);
 
         const bondMap = this.componentData.entries.get(name)!;
         let bondCount = 0;

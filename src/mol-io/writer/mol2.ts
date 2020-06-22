@@ -4,10 +4,10 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { SdfEncoder } from './sdf/encoder';
+import { Mol2Encoder } from './mol2/encoder';
 import { Encoder } from './cif/encoder';
 
-export namespace SdfWriter {
+export namespace Mol2Writer {
     export interface EncoderParams {
         encoderName?: string,
         // whether to write ModelServer meta-information (query & params)
@@ -18,6 +18,6 @@ export namespace SdfWriter {
 
     export function createEncoder(params?: EncoderParams): Encoder {
         const { encoderName = 'mol*', metaInformation = false, hydrogens = false } = params || {};
-        return new SdfEncoder(encoderName, metaInformation, hydrogens);
+        return new Mol2Encoder(encoderName, metaInformation, hydrogens);
     }
 }
