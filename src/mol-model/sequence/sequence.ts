@@ -137,7 +137,7 @@ namespace Sequence {
                     });
                     labels[i] = `(${l.join('|')})`;
                 } else {
-                    labels[i] = codes[i] === 'X' ? compIds[idx] : codes[i];
+                    labels[i] = codes[i] === 'X' ? compIds[i] : codes[i];
                 }
             }
 
