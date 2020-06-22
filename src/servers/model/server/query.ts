@@ -17,7 +17,7 @@ import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { ModelServerConfig as Config } from '../config';
 import { createModelPropertiesProviderFromConfig, ModelPropertiesProvider } from '../property-provider';
 import Version from '../version';
-import { Job, JobEntry, ResponseFormat } from './jobs';
+import { Job, JobEntry } from './jobs';
 import { createStructureWrapperFromJobEntry, resolveStructures, StructureWrapper } from './structure-wrapper';
 import CifField = CifWriter.Field
 import { splitCamelCase } from '../../../mol-util/string';
@@ -50,8 +50,8 @@ export async function resolveJob(job: Job) {
     }
 }
 
-function createEncoder(responseFormat: ResponseFormat): Encoder {
-    switch (responseFormat.encoding) {
+function createEncoder(job: Job): Encoder {
+    switch (job.responseFormat.encoding) {
         case 'bcif':
             return CifWriter.createEncoder({
                 binary: true,
@@ -59,10 +59,12 @@ function createEncoder(responseFormat: ResponseFormat): Encoder {
                 binaryAutoClassifyEncoding: true
             });
         case 'sdf':
+            ensureCompatibleQueryType(job);
             return SdfWriter.createEncoder({
                 encoderName: `ModelServer ${Version}`
             });
         case 'mol2':
+            ensureCompatibleQueryType(job);
             throw Error('impl me');
         default:
             return CifWriter.createEncoder({
@@ -73,10 +75,18 @@ function createEncoder(responseFormat: ResponseFormat): Encoder {
     }
 }
 
+function ensureCompatibleQueryType(job: Job) {
+    job.entries.forEach(e => {
+        if (e.queryDefinition.niceName !== 'Atoms') {
+            throw Error("sdf and mol2 encoding are only available for queries of type 'Atoms'");
+        }
+    });
+}
+
 async function resolveSingleFile(job: Job) {
     ConsoleLogger.logId(job.id, 'Query', `Starting (format: ${job.responseFormat.encoding}).`);
 
-    const encoder = createEncoder(job.responseFormat);
+    const encoder = createEncoder(job);
 
     const headerMap = new Map<string, number>();
 
@@ -124,7 +134,7 @@ async function resolveMultiFile(job: Job) {
     let i = 0;
     for (const entry of job.entries) {
 
-        const encoder = createEncoder(job.responseFormat);
+        const encoder = createEncoder(job);
 
         let hasDataBlock = false;
         let header = '';
