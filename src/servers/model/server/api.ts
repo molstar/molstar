@@ -129,6 +129,15 @@ function Q<Params = any>(definition: Partial<QueryDefinition<Params>>) {
 
 const QueryMap = {
     'full': Q<{} | undefined>({ niceName: 'Full Structure', query: () => Queries.generators.all, description: 'The full structure.' }),
+    'ligand': Q<{ atom_site: AtomSiteSchema }>({
+        niceName: 'Ligand',
+        description: 'Coordinates of the first group satisfying the given criteria.',
+        query: p => {
+            return Queries.combinators.merge(getAtomsTests(p.atom_site).map(test => Queries.generators.atoms(test)));
+        },
+        jsonParams: [ AtomSiteTestJsonParam ],
+        restParams: AtomSiteTestRestParams
+    }),
     'atoms': Q<{ atom_site: AtomSiteSchema }>({
         niceName: 'Atoms',
         description: 'Atoms satisfying the given criteria.',

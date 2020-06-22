@@ -81,8 +81,8 @@ function createEncoder(job: Job): Encoder {
 
 function ensureCompatibleQueryType(job: Job) {
     job.entries.forEach(e => {
-        if (e.queryDefinition.niceName !== 'Atoms') {
-            throw Error("sdf and mol2 encoding are only available for queries of type 'Atoms'");
+        if (e.queryDefinition.niceName !== 'Ligand') {
+            throw Error("sdf and mol2 encoding are only available for queries of type 'Ligand'");
         }
     });
 }
