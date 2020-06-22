@@ -78,8 +78,8 @@ export function createJob(definition: JobDefinition): Job {
         datetime_utc: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')}`,
         entries: definition.entries,
         writer: definition.writer,
-        responseFormat: { 
-            tarball: !!definition?.options?.tarball, 
+        responseFormat: {
+            tarball: !!definition?.options?.tarball,
             encoding: definition?.options?.encoding ? definition.options.encoding : !!(definition.options && definition.options.binary) ? 'bcif' : 'cif'
         },
         outputFilename: definition.options && definition.options.outputFilename
