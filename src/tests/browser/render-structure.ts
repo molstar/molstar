@@ -26,6 +26,8 @@ import { InteractionsProvider } from '../../mol-model-props/computed/interaction
 import { SecondaryStructureProvider } from '../../mol-model-props/computed/secondary-structure';
 import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
 import { AssetManager } from '../../mol-util/assets';
+import { MembraneOrientationProvider } from '../../extensions/membrane-orientation/membrane-orientation';
+import { MembraneOrientationRepresentationProvider } from '../../extensions/membrane-orientation/representation';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -116,6 +118,10 @@ function getGaussianSurfaceRepr() {
     return GaussianSurfaceRepresentationProvider.factory(reprCtx, GaussianSurfaceRepresentationProvider.getParams);
 }
 
+function getMembraneOrientationRepr() {
+    return MembraneOrientationRepresentationProvider.factory(reprCtx, MembraneOrientationRepresentationProvider.getParams);
+}
+
 async function init() {
     const ctx = { runtime: SyncRuntimeContext, assetManager: new AssetManager() };
 
@@ -126,6 +132,10 @@ async function init() {
     console.time('compute SecondaryStructure');
     await SecondaryStructureProvider.attach(ctx, structure);
     console.timeEnd('compute SecondaryStructure');
+
+    console.time('compute Membrane Orientation');
+    await MembraneOrientationProvider.attach(ctx, structure);
+    console.timeEnd('compute Membrane Orientation');
 
     console.time('compute Interactions');
     await InteractionsProvider.attach(ctx, structure);
@@ -138,6 +148,7 @@ async function init() {
         ballAndStick: true,
         molecularSurface: false,
         gaussianSurface: false,
+        membrane: true
     };
 
     const cartoonRepr = getCartoonRepr();
@@ -145,6 +156,7 @@ async function init() {
     const ballAndStickRepr = getBallAndStickRepr();
     const molecularSurfaceRepr = getMolecularSurfaceRepr();
     const gaussianSurfaceRepr = getGaussianSurfaceRepr();
+    const membraneOrientationRepr = getMembraneOrientationRepr();
 
     if (show.cartoon) {
         cartoonRepr.setTheme({
@@ -190,11 +202,16 @@ async function init() {
         console.timeEnd('gaussian surface');
     }
 
+    if (show.membrane) {
+        await membraneOrientationRepr.createOrUpdate({ ...MembraneOrientationRepresentationProvider.defaultValues, quality: 'auto' }, structure).run();
+    }
+
     if (show.cartoon) canvas3d.add(cartoonRepr);
     if (show.interaction) canvas3d.add(interactionRepr);
     if (show.ballAndStick) canvas3d.add(ballAndStickRepr);
     if (show.molecularSurface) canvas3d.add(molecularSurfaceRepr);
     if (show.gaussianSurface) canvas3d.add(gaussianSurfaceRepr);
+    if (show.membrane) canvas3d.add(membraneOrientationRepr);
     canvas3d.requestCameraReset();
     // canvas3d.setProps({ trackball: { ...canvas3d.props.trackball, spin: true } })
 }

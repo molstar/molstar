@@ -31,7 +31,7 @@ export function hydrophobicity(compId: string, scaleIndex: number): number {
 }
 
 function getAtomicCompId(unit: Unit.Atomic, element: ElementIndex) {
-    return unit.model.atomicHierarchy.atoms.label_comp_id.value(unit.residueIndex[element]);
+    return unit.model.atomicHierarchy.atoms.label_comp_id.value(element);
 }
 
 function getCoarseCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIndex) {
