@@ -5,7 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ANVILContext } from './anvil/common';
 import { Structure, StructureElement, StructureProperties } from '../../mol-model/structure';
 import { Task, RuntimeContext } from '../../mol-task';
 import { CentroidHelper } from '../../mol-math/geometry/centroid-helper';
@@ -15,7 +14,22 @@ import { getElementMoleculeType } from '../../mol-model/structure/util';
 import { MoleculeType } from '../../mol-model/structure/model/types';
 import { AccessibleSurfaceArea } from '../../mol-model-props/computed/accessible-surface-area/shrake-rupley';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { MembraneOrientation } from './membrane-orientation';
+import { MembraneOrientation } from './prop';
+
+interface ANVILContext {
+    structure: Structure,
+
+    numberOfSpherePoints: number,
+    stepSize: number,
+    minThickness: number,
+    maxThickness: number,
+    asaCutoff: number,
+
+    offsets: ArrayLike<number>,
+    exposed: ArrayLike<boolean>,
+    centroid: Vec3,
+    extent: number
+};
 
 export const ANVILParams = {
     numberOfSpherePoints: PD.Numeric(120, { min: 35, max: 700, step: 1 }, { description: 'Number of spheres/directions to test for membrane placement. Original value is 350.' }),

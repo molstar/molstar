@@ -24,7 +24,7 @@ import { PluginState } from '../../mol-plugin/state';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
-import { MembraneOrientationData } from '../../extensions/membrane-orientation/behavior';
+import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
 import { DnatcoConfalPyramids } from '../../extensions/dnatco';
 
 require('mol-plugin-ui/skin/light.scss');
@@ -38,7 +38,7 @@ const Extensions = {
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
     'rcsb-assembly-symmetry': PluginSpec.Behavior(RCSBAssemblySymmetry),
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
-    'membrane-orientation': PluginSpec.Behavior(MembraneOrientationData)
+    'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation)
 };
 
 const DefaultViewerOptions = {

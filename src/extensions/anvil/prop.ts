@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -8,7 +8,7 @@
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Structure, StructureProperties, Unit } from '../../mol-model/structure';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
-import { ANVILParams, ANVILProps, computeANVIL, isInMembranePlane } from './ANVIL';
+import { ANVILParams, ANVILProps, computeANVIL, isInMembranePlane } from './algorithm';
 import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
@@ -16,14 +16,14 @@ import { Vec3 } from '../../mol-math/linear-algebra';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
 import Type from '../../mol-script/language/type';
-import { StructureSelectionQuery, StructureSelectionCategory } from '../../mol-plugin-state/helpers/structure-selection-query';
-import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 
 export const MembraneOrientationParams = {
     ...ANVILParams
 };
 export type MembraneOrientationParams = typeof MembraneOrientationParams
 export type MembraneOrientationProps = PD.Values<MembraneOrientationParams>
+
+export { MembraneOrientation };
 
 interface MembraneOrientation {
     // point in membrane boundary
@@ -37,45 +37,32 @@ interface MembraneOrientation {
     readonly centroid: Vec3
 }
 
-const pos = Vec3();
-export const MembraneOrientationSymbols = {
-    isTransmembrane: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'membrane-orientation.is-transmembrane', Type.Bool),
-        ctx => {
-            const { unit, structure } = ctx.element;
-            const { x, y, z } = StructureProperties.atom;
-            if (!Unit.isAtomic(unit)) return 0;
-            const membraneOrientation = MembraneOrientationProvider.get(structure).value;
-            if (!membraneOrientation) return 0;
-            Vec3.set(pos, x(ctx.element), y(ctx.element), z(ctx.element));
-            const { normalVector, planePoint1, planePoint2 } = membraneOrientation!;
-            return isInMembranePlane(pos, normalVector, planePoint1, planePoint2);
-        })
-}
-
-export const isTransmembrane = StructureSelectionQuery('Residues Embedded in Membrane', MS.struct.modifier.union([
-    MS.struct.modifier.wholeResidues([
-        MS.struct.modifier.union([
-            MS.struct.generator.atomGroups({
-                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'atom-test': MembraneOrientationSymbols.isTransmembrane.symbol(),
-            })
-        ])
-    ])
-]), {
-    description: 'Select residues that are embedded between the membrane layers.',
-    category: StructureSelectionCategory.Residue,
-    ensureCustomProperties: (ctx, structure) => {
-        return MembraneOrientationProvider.attach(ctx, structure);
+namespace MembraneOrientation {
+    export enum Tag {
+        Representation = 'membrane-orientation-3d'
     }
-});
 
-export { MembraneOrientation };
+    const pos = Vec3();
+    export const symbols = {
+        isTransmembrane: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'membrane-orientation.is-transmembrane', Type.Bool),
+            ctx => {
+                const { unit, structure } = ctx.element;
+                const { x, y, z } = StructureProperties.atom;
+                if (!Unit.isAtomic(unit)) return 0;
+                const membraneOrientation = MembraneOrientationProvider.get(structure).value;
+                if (!membraneOrientation) return 0;
+                Vec3.set(pos, x(ctx.element), y(ctx.element), z(ctx.element));
+                const { normalVector, planePoint1, planePoint2 } = membraneOrientation!;
+                return isInMembranePlane(pos, normalVector, planePoint1, planePoint2);
+            })
+    };
+}
 
 export const MembraneOrientationProvider: CustomStructureProperty.Provider<MembraneOrientationParams, MembraneOrientation> = CustomStructureProperty.createProvider({
     label: 'Membrane Orientation',
     descriptor: CustomPropertyDescriptor({
-        name: 'molstar_computed_membrane_orientation',
-        symbols: MembraneOrientationSymbols,
+        name: 'anvil_computed_membrane_orientation',
+        symbols: MembraneOrientation.symbols,
         // TODO `cifExport`
     }),
     type: 'root',

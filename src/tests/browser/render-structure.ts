@@ -26,8 +26,8 @@ import { InteractionsProvider } from '../../mol-model-props/computed/interaction
 import { SecondaryStructureProvider } from '../../mol-model-props/computed/secondary-structure';
 import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
 import { AssetManager } from '../../mol-util/assets';
-import { MembraneOrientationProvider } from '../../extensions/membrane-orientation/membrane-orientation';
-import { MembraneOrientationRepresentationProvider } from '../../extensions/membrane-orientation/representation';
+import { MembraneOrientationProvider } from '../../extensions/anvil/prop';
+import { MembraneOrientationRepresentationProvider } from '../../extensions/anvil/representation';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';

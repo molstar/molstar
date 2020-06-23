@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
@@ -7,8 +7,8 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../mol-plugin-state/builder/structure/representation-preset';
-import { MembraneOrientationProvider, isTransmembrane } from './membrane-orientation';
-import { StateObjectRef, StateAction, StateTransformer, StateTransform } from '../../mol-state';
+import { MembraneOrientationProvider, MembraneOrientation } from './prop';
+import { StateObjectRef, StateTransformer, StateTransform } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { MembraneOrientationRepresentationProvider, MembraneOrientationParams, MembraneOrientationRepresentation } from './representation';
@@ -16,13 +16,18 @@ import { HydrophobicityColorThemeProvider } from '../../mol-theme/color/hydropho
 import { PluginStateObject, PluginStateTransform } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
 import { DefaultQueryRuntimeTable } from '../../mol-script/runtime/query/compiler';
+import { StructureSelectionQuery, StructureSelectionCategory } from '../../mol-plugin-state/helpers/structure-selection-query';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
+import { GenericRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 
-export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boolean }>({
-    name: 'membrane-orientation-prop',
+const Tag = MembraneOrientation.Tag;
+
+export const ANVILMembraneOrientation = PluginBehavior.create<{ autoAttach: boolean }>({
+    name: 'anvil-membrane-orientation-prop',
     category: 'custom-props',
     display: {
         name: 'Membrane Orientation',
-        description: 'Initialize orientation of membrane layers. Data calculated with ANVIL algorithm.' // TODO add ' or obtained via RCSB PDB'
+        description: 'Data calculated with ANVIL algorithm.'
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private provider = MembraneOrientationProvider
@@ -30,12 +35,19 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
         register(): void {
             DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
 
-            this.ctx.state.data.actions.add(InitMembraneOrientation3D);
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
 
             this.ctx.representation.structure.registry.add(MembraneOrientationRepresentationProvider);
             this.ctx.query.structure.registry.add(isTransmembrane);
 
+            this.ctx.genericRepresentationControls.set(Tag.Representation, selection => {
+                const refs: GenericRepresentationRef[] = [];
+                selection.structures.forEach(structure => {
+                    const memRepr = structure.genericRepresentations?.filter(r => r.cell.transform.transformer.id === MembraneOrientation3D.id)[0];
+                    if (memRepr) refs.push(memRepr);
+                });
+                return [refs, 'Membrane Orientation'];
+            });
             this.ctx.builders.structure.representation.registerPreset(MembraneOrientationPreset);
         }
 
@@ -49,12 +61,12 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
         unregister() {
             DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
 
-            this.ctx.state.data.actions.remove(InitMembraneOrientation3D);
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
 
             this.ctx.representation.structure.registry.remove(MembraneOrientationRepresentationProvider);
             this.ctx.query.structure.registry.remove(isTransmembrane);
 
+            this.ctx.genericRepresentationControls.delete(Tag.Representation);
             this.ctx.builders.structure.representation.unregisterPreset(MembraneOrientationPreset);
         }
     },
@@ -63,25 +75,26 @@ export const MembraneOrientationData = PluginBehavior.create<{ autoAttach: boole
     })
 });
 
-export const InitMembraneOrientation3D = StateAction.build({
-    display: {
-        name: 'Membrane Orientation',
-        description: 'Initialize Membrane Orientation planes and rims. Data calculated with ANVIL algorithm.'
-    },
-    from: PluginStateObject.Molecule.Structure,
-    isApplicable: (a) => MembraneOrientationProvider.isApplicable(a.data)
-})(({ a, ref, state }, plugin: PluginContext) => Task.create('Init Membrane Orientation', async ctx => {
-    try {
-        const propCtx = { runtime: ctx, assetManager: plugin.managers.asset };
-        await MembraneOrientationProvider.attach(propCtx, a.data);
-    } catch(e) {
-        plugin.log.error(`Membrane Orientation: ${e}`);
-        return;
+//
+
+export const isTransmembrane = StructureSelectionQuery('Residues Embedded in Membrane', MS.struct.modifier.union([
+    MS.struct.modifier.wholeResidues([
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'atom-test': MembraneOrientation.symbols.isTransmembrane.symbol(),
+            })
+        ])
+    ])
+]), {
+    description: 'Select residues that are embedded between the membrane layers.',
+    category: StructureSelectionCategory.Residue,
+    ensureCustomProperties: (ctx, structure) => {
+        return MembraneOrientationProvider.attach(ctx, structure);
     }
-    const tree = state.build().to(ref)
-        .applyOrUpdateTagged('membrane-orientation-3d', MembraneOrientation3D);
-    await state.updateTree(tree).runInContext(ctx);
-}));
+});
+
+//
 
 export { MembraneOrientation3D };
 
