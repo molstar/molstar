@@ -44,12 +44,12 @@ export interface QueryDefinition<Params = any> {
 
 export const CommonQueryParamsInfo: QueryParamInfo[] = [
     { name: 'model_nums', type: QueryParamType.String, description: `A comma-separated list of model ids (i.e. 1,2). If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field.` },
-    { name: 'encoding', type: QueryParamType.String, defaultValue: 'cif', description: `Determines the output encoding (text based 'CIF' or binary 'BCIF'). Ligands can also be exported as 'SDF' or 'MOL2'.`, supportedValues: ['cif', 'bcif', 'mol2', 'sdf'] },
+    { name: 'encoding', type: QueryParamType.String, defaultValue: 'cif', description: `Determines the output encoding (text based 'CIF' or binary 'BCIF'). Ligands can also be exported as 'SDF' or 'MOL2'.`, supportedValues: ['cif', 'bcif', 'sdf', 'mol', 'mol2'] },
     { name: 'copy_all_categories', type: QueryParamType.Boolean, defaultValue: false, description: 'If true, copy all categories from the input file.' },
     { name: 'data_source', type: QueryParamType.String, defaultValue: '', description: 'Allows to control how the provided data source ID maps to input file (as specified by the server instance config).' }
 ];
 
-export type Encoding = 'cif' | 'bcif' | 'mol2' | 'sdf';
+export type Encoding = 'cif' | 'bcif' | 'sdf' | 'mol' | 'mol2';
 export interface CommonQueryParamsInfo {
     model_nums?: number[],
     encoding?: Encoding,
@@ -284,6 +284,8 @@ function mapEncoding(value: string) {
     switch (value) {
         case 'bcif':
             return 'bcif';
+        case 'mol':
+            return 'mol';
         case 'mol2':
             return 'mol2';
         case 'sdf':

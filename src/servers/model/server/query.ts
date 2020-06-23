@@ -52,28 +52,37 @@ export async function resolveJob(job: Job) {
     }
 }
 
+const SharedParams = {
+    encoderName: `ModelServer ${Version}`
+}
+
 function createEncoder(job: Job): Encoder {
     switch (job.responseFormat.encoding) {
         case 'bcif':
             return CifWriter.createEncoder({
+                ...SharedParams,
                 binary: true,
-                encoderName: `ModelServer ${Version}`,
                 binaryAutoClassifyEncoding: true
             });
         case 'sdf':
             ensureCompatibleQueryType(job);
             return SdfWriter.createEncoder({
-                encoderName: `ModelServer ${Version}`
+                ...SharedParams
             });
+        case 'mol':
+            ensureCompatibleQueryType(job);
+            return Mol2Writer.createEncoder({
+                ...SharedParams
+            })
         case 'mol2':
             ensureCompatibleQueryType(job);
             return Mol2Writer.createEncoder({
-                encoderName: `ModelServer ${Version}`
+                ...SharedParams
             });
         default:
             return CifWriter.createEncoder({
+                ...SharedParams,
                 binary: false,
-                encoderName: `ModelServer ${Version}`,
                 binaryAutoClassifyEncoding: true
             });
     }
@@ -82,7 +91,7 @@ function createEncoder(job: Job): Encoder {
 function ensureCompatibleQueryType(job: Job) {
     job.entries.forEach(e => {
         if (e.queryDefinition.niceName !== 'Ligand') {
-            throw Error("sdf and mol2 encoding are only available for queries of type 'Ligand'");
+            throw Error("sdf, mol and mol2 encoding are only available for queries of type 'Ligand'");
         }
     });
 }

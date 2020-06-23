@@ -4,14 +4,16 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { StringBuilder, deepEqual } from '../../../mol-util';
-import Writer from '../writer';
-import { Encoder, Category, Field } from '../cif/encoder';
-import { getCategoryInstanceData } from '../cif/encoder/util';
-import { ComponentBond } from '../../../mol-model-formats/structure/property/bonds/comp';
+import { StringBuilder, deepEqual } from '../../../../mol-util';
+import Writer from '../../../../mol-io/writer/writer';
+import { Encoder, Category, Field } from '../../../../mol-io/writer/cif/encoder';
+import { getCategoryInstanceData } from '../../../../mol-io/writer/cif/encoder/util';
+import { ComponentBond } from '../../../../mol-model-formats/structure/property/bonds/comp';
 
 // specification: http://c4.cabrillo.edu/404/ctfile.pdf
-export class SdfEncoder implements Encoder<string> {
+// SDF wraps MOL and allows for multiple molecules per file as well as additional properties
+// TODO add support for stereo/chiral flags, add charges
+export class MolEncoder implements Encoder<string> {
     private builder: StringBuilder;
     private meta: StringBuilder;
     private encoded = false;
@@ -68,7 +70,6 @@ export class SdfEncoder implements Encoder<string> {
         // use separate builder because we still need to write Counts and Bonds line
         const ctab = StringBuilder.create();
         const bonds = StringBuilder.create();
-        // const charges = StringBuilder.create();
 
         // write Atom block and gather data for Bonds and Charges
         const { instance, source } = getCategoryInstanceData(category, context);
@@ -82,7 +83,8 @@ export class SdfEncoder implements Encoder<string> {
 
         // write header
         const name = label_comp_id.value(source[0].keys().move(), source[0].data, 0) as string;
-        StringBuilder.write(this.builder, `${name}\n  Created by ${this.encoder}\n\n`);
+        // 3rd lines must be present and can contain comments
+        StringBuilder.write(this.builder, `${name}\n  ${this.encoder}\n\n`);
 
         const bondMap = this.componentData.entries.get(name)!;
         let bondCount = 0;
@@ -99,8 +101,6 @@ export class SdfEncoder implements Encoder<string> {
                     StringBuilder.writeIntegerPadLeft(bonds, i2 + 1, 3);
                     StringBuilder.writeIntegerPadLeft(bonds, order, 3);
                     StringBuilder.writeSafe(bonds, '  0  0  0  0\n');
-                    // TODO 3rd value: charge - 0 = uncharged or value other than these, 1 = +3, 2 = +2, 3 = +1, 4 = doublet radical, 5 = -1, 6 = -2, 7 = -3
-                    // TODO optional 2nd value: Single bonds: 0 = not stereo, 1 = Up, 4 = Either, 6 = Down, Double bonds: 0 = Use x-, y-, z-coords from atom block to determine cis or trans, 3 = Cis or trans (either) double bond
                     bondCount++;
                 }
             });
@@ -110,12 +110,9 @@ export class SdfEncoder implements Encoder<string> {
         StringBuilder.writeIntegerPadLeft(this.builder, atoms.length, 3);
         StringBuilder.writeIntegerPadLeft(this.builder, bondCount, 3);
         StringBuilder.write(this.builder, '  0  0  0  0  0  0  0  0  0\n');
-        // TODO optional 2nd value: chiral flag: 0=not chiral, 1=chiral
 
         StringBuilder.writeSafe(this.builder, StringBuilder.getString(ctab));
         StringBuilder.writeSafe(this.builder, StringBuilder.getString(bonds));
-        // StringBuilder.writeSafe(this.builder, StringBuilder.getString(charges));
-        // TODO optional charges
 
         StringBuilder.writeSafe(this.builder, 'M  END\n');
     }
@@ -123,9 +120,9 @@ export class SdfEncoder implements Encoder<string> {
     private getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, auxiliaryFields: Field<any, any>[], ctab: StringBuilder): string[] {
         const atoms = [];
         let index = 0;
-        let id;
+        let id: (string | number)[];
 
-        // is this loop needed?
+        // is outer loop even needed?
         l: for (let _c = 0; _c < source.length; _c++) {
             const src = source[_c];
             const data = src.data;
@@ -224,21 +221,27 @@ export class SdfEncoder implements Encoder<string> {
             StringBuilder.writeSafe(this.builder, StringBuilder.getString(this.meta));
         }
 
-        // terminate file
-        StringBuilder.writeSafe(this.builder, '$$$$\n');
+        // terminate file (needed for SDF only)
+        if (!!this.terminator) {
+            StringBuilder.writeSafe(this.builder, `${this.terminator}\n`);
+        }
 
         this.encoded = true;
     }
 
-    setFilter(filter?: Category.Filter) {}
+    setFilter() {}
 
-    setFormatter(formatter?: Category.Formatter) {}
+    setFormatter() {}
 
-    isCategoryIncluded(name: string) {
+    isCategoryIncluded() {
         return true;
     }
 
-    constructor(readonly encoder: string, readonly metaInformation: boolean, readonly hydrogens: boolean) {
+    constructor(readonly encoder: string, readonly metaInformation: boolean, readonly hydrogens: boolean, readonly terminator: string) {
+        if (metaInformation && !!terminator) {
+            throw new Error('meta-information cannot be written for MOL files');
+        }
+        
         this.builder = StringBuilder.create();
         this.meta = StringBuilder.create();
     }
