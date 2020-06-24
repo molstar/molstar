@@ -7,8 +7,6 @@
 import * as path from 'path';
 import { Column } from '../../../mol-data/db';
 import { CifWriter } from '../../../mol-io/writer/cif';
-import { SdfWriter } from '../../../mol-io/writer/sdf';
-import { Mol2Writer } from '../../../mol-io/writer/mol2';
 import { Structure, StructureQuery, StructureSelection } from '../../../mol-model/structure';
 import { encode_mmCIF_categories } from '../../../mol-model/structure/export/mmcif';
 import { Progress } from '../../../mol-task';
@@ -25,8 +23,11 @@ import { splitCamelCase } from '../../../mol-util/string';
 import { Encoder } from '../../../mol-io/writer/cif/encoder';
 import { Encoding } from './api';
 import { ComponentBond } from '../../../mol-model-formats/structure/property/bonds/comp';
-import { SdfEncoder } from '../../../mol-io/writer/sdf/encoder';
-import { Mol2Encoder } from '../../../mol-io/writer/mol2/encoder';
+import { SdfWriter } from '../ligand-writer/sdf';
+import { MolWriter } from '../ligand-writer/mol';
+import { Mol2Writer } from '../ligand-writer/mol2';
+import { MolEncoder } from '../ligand-writer/mol/encoder';
+import { Mol2Encoder } from '../ligand-writer/mol2/encoder';
 
 export interface Stats {
     structure: StructureWrapper,
@@ -71,7 +72,7 @@ function createEncoder(job: Job): Encoder {
             });
         case 'mol':
             ensureCompatibleQueryType(job);
-            return Mol2Writer.createEncoder({
+            return MolWriter.createEncoder({
                 ...SharedParams
             })
         case 'mol2':
@@ -220,7 +221,7 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
         encoder.writeCategory(_model_server_result, entry);
         encoder.writeCategory(_model_server_params, entry);
 
-        if (encoder instanceof SdfEncoder || encoder instanceof Mol2Encoder) encoder.setComponentBondData(ComponentBond.Provider.get(structure.models[0])!);
+        if (encoder instanceof MolEncoder || encoder instanceof Mol2Encoder) encoder.setComponentBondData(ComponentBond.Provider.get(structure.models[0])!);
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter(entry.queryDefinition.filter);
         if (result.length > 0) encode_mmCIF_categories(encoder, result, { copyAllCategories: entry.copyAllCategories });
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter();

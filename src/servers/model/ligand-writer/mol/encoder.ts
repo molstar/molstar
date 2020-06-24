@@ -5,45 +5,17 @@
  */
 
 import { StringBuilder, deepEqual } from '../../../../mol-util';
-import Writer from '../../../../mol-io/writer/writer';
-import { Encoder, Category, Field } from '../../../../mol-io/writer/cif/encoder';
+import { Category, Field } from '../../../../mol-io/writer/cif/encoder';
 import { getCategoryInstanceData } from '../../../../mol-io/writer/cif/encoder/util';
-import { ComponentBond } from '../../../../mol-model-formats/structure/property/bonds/comp';
+import { LigandExplorer } from '../ligand-encoder';
 
 // specification: http://c4.cabrillo.edu/404/ctfile.pdf
 // SDF wraps MOL and allows for multiple molecules per file as well as additional properties
 // TODO add support for stereo/chiral flags, add charges
-export class MolEncoder implements Encoder<string> {
-    private builder: StringBuilder;
+export class MolEncoder extends LigandExplorer {
     private meta: StringBuilder;
     private encoded = false;
     private error = false;
-    private componentData: ComponentBond;
-    readonly isBinary = false;
-    binaryEncodingProvider = void 0;
-
-    setComponentBondData(componentData: ComponentBond) {
-        this.componentData = componentData;
-    }
-
-    writeTo(stream: Writer) {
-        const chunks = StringBuilder.getChunks(this.builder);
-        for (let i = 0, _i = chunks.length; i < _i; i++) {
-            stream.writeString(chunks[i]);
-        }
-    }
-
-    getSize() {
-        return StringBuilder.getSize(this.builder);
-    }
-
-    getData() {
-        return StringBuilder.getString(this.builder);
-    }
-
-    startDataBlock() {
-
-    }
 
     writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx) {
         if (this.encoded) {
@@ -120,7 +92,7 @@ export class MolEncoder implements Encoder<string> {
     private getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, auxiliaryFields: Field<any, any>[], ctab: StringBuilder): string[] {
         const atoms = [];
         let index = 0;
-        let id: (string | number)[];
+        let id: (string | number)[] | undefined = void 0;
 
         // is outer loop even needed?
         l: for (let _c = 0; _c < source.length; _c++) {
@@ -165,17 +137,6 @@ export class MolEncoder implements Encoder<string> {
         return atoms;
     }
 
-    private skipHydrogen(label: string) {
-        if (this.hydrogens) {
-            return false;
-        }
-        return label.startsWith('H');
-    }
-
-    private getLabel(s: string) {
-        return s.replace(/[^A-Z]+/g, '');
-    }
-
     private writeFullCategory<Ctx>(sb: StringBuilder, category: Category<Ctx>, context?: Ctx) {
         const { instance, source } = getCategoryInstanceData(category, context);
         const fields = instance.fields;
@@ -207,14 +168,6 @@ export class MolEncoder implements Encoder<string> {
         }
     }
 
-    private getSortedFields<Ctx>(instance: Category.Instance<Ctx>, names: string[]) {
-        return names.map(n => this.getField(instance, n));
-    }
-
-    private getField<Ctx>(instance: Category.Instance<Ctx>, name: string) {
-        return instance.fields.find(f => f.name === name)!;
-    }
-
     encode() {
         // write meta-information, do so after ctab
         if (this.error || this.metaInformation) {
@@ -229,20 +182,12 @@ export class MolEncoder implements Encoder<string> {
         this.encoded = true;
     }
 
-    setFilter() {}
+    constructor(readonly encoder: string, readonly metaInformation: boolean, readonly hydrogens: boolean, readonly terminator: string = '') {
+        super(encoder, hydrogens);
 
-    setFormatter() {}
-
-    isCategoryIncluded() {
-        return true;
-    }
-
-    constructor(readonly encoder: string, readonly metaInformation: boolean, readonly hydrogens: boolean, readonly terminator: string) {
         if (metaInformation && !!terminator) {
             throw new Error('meta-information cannot be written for MOL files');
         }
-        
-        this.builder = StringBuilder.create();
         this.meta = StringBuilder.create();
     }
 }
