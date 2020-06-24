@@ -15,16 +15,14 @@ import TokenColumn from '../common/text/column/token';
 export interface SdfFile {
     readonly compounds: {
         readonly molFile: MolFile,
-        readonly dataItems: DataItems
+        readonly dataItems: {
+            readonly dataHeader: Column<string>,
+            readonly data: Column<string>
+        }
     }[]
 }
 
-interface DataItems {
-    readonly dataHeader: Column<string>,
-    readonly data: Column<string>
-}
-
-function handleDataItems(tokenizer: Tokenizer): DataItems {
+function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, data: Column<string> } {
     const dataHeader = TokenBuilder.create(tokenizer.data, 32);
     const data = TokenBuilder.create(tokenizer.data, 32);
 
