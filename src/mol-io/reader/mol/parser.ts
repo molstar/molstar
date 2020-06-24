@@ -30,7 +30,7 @@ export interface MolFile {
     }
 }
 
-function handleAtoms(tokenizer: Tokenizer, count: number): MolFile['atoms'] {
+export function handleAtoms(tokenizer: Tokenizer, count: number): MolFile['atoms'] {
     const x = TokenBuilder.create(tokenizer.data, count * 2);
     const y = TokenBuilder.create(tokenizer.data, count * 2);
     const z = TokenBuilder.create(tokenizer.data, count * 2);
@@ -59,7 +59,7 @@ function handleAtoms(tokenizer: Tokenizer, count: number): MolFile['atoms'] {
     };
 }
 
-function handleBonds(tokenizer: Tokenizer, count: number): MolFile['bonds'] {
+export function handleBonds(tokenizer: Tokenizer, count: number): MolFile['bonds'] {
     const atomIdxA = TokenBuilder.create(tokenizer.data, count * 2);
     const atomIdxB = TokenBuilder.create(tokenizer.data, count * 2);
     const order = TokenBuilder.create(tokenizer.data, count * 2);
