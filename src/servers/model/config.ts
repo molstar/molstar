@@ -82,7 +82,8 @@ const DefaultModelServerConfig = {
             //     }
             // },
             wwPDB: {
-                chemCompBondTablePath: '/Users/sebastian/Downloads/ccb.bcif'
+                // TODO make parameter / serve at RCSB?
+                chemCompBondTablePath: '/Users/sebastian/ccb.bcif'
             }
         }
     },

@@ -38,7 +38,7 @@ export abstract class LigandEncoder implements Encoder<string> {
 
     abstract encode(): void;
 
-    abstract _writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx): void;
+    protected abstract _writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx): void;
 
     protected abstract writeFullCategory<Ctx>(sb: StringBuilder, category: Category<Ctx>, context?: Ctx): void;
 
