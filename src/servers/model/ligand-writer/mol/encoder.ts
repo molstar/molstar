@@ -7,12 +7,12 @@
 import { StringBuilder } from '../../../../mol-util';
 import { Category } from '../../../../mol-io/writer/cif/encoder';
 import { getCategoryInstanceData } from '../../../../mol-io/writer/cif/encoder/util';
-import { LigandExplorer } from '../ligand-encoder';
+import { LigandEncoder } from '../ligand-encoder';
 
 // specification: http://c4.cabrillo.edu/404/ctfile.pdf
 // SDF wraps MOL and allows for multiple molecules per file as well as additional properties
 // TODO add support for stereo/chiral flags, add charges
-export class MolEncoder extends LigandExplorer {
+export class MolEncoder extends LigandEncoder {
     private meta: StringBuilder;
     private encoded = false;
     private error = false;

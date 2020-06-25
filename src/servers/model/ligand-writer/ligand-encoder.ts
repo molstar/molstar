@@ -17,7 +17,7 @@ export interface Atom {
     type_symbol: string
 }
 
-export abstract class LigandExplorer implements Encoder<string> {
+export abstract class LigandEncoder implements Encoder<string> {
     protected builder: StringBuilder;
     protected componentData: ComponentBond;
     readonly isBinary = false;
