@@ -13,32 +13,7 @@ import { LigandEncoder } from '../ligand-encoder';
 // SDF wraps MOL and allows for multiple molecules per file as well as additional properties
 // TODO add support for stereo/chiral flags, add charges
 export class MolEncoder extends LigandEncoder {
-    private meta: StringBuilder;
-    private encoded = false;
-    private error = false;
-
-    writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx) {
-        if (this.encoded) {
-            throw new Error('The writer contents have already been encoded, no more writing.');
-        }
-
-        if (this.metaInformation && (category.name === 'model_server_result' || category.name === 'model_server_params' || category.name === 'model_server_stats')) {
-            this.writeFullCategory(this.meta, category, context);
-            return;
-        }
-
-        // if error: force writing of meta information
-        if (category.name === 'model_server_error') {
-            this.writeFullCategory(this.meta, category, context);
-            this.error = true;
-            return;
-        }
-
-        // only care about atom_site category when writing SDF
-        if (category.name !== 'atom_site') {
-            return;
-        }
-
+    _writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx) {
         // use separate builder because we still need to write Counts and Bonds line
         const ctab = StringBuilder.create();
         const bonds = StringBuilder.create();
@@ -57,17 +32,17 @@ export class MolEncoder extends LigandEncoder {
         const atoms = this.getAtoms(instance, source);
         for (let i1 = 0, il = atoms.length; i1 < il; i1++) {
             const atom = atoms[i1];
-            StringBuilder.writePadLeft(ctab, atom.x.toFixed(4), 10);
-            StringBuilder.writePadLeft(ctab, atom.y.toFixed(4), 10);
-            StringBuilder.writePadLeft(ctab, atom.z.toFixed(4), 10);
+            StringBuilder.writePadLeft(ctab, atom.Cartn_x.toFixed(4), 10);
+            StringBuilder.writePadLeft(ctab, atom.Cartn_y.toFixed(4), 10);
+            StringBuilder.writePadLeft(ctab, atom.Cartn_z.toFixed(4), 10);
             StringBuilder.whitespace1(ctab);
             StringBuilder.writePadRight(ctab, atom.type_symbol, 2);
             StringBuilder.writeSafe(ctab, '  0  0  0  0  0  0  0  0  0  0  0  0\n');
 
-            bondMap.map.get(atom.id)!.forEach((v, k) => {
-                const i2 = atoms.findIndex(e => e.id === k);
+            bondMap.map.get(atom.label_atom_id)!.forEach((v, k) => {
+                const i2 = atoms.findIndex(e => e.label_atom_id === k);
                 const label2 = this.getLabel(k);
-                if (i1 < i2 && atoms.findIndex(e => e.id === k) > -1 && !this.skipHydrogen(label2)) {
+                if (i1 < i2 && atoms.findIndex(e => e.label_atom_id === k) > -1 && !this.skipHydrogen(label2)) {
                     const { order } = v;
                     StringBuilder.writeIntegerPadLeft(bonds, i1 + 1, 3);
                     StringBuilder.writeIntegerPadLeft(bonds, i2 + 1, 3);
@@ -89,7 +64,7 @@ export class MolEncoder extends LigandEncoder {
         StringBuilder.writeSafe(this.builder, 'M  END\n');
     }
 
-    private writeFullCategory<Ctx>(sb: StringBuilder, category: Category<Ctx>, context?: Ctx) {
+    protected writeFullCategory<Ctx>(sb: StringBuilder, category: Category<Ctx>, context?: Ctx) {
         const { instance, source } = getCategoryInstanceData(category, context);
         const fields = instance.fields;
         const src = source[0];
@@ -121,12 +96,11 @@ export class MolEncoder extends LigandEncoder {
         this.encoded = true;
     }
 
-    constructor(readonly encoder: string, readonly metaInformation: boolean, readonly hydrogens: boolean, readonly terminator: string = '') {
-        super(encoder, hydrogens);
+    constructor(encoder: string, metaInformation: boolean, hydrogens: boolean, readonly terminator: string = '') {
+        super(encoder, metaInformation, hydrogens);
 
         if (metaInformation && !terminator) {
             throw new Error('meta-information cannot be written for MOL files');
         }
-        this.meta = StringBuilder.create();
     }
 }

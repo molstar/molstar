@@ -14,33 +14,9 @@ import { BondType } from "../../../../mol-model/structure/model/types";
 // TODO amide (and real sp/sp2/sp3) support for bonds and SYBYL atom types: see https://www.sdsc.edu/CCMS/Packages/cambridge/pluto/atom_types.html
 // TODO support charges
 export class Mol2Encoder extends LigandEncoder {
-    private meta: StringBuilder;
     private out: StringBuilder;
-    private encoded = false;
-    private error = false;
 
-    writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx): void {
-        if (this.encoded) {
-            throw new Error('The writer contents have already been encoded, no more writing.');
-        }
-
-        if (this.metaInformation && (category.name === 'model_server_result' || category.name === 'model_server_params' || category.name === 'model_server_stats')) {
-            this.writeFullCategory(this.meta, category, context);
-            return;
-        }
-
-        // if error: force writing of meta information
-        if (category.name === 'model_server_error') {
-            this.writeFullCategory(this.meta, category, context);
-            this.error = true;
-            return;
-        }
-
-        // only care about atom_site category when writing SDF
-        if (category.name !== 'atom_site') {
-            return;
-        }
-
+    _writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx): void {
         const a = StringBuilder.create();
         const b = StringBuilder.create();
         const { instance, source } = getCategoryInstanceData(category, context);
@@ -59,10 +35,10 @@ export class Mol2Encoder extends LigandEncoder {
             const atom = atoms[i1];
 
             let aromatic = false;
-            bondMap.map.get(atom.id)!.forEach((v, k) => {
-                const i2 = atoms.findIndex(e => e.id === k);
+            bondMap.map.get(atom.label_atom_id)!.forEach((v, k) => {
+                const i2 = atoms.findIndex(e => e.label_atom_id === k);
                 const label2 = this.getLabel(k);
-                if (i1 < i2 && atoms.findIndex(e => e.id === k) > -1 && !this.skipHydrogen(label2)) {
+                if (i1 < i2 && atoms.findIndex(e => e.label_atom_id === k) > -1 && !this.skipHydrogen(label2)) {
                     const { order, flags } = v;
                     const ar = flags === BondType.Flag.Aromatic;
                     if (ar) aromatic = true;
@@ -72,7 +48,7 @@ export class Mol2Encoder extends LigandEncoder {
             });
 
             const sub = aromatic ? '.ar' : '';
-            StringBuilder.writeSafe(a, `${i1 + 1} ${atom.type_symbol} ${atom.x.toFixed(3)} ${atom.y.toFixed(3)} ${atom.z.toFixed(3)} ${atom.type_symbol}${sub} 1 ${name} 0.000\n`);
+            StringBuilder.writeSafe(a, `${i1 + 1} ${atom.type_symbol} ${atom.Cartn_x.toFixed(3)} ${atom.Cartn_y.toFixed(3)} ${atom.Cartn_z.toFixed(3)} ${atom.type_symbol}${sub} 1 ${name} 0.000\n`);
         }
 
         StringBuilder.writeSafe(this.out, `@<TRIPOS>MOLECULE\n${name}\n${atoms.length} ${bondCount} 0 0 0\nSMALL\nNO_CHARGES\n\n`);
@@ -81,7 +57,7 @@ export class Mol2Encoder extends LigandEncoder {
         StringBuilder.writeSafe(this.out, `@<TRIPOS>SUBSTRUCTURE\n${name} ${name} 1\n`);
     }
 
-    private writeFullCategory<Ctx>(sb: StringBuilder, category: Category<Ctx>, context?: Ctx) {
+    protected writeFullCategory<Ctx>(sb: StringBuilder, category: Category<Ctx>, context?: Ctx) {
         const { instance, source } = getCategoryInstanceData(category, context);
         const fields = instance.fields;
         const src = source[0];
@@ -110,9 +86,8 @@ export class Mol2Encoder extends LigandEncoder {
         this.encoded = true;
     }
 
-    constructor(readonly encoder: string, readonly metaInformation: boolean, readonly hydrogens: boolean) {
-        super(encoder, hydrogens);
-        this.meta = StringBuilder.create();
+    constructor(encoder: string, metaInformation: boolean, hydrogens: boolean) {
+        super(encoder, metaInformation, hydrogens);
         this.out = StringBuilder.create();
     }
 }

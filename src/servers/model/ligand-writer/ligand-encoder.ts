@@ -9,23 +9,63 @@ import Writer from '../../../mol-io/writer/writer';
 import { Encoder, Category, Field } from '../../../mol-io/writer/cif/encoder';
 import { ComponentBond } from '../../../mol-model-formats/structure/property/bonds/comp';
 
-export interface Atom {
-    id: string,
-    x: number,
-    y: number,
-    z: number,
+interface Atom {
+    label_atom_id: string,
+    Cartn_x: number,
+    Cartn_y: number,
+    Cartn_z: number,
     type_symbol: string
+}
+
+function Atom(partial: any): Atom {
+    return { 
+        label_atom_id: partial.label_atom_id,
+        Cartn_x: partial.Cartn_x,
+        Cartn_y: partial.Cartn_y,
+        Cartn_z: partial.Cartn_z,
+        type_symbol: partial.type_symbol
+    }
 }
 
 export abstract class LigandEncoder implements Encoder<string> {
     protected builder: StringBuilder;
+    protected meta: StringBuilder;
     protected componentData: ComponentBond;
+    protected error = false;
+    protected encoded = false;
     readonly isBinary = false;
     binaryEncodingProvider = void 0;
 
-    abstract writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx): void;
-
     abstract encode(): void;
+
+    abstract _writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx): void;
+
+    protected abstract writeFullCategory<Ctx>(sb: StringBuilder, category: Category<Ctx>, context?: Ctx): void;
+
+    writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx) {
+        if (this.encoded) {
+            throw new Error('The writer contents have already been encoded, no more writing.');
+        }
+
+        if (this.metaInformation && (category.name === 'model_server_result' || category.name === 'model_server_params' || category.name === 'model_server_stats')) {
+            this.writeFullCategory(this.meta, category, context);
+            return;
+        }
+
+        // if error: force writing of meta information
+        if (category.name === 'model_server_error') {
+            this.writeFullCategory(this.meta, category, context);
+            this.error = true;
+            return;
+        }
+
+        // only care about atom_site category when writing SDF
+        if (category.name !== 'atom_site') {
+            return;
+        }
+
+        this._writeCategory(category, context);
+    }
 
     setComponentBondData(componentData: ComponentBond) {
         this.componentData = componentData;
@@ -53,10 +93,10 @@ export abstract class LigandEncoder implements Encoder<string> {
         // all of this is used to ensure that only 1 residue is written
         const auxiliaryFields = this.getSortedFields(instance, ['label_seq_id', 'label_asym_id', 'pdbx_PDB_ins_code', 'pdbx_PDB_model_num']);
 
-        return this.getAtomsInternal(source, sortedFields, label_atom_id, auxiliaryFields);
+        return this._getAtoms(source, sortedFields, label_atom_id, auxiliaryFields);
     }
 
-    private getAtomsInternal(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, auxiliaryFields: Field<any, any>[]): Atom[] {
+    private _getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, auxiliaryFields: Field<any, any>[]): Atom[] {
         const atoms: Atom[] = [];
         let index = 0;
         let id: (string | number)[] | undefined = void 0;
@@ -88,14 +128,14 @@ export abstract class LigandEncoder implements Encoder<string> {
                     index++;
                     continue;
                 }
-                const d: (string | number)[] = [lai];
+                const a: { [k: string]: (string | number) } = { 'label_atom_id': lai };
 
                 for (let _f = 0, _fl = fields.length; _f < _fl; _f++) {
                     const f: Field<any, any> = fields[_f]!;
-                    d.push(f.value(key, data, index));
+                    a[f.name] = f.value(key, data, index);
                 }
 
-                atoms.push({ id: d[0] as string, x: d[1] as number, y: d[2] as number, z: d[3] as number, type_symbol: d[4] as string});
+                atoms.push(Atom(a));
                 index++;
             }
         }
@@ -137,7 +177,8 @@ export abstract class LigandEncoder implements Encoder<string> {
         return true;
     }
 
-    constructor(readonly encoder: string, readonly hydrogens: boolean) {
+    constructor(readonly encoder: string, readonly metaInformation: boolean, readonly hydrogens: boolean) {
         this.builder = StringBuilder.create();
+        this.meta = StringBuilder.create();
     }
 }
