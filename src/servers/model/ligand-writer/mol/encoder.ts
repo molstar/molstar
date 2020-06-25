@@ -4,8 +4,8 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { StringBuilder, deepEqual } from '../../../../mol-util';
-import { Category, Field } from '../../../../mol-io/writer/cif/encoder';
+import { StringBuilder } from '../../../../mol-util';
+import { Category } from '../../../../mol-io/writer/cif/encoder';
 import { getCategoryInstanceData } from '../../../../mol-io/writer/cif/encoder/util';
 import { LigandExplorer } from '../ligand-encoder';
 
@@ -42,32 +42,32 @@ export class MolEncoder extends LigandExplorer {
         // use separate builder because we still need to write Counts and Bonds line
         const ctab = StringBuilder.create();
         const bonds = StringBuilder.create();
-
         // write Atom block and gather data for Bonds and Charges
         const { instance, source } = getCategoryInstanceData(category, context);
-        const sortedFields = this.getSortedFields(instance, ['Cartn_x', 'Cartn_y', 'Cartn_z', 'type_symbol']);
-        const label_comp_id = this.getField(instance, 'label_comp_id');
-        const label_atom_id = this.getField(instance, 'label_atom_id');
-
-        // all of this is used to ensure that only 1 residue is written
-        // TODO potentially we could use a dedicated query mode or use the 'correct' SDF definition and allow an arbitrary number of molecules in a file
-        const auxiliaryFields = this.getSortedFields(instance, ['label_seq_id', 'label_asym_id', 'pdbx_PDB_ins_code', 'pdbx_PDB_model_num']);
 
         // write header
-        const name = label_comp_id.value(source[0].keys().move(), source[0].data, 0) as string;
+        const name = this.getName(instance, source);
         // 3rd lines must be present and can contain comments
-        StringBuilder.write(this.builder, `${name}\n  ${this.encoder}\n\n`);
+        StringBuilder.writeSafe(this.builder, `${name}\n  ${this.encoder}\n\n`);
 
         const bondMap = this.componentData.entries.get(name)!;
         let bondCount = 0;
 
         // traverse once to determine all actually present atoms
-        const atoms = this.getAtoms(source, sortedFields, label_atom_id, auxiliaryFields, ctab);
+        const atoms = this.getAtoms(instance, source);
         for (let i1 = 0, il = atoms.length; i1 < il; i1++) {
-            bondMap.map.get(atoms[i1])!.forEach((v, k) => {
-                const i2 = atoms.indexOf(k);
+            const atom = atoms[i1];
+            StringBuilder.writePadLeft(ctab, atom.x.toFixed(4), 10);
+            StringBuilder.writePadLeft(ctab, atom.y.toFixed(4), 10);
+            StringBuilder.writePadLeft(ctab, atom.z.toFixed(4), 10);
+            StringBuilder.whitespace1(ctab);
+            StringBuilder.writePadRight(ctab, atom.type_symbol, 2);
+            StringBuilder.writeSafe(ctab, '  0  0  0  0  0  0  0  0  0  0  0  0\n');
+
+            bondMap.map.get(atom.id)!.forEach((v, k) => {
+                const i2 = atoms.findIndex(e => e.id === k);
                 const label2 = this.getLabel(k);
-                if (i1 < i2 && atoms.indexOf(k) > -1 && !this.skipHydrogen(label2)) {
+                if (i1 < i2 && atoms.findIndex(e => e.id === k) > -1 && !this.skipHydrogen(label2)) {
                     const { order } = v;
                     StringBuilder.writeIntegerPadLeft(bonds, i1 + 1, 3);
                     StringBuilder.writeIntegerPadLeft(bonds, i2 + 1, 3);
@@ -81,60 +81,12 @@ export class MolEncoder extends LigandExplorer {
         // write counts line
         StringBuilder.writeIntegerPadLeft(this.builder, atoms.length, 3);
         StringBuilder.writeIntegerPadLeft(this.builder, bondCount, 3);
-        StringBuilder.write(this.builder, '  0  0  0  0  0  0  0  0  0\n');
+        StringBuilder.writeSafe(this.builder, '  0  0  0  0  0  0  0  0  0\n');
 
         StringBuilder.writeSafe(this.builder, StringBuilder.getString(ctab));
         StringBuilder.writeSafe(this.builder, StringBuilder.getString(bonds));
 
         StringBuilder.writeSafe(this.builder, 'M  END\n');
-    }
-
-    private getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, auxiliaryFields: Field<any, any>[], ctab: StringBuilder): string[] {
-        const atoms = [];
-        let index = 0;
-        let id: (string | number)[] | undefined = void 0;
-
-        // is outer loop even needed?
-        l: for (let _c = 0; _c < source.length; _c++) {
-            const src = source[_c];
-            const data = src.data;
-
-            if (src.rowCount === 0) continue;
-
-            const it = src.keys();
-            while (it.hasNext)  {
-                const key = it.move();
-
-                // ensure only a single residue is written
-                // TODO fairly certain this can be done at query level
-                if (!id) {
-                    id = auxiliaryFields.map(af => af.value(key, data, 0));
-                } else {
-                    if (!deepEqual(id, auxiliaryFields.map(af => af.value(key, data, index)))) {
-                        break l;
-                    }
-                }
-
-                const lai = label_atom_id.value(key, data, index) as string;
-                const label = this.getLabel(lai);
-                if (this.skipHydrogen(label)) {
-                    index++;
-                    continue;
-                }
-                atoms.push(lai);
-
-                for (let _f = 0, _fl = fields.length; _f < _fl; _f++) {
-                    const f: Field<any, any> = fields[_f]!;
-                    const v = f.value(key, data, index);
-                    this.writeValue(ctab, v, f.type);
-                }
-
-                StringBuilder.writeSafe(ctab, '  0  0  0  0  0  0  0  0  0  0  0  0\n');
-                index++;
-            }
-        }
-
-        return atoms;
     }
 
     private writeFullCategory<Ctx>(sb: StringBuilder, category: Category<Ctx>, context?: Ctx) {
@@ -155,19 +107,6 @@ export class MolEncoder extends LigandExplorer {
         }
     }
 
-    private writeValue(sb: StringBuilder, val: string | number, t: Field.Type, floatPrecision: number = 4) {
-        if (t === Field.Type.Str) {
-            // type_symbol is the only string field - width 2, right-padded
-            StringBuilder.whitespace1(sb);
-            StringBuilder.writePadRight(sb, val as string, 2);
-        } else if (t === Field.Type.Int) {
-            StringBuilder.writeInteger(sb, val as number);
-        } else {
-            // coordinates have width 10 and are left-padded
-            StringBuilder.writePadLeft(sb, (val as number).toFixed(floatPrecision), 10);
-        }
-    }
-
     encode() {
         // write meta-information, do so after ctab
         if (this.error || this.metaInformation) {
@@ -185,7 +124,7 @@ export class MolEncoder extends LigandExplorer {
     constructor(readonly encoder: string, readonly metaInformation: boolean, readonly hydrogens: boolean, readonly terminator: string = '') {
         super(encoder, hydrogens);
 
-        if (metaInformation && !!terminator) {
+        if (metaInformation && !terminator) {
             throw new Error('meta-information cannot be written for MOL files');
         }
         this.meta = StringBuilder.create();

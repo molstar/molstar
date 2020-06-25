@@ -15,7 +15,7 @@ export namespace MolWriter {
     }
 
     export function createEncoder(params?: EncoderParams): Encoder {
-        const { encoderName = 'mol*', hydrogens = false } = params || {};
+        const { encoderName = 'mol*', hydrogens = true } = params || {};
         return new MolEncoder(encoderName, false, hydrogens);
     }
 }
