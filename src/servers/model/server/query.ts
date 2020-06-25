@@ -55,7 +55,7 @@ export async function resolveJob(job: Job) {
 
 const SharedParams = {
     encoderName: `ModelServer ${Version}`
-}
+};
 
 function createEncoder(job: Job): Encoder {
     switch (job.responseFormat.encoding) {
@@ -74,7 +74,7 @@ function createEncoder(job: Job): Encoder {
             ensureCompatibleQueryType(job);
             return MolWriter.createEncoder({
                 ...SharedParams
-            })
+            });
         case 'mol2':
             ensureCompatibleQueryType(job);
             return Mol2Writer.createEncoder({
