@@ -15,12 +15,13 @@ import { EntityBuilder } from './common/entity';
 import { ModelFormat } from '../format';
 import { IndexPairBonds } from './property/bonds/index-pair';
 import { Mol2File } from '../../mol-io/reader/mol2/schema';
+import { AtomPartialCharge } from './property/partial-charge';
 
 async function getModels(mol2: Mol2File, ctx: RuntimeContext): Promise<Model[]> {
     const models: Model[] = [];
 
     for (let i = 0, il = mol2.structures.length; i < il; ++i) {
-        const { atoms, bonds } = mol2.structures[i];
+        const { atoms, bonds, molecule } = mol2.structures[i];
 
         const A = Column.ofConst('A', atoms.count, Column.Schema.str);
 
@@ -69,6 +70,11 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext): Promise<Model[]> 
             const order = Column.ofIntArray(Column.mapToArray(bonds.bond_type, x => x === 'ar' ? 1 : parseInt(x), Int8Array));
             const pairBonds = IndexPairBonds.fromData({ pairs: { indexA, indexB, order }, count: bonds.count });
             IndexPairBonds.Provider.set(_models[0], pairBonds);
+
+            AtomPartialCharge.Provider.set(_models[0], {
+                data: atoms.charge,
+                type: molecule.charge_type
+            });
 
             models.push(_models[0]);
         }

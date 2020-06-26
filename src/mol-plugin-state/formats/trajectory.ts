@@ -89,7 +89,7 @@ export const PdbProvider: TrajectoryFormatProvider = {
     label: 'PDB',
     description: 'PDB',
     category: Category,
-    stringExtensions: ['pdb', 'ent'],
+    stringExtensions: ['pdb', 'ent', 'pdbqt'],
     parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB),
     visuals: defaultVisuals
 };

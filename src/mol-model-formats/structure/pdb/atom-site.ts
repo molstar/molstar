@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -32,11 +32,13 @@ export function getAtomSiteTemplate(data: string, count: number) {
         B_iso_or_equiv: ts(),
         type_symbol: ts(),
         pdbx_PDB_model_num: str(),
-        label_entity_id: str()
+        label_entity_id: str(),
+
+        partial_charge: ts(),
     };
 }
 
-export function getAtomSite(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema['atom_site']]?: CifField } {
+export function getAtomSite(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema['atom_site'] | 'partial_charge']?: CifField } {
     const auth_asym_id = CifField.ofTokens(sites.auth_asym_id);
     const auth_atom_id = CifField.ofTokens(sites.auth_atom_id);
     const auth_comp_id = CifField.ofTokens(sites.auth_comp_id);
@@ -66,11 +68,13 @@ export function getAtomSite(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema
         type_symbol: CifField.ofTokens(sites.type_symbol),
 
         pdbx_PDB_ins_code: CifField.ofTokens(sites.pdbx_PDB_ins_code),
-        pdbx_PDB_model_num: CifField.ofStrings(sites.pdbx_PDB_model_num)
+        pdbx_PDB_model_num: CifField.ofStrings(sites.pdbx_PDB_model_num),
+
+        partial_charge: CifField.ofTokens(sites.partial_charge)
     };
 }
 
-export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: number, e: number) {
+export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: number, e: number, isPdbqt: boolean) {
     const { data: str } = data;
     const length = e - s;
 
@@ -133,10 +137,14 @@ export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer,
     }
 
     // 73 - 76        LString(4)      Segment identifier, left-justified.
-    // ignored
+    if (isPdbqt) {
+        TokenBuilder.addToken(sites.partial_charge, Tokenizer.trim(data, s + 70, s + 76));
+    } else {
+        // ignored
+    }
 
     // 77 - 78        LString(2)      Element symbol, right-justified.
-    if (length >= 78) {
+    if (length >= 78 && !isPdbqt) {
         Tokenizer.trim(data, s + 76, s + 78);
 
         if (data.tokenStart < data.tokenEnd) {

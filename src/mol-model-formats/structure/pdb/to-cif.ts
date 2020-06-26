@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -47,6 +47,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const heteroNames: [string, string][] = [];
 
     let modelNum = 0, modelStr = '';
+    let isPdbqt = false;
 
     for (let i = 0, _i = lines.count; i < _i; i++) {
         let s = indices[2 * i], e = indices[2 * i + 1];
@@ -54,11 +55,13 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
             case 'A':
                 if (substringStartsWith(data, s, e, 'ATOM  ')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
-                    addAtom(atomSite, modelStr, tokenizer, s, e);
+                    addAtom(atomSite, modelStr, tokenizer, s, e, isPdbqt);
                 } else if (substringStartsWith(data, s, e, 'ANISOU')) {
                     addAnisotropic(anisotropic, modelStr, tokenizer, s, e);
                 }
                 break;
+            case 'B':
+                if (substringStartsWith(data, s, e, 'BRANCH')) isPdbqt = true;
             case 'C':
                 if (substringStartsWith(data, s, e, 'CRYST1')) {
                     helperCategories.push(...parseCryst1(pdb.id || '?', data.substring(s, e)));
@@ -75,10 +78,12 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     i = j - 1;
                 }
                 break;
+            case 'E':
+                if (substringStartsWith(data, s, e, 'ENDROOT')) isPdbqt = true;
             case 'H':
                 if (substringStartsWith(data, s, e, 'HETATM')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
-                    addAtom(atomSite, modelStr, tokenizer, s, e);
+                    addAtom(atomSite, modelStr, tokenizer, s, e, isPdbqt);
                 } else if (substringStartsWith(data, s, e, 'HELIX')) {
                     let j = i + 1;
                     while (true) {
@@ -129,6 +134,8 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     }
                     helperCategories.push(...parseRemark350(lines, i, j));
                     i = j - 1;
+                } else if (substringStartsWith(data, s, e, 'ROOT')) {
+                    isPdbqt = true;
                 }
                 break;
             case 'S':
@@ -144,6 +151,8 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                 }
                 // TODO: SCALE record => cif.atom_sites.fract_transf_matrix, cif.atom_sites.fract_transf_vector
                 break;
+            case 'T':
+                if (substringStartsWith(data, s, e, 'TORSDOF')) isPdbqt = true;
         }
     }
 
@@ -161,10 +170,13 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         atomSite.label_entity_id[i] = entityBuilder.getEntityId(compId, moleculeType, asymIds.value(i));
     }
 
+    const atom_site = getAtomSite(atomSite);
+    if (!isPdbqt) delete atom_site.partial_charge;
+
     const categories = {
         entity: CifCategory.ofTable('entity', entityBuilder.getEntityTable()),
         chem_comp: CifCategory.ofTable('chem_comp', componentBuilder.getChemCompTable()),
-        atom_site: CifCategory.ofFields('atom_site', getAtomSite(atomSite)),
+        atom_site: CifCategory.ofFields('atom_site', atom_site),
         atom_site_anisotrop: CifCategory.ofFields('atom_site_anisotrop', getAnisotropic(anisotropic))
     } as any;
 

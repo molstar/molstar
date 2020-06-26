@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -32,6 +32,7 @@ import { ModelIndexColorThemeProvider } from './color/model-index';
 import { OccupancyColorThemeProvider } from './color/occupancy';
 import { OperatorNameColorThemeProvider } from './color/operator-name';
 import { OperatorHklColorThemeProvider } from './color/operator-hkl';
+import { PartialChargeColorThemeProvider } from './color/partial-charge';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -91,6 +92,7 @@ namespace ColorTheme {
         'occupancy': OccupancyColorThemeProvider,
         'operator-hkl': OperatorHklColorThemeProvider,
         'operator-name': OperatorNameColorThemeProvider,
+        'partial-charge': PartialChargeColorThemeProvider,
         'polymer-id': PolymerIdColorThemeProvider,
         'polymer-index': PolymerIndexColorThemeProvider,
         'residue-name': ResidueNameColorThemeProvider,

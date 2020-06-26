@@ -120,7 +120,7 @@ export namespace Model {
         return _trajectoryFromModelAndCoordinates(model, coordinates).trajectory;
     }
 
-    function invertIndex(xs: ArrayLike<number>) {
+    export function invertIndex(xs: ArrayLike<number>) {
         const ret = new Int32Array(xs.length);
         for (let i = 0, _i = xs.length; i < _i; i++) {
             ret[xs[i]] = i;
