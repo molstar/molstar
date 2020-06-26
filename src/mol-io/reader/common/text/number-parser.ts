@@ -21,7 +21,14 @@ export function parseIntSkipLeadingWhitespace(str: string, start: number, end: n
 
 export function parseInt(str: string, start: number, end: number) {
     let _start = start, ret = 0, neg = 1;
-    if (str.charCodeAt(_start) === 45 /* - */) { neg = -1; _start++; }
+
+    if (str.charCodeAt(_start) === 45 /* - */) {
+        neg = -1;
+        ++_start;
+    } else if (str.charCodeAt(_start) === 43 /* + */) {
+        ++_start;
+    }
+
     for (; _start < end; _start++) {
         const c = str.charCodeAt(_start) - 48;
         if (c > 9 || c < 0) return (neg * ret) | 0;
@@ -44,8 +51,10 @@ export function parseFloatSkipLeadingWhitespace(str: string, start: number, end:
 export function parseFloat(str: string, start: number, end: number) {
     let _start = start, neg = 1.0, ret = 0.0, point = 0.0, div = 1.0;
 
-    if (str.charCodeAt(_start) === 45) {
-        neg = -1.0;
+    if (str.charCodeAt(_start) === 45 /* - */) {
+        neg = -1;
+        ++_start;
+    } else if (str.charCodeAt(_start) === 43 /* + */) {
         ++_start;
     }
 

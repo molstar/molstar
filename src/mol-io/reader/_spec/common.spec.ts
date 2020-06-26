@@ -12,11 +12,15 @@ describe('common', () => {
         expect(fastParseFloat('11.0829(23)', 0, 11)).toBe(11.0829);
         // scientific with no space between consecutive values
         expect(fastParseFloat('-5.1E-01-6.1E-01', 0, 11)).toBe(-0.51);
+        // ignore plus sign
+        expect(fastParseFloat('+0.149', 0, 6)).toBe(0.149);
     });
 
     it('number-parser fastParseInt', () => {
         // ignore suffix numbers in parentheses
         expect(fastParseInt('11(23)', 0, 11)).toBe(11);
+        // ignore plus sign
+        expect(fastParseFloat('+10149', 0, 6)).toBe(10149);
     });
 
     it('number-parser getNumberType', () => {
