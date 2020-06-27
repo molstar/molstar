@@ -23,6 +23,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const { lines } = pdb;
     const { data, indices } = lines;
     const tokenizer = Tokenizer(data);
+    const isPdbqt = !!pdb.isPdbqt;
 
     // Count the atoms
     let atomCount = 0;
@@ -47,7 +48,6 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const heteroNames: [string, string][] = [];
 
     let modelNum = 0, modelStr = '';
-    let isPdbqt = false;
 
     for (let i = 0, _i = lines.count; i < _i; i++) {
         let s = indices[2 * i], e = indices[2 * i + 1];
@@ -60,8 +60,6 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     addAnisotropic(anisotropic, modelStr, tokenizer, s, e);
                 }
                 break;
-            case 'B':
-                if (substringStartsWith(data, s, e, 'BRANCH')) isPdbqt = true;
             case 'C':
                 if (substringStartsWith(data, s, e, 'CRYST1')) {
                     helperCategories.push(...parseCryst1(pdb.id || '?', data.substring(s, e)));
@@ -78,8 +76,6 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     i = j - 1;
                 }
                 break;
-            case 'E':
-                if (substringStartsWith(data, s, e, 'ENDROOT')) isPdbqt = true;
             case 'H':
                 if (substringStartsWith(data, s, e, 'HETATM')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
@@ -134,8 +130,6 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     }
                     helperCategories.push(...parseRemark350(lines, i, j));
                     i = j - 1;
-                } else if (substringStartsWith(data, s, e, 'ROOT')) {
-                    isPdbqt = true;
                 }
                 break;
             case 'S':
@@ -151,8 +145,6 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                 }
                 // TODO: SCALE record => cif.atom_sites.fract_transf_matrix, cif.atom_sites.fract_transf_vector
                 break;
-            case 'T':
-                if (substringStartsWith(data, s, e, 'TORSDOF')) isPdbqt = true;
         }
     }
 

@@ -209,11 +209,14 @@ const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-pdb',
     display: { name: 'Parse PDB', description: 'Parse PDB string and create trajectory.' },
     from: [SO.Data.String],
-    to: SO.Molecule.Trajectory
+    to: SO.Molecule.Trajectory,
+    params: {
+        isPdbqt: PD.Boolean(false)
+    }
 })({
-    apply({ a }) {
+    apply({ a, params }) {
         return Task.create('Parse PDB', async ctx => {
-            const parsed = await parsePDB(a.data, a.label).runInContext(ctx);
+            const parsed = await parsePDB(a.data, a.label, params.isPdbqt).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromPDB(parsed.result).runInContext(ctx);
             const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };

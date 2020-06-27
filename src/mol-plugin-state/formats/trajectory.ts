@@ -75,11 +75,11 @@ export const CifCoreProvider: TrajectoryFormatProvider = {
     visuals: defaultVisuals
 };
 
-function directTrajectory(transformer: StateTransformer<PluginStateObject.Data.String | PluginStateObject.Data.Binary, PluginStateObject.Molecule.Trajectory>): TrajectoryFormatProvider['parse'] {
+function directTrajectory<P>(transformer: StateTransformer<PluginStateObject.Data.String | PluginStateObject.Data.Binary, PluginStateObject.Molecule.Trajectory, P>, transformerParams?: P): TrajectoryFormatProvider['parse'] {
     return async (plugin, data, params) => {
         const state = plugin.state.data;
         const trajectory = await state.build().to(data)
-            .apply(transformer, void 0, { tags: params?.trajectoryTags })
+            .apply(transformer, transformerParams, { tags: params?.trajectoryTags })
             .commit({ revertOnError: true });
         return { trajectory };
     };
@@ -89,8 +89,17 @@ export const PdbProvider: TrajectoryFormatProvider = {
     label: 'PDB',
     description: 'PDB',
     category: Category,
-    stringExtensions: ['pdb', 'ent', 'pdbqt'],
+    stringExtensions: ['pdb', 'ent'],
     parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB),
+    visuals: defaultVisuals
+};
+
+export const PdbqtProvider: TrajectoryFormatProvider = {
+    label: 'PDBQT',
+    description: 'PDBQT',
+    category: Category,
+    stringExtensions: ['pdbqt'],
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB, { isPdbqt: true }),
     visuals: defaultVisuals
 };
 
@@ -135,6 +144,7 @@ export const BuiltInTrajectoryFormats = [
     ['mmcif', MmcifProvider] as const,
     ['cifCore', CifCoreProvider] as const,
     ['pdb', PdbProvider] as const,
+    ['pdbqt', PdbqtProvider] as const,
     ['gro', GroProvider] as const,
     ['3dg', Provider3dg] as const,
     ['mol', MolProvider] as const,
