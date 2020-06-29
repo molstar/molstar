@@ -136,7 +136,8 @@ const QueryMap = {
             const tests = getAtomsTests(p.atom_site);
             const ligands = Queries.combinators.merge(tests.map(test => Queries.generators.atoms({
                 ...test,
-                groupBy: (ctx) => StructureProperties.residue.key(ctx.element)
+                unitTest: ctx => StructureProperties.unit.model_num(ctx.element) === 1,
+                groupBy: ctx => StructureProperties.residue.key(ctx.element)
             })));
             return Queries.filters.first(ligands);
         },
