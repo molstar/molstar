@@ -62,7 +62,7 @@ const DefaultModelServerConfig = {
         sources: [
             // 'pdbe',
             // 'rcsb',
-            'wwpdb'
+            // 'wwpdb'
         ],
         params: {
             // PDBe: {
@@ -81,10 +81,9 @@ const DefaultModelServerConfig = {
             //         assembly_symmetry: 'https://rest-staging.rcsb.org/graphql'
             //     }
             // },
-            wwPDB: {
-                // TODO make parameter / serve at RCSB?
-                chemCompBondTablePath: '/Users/sebastian/ccb.bcif'
-            }
+            // wwPDB: {
+            //    chemCompBondTablePath: ''
+            // }
         }
     },
 
