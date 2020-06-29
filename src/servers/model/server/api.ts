@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Queries, Structure, StructureQuery, StructureSymmetry } from '../../../mol-model/structure';
+import { Queries, Structure, StructureQuery, StructureSymmetry, StructureProperties } from '../../../mol-model/structure';
 import { getAtomsTests } from '../query/atoms';
 import { CifWriter } from '../../../mol-io/writer/cif';
 import { QuerySchemas } from '../query/schemas';
@@ -133,7 +133,12 @@ const QueryMap = {
         niceName: 'Ligand',
         description: 'Coordinates of the first group satisfying the given criteria.',
         query: p => {
-            return Queries.combinators.merge(getAtomsTests(p.atom_site).map(test => Queries.generators.atoms(test)));
+            const tests = getAtomsTests(p.atom_site);
+            const ligands = Queries.combinators.merge(tests.map(test => Queries.generators.atoms({
+                ...test,
+                groupBy: (ctx) => StructureProperties.residue.key(ctx.element)
+            })));
+            return Queries.filters.first(ligands);
         },
         jsonParams: [ AtomSiteTestJsonParam ],
         restParams: AtomSiteTestRestParams
