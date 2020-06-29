@@ -57,6 +57,11 @@ const SharedParams = {
     encoderName: `ModelServer ${Version}`
 };
 
+const SharedLigandWritingParams = {
+    ...SharedParams,
+    hydrogens: true
+}
+
 function createEncoder(job: Job): Encoder {
     switch (job.responseFormat.encoding) {
         case 'bcif':
@@ -68,17 +73,17 @@ function createEncoder(job: Job): Encoder {
         case 'sdf':
             ensureCompatibleQueryType(job);
             return SdfWriter.createEncoder({
-                ...SharedParams
+                ...SharedLigandWritingParams
             });
         case 'mol':
             ensureCompatibleQueryType(job);
             return MolWriter.createEncoder({
-                ...SharedParams
+                ...SharedLigandWritingParams
             });
         case 'mol2':
             ensureCompatibleQueryType(job);
             return Mol2Writer.createEncoder({
-                ...SharedParams
+                ...SharedLigandWritingParams
             });
         default:
             return CifWriter.createEncoder({
