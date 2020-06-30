@@ -7,7 +7,7 @@
 import * as path from 'path';
 import { Column } from '../../../mol-data/db';
 import { CifWriter } from '../../../mol-io/writer/cif';
-import { Structure, StructureQuery, StructureSelection } from '../../../mol-model/structure';
+import { Structure, StructureQuery, StructureSelection, Model } from '../../../mol-model/structure';
 import { encode_mmCIF_categories } from '../../../mol-model/structure/export/mmcif';
 import { Progress } from '../../../mol-task';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
@@ -208,7 +208,8 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
             }
         }
 
-        const queries = structures.map(s => entry.queryDefinition.query(entry.normalizedParams, s));
+        const modelNums = entry.modelNums || (structure.models as Model[]).map(m => m.modelNum);
+        const queries = structures.map(s => entry.queryDefinition.query(entry.normalizedParams, s, modelNums));
         const result: Structure[] = [];
         for (let i = 0; i < structures.length; i++) {
             const s = StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], { timeoutMs: Config.queryTimeoutMs }));

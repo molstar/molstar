@@ -33,7 +33,7 @@ export interface QueryDefinition<Params = any> {
     name: string,
     niceName: string,
     exampleId: string, // default is 1cbs
-    query: (params: Params, structure: Structure) => StructureQuery,
+    query: (params: Params, structure: Structure, numModels: number[]) => StructureQuery,
     description: string,
     jsonParams: QueryParamInfo[],
     restParams: QueryParamInfo[],
@@ -132,11 +132,11 @@ const QueryMap = {
     'ligand': Q<{ atom_site: AtomSiteSchema }>({
         niceName: 'Ligand',
         description: 'Coordinates of the first group satisfying the given criteria.',
-        query: p => {
+        query: (p, _s, numModels) => {
             const tests = getAtomsTests(p.atom_site);
             const ligands = Queries.combinators.merge(tests.map(test => Queries.generators.atoms({
                 ...test,
-                unitTest: ctx => StructureProperties.unit.model_num(ctx.element) === 1,
+                unitTest: ctx => StructureProperties.unit.model_num(ctx.element) === numModels[0],
                 groupBy: ctx => StructureProperties.residue.key(ctx.element)
             })));
             return Queries.filters.first(ligands);
