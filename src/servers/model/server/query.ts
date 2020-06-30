@@ -60,7 +60,7 @@ const SharedParams = {
 const SharedLigandWritingParams = {
     ...SharedParams,
     hydrogens: true
-}
+};
 
 function createEncoder(job: Job): Encoder {
     switch (job.responseFormat.encoding) {
