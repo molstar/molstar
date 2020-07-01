@@ -33,6 +33,7 @@ const DefaultHighlightLociBindings = {
 };
 const HighlightLociParams = {
     bindings: PD.Value(DefaultHighlightLociBindings, { isHidden: true }),
+    mark: PD.Boolean(true)
 };
 type HighlightLociProps = PD.Values<typeof HighlightLociParams>
 
@@ -41,7 +42,7 @@ export const HighlightLoci = PluginBehavior.create({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<HighlightLociProps> {
         private lociMarkProvider = (interactionLoci: Representation.Loci, action: MarkerAction) => {
-            if (!this.ctx.canvas3d) return;
+            if (!this.ctx.canvas3d || !this.params.mark) return;
             this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action);
         }
         register() {
@@ -85,6 +86,7 @@ const DefaultSelectLociBindings = {
 };
 const SelectLociParams = {
     bindings: PD.Value(DefaultSelectLociBindings, { isHidden: true }),
+    mark: PD.Boolean(true)
 };
 type SelectLociProps = PD.Values<typeof SelectLociParams>
 
@@ -94,7 +96,7 @@ export const SelectLoci = PluginBehavior.create({
     ctor: class extends PluginBehavior.Handler<SelectLociProps> {
         private spine: StateTreeSpine.Impl
         private lociMarkProvider = (reprLoci: Representation.Loci, action: MarkerAction) => {
-            if (!this.ctx.canvas3d) return;
+            if (!this.ctx.canvas3d || !this.params.mark) return;
             this.ctx.canvas3d.mark({ loci: reprLoci.loci }, action);
         }
         private applySelectMark(ref: string, clear?: boolean) {
