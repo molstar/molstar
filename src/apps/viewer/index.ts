@@ -52,6 +52,8 @@ const DefaultViewerOptions = {
     layoutShowLeftPanel: true,
 
     viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
+    viewportShowControls: PluginConfig.Viewport.ShowControls.defaultValue,
+    viewportShowSettings: PluginConfig.Viewport.ShowSettings.defaultValue,
     viewportShowSelectionMode: PluginConfig.Viewport.ShowSelectionMode.defaultValue,
     viewportShowAnimation: PluginConfig.Viewport.ShowAnimation.defaultValue,
     pluginStateServer: PluginConfig.State.DefaultServer.defaultValue,
@@ -94,6 +96,8 @@ export class Viewer {
             },
             config: [
                 [PluginConfig.Viewport.ShowExpand, o.viewportShowExpand],
+                [PluginConfig.Viewport.ShowControls, o.viewportShowControls],
+                [PluginConfig.Viewport.ShowSettings, o.viewportShowSettings],
                 [PluginConfig.Viewport.ShowSelectionMode, o.viewportShowSelectionMode],
                 [PluginConfig.Viewport.ShowAnimation, o.viewportShowAnimation],
                 [PluginConfig.State.DefaultServer, o.pluginStateServer],

@@ -37,6 +37,8 @@ export const PluginConfig = {
     },
     Viewport: {
         ShowExpand: item('viewer.show-expand-button', true),
+        ShowControls: item('viewer.show-controls-button', true),
+        ShowSettings: item('viewer.show-settings-button', true),
         ShowSelectionMode: item('viewer.show-selection-model-button', true),
         ShowAnimation: item('viewer.show-animation-button', true),
     },
