@@ -51,7 +51,7 @@ const Download = PluginStateTransform.BuiltIn({
 })({
     apply({ params: p, cache }, plugin: PluginContext) {
         return Task.create('Download', async ctx => {
-            let url = Asset.getUrlAsset(plugin.managers.asset, p.url);
+            const url = Asset.getUrlAsset(plugin.managers.asset, p.url);
             const asset = await plugin.managers.asset.resolve(url, p.isBinary ? 'binary' : 'string').runInContext(ctx);
             (cache as any).asset = asset;
             return p.isBinary
