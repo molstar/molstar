@@ -43,13 +43,13 @@ function getAsymId(unit: Unit, type: AsymIdType): StructureElement.Property<stri
 
 function getAsymIdKey(location: StructureElement.Location, type: AsymIdType) {
     const asymId = getAsymId(location.unit, type)(location);
-    return location.structure.models.length > 1
+    return location.structure.root.models.length > 1
         ? getKey(location.unit.model, asymId)
         : asymId;
 }
 
 function getKey(model: Model, asymId: string) {
-    return `${asymId} | ${(Model.Index.get(model).value || 0) + 1}`;
+    return `${asymId}|${(Model.Index.get(model).value || 0) + 1}`;
 }
 
 function getAsymIdSerialMap(structure: Structure, type: AsymIdType) {
@@ -57,12 +57,16 @@ function getAsymIdSerialMap(structure: Structure, type: AsymIdType) {
     for (const m of structure.models) {
         const asymIdOffset = Model.AsymIdOffset.get(m).value;
         const offset = (type === 'auth' ? asymIdOffset?.auth : asymIdOffset?.label) || 0;
+        let count = 0;
         m.properties.structAsymMap.forEach(({ auth_id }, label_id) => {
             const asymId = type === 'auth' ? auth_id : label_id;
             const k = structure.models.length > 1
                 ? getKey(m, asymId)
                 : asymId;
-            if (!map.has(k)) map.set(k, map.size + offset);
+            if (!map.has(k)) {
+                map.set(k, count + offset);
+                ++count;
+            }
         });
     }
     return map;
@@ -73,7 +77,7 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
     let legend: ScaleLegend | TableLegend | undefined;
 
     if (ctx.structure) {
-        const l = StructureElement.Location.create(ctx.structure);
+        const l = StructureElement.Location.create(ctx.structure.root);
         const asymIdSerialMap = getAsymIdSerialMap(ctx.structure.root, props.asymId);
 
         const labelTable = Array.from(asymIdSerialMap.keys());
