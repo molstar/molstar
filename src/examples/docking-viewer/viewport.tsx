@@ -139,7 +139,7 @@ const PocketPreset = StructureRepresentationPresetProvider({
 
         const components = {
             ligand: await presetStaticComponent(plugin, structureCell, 'ligand'),
-            surroundings: await plugin.builders.structure.tryCreateComponentFromSelection(structureCell, ligandSurroundings, `selection`),
+            surroundings: await plugin.builders.structure.tryCreateComponentFromSelection(structureCell, ligandSurroundings, `surroundings`),
         };
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
