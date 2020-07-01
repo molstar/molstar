@@ -48,7 +48,7 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext): Promise<Model[]> 
         }, atoms.count);
 
         const entityBuilder = new EntityBuilder();
-        entityBuilder.setNames([['MOL', 'Unknown Entity']]);
+        entityBuilder.setNames([['MOL', molecule.mol_name || 'Unknown Entity']]);
         entityBuilder.getEntityId('MOL', MoleculeType.Unknown, 'A');
 
         const componentBuilder = new ComponentBuilder(atoms.subst_id, atoms.atom_name);
