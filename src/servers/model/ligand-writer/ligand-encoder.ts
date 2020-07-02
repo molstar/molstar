@@ -91,7 +91,7 @@ export abstract class LigandEncoder implements Encoder<string> {
         let index = 0;
 
         // is outer loop even needed?
-        l: for (let _c = 0; _c < source.length; _c++) {
+        for (let _c = 0; _c < source.length; _c++) {
             const src = source[_c];
             const data = src.data;
 
