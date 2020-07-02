@@ -7,7 +7,7 @@
 import * as path from 'path';
 import { Column } from '../../../mol-data/db';
 import { CifWriter } from '../../../mol-io/writer/cif';
-import { Structure, StructureQuery, StructureSelection } from '../../../mol-model/structure';
+import { Structure, StructureQuery, StructureSelection, Model } from '../../../mol-model/structure';
 import { encode_mmCIF_categories } from '../../../mol-model/structure/export/mmcif';
 import { Progress } from '../../../mol-task';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
@@ -20,6 +20,14 @@ import { Job, JobEntry } from './jobs';
 import { createStructureWrapperFromJobEntry, resolveStructures, StructureWrapper } from './structure-wrapper';
 import CifField = CifWriter.Field
 import { splitCamelCase } from '../../../mol-util/string';
+import { Encoder } from '../../../mol-io/writer/cif/encoder';
+import { Encoding } from './api';
+import { ComponentBond } from '../../../mol-model-formats/structure/property/bonds/comp';
+import { SdfWriter } from '../../../mol-io/writer/sdf';
+import { MolWriter } from '../../../mol-io/writer/mol';
+import { Mol2Writer } from '../../../mol-io/writer/mol2';
+import { MolEncoder } from '../../../mol-io/writer/mol/encoder';
+import { Mol2Encoder } from '../../../mol-io/writer/mol2/encoder';
 
 export interface Stats {
     structure: StructureWrapper,
@@ -45,14 +53,59 @@ export async function resolveJob(job: Job) {
     }
 }
 
-async function resolveSingleFile(job: Job) {
-    ConsoleLogger.logId(job.id, 'Query', 'Starting.');
+const SharedParams = {
+    encoderName: `ModelServer ${Version}`
+};
 
-    const encoder = CifWriter.createEncoder({
-        binary: job.responseFormat.isBinary,
-        encoderName: `ModelServer ${Version}`,
-        binaryAutoClassifyEncoding: true
+const SharedLigandWritingParams = {
+    ...SharedParams,
+    hydrogens: true
+};
+
+function createEncoder(job: Job): Encoder {
+    switch (job.responseFormat.encoding) {
+        case 'bcif':
+            return CifWriter.createEncoder({
+                ...SharedParams,
+                binary: true,
+                binaryAutoClassifyEncoding: true
+            });
+        case 'sdf':
+            ensureCompatibleQueryType(job);
+            return SdfWriter.createEncoder({
+                ...SharedLigandWritingParams
+            });
+        case 'mol':
+            ensureCompatibleQueryType(job);
+            return MolWriter.createEncoder({
+                ...SharedLigandWritingParams
+            });
+        case 'mol2':
+            ensureCompatibleQueryType(job);
+            return Mol2Writer.createEncoder({
+                ...SharedLigandWritingParams
+            });
+        default:
+            return CifWriter.createEncoder({
+                ...SharedParams,
+                binary: false,
+                binaryAutoClassifyEncoding: true
+            });
+    }
+}
+
+function ensureCompatibleQueryType(job: Job) {
+    job.entries.forEach(e => {
+        if (e.queryDefinition.niceName !== 'Ligand') {
+            throw Error("sdf, mol and mol2 encoding are only available for queries of type 'Ligand'");
+        }
     });
+}
+
+async function resolveSingleFile(job: Job) {
+    ConsoleLogger.logId(job.id, 'Query', `Starting (format: ${job.responseFormat.encoding}).`);
+
+    const encoder = createEncoder(job);
 
     const headerMap = new Map<string, number>();
 
@@ -60,7 +113,6 @@ async function resolveSingleFile(job: Job) {
         let hasDataBlock = false;
         try {
             const structure = await createStructureWrapperFromJobEntry(entry, propertyProvider());
-
             let header = structure.cifFrame.header.toUpperCase();
             if (headerMap.has(header)) {
                 const i = headerMap.get(header)! + 1;
@@ -91,8 +143,8 @@ async function resolveSingleFile(job: Job) {
     encoder.writeTo(job.writer);
 }
 
-function getFilename(i: number, entry: JobEntry, header: string, isBinary: boolean) {
-    return `${i}_${header.toLowerCase()}_${splitCamelCase(entry.queryDefinition.name.replace(/\s/g, '_'), '-').toLowerCase()}.${isBinary ? 'bcif' : 'cif'}`;
+function getFilename(i: number, entry: JobEntry, header: string, encoding: Encoding) {
+    return `${i}_${header.toLowerCase()}_${splitCamelCase(entry.queryDefinition.name.replace(/\s/g, '_'), '-').toLowerCase()}.${encoding}`;
 }
 
 async function resolveMultiFile(job: Job) {
@@ -101,11 +153,7 @@ async function resolveMultiFile(job: Job) {
     let i = 0;
     for (const entry of job.entries) {
 
-        const encoder = CifWriter.createEncoder({
-            binary: job.responseFormat.isBinary,
-            encoderName: `ModelServer ${Version}`,
-            binaryAutoClassifyEncoding: true
-        });
+        const encoder = createEncoder(job);
 
         let hasDataBlock = false;
         let header = '';
@@ -126,7 +174,7 @@ async function resolveMultiFile(job: Job) {
         ConsoleLogger.logId(job.id, 'Query', `Encoding ${entry.key}/${entry.queryDefinition.name}`);
         encoder.encode();
 
-        job.writer.beginEntry(getFilename(++i, entry, header, job.responseFormat.isBinary), encoder.getSize());
+        job.writer.beginEntry(getFilename(++i, entry, header, job.responseFormat.encoding), encoder.getSize());
         encoder.writeTo(job.writer);
         job.writer.endEntry();
         ConsoleLogger.logId(job.id, 'Query', `Written ${entry.key}/${entry.queryDefinition.name}`);
@@ -160,7 +208,8 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
             }
         }
 
-        const queries = structures.map(s => entry.queryDefinition.query(entry.normalizedParams, s));
+        const modelNums = entry.modelNums || (structure.models as Model[]).map(m => m.modelNum);
+        const queries = structures.map(s => entry.queryDefinition.query(entry.normalizedParams, s, modelNums));
         const result: Structure[] = [];
         for (let i = 0; i < structures.length; i++) {
             const s = StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], { timeoutMs: Config.queryTimeoutMs }));
@@ -178,6 +227,7 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
         encoder.writeCategory(_model_server_result, entry);
         encoder.writeCategory(_model_server_params, entry);
 
+        if (encoder instanceof MolEncoder || encoder instanceof Mol2Encoder) encoder.setComponentBondData(ComponentBond.Provider.get(structure.models[0])!);
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter(entry.queryDefinition.filter);
         if (result.length > 0) encode_mmCIF_categories(encoder, result, { copyAllCategories: entry.copyAllCategories });
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter();

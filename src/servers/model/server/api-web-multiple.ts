@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { QueryName, QueryParams } from './api';
+import { QueryName, QueryParams, Encoding } from './api';
 
 export interface MultipleQueryEntry<Name extends QueryName = QueryName> {
     data_source?: string,
@@ -17,7 +17,7 @@ export interface MultipleQueryEntry<Name extends QueryName = QueryName> {
 
 export interface MultipleQuerySpec {
     queries: MultipleQueryEntry[],
-    encoding?: 'cif' | 'bcif',
+    encoding?: Encoding,
     asTarGz?: boolean
 }
 

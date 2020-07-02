@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Queries, Structure, StructureQuery, StructureSymmetry } from '../../../mol-model/structure';
+import { Queries, Structure, StructureQuery, StructureSymmetry, StructureProperties } from '../../../mol-model/structure';
 import { getAtomsTests } from '../query/atoms';
 import { CifWriter } from '../../../mol-io/writer/cif';
 import { QuerySchemas } from '../query/schemas';
@@ -33,7 +33,7 @@ export interface QueryDefinition<Params = any> {
     name: string,
     niceName: string,
     exampleId: string, // default is 1cbs
-    query: (params: Params, structure: Structure) => StructureQuery,
+    query: (params: Params, structure: Structure, numModels: number[]) => StructureQuery,
     description: string,
     jsonParams: QueryParamInfo[],
     restParams: QueryParamInfo[],
@@ -44,14 +44,15 @@ export interface QueryDefinition<Params = any> {
 
 export const CommonQueryParamsInfo: QueryParamInfo[] = [
     { name: 'model_nums', type: QueryParamType.String, description: `A comma-separated list of model ids (i.e. 1,2). If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field.` },
-    { name: 'encoding', type: QueryParamType.String, defaultValue: 'cif', description: `Determines the output encoding (text based 'CIF' or binary 'BCIF').`, supportedValues: ['cif', 'bcif'] },
+    { name: 'encoding', type: QueryParamType.String, defaultValue: 'cif', description: `Determines the output encoding (text based 'CIF' or binary 'BCIF'). Ligands can also be exported as 'SDF', 'MOL', or 'MOL2'.`, supportedValues: ['cif', 'bcif', 'sdf', 'mol', 'mol2'] },
     { name: 'copy_all_categories', type: QueryParamType.Boolean, defaultValue: false, description: 'If true, copy all categories from the input file.' },
     { name: 'data_source', type: QueryParamType.String, defaultValue: '', description: 'Allows to control how the provided data source ID maps to input file (as specified by the server instance config).' }
 ];
 
+export type Encoding = 'cif' | 'bcif' | 'sdf' | 'mol' | 'mol2';
 export interface CommonQueryParamsInfo {
     model_nums?: number[],
-    encoding?: 'cif' | 'bcif',
+    encoding?: Encoding,
     copy_all_categories?: boolean
     data_source?: string
 }
@@ -128,6 +129,21 @@ function Q<Params = any>(definition: Partial<QueryDefinition<Params>>) {
 
 const QueryMap = {
     'full': Q<{} | undefined>({ niceName: 'Full Structure', query: () => Queries.generators.all, description: 'The full structure.' }),
+    'ligand': Q<{ atom_site: AtomSiteSchema }>({
+        niceName: 'Ligand',
+        description: 'Coordinates of the first group satisfying the given criteria.',
+        query: (p, _s, numModels) => {
+            const tests = getAtomsTests(p.atom_site);
+            const ligands = Queries.combinators.merge(tests.map(test => Queries.generators.atoms({
+                ...test,
+                unitTest: ctx => StructureProperties.unit.model_num(ctx.element) === numModels[0],
+                groupBy: ctx => StructureProperties.residue.key(ctx.element)
+            })));
+            return Queries.filters.first(ligands);
+        },
+        jsonParams: [ AtomSiteTestJsonParam ],
+        restParams: AtomSiteTestRestParams
+    }),
     'atoms': Q<{ atom_site: AtomSiteSchema }>({
         niceName: 'Atoms',
         description: 'Atoms satisfying the given criteria.',
@@ -265,6 +281,21 @@ export function normalizeRestCommonParams(params: any): CommonQueryParamsInfo {
         model_nums: params.model_nums ? ('' + params.model_nums).split(',').map(n => n.trim()).filter(n => !!n).map(n => +n) : void 0,
         data_source: params.data_source,
         copy_all_categories: Boolean(params.copy_all_categories),
-        encoding: ('' + params.encoding).toLocaleLowerCase() === 'bcif' ? 'bcif' : 'cif'
+        encoding: mapEncoding(('' + params.encoding).toLocaleLowerCase())
     };
+}
+
+function mapEncoding(value: string) {
+    switch (value) {
+        case 'bcif':
+            return 'bcif';
+        case 'mol':
+            return 'mol';
+        case 'mol2':
+            return 'mol2';
+        case 'sdf':
+            return 'sdf';
+        default:
+            return 'cif';
+    }
 }
