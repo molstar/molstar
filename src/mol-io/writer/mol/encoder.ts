@@ -4,9 +4,9 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { StringBuilder } from '../../../../mol-util';
-import { Category } from '../../../../mol-io/writer/cif/encoder';
-import { getCategoryInstanceData } from '../../../../mol-io/writer/cif/encoder/util';
+import { StringBuilder } from '../../../mol-util';
+import { Category } from '../cif/encoder';
+import { getCategoryInstanceData } from '../cif/encoder/util';
 import { LigandEncoder } from '../ligand-encoder';
 
 // specification: http://c4.cabrillo.edu/404/ctfile.pdf

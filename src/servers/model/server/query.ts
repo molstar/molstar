@@ -23,11 +23,11 @@ import { splitCamelCase } from '../../../mol-util/string';
 import { Encoder } from '../../../mol-io/writer/cif/encoder';
 import { Encoding } from './api';
 import { ComponentBond } from '../../../mol-model-formats/structure/property/bonds/comp';
-import { SdfWriter } from '../ligand-writer/sdf';
-import { MolWriter } from '../ligand-writer/mol';
-import { Mol2Writer } from '../ligand-writer/mol2';
-import { MolEncoder } from '../ligand-writer/mol/encoder';
-import { Mol2Encoder } from '../ligand-writer/mol2/encoder';
+import { SdfWriter } from '../../../mol-io/writer/sdf';
+import { MolWriter } from '../../../mol-io/writer/mol';
+import { Mol2Writer } from '../../../mol-io/writer/mol2';
+import { MolEncoder } from '../../../mol-io/writer/mol/encoder';
+import { Mol2Encoder } from '../../../mol-io/writer/mol2/encoder';
 
 export interface Stats {
     structure: StructureWrapper,

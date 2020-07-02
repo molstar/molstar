@@ -4,10 +4,10 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { StringBuilder } from '../../../mol-util';
-import Writer from '../../../mol-io/writer/writer';
-import { Encoder, Category, Field } from '../../../mol-io/writer/cif/encoder';
-import { ComponentBond } from '../../../mol-model-formats/structure/property/bonds/comp';
+import { StringBuilder } from '../../mol-util';
+import Writer from './writer';
+import { Encoder, Category, Field } from './cif/encoder';
+import { ComponentBond } from '../../mol-model-formats/structure/property/bonds/comp';
 
 interface Atom {
     label_atom_id: string,

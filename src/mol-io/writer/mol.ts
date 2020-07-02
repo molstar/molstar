@@ -5,7 +5,7 @@
  */
 
 import { MolEncoder } from './mol/encoder';
-import { Encoder } from '../../../mol-io/writer/cif/encoder';
+import { Encoder } from './cif/encoder';
 
 export namespace MolWriter {
     export interface EncoderParams {

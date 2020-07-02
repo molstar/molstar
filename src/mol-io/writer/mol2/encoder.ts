@@ -4,11 +4,11 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { Category } from '../../../../mol-io/writer/cif/encoder';
+import { Category } from '../cif/encoder';
 import { LigandEncoder } from '../ligand-encoder';
-import { StringBuilder } from '../../../../mol-util';
-import { getCategoryInstanceData } from '../../../../mol-io/writer/cif/encoder/util';
-import { BondType } from '../../../../mol-model/structure/model/types';
+import { StringBuilder } from '../../../mol-util';
+import { getCategoryInstanceData } from '../cif/encoder/util';
+import { BondType } from '../../../mol-model/structure/model/types';
 
 // specification: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
 // TODO amide (and real sp/sp2/sp3) support for bonds and SYBYL atom types: see https://www.sdsc.edu/CCMS/Packages/cambridge/pluto/atom_types.html
