@@ -18,13 +18,7 @@ interface Atom {
 }
 
 function Atom(partial: any): Atom {
-    return {
-        label_atom_id: partial.label_atom_id,
-        Cartn_x: partial.Cartn_x,
-        Cartn_y: partial.Cartn_y,
-        Cartn_z: partial.Cartn_z,
-        type_symbol: partial.type_symbol
-    };
+    return { ...partial };
 }
 
 export abstract class LigandEncoder implements Encoder<string> {
