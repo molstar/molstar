@@ -203,6 +203,9 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
             } else if (value.name === 'box') {
                 viewParams.bottomLeft = value.params.bottomLeft;
                 viewParams.topRight = value.params.topRight;
+            } else if (value.name === 'auto') {
+                viewParams.radius = value.params.radius;
+                viewParams.selectionDetailLevel = value.params.selectionDetailLevel;
             }
             viewParams.isUnbounded = !!value.params.isUnbounded;
 
@@ -238,8 +241,9 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
         const pivot = isEM ? 'em' : '2fo-fc';
 
         const params = this.props.params as VolumeStreaming.Params;
-        const detailLevel = ((this.props.info.params as VolumeStreaming.ParamDefinition)
-            .entry.map(params.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>).params.detailLevel;
+        const entry = ((this.props.info.params as VolumeStreaming.ParamDefinition)
+            .entry.map(params.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>);
+        const detailLevel = entry.params.detailLevel;
         const isRelative = ((params.entry.params.channels as any)[pivot].isoValue as Volume.IsoValue).kind === 'relative';
 
         const sampling = b.info.header.sampling[0];
@@ -276,6 +280,13 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     isRelative: isRelativeParam,
                     isUnbounded: isUnboundedParam,
                 }, { description: 'Box around the structure\'s bounding box.' }),
+                'auto': PD.Group({
+                    radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
+                    detailLevel,
+                    selectionDetailLevel: { ...detailLevel, label: 'Selection Detail' },
+                    isRelative: isRelativeParam,
+                    isUnbounded: isUnboundedParam,
+                }, { description: 'Box around focused element.' }),
                 // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.
             }, { options: VolumeStreaming.ViewTypeOptions, description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Around Focus" shows the volume around the element/atom last interacted with. "Whole Structure" shows the volume for the whole structure.' })
         };
@@ -288,6 +299,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     radius: (params.entry.params.view.params as any).radius,
                     bottomLeft: (params.entry.params.view.params as any).bottomLeft,
                     topRight: (params.entry.params.view.params as any).topRight,
+                    selectionDetailLevel: (params.entry.params.view.params as any).selectionDetailLevel,
                     isRelative,
                     isUnbounded
                 }

@@ -87,7 +87,15 @@ export namespace VolumeStreaming {
                     topRight: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
                 }, { description: 'Box around focused element.', isFlat: true }),
                 'cell': PD.Group({}),
-                // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.
+                // Show selection-box if available and cell otherwise.
+                'auto': PD.Group({
+                    radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
+                    selectionDetailLevel: PD.Select<number>(Math.min(6, info.header.availablePrecisions.length - 1),
+                        info.header.availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string]), { label: 'Selection Detail', description: 'Determines the maximum number of voxels. Depending on the size of the volume options are in the range from 0 (0.52M voxels) to 6 (25.17M voxels).' }),
+                    isSelection: PD.Boolean(false, { isHidden: true }),
+                    bottomLeft: PD.Vec3(box.min, {}, { isHidden: true }),
+                    topRight: PD.Vec3(box.max, {}, { isHidden: true }),
+                }, { description: 'Box around focused element.', isFlat: true })
             }, { options: ViewTypeOptions, description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Around Interaction" shows the volume around the focused element/atom. "Whole Structure" shows the volume for the whole structure.' }),
             detailLevel: PD.Select<number>(Math.min(3, info.header.availablePrecisions.length - 1),
                 info.header.availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string]), { description: 'Determines the maximum number of voxels. Depending on the size of the volume options are in the range from 0 (0.52M voxels) to 6 (25.17M voxels).' }),
@@ -103,9 +111,9 @@ export namespace VolumeStreaming {
         };
     }
 
-    export const ViewTypeOptions = [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Around Focus'], ['cell', 'Whole Structure']] as [ViewTypes, string][];
+    export const ViewTypeOptions = [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Around Focus'], ['cell', 'Whole Structure'], ['auto', 'Auto']] as [ViewTypes, string][];
 
-    export type ViewTypes = 'off' | 'box' | 'selection-box' | 'cell'
+    export type ViewTypes = 'off' | 'box' | 'selection-box' | 'cell' | 'auto'
 
     export type ParamDefinition = typeof createParams extends (...args: any[]) => (infer T) ? T : never
     export type Params = ParamDefinition extends PD.Params ? PD.Values<ParamDefinition> : {}
@@ -150,7 +158,13 @@ export namespace VolumeStreaming {
             } else {
                 url += `/cell`;
             }
-            url += `?detail=${this.params.entry.params.detailLevel}`;
+
+            let detail = this.params.entry.params.detailLevel;
+            if (this.params.entry.params.view.name === 'auto' && this.params.entry.params.view.params.isSelection) {
+                detail = this.params.entry.params.view.params.selectionDetailLevel;
+            }
+
+            url += `?detail=${detail}`;
 
             const entry = LRUCache.get(this.cache, url);
             if (entry) return entry.data;
@@ -187,7 +201,7 @@ export namespace VolumeStreaming {
             return ret;
         }
 
-        private updateDynamicBox(box: Box3D) {
+        private updateSelectionBoxParams(box: Box3D) {
             if (this.params.entry.params.view.name !== 'selection-box') return;
 
             const state = this.plugin.state.data;
@@ -198,11 +212,39 @@ export namespace VolumeStreaming {
                     params: {
                         ...this.params.entry.params,
                         view: {
-                            name: 'selection-box' as 'selection-box',
+                            name: 'selection-box' as const,
                             params: {
                                 radius: this.params.entry.params.view.params.radius,
                                 bottomLeft: box.min,
                                 topRight: box.max
+                            }
+                        }
+                    }
+                }
+            };
+            const update = state.build().to(this.ref).update(newParams);
+
+            PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
+        }
+
+        private updateAutoParams(box: Box3D | undefined, isSelection: boolean) {
+            if (this.params.entry.params.view.name !== 'auto') return;
+
+            const state = this.plugin.state.data;
+            const newParams: Params = {
+                ...this.params,
+                entry: {
+                    name: this.params.entry.name,
+                    params: {
+                        ...this.params.entry.params,
+                        view: {
+                            name: 'auto' as const,
+                            params: {
+                                radius: this.params.entry.params.view.params.radius,
+                                selectionDetailLevel: this.params.entry.params.view.params.selectionDetailLevel,
+                                isSelection,
+                                bottomLeft: box?.min || Vec3.zero(),
+                                topRight: box?.max || Vec3.zero()
                             }
                         }
                     }
@@ -239,10 +281,16 @@ export namespace VolumeStreaming {
 
                 const loci = entry ? entry.loci : EmptyLoci;
 
-                if (this.params.entry.params.view.name !== 'selection-box') {
-                    this.lastLoci = loci;
-                } else {
-                    this.updateInteraction(loci);
+                switch (this.params.entry.params.view.name) {
+                    case 'auto':
+                        this.updateAuto(loci);
+                        break;
+                    case 'selection-box':
+                        this.updateSelectionBox(loci);
+                        break;
+                    default:
+                        this.lastLoci = loci;
+                        break;
                 }
             });
         }
@@ -273,22 +321,40 @@ export namespace VolumeStreaming {
             return box;
         }
 
-        private updateInteraction(loci: StructureElement.Loci | EmptyLoci) {
+        private updateAuto(loci: StructureElement.Loci | EmptyLoci) {
+            // if (Loci.areEqual(this.lastLoci, loci)) {
+            //     this.lastLoci = EmptyLoci;
+            //     this.updateSelectionBoxParams(Box3D.empty());
+            //     return;
+            // }
+
+            this.lastLoci = loci;
+
+            if (isEmptyLoci(loci)) {
+                this.updateAutoParams(this.info.kind === 'x-ray' ? this.data.structure.boundary.box : void 0, false);
+                return;
+            }
+
+            const box = this.getBoxFromLoci(loci);
+            this.updateAutoParams(box, true);
+        }
+
+        private updateSelectionBox(loci: StructureElement.Loci | EmptyLoci) {
             if (Loci.areEqual(this.lastLoci, loci)) {
                 this.lastLoci = EmptyLoci;
-                this.updateDynamicBox(Box3D.empty());
+                this.updateSelectionBoxParams(Box3D.empty());
                 return;
             }
 
             this.lastLoci = loci;
 
             if (isEmptyLoci(loci)) {
-                this.updateDynamicBox(Box3D.empty());
+                this.updateSelectionBoxParams(Box3D.empty());
                 return;
             }
 
             const box = this.getBoxFromLoci(loci);
-            this.updateDynamicBox(box);
+            this.updateSelectionBoxParams(box);
         }
 
         async update(params: Params) {
@@ -321,6 +387,20 @@ export namespace VolumeStreaming {
                     box = this.info.kind === 'x-ray'
                         ? this.data.structure.boundary.box
                         : void 0;
+                    break;
+                case 'auto':
+                    box = params.entry.params.view.params.isSelection || this.info.kind === 'x-ray'
+                        ? Box3D.create(Vec3.clone(params.entry.params.view.params.bottomLeft), Vec3.clone(params.entry.params.view.params.topRight))
+                        : void 0;
+
+                    if (box) {
+                        emptyData = Box3D.volume(box) < 0.0001;
+                        if (params.entry.params.view.params.isSelection) {
+                            const r = params.entry.params.view.params.radius;
+                            Box3D.expand(box, box, Vec3.create(r, r, r));
+                        }
+                    }
+
                     break;
             }
 
