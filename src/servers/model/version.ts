@@ -4,4 +4,4 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export default '0.9.1';
+export default '0.9.2';

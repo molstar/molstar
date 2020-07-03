@@ -123,6 +123,12 @@ const RadiusParam: QueryParamInfo = {
     }
 };
 
+const AssemblyNameParam: QueryParamInfo = {
+    name: 'assembly_name',
+    type: QueryParamType.String,
+    description: 'Assembly name. If none is provided, crystal symmetry (where available) or deposited model is used.'
+};
+
 function Q<Params = any>(definition: Partial<QueryDefinition<Params>>) {
     return definition;
 }
@@ -179,7 +185,7 @@ const QueryMap = {
         }],
         filter: QuerySchemas.assembly
     }),
-    'residueInteraction': Q<{ atom_site: AtomSiteSchema, radius: number }>({
+    'residueInteraction': Q<{ atom_site: AtomSiteSchema, radius: number, assembly_name: string }>({
         niceName: 'Residue Interaction',
         description: 'Identifies all residues within the given radius from the source residue. Takes crystal symmetry into account.',
         query(p) {
@@ -193,10 +199,11 @@ const QueryMap = {
             return Queries.modifiers.includeSurroundings(center, { radius: p.radius !== void 0 ? p.radius : 5, wholeResidues: true });
         },
         structureTransform(p, s) {
+            if (p.assembly_name) return StructureSymmetry.buildAssembly(s, '' + p.assembly_name).run();
             return StructureSymmetry.builderSymmetryMates(s, p.radius !== void 0 ? p.radius : 5).run();
         },
-        jsonParams: [ AtomSiteTestJsonParam, RadiusParam ],
-        restParams: [ ...AtomSiteTestRestParams, RadiusParam ],
+        jsonParams: [ AtomSiteTestJsonParam, RadiusParam, AssemblyNameParam ],
+        restParams: [ ...AtomSiteTestRestParams, RadiusParam, AssemblyNameParam ],
         filter: QuerySchemas.interaction
     }),
     'residueSurroundings': Q<{ atom_site: AtomSiteSchema, radius: number }>({

@@ -1,3 +1,8 @@
+# 0.9.2
+* assemblyName in /residueInteraction
+* /ligand query
+* additional export encoding formats
+
 # 0.9.1
 * query-many
 * Config overhaul
