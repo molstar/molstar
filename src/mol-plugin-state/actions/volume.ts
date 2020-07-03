@@ -39,14 +39,14 @@ const DownloadDensity = StateAction.build({
                         id: PD.Text('1tqn', { label: 'Id' }),
                         server: PD.Select('pdbe', [['pdbe', 'PDBe'], ['rcsb', 'RCSB PDB']]),
                     }, { pivot: 'id' }),
-                    detail: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { label: 'Detail' }),
+                    detail: PD.Numeric(3, { min: 0, max: 6, step: 1 }, { label: 'Detail' }),
                 }, { isFlat: true }),
                 'pdb-emd-ds': PD.Group({
                     provider: PD.Group({
                         id: PD.Text('emd-8004', { label: 'Id' }),
                         server: PD.Select<EmdbDownloadProvider>('pdbe', [['pdbe', 'PDBe'], ['rcsb', 'RCSB PDB']]),
                     }, { pivot: 'id' }),
-                    detail: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { label: 'Detail' }),
+                    detail: PD.Numeric(3, { min: 0, max: 6, step: 1 }, { label: 'Detail' }),
                 }, { isFlat: true }),
                 'url': PD.Group({
                     url: PD.Url(''),
@@ -113,6 +113,7 @@ const DownloadDensity = StateAction.build({
     }
 
     const data = await plugin.builders.data.download(downloadParams);
+    let entryId: string | undefined = undefined;
 
     switch (src.name) {
         case 'url':
@@ -120,12 +121,14 @@ const DownloadDensity = StateAction.build({
             provider = src.params.format === 'auto' ? plugin.dataFormats.auto(getFileInfo(Asset.getUrl(downloadParams.url)), data.cell?.obj!) : plugin.dataFormats.get(src.params.format);
             break;
         case 'pdb-xray':
+            entryId = src.params.provider.id;
             provider = src.params.provider.server === 'pdbe'
                 ? plugin.dataFormats.get('ccp4')
                 : plugin.dataFormats.get('dsn6');
             break;
         case 'pdb-emd-ds':
         case 'pdb-xray-ds':
+            entryId = src.params.provider.id;
             provider = plugin.dataFormats.get('dscif');
             break;
         default: throw new Error(`${(src as any).name} not supported.`);
@@ -136,7 +139,7 @@ const DownloadDensity = StateAction.build({
         return;
     }
 
-    const volumes = await provider.parse(plugin, data);
+    const volumes = await provider.parse(plugin, data, { entryId });
     await provider.visuals?.(plugin, volumes);
 }));
 

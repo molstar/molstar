@@ -15,27 +15,73 @@ import { ColorNames } from '../../mol-util/color/names';
 import { Volume } from '../../mol-model/volume';
 import { createVolumeRepresentationParams } from '../helpers/volume-representation-params';
 import { objectForEach } from '../../mol-util/object';
+import { RecommendedIsoValue } from '../../mol-model-formats/volume/property';
+import { getContourLevelEmdb } from '../../mol-plugin/behavior/dynamic/volume-streaming/util';
+import { Task } from '../../mol-task';
+import { DscifFormat } from '../../mol-model-formats/volume/density-server';
 
 const Category = 'Volume';
+type Params = { entryId?: string };
+
+async function tryObtainRecommendedIsoValue(plugin: PluginContext, volume?: Volume) {
+    if (!volume) return;
+
+    const { entryId } = volume;
+    if (!entryId || !entryId.toLowerCase().startsWith('emd')) return;
+
+    return plugin.runTask(Task.create('Try Set Recommended IsoValue', async ctx => {
+        try {
+            const absIsoLevel = await getContourLevelEmdb(plugin, ctx, entryId);
+            RecommendedIsoValue.Provider.set(volume, Volume.IsoValue.absolute(absIsoLevel));
+        } catch (e) { }
+    }));
+}
+
+function tryGetRecomendedIsoValue(volume: Volume) {
+    const recommendedIsoValue = RecommendedIsoValue.Provider.get(volume);
+    if (!recommendedIsoValue) return;
+
+    if (recommendedIsoValue.kind === 'relative') return recommendedIsoValue;
+
+    let stats = volume.grid.stats;
+    if (DscifFormat.is(volume.sourceData)) {
+        stats = {
+            min: volume.sourceData.data.volume_data_3d_info.min_source.value(0),
+            max: volume.sourceData.data.volume_data_3d_info.max_source.value(0),
+            mean: volume.sourceData.data.volume_data_3d_info.mean_source.value(0),
+            sigma: volume.sourceData.data.volume_data_3d_info.sigma_source.value(0),
+        };
+    }
+    return Volume.IsoValue.toRelative(recommendedIsoValue, stats);
+}
 
 async function defaultVisuals(plugin: PluginContext, data: { volume: StateObjectSelector<PluginStateObject.Volume.Data> }) {
-    const visual = plugin.build().to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D);
+
+    const typeParams: { isoValue?: Volume.IsoValue } = {};
+    const isoValue = data.volume.data && tryGetRecomendedIsoValue(data.volume.data);
+    if (isoValue) typeParams.isoValue = isoValue;
+
+    const visual = plugin.build().to(data.volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, data.volume.data, {
+        type: 'isosurface',
+        typeParams,
+    }));
     return [await visual.commit()];
 }
 
 export const Ccp4Provider = DataFormatProvider({
-    label: 'CCP4/MRC/BRIX',
-    description: 'CCP4/MRC/BRIX',
+    label: 'CCP4/MRC/MAP',
+    description: 'CCP4/MRC/MAP',
     category: Category,
     binaryExtensions: ['ccp4', 'mrc', 'map'],
-    parse: async (plugin, data) => {
+    parse: async (plugin, data, params?: Params) => {
         const format = plugin.build()
             .to(data)
             .apply(StateTransforms.Data.ParseCcp4, {}, { state: { isGhost: true } });
 
-        const volume = format.apply(StateTransforms.Volume.VolumeFromCcp4);
+        const volume = format.apply(StateTransforms.Volume.VolumeFromCcp4, { entryId: params?.entryId });
 
         await format.commit({ revertOnError: true });
+        await tryObtainRecommendedIsoValue(plugin, volume.selector.data);
 
         return { format: format.selector, volume: volume.selector };
     },
@@ -47,14 +93,15 @@ export const Dsn6Provider = DataFormatProvider({
     description: 'DSN6/BRIX',
     category: Category,
     binaryExtensions: ['dsn6', 'brix'],
-    parse: async (plugin, data) => {
+    parse: async (plugin, data, params?: Params) => {
         const format = plugin.build()
             .to(data)
             .apply(StateTransforms.Data.ParseDsn6, {}, { state: { isGhost: true } });
 
-        const volume = format.apply(StateTransforms.Volume.VolumeFromDsn6);
+        const volume = format.apply(StateTransforms.Volume.VolumeFromDsn6, { entryId: params?.entryId });
 
         await format.commit({ revertOnError: true });
+        await tryObtainRecommendedIsoValue(plugin, volume.selector.data);
 
         return { format: format.selector, volume: volume.selector };
     },
@@ -67,14 +114,15 @@ export const DxProvider = DataFormatProvider({
     category: Category,
     stringExtensions: ['dx'],
     binaryExtensions: ['dxbin'],
-    parse: async (plugin, data) => {
+    parse: async (plugin, data, params?: Params) => {
         const format = plugin.build()
             .to(data)
             .apply(StateTransforms.Data.ParseDx, {}, { state: { isGhost: true } });
 
-        const volume = format.apply(StateTransforms.Volume.VolumeFromDx);
+        const volume = format.apply(StateTransforms.Volume.VolumeFromDx, { entryId: params?.entryId });
 
         await volume.commit({ revertOnError: true });
+        await tryObtainRecommendedIsoValue(plugin, volume.selector.data);
 
         return { volume: volume.selector };
     },
@@ -86,18 +134,19 @@ export const CubeProvider = DataFormatProvider({
     description: 'Cube',
     category: Category,
     stringExtensions: ['cub', 'cube'],
-    parse: async (plugin, data) => {
+    parse: async (plugin, data, params?: Params) => {
         const format = plugin.build()
             .to(data)
             .apply(StateTransforms.Data.ParseCube, {}, { state: { isGhost: true } });
 
-        const volume = format.apply(StateTransforms.Volume.VolumeFromCube);
+        const volume = format.apply(StateTransforms.Volume.VolumeFromCube, { entryId: params?.entryId });
         const structure = format
             .apply(StateTransforms.Model.TrajectoryFromCube, void 0, { state: { isGhost: true } })
             .apply(StateTransforms.Model.ModelFromTrajectory)
             .apply(StateTransforms.Model.StructureFromModel);
 
         await format.commit({ revertOnError: true });
+        await tryObtainRecommendedIsoValue(plugin, volume.selector.data);
 
         return { format: format.selector, volume: volume.selector, structure: structure.selector };
     },
@@ -151,7 +200,7 @@ export const DscifProvider = DataFormatProvider({
     isApplicable: (info, data) => {
         return guessCifVariant(info, data) === 'dscif' ? true : false;
     },
-    parse: async (plugin, data) => {
+    parse: async (plugin, data, params?: Params) => {
         const cifCell = await plugin.build().to(data).apply(StateTransforms.Data.ParseCif).commit();
         const b = plugin.build().to(cifCell);
         const blocks = cifCell.obj!.data.blocks.slice(1); // zero block contains query meta-data
@@ -160,10 +209,11 @@ export const DscifProvider = DataFormatProvider({
 
         const volumes: StateObjectSelector<PluginStateObject.Volume.Data>[] = [];
         for (const block of blocks) {
-            volumes.push(b.apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: block.header }).selector);
+            volumes.push(b.apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: block.header, entryId: params?.entryId }).selector);
         }
 
         await b.commit();
+        for (const v of volumes) await tryObtainRecommendedIsoValue(plugin, v.data);
 
         return { volumes };
     },
@@ -173,9 +223,11 @@ export const DscifProvider = DataFormatProvider({
         const visuals: StateObjectSelector<PluginStateObject.Volume.Representation3D>[] = [];
 
         if (volumes.length > 0) {
+            const isoValue = (volumes[0].data && tryGetRecomendedIsoValue(volumes[0].data)) || Volume.IsoValue.relative(1.5);
+
             visuals[0] = tree
                 .to(volumes[0])
-                .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue: Volume.IsoValue.relative(1.5), alpha: 1 }, 'uniform', { value: ColorNames.teal }))
+                .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'isosurface', { isoValue, alpha: 1 }, 'uniform', { value: ColorNames.teal }))
                 .selector;
         }
 

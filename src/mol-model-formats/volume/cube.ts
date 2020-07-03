@@ -12,7 +12,7 @@ import { arrayMax, arrayMean, arrayMin, arrayRms } from '../../mol-util/array';
 import { ModelFormat } from '../format';
 import { CustomProperties } from '../../mol-model/custom-property';
 
-export function volumeFromCube(source: CubeFile, params?: { dataIndex?: number, label?: string }): Task<Volume> {
+export function volumeFromCube(source: CubeFile, params?: { dataIndex?: number, label?: string, entryId?: string }): Task<Volume> {
     return Task.create<Volume>('Create Volume', async () => {
         const { header, values: sourceValues } = source;
         const space = Tensor.Space(header.dim, [0, 1, 2], Float64Array);
@@ -46,6 +46,7 @@ export function volumeFromCube(source: CubeFile, params?: { dataIndex?: number, 
 
         return {
             label: params?.label,
+            entryId: params?.entryId,
             grid: {
                 transform: { kind: 'matrix', matrix },
                 cells: data,

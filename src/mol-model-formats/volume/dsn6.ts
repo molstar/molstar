@@ -14,7 +14,7 @@ import { arrayMin, arrayMax, arrayMean, arrayRms } from '../../mol-util/array';
 import { ModelFormat } from '../format';
 import { CustomProperties } from '../../mol-model/custom-property';
 
-export function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, label?: string }): Task<Volume> {
+export function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, label?: string, entryId?: string }): Task<Volume> {
     return Task.create<Volume>('Create Volume', async ctx => {
         const { header, values } = source;
         const size = Vec3.create(header.xlen, header.ylen, header.zlen);
@@ -35,6 +35,7 @@ export function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, la
 
         return {
             label: params?.label,
+            entryId: params?.entryId,
             grid: {
                 transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
                 cells: data,

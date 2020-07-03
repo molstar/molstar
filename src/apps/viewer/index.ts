@@ -181,7 +181,7 @@ export class Viewer {
         }));
     }
 
-    loadEmdb(emdb: string) {
+    loadEmdb(emdb: string, options?: { detail?: number }) {
         const provider = this.plugin.config.get(PluginConfig.Download.DefaultEmdbProvider)!;
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadDensity, {
             source: {
@@ -191,7 +191,7 @@ export class Viewer {
                         id: emdb,
                         server: provider,
                     },
-                    detail: 3,
+                    detail: options?.detail ?? 3,
                 }
             }
         }));

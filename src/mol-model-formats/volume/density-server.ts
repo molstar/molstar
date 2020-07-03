@@ -12,7 +12,7 @@ import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { ModelFormat } from '../format';
 import { CustomProperties } from '../../mol-model/custom-property';
 
-export function volumeFromDensityServerData(source: DensityServer_Data_Database): Task<Volume> {
+export function volumeFromDensityServerData(source: DensityServer_Data_Database, params?: Partial<{ label: string, entryId: string }>): Task<Volume> {
     return Task.create<Volume>('Create Volume', async ctx => {
         const { volume_data_3d_info: info, volume_data_3d: values } = source;
         const cell = SpacegroupCell.create(
@@ -36,6 +36,8 @@ export function volumeFromDensityServerData(source: DensityServer_Data_Database)
         const dimensions = Vec3.ofArray(normalizeOrder(info.dimensions.value(0)));
 
         return {
+            label: params?.label,
+            entryId: params?.entryId,
             grid: {
                 transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin, Vec3.add(Vec3.zero(), origin, dimensions)) },
                 cells: data,

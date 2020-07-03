@@ -35,7 +35,8 @@ const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
     params(a) {
         return {
             voxelSize: PD.Vec3(Vec3.create(1, 1, 1)),
-            offset: PD.Vec3(Vec3.create(0, 0, 0))
+            offset: PD.Vec3(Vec3.create(0, 0, 0)),
+            entryId: PD.Text(''),
         };
     }
 })({
@@ -56,7 +57,8 @@ const VolumeFromDsn6 = PluginStateTransform.BuiltIn({
     to: SO.Volume.Data,
     params(a) {
         return {
-            voxelSize: PD.Vec3(Vec3.create(1, 1, 1))
+            voxelSize: PD.Vec3(Vec3.create(1, 1, 1)),
+            entryId: PD.Text(''),
         };
     }
 })({
@@ -76,9 +78,10 @@ const VolumeFromCube = PluginStateTransform.BuiltIn({
     from: SO.Format.Cube,
     to: SO.Volume.Data,
     params(a) {
-        if (!a) return { dataIndex: PD.Numeric(0) };
+        const dataIndex = a ? PD.Select(0, a.data.header.dataSetIds.map((id, i) => [i, `${id}`] as const)) : PD.Numeric(0);
         return {
-            dataIndex: PD.Select(0, a.data.header.dataSetIds.map((id, i) => [i, `${id}`] as const))
+            dataIndex,
+            entryId: PD.Text(''),
         };
     }
 })({
@@ -100,7 +103,6 @@ const VolumeFromDx = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         return Task.create('Parse DX', async ctx => {
-            console.log(a);
             const volume = await volumeFromDx(a.data, { label: a.data.name || a.label }).runInContext(ctx);
             const props = { label: volume.label || 'Volume', description: `Volume ${a.data.header.dim[0]}\u00D7${a.data.header.dim[1]}\u00D7${a.data.header.dim[2]}` };
             return new SO.Volume.Data(volume, props);
@@ -117,12 +119,14 @@ const VolumeFromDensityServerCif = PluginStateTransform.BuiltIn({
     params(a) {
         if (!a) {
             return {
-                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' }))
+                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' })),
+                entryId: PD.Text(''),
             };
         }
         const blocks = a.data.blocks.slice(1); // zero block contains query meta-data
         return {
-            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
+            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' })),
+            entryId: PD.Text(''),
         };
     }
 })({
@@ -133,7 +137,7 @@ const VolumeFromDensityServerCif = PluginStateTransform.BuiltIn({
             const block = a.data.blocks.find(b => b.header === header);
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
             const densityServerCif = CIF.schema.densityServer(block);
-            const volume = await volumeFromDensityServerData(densityServerCif).runInContext(ctx);
+            const volume = await volumeFromDensityServerData(densityServerCif, { entryId: params.entryId }).runInContext(ctx);
             const [x, y, z] = volume.grid.cells.space.dimensions;
             const props = { label: densityServerCif.volume_data_3d_info.name.value(0), description: `Volume ${x}\u00D7${y}\u00D7${z}` };
             return new SO.Volume.Data(volume, props);

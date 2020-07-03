@@ -32,7 +32,7 @@ class FormatRegistry<T> {
     }
 }
 
-export { FormatPropertyProvider as FormatPropertyProvider };
+export { FormatPropertyProvider };
 
 interface FormatPropertyProvider<T> {
     readonly descriptor: CustomPropertyDescriptor

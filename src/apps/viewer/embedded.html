@@ -36,28 +36,7 @@
                 emdbProvider: 'rcsb',
             });
             viewer.loadPdb('7bv2');
-            viewer.loadEmdb('EMD-30210');
-
-            // TODO add Volume.customProperty and load suggested isoValue via custom property
-            var sub = viewer.plugin.managers.volume.hierarchy.behaviors.selection.subscribe(function (value) {
-                if (value.volume?.representations[0]) {
-                    var ref = value.volume.representations[0].cell;
-                    var tree = viewer.plugin.state.data.build().to(ref).update({
-                        type: {
-                            name: 'isosurface',
-                            params: {
-                                isoValue: {
-                                    kind: 'relative',
-                                    relativeValue: 6
-                                }
-                            }
-                        },
-                        colorTheme: ref.transform.params?.colorTheme
-                    });
-                    viewer.plugin.runTask(viewer.plugin.state.data.updateTree(tree));
-                    if (typeof sub !== 'undefined') sub.unsubscribe();
-                }
-            });
+            viewer.loadEmdb('EMD-30210', { detail: 6 });
         </script>
     </body>
 </html>

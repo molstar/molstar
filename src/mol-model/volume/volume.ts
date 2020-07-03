@@ -16,6 +16,7 @@ import { CustomProperties } from '../custom-property';
 
 export interface Volume {
     readonly label?: string
+    readonly entryId?: string,
     readonly grid: Grid
     readonly sourceData: ModelFormat
 
