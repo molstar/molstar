@@ -24,6 +24,7 @@ export class Mol2Encoder extends LigandEncoder {
         const name = this.getName(instance, source);
         StringBuilder.writeSafe(this.builder, `# Name: ${name}\n# Created by ${this.encoder}\n\n`);
 
+        const atomMap = this.componentAtomData.entries.get(name)!;
         const bondMap = this.componentBondData.entries.get(name)!;
         let bondCount = 0;
 
@@ -32,9 +33,10 @@ export class Mol2Encoder extends LigandEncoder {
         StringBuilder.writeSafe(b, '@<TRIPOS>BOND\n');
         for (let i1 = 0, il = atoms.length; i1 < il; i1++) {
             const atom = atoms[i1];
+            const lai = atom.label_atom_id;
 
             let aromatic = false;
-            bondMap.map.get(atom.label_atom_id)!.forEach((v, k) => {
+            bondMap.map.get(lai)!.forEach((v, k) => {
                 const i2 = atoms.findIndex(e => e.label_atom_id === k);
                 const label2 = this.getLabel(k);
                 if (i1 < i2 && atoms.findIndex(e => e.label_atom_id === k) > -1 && !this.skipHydrogen(label2)) {
@@ -47,7 +49,7 @@ export class Mol2Encoder extends LigandEncoder {
             });
 
             const sub = aromatic ? '.ar' : '';
-            StringBuilder.writeSafe(a, `${i1 + 1} ${atom.type_symbol} ${atom.Cartn_x.toFixed(3)} ${atom.Cartn_y.toFixed(3)} ${atom.Cartn_z.toFixed(3)} ${atom.type_symbol}${sub} 1 ${name} 0.000\n`);
+            StringBuilder.writeSafe(a, `${i1 + 1} ${lai} ${atom.Cartn_x.toFixed(3)} ${atom.Cartn_y.toFixed(3)} ${atom.Cartn_z.toFixed(3)} ${atom.type_symbol}${sub} 1 ${name} ${atomMap.map.get(lai)!.charge.toFixed(3)}\n`);
         }
 
         StringBuilder.writeSafe(this.out, `@<TRIPOS>MOLECULE\n${name}\n${atoms.length} ${bondCount} 0 0 0\nSMALL\nNO_CHARGES\n\n`);
