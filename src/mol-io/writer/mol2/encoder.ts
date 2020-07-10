@@ -53,7 +53,7 @@ export class Mol2Encoder extends LigandEncoder {
         StringBuilder.writeSafe(this.out, `@<TRIPOS>MOLECULE\n${name}\n${atoms.length} ${bondCount} 0 0 0\nSMALL\nNO_CHARGES\n\n`);
         StringBuilder.writeSafe(this.out, StringBuilder.getString(a));
         StringBuilder.writeSafe(this.out, StringBuilder.getString(b));
-        StringBuilder.writeSafe(this.out, `@<TRIPOS>SUBSTRUCTURE\n${name} ${name} 1\n`);
+        StringBuilder.writeSafe(this.out, `@<TRIPOS>SUBSTRUCTURE\n1 ${name} 1\n`);
     }
 
     protected writeFullCategory<Ctx>(sb: StringBuilder, category: Category<Ctx>, context?: Ctx) {
