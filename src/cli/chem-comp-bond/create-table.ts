@@ -23,7 +23,7 @@ import { CCD_Schema } from '../../mol-io/reader/cif/schema/ccd';
 import { SetUtils } from '../../mol-util/set';
 import { DefaultMap } from '../../mol-util/map';
 import { mmCIF_chemCompBond_schema } from '../../mol-io/reader/cif/schema/mmcif-extras';
-import { ccd_chemCompAtom_schema } from '../../mol-io/reader/cif/schema/ccd-extraas';
+import { ccd_chemCompAtom_schema } from '../../mol-io/reader/cif/schema/ccd-extras';
 
 export async function ensureAvailable(path: string, url: string) {
     if (FORCE_DOWNLOAD || !fs.existsSync(path)) {
