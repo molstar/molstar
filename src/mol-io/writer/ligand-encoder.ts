@@ -7,6 +7,7 @@
 import { StringBuilder } from '../../mol-util';
 import Writer from './writer';
 import { Encoder, Category, Field } from './cif/encoder';
+import { ComponentAtom } from '../../mol-model-formats/structure/property/bonds/atom';
 import { ComponentBond } from '../../mol-model-formats/structure/property/bonds/comp';
 
 interface Atom {
@@ -24,7 +25,8 @@ function Atom(partial: any): Atom {
 export abstract class LigandEncoder implements Encoder<string> {
     protected builder: StringBuilder;
     protected meta: StringBuilder;
-    protected componentData: ComponentBond;
+    protected componentAtomData: ComponentAtom;
+    protected componentBondData: ComponentBond;
     protected error = false;
     protected encoded = false;
     readonly isBinary = false;
@@ -61,8 +63,12 @@ export abstract class LigandEncoder implements Encoder<string> {
         this._writeCategory(category, context);
     }
 
-    setComponentBondData(componentData: ComponentBond) {
-        this.componentData = componentData;
+    setComponentAtomData(componentAtomData: ComponentAtom) {
+        this.componentAtomData = componentAtomData;
+    }
+
+    setComponentBondData(componentBondData: ComponentBond) {
+        this.componentBondData = componentBondData;
     }
 
     writeTo(stream: Writer) {

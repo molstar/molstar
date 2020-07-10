@@ -28,6 +28,7 @@ import { MolWriter } from '../../../mol-io/writer/mol';
 import { Mol2Writer } from '../../../mol-io/writer/mol2';
 import { MolEncoder } from '../../../mol-io/writer/mol/encoder';
 import { Mol2Encoder } from '../../../mol-io/writer/mol2/encoder';
+import { ComponentAtom } from '../../../mol-model-formats/structure/property/bonds/atom';
 
 export interface Stats {
     structure: StructureWrapper,
@@ -227,7 +228,15 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
         encoder.writeCategory(_model_server_result, entry);
         encoder.writeCategory(_model_server_params, entry);
 
-        if (encoder instanceof MolEncoder || encoder instanceof Mol2Encoder) encoder.setComponentBondData(ComponentBond.Provider.get(structure.models[0])!);
+        if (entry.queryDefinition.niceName === 'Ligand') {
+            if (encoder instanceof MolEncoder || encoder instanceof Mol2Encoder) {
+                encoder.setComponentAtomData(ComponentAtom.Provider.get(structure.models[0])!);
+                encoder.setComponentBondData(ComponentBond.Provider.get(structure.models[0])!);
+            }
+        } else {
+            // TODO propagate data for cif/bcif as well
+        }
+
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter(entry.queryDefinition.filter);
         if (result.length > 0) encode_mmCIF_categories(encoder, result, { copyAllCategories: entry.copyAllCategories });
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter();

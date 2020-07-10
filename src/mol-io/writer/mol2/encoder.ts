@@ -12,7 +12,6 @@ import { BondType } from '../../../mol-model/structure/model/types';
 
 // specification: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
 // TODO amide (and real sp/sp2/sp3) support for bonds and SYBYL atom types: see https://www.sdsc.edu/CCMS/Packages/cambridge/pluto/atom_types.html
-// TODO support charges
 export class Mol2Encoder extends LigandEncoder {
     private out: StringBuilder;
 
@@ -25,7 +24,7 @@ export class Mol2Encoder extends LigandEncoder {
         const name = this.getName(instance, source);
         StringBuilder.writeSafe(this.builder, `# Name: ${name}\n# Created by ${this.encoder}\n\n`);
 
-        const bondMap = this.componentData.entries.get(name)!;
+        const bondMap = this.componentBondData.entries.get(name)!;
         let bondCount = 0;
 
         const atoms = this.getAtoms(instance, source);
