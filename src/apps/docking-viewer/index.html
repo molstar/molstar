@@ -17,22 +17,9 @@
     </head>
     <body>
         <div id="app"></div>
-        <script type="text/javascript" src="./index.js"></script>
+        <script type="text/javascript" src="./molstar.js"></script>
         <script type="text/javascript">
-            var viewer = new DockingViewer('app', {
-                layoutIsExpanded: false,
-                layoutShowControls: false,
-                layoutShowRemoteState: false,
-                layoutShowSequence: true,
-                layoutShowLog: false,
-                layoutShowLeftPanel: true,
-
-                viewportShowExpand: true,
-                viewportShowControls: false,
-                viewportShowSettings: false,
-                viewportShowSelectionMode: false,
-                viewportShowAnimation: false,
-            });
+            var viewer = new DockingViewer('app', [0x33DD22, 0x1133EE], true);
 
             function getParam(name, regex) {
                 var r = new RegExp(name + '=' + '(' + regex + ')[&]?', 'i');

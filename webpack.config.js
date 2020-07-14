@@ -1,6 +1,6 @@
 const { createApp, createExample, createBrowserTest } = require('./webpack.config.common.js');
 
-const examples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting', 'docking-viewer'];
+const examples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting'];
 const tests = [
     'font-atlas',
     'marching-cubes',
@@ -10,6 +10,7 @@ const tests = [
 
 module.exports = [
     createApp('viewer', 'molstar'),
+    createApp('docking-viewer', 'molstar'),
     ...examples.map(createExample),
     ...tests.map(createBrowserTest)
 ]

@@ -11,12 +11,8 @@ import './index.html';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginSpec } from '../../mol-plugin/spec';
-import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { PluginConfig } from '../../mol-plugin/config';
-import { Asset } from '../../mol-util/assets';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { PluginState } from '../../mol-plugin/state';
-import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { Structure } from '../../mol-model/structure';
@@ -24,9 +20,10 @@ import { PluginStateTransform, PluginStateObject as PSO } from '../../mol-plugin
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Task } from '../../mol-task';
 import { StateObject } from '../../mol-state';
-import { ViewportComponent, StructurePreset } from './viewport';
+import { ViewportComponent, StructurePreset, ShowButtons } from './viewport';
 import { PluginBehaviors } from '../../mol-plugin/behavior';
 import { ColorNames } from '../../mol-util/color/names';
+import { Color } from '../../mol-util/color';
 
 require('mol-plugin-ui/skin/light.scss');
 
@@ -53,13 +50,25 @@ const DefaultViewerOptions = {
     pdbProvider: PluginConfig.Download.DefaultPdbProvider.defaultValue,
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
 };
-type ViewerOptions = typeof DefaultViewerOptions;
 
 class Viewer {
     plugin: PluginContext
 
-    constructor(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
-        const o = { ...DefaultViewerOptions, ...options };
+    constructor(elementOrId: string | HTMLElement, colors = [Color(0x992211), Color(0xDDDDDD)], showButtons = true) {
+        const o = { ...DefaultViewerOptions, ...{
+            layoutIsExpanded: false,
+            layoutShowControls: false,
+            layoutShowRemoteState: false,
+            layoutShowSequence: true,
+            layoutShowLog: false,
+            layoutShowLeftPanel: true,
+
+            viewportShowExpand: true,
+            viewportShowControls: false,
+            viewportShowSettings: false,
+            viewportShowSelectionMode: false,
+            viewportShowAnimation: false,
+        } };
 
         const spec: PluginSpec = {
             actions: [...DefaultPluginSpec.actions],
@@ -104,7 +113,8 @@ class Viewer {
                 [PluginConfig.State.CurrentServer, o.pluginStateServer],
                 [PluginConfig.VolumeStreaming.DefaultServer, o.volumeStreamingServer],
                 [PluginConfig.Download.DefaultPdbProvider, o.pdbProvider],
-                [PluginConfig.Download.DefaultEmdbProvider, o.emdbProvider]
+                [PluginConfig.Download.DefaultEmdbProvider, o.emdbProvider],
+                [ShowButtons, showButtons]
             ]
         };
 
@@ -114,40 +124,27 @@ class Viewer {
         if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
         this.plugin = createPlugin(element, spec);
 
-        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: {
-            renderer: {
-                ...this.plugin.canvas3d!.props.renderer,
-                backgroundColor: ColorNames.white,
-            },
-            camera: {
-                ...this.plugin.canvas3d!.props.camera,
-                helper: { axes: { name: 'off', params: {} } }
+        (this.plugin.customState as any) = {
+            colorPalette: {
+                name: 'colors',
+                params: { list: { colors } }
             }
-        } });
-    }
+        };
 
-    setRemoteSnapshot(id: string) {
-        const url = `${this.plugin.config.get(PluginConfig.State.CurrentServer)}/get/${id}`;
-        return PluginCommands.State.Snapshots.Fetch(this.plugin, { url });
-    }
-
-    loadSnapshotFromUrl(url: string, type: PluginState.SnapshotType) {
-        return PluginCommands.State.Snapshots.OpenUrl(this.plugin, { url, type });
-    }
-
-    loadStructureFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false) {
-        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
-        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
-            source: {
-                name: 'url',
-                params: {
-                    url: Asset.Url(url),
-                    format: format as any,
-                    isBinary,
-                    options: params.source.params.options,
-                }
+        this.plugin.behaviors.canvas3d.initialized.subscribe(v => {
+            if (v) {
+                PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: {
+                    renderer: {
+                        ...this.plugin.canvas3d!.props.renderer,
+                        backgroundColor: ColorNames.white,
+                    },
+                    camera: {
+                        ...this.plugin.canvas3d!.props.camera,
+                        helper: { axes: { name: 'off', params: {} } }
+                    }
+                } });
             }
-        }));
+        });
     }
 
     async loadStructuresFromUrlsAndMerge(sources: { url: string, format: BuiltInTrajectoryFormat, isBinary?: boolean }[]) {
@@ -162,69 +159,19 @@ class Viewer {
 
             structures.push({ ref: structureProperties?.ref || structure.ref });
         }
+
+        // remove current structuresfrom hierarchy as they will be merged
+        // TODO only works with using loadStructuresFromUrlsAndMerge once
+        //      need some more API metho to work with the hierarchy
+        this.plugin.managers.structure.hierarchy.updateCurrent(this.plugin.managers.structure.hierarchy.current.structures, 'remove');
+
         const dependsOn = structures.map(({ ref }) => ref);
         const data = this.plugin.state.data.build().toRoot().apply(MergeStructures, { structures }, { dependsOn });
         const structure = await data.commit();
         const structureProperties = await this.plugin.builders.structure.insertStructureProperties(structure);
-        await this.plugin.builders.structure.representation.applyPreset(structureProperties || structure, StructurePreset);
-    }
-
-    async loadStructureFromData(data: string | number[], format: BuiltInTrajectoryFormat, options?: { dataLabel?: string }) {
-        const _data = await this.plugin.builders.data.rawData({ data, label: options?.dataLabel });
-        const trajectory = await this.plugin.builders.structure.parseTrajectory(_data, format);
-        await this.plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
-    }
-
-    loadPdb(pdb: string) {
-        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
-        const provider = this.plugin.config.get(PluginConfig.Download.DefaultPdbProvider)!;
-        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
-            source: {
-                name: 'pdb' as const,
-                params: {
-                    provider: {
-                        id: pdb,
-                        server: {
-                            name: provider,
-                            params: PdbDownloadProvider[provider].defaultValue as any
-                        }
-                    },
-                    options: params.source.params.options,
-                }
-            }
-        }));
-    }
-
-    loadPdbDev(pdbDev: string) {
-        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
-        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
-            source: {
-                name: 'pdb-dev' as const,
-                params: {
-                    provider: {
-                        id: pdbDev,
-                        encoding: 'bcif',
-                    },
-                    options: params.source.params.options,
-                }
-            }
-        }));
-    }
-
-    loadEmdb(emdb: string) {
-        const provider = this.plugin.config.get(PluginConfig.Download.DefaultEmdbProvider)!;
-        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadDensity, {
-            source: {
-                name: 'pdb-emd-ds' as const,
-                params: {
-                    provider: {
-                        id: emdb,
-                        server: provider,
-                    },
-                    detail: 3,
-                }
-            }
-        }));
+        this.plugin.behaviors.canvas3d.initialized.subscribe(async v => {
+            await this.plugin.builders.structure.representation.applyPreset(structureProperties || structure, StructurePreset);
+        });
     }
 }
 
@@ -261,3 +208,4 @@ const MergeStructures = PluginStateTransform.BuiltIn({
 });
 
 (window as any).DockingViewer = Viewer;
+export { Viewer as DockingViewer };
