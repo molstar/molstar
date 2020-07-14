@@ -18,6 +18,7 @@ import { StructureSelectionQueries as Q } from '../../helpers/structure-selectio
 import { PluginConfig } from '../../../mol-plugin/config';
 import { StructureFocusRepresentation } from '../../../mol-plugin/behavior/dynamic/selection/structure-focus-representation';
 import { createStructureColorThemeParams } from '../../helpers/structure-representation-params';
+import { ChainIdColorThemeProvider } from '../../../mol-theme/color/chain-id';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -53,7 +54,11 @@ export namespace StructureRepresentationPresetProvider {
         if (params.quality && params.quality !== 'auto') typeParams.quality = params.quality;
         if (params.ignoreHydrogens !== void 0) typeParams.ignoreHydrogens = !!params.ignoreHydrogens;
         const color: ColorTheme.BuiltIn | undefined = params.theme?.globalName ? params.theme?.globalName : void 0;
-        const ballAndStickColor: ColorTheme.BuiltInParams<'element-symbol'> = typeof params.theme?.carbonByChainId !== 'undefined' ? { carbonByChainId: !!params.theme?.carbonByChainId } : { };
+        const ballAndStickColor: ColorTheme.BuiltInParams<'element-symbol'> = typeof params.theme?.carbonByChainId !== 'undefined'
+            ? { carbonByChainId: params.theme.carbonByChainId
+                ? { name: 'on', params: ChainIdColorThemeProvider.defaultValues }
+                : { name: 'off', params: {} }
+            } : { };
 
         return { update, builder, color, typeParams, ballAndStickColor };
     }
@@ -153,8 +158,8 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color, colorParams: ballAndStickColor }, { tag: 'branched-ball-and-stick' }),
             branchedSnfg3d: builder.buildRepresentation(update, components.branched, { type: 'carbohydrate', typeParams, color }, { tag: 'branched-snfg-3d' }),
             water: builder.buildRepresentation(update, components.water, { type: waterType, typeParams: { ...typeParams, alpha: 0.6 }, color }, { tag: 'water' }),
-            ion: builder.buildRepresentation(update, components.ion, { type: 'ball-and-stick', typeParams, color, colorParams: { carbonByChainId: false } }, { tag: 'ion' }),
-            lipid: builder.buildRepresentation(update, components.lipid, { type: lipidType, typeParams: { ...typeParams, alpha: 0.6 }, color, colorParams: { carbonByChainId: false } }, { tag: 'lipid' }),
+            ion: builder.buildRepresentation(update, components.ion, { type: 'ball-and-stick', typeParams, color, colorParams: { carbonByChainId: { name: 'off', params: {} } } }, { tag: 'ion' }),
+            lipid: builder.buildRepresentation(update, components.lipid, { type: lipidType, typeParams: { ...typeParams, alpha: 0.6 }, color, colorParams: { carbonByChainId: { name: 'off', params: {} } } }, { tag: 'lipid' }),
             coarse: builder.buildRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'chain-id' }, { tag: 'coarse' })
         };
 
