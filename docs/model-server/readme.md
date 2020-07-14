@@ -24,7 +24,7 @@ npm run build-tsc
 and run the server by 
 
 ```
-node lib/servers/model/server/server
+node lib/commonjs/servers/model/server/server
 ```
 
 ## From NPM
