@@ -16,6 +16,7 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Model } from '../../../mol-model/structure';
 import { getStructureQuality } from '../../../mol-repr/util';
+import { OperatorNameColorThemeProvider } from '../../../mol-theme/color/operator-name';
 
 export interface TrajectoryHierarchyPresetProvider<P = any, S = {}> extends PresetProvider<PluginStateObject.Molecule.Trajectory, P, S> { }
 export function TrajectoryHierarchyPresetProvider<P, S>(preset: TrajectoryHierarchyPresetProvider<P, S>) { return preset; }
@@ -100,7 +101,7 @@ const allModels = TrajectoryHierarchyPresetProvider({
             structures.push(structure);
 
             const quality = structure.obj ? getStructureQuality(structure.obj.data, { elementCountFactor: tr.length }) : 'medium';
-            await builder.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { globalThemeName: 'model-index', quality });
+            await builder.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { theme: { globalName: 'model-index' }, quality });
         }
 
         return { models, structures };
@@ -125,7 +126,7 @@ async function applyCrystalSymmetry(props: { ijkMin: Vec3, ijkMax: Vec3, theme?:
     const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
     const unitcell = await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: false });
-    const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { globalThemeName: props.theme });
+    const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { theme: { globalName: props.theme } });
 
     return {
         model,
@@ -167,10 +168,52 @@ const supercell = TrajectoryHierarchyPresetProvider({
     }
 });
 
+const CrystalContactsParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
+    model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin))),
+    ...CommonParams(a, plugin)
+});
+
+const crystalContacts = TrajectoryHierarchyPresetProvider({
+    id: 'preset-trajectory-crystal-contacts',
+    display: {
+        name: 'Crystal Contacts', group: 'Preset',
+        description: 'Showsasymetric unit and chains from neighbours within 5 \u212B, i.e., symmetry mates.'
+    },
+    isApplicable: o => {
+        return Model.hasCrystalSymmetry(o.data[0]);
+    },
+    params: CrystalContactsParams,
+    async apply(trajectory, params, plugin) {
+        const builder = plugin.builders.structure;
+
+        const model = await builder.createModel(trajectory, params.model);
+        const modelProperties = await builder.insertModelProperties(model, params.modelProperties);
+
+        const structure = await builder.createStructure(modelProperties || model, {
+            name: 'symmetry-mates',
+            params: { radius: 5 }
+        });
+        const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
+
+        const unitcell = await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: true });
+        const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { theme: { globalName: 'operator-name', carbonColor: 'operator-name', focus: { name: 'element-symbol', params: { carbonColor: { name: 'operator-name', params: OperatorNameColorThemeProvider.defaultValues } } } } });
+
+        return {
+            model,
+            modelProperties,
+            unitcell,
+            structure,
+            structureProperties,
+            representation
+        };
+    }
+});
+
 export const PresetTrajectoryHierarchy = {
     'default': defaultPreset,
     'all-models': allModels,
     unitcell,
     supercell,
+    crystalContacts,
 };
 export type PresetTrajectoryHierarchy = typeof PresetTrajectoryHierarchy;

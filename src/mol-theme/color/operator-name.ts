@@ -12,9 +12,8 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { ScaleLegend, TableLegend } from '../../mol-util/legend';
-import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
 
-const DefaultList = 'dark-2';
+const DefaultList = 'many-distinct';
 const DefaultColor = Color(0xCCCCCC);
 const Description = `Assigns a color based on the operator name of a transformed chain.`;
 
@@ -24,15 +23,6 @@ export const OperatorNameColorThemeParams = {
 export type OperatorNameColorThemeParams = typeof OperatorNameColorThemeParams
 export function getOperatorNameColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(OperatorNameColorThemeParams);
-    if (ctx.structure) {
-        if (getOperatorNameSerialMap(ctx.structure.root).size > ColorLists[DefaultList].list.length) {
-            params.palette.defaultValue.name = 'colors';
-            params.palette.defaultValue.params = {
-                ...params.palette.defaultValue.params,
-                list: { kind: 'interpolate', colors: getColorListFromName(DefaultList).list }
-            };
-        }
-    }
     return params;
 }
 
