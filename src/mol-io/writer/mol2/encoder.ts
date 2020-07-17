@@ -44,7 +44,7 @@ export class Mol2Encoder extends LigandEncoder {
                 const label2 = this.getLabel(lai2);
                 if (i1 < i2 && atoms.findIndex(e => e.label_atom_id === lai2) > -1 && !this.skipHydrogen(label2)) {
                     const { order, flags } = v;
-                    const ar = flags === BondType.Flag.Aromatic;
+                    const ar = BondType.is(BondType.Flag.Aromatic, flags);
                     StringBuilder.writeSafe(b, `${++bondCount} ${i1 + 1} ${i2 + 1} ${ar ? 'ar' : order}`);
                     StringBuilder.newline(b);
                 }
@@ -62,20 +62,19 @@ export class Mol2Encoder extends LigandEncoder {
 
     private toArray(map: Map<string, { order: number, flags: number }>): BondData[] {
         const array: BondData[] = [];
-        map.forEach((v, k) => array.push({ label_atom_id: k, order: v.order, aromatic: v.flags === BondType.Flag.Aromatic }));
+        map.forEach((v, k) => array.push({ label_atom_id: k, order: v.order, aromatic: BondType.is(BondType.Flag.Aromatic, v.flags) }));
         return array;
     }
 
     // see https://www.sdsc.edu/CCMS/Packages/cambridge/pluto/atom_types.html
     private mapToSybyl(label_atom_id: string, type_symbol: string, bondMap: ComponentBond.Entry) {
         const partialBondMap = bondMap.map.get(label_atom_id)!;
-        const partialBondArray = this.toArray(partialBondMap);
+        const bond = this.toArray(partialBondMap);
 
-        const bond = partialBondArray.filter(e => !e.aromatic);
         const num_bond = bond.length;
         const nonmet = bond.filter(e => NON_METAL_ATOMS.has(e.label_atom_id));
         const num_nonmet = nonmet.length;
-        const arom = partialBondArray.filter(e => e.aromatic);
+        const arom = bond.filter(e => e.aromatic);
         const num_arom = arom.length;
 
         // TODO if altLoc: 'Du' // 1.1
@@ -84,6 +83,7 @@ export class Mol2Encoder extends LigandEncoder {
         if (type_symbol === 'P') return 'P.3'; // 1.4
         if (type_symbol === 'Co' || type_symbol === 'Ru') return type_symbol + '.oh'; // 1.5
         if (type_symbol === 'C') { // 1.6
+            console.log(num_bond + ' ' + num_arom);
             if (num_bond >= 4 && bond.every(b => b.order === 1)) return 'C.3'; // 1.6.1
             if (num_bond === 3 && this.isCat(label_atom_id, bond, bondMap)) return 'C.cat'; // 1.6.2
             if (num_bond >= 2 && num_arom === 2) return 'C.ar'; // 1.6.3
