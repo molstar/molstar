@@ -42,7 +42,7 @@ export class Mol2Encoder extends LigandEncoder {
             bondMap.map.get(lai)!.forEach((v, lai2) => {
                 const i2 = atoms.findIndex(e => e.label_atom_id === lai2);
                 const label2 = this.getLabel(lai2);
-                if (i1 < i2 && atoms.findIndex(e => e.label_atom_id === lai2) > -1 && this.skipHydrogen(label2)) {
+                if (i1 < i2 && atoms.findIndex(e => e.label_atom_id === lai2) > -1 && !this.skipHydrogen(label2)) {
                     const { order, flags } = v;
                     const ar = flags === BondType.Flag.Aromatic;
                     StringBuilder.writeSafe(b, `${++bondCount} ${i1 + 1} ${i2 + 1} ${ar ? 'ar' : order}`);
