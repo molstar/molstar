@@ -93,7 +93,7 @@ const residue = {
     pdbx_PDB_ins_code: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.element])),
 
     // Properties
-    isNonStandard: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : microheterogeneityCompIds(l).some(c => l.unit.model.properties.chemicalComponentMap.get(c)!.mon_nstd_flag[0] !== 'y')),
+    isNonStandard: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : microheterogeneityCompIds(l).some(c => l.unit.model.properties.chemicalComponentMap.get(c)!.mon_nstd_flag[0] === 'n')),
     hasMicroheterogeneity: p(hasMicroheterogeneity),
     microheterogeneityCompIds: p(microheterogeneityCompIds),
     secondary_structure_type: p(l => {
