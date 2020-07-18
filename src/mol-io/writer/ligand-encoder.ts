@@ -136,6 +136,7 @@ export abstract class LigandEncoder implements Encoder<string> {
     }
 
     protected getLabel(s: string) {
+        // actually, getTypeSymbol would be way more useful
         return s.replace(/[^A-Z]+/g, '');
     }
 
