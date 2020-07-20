@@ -39,9 +39,6 @@ export class Mol2Encoder extends LigandEncoder {
             const atom = atoms[i1];
             const lai = atom.label_atom_id;
 
-            console.log(lai);
-            console.log(bondMap.map);
-            console.log(bondMap.map.get(lai));
             bondMap.map.get(lai)!.forEach((v, lai2) => {
                 const i2 = atoms.findIndex(e => e.label_atom_id === lai2);
                 const label2 = this.getLabel(lai2);
@@ -70,6 +67,7 @@ export class Mol2Encoder extends LigandEncoder {
     }
 
     // see https://www.sdsc.edu/CCMS/Packages/cambridge/pluto/atom_types.html
+    // cannot account for covalently bound amino acids etc
     private mapToSybyl(label_atom_id: string, type_symbol: string, bondMap: ComponentBond.Entry) {
         const partialBondMap = bondMap.map.get(label_atom_id)!;
         const bond = this.toArray(partialBondMap);
@@ -79,7 +77,6 @@ export class Mol2Encoder extends LigandEncoder {
         const num_nonmet = nonmet.length;
         const arom = bond.filter(e => e.aromatic);
         const num_arom = arom.length;
-        console.log(`${label_atom_id} ${num_bond} ${num_nonmet} ${num_arom}`);
 
         // TODO if altLoc: 'Du' // 1.1
         // TODO if end of polymeric bond: 'Du' // 1.2
@@ -88,7 +85,7 @@ export class Mol2Encoder extends LigandEncoder {
         if (type_symbol === 'Co' || type_symbol === 'Ru') return type_symbol + '.oh'; // 1.5
         if (type_symbol === 'C') { // 1.6
             if (num_bond >= 4 && bond.every(b => b.order === 1)) return 'C.3'; // 1.6.1, 3rga/ligand?encoding=mol2&auth_seq_id=307 (MOH)
-            if (num_bond === 3 && this.isCat(label_atom_id, bond, bondMap)) return 'C.cat'; // 1.6.2, 1acj/ligand?encoding=mol2&auth_seq_id=19 (ARG, incomplete), 1acj/ligand?encoding=mol2&auth_seq_id=44 (ARG), 5vj/ligand?encoding=mol2&auth_seq_id=101 (GAI)
+            if (num_bond === 3 && this.isCat(label_atom_id, bond, bondMap)) return 'C.cat'; // 1.6.2, 1acj/ligand?encoding=mol2&auth_seq_id=44 (ARG), 5vjb/ligand?encoding=mol2&auth_seq_id=101 (GAI)
             if (num_bond >= 2 && num_arom >= 2) return 'C.ar'; // 1.6.3, 1acj/ligand?encoding=mol2&auth_seq_id=30 (PHE), 1acj/ligand?encoding=mol2&auth_seq_id=63 (TYR), 1acj/ligand?encoding=mol2&auth_seq_id=84 (TRP), 1acj/ligand?encoding=mol2&auth_seq_id=999 (THA)
             if ((num_bond === 1 || num_bond === 2) && bond.filter(b => b.order === 3).length === 1) return 'C.1'; // 1.6.4, 3i04/ligand?encoding=mol2&auth_asym_id=C&auth_seq_id=900 (CYN)
             return 'C.2'; // 1.6.5
@@ -99,28 +96,28 @@ export class Mol2Encoder extends LigandEncoder {
                 if (this.isOP(nonmet[0], bondMap)) return 'O.co2'; // 1.7.1.2, 4mpo/ligand?encoding=mol2&auth_seq_id=203 (PO4)
             }
             if (num_nonmet >= 2 && bond.every(b => b.order === 1)) return 'O.3'; // 1.7.2, 1acj/ligand?encoding=mol2&auth_seq_id=601 (HOH), 3rga/ligand?encoding=mol2&auth_seq_id=307 (MOH)
-            return 'O.2'; // 1.7.3
+            return 'O.2'; // 1.7.3, 1acj/ligand?encoding=mol2&auth_seq_id=4 (SER)
         }
         if (type_symbol === 'N') { // 1.8
-            if (num_nonmet === 4 && bond.every(b => b.order === 1)) return 'N.4'; // 1.8.1
+            if (num_nonmet === 4 && bond.every(b => b.order === 1)) return 'N.4'; // 1.8.1, 4ikf/ligand?encoding=mol2&auth_seq_id=403 (NH4)
             if (num_bond >= 2 && num_arom === 2) return 'N.ar'; // 1.8.2, 1acj/ligand?encoding=mol2&auth_seq_id=84 (TRP), 1acj/ligand?encoding=mol2&auth_seq_id=999 (THA)
             if (num_nonmet === 1 && nonmet.some(b => b.order === 3)) return 'N.1'; // 1.8.3, 3i04/ligand?encoding=mol2&auth_asym_id=C&auth_seq_id=900 (CYN)
             if (num_nonmet === 2 && (nonmet[0].order + nonmet[1].order === 4)) return 'N.1'; // 1.8.4, 3sbr/ligand?encoding=mol2&auth_seq_id=640&auth_asym_id=D (N2O)
-            if (num_nonmet === 3 && this.hasCOCS(nonmet, bondMap)) return 'N.am'; // 1.8.5
+            if (num_nonmet === 3 && this.hasCOCS(nonmet, bondMap)) return 'N.am'; // 1.8.5, 3zfz/ligand?encoding=mol2&auth_seq_id=1669 (1W8)
             if (num_nonmet === 3) { // 1.8.6
-                if (nonmet.filter(b => b.order > 1).length === 1) return 'N.pl3'; // 1.8.6.1
+                if (nonmet.filter(b => b.order > 1).length === 1) return 'N.pl3'; // 1.8.6.1, 4hon/ligand?encoding=mol2&auth_seq_id=407 (NO3)
                 if (nonmet.every(b => b.order === 1)) {
-                    if (this.isNpl3(nonmet, bondMap)) return 'N.pl3'; // 1.8.6.1.1 & 1.8.6.1.2
+                    if (this.isNpl3(nonmet, bondMap)) return 'N.pl3'; // 1.8.6.1.1 & 1.8.6.1.2, 1acj/ligand?encoding=mol2&auth_seq_id=44 (ARG), 5vjb/ligand?encoding=mol2&auth_seq_id=101 (GAI)
                 }
                 return 'N.3';
             }
-            return 'N.2'; // 1.8.7
+            return 'N.2'; // 1.8.7, 1acj/ligand?encoding=mol2&auth_seq_id=4 (SER)
         }
         if (type_symbol === 'S') { // 1.9
-            if (num_nonmet === 3 && this.countOfOxygenWithSingleNonmet(nonmet, bondMap) === 1) return 'S.o'; // 1.9.1
-            if (num_nonmet === 4 && this.countOfOxygenWithSingleNonmet(nonmet, bondMap) === 2) return 'S.o2'; // 1.9.2
-            if (num_nonmet >= 2 && bond.every(b => b.order === 1)) return 'S.3'; // 1.9.3
-            return 'S.2'; // 1.9.4
+            if (num_nonmet === 3 && this.countOfOxygenWithSingleNonmet(nonmet, bondMap) === 1) return 'S.o'; // 1.9.1, 4i03/ligand?encoding=mol2&auth_seq_id=312 (DMS)
+            if (num_nonmet === 4 && this.countOfOxygenWithSingleNonmet(nonmet, bondMap) === 2) return 'S.o2'; // 1.9.2, 1udt/ligand?encoding=mol2&auth_seq_id=1000 (VIA)
+            if (num_nonmet >= 2 && bond.every(b => b.order === 1)) return 'S.3'; // 1.9.3, 3zfz/ligand?encoding=mol2&auth_seq_id=1669 (1W8)
+            return 'S.2'; // 1.9.4, 4gpc/ligand?encoding=mol2&auth_seq_id=902 (SO4)
         }
         if (type_symbol === 'Ti' || type_symbol === 'Cr') { // 1.10
             return type_symbol + (num_bond <= 4 ? '.th' : '.oh'); // 1.10.1 & 1.10.2
@@ -194,6 +191,7 @@ export class Mol2Encoder extends LigandEncoder {
             .length;
     }
 
+    // If num_nonmet .eq. 3 .AND. one bond is to C=O or C=S then atom_type is N.am
     private hasCOCS(nonmet: BondData[], bondMap: ComponentBond.Entry): boolean {
         return nonmet.map(b => b.label_atom_id)
             .filter(label_atom_id => this.getLabel(label_atom_id).startsWith('C'))
