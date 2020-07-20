@@ -229,13 +229,14 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
         encoder.writeCategory(_model_server_params, entry);
 
         if (entry.queryDefinition.niceName === 'Ligand') {
-            if (encoder instanceof MolEncoder || encoder instanceof Mol2Encoder) {
+            if (encoder instanceof MolEncoder) {
                 encoder.setComponentAtomData(ComponentAtom.Provider.get(structure.models[0])!);
+            }
+            if (encoder instanceof MolEncoder || encoder instanceof Mol2Encoder) {
                 encoder.setComponentBondData(ComponentBond.Provider.get(structure.models[0])!);
             }
-        } else {
-            // TODO propagate data for cif/bcif as well
         }
+        // TODO propagate data for cif/bcif as well?
 
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter(entry.queryDefinition.filter);
         if (result.length > 0) encode_mmCIF_categories(encoder, result, { copyAllCategories: entry.copyAllCategories });
