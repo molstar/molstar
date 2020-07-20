@@ -82,7 +82,8 @@ const DefaultModelServerConfig = {
             //     }
             // },
             // wwPDB: {
-            //     chemCompBondTablePath: ''
+            //     chemCompBondTablePath: '',
+            //     chemCompAtomTablePath: ''
             // }
         }
     },
