@@ -5,7 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { isTypedArray } from '../../mol-data/db/column-helpers';
 import * as CCP4 from '../../mol-io/reader/ccp4/parser';
 import { CIF } from '../../mol-io/reader/cif';
 import * as DSN6 from '../../mol-io/reader/dsn6/parser';
@@ -135,18 +134,23 @@ const RawData = PluginStateTransform.BuiltIn({
     from: [SO.Root],
     to: [SO.Data.String, SO.Data.Binary],
     params: {
-        data: PD.Value<string | number[]>('', { isHidden: true }),
+        data: PD.Value<string | number[] | ArrayBuffer | Uint8Array>('', { isHidden: true }),
         label: PD.Optional(PD.Text(''))
     }
 })({
     apply({ params: p }) {
         return Task.create('Raw Data', async () => {
-            if (typeof p.data !== 'string' && isTypedArray(p.data)) {
-                throw new Error('Supplied binary data must be a plain array.');
+            if (typeof p.data === 'string') {
+                return new SO.Data.String(p.data as string, { label: p.label ? p.label : 'String' });
+            } else if (Array.isArray(p.data)) {
+                return new SO.Data.Binary(new Uint8Array(p.data), { label: p.label ? p.label : 'Binary' });
+            } else if (p.data instanceof ArrayBuffer) {
+                return new SO.Data.Binary(new Uint8Array(p.data), { label: p.label ? p.label : 'Binary' });
+            } else if (p.data instanceof Uint8Array) {
+                return new SO.Data.Binary(p.data, { label: p.label ? p.label : 'Binary' });
+            } else {
+                throw new Error('Supplied binary data must be a plain array, ArrayBuffer, or Uint8Array.');
             }
-            return typeof p.data === 'string'
-                ? new SO.Data.String(p.data as string, { label: p.label ? p.label : 'String' })
-                : new SO.Data.Binary(new Uint8Array(p.data), { label: p.label ? p.label : 'Binary' });
         });
     },
     update({ oldParams, newParams, b }) {
@@ -156,6 +160,25 @@ const RawData = PluginStateTransform.BuiltIn({
             return StateTransformer.UpdateResult.Updated;
         }
         return StateTransformer.UpdateResult.Unchanged;
+    },
+    customSerialization: {
+        toJSON(p) {
+            if (typeof p.data === 'string' || Array.isArray(p.data)) {
+                return p;
+            } else if (p.data instanceof ArrayBuffer) {
+                const v = new Uint8Array(p.data);
+                const data = new Array(v.length);
+                for (let i = 0, _i = v.length; i < _i; i++) data[i] = v[i];
+                return { data, label: p.label };
+            } else if (p.data instanceof Uint8Array) {
+                const data = new Array(p.data.length);
+                for (let i = 0, _i = p.data.length; i < _i; i++) data[i] = p.data[i];
+                return { data, label: p.label };
+            }
+        },
+        fromJSON(data: any) {
+            return data;
+        }
     }
 });
 
