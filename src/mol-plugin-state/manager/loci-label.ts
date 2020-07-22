@@ -22,6 +22,12 @@ export type LociLabelProvider = {
 export class LociLabelManager {
     providers: LociLabelProvider[] = [];
 
+    clearProviders() {
+        this.providers = [];
+        this.isDirty = true;
+        this.showLabels();
+    }
+
     addProvider(provider: LociLabelProvider) {
         this.providers.push(provider);
         this.providers.sort((a, b) => (b.priority || 0) - (a.priority || 0));

@@ -10,6 +10,7 @@ import { StateTransformParameters } from '../mol-plugin-ui/state/common';
 import { PluginLayoutStateProps } from './layout';
 import { PluginStateAnimation } from '../mol-plugin-state/animation/model';
 import { PluginConfigItem } from './config';
+import { PartialCanvas3DProps } from '../mol-canvas3d/canvas3d';
 
 export { PluginSpec };
 
@@ -27,7 +28,8 @@ interface PluginSpec {
         structureTools?: React.ComponentClass,
         viewport?: {
             view?: React.ComponentClass,
-            controls?: React.ComponentClass
+            controls?: React.ComponentClass,
+            canvas3d?: PartialCanvas3DProps
         }
     },
     config?: [PluginConfigItem, unknown][]

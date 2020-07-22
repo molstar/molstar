@@ -94,6 +94,16 @@ export const DefaultPluginSpec: PluginSpec = {
 
 export function createPlugin(target: HTMLElement, spec?: PluginSpec): PluginContext {
     const ctx = new PluginContext(spec || DefaultPluginSpec);
+    ctx.init();
     ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
+    return ctx;
+}
+
+/** Returns the instance of the plugin after all behaviors have been initialized */
+export async function createPluginAsync(target: HTMLElement, spec?: PluginSpec) {
+    const ctx = new PluginContext(spec || DefaultPluginSpec);
+    const init = ctx.init();
+    ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
+    await init;
     return ctx;
 }
