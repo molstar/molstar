@@ -31,24 +31,26 @@ export class MolEncoder extends LigandEncoder {
 
         // traverse once to determine all actually present atoms
         const atoms = this.getAtoms(instance, source);
-        for (let i1 = 0, il = atoms.length; i1 < il; i1++) {
-            const atom = atoms[i1];
-            const { charge, stereo_config } = atomMap.map.get(atom.label_atom_id)!;
-            StringBuilder.writePadLeft(ctab, atom.Cartn_x.toFixed(4), 10);
-            StringBuilder.writePadLeft(ctab, atom.Cartn_y.toFixed(4), 10);
-            StringBuilder.writePadLeft(ctab, atom.Cartn_z.toFixed(4), 10);
+        atoms.forEach((atom1, label_atom_id1) => {
+            const { index: i1 } = atom1;
+            const { charge, stereo_config } = atomMap.map.get(label_atom_id1)!;
+            StringBuilder.writePadLeft(ctab, atom1.Cartn_x.toFixed(4), 10);
+            StringBuilder.writePadLeft(ctab, atom1.Cartn_y.toFixed(4), 10);
+            StringBuilder.writePadLeft(ctab, atom1.Cartn_z.toFixed(4), 10);
             StringBuilder.whitespace1(ctab);
-            StringBuilder.writePadRight(ctab, atom.type_symbol, 2);
+            StringBuilder.writePadRight(ctab, atom1.type_symbol, 2);
             StringBuilder.writeSafe(ctab, '  0');
             StringBuilder.writeIntegerPadLeft(ctab, this.mapCharge(charge), 3);
             StringBuilder.writeSafe(ctab, '  0  0  0  0  0  0  0  0  0  0\n');
             if (stereo_config !== 'N') chiral = true;
 
-            bondMap.map.get(atom.label_atom_id)!.forEach((v, k) => {
-                const i2 = atoms.findIndex(e => e.label_atom_id === k);
-                const label2 = this.getLabel(k);
-                if (i1 < i2 && atoms.findIndex(e => e.label_atom_id === k) > -1 && !this.skipHydrogen(label2)) {
-                    const { order } = v;
+            bondMap.map.get(label_atom_id1)!.forEach((bond, label_atom_id2) => {
+                const atom2 = atoms.get(label_atom_id2);
+                if (!atom2) return;
+
+                const { index: i2, type_symbol: type_symbol2 } = atom2;
+                if (i1 < i2 && !this.skipHydrogen(type_symbol2)) {
+                    const { order } = bond;
                     StringBuilder.writeIntegerPadLeft(bonds, i1 + 1, 3);
                     StringBuilder.writeIntegerPadLeft(bonds, i2 + 1, 3);
                     StringBuilder.writeIntegerPadLeft(bonds, order, 3);
@@ -56,10 +58,10 @@ export class MolEncoder extends LigandEncoder {
                     bondCount++;
                 }
             });
-        }
+        });
 
         // write counts line
-        StringBuilder.writeIntegerPadLeft(this.builder, atoms.length, 3);
+        StringBuilder.writeIntegerPadLeft(this.builder, atoms.size, 3);
         StringBuilder.writeIntegerPadLeft(this.builder, bondCount, 3);
         StringBuilder.writeSafe(this.builder, `  0  0  ${chiral ? 1 : 0}  0  0  0  0  0  0\n`);
 

@@ -11,11 +11,11 @@ import { ComponentAtom } from '../../mol-model-formats/structure/property/bonds/
 import { ComponentBond } from '../../mol-model-formats/structure/property/bonds/comp';
 
 interface Atom {
-    label_atom_id: string,
     Cartn_x: number,
     Cartn_y: number,
     Cartn_z: number,
-    type_symbol: string
+    type_symbol: string,
+    index: number
 }
 
 function Atom(partial: any): Atom {
@@ -114,13 +114,14 @@ export abstract class LigandEncoder implements Encoder<string> {
                     index++;
                     continue;
                 }
-                const a: { [k: string]: (string | number) } = { 'label_atom_id': lai };
+                const a: { [k: string]: (string | number) } = {};
 
                 for (let _f = 0, _fl = fields.length; _f < _fl; _f++) {
                     const f: Field<any, any> = fields[_f]!;
                     a[f.name] = f.value(key, data, index);
                 }
                 a[type_symbol.name] = ts;
+                a['index'] = index;
 
                 atoms.set(lai, Atom(a));
                 index++;
