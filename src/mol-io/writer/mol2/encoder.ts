@@ -86,7 +86,10 @@ export class Mol2Encoder extends LigandEncoder {
     }
 
     private isNonMetalBond(label_atom_id: string): boolean {
-        return NON_METAL_ATOMS.some(a => label_atom_id.startsWith(a));
+        for (const a of NON_METAL_ATOMS) {
+            if (label_atom_id.startsWith(a)) return true;
+        }
+        return false;
     }
 
     private extractNonmets(map: BondMap): BondMap {
