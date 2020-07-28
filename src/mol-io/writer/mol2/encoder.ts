@@ -9,7 +9,7 @@ import { LigandEncoder } from '../ligand-encoder';
 import { StringBuilder } from '../../../mol-util';
 import { getCategoryInstanceData } from '../cif/encoder/util';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { ComponentBond } from '../../../mol-model-formats/structure/property/bonds/comp';
+import { ComponentBond } from '../../../mol-model-formats/structure/property/bonds/chem_comp';
 
 // type MOL_TYPE = 'SMALL' | 'BIOPOLYMER' | 'PROTEIN' | 'NUCLEIC_ACID' | 'SACCHARIDE';
 // type CHARGE_TYPE = 'NO_CHARGES' | 'DEL_RE' | 'GASTEIGER' | 'GAST_HUCK' | 'HUCKEL' | 'PULLMAN' | 'GAUSS80_CHARGES' | 'AMPAC_CHARGES' | 'MULLIKEN_CHARGES' | 'DICT_ CHARGES' | 'MMFF94_CHARGES' | 'USER_CHARGES';

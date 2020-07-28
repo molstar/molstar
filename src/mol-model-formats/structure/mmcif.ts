@@ -15,7 +15,7 @@ import { ModelSymmetry } from './property/symmetry';
 import { ModelSecondaryStructure } from './property/secondary-structure';
 import { Table } from '../../mol-data/db';
 import { AtomSiteAnisotrop } from './property/anisotropic';
-import { ComponentBond } from './property/bonds/comp';
+import { ComponentBond } from './property/bonds/chem_comp';
 import { StructConn } from './property/bonds/struct_conn';
 
 function modelSymmetryFromMmcif(model: Model) {

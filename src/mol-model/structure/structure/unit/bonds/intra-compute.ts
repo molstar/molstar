@@ -14,7 +14,7 @@ import { SortedArray } from '../../../../../mol-data/int';
 import { getIntraBondOrderFromTable } from '../../../model/properties/atomic/bonds';
 import StructureElement from '../../element';
 import { IndexPairBonds } from '../../../../../mol-model-formats/structure/property/bonds/index-pair';
-import { ComponentBond } from '../../../../../mol-model-formats/structure/property/bonds/comp';
+import { ComponentBond } from '../../../../../mol-model-formats/structure/property/bonds/chem_comp';
 import { StructConn } from '../../../../../mol-model-formats/structure/property/bonds/struct_conn';
 
 function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.UnitIndex[], _order: number[], _flags: number[], atomCount: number): IntraUnitBonds {

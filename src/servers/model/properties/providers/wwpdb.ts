@@ -10,8 +10,8 @@ import { AttachModelProperty } from '../../property-provider';
 import { CIF } from '../../../../mol-io/reader/cif';
 import { getParam } from '../../../common/util';
 import { mmCIF_Database, mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
-import { ComponentBond } from '../../../../mol-model-formats/structure/property/bonds/comp';
-import { ComponentAtom } from '../../../../mol-model-formats/structure/property/bonds/atom';
+import { ComponentBond } from '../../../../mol-model-formats/structure/property/bonds/chem_comp';
+import { ComponentAtom } from '../../../../mol-model-formats/structure/property/atoms/chem_comp';
 import { CCD_Database, CCD_Schema } from '../../../../mol-io/reader/cif/schema/ccd';
 
 require('util.promisify').shim();
