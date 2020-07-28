@@ -182,8 +182,7 @@ export class PluginContext {
 
             (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas);
             this.canvas3dInit.next(true);
-            const renderer = this.canvas3d!.props.renderer;
-            PluginCommands.Canvas3D.SetSettings(this, { settings: { renderer: { ...renderer, backgroundColor: Color(0xFCFBF9) } } });
+            this.canvas3d?.setProps(this.spec.components?.viewport?.canvas3d || { renderer: { backgroundColor: Color(0xFCFBF9) } });
             this.canvas3d!.animate();
             (this.helpers.viewportScreenshot as ViewportScreenshotHelper) = new ViewportScreenshotHelper(this);
             return true;
@@ -346,29 +345,31 @@ export class PluginContext {
         }
     }
 
-    constructor(public spec: PluginSpec) {
-        // the reason for this is that sometimes, transform params get modified inline (i.e. palette.valueLabel)
-        // and freezing the params object causes "read-only exception"
-        // TODO: is this the best place to do it?
-        setAutoFreeze(false);
-
+    async init() {
         this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e));
 
         this.initBehaviorEvents();
         this.initBuiltInBehavior();
 
-        this.initBehaviors();
+        (this.managers.interactivity as InteractivityManager) = new InteractivityManager(this);
+        (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
+        (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
+
         this.initDataActions();
         this.initAnimations();
         this.initCustomParamEditors();
 
-        (this.managers.interactivity as InteractivityManager) = new InteractivityManager(this);
-        (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
-
-        (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
+        await this.initBehaviors();
 
         this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
         if (!isProductionMode) this.log.message(`Development mode enabled`);
         if (isDebugMode) this.log.message(`Debug mode enabled`);
+    }
+
+    constructor(public spec: PluginSpec) {
+        // the reason for this is that sometimes, transform params get modified inline (i.e. palette.valueLabel)
+        // and freezing the params object causes "read-only exception"
+        // TODO: is this the best place to do it?
+        setAutoFreeze(false);
     }
 }

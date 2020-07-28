@@ -17,10 +17,11 @@ import { StructureSelectionQueries, StructureSelectionQuery } from '../../mol-pl
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { InteractionsRepresentationProvider } from '../../mol-model-props/computed/representations/interactions';
 import { InteractionTypeColorThemeProvider } from '../../mol-model-props/computed/themes/interaction-type';
-import { compile } from '../../mol-script/runtime/query/compiler';
-import { StructureSelection, QueryContext, Structure } from '../../mol-model/structure';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
+import { StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
+import { Color } from '../../mol-util/color';
+import { PluginConfig } from '../../mol-plugin/config';
 
 function shinyStyle(plugin: PluginContext) {
     return PluginCommands.Canvas3D.SetSettings(plugin, { settings: {
@@ -76,6 +77,8 @@ const PresetParams = {
     ...StructureRepresentationPresetProvider.CommonParams,
 };
 
+
+
 export const StructurePreset = StructureRepresentationPresetProvider({
     id: 'preset-structure',
     display: { name: 'Structure' },
@@ -89,10 +92,10 @@ export const StructurePreset = StructureRepresentationPresetProvider({
             polymer: await presetStaticComponent(plugin, structureCell, 'polymer'),
         };
 
-        const { update, builder, typeParams, color } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
+        const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
         const representations = {
-            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, sizeFactor: 0.26 }, color }, { tag: 'ligand' }),
-            polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams: { ...typeParams }, color }, { tag: 'polymer' }),
+            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, sizeFactor: 0.35 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
+            polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams: { ...typeParams }, color: 'chain-id', colorParams: { palette: (plugin.customState as any).colorPalette } }, { tag: 'polymer' }),
         };
 
         await update.commit({ revertOnError: true });
@@ -112,16 +115,46 @@ export const IllustrativePreset = StructureRepresentationPresetProvider({
         if (!structureCell) return {};
 
         const components = {
-            all: await presetStaticComponent(plugin, structureCell, 'all')
+            ligand: await presetStaticComponent(plugin, structureCell, 'ligand'),
+            polymer: await presetStaticComponent(plugin, structureCell, 'polymer'),
         };
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
         const representations = {
-            all: builder.buildRepresentation(update, components.all, { type: 'spacefill', typeParams: { ...typeParams }, color: 'illustrative' }, { tag: 'all' }),
+            ligand: builder.buildRepresentation(update, components.ligand, { type: 'spacefill', typeParams: { ...typeParams }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
+            polymer: builder.buildRepresentation(update, components.polymer, { type: 'spacefill', typeParams: { ...typeParams }, color: 'illustrative', colorParams: { palette: (plugin.customState as any).colorPalette } }, { tag: 'polymer' }),
         };
 
         await update.commit({ revertOnError: true });
         await occlusionStyle(plugin);
+        plugin.managers.interactivity.setProps({ granularity: 'residue' });
+
+        return { components, representations };
+    }
+});
+
+const SurfacePreset = StructureRepresentationPresetProvider({
+    id: 'preset-surface',
+    display: { name: 'Surface' },
+    params: () => PresetParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        const structure = structureCell?.obj?.data;
+        if (!structureCell || !structure) return {};
+
+        const components = {
+            ligand: await presetStaticComponent(plugin, structureCell, 'ligand'),
+            polymer: await presetStaticComponent(plugin, structureCell, 'polymer'),
+        };
+
+        const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
+        const representations = {
+            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, sizeFactor: 0.26 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
+            polymer: builder.buildRepresentation(update, components.polymer, { type: 'molecular-surface', typeParams: { ...typeParams, quality: 'custom', resolution: 0.5, doubleSided: true }, color: 'partial-charge' }, { tag: 'polymer' }),
+        };
+
+        await update.commit({ revertOnError: true });
+        await shinyStyle(plugin);
         plugin.managers.interactivity.setProps({ granularity: 'residue' });
 
         return { components, representations };
@@ -144,18 +177,13 @@ const PocketPreset = StructureRepresentationPresetProvider({
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
         const representations = {
-            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, sizeFactor: 0.26 }, color: 'partial-charge' }, { tag: 'ligand' }),
+            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, sizeFactor: 0.26 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
             surroundings: builder.buildRepresentation(update, components.surroundings, { type: 'molecular-surface', typeParams: { ...typeParams, includeParent: true, quality: 'custom', resolution: 0.2, doubleSided: true }, color: 'partial-charge' }, { tag: 'surroundings' }),
         };
 
         await update.commit({ revertOnError: true });
         await shinyStyle(plugin);
         plugin.managers.interactivity.setProps({ granularity: 'element' });
-
-        const compiled = compile<StructureSelection>(StructureSelectionQueries.ligand.expression);
-        const result = compiled(new QueryContext(structure));
-        const selection = StructureSelection.unionStructure(result);
-        plugin.managers.camera.focusLoci(Structure.toStructureElementLoci(selection));
 
         return { components, representations };
     }
@@ -172,56 +200,46 @@ const InteractionsPreset = StructureRepresentationPresetProvider({
 
         const components = {
             ligand: await presetStaticComponent(plugin, structureCell, 'ligand'),
-            selection: await plugin.builders.structure.tryCreateComponentFromSelection(structureCell, ligandPlusSurroundings, `selection`)
+            surroundings: await plugin.builders.structure.tryCreateComponentFromSelection(structureCell, ligandSurroundings, `surroundings`),
+            interactions: await plugin.builders.structure.tryCreateComponentFromSelection(structureCell, ligandPlusSurroundings, `interactions`)
         };
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
         const representations = {
-            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, sizeFactor: 0.26 }, color: 'partial-charge' }, { tag: 'ligand' }),
-            ballAndStick: builder.buildRepresentation(update, components.selection, { type: 'ball-and-stick', typeParams: { ...typeParams, sizeFactor: 0.1, sizeAspectRatio: 1 }, color: 'partial-charge' }, { tag: 'ball-and-stick' }),
-            interactions: builder.buildRepresentation(update, components.selection, { type: InteractionsRepresentationProvider, typeParams: { ...typeParams }, color: InteractionTypeColorThemeProvider }, { tag: 'interactions' }),
+            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, sizeFactor: 0.3 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
+            ballAndStick: builder.buildRepresentation(update, components.surroundings, { type: 'ball-and-stick', typeParams: { ...typeParams, sizeFactor: 0.1, sizeAspectRatio: 1 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ball-and-stick' }),
+            interactions: builder.buildRepresentation(update, components.interactions, { type: InteractionsRepresentationProvider, typeParams: { ...typeParams }, color: InteractionTypeColorThemeProvider }, { tag: 'interactions' }),
+            label: builder.buildRepresentation(update, components.surroundings, { type: 'label', typeParams: { ...typeParams, background: false, borderWidth: 0.1 }, color: 'uniform', colorParams: { value: Color(0x000000) } }, { tag: 'label' }),
         };
 
         await update.commit({ revertOnError: true });
         await shinyStyle(plugin);
         plugin.managers.interactivity.setProps({ granularity: 'element' });
 
-        const compiled = compile<StructureSelection>(StructureSelectionQueries.ligand.expression);
-        const result = compiled(new QueryContext(structure));
-        const selection = StructureSelection.unionStructure(result);
-        plugin.managers.camera.focusLoci(Structure.toStructureElementLoci(selection));
-
         return { components, representations };
     }
 });
 
+export const ShowButtons = PluginConfig.item('showButtons', true);
+
 export class ViewportComponent extends PluginUIComponent {
-    structurePreset = () => {
-        this.plugin.managers.structure.component.applyPreset(
-            this.plugin.managers.structure.hierarchy.selection.structures,
-            StructurePreset
-        );
+    async _set(structures: readonly StructureRef[], preset: StructureRepresentationPresetProvider) {
+        await this.plugin.managers.structure.component.clear(structures);
+        await this.plugin.managers.structure.component.applyPreset(structures, preset);
     }
 
-    illustrativePreset = () => {
-        this.plugin.managers.structure.component.applyPreset(
-            this.plugin.managers.structure.hierarchy.selection.structures,
-            IllustrativePreset
-        );
+    set = async (preset: StructureRepresentationPresetProvider) => {
+        await this._set(this.plugin.managers.structure.hierarchy.selection.structures, preset);
     }
 
-    pocketPreset = () => {
-        this.plugin.managers.structure.component.applyPreset(
-            this.plugin.managers.structure.hierarchy.selection.structures,
-            PocketPreset
-        );
-    }
+    structurePreset = () => this.set(StructurePreset);
+    illustrativePreset = () => this.set(IllustrativePreset);
+    surfacePreset = () => this.set(SurfacePreset);
+    pocketPreset = () => this.set(PocketPreset);
+    interactionsPreset = () => this.set(InteractionsPreset);
 
-    interactionsPreset = () => {
-        this.plugin.managers.structure.component.applyPreset(
-            this.plugin.managers.structure.hierarchy.selection.structures,
-            InteractionsPreset
-        );
+    get showButtons () {
+        return this.plugin.config.get(ShowButtons);
     }
 
     render() {
@@ -229,7 +247,7 @@ export class ViewportComponent extends PluginUIComponent {
 
         return <>
             <Viewport />
-            <div className='msp-viewport-top-left-controls'>
+            {this.showButtons && <div className='msp-viewport-top-left-controls'>
                 <div style={{ marginBottom: '4px' }}>
                     <Button onClick={this.structurePreset} >Structure</Button>
                 </div>
@@ -237,12 +255,15 @@ export class ViewportComponent extends PluginUIComponent {
                     <Button onClick={this.illustrativePreset}>Illustrative</Button>
                 </div>
                 <div style={{ marginBottom: '4px' }}>
-                    <Button onClick={this.pocketPreset}>Pocket</Button>
+                    <Button onClick={this.surfacePreset}>Surface</Button>
                 </div>
+                {/* <div style={{ marginBottom: '4px' }}>
+                    <Button onClick={this.pocketPreset}>Pocket</Button>
+                </div> */}
                 <div style={{ marginBottom: '4px' }}>
                     <Button onClick={this.interactionsPreset}>Interactions</Button>
                 </div>
-            </div>
+            </div>}
             <VPControls />
             <BackgroundTaskProgress />
             <div className='msp-highlight-toast-wrapper'>

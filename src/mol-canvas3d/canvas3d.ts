@@ -66,6 +66,7 @@ export const Canvas3DParams = {
 };
 export const DefaultCanvas3DParams = PD.getDefaultValues(Canvas3DParams);
 export type Canvas3DProps = PD.Values<typeof Canvas3DParams>
+export type PartialCanvas3DProps = { [K in keyof Canvas3DProps]?: Partial<Canvas3DProps[K]> }
 
 export { Canvas3D };
 
@@ -97,7 +98,7 @@ interface Canvas3D {
     readonly camera: Camera
     readonly boundingSphere: Readonly<Sphere3D>
     getPixelData(variant: GraphicsRenderVariant): PixelData
-    setProps(props: Partial<Canvas3DProps> | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void)): void
+    setProps(props: PartialCanvas3DProps | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void)): void
     getImagePass(props: Partial<ImageProps>): ImagePass
 
     /** Returns a copy of the current Canvas3D instance props */
@@ -530,7 +531,7 @@ namespace Canvas3D {
             didDraw,
             reprCount,
             setProps: (properties) => {
-                const props: Partial<Canvas3DProps> = typeof properties === 'function'
+                const props: PartialCanvas3DProps = typeof properties === 'function'
                     ? produce(getProps(), properties)
                     : properties;
 
@@ -538,7 +539,7 @@ namespace Canvas3D {
                 if (props.camera && props.camera.mode !== undefined && props.camera.mode !== camera.state.mode) {
                     cameraState.mode = props.camera.mode;
                 }
-                if (props.cameraFog !== undefined) {
+                if (props.cameraFog !== undefined && props.cameraFog.params) {
                     const newFog = props.cameraFog.name === 'on' ? props.cameraFog.params.intensity : 0;
                     if (newFog !== camera.state.fog) cameraState.fog = newFog;
                 }

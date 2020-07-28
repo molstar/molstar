@@ -11,19 +11,21 @@ import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
-import { ChainIdColorTheme, getChainIdColorThemeParams } from './chain-id';
+import { ChainIdColorTheme, ChainIdColorThemeParams } from './chain-id';
 
 const DefaultIllustrativeColor = Color(0xEEEEEE);
 const Description = `Assigns an illustrative color that gives every chain a unique color with lighter carbons (inspired by David Goodsell's Molecule of the Month style).`;
 
-export const IllustrativeColorThemeParams = {};
+export const IllustrativeColorThemeParams = {
+    ...ChainIdColorThemeParams
+};
 export type IllustrativeColorThemeParams = typeof IllustrativeColorThemeParams
 export function getIllustrativeColorThemeParams(ctx: ThemeDataContext) {
     return IllustrativeColorThemeParams; // TODO return copy
 }
 
 export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<IllustrativeColorThemeParams>): ColorTheme<IllustrativeColorThemeParams> {
-    const { color: chainIdColor, legend } = ChainIdColorTheme(ctx, PD.getDefaultValues(getChainIdColorThemeParams(ctx)));
+    const { color: chainIdColor, legend } = ChainIdColorTheme(ctx, props);
 
     function illustrativeColor(location: Location, typeSymbol: ElementSymbol) {
         const baseColor = chainIdColor(location, false);

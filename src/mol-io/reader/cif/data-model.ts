@@ -265,6 +265,10 @@ export namespace CifField {
             toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params)
         };
     }
+
+    export function ofUndefined(rowCount: number, schema: Column.Schema): CifField {
+        return ofColumn(Column.Undefined(rowCount, schema));
+    }
 }
 
 export function tensorFieldNameGetter(field: string, rank: number, zeroIndexed: boolean, namingVariant: 'brackets' | 'underscore') {

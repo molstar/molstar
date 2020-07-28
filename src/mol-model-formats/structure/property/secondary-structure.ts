@@ -62,8 +62,8 @@ type SecondaryStructureData = { type: SecondaryStructureType[], key: number[], e
 function addHelices(cat: StructConf, map: SecondaryStructureMap, elements: SecondaryStructure.Element[]) {
     if (!cat._rowCount) return;
 
-    const { beg_label_asym_id, beg_label_seq_id, pdbx_beg_PDB_ins_code } = cat;
-    const { end_label_seq_id, pdbx_end_PDB_ins_code } = cat;
+    const { beg_label_asym_id, beg_auth_seq_id, pdbx_beg_PDB_ins_code } = cat;
+    const { end_auth_seq_id, pdbx_end_PDB_ins_code } = cat;
     const { pdbx_PDB_helix_class, conf_type_id, details } = cat;
 
     for (let i = 0, _i = cat._rowCount; i < _i; i++) {
@@ -81,9 +81,9 @@ function addHelices(cat: StructConf, map: SecondaryStructureMap, elements: Secon
             details: details.valueKind(i) === Column.ValueKind.Present ? details.value(i) : void 0
         };
         const entry: SecondaryStructureEntry = {
-            startSeqNumber: beg_label_seq_id.value(i),
+            startSeqNumber: beg_auth_seq_id.value(i),
             startInsCode: pdbx_beg_PDB_ins_code.value(i),
-            endSeqNumber: end_label_seq_id.value(i),
+            endSeqNumber: end_auth_seq_id.value(i),
             endInsCode: pdbx_end_PDB_ins_code.value(i),
             type,
             key: elements.length
@@ -108,8 +108,8 @@ function addHelices(cat: StructConf, map: SecondaryStructureMap, elements: Secon
 function addSheets(cat: StructSheetRange, map: SecondaryStructureMap, sheetCount: number, elements: SecondaryStructure.Element[]) {
     if (!cat._rowCount) return;
 
-    const { beg_label_asym_id, beg_label_seq_id, pdbx_beg_PDB_ins_code } = cat;
-    const { end_label_seq_id, pdbx_end_PDB_ins_code } = cat;
+    const { beg_label_asym_id, beg_auth_seq_id, pdbx_beg_PDB_ins_code } = cat;
+    const { end_auth_seq_id, pdbx_end_PDB_ins_code } = cat;
     const { sheet_id } = cat;
 
     const sheet_id_key = new Map<string, number>();
@@ -132,9 +132,9 @@ function addSheets(cat: StructSheetRange, map: SecondaryStructureMap, sheetCount
             symmetry: void 0
         };
         const entry: SecondaryStructureEntry = {
-            startSeqNumber: beg_label_seq_id.value(i),
+            startSeqNumber: beg_auth_seq_id.value(i),
             startInsCode: pdbx_beg_PDB_ins_code.value(i),
-            endSeqNumber: end_label_seq_id.value(i),
+            endSeqNumber: end_auth_seq_id.value(i),
             endInsCode: pdbx_end_PDB_ins_code.value(i),
             type,
             key: elements.length
@@ -159,12 +159,12 @@ function addSheets(cat: StructSheetRange, map: SecondaryStructureMap, sheetCount
 }
 
 function assignSecondaryStructureEntry(hierarchy: AtomicHierarchy, entry: SecondaryStructureEntry, resStart: ResidueIndex, resEnd: ResidueIndex, data: SecondaryStructureData) {
-    const { label_seq_id, pdbx_PDB_ins_code } = hierarchy.residues;
+    const { auth_seq_id, pdbx_PDB_ins_code } = hierarchy.residues;
     const { endSeqNumber, endInsCode, key, type } = entry;
 
     let rI = resStart;
     while (rI < resEnd) {
-        const seqNumber = label_seq_id.value(rI);
+        const seqNumber = auth_seq_id.value(rI);
         data.type[rI] = type;
         data.key[rI] = key;
 
@@ -180,7 +180,7 @@ function assignSecondaryStructureEntry(hierarchy: AtomicHierarchy, entry: Second
 function assignSecondaryStructureRanges(hierarchy: AtomicHierarchy, map: SecondaryStructureMap, data: SecondaryStructureData) {
     const { count: chainCount } = hierarchy.chainAtomSegments;
     const { label_asym_id } = hierarchy.chains;
-    const { label_seq_id, pdbx_PDB_ins_code } = hierarchy.residues;
+    const { auth_seq_id, pdbx_PDB_ins_code } = hierarchy.residues;
 
     for (let cI = 0 as ChainIndex; cI < chainCount; cI++) {
         const resStart = AtomicHierarchy.chainStartResidueIndex(hierarchy, cI), resEnd = AtomicHierarchy.chainEndResidueIndexExcl(hierarchy, cI);
@@ -189,7 +189,7 @@ function assignSecondaryStructureRanges(hierarchy: AtomicHierarchy, map: Seconda
             const entries = map.get(asymId)!;
 
             for (let rI = resStart; rI < resEnd; rI++) {
-                const seqNumber = label_seq_id.value(rI);
+                const seqNumber = auth_seq_id.value(rI);
                 if (entries.has(seqNumber)) {
                     const entryList = entries.get(seqNumber)!;
                     for (const entry of entryList) {

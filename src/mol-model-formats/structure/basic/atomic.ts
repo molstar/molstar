@@ -67,12 +67,26 @@ function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, o
     });
 
     const residues = Table.view(atom_site, ResiduesSchema, offsets.residues);
+    const chains = Table.view(atom_site, ChainsSchema, offsets.chains);
+
+    if (!residues.label_seq_id.isDefined) {
+        const seqIds = new Int32Array(residues.label_seq_id.rowCount);
+        const { residues: residueOffsets, chains: chainOffsets } = offsets;
+        let cI = 0;
+        let seqId = 0;
+        for (let i = 0, il = seqIds.length; i < il; ++i) {
+            if (chainOffsets[cI] > residueOffsets[i]) {
+                cI += 1;
+                seqId = 0;
+            }
+            seqIds[i] = ++seqId;
+        }
+        residues.label_seq_id = Column.ofIntArray(seqIds);
+    }
 
     // Optimize the numeric columns
     Table.columnToArray(residues, 'label_seq_id', Int32Array);
     Table.columnToArray(residues, 'auth_seq_id', Int32Array);
-
-    const chains = Table.view(atom_site, ChainsSchema, offsets.chains);
 
     // Fix possibly missing auth_/label_ columns
     substUndefinedColumn(atoms, 'label_atom_id', 'auth_atom_id');

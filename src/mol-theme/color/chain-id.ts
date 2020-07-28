@@ -24,6 +24,9 @@ export const ChainIdColorThemeParams = {
 export type ChainIdColorThemeParams = typeof ChainIdColorThemeParams
 export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(ChainIdColorThemeParams);
+    if (ctx.structure?.models.some(m => m.coarseHierarchy.isDefined)) {
+        params.asymId.defaultValue = 'label';
+    }
     return params;
 }
 

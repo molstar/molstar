@@ -7,6 +7,7 @@
 import { CifCategory, CifField } from '../../../mol-io/reader/cif';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { Tokens } from '../../../mol-io/reader/common/text/tokenizer';
+import { Column } from '../../../mol-data/db';
 
 const HelixTypes: {[k: string]: mmCIF_Schema['struct_conf']['conf_type_id']['T']} = {
     // CLASS NUMBER
@@ -99,29 +100,27 @@ export function parseHelix(lines: Tokens, lineStart: number, lineEnd: number): C
 
     const beg_auth_asym_id = CifField.ofStrings(helices.map(h => h.initChainID));
     const beg_auth_comp_id = CifField.ofStrings(helices.map(h => h.initResName));
-    const beg_auth_seq_id = CifField.ofStrings(helices.map(h => h.initSeqNum));
 
     const end_auth_asym_id = CifField.ofStrings(helices.map(h => h.endChainID));
-    const end_auth_comp_id = CifField.ofStrings(helices.map(h => h.endResName));
-    const end_auth_seq_id = CifField.ofStrings(helices.map(h => h.endSeqNum));
+    const end_auth_comp_id = CifField.ofStrings(helices.map(h => h.endResName));;
 
     const struct_conf: CifCategory.Fields<mmCIF_Schema['struct_conf']> = {
         beg_label_asym_id: beg_auth_asym_id,
         beg_label_comp_id: beg_auth_comp_id,
-        beg_label_seq_id: beg_auth_seq_id,
+        beg_label_seq_id: CifField.ofUndefined(helices.length, Column.Schema.int),
         beg_auth_asym_id,
         beg_auth_comp_id,
-        beg_auth_seq_id,
+        beg_auth_seq_id: CifField.ofStrings(helices.map(h => h.initSeqNum)),
 
         conf_type_id: CifField.ofStrings(helices.map(h => getStructConfTypeId(h.helixClass))),
         details: CifField.ofStrings(helices.map(h => h.comment)),
 
         end_label_asym_id: end_auth_asym_id,
-        end_label_comp_id: end_auth_asym_id,
-        end_label_seq_id: end_auth_seq_id,
+        end_label_comp_id: end_auth_comp_id,
+        end_label_seq_id: CifField.ofUndefined(helices.length, Column.Schema.int),
         end_auth_asym_id,
         end_auth_comp_id,
-        end_auth_seq_id,
+        end_auth_seq_id: CifField.ofStrings(helices.map(h => h.endSeqNum)),
 
         id: CifField.ofStrings(helices.map(h => h.serNum)),
         pdbx_beg_PDB_ins_code: CifField.ofStrings(helices.map(h => h.initICode)),

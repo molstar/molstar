@@ -194,7 +194,7 @@ namespace Transform {
     export function fromJSON(t: Serialized): Transform {
         const transformer = StateTransformer.get(t.transformer);
         const pFromJson = transformer.definition.customSerialization
-            ? transformer.definition.customSerialization.toJSON
+            ? transformer.definition.customSerialization.fromJSON
             : _id;
         return {
             parent: t.parent as Ref,

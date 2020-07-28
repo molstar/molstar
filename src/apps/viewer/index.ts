@@ -92,7 +92,7 @@ export class Viewer {
             },
             components: {
                 ...DefaultPluginSpec.components,
-                remoteState: o.layoutShowRemoteState ? 'default' : 'none',
+                remoteState: o.layoutShowRemoteState ? 'default' : 'none'
             },
             config: [
                 [PluginConfig.Viewport.ShowExpand, o.viewportShowExpand],

@@ -153,7 +153,7 @@ function getQueryParams(req: express.Request, isCell: boolean): Data.QueryParams
     const a = [+req.params.a1, +req.params.a2, +req.params.a3];
     const b = [+req.params.b1, +req.params.b2, +req.params.b3];
 
-    const detail = Math.min(Math.max(0, (+req.query.detail) | 0), LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1);
+    const detail = Math.min(Math.max(0, (+req.query.detail!) | 0), LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1);
     const isCartesian = (req.query.space as string || '').toLowerCase() !== 'fractional';
 
     const box: Data.QueryParamsBox = isCell

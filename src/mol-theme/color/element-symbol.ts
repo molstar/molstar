@@ -13,7 +13,8 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
-import { ChainIdColorTheme, getChainIdColorThemeParams } from './chain-id';
+import { ChainIdColorTheme, ChainIdColorThemeParams } from './chain-id';
+import { OperatorNameColorThemeParams, OperatorNameColorTheme } from './operator-name';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors = ColorMap({
@@ -24,8 +25,14 @@ export type ElementSymbolColors = typeof ElementSymbolColors
 const DefaultElementSymbolColor = Color(0xFFFFFF);
 const Description = 'Assigns a color to every atom according to its chemical element.';
 
+// TODO generalise `carbonColor` param to all themes?
+
 export const ElementSymbolColorThemeParams = {
-    carbonByChainId: PD.Boolean(true),
+    carbonColor: PD.MappedStatic('chain-id', {
+        'chain-id': PD.Group({ ...ChainIdColorThemeParams }),
+        'operator-name': PD.Group({ ...OperatorNameColorThemeParams }),
+        'element-symbol': PD.Group({})
+    }, { description: 'Use chain-id coloring for carbon atoms.' }),
     saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
     lightness: PD.Numeric(0.2, { min: -6, max: 6, step: 0.1 })
 };
@@ -42,11 +49,15 @@ export function elementSymbolColor(colorMap: ElementSymbolColors, element: Eleme
 export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<ElementSymbolColorThemeParams>): ColorTheme<ElementSymbolColorThemeParams> {
     const colorMap = getAdjustedColorMap(ElementSymbolColors, props.saturation, props.lightness);
 
-    const chainIdColor = ChainIdColorTheme(ctx, PD.getDefaultValues(getChainIdColorThemeParams(ctx))).color;
+    const carbonColor = props.carbonColor.name === 'chain-id'
+        ? ChainIdColorTheme(ctx, props.carbonColor.params).color
+        : props.carbonColor.name === 'operator-name'
+            ? OperatorNameColorTheme(ctx, props.carbonColor.params).color
+            : undefined;
 
     function elementColor(element: ElementSymbol, location: Location) {
-        return (props.carbonByChainId && element === 'C')
-            ? chainIdColor(location, false)
+        return (carbonColor && element === 'C')
+            ? carbonColor(location, false)
             : elementSymbolColor(colorMap, element);
     }
 
@@ -68,7 +79,7 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
 
     return {
         factory: ElementSymbolColorTheme,
-        granularity: 'group',
+        granularity: 'groupInstance',
         color,
         props,
         description: Description,

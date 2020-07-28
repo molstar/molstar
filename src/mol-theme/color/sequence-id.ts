@@ -58,9 +58,14 @@ function getSequenceLength(unit: Unit, element: ElementIndex) {
             break;
     }
     if (entityId === '') return 0;
+
     const entityIndex = model.entities.getEntityIndex(entityId);
     if (entityIndex === -1) return 0;
-    return model.sequence.byEntityKey[entityIndex].sequence.length;
+
+    const entity = model.sequence.byEntityKey[entityIndex];
+    if (entity === undefined) return 0;
+
+    return entity.sequence.length;
 }
 
 export function SequenceIdColorTheme(ctx: ThemeDataContext, props: PD.Values<SequenceIdColorThemeParams>): ColorTheme<SequenceIdColorThemeParams> {
@@ -74,15 +79,21 @@ export function SequenceIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Seq
             const { unit, element } = location;
             const seq_id = getSeqId(unit, element);
             if (seq_id > 0) {
-                scale.setDomain(0, getSequenceLength(unit, element) - 1);
-                return scale.color(seq_id);
+                const seqLen = getSequenceLength(unit, element);
+                if (seqLen) {
+                    scale.setDomain(0, seqLen - 1);
+                    return scale.color(seq_id);
+                }
             }
         } else if (Bond.isLocation(location)) {
             const { aUnit, aIndex } = location;
             const seq_id = getSeqId(aUnit, aUnit.elements[aIndex]);
             if (seq_id > 0) {
-                scale.setDomain(0, getSequenceLength(aUnit, aUnit.elements[aIndex]) - 1);
-                return scale.color(seq_id);
+                const seqLen = getSequenceLength(aUnit, aUnit.elements[aIndex]);
+                if (seqLen) {
+                    scale.setDomain(0, seqLen - 1);
+                    return scale.color(seq_id);
+                }
             }
         }
         return DefaultColor;

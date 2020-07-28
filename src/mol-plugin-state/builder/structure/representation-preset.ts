@@ -18,6 +18,8 @@ import { StructureSelectionQueries as Q } from '../../helpers/structure-selectio
 import { PluginConfig } from '../../../mol-plugin/config';
 import { StructureFocusRepresentation } from '../../../mol-plugin/behavior/dynamic/selection/structure-focus-representation';
 import { createStructureColorThemeParams } from '../../helpers/structure-representation-params';
+import { ChainIdColorThemeProvider } from '../../../mol-theme/color/chain-id';
+import { OperatorNameColorThemeProvider } from '../../../mol-theme/color/operator-name';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -34,7 +36,7 @@ export namespace StructureRepresentationPresetProvider {
         quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
         theme: PD.Optional(PD.Group({
             globalName: PD.Optional(PD.Text<ColorTheme.BuiltIn>('')),
-            carbonByChainId: PD.Optional(PD.Boolean(true)),
+            carbonColor: PD.Optional(PD.Select('chain-id', PD.arrayToOptions(['chain-id', 'operator-name', 'element-symbol'] as const))),
             focus: PD.Optional(PD.Group({
                 name: PD.Optional(PD.Text<ColorTheme.BuiltIn>('')),
                 params: PD.Optional(PD.Value<ColorTheme.BuiltInParams<ColorTheme.BuiltIn>>({} as any))
@@ -42,6 +44,14 @@ export namespace StructureRepresentationPresetProvider {
         }))
     };
     export type CommonParams = PD.ValuesFor<typeof CommonParams>
+
+    function getCarbonColorParams(name: 'chain-id' | 'operator-name' | 'element-symbol') {
+        return name === 'chain-id'
+            ? { name, params: ChainIdColorThemeProvider.defaultValues }
+            : name === 'operator-name'
+                ? { name, params: OperatorNameColorThemeProvider.defaultValues }
+                : { name, params: {} };
+    }
 
     export function reprBuilder(plugin: PluginContext, params: CommonParams) {
         const update = plugin.state.data.build();
@@ -53,16 +63,16 @@ export namespace StructureRepresentationPresetProvider {
         if (params.quality && params.quality !== 'auto') typeParams.quality = params.quality;
         if (params.ignoreHydrogens !== void 0) typeParams.ignoreHydrogens = !!params.ignoreHydrogens;
         const color: ColorTheme.BuiltIn | undefined = params.theme?.globalName ? params.theme?.globalName : void 0;
-        const ballAndStickColor: ColorTheme.BuiltInParams<'element-symbol'> = typeof params.theme?.carbonByChainId !== 'undefined' ? { carbonByChainId: !!params.theme?.carbonByChainId } : { };
+        const ballAndStickColor: ColorTheme.BuiltInParams<'element-symbol'> = params.theme?.carbonColor !== undefined
+            ? { carbonColor: getCarbonColorParams(params.theme?.carbonColor) }
+            : { };
 
         return { update, builder, color, typeParams, ballAndStickColor };
     }
 
     export function updateFocusRepr<T extends ColorTheme.BuiltIn>(plugin: PluginContext, structure: Structure, themeName: T | undefined, themeParams: ColorTheme.BuiltInParams<T> | undefined) {
-        if (!themeName && !themeParams) return;
-
         return plugin.state.updateBehavior(StructureFocusRepresentation, p => {
-            const c = createStructureColorThemeParams(plugin, structure, 'ball-and-stick', themeName, themeParams);
+            const c = createStructureColorThemeParams(plugin, structure, 'ball-and-stick', themeName || 'element-symbol', themeParams);
             p.surroundingsParams.colorTheme = c;
             p.targetParams.colorTheme = c;
         });
@@ -155,8 +165,8 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color, colorParams: ballAndStickColor }, { tag: 'branched-ball-and-stick' }),
             branchedSnfg3d: builder.buildRepresentation(update, components.branched, { type: 'carbohydrate', typeParams, color }, { tag: 'branched-snfg-3d' }),
             water: builder.buildRepresentation(update, components.water, { type: waterType, typeParams: { ...typeParams, alpha: 0.6 }, color }, { tag: 'water' }),
-            ion: builder.buildRepresentation(update, components.ion, { type: 'ball-and-stick', typeParams, color, colorParams: { carbonByChainId: false } }, { tag: 'ion' }),
-            lipid: builder.buildRepresentation(update, components.lipid, { type: lipidType, typeParams: { ...typeParams, alpha: 0.6 }, color, colorParams: { carbonByChainId: false } }, { tag: 'lipid' }),
+            ion: builder.buildRepresentation(update, components.ion, { type: 'ball-and-stick', typeParams, color, colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ion' }),
+            lipid: builder.buildRepresentation(update, components.lipid, { type: lipidType, typeParams: { ...typeParams, alpha: 0.6 }, color, colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'lipid' }),
             coarse: builder.buildRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'chain-id' }, { tag: 'coarse' })
         };
 

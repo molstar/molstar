@@ -9,6 +9,7 @@ import { CifField } from '../../../mol-io/reader/cif';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { TokenBuilder, Tokenizer } from '../../../mol-io/reader/common/text/tokenizer';
 import { guessElementSymbolTokens } from '../util';
+import { Column } from '../../../mol-data/db';
 
 type AtomSiteTemplate = typeof getAtomSiteTemplate extends (...args: any) => infer T ? T : never
 export function getAtomSiteTemplate(data: string, count: number) {
@@ -42,13 +43,12 @@ export function getAtomSite(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema
     const auth_asym_id = CifField.ofTokens(sites.auth_asym_id);
     const auth_atom_id = CifField.ofTokens(sites.auth_atom_id);
     const auth_comp_id = CifField.ofTokens(sites.auth_comp_id);
-    const auth_seq_id = CifField.ofTokens(sites.auth_seq_id);
 
     return {
         auth_asym_id,
         auth_atom_id,
         auth_comp_id,
-        auth_seq_id,
+        auth_seq_id: CifField.ofTokens(sites.auth_seq_id),
         B_iso_or_equiv: CifField.ofTokens(sites.B_iso_or_equiv),
         Cartn_x: CifField.ofTokens(sites.Cartn_x),
         Cartn_y: CifField.ofTokens(sites.Cartn_y),
@@ -61,7 +61,7 @@ export function getAtomSite(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema
         label_asym_id: auth_asym_id,
         label_atom_id: auth_atom_id,
         label_comp_id: auth_comp_id,
-        label_seq_id: auth_seq_id,
+        label_seq_id: CifField.ofUndefined(sites.count, Column.Schema.int),
         label_entity_id: CifField.ofStrings(sites.label_entity_id),
 
         occupancy: CifField.ofTokens(sites.occupancy),
