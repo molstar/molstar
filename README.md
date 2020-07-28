@@ -106,7 +106,7 @@ and navigate to `build/viewer`
 ### Other scripts
 **Create chem comp bond table**
 
-    node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-bond/create-table.js build/data/ccb.bcif -b
+    node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-dict/create-table.js build/data/ccb.bcif -b
 
 **Test model server**
 
