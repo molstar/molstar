@@ -98,7 +98,7 @@ export class Mol2Encoder extends LigandEncoder {
         let result = iter.next();
         while (!result.done) {
             const [k, v] = result.value;
-            if (NON_METAL_ATOMS.some(a => k.startsWith(a))) {
+            if (this.isNonMetalBond(k)) {
                 ret.set(k, v);
             }
             result = iter.next();
