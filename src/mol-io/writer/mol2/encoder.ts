@@ -61,12 +61,12 @@ export class Mol2Encoder extends LigandEncoder {
         StringBuilder.writeSafe(this.out, `@<TRIPOS>SUBSTRUCTURE\n1 ${name} 1\n`);
     }
 
-    private count<K, V>(map: Map<K, V>, predicate: (k: K, v: V) => boolean): number {
+    private count<K, V, C>(map: Map<K, V>, ctx: C, predicate: (k: K, v: V, ctx: C) => boolean): number {
         let count = 0;
         const iter = map.entries();
         let result = iter.next();
         while (!result.done) {
-            if (predicate(result.value[0], result.value[1])) {
+            if (predicate(result.value[0], result.value[1], ctx)) {
                 count++;
             }
             result = iter.next();
@@ -122,15 +122,15 @@ export class Mol2Encoder extends LigandEncoder {
             return type_symbol1 + (numBonds <= 4 ? '.th' : '.oh'); // 1.10.1 & 1.10.2
         }
         if (type_symbol1 === 'C') { // 1.6
-            if (numBonds >= 4 && this.count(bonds, (_k, v) => v.order === 1) >= 4) return 'C.3'; // 1.6.1, 3rga/ligand?encoding=mol2&auth_seq_id=307 (MOH)
+            if (numBonds >= 4 && this.count(bonds, this, (_k, v) => v.order === 1) >= 4) return 'C.3'; // 1.6.1, 3rga/ligand?encoding=mol2&auth_seq_id=307 (MOH)
             if (numBonds === 3 && this.isCat(bonds, bondMap)) return 'C.cat'; // 1.6.2, 1acj/ligand?encoding=mol2&auth_seq_id=44 (ARG), 5vjb/ligand?encoding=mol2&auth_seq_id=101 (GAI)
-            if (numBonds >= 2 && this.count(bonds, (_k, v) => BondType.is(BondType.Flag.Aromatic, v.flags)) >= 2) return 'C.ar'; // 1.6.3, 1acj/ligand?encoding=mol2&auth_seq_id=30 (PHE), 1acj/ligand?encoding=mol2&auth_seq_id=63 (TYR), 1acj/ligand?encoding=mol2&auth_seq_id=84 (TRP), 1acj/ligand?encoding=mol2&auth_seq_id=999 (THA)
-            if ((numBonds === 1 || numBonds === 2) && this.count(bonds, (_k, v) => v.order === 3)) return 'C.1'; // 1.6.4, 3i04/ligand?encoding=mol2&auth_asym_id=C&auth_seq_id=900 (CYN)
+            if (numBonds >= 2 && this.count(bonds, this, (_k, v) => BondType.is(BondType.Flag.Aromatic, v.flags)) >= 2) return 'C.ar'; // 1.6.3, 1acj/ligand?encoding=mol2&auth_seq_id=30 (PHE), 1acj/ligand?encoding=mol2&auth_seq_id=63 (TYR), 1acj/ligand?encoding=mol2&auth_seq_id=84 (TRP), 1acj/ligand?encoding=mol2&auth_seq_id=999 (THA)
+            if ((numBonds === 1 || numBonds === 2) && this.count(bonds, this, (_k, v) => v.order === 3)) return 'C.1'; // 1.6.4, 3i04/ligand?encoding=mol2&auth_asym_id=C&auth_seq_id=900 (CYN)
             return 'C.2'; // 1.6.5
         }
 
         // most of the time, bonds will equal non-metal bonds
-        const nonmets = this.count(bonds, (k, _v) => this.isNonMetalBond(k)) === bonds.size ? bonds : this.extractNonmets(bonds);
+        const nonmets = this.count(bonds, this, (k, _v, ctx) => ctx.isNonMetalBond(k)) === bonds.size ? bonds : this.extractNonmets(bonds);
         const numNonmets = nonmets.size;
 
         if (type_symbol1 === 'O') { // 1.7
@@ -138,18 +138,18 @@ export class Mol2Encoder extends LigandEncoder {
                 if (this.isOC(nonmets, bondMap)) return 'O.co2'; // 1.7.1.1, 4h2v/ligand?encoding=mol2&auth_seq_id=403 (ACT)
                 if (this.isOP(nonmets, bondMap)) return 'O.co2'; // 1.7.1.2, 4mpo/ligand?encoding=mol2&auth_seq_id=203 (PO4)
             }
-            if (numNonmets >= 2 && this.count(bonds, (_k, v) => v.order === 1) === bonds.size) return 'O.3'; // 1.7.2, 1acj/ligand?encoding=mol2&auth_seq_id=601 (HOH), 3rga/ligand?encoding=mol2&auth_seq_id=307 (MOH)
+            if (numNonmets >= 2 && this.count(bonds, this, (_k, v) => v.order === 1) === bonds.size) return 'O.3'; // 1.7.2, 1acj/ligand?encoding=mol2&auth_seq_id=601 (HOH), 3rga/ligand?encoding=mol2&auth_seq_id=307 (MOH)
             return 'O.2'; // 1.7.3, 1acj/ligand?encoding=mol2&auth_seq_id=4 (SER)
         }
         if (type_symbol1 === 'N') { // 1.8
-            if (numNonmets === 4 && this.count(nonmets, (_k, v) => v.order === 1) === 4) return 'N.4'; // 1.8.1, 4ikf/ligand?encoding=mol2&auth_seq_id=403 (NH4)
-            if (numBonds >= 2 && this.count(bonds, (_k, v) => BondType.is(BondType.Flag.Aromatic, v.flags)) >= 2) return 'N.ar'; // 1.8.2, 1acj/ligand?encoding=mol2&auth_seq_id=84 (TRP), 1acj/ligand?encoding=mol2&auth_seq_id=999 (THA)
-            if (numNonmets === 1 && this.count(nonmets, (_k, v) => v.order === 3)) return 'N.1'; // 1.8.3, 3i04/ligand?encoding=mol2&auth_asym_id=C&auth_seq_id=900 (CYN)
+            if (numNonmets === 4 && this.count(nonmets, this, (_k, v) => v.order === 1) === 4) return 'N.4'; // 1.8.1, 4ikf/ligand?encoding=mol2&auth_seq_id=403 (NH4)
+            if (numBonds >= 2 && this.count(bonds, this, (_k, v) => BondType.is(BondType.Flag.Aromatic, v.flags)) >= 2) return 'N.ar'; // 1.8.2, 1acj/ligand?encoding=mol2&auth_seq_id=84 (TRP), 1acj/ligand?encoding=mol2&auth_seq_id=999 (THA)
+            if (numNonmets === 1 && this.count(nonmets, this, (_k, v) => v.order === 3)) return 'N.1'; // 1.8.3, 3i04/ligand?encoding=mol2&auth_asym_id=C&auth_seq_id=900 (CYN)
             if (numNonmets === 2 && this.orderSum(nonmets) === 4) return 'N.1'; // 1.8.4, 3sbr/ligand?encoding=mol2&auth_seq_id=640&auth_asym_id=D (N2O)
             if (numNonmets === 3 && this.hasCOCS(nonmets, bondMap)) return 'N.am'; // 1.8.5, 3zfz/ligand?encoding=mol2&auth_seq_id=1669 (1W8)
             if (numNonmets === 3) { // 1.8.6
-                if (this.count(nonmets, (_k, v) => v.order > 1) === 1) return 'N.pl3'; // 1.8.6.1, 4hon/ligand?encoding=mol2&auth_seq_id=407 (NO3)
-                if (this.count(nonmets, (_k, v) => v.order === 1) === 3) {
+                if (this.count(nonmets, this, (_k, v) => v.order > 1) === 1) return 'N.pl3'; // 1.8.6.1, 4hon/ligand?encoding=mol2&auth_seq_id=407 (NO3)
+                if (this.count(nonmets, this, (_k, v) => v.order === 1) === 3) {
                     if (this.isNpl3(nonmets, bondMap)) return 'N.pl3'; // 1.8.6.1.1 & 1.8.6.1.2, 1acj/ligand?encoding=mol2&auth_seq_id=44 (ARG), 5vjb/ligand?encoding=mol2&auth_seq_id=101 (GAI)
                 }
                 return 'N.3';
@@ -159,7 +159,7 @@ export class Mol2Encoder extends LigandEncoder {
         if (type_symbol1 === 'S') { // 1.9
             if (numNonmets === 3 && this.countOfOxygenWithSingleNonmet(nonmets, bondMap) === 1) return 'S.o'; // 1.9.1, 4i03/ligand?encoding=mol2&auth_seq_id=312 (DMS)
             if (numNonmets === 4 && this.countOfOxygenWithSingleNonmet(nonmets, bondMap) === 2) return 'S.o2'; // 1.9.2, 1udt/ligand?encoding=mol2&auth_seq_id=1000 (VIA)
-            if (numNonmets >= 2 && this.count(bonds, (_k, v) => v.order === 1) >= 2) return 'S.3'; // 1.9.3, 3zfz/ligand?encoding=mol2&auth_seq_id=1669 (1W8), 4gpc/ligand?encoding=mol2&auth_seq_id=902 (SO4)
+            if (numNonmets >= 2 && this.count(bonds, this, (_k, v) => v.order === 1) >= 2) return 'S.3'; // 1.9.3, 3zfz/ligand?encoding=mol2&auth_seq_id=1669 (1W8), 4gpc/ligand?encoding=mol2&auth_seq_id=902 (SO4)
             return 'S.2'; // 1.9.4
         }
         return type_symbol1; // 1.11
@@ -176,7 +176,7 @@ export class Mol2Encoder extends LigandEncoder {
         while (!result.done) {
             const label_atom_id = result.value;
             const adjacentBonds = bondMap.map.get(label_atom_id)!;
-            if (this.count(adjacentBonds, (_k, v) => v.order > 1 || BondType.is(BondType.Flag.Aromatic, v.flags))) {
+            if (this.count(adjacentBonds, this, (_k, v) => v.order > 1 || BondType.is(BondType.Flag.Aromatic, v.flags))) {
                 // TODO check accurately for 2nd criterion with coordinates
                 return true;
             }
@@ -200,7 +200,7 @@ export class Mol2Encoder extends LigandEncoder {
             const label_atom_id = result.value;
             if (label_atom_id.startsWith('O')) {
                 const adjacentBonds = bondMap.map.get(label_atom_id)!;
-                if (this.count(adjacentBonds, (k, _v) => this.isNonMetalBond(k)) === 1) count++;
+                if (this.count(adjacentBonds, this, (k, _v, ctx) => ctx.isNonMetalBond(k)) === 1) count++;
             }
             result = iter.next();
         }
@@ -222,7 +222,7 @@ export class Mol2Encoder extends LigandEncoder {
             const label_atom_id = result.value;
             if (label_atom_id.startsWith('O')) {
                 const adjacentBonds = bondMap.map.get(label_atom_id)!;
-                if (this.count(adjacentBonds, (k, _v) => this.isNonMetalBond(k)) === 1) count++;
+                if (this.count(adjacentBonds, this, (k, _v, ctx) => ctx.isNonMetalBond(k)) === 1) count++;
             }
             result = iter.next();
         }
@@ -261,7 +261,7 @@ export class Mol2Encoder extends LigandEncoder {
             const label_atom_id = result.value;
             if (label_atom_id.startsWith('O')) {
                 const adjacentBonds = bondMap.map.get(label_atom_id)!;
-                if (this.count(adjacentBonds, (k, _v) => this.isNonMetalBond(k))) count++;
+                if (this.count(adjacentBonds, this, (k, _v, ctx) => ctx.isNonMetalBond(k))) count++;
             }
             result = iter.next();
         }
@@ -276,7 +276,7 @@ export class Mol2Encoder extends LigandEncoder {
             const label_atom_id = result.value;
             if (label_atom_id.startsWith('C')) {
                 const adjacentBonds = bondMap.map.get(label_atom_id)!;
-                if (this.count(adjacentBonds, (k, v) => k.startsWith('O') || k.startsWith('S') && v.order === 2)) return true;
+                if (this.count(adjacentBonds, this, (k, v) => k.startsWith('O') || k.startsWith('S') && v.order === 2)) return true;
             }
             result = iter.next();
         }
