@@ -7,14 +7,15 @@
 import { StringBuilder } from '../../mol-util';
 import Writer from './writer';
 import { Encoder, Category, Field } from './cif/encoder';
-import { ComponentBond } from '../../mol-model-formats/structure/property/bonds/comp';
+import { ComponentAtom } from '../../mol-model-formats/structure/property/atoms/chem_comp';
+import { ComponentBond } from '../../mol-model-formats/structure/property/bonds/chem_comp';
 
 interface Atom {
-    label_atom_id: string,
     Cartn_x: number,
     Cartn_y: number,
     Cartn_z: number,
-    type_symbol: string
+    type_symbol: string,
+    index: number
 }
 
 function Atom(partial: any): Atom {
@@ -24,7 +25,8 @@ function Atom(partial: any): Atom {
 export abstract class LigandEncoder implements Encoder<string> {
     protected builder: StringBuilder;
     protected meta: StringBuilder;
-    protected componentData: ComponentBond;
+    protected componentAtomData: ComponentAtom;
+    protected componentBondData: ComponentBond;
     protected error = false;
     protected encoded = false;
     readonly isBinary = false;
@@ -61,8 +63,12 @@ export abstract class LigandEncoder implements Encoder<string> {
         this._writeCategory(category, context);
     }
 
-    setComponentBondData(componentData: ComponentBond) {
-        this.componentData = componentData;
+    setComponentAtomData(componentAtomData: ComponentAtom) {
+        this.componentAtomData = componentAtomData;
+    }
+
+    setComponentBondData(componentBondData: ComponentBond) {
+        this.componentBondData = componentBondData;
     }
 
     writeTo(stream: Writer) {
@@ -80,14 +86,15 @@ export abstract class LigandEncoder implements Encoder<string> {
         return StringBuilder.getString(this.builder);
     }
 
-    protected getAtoms<Ctx>(instance: Category.Instance<Ctx>, source: any): Atom[] {
-        const sortedFields = this.getSortedFields(instance, ['Cartn_x', 'Cartn_y', 'Cartn_z', 'type_symbol']);
+    protected getAtoms<Ctx>(instance: Category.Instance<Ctx>, source: any): Map<string, Atom> {
+        const sortedFields = this.getSortedFields(instance, ['Cartn_x', 'Cartn_y', 'Cartn_z']);
         const label_atom_id = this.getField(instance, 'label_atom_id');
-        return this._getAtoms(source, sortedFields, label_atom_id);
+        const type_symbol = this.getField(instance, 'type_symbol');
+        return this._getAtoms(source, sortedFields, label_atom_id, type_symbol);
     }
 
-    private _getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>): Atom[] {
-        const atoms: Atom[] = [];
+    private _getAtoms(source: any, fields: Field<any, any>[], label_atom_id: Field<any, any>, type_symbol: Field<any, any>): Map<string, Atom> {
+        const atoms = new Map<string, Atom>();
         let index = 0;
 
         // is outer loop even needed?
@@ -102,19 +109,21 @@ export abstract class LigandEncoder implements Encoder<string> {
                 const key = it.move();
 
                 const lai = label_atom_id.value(key, data, index) as string;
-                const label = this.getLabel(lai);
-                if (this.skipHydrogen(label)) {
+                const ts = type_symbol.value(key, data, index) as string;
+                if (this.skipHydrogen(ts)) {
                     index++;
                     continue;
                 }
-                const a: { [k: string]: (string | number) } = { 'label_atom_id': lai };
+                const a: { [k: string]: (string | number) } = {};
 
                 for (let _f = 0, _fl = fields.length; _f < _fl; _f++) {
                     const f: Field<any, any> = fields[_f]!;
                     a[f.name] = f.value(key, data, index);
                 }
+                a[type_symbol.name] = ts;
+                a['index'] = index;
 
-                atoms.push(Atom(a));
+                atoms.set(lai, Atom(a));
                 index++;
             }
         }
@@ -122,15 +131,11 @@ export abstract class LigandEncoder implements Encoder<string> {
         return atoms;
     }
 
-    protected skipHydrogen(label: string) {
+    protected skipHydrogen(type_symbol: string) {
         if (this.hydrogens) {
             return false;
         }
-        return label.startsWith('H');
-    }
-
-    protected getLabel(s: string) {
-        return s.replace(/[^A-Z]+/g, '');
+        return type_symbol === 'H';
     }
 
     private getSortedFields<Ctx>(instance: Category.Instance<Ctx>, names: string[]) {

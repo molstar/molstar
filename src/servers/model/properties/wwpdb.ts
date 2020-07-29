@@ -5,12 +5,13 @@
  */
 
 import { AttachModelProperties } from '../property-provider';
-import { wwPDB_chemCompBond } from './providers/wwpdb';
+import { wwPDB_chemCompBond, wwPDB_chemCompAtom } from './providers/wwpdb';
 
 export const attachModelProperties: AttachModelProperties = (args) => {
     // return a list of promises that start attaching the props in parallel
     // (if there are downloads etc.)
     return [
-        wwPDB_chemCompBond(args)
+        wwPDB_chemCompBond(args),
+        wwPDB_chemCompAtom(args)
     ];
 };
