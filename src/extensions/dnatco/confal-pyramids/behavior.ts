@@ -6,8 +6,9 @@
  */
 
 import { ConfalPyramidsColorThemeProvider } from './color';
-import { ConfalPyramids, ConfalPyramidsProvider } from './property';
+import { ConfalPyramidsProvider } from './property';
 import { ConfalPyramidsRepresentationProvider } from './representation';
+import { DnatcoCommon as DC } from '../common';
 import { Loci } from '../../../mol-model/loci';
 import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
 import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../../mol-plugin-state/builder/structure/representation-preset';
@@ -22,7 +23,7 @@ export const DnatcoConfalPyramidsPreset = StructureRepresentationPresetProvider(
         description: 'Schematic depiction of conformer class and confal value.',
     },
     isApplicable(a) {
-        return a.data.models.length >= 1 && a.data.models.some(m => ConfalPyramids.isApplicable(m));
+        return a.data.models.length >= 1 && a.data.models.some(m => DC.isApplicable(m));
     },
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {

@@ -5,9 +5,10 @@
  * @author Jiří Černý <jiri.cerny@ibt.cas.cz>
  */
 
-import { ConfalPyramids, ConfalPyramidsProvider } from './property';
+import { ConfalPyramidsProvider } from './property';
 import { ConfalPyramidsUtil } from './util';
 import { ConfalPyramidsTypes as CPT } from './types';
+import { DnatcoCommon as DC } from '../common';
 import { Interval } from '../../../mol-data/int';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
@@ -16,7 +17,7 @@ import { PrimitiveBuilder } from '../../../mol-geo/primitive/primitive';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
-import { Structure, StructureProperties, Unit } from '../../../mol-model/structure';
+import { Structure, StructureElement, StructureProperties, Unit } from '../../../mol-model/structure';
 import { CustomProperty } from '../../../mol-model-props/common/custom-property';
 import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../../mol-repr/representation';
 import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder, UnitsRepresentation } from '../../../mol-repr/structure/representation';
@@ -26,7 +27,6 @@ import { VisualContext } from '../../../mol-repr/visual';
 import { getAltResidueLociFromId } from '../../../mol-repr/structure/visual/util/common';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Theme, ThemeRegistryContext } from '../../../mol-theme/theme';
-import { NullLocation } from '../../../mol-model/location';
 
 const t = Mat4.identity();
 const w = Vec3.zero();
@@ -45,23 +45,36 @@ function shiftVertex(vec: Vec3, ref: Vec3, scale: number) {
 }
 
 const ConfalPyramidsMeshParams = {
-    ...UnitsMeshParams
+    ...UnitsMeshParams,
+    A: PD.Boolean(true),
+    B: PD.Boolean(true),
+    BII: PD.Boolean(true),
+    miB: PD.Boolean(true),
+    Z: PD.Boolean(true),
+    IC: PD.Boolean(true),
+    OPN: PD.Boolean(true),
+    SYN: PD.Boolean(true),
+    N: PD.Boolean(true),
 };
 type ConfalPyramidsMeshParams = typeof ConfalPyramidsMeshParams;
 
 function createConfalPyramidsIterator(structureGroup: StructureGroup): LocationIterator {
     const { structure, group } = structureGroup;
     const instanceCount = group.units.length;
+    const defaultUnit = group.units[0];
+    const empty = StructureElement.Location.create(structure, defaultUnit); // Dummy empty location
 
     const prop = ConfalPyramidsProvider.get(structure.model).value;
     if (prop === undefined || prop.data === undefined) {
-        return LocationIterator(0, 1, () => NullLocation);
+        return LocationIterator(0, 1, (groupIndex: number, instanceIndex: number) => {
+            return empty;
+        });
     }
 
     const { locations } = prop.data;
 
     const getLocation = (groupIndex: number, instanceIndex: number) => {
-        if (locations.length <= groupIndex) return NullLocation;
+        if (locations.length <= groupIndex) return empty;
         return locations[groupIndex];
     };
     return LocationIterator(locations.length, instanceCount, getLocation);
@@ -86,27 +99,40 @@ function createConfalPyramidsMesh(ctx: VisualContext, unit: Unit, structure: Str
         const O3 = first.O3.pos;
         const OP1 = second.OP1.pos; const OP2 = second.OP2.pos; const O5 = second.O5.pos; const P = second.P.pos;
 
+        if (!CPT.NtCToClasses.has(pyramid.NtC))
+            throw new Error(`Invalid NtC ${pyramid.NtC}`);
+
+        const [ upperClass, lowerClass ] = CPT.NtCToClasses.get(pyramid.NtC)!;
+
         shiftVertex(O3, P, scale);
         shiftVertex(OP1, P, scale);
         shiftVertex(OP2, P, scale);
         shiftVertex(O5, P, scale);
         calcMidpoint(mp, O3, O5);
 
-        mb.currentGroup = firsLocIndex;
-        let pb = PrimitiveBuilder(3);
+        let pb: PrimitiveBuilder;
+
         /* Upper part (for first residue in step) */
-        pb.add(O3, OP1, OP2);
-        pb.add(O3, mp, OP1);
-        pb.add(O3, OP2, mp);
-        MeshBuilder.addPrimitive(mb, t, pb.getPrimitive());
+        if (props[upperClass as keyof ConfalPyramidsMeshParams] === true) {
+            pb = PrimitiveBuilder(4);
+            mb.currentGroup = firsLocIndex;
+            pb.add(O3, OP1, OP2);
+            pb.add(O3, mp, OP1);
+            pb.add(O3, OP2, mp);
+            pb.add(mp, OP2, OP1);
+            MeshBuilder.addPrimitive(mb, t, pb.getPrimitive());
+        }
 
         /* Lower part (for second residue in step */
-        mb.currentGroup = secondLocIndex;
-        pb = PrimitiveBuilder(3);
-        pb.add(mp, O5, OP1);
-        pb.add(mp, OP2, O5);
-        pb.add(O5, OP2, OP1);
-        MeshBuilder.addPrimitive(mb, t, pb.getPrimitive());
+        if (props[lowerClass as keyof ConfalPyramidsMeshParams] === true) {
+            mb.currentGroup = secondLocIndex;
+            pb = PrimitiveBuilder(4);
+            pb.add(mp, O5, OP1);
+            pb.add(mp, OP2, O5);
+            pb.add(O5, OP2, OP1);
+            pb.add(mp, OP1, OP2);
+            MeshBuilder.addPrimitive(mb, t, pb.getPrimitive());
+        }
     };
 
     const walker = new ConfalPyramidsUtil.UnitWalker(structure, unit, handler);
@@ -152,11 +178,11 @@ function ConfalPyramidsVisual(materialId: number): UnitsVisual<ConfalPyramidsMes
     }, materialId);
 }
 const ConfalPyramidsVisuals = {
-    'confal-pyramids-symbol': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, UnitsMeshParams>) => UnitsRepresentation('Confal Pyramids Symbol Mesh', ctx, getParams, ConfalPyramidsVisual),
+    'confal-pyramids-symbol': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ConfalPyramidsMeshParams>) => UnitsRepresentation('Confal Pyramids Symbol Mesh', ctx, getParams, ConfalPyramidsVisual),
 };
 
 export const ConfalPyramidsParams = {
-    ...UnitsMeshParams
+    ...ConfalPyramidsMeshParams,
 };
 export type ConfalPyramidsParams = typeof ConfalPyramidsParams;
 export function getConfalPyramidsParams(ctx: ThemeRegistryContext, structure: Structure) {
@@ -178,7 +204,7 @@ export const ConfalPyramidsRepresentationProvider = StructureRepresentationProvi
     defaultValues: PD.getDefaultValues(ConfalPyramidsParams),
     defaultColorTheme: { name: 'confal-pyramids' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (structure: Structure) => structure.models.some(m => ConfalPyramids.isApplicable(m)),
+    isApplicable: (structure: Structure) => structure.models.some(m => DC.isApplicable(m)),
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, structure: Structure) => ConfalPyramidsProvider.attach(ctx, structure.model, void 0, true),
         detach: (data) => ConfalPyramidsProvider.ref(data.model, false),
