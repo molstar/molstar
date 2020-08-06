@@ -34,7 +34,6 @@ async function processNextJob() {
     const writer = job.writer as WebResutlWriter;
 
     try {
-        writer.writeHeader();
         await resolveJob(job);
     } catch (e) {
         ConsoleLogger.errorId(job.id, '' + e);
