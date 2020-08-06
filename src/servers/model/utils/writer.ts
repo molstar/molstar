@@ -20,8 +20,7 @@ export interface ResultWriter {
 }
 
 export interface WebResutlWriter extends ResultWriter {
-    doError(code?: number, message?: string): void,
-    writeHeader(): void
+    doError(code?: number, message?: string): void
 }
 
 export class SimpleResponseResultWriter implements WebResutlWriter {
@@ -44,7 +43,7 @@ export class SimpleResponseResultWriter implements WebResutlWriter {
         this.end();
     }
 
-    writeHeader() {
+    private writeHeader() {
         if (this.headerWritten) return;
         this.headerWritten = true;
 
@@ -57,10 +56,12 @@ export class SimpleResponseResultWriter implements WebResutlWriter {
     }
 
     writeBinary(data: Uint8Array) {
+        this.writeHeader();
         return this.res.write(Buffer.from(data.buffer, data.byteOffset, data.byteLength));
     }
 
     writeString(this: any, data: string) {
+        this.writeHeader();
         return this.res.write(data);
     }
 
@@ -102,7 +103,7 @@ export class TarballResponseResultWriter implements WebResutlWriter {
         this.end();
     }
 
-    writeHeader() {
+    private writeHeader() {
         if (this.headerWritten) return;
 
         this.stream.pipe(this.res, { end: true });
