@@ -80,7 +80,7 @@ export namespace ConfalPyramidsUtil {
     }
 
     function getPossibleAltIdsResidue(residue: Residue, structure: Structure, unit: Unit.Atomic): string[] {
-        return getPossibleAltIdsIndices(unit.elements[residue.start], unit.elements[residue.end - 1], structure, unit);
+        return getPossibleAltIdsIndices(unit.elements[residue.start], unit.elements[residue.end], structure, unit);
     }
 
     class Utility {
@@ -123,18 +123,23 @@ export namespace ConfalPyramidsUtil {
     export class UnitWalker extends Utility {
         private getAtomIndices(names: string[], residue: Residue): ElementIndex[] {
             let rI = residue.start;
-            const rILast = residue.end - 1;
+            const rILast = residue.end;
             const indices: ElementIndex[] = [];
 
-            for (; rI !== rILast; rI++) {
+            for (; rI <= rILast; rI++) {
                 const eI = this.unit.elements[rI];
                 const loc = StructureElement.Location.create(this.structure, this.unit, eI);
                 const thisName = StructureProperties.atom.label_atom_id(loc);
                 if (names.includes(thisName)) indices.push(eI);
             }
 
-            if (indices.length === 0)
-                throw new Error(`Element ${name} not found on residue ${residue.index}`);
+            if (indices.length === 0) {
+                let namesStr = '';
+                for (const n of names)
+                    namesStr += `${n} `;
+
+                throw new Error(`Element [${namesStr}] not found on residue ${residue.index}`);
+            }
 
             return indices;
         }
