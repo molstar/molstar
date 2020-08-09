@@ -8,6 +8,7 @@
 import { ConfalPyramidsColorThemeProvider } from './color';
 import { ConfalPyramidsProvider } from './property';
 import { ConfalPyramidsRepresentationProvider } from './representation';
+import { ConfalPyramidsUtil } from './util';
 import { DnatcoCommon as DC } from '../common';
 import { Loci } from '../../../mol-model/loci';
 import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
@@ -64,8 +65,10 @@ export const DnatcoConfalPyramids = PluginBehavior.create<{ autoAttach: boolean,
             label: (loci: Loci): string | undefined => {
                 if (!this.params.showToolTip) return void 0;
 
-                /* TODO: Implement this */
-                return void 0;
+                const pyramid = ConfalPyramidsUtil.lociToPyramid(loci);
+                if (pyramid !== undefined) {
+                    return `NtC: ${pyramid.NtC}, confal score: ${pyramid.confal_score}`
+                }
             }
         }
 

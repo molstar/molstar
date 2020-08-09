@@ -9,9 +9,13 @@ import { ConfalPyramidsProvider } from './property';
 import { ConfalPyramidsTypes as CPT } from './types';
 import { OrderedSet, Segmentation } from '../../../mol-data/int';
 import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Loci } from '../../../mol-model/loci';
 import { ChainIndex, ElementIndex, ResidueIndex, Structure, StructureElement, StructureProperties, Unit } from '../../../mol-model/structure';
 
 export namespace ConfalPyramidsUtil {
+    const AllowedO3Names = [ 'O3\'', 'O3*' ];
+    const AllowedOP1Names = [ 'OP1', 'O1P' ];
+
     type Residue = Segmentation.Segment<ResidueIndex>;
 
     export type AtomInfo = {
@@ -84,44 +88,7 @@ export namespace ConfalPyramidsUtil {
     }
 
     class Utility {
-        protected getPyramidByName(name: string): { pyramid: CPT.Pyramid | undefined, index: number } {
-            const index = this.data.names.get(name);
-            if (index === undefined) return { pyramid: undefined, index: -1 };
-
-            return { pyramid: this.data.pyramids[index], index };
-        }
-
-        protected stepToName(entry_id: string, modelNum: number, locFirst: StructureElement.Location, locSecond: StructureElement.Location, fakeAltId_1: string, fakeAltId_2: string) {
-            const first = residueInfoFromLocation(locFirst);
-            const second = residueInfoFromLocation(locSecond);
-            const model_id = this.hasMultipleModels ? `-m${modelNum}` : '';
-            const alt_id_1 =  fakeAltId_1 !== '' ? `.${fakeAltId_1}` : (first.alt_id.length ? `.${first.alt_id}` : '');
-            const alt_id_2 = fakeAltId_2 !== '' ? `.${fakeAltId_2}` : (second.alt_id.length ? `.${second.alt_id}` : '');
-            const ins_code_1 = first.ins_code.length ? `.${first.ins_code}` : '';
-            const ins_code_2 = second.ins_code.length ? `.${second.ins_code}` : '';
-
-            return `${entry_id}${model_id}_${first.auth_asym_id}_${first.comp_id}${alt_id_1}_${first.auth_seq_id}${ins_code_1}_${second.comp_id}${alt_id_2}_${second.auth_seq_id}${ins_code_2}`;
-        }
-
-        constructor(unit: Unit.Atomic) {
-            const prop = ConfalPyramidsProvider.get(unit.model).value;
-            if (prop === undefined || prop.data === undefined) throw new Error('No custom properties data');
-
-            this.data = prop.data;
-            this.hasMultipleModels = hasMultipleModels(unit);
-
-            this.entryId = unit.model.entryId.toLowerCase();
-            this.modelNum = unit.model.modelNum;
-        }
-
-        protected readonly data: CPT.PyramidsData
-        protected readonly hasMultipleModels: boolean;
-        protected readonly entryId: string;
-        protected readonly modelNum: number;
-    }
-
-    export class UnitWalker extends Utility {
-        private getAtomIndices(names: string[], residue: Residue): ElementIndex[] {
+        protected getAtomIndices(names: string[], residue: Residue, allowedAltIds: string[]): ElementIndex[] {
             let rI = residue.start;
             const rILast = residue.end;
             const indices: ElementIndex[] = [];
@@ -130,6 +97,10 @@ export namespace ConfalPyramidsUtil {
                 const eI = this.unit.elements[rI];
                 const loc = StructureElement.Location.create(this.structure, this.unit, eI);
                 const thisName = StructureProperties.atom.label_atom_id(loc);
+                if (allowedAltIds.length > 0) {
+                    const thisAltId = StructureProperties.atom.label_alt_id(loc);
+                    if (!allowedAltIds.includes(thisAltId)) continue;
+                }
                 if (names.includes(thisName)) indices.push(eI);
             }
 
@@ -157,42 +128,15 @@ export namespace ConfalPyramidsUtil {
             return positions;
         }
 
-        private handleStep(firstAtoms: FirstResidueAtoms[], secondAtoms: SecondResidueAtoms[]) {
-            const modelNum = this.hasMultipleModels ? this.modelNum : -1;
-            let ok = false;
+        protected getPyramidByName(name: string): { pyramid: CPT.Pyramid | undefined, index: number } {
+            const index = this.data.names.get(name);
+            if (index === undefined) return { pyramid: undefined, index: -1 };
 
-            const firstLoc = StructureElement.Location.create(this.structure, this.unit, -1 as ElementIndex);
-            const secondLoc = StructureElement.Location.create(this.structure, this.unit, -1 as ElementIndex);
-            for (let i = 0; i < firstAtoms.length; i++) {
-                const first = firstAtoms[i];
-                for (let j = 0; j < secondAtoms.length; j++) {
-                    const second = secondAtoms[j];
-                    firstLoc.element = first.O3.index;
-                    secondLoc.element = second.OP1.index;
-
-                    const name = this.stepToName(this.entryId, modelNum, firstLoc, secondLoc, first.O3.fakeAltId, second.OP1.fakeAltId);
-                    const { pyramid, index } = this.getPyramidByName(name);
-                    if (pyramid !== undefined) {
-                        const setLoc = (loc: CPT.Location, eI: ElementIndex) => {
-                            loc.element.structure = this.structure;
-                            loc.element.unit = this.unit;
-                            loc.element.element = eI;
-                        };
-
-                        const locIndex = index * 2;
-                        setLoc(this.data.locations[locIndex], firstLoc.element);
-                        setLoc(this.data.locations[locIndex + 1], secondLoc.element);
-                        this.handler(pyramid, first, second, locIndex, locIndex + 1);
-                        ok = true;
-                    }
-                }
-            }
-
-            if (!ok) throw new Error('Bogus step');
+            return { pyramid: this.data.pyramids[index], index };
         }
 
-        private processFirstResidue(residue: Residue, possibleAltIds: string[]) {
-            const indO3 = this.getAtomIndices(['O3\'', 'O3*'], residue);
+        protected processFirstResidue(residue: Residue, possibleAltIds: string[]) {
+            const indO3 = this.getAtomIndices(AllowedO3Names, residue, []);
             const posO3 = this.getAtomPositions(indO3);
 
             const altPos: FirstResidueAtoms[] = [
@@ -214,11 +158,11 @@ export namespace ConfalPyramidsUtil {
             return altPos;
         }
 
-        private processSecondResidue(residue: Residue, possibleAltIds: string[]) {
-            const indOP1 = this.getAtomIndices(['OP1'], residue);
-            const indOP2 = this.getAtomIndices(['OP2'], residue);
-            const indO5 = this.getAtomIndices(['O5\'', 'O5*'], residue);
-            const indP = this.getAtomIndices(['P'], residue);
+        protected processSecondResidue(residue: Residue, possibleAltIds: string[]) {
+            const indOP1 = this.getAtomIndices(AllowedOP1Names, residue, []);
+            const indOP2 = this.getAtomIndices(['OP2'], residue, []);
+            const indO5 = this.getAtomIndices(['O5\'', 'O5*'], residue, []);
+            const indP = this.getAtomIndices(['P'], residue, []);
 
             const posOP1 = this.getAtomPositions(indOP1);
             const posOP2 = this.getAtomPositions(indOP2);
@@ -261,6 +205,70 @@ export namespace ConfalPyramidsUtil {
             return altPos;
         }
 
+        protected stepToName(entry_id: string, modelNum: number, locFirst: StructureElement.Location, locSecond: StructureElement.Location, fakeAltId_1: string, fakeAltId_2: string) {
+            const first = residueInfoFromLocation(locFirst);
+            const second = residueInfoFromLocation(locSecond);
+            const model_id = this.hasMultipleModels ? `-m${modelNum}` : '';
+            const alt_id_1 =  fakeAltId_1 !== '' ? `.${fakeAltId_1}` : (first.alt_id.length ? `.${first.alt_id}` : '');
+            const alt_id_2 = fakeAltId_2 !== '' ? `.${fakeAltId_2}` : (second.alt_id.length ? `.${second.alt_id}` : '');
+            const ins_code_1 = first.ins_code.length ? `.${first.ins_code}` : '';
+            const ins_code_2 = second.ins_code.length ? `.${second.ins_code}` : '';
+
+            return `${entry_id}${model_id}_${first.auth_asym_id}_${first.comp_id}${alt_id_1}_${first.auth_seq_id}${ins_code_1}_${second.comp_id}${alt_id_2}_${second.auth_seq_id}${ins_code_2}`;
+        }
+
+        constructor(protected structure: Structure, protected unit: Unit.Atomic) {
+            const prop = ConfalPyramidsProvider.get(unit.model).value;
+            if (prop === undefined || prop.data === undefined) throw new Error('No custom properties data');
+
+            this.data = prop.data;
+            this.hasMultipleModels = hasMultipleModels(unit);
+
+            this.entryId = unit.model.entryId.toLowerCase();
+            this.modelNum = unit.model.modelNum;
+        }
+
+        protected readonly data: CPT.PyramidsData
+        protected readonly hasMultipleModels: boolean;
+        protected readonly entryId: string;
+        protected readonly modelNum: number;
+    }
+
+    export class UnitWalker extends Utility {
+        private handleStep(firstAtoms: FirstResidueAtoms[], secondAtoms: SecondResidueAtoms[]) {
+            const modelNum = this.hasMultipleModels ? this.modelNum : -1;
+            let ok = false;
+
+            const firstLoc = StructureElement.Location.create(this.structure, this.unit, -1 as ElementIndex);
+            const secondLoc = StructureElement.Location.create(this.structure, this.unit, -1 as ElementIndex);
+            for (let i = 0; i < firstAtoms.length; i++) {
+                const first = firstAtoms[i];
+                for (let j = 0; j < secondAtoms.length; j++) {
+                    const second = secondAtoms[j];
+                    firstLoc.element = first.O3.index;
+                    secondLoc.element = second.OP1.index;
+
+                    const name = this.stepToName(this.entryId, modelNum, firstLoc, secondLoc, first.O3.fakeAltId, second.OP1.fakeAltId);
+                    const { pyramid, index } = this.getPyramidByName(name);
+                    if (pyramid !== undefined) {
+                        const setLoc = (loc: CPT.Location, eI: ElementIndex) => {
+                            loc.element.structure = this.structure;
+                            loc.element.unit = this.unit;
+                            loc.element.element = eI;
+                        };
+
+                        const locIndex = index * 2;
+                        setLoc(this.data.locations[locIndex], firstLoc.element);
+                        setLoc(this.data.locations[locIndex + 1], secondLoc.element);
+                        this.handler(pyramid, first, second, locIndex, locIndex + 1);
+                        ok = true;
+                    }
+                }
+            }
+
+            if (!ok) throw new Error('Bogus step');
+        }
+
         private step(residue: Residue): { firstAtoms: FirstResidueAtoms[], secondAtoms: SecondResidueAtoms[] } {
             const firstPossibleAltIds = getPossibleAltIdsResidue(residue, this.structure, this.unit);
             const firstAtoms = this.processFirstResidue(residue, firstPossibleAltIds);
@@ -291,8 +299,8 @@ export namespace ConfalPyramidsUtil {
             }
         }
 
-        constructor(private structure: Structure, private unit: Unit.Atomic, private handler: Handler) {
-            super(unit);
+        constructor(structure: Structure, unit: Unit.Atomic, private handler: Handler) {
+            super(structure, unit);
 
             this.chainIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, unit.elements);
             this.residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
@@ -300,5 +308,95 @@ export namespace ConfalPyramidsUtil {
 
         private chainIt: Segmentation.SegmentIterator<ChainIndex>;
         private residueIt: Segmentation.SegmentIterator<ResidueIndex>;
+    }
+
+    class PyramidGetter extends Utility {
+        private residuesToAtoms(firstResidue: Residue, firstAltIds: string[], secondResidue: Residue, secondAltIds: string[]) {
+            const firstAtoms = this.getAtomIndices(AllowedO3Names, firstResidue, firstAltIds);
+            const secondAtoms = this.getAtomIndices(AllowedOP1Names, secondResidue, secondAltIds);
+
+            return { firstAtoms, secondAtoms };
+        }
+
+        get() {
+            const indices = this.loci.elements[0].indices;
+            const NI = OrderedSet.size(indices);
+            const unitElements = this.unit.elements;
+            const { label_seq_id } = this.unit.model.atomicHierarchy.residues;
+            const { label_alt_id } = this.unit.model.atomicHierarchy.atoms;
+            const { index: residueIndex } = this.unit.model.atomicHierarchy.residueAtomSegments;
+            const uIFirst = OrderedSet.getAt(indices, 0);
+            const uILast = OrderedSet.getAt(indices, NI - 1);
+            const resnoFirst = label_seq_id.value(residueIndex[unitElements[uIFirst]]);
+            const resnoLast = label_seq_id.value(residueIndex[unitElements[uILast]]);
+            const possibleFirstAltIds: string[] = [];
+            const possibleSecondAltIds: string[] = [];
+
+            if (resnoFirst + 1 !== resnoLast) return void 0; // Check that we have two consecutive residues
+
+            let uISecond = uIFirst;
+            let i = 1;
+            for (; i < NI; i++) {
+                const uI = OrderedSet.getAt(indices, i);
+                const resno = label_seq_id.value(residueIndex[unitElements[uI]]);
+                const altId = label_alt_id.value(unitElements[uI]);
+                if (resno === resnoLast) {
+                    uISecond = uI;
+                    break;
+                } else {
+                    if (altId !== '' && !possibleFirstAltIds.includes(altId)) possibleFirstAltIds.push(altId);
+                }
+            }
+            if (i === NI)
+                return void 0; // No valid second residue
+
+            // Fill possible second residue alt ids array
+            for (i; i < NI; i++) {
+                const uI = OrderedSet.getAt(indices, i);
+                const altId = label_alt_id.value(unitElements[uI]);
+                if (altId !== '' && !possibleSecondAltIds.includes(altId)) possibleSecondAltIds.push(altId);
+            }
+
+            if (possibleFirstAltIds.length > 1 || possibleSecondAltIds.length > 1) return void 0; // We got selection with more than one conformation
+
+            const firstResidue = { index: residueIndex[unitElements[uIFirst]], start: uIFirst, end: uISecond - 1 };
+            const secondResidue = { index: residueIndex[unitElements[uISecond]], start: uISecond, end: uILast };
+
+            try {
+                const { firstAtoms, secondAtoms } = this.residuesToAtoms(firstResidue, possibleFirstAltIds, secondResidue, possibleSecondAltIds);
+
+                const modelNum = this.hasMultipleModels ? this.modelNum : -1;
+                const firstLoc = StructureElement.Location.create(this.structure, this.unit, -1 as ElementIndex);
+                const secondLoc = StructureElement.Location.create(this.structure, this.unit, -1 as ElementIndex);
+                for (let i = 0; i < firstAtoms.length; i++) {
+                    const first = firstAtoms[i];
+                    for (let j = 0; j < secondAtoms.length; j++) {
+                        const second = secondAtoms[j];
+                        firstLoc.element = first;
+                        secondLoc.element = second;
+
+                        const name = this.stepToName(this.entryId, modelNum, firstLoc, secondLoc, '', '');
+                        const { pyramid } = this.getPyramidByName(name);
+                        if (pyramid !== undefined) return pyramid;
+                    }
+                }
+
+                return void 0;
+            } catch (e) {
+                return void 0;
+            }
+        }
+
+        constructor(unit: Unit.Atomic, private loci: StructureElement.Loci) {
+            super(loci.structure, unit);
+        }
+    }
+
+    export function lociToPyramid(loci: Loci) {
+        if (loci.kind !== 'element-loci') return void 0;
+        if (loci.elements.length < 1) return void 0;
+        if (!Unit.isAtomic(loci.elements[0].unit)) return void 0;
+
+        return (new PyramidGetter(loci.elements[0].unit, loci)).get();
     }
 }
