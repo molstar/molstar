@@ -67,7 +67,7 @@ export const DnatcoConfalPyramids = PluginBehavior.create<{ autoAttach: boolean,
 
                 const pyramid = ConfalPyramidsUtil.lociToPyramid(loci);
                 if (pyramid !== undefined) {
-                    return `NtC: ${pyramid.NtC}, confal score: ${pyramid.confal_score}`
+                    return `NtC: ${pyramid.NtC}, confal score: ${pyramid.confal_score}`;
                 }
             }
         }

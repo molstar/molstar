@@ -7,6 +7,7 @@
 
 import { ConfalPyramidsProvider } from './property';
 import { ConfalPyramidsTypes as CPT } from './types';
+import { DnatcoCommon as DC } from '../common';
 import { OrderedSet, Segmentation } from '../../../mol-data/int';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Loci } from '../../../mol-model/loci';
@@ -395,6 +396,7 @@ export namespace ConfalPyramidsUtil {
     export function lociToPyramid(loci: Loci) {
         if (loci.kind !== 'element-loci') return void 0;
         if (loci.elements.length < 1) return void 0;
+        if (!DC.isApplicable(loci.structure.model)) return void 0;
         if (!Unit.isAtomic(loci.elements[0].unit)) return void 0;
 
         return (new PyramidGetter(loci.elements[0].unit, loci)).get();
