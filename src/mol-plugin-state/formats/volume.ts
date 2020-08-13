@@ -20,7 +20,7 @@ import { getContourLevelEmdb } from '../../mol-plugin/behavior/dynamic/volume-st
 import { Task } from '../../mol-task';
 import { DscifFormat } from '../../mol-model-formats/volume/density-server';
 
-const Category = 'Volume';
+export const VolumeFormatCategory = 'Volume';
 type Params = { entryId?: string };
 
 async function tryObtainRecommendedIsoValue(plugin: PluginContext, volume?: Volume) {
@@ -71,7 +71,7 @@ async function defaultVisuals(plugin: PluginContext, data: { volume: StateObject
 export const Ccp4Provider = DataFormatProvider({
     label: 'CCP4/MRC/MAP',
     description: 'CCP4/MRC/MAP',
-    category: Category,
+    category: VolumeFormatCategory,
     binaryExtensions: ['ccp4', 'mrc', 'map'],
     parse: async (plugin, data, params?: Params) => {
         const format = plugin.build()
@@ -91,7 +91,7 @@ export const Ccp4Provider = DataFormatProvider({
 export const Dsn6Provider = DataFormatProvider({
     label: 'DSN6/BRIX',
     description: 'DSN6/BRIX',
-    category: Category,
+    category: VolumeFormatCategory,
     binaryExtensions: ['dsn6', 'brix'],
     parse: async (plugin, data, params?: Params) => {
         const format = plugin.build()
@@ -111,7 +111,7 @@ export const Dsn6Provider = DataFormatProvider({
 export const DxProvider = DataFormatProvider({
     label: 'DX',
     description: 'DX',
-    category: Category,
+    category: VolumeFormatCategory,
     stringExtensions: ['dx'],
     binaryExtensions: ['dxbin'],
     parse: async (plugin, data, params?: Params) => {
@@ -132,7 +132,7 @@ export const DxProvider = DataFormatProvider({
 export const CubeProvider = DataFormatProvider({
     label: 'Cube',
     description: 'Cube',
-    category: Category,
+    category: VolumeFormatCategory,
     stringExtensions: ['cub', 'cube'],
     parse: async (plugin, data, params?: Params) => {
         const format = plugin.build()
@@ -194,7 +194,7 @@ export const CubeProvider = DataFormatProvider({
 export const DscifProvider = DataFormatProvider({
     label: 'DensityServer CIF',
     description: 'DensityServer CIF',
-    category: Category,
+    category: VolumeFormatCategory,
     stringExtensions: ['cif'],
     binaryExtensions: ['bcif'],
     isApplicable: (info, data) => {

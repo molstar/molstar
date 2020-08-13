@@ -8,12 +8,12 @@
 import { StateTransforms } from '../transforms';
 import { DataFormatProvider } from './provider';
 
-const Category = 'Structure';
+export const StructureFormatCategory = 'Structure';
 
 export const PsfProvider = DataFormatProvider({
     label: 'PSF',
     description: 'PSF',
-    category: Category,
+    category: StructureFormatCategory,
     stringExtensions: ['psf'],
     parse: async (plugin, data) => {
         const format = plugin.state.data.build()
@@ -30,7 +30,7 @@ export const PsfProvider = DataFormatProvider({
 export const DcdProvider = DataFormatProvider({
     label: 'DCD',
     description: 'DCD',
-    category: Category,
+    category: StructureFormatCategory,
     binaryExtensions: ['dcd'],
     parse: (plugin, data) => {
         const coordinates = plugin.state.data.build()
@@ -44,7 +44,7 @@ export const DcdProvider = DataFormatProvider({
 export const XtcProvider = DataFormatProvider({
     label: 'XTC',
     description: 'XTC',
-    category: Category,
+    category: StructureFormatCategory,
     binaryExtensions: ['xtc'],
     parse: (plugin, data) => {
         const coordinates = plugin.state.data.build()

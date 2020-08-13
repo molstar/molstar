@@ -324,6 +324,14 @@ export class PluginContext {
         await this.runTask(this.state.behaviors.updateTree(tree, { doNotUpdateCurrent: true, doNotLogTiming: true }));
     }
 
+    private initCustomFormats() {
+        if (!this.spec.customFormats) return;
+
+        for (const f of this.spec.customFormats) {
+            this.dataFormats.add(f[0], f[1]);
+        }
+    }
+
     private initDataActions() {
         for (const a of this.spec.actions) {
             this.state.data.actions.add(a.action);
@@ -348,6 +356,7 @@ export class PluginContext {
     async init() {
         this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e));
 
+        this.initCustomFormats();
         this.initBehaviorEvents();
         this.initBuiltInBehavior();
 

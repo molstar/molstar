@@ -11,6 +11,7 @@ import { PluginLayoutStateProps } from './layout';
 import { PluginStateAnimation } from '../mol-plugin-state/animation/model';
 import { PluginConfigItem } from './config';
 import { PartialCanvas3DProps } from '../mol-canvas3d/canvas3d';
+import { DataFormatProvider } from '../mol-plugin-state/formats/provider';
 
 export { PluginSpec };
 
@@ -19,6 +20,7 @@ interface PluginSpec {
     behaviors: PluginSpec.Behavior[],
     animations?: PluginStateAnimation[],
     customParamEditors?: [StateAction | StateTransformer, StateTransformParameters.Class][],
+    customFormats?: [string, DataFormatProvider][]
     layout?: {
         initial?: Partial<PluginLayoutStateProps>,
         controls?: PluginSpec.LayoutControls
