@@ -31,7 +31,7 @@ export function getCoarseRanges(data: CoarseElementData, chemicalComponentMap: R
                 startIndex = i;
                 prevSeqEnd = seq_id_end.value(i);
             } else {
-                if (prevSeqEnd !== seq_id_begin.value(i) - 1) {
+                if (seq_id_begin.value(i) - prevSeqEnd > 1) {
                     polymerRanges.push(startIndex, i - 1);
                     gapRanges.push(i - 1, i);
                     startIndex = i;

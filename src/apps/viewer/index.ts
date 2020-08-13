@@ -26,11 +26,17 @@ import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
 import { DnatcoConfalPyramids } from '../../extensions/dnatco';
+import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
+import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 
 require('mol-plugin-ui/skin/light.scss');
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setProductionMode, setDebugMode } from '../../mol-util/debug';
+
+const CustomFormats = [
+    ['g3d', G3dProvider] as const
+];
 
 const Extensions = {
     'cellpack': PluginSpec.Behavior(CellPack),
@@ -38,10 +44,12 @@ const Extensions = {
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
     'rcsb-assembly-symmetry': PluginSpec.Behavior(RCSBAssemblySymmetry),
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
-    'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation)
+    'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
+    'g3d': PluginSpec.Behavior(G3DFormat)
 };
 
 const DefaultViewerOptions = {
+    customFormats: CustomFormats as [string, DataFormatProvider][],
     extensions: ObjectKeys(Extensions),
     layoutIsExpanded: true,
     layoutShowControls: true,
@@ -77,6 +85,7 @@ export class Viewer {
             ],
             animations: [...DefaultPluginSpec.animations || []],
             customParamEditors: DefaultPluginSpec.customParamEditors,
+            customFormats: o?.customFormats,
             layout: {
                 initial: {
                     isExpanded: o.layoutIsExpanded,

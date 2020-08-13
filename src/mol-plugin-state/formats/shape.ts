@@ -11,12 +11,12 @@ import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectRef } from '../../mol-state';
 import { PluginStateObject } from '../objects';
 
-const Category = 'Shape';
+export const ShapeFormatCategory = 'Shape';
 
 export const PlyProvider = DataFormatProvider({
     label: 'PLY',
     description: 'PLY',
-    category: Category,
+    category: ShapeFormatCategory,
     stringExtensions: ['ply'],
     parse: async (plugin, data) => {
         const format = plugin.state.data.build()
