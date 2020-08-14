@@ -19,6 +19,7 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { Clipping } from '../mol-theme/clipping';
 import { stringToWords } from '../mol-util/string';
 import { Transparency } from '../mol-theme/transparency';
+import { degToRad } from '../mol-math/misc';
 
 export interface RendererStats {
     programCount: number
@@ -83,7 +84,7 @@ export const RendererParams = {
             position: PD.Vec3(Vec3()),
             rotation: PD.Group({
                 axis: PD.Vec3(Vec3.create(1, 0, 0)),
-                angle: PD.Numeric(0, { min: -180, max: 180, step: 0.1 }),
+                angle: PD.Numeric(0, { min: -180, max: 180, step: 0.1 }, { description: 'Angle in Degrees' }),
             }, { isExpanded: true }),
             scale: PD.Vec3(Vec3.create(1, 1, 1)),
         }, o => stringToWords(o.type))
@@ -146,7 +147,7 @@ function getClip(props: RendererProps['clip'], clip?: Clip): Clip {
         const p = props.objects[i];
         type[i] = Clipping.Type[p.type];
         Vec3.toArray(p.position, position, i * 3);
-        Quat.toArray(Quat.setAxisAngle(tmpQuat, p.rotation.axis, p.rotation.angle), rotation, i * 4);
+        Quat.toArray(Quat.setAxisAngle(tmpQuat, p.rotation.axis, degToRad(p.rotation.angle)), rotation, i * 4);
         Vec3.toArray(p.scale, scale, i * 3);
     }
     return {
