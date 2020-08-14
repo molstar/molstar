@@ -10,7 +10,7 @@ import * as argparse from 'argparse';
 require('util.promisify').shim();
 
 import { CifFrame } from '../../mol-io/reader/cif';
-import { Model, Structure, StructureElement, Unit, StructureProperties, UnitRing } from '../../mol-model/structure';
+import { Model, Structure, StructureElement, Unit, StructureProperties, UnitRing, Trajectory } from '../../mol-model/structure';
 // import { Run, Progress } from '../../mol-task'
 import { OrderedSet } from '../../mol-data/int';
 import { openCif, downloadCif } from './helpers';
@@ -19,6 +19,7 @@ import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
 import { Sequence } from '../../mol-model/sequence';
 import { ModelSecondaryStructure } from '../../mol-model-formats/structure/property/secondary-structure';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
+import { Task } from '../../mol-task';
 
 
 async function downloadFromPdb(pdb: string) {
@@ -183,10 +184,11 @@ export function printSymmetryInfo(model: Model) {
     console.log(`NCS operators: ${symmetry.ncsOperators && symmetry.ncsOperators.map(a => a.name).join(', ')}`);
 }
 
-export function printModelStats(models: ReadonlyArray<Model>) {
+export async function printModelStats(models: Trajectory) {
     console.log('\nModels\n=============');
 
-    for (const m of models) {
+    for (let i = 0; i < models.frameCount; i++) {
+        const m = await Task.resolveInContext(models.getFrameAtIndex(i));
         if (m.coarseHierarchy.isDefined) {
             console.log(`${m.label} ${m.modelNum}: ${m.atomicHierarchy.atoms._rowCount} atom(s), ${m.coarseHierarchy.spheres.count} sphere(s), ${m.coarseHierarchy.gaussians.count} gaussian(s)`);
         } else {
@@ -198,7 +200,7 @@ export function printModelStats(models: ReadonlyArray<Model>) {
 
 export async function getModelsAndStructure(frame: CifFrame) {
     const models = await trajectoryFromMmCIF(frame).run();
-    const structure = Structure.ofModel(models[0]);
+    const structure = Structure.ofModel(models.representative);
     return { models, structure };
 }
 
@@ -206,13 +208,13 @@ async function run(frame: CifFrame, args: Args) {
     const { models, structure } = await getModelsAndStructure(frame);
 
     if (args.models) printModelStats(models);
-    if (args.seq) printSequence(models[0]);
+    if (args.seq) printSequence(models.representative);
     if (args.units) printUnits(structure);
-    if (args.sym) printSymmetryInfo(models[0]);
+    if (args.sym) printSymmetryInfo(models.representative);
     if (args.rings) printRings(structure);
     if (args.intraBonds) printBonds(structure, true, false);
     if (args.interBonds) printBonds(structure, false, true);
-    if (args.sec) printSecStructure(models[0]);
+    if (args.sec) printSecStructure(models.representative);
 }
 
 async function runDL(pdb: string, args: Args) {

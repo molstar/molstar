@@ -34,9 +34,9 @@ export async function readCIF(path: string) {
     }
 
     const models = await trajectoryFromMmCIF(parsed.result.blocks[0]).run();
-    const structures = models.map(Structure.ofModel);
+    const structures = [Structure.ofModel(models.representative)];
 
-    return { mmcif: models[0].sourceData.data as MmcifFormat.Data, models, structures };
+    return { mmcif: models.representative.sourceData.data as MmcifFormat.Data, models, structures };
 }
 
 export async function test() {

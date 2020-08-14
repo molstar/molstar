@@ -4,7 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from '../../mol-model/structure/model';
 import { Task } from '../../mol-task';
 import { ModelFormat } from '../format';
 import { Column, Table } from '../../mol-data/db';
@@ -14,6 +13,7 @@ import { fillSerial } from '../../mol-util/array';
 import { MoleculeType } from '../../mol-model/structure/model/types';
 import { BasicSchema, createBasic } from './basic/schema';
 import { createModels } from './basic/parser';
+import { Trajectory } from '../../mol-model/structure';
 
 function getBasic(table: File3DG['table']) {
     const entityIds = new Array<string>(table._rowCount);
@@ -74,7 +74,7 @@ namespace Format3dg {
     }
 }
 
-export function trajectoryFrom3DG(file3dg: File3DG): Task<Model.Trajectory> {
+export function trajectoryFrom3DG(file3dg: File3DG): Task<Trajectory> {
     return Task.create('Parse 3DG', async ctx => {
         const format = Format3dg.from3dg(file3dg);
         const basic = getBasic(file3dg.table);

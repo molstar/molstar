@@ -10,7 +10,7 @@ import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Ingredient, IngredientSource, CellPacking } from './data';
 import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile, getStructureMean, getFromOPM } from './util';
-import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit } from '../../mol-model/structure';
+import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit, Trajectory } from '../../mol-model/structure';
 import { trajectoryFromMmCIF, MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../mol-model-formats/structure/pdb';
 import { Mat4, Vec3, Quat } from '../../mol-math/linear-algebra';
@@ -36,8 +36,8 @@ function getCellPackModelUrl(fileName: string, baseUrl: string) {
 }
 
 class TrajectoryCache {
-    private map = new Map<string, Model.Trajectory>();
-    set(id: string, trajectory: Model.Trajectory) { this.map.set(id, trajectory); }
+    private map = new Map<string, Trajectory>();
+    set(id: string, trajectory: Trajectory) { this.map.set(id, trajectory); }
     get(id: string) { return this.map.get(id); }
 }
 
@@ -94,9 +94,9 @@ async function getModel(plugin: PluginContext, id: string, ingredient: Ingredien
                 trajectory = await plugin.runTask(trajectoryFromMmCIF(data.mmcif));
             }
         }
-        trajCache.set(id, trajectory);
+        trajCache.set(id, trajectory!);
     }
-    const model = trajectory[modelIndex];
+    const model = await plugin.resolveTask(trajectory?.getFrameAtIndex(modelIndex)!);
     return { model, assets };
 }
 
@@ -303,7 +303,7 @@ async function getCurve(plugin: PluginContext, name: string, ingredient: Ingredi
     const curveModelTask = Task.create('Curve Model', async ctx => {
         const format = MmcifFormat.fromFrame(cif);
         const models = await createModels(format.data.db, format, ctx);
-        return models[0];
+        return models.representative;
     });
 
     const curveModel = await plugin.runTask(curveModelTask);

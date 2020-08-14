@@ -16,8 +16,9 @@ import { ModelFormat } from '../format';
 import { IndexPairBonds } from './property/bonds/index-pair';
 import { Mol2File } from '../../mol-io/reader/mol2/schema';
 import { AtomPartialCharge } from './property/partial-charge';
+import { Trajectory, ArrayTrajectory } from '../../mol-model/structure';
 
-async function getModels(mol2: Mol2File, ctx: RuntimeContext): Promise<Model[]> {
+async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
     const models: Model[] = [];
 
     for (let i = 0, il = mol2.structures.length; i < il; ++i) {
@@ -64,23 +65,25 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext): Promise<Model[]> 
 
         const _models = await createModels(basics, Mol2Format.create(mol2), ctx);
 
-        if (_models.length > 0) {
+        if (_models.frameCount > 0) {
             const indexA = Column.ofIntArray(Column.mapToArray(bonds.origin_atom_id, x => x - 1, Int32Array));
             const indexB = Column.ofIntArray(Column.mapToArray(bonds.target_atom_id, x => x - 1, Int32Array));
             const order = Column.ofIntArray(Column.mapToArray(bonds.bond_type, x => x === 'ar' ? 1 : parseInt(x), Int8Array));
             const pairBonds = IndexPairBonds.fromData({ pairs: { indexA, indexB, order }, count: bonds.count });
-            IndexPairBonds.Provider.set(_models[0], pairBonds);
 
-            AtomPartialCharge.Provider.set(_models[0], {
+            const first = _models.representative;
+            IndexPairBonds.Provider.set(first, pairBonds);
+
+            AtomPartialCharge.Provider.set(first, {
                 data: atoms.charge,
                 type: molecule.charge_type
             });
 
-            models.push(_models[0]);
+            models.push(first);
         }
     }
 
-    return models;
+    return new ArrayTrajectory(models);
 }
 
 //
@@ -99,6 +102,6 @@ namespace Mol2Format {
     }
 }
 
-export function trajectoryFromMol2(mol2: Mol2File): Task<Model.Trajectory> {
+export function trajectoryFromMol2(mol2: Mol2File): Task<Trajectory> {
     return Task.create('Parse MOL2', ctx => getModels(mol2, ctx));
 }

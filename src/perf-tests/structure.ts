@@ -73,9 +73,9 @@ export async function readCIF(path: string) {
     console.time('buildModels');
     const models = await trajectoryFromMmCIF(data).run();
     console.timeEnd('buildModels');
-    const structures = models.map(Structure.ofModel);
+    const structures = [Structure.ofModel(models.representative)];
 
-    return { mmcif: models[0].sourceData.data, models, structures };
+    return { mmcif: models.representative.sourceData.data, models, structures };
 }
 
 const DATA_DIR = './build/data';
@@ -411,7 +411,7 @@ export namespace PropertyAccess {
 
         // return;
 
-        console.log('bs', baseline(models[0]));
+        console.log('bs', baseline(models.representative));
         console.log('sp', sumProperty(structures[0], l => l.unit.model.atomicConformation.atomId.value(l.element)));
         // console.log(sumPropertySegmented(structures[0], l => l.unit.model.atomSiteConformation.atomId.value(l.element)));
 
@@ -459,7 +459,7 @@ export namespace PropertyAccess {
         console.log(StructureSelection.structureCount(q2r));
         // console.log(q1(structures[0]));
 
-        const col = models[0].atomicConformation.atomId.value;
+        const col = models.representative.atomicConformation.atomId.value;
         const suite = new B.Suite();
         suite
             // .add('test q', () => q1(structures[0]))

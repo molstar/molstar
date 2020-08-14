@@ -13,7 +13,7 @@ import { Dsn6File } from '../mol-io/reader/dsn6/schema';
 import { PlyFile } from '../mol-io/reader/ply/schema';
 import { PsfFile } from '../mol-io/reader/psf/parser';
 import { ShapeProvider } from '../mol-model/shape/provider';
-import { Coordinates as _Coordinates, Model as _Model, Structure as _Structure, StructureElement, Topology as _Topology } from '../mol-model/structure';
+import { Coordinates as _Coordinates, Model as _Model, Structure as _Structure, Trajectory as _Trajectory, StructureElement, Topology as _Topology } from '../mol-model/structure';
 import { Volume as _Volume } from '../mol-model/volume';
 import { PluginBehavior } from '../mol-plugin/behavior/behavior';
 import { Representation } from '../mol-repr/representation';
@@ -100,7 +100,7 @@ export namespace PluginStateObject {
         export class Coordinates extends Create<_Coordinates>({ name: 'Coordinates', typeClass: 'Object' }) { }
         export class Topology extends Create<_Topology>({ name: 'Topology', typeClass: 'Object' }) { }
         export class Model extends Create<_Model>({ name: 'Model', typeClass: 'Object' }) { }
-        export class Trajectory extends Create<ReadonlyArray<_Model>>({ name: 'Trajectory', typeClass: 'Object' }) { }
+        export class Trajectory extends Create<_Trajectory>({ name: 'Trajectory', typeClass: 'Object' }) { }
         export class Structure extends Create<_Structure>({ name: 'Structure', typeClass: 'Object' }) { }
 
         export namespace Structure {

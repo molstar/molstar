@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Model } from '../../mol-model/structure/model';
 import { Task } from '../../mol-task';
 import { Column, Table } from '../../mol-data/db';
 import { MoleculeType } from '../../mol-model/structure/model/types';
@@ -13,6 +12,7 @@ import { BasicSchema, createBasic } from '../../mol-model-formats/structure/basi
 import { createModels } from '../../mol-model-formats/structure/basic/parser';
 import { G3dDataBlock } from './data';
 import { objectForEach } from '../../mol-util/object';
+import { Trajectory } from '../../mol-model/structure';
 
 interface Columns {
     entity_id: string[],
@@ -106,7 +106,7 @@ function getBasic(data: G3dDataBlock) {
     });
 }
 
-export function trajectoryFromG3D(data: G3dDataBlock): Task<Model.Trajectory> {
+export function trajectoryFromG3D(data: G3dDataBlock): Task<Trajectory> {
     return Task.create('Parse G3D', async ctx => {
         const basic = getBasic(data);
         return createModels(basic, { kind: 'g3d', name: 'G3D', data }, ctx);

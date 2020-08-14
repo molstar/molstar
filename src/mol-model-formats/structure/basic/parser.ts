@@ -21,6 +21,7 @@ import { AtomSite, BasicData } from './schema';
 import { getProperties } from './properties';
 import { getEntities } from './entities';
 import { getModelGroupName } from './util';
+import { ArrayTrajectory } from '../../../mol-model/structure/trajectory';
 
 export async function createModels(data: BasicData, format: ModelFormat, ctx: RuntimeContext) {
     const properties = getProperties(data);
@@ -32,7 +33,7 @@ export async function createModels(data: BasicData, format: ModelFormat, ctx: Ru
         Model.TrajectoryInfo.set(models[i], { index: i, size: models.length });
     }
 
-    return models;
+    return new ArrayTrajectory(models);
 }
 
 /** Standard atomic model */

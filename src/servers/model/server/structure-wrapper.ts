@@ -17,6 +17,7 @@ import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { ModelPropertiesProvider } from '../property-provider';
 import { trajectoryFromMmCIF } from '../../../mol-model-formats/structure/mmcif';
 import { fetchRetry } from '../utils/fetch-retry';
+import { Task } from '../../../mol-task';
 
 require('util.promisify').shim();
 
@@ -160,11 +161,15 @@ function readOrFetch(jobId: string, key: string, sourceId: string | '_local_', e
 export async function readStructureWrapper(key: string, sourceId: string | '_local_', entryId: string, jobId: string | undefined, propertyProvider: ModelPropertiesProvider | undefined) {
     const { data, frame, isBinary } = await readOrFetch(jobId || '', key, sourceId, entryId);
     perf.start('createModel');
-    const models = await trajectoryFromMmCIF(frame).run();
+    const trajectory = await trajectoryFromMmCIF(frame).run();
     perf.end('createModel');
 
+    const models: Model[] = [];
     const modelMap = new Map<number, Model>();
-    for (const m of models) {
+
+    for (let i = 0; i < trajectory.frameCount; i++) {
+        const m = await Task.resolveInContext(trajectory.getFrameAtIndex(i));
+        models.push(m);
         modelMap.set(m.modelNum, m);
     }
 

@@ -71,6 +71,11 @@ namespace Task {
     export function empty(): Task<void> { return create('', async ctx => {}); }
     export function fail(name: string, reason: string): Task<any> { return create(name, async ctx => { throw new Error(reason); }); }
 
+    export function resolveInContext<T>(object: Task<T> | T, ctx?: RuntimeContext) {
+        if (is(object)) return ctx ? object.runInContext(ctx) : object.run();
+        return object;
+    }
+
     export interface Progress {
         taskId: number,
         taskName: string,

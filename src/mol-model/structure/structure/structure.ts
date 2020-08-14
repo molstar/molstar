@@ -31,6 +31,8 @@ import { StructureSelection } from '../query/selection';
 import { getBoundary } from '../../../mol-math/geometry/boundary';
 import { ElementSymbol } from '../model/types';
 import { CustomStructureProperty } from '../../../mol-model-props/common/custom-structure-property';
+import { Trajectory } from '../trajectory';
+import { RuntimeContext, Task } from '../../../mol-task';
 
 class Structure {
     /** Maps unit.id to unit */
@@ -639,14 +641,17 @@ namespace Structure {
         return new Structure(units, props);
     }
 
-    export function ofTrajectory(trajectory: ReadonlyArray<Model>): Structure {
-        if (trajectory.length === 0) return Empty;
+    export async function ofTrajectory(trajectory: Trajectory, ctx: RuntimeContext): Promise<Structure> {
+        if (trajectory.frameCount === 0) return Empty;
 
         const units: Unit[] = [];
 
+        let first: Model | undefined = void 0;
         let count = 0;
-        for (let i = 0, il = trajectory.length; i < il; ++i) {
-            const structure = ofModel(trajectory[i]);
+        for (let i = 0, il = trajectory.frameCount; i < il; ++i) {
+            const frame = await Task.resolveInContext(trajectory.getFrameAtIndex(i), ctx);
+            if (!first) first = frame;
+            const structure = ofModel(frame);
             for (let j = 0, jl = structure.units.length; j < jl; ++j) {
                 const u = structure.units[j];
                 const invariantId = u.invariantId + count;
@@ -657,7 +662,7 @@ namespace Structure {
             count = units.length;
         }
 
-        return create(units, { representativeModel: trajectory[0], label: trajectory[0].label });
+        return create(units, { representativeModel: first!, label: first!.label });
     }
 
     const PARTITION = false;

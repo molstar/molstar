@@ -7,7 +7,6 @@
 
 import { Column, Table } from '../../mol-data/db';
 import { MolFile } from '../../mol-io/reader/mol/parser';
-import { Model } from '../../mol-model/structure/model';
 import { MoleculeType } from '../../mol-model/structure/model/types';
 import { RuntimeContext, Task } from '../../mol-task';
 import { createModels } from './basic/parser';
@@ -16,8 +15,9 @@ import { ComponentBuilder } from './common/component';
 import { EntityBuilder } from './common/entity';
 import { ModelFormat } from '../format';
 import { IndexPairBonds } from './property/bonds/index-pair';
+import { Trajectory } from '../../mol-model/structure';
 
-async function getModels(mol: MolFile, ctx: RuntimeContext): Promise<Model[]> {
+async function getModels(mol: MolFile, ctx: RuntimeContext) {
     const { atoms, bonds } = mol;
 
     const MOL = Column.ofConst('MOL', mol.atoms.count, Column.Schema.str);
@@ -63,12 +63,12 @@ async function getModels(mol: MolFile, ctx: RuntimeContext): Promise<Model[]> {
 
     const models = await createModels(basics, MolFormat.create(mol), ctx);
 
-    if (models.length > 0) {
+    if (models.frameCount > 0) {
         const indexA = Column.ofIntArray(Column.mapToArray(bonds.atomIdxA, x => x - 1, Int32Array));
         const indexB = Column.ofIntArray(Column.mapToArray(bonds.atomIdxB, x => x - 1, Int32Array));
         const order = Column.asArrayColumn(bonds.order, Int32Array);
         const pairBonds = IndexPairBonds.fromData({ pairs: { indexA, indexB, order }, count: bonds.count });
-        IndexPairBonds.Provider.set(models[0], pairBonds);
+        IndexPairBonds.Provider.set(models.representative, pairBonds);
     }
 
     return models;
@@ -90,6 +90,6 @@ namespace MolFormat {
     }
 }
 
-export function trajectoryFromMol(mol: MolFile): Task<Model.Trajectory> {
+export function trajectoryFromMol(mol: MolFile): Task<Trajectory> {
     return Task.create('Parse MOL', ctx => getModels(mol, ctx));
 }

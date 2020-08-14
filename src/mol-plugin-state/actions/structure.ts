@@ -191,8 +191,8 @@ export const UpdateTrajectory = StateAction.build({
             if (!parent || !parent.obj) continue;
             const traj = parent.obj;
             update.to(m).update(old => {
-                let modelIndex = (old.modelIndex + params.by!) % traj.data.length;
-                if (modelIndex < 0) modelIndex += traj.data.length;
+                let modelIndex = (old.modelIndex + params.by!) % traj.data.frameCount;
+                if (modelIndex < 0) modelIndex += traj.data.frameCount;
                 return { modelIndex };
             });
         }
