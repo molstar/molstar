@@ -17,7 +17,7 @@ import { trajectoryFromGRO } from '../../mol-model-formats/structure/gro';
 import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../mol-model-formats/structure/pdb';
 import { topologyFromPsf } from '../../mol-model-formats/structure/psf';
-import { Coordinates, Model, Queries, QueryContext, Structure, StructureElement, StructureQuery, StructureSelection as Sel, Topology } from '../../mol-model/structure';
+import { Coordinates, Model, Queries, QueryContext, Structure, StructureElement, StructureQuery, StructureSelection as Sel, Topology, ArrayTrajectory, Trajectory } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 import Expression from '../../mol-script/language/expression';
@@ -142,7 +142,7 @@ const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
         return Task.create('Create trajectory from model/topology and coordinates', async ctx => {
             const coordinates = dependencies![params.coordinatesRef].data as Coordinates;
             const trajectory = await getTrajectory(ctx, dependencies![params.modelRef], coordinates);
-            const props = { label: 'Trajectory', description: `${trajectory.length} model${trajectory.length === 1 ? '' : 's'}` };
+            const props = { label: 'Trajectory', description: `${trajectory.frameCount} model${trajectory.frameCount === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(trajectory, props);
         });
     }
@@ -162,15 +162,24 @@ const TrajectoryFromBlob = PluginStateTransform.BuiltIn({
                 if (e.kind !== 'cif') continue;
                 const block = e.data.blocks[0];
                 const xs = await trajectoryFromMmCIF(block).runInContext(ctx);
-                if (xs.length === 0) throw new Error('No models found.');
-                for (const x of xs) models.push(x);
+                if (xs.frameCount === 0) throw new Error('No models found.');
+
+                for (let i = 0; i < xs.frameCount; i++) {
+                    const x = await Task.resolveInContext(xs.getFrameAtIndex(i), ctx);
+                    models.push(x);
+                }
             }
 
             const props = { label: 'Trajectory', description: `${models.length} model${models.length === 1 ? '' : 's'}` };
-            return new SO.Molecule.Trajectory(models, props);
+            return new SO.Molecule.Trajectory(new ArrayTrajectory(models), props);
         });
     }
 });
+
+function trajectoryProps(trajectory: Trajectory) {
+    const first = trajectory.representative;
+    return { label: `${first.entry}`, description: `${trajectory.frameCount} model${trajectory.frameCount === 1 ? '' : 's'}` };
+}
 
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
 const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
@@ -197,8 +206,8 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
             const block = a.data.blocks.find(b => b.header === header);
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
             const models = await trajectoryFromMmCIF(block).runInContext(ctx);
-            if (models.length === 0) throw new Error('No models found.');
-            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            if (models.frameCount === 0) throw new Error('No models found.');
+            const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -219,7 +228,7 @@ const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
             const parsed = await parsePDB(a.data, a.label, params.isPdbqt).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromPDB(parsed.result).runInContext(ctx);
-            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -237,7 +246,7 @@ const TrajectoryFromGRO = PluginStateTransform.BuiltIn({
             const parsed = await parseGRO(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromGRO(parsed.result).runInContext(ctx);
-            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -255,7 +264,7 @@ const TrajectoryFromMOL = PluginStateTransform.BuiltIn({
             const parsed = await parseMol(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromMol(parsed.result).runInContext(ctx);
-            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -273,7 +282,7 @@ const TrajectoryFromMOL2 = PluginStateTransform.BuiltIn({
             const parsed = await parseMol2(a.data, a.label).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromMol2(parsed.result).runInContext(ctx);
-            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -289,7 +298,7 @@ const TrajectoryFromCube = PluginStateTransform.BuiltIn({
     apply({ a }) {
         return Task.create('Parse MOL', async ctx => {
             const models = await trajectoryFromCube(a.data).runInContext(ctx);
-            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -319,8 +328,8 @@ const TrajectoryFromCifCore = PluginStateTransform.BuiltIn({
             const block = a.data.blocks.find(b => b.header === header);
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
             const models = await trajectoryFromCifCore(block).runInContext(ctx);
-            if (models.length === 0) throw new Error('No models found.');
-            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            if (models.frameCount === 0) throw new Error('No models found.');
+            const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -338,7 +347,7 @@ const TrajectoryFrom3DG = PluginStateTransform.BuiltIn({
             const parsed = await parse3DG(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFrom3DG(parsed.result).runInContext(ctx);
-            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -355,17 +364,19 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
         if (!a) {
             return { modelIndex: PD.Numeric(0, {}, { description: 'Zero-based index of the model' }) };
         }
-        return { modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.length, step: 1 }, { description: 'Model Index' })) };
+        return { modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.frameCount, step: 1 }, { description: 'Model Index' })) };
     }
 })({
-    isApplicable: a => a.data.length > 0,
+    isApplicable: a => a.data.frameCount > 0,
     apply({ a, params }) {
-        let modelIndex = params.modelIndex % a.data.length;
-        if (modelIndex < 0) modelIndex += a.data.length;
-        const model = a.data[params.modelIndex];
-        const label = `Model ${model.modelNum}`;
-        const description = a.data.length === 1 ? undefined : `of ${a.data.length}`;
-        return new SO.Molecule.Model(model, { label, description });
+        return Task.create('Model from Trajectory', async ctx => {
+            let modelIndex = params.modelIndex % a.data.frameCount;
+            if (modelIndex < 0) modelIndex += a.data.frameCount;
+            const model = await Task.resolveInContext(a.data.getFrameAtIndex(modelIndex), ctx);
+            const label = `Model ${modelIndex + 1}`;
+            let description = a.data.frameCount === 1 ? undefined : `of ${a.data.frameCount}`;
+            return new SO.Molecule.Model(model, { label, description });
+        });
     },
     dispose({ b }) {
         b?.data.customProperties.dispose();
@@ -381,7 +392,7 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         return Task.create('Build Structure', async ctx => {
-            const s = Structure.ofTrajectory(a.data);
+            const s = await Structure.ofTrajectory(a.data, ctx);
             const props = { label: 'Ensemble', description: Structure.elementDescription(s) };
             return new SO.Molecule.Structure(s, props);
         });

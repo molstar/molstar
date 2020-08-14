@@ -62,6 +62,11 @@ import { filter, take } from 'rxjs/operators';
 
 export class PluginContext {
     runTask = <T>(task: Task<T>) => this.tasks.run(task);
+    resolveTask = <T>(object: Task<T> | T | undefined) => {
+        if (!object) return void 0;
+        if (Task.is(object)) return this.runTask(object);
+        return object;
+    }
 
     private disposed = false;
     private ev = RxEventHelper.create();

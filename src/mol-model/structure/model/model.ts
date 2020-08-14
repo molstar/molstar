@@ -15,7 +15,6 @@ import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
 import { ModelFormat } from '../../../mol-model-formats/format';
 import { calcModelCenter, getAsymIdCount } from './util';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { Mutable } from '../../../mol-util/type-helpers';
 import { Coordinates } from '../coordinates';
 import { Topology } from '../topology';
 import { Task } from '../../../mol-task';
@@ -27,6 +26,7 @@ import { SymmetryOperator } from '../../../mol-math/geometry';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 import { Column } from '../../../mol-data/db';
 import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
+import { Trajectory, ArrayTrajectory } from '../trajectory';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -86,10 +86,8 @@ export interface Model extends Readonly<{
 } { }
 
 export namespace Model {
-    export type Trajectory = ReadonlyArray<Model>
-
     function _trajectoryFromModelAndCoordinates(model: Model, coordinates: Coordinates) {
-        const trajectory: Mutable<Model.Trajectory> = [];
+        const trajectory: Model[] = [];
         const { frames } = coordinates;
 
         const srcIndex = model.atomicHierarchy.atoms.sourceIndex;
@@ -117,7 +115,7 @@ export namespace Model {
     }
 
     export function trajectoryFromModelAndCoordinates(model: Model, coordinates: Coordinates): Trajectory {
-        return _trajectoryFromModelAndCoordinates(model, coordinates).trajectory;
+        return new ArrayTrajectory(_trajectoryFromModelAndCoordinates(model, coordinates).trajectory);
     }
 
     export function invertIndex(xs: ArrayLike<number>) {
@@ -130,8 +128,9 @@ export namespace Model {
 
     export function trajectoryFromTopologyAndCoordinates(topology: Topology, coordinates: Coordinates): Task<Trajectory> {
         return Task.create('Create Trajectory', async ctx => {
-            const model = (await createModels(topology.basic, topology.sourceData, ctx))[0];
-            if (!model) throw new Error('found no model');
+            const models = await createModels(topology.basic, topology.sourceData, ctx);
+            if (models.frameCount === 0) throw new Error('found no model');
+            const model = models.representative;
             const { trajectory, srcIndexArray } = _trajectoryFromModelAndCoordinates(model, coordinates);
 
             // TODO: cache the inverted index somewhere?
@@ -152,7 +151,7 @@ export namespace Model {
                 IndexPairBonds.Provider.set(m, indexPairBonds);
                 TrajectoryInfo.set(m, { index: index++, size: trajectory.length });
             }
-            return trajectory;
+            return new ArrayTrajectory(trajectory);
         });
     }
 

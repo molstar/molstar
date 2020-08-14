@@ -16,6 +16,8 @@ import { getChainId } from './common/util';
 import { EntityBuilder } from './common/entity';
 import { BasicData, BasicSchema, createBasic } from './basic/schema';
 import { createModels } from './basic/parser';
+import { Trajectory } from '../../mol-model/structure';
+import { ArrayTrajectory } from '../../mol-model/structure/trajectory';
 
 function getBasic(atoms: GroAtoms, modelNum: number): BasicData {
     const auth_atom_id = atoms.atomName;
@@ -116,15 +118,17 @@ namespace GroFormat {
 // TODO reuse static model parts when hierarchy is identical
 //      need to pass all gro.structures as one table into createModels
 
-export function trajectoryFromGRO(gro: GroFile): Task<Model.Trajectory> {
+export function trajectoryFromGRO(gro: GroFile): Task<Trajectory> {
     return Task.create('Parse GRO', async ctx => {
         const format = GroFormat.fromGro(gro);
         const models: Model[] = [];
         for (let i = 0, il = gro.structures.length; i < il; ++i) {
             const basic = getBasic(gro.structures[i].atoms, i + 1);
             const m = await createModels(basic, format, ctx);
-            if (m.length === 1) models.push(m[0]);
+            if (m.frameCount === 1) {
+                models.push(m.representative);
+            }
         }
-        return models;
+        return new ArrayTrajectory(models);
     });
 }

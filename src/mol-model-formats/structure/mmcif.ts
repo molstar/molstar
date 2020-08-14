@@ -17,6 +17,7 @@ import { Table } from '../../mol-data/db';
 import { AtomSiteAnisotrop } from './property/anisotropic';
 import { ComponentBond } from './property/bonds/chem_comp';
 import { StructConn } from './property/bonds/struct_conn';
+import { Trajectory } from '../../mol-model/structure';
 
 function modelSymmetryFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
@@ -86,7 +87,7 @@ namespace MmcifFormat {
     }
 }
 
-export function trajectoryFromMmCIF(frame: CifFrame): Task<Model.Trajectory> {
+export function trajectoryFromMmCIF(frame: CifFrame): Task<Trajectory> {
     const format = MmcifFormat.fromFrame(frame);
     return Task.create('Create mmCIF Model', ctx => createModels(format.data.db, format, ctx));
 }

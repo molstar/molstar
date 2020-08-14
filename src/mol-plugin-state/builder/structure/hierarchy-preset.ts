@@ -80,7 +80,7 @@ const allModels = TrajectoryHierarchyPresetProvider({
         description: 'Shows all models; colored by model-index.'
     },
     isApplicable: o => {
-        return o.data.length > 1;
+        return o.data.frameCount > 1;
     },
     params: CommonParams,
     async apply(trajectory, params, plugin) {
@@ -91,7 +91,7 @@ const allModels = TrajectoryHierarchyPresetProvider({
 
         const models = [], structures = [];
 
-        for (let i = 0; i < tr.length; i++) {
+        for (let i = 0; i < tr.frameCount; i++) {
             const model = await builder.createModel(trajectory, { modelIndex: i });
             const modelProperties = await builder.insertModelProperties(model, params.modelProperties, { isCollapsed: true });
             const structure = await builder.createStructure(modelProperties || model, { name: 'model', params: {} });
@@ -100,7 +100,7 @@ const allModels = TrajectoryHierarchyPresetProvider({
             models.push(model);
             structures.push(structure);
 
-            const quality = structure.obj ? getStructureQuality(structure.obj.data, { elementCountFactor: tr.length }) : 'medium';
+            const quality = structure.obj ? getStructureQuality(structure.obj.data, { elementCountFactor: tr.frameCount }) : 'medium';
             await builder.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { theme: { globalName: 'model-index' }, quality });
         }
 
@@ -145,7 +145,7 @@ const unitcell = TrajectoryHierarchyPresetProvider({
         description: 'Shows the fully populated unit cell.'
     },
     isApplicable: o => {
-        return Model.hasCrystalSymmetry(o.data[0]);
+        return Model.hasCrystalSymmetry(o.data.representative);
     },
     params: CrystalSymmetryParams,
     async apply(trajectory, params, plugin) {
@@ -160,7 +160,7 @@ const supercell = TrajectoryHierarchyPresetProvider({
         description: 'Shows the super cell, i.e. the central unit cell and all adjacent unit cells.'
     },
     isApplicable: o => {
-        return Model.hasCrystalSymmetry(o.data[0]);
+        return Model.hasCrystalSymmetry(o.data.representative);
     },
     params: CrystalSymmetryParams,
     async apply(trajectory, params, plugin) {
@@ -180,7 +180,7 @@ const crystalContacts = TrajectoryHierarchyPresetProvider({
         description: 'Showsasymetric unit and chains from neighbours within 5 \u212B, i.e., symmetry mates.'
     },
     isApplicable: o => {
-        return Model.hasCrystalSymmetry(o.data[0]);
+        return Model.hasCrystalSymmetry(o.data.representative);
     },
     params: CrystalContactsParams,
     async apply(trajectory, params, plugin) {

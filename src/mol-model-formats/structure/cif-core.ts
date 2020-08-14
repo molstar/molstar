@@ -21,6 +21,7 @@ import { ModelSymmetry } from './property/symmetry';
 import { IndexPairBonds } from './property/bonds/index-pair';
 import { AtomSiteAnisotrop } from './property/anisotropic';
 import { guessElementSymbolString } from './util';
+import { Trajectory } from '../../mol-model/structure';
 
 function getSpacegroupNameOrNumber(space_group: CifCore_Database['space_group']) {
     const groupNumber = space_group.IT_number.value(0);
@@ -45,7 +46,7 @@ function getSymmetry(db: CifCore_Database): Symmetry {
     };
 }
 
-async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: RuntimeContext): Promise<Model[]> {
+async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: RuntimeContext) {
 
     const atomCount = db.atom_site._rowCount;
     const MOL = Column.ofConst('MOL', atomCount, Column.Schema.str);
@@ -152,8 +153,10 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
 
     const models = await createModels(basics, format, ctx);
 
-    if (models.length > 0) {
-        ModelSymmetry.Provider.set(models[0], symmetry);
+    if (models.frameCount > 0) {
+        const first = models.representative;
+
+        ModelSymmetry.Provider.set(first, symmetry);
 
         const bondCount = db.geom_bond._rowCount;
         if(bondCount > 0) {
@@ -179,7 +182,7 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
                 symmetryB[i] = site_symmetry_2.value(i) || '1_555';
             }
 
-            IndexPairBonds.Provider.set(models[0], IndexPairBonds.fromData({ pairs: {
+            IndexPairBonds.Provider.set(first, IndexPairBonds.fromData({ pairs: {
                 indexA: Column.ofIntArray(indexA),
                 indexB: Column.ofIntArray(indexB),
                 order: Column.ofIntArray(order),
@@ -238,7 +241,7 @@ namespace CifCoreFormat {
     }
 }
 
-export function trajectoryFromCifCore(frame: CifFrame): Task<Model.Trajectory> {
+export function trajectoryFromCifCore(frame: CifFrame): Task<Trajectory> {
     const format = CifCoreFormat.fromFrame(frame);
     return Task.create('Parse CIF Core', ctx => getModels(format.data.db, format, ctx));
 }

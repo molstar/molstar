@@ -28,7 +28,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
         const models = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Model.ModelFromTrajectory));
         for (const m of models) {
             const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
-            if (parent && parent.obj && parent.obj.data.length > 1) return { canApply: true };
+            if (parent && parent.obj && parent.obj.data.frameCount > 1) return { canApply: true };
         }
         return { canApply: false, reason: 'No trajectory to animate' };
     },
@@ -57,10 +57,10 @@ export const AnimateModelIndex = PluginStateAnimation.create({
             const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
             if (!parent || !parent.obj) continue;
             const traj = parent.obj;
-            if (traj.data.length <= 1) continue;
+            if (traj.data.frameCount <= 1) continue;
 
             update.to(m).update(old => {
-                const len = traj.data.length;
+                const len = traj.data.frameCount;
                 if (len !== 1) {
                     allSingles = false;
                 } else {

@@ -127,7 +127,7 @@ async function init() {
 
     const cif = await downloadFromPdb('3pqr');
     const models = await getModels(cif);
-    const structure = await getStructure(models[0]);
+    const structure = await getStructure(models.representative);
 
     console.time('compute SecondaryStructure');
     await SecondaryStructureProvider.attach(ctx, structure);

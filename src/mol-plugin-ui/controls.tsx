@@ -44,7 +44,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
             const parent = state.cells.get(m.sourceRef)!.obj as PluginStateObject.Molecule.Trajectory;
 
             if (!parent) continue;
-            if (parent.data.length > 1) {
+            if (parent.data.frameCount > 1) {
                 if (parents.has(m.sourceRef)) {
                     // do not show the controls if there are 2 models of the same trajectory present
                     this.setState({ show: false });
@@ -55,7 +55,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
                 count++;
                 if (!label) {
                     const idx = (m.transform.params! as StateTransformer.Params<ModelFromTrajectory>).modelIndex;
-                    label = `Model ${idx + 1} / ${parent.data.length}`;
+                    label = `Model ${idx + 1} / ${parent.data.frameCount}`;
                 }
             }
         }

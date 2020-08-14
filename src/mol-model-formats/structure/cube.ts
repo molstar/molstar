@@ -5,7 +5,6 @@
  */
 
 import { Column, Table } from '../../mol-data/db';
-import { Model } from '../../mol-model/structure/model';
 import { MoleculeType, getElementFromAtomicNumber, ElementSymbol } from '../../mol-model/structure/model/types';
 import { RuntimeContext, Task } from '../../mol-task';
 import { createModels } from './basic/parser';
@@ -14,8 +13,9 @@ import { ComponentBuilder } from './common/component';
 import { EntityBuilder } from './common/entity';
 import { ModelFormat } from '../format';
 import { CubeFile } from '../../mol-io/reader/cube/parser';
+import { Trajectory } from '../../mol-model/structure';
 
-async function getModels(cube: CubeFile, ctx: RuntimeContext): Promise<Model[]> {
+async function getModels(cube: CubeFile, ctx: RuntimeContext) {
     const { atoms } = cube;
 
     const MOL = Column.ofConst('MOL', cube.atoms.count, Column.Schema.str);
@@ -78,6 +78,6 @@ namespace MolFormat {
     }
 }
 
-export function trajectoryFromCube(cube: CubeFile): Task<Model.Trajectory> {
+export function trajectoryFromCube(cube: CubeFile): Task<Trajectory> {
     return Task.create('Parse Cube', ctx => getModels(cube, ctx));
 }
