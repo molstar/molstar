@@ -32,7 +32,6 @@ function getDistance(unitA: Unit.Atomic, indexA: ElementIndex, unitB: Unit.Atomi
 const _imageTransform = Mat4.zero();
 
 function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComputationProps, builder: InterUnitGraph.Builder<Unit.Atomic, StructureElement.UnitIndex, InterUnitEdgeProps>) {
-
     const { elements: atomsA, residueIndex: residueIndexA } = unitA;
     const { x: xA, y: yA, z: zA } = unitA.model.atomicConformation;
     const { elements: atomsB, residueIndex: residueIndexB } = unitB;
@@ -72,7 +71,10 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
         if (!props.forceCompute && indexPairs) {
             const { order, symmetryA, symmetryB } = indexPairs.edgeProps;
             for (let i = indexPairs.offset[aI], il = indexPairs.offset[aI + 1]; i < il; ++i) {
-                const _bI = SortedArray.indexOf(unitA.elements, indexPairs.b[i]) as StructureElement.UnitIndex;
+                const bI = indexPairs.b[i];
+                if (aI >=  bI) continue;
+
+                const _bI = SortedArray.indexOf(unitA.elements, bI) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
                 if (symmetryA[i] === symmetryB[i]) continue;
                 if (type_symbolA.value(aI) === 'H' && type_symbolB.value(indexPairs.b[i]) === 'H') continue;
