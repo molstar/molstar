@@ -64,7 +64,10 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
         if (!props.forceCompute && indexPairs) {
             const { edgeProps } = indexPairs;
             for (let i = indexPairs.offset[aI], il = indexPairs.offset[aI + 1]; i < il; ++i) {
-                const _bI = SortedArray.indexOf(unit.elements, indexPairs.b[i]) as StructureElement.UnitIndex;
+                const bI = indexPairs.b[i];
+                if (aI >= bI) continue;
+
+                const _bI = SortedArray.indexOf(unit.elements, bI) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
                 if (edgeProps.symmetryA[i] !== edgeProps.symmetryB[i]) continue;
                 if (type_symbol.value(aI) === 'H' && type_symbol.value(indexPairs.b[i]) === 'H') continue;
