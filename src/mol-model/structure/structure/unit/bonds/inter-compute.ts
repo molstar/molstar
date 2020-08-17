@@ -72,7 +72,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             const { order, symmetryA, symmetryB } = indexPairs.edgeProps;
             for (let i = indexPairs.offset[aI], il = indexPairs.offset[aI + 1]; i < il; ++i) {
                 const bI = indexPairs.b[i];
-                if (aI >=  bI) continue;
+                if (aI >= bI) continue;
 
                 const _bI = SortedArray.indexOf(unitA.elements, bI) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
