@@ -162,7 +162,7 @@ namespace SymmetryOperator {
 
     export interface Coordinates { x: ArrayLike<number>, y: ArrayLike<number>, z: ArrayLike<number> }
 
-    export function createMapping<T extends number>(operator: SymmetryOperator, coords: Coordinates, radius: ((index: T) => number) | undefined): ArrayMapping<T> {
+    export function createMapping<T extends number>(operator: SymmetryOperator, coords: Coordinates, radius?: ((index: T) => number)): ArrayMapping<T> {
         const invariantPosition = SymmetryOperator.createCoordinateMapper(SymmetryOperator.Default, coords);
         const position = operator.isIdentity ? invariantPosition : SymmetryOperator.createCoordinateMapper(operator, coords);
         const { x, y, z } = createProjections(operator, coords);
