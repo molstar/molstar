@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { arrayPickIndices, cantorPairing, hashFnv32a, hash1 } from '../../mol-data/util';
+import { arrayPickIndices, cantorPairing } from '../../mol-data/util';
 import { LinkedIndex, SortedArray } from '../../mol-data/int';
 import { AssignableArrayLike } from '../../mol-util/type-helpers';
 
@@ -23,8 +23,7 @@ export interface IntAdjacencyGraph<VertexIndex extends number, EdgeProps extends
     readonly b: ArrayLike<VertexIndex>,
     readonly vertexCount: number,
     readonly edgeCount: number,
-    readonly edgeProps: Readonly<EdgeProps>,
-    readonly hashCode: number,
+    readonly edgeProps: Readonly<EdgeProps>
 
     /**
      * Get the edge index between i-th and j-th vertex.
@@ -49,34 +48,39 @@ export interface IntAdjacencyGraph<VertexIndex extends number, EdgeProps extends
 export namespace IntAdjacencyGraph {
     export type EdgePropsBase = { [name: string]: ArrayLike<any> }
 
+    export function areEqual<I extends number, P extends IntAdjacencyGraph.EdgePropsBase>(a: IntAdjacencyGraph<I, P>, b: IntAdjacencyGraph<I, P>) {
+        if (a.vertexCount !== b.vertexCount || a.edgeCount !== b.edgeCount) return false;
+
+        const { a: aa, b: ab, offset: ao } = a;
+        const { a: ba, b: bb, offset: bo } = b;
+
+        for (let i = 0, _i = a.a.length; i < _i; i++) {
+            if (aa[i] !== ba[i]) return false;
+        }
+
+        for (let i = 0, _i = a.b.length; i < _i; i++) {
+            if (ab[i] !== bb[i]) return false;
+        }
+
+        for (let i = 0, _i = a.offset.length; i < _i; i++) {
+            if (ao[i] !== bo[i]) return false;
+        }
+
+        for (const k of Object.keys(a.edgeProps)) {
+            const pa = a.edgeProps[k], pb = b.edgeProps[k];
+            if (!pb) return false;
+
+            for (let i = 0, _i = pa.length; i < _i; i++) {
+                if (pa[i] !== pb[i]) return false;
+            }
+        }
+
+        return true;
+    }
+
     class IntGraphImpl<VertexIndex extends number, EdgeProps extends IntAdjacencyGraph.EdgePropsBase> implements IntAdjacencyGraph<VertexIndex, EdgeProps> {
         readonly vertexCount: number;
         readonly edgeProps: EdgeProps;
-
-        private _hashCode = -1;
-        private computeHash() {
-            let hash = 23;
-            hash = (31 * hash + hashFnv32a(this.a)) | 0;
-            hash = (31 * hash + hashFnv32a(this.b)) | 0;
-            hash = (31 * hash + hashFnv32a(this.offset)) | 0;
-            for (const k in this.edgeProps) {
-                if (typeof this.edgeProps[k][0] === 'string') {
-                    // TODO
-                    hash = (31 * hash + this.edgeProps[k].length) | 0;
-                } else {
-                    hash = (31 * hash + hashFnv32a(this.edgeProps[k])) | 0;
-                }
-            }
-            hash = hash1(hash);
-            if (hash === -1) hash = 0;
-            this._hashCode = hash;
-            return hash;
-        }
-
-        get hashCode() {
-            if (this._hashCode !== -1) return this._hashCode;
-            return this.computeHash();
-        }
 
         getEdgeIndex(i: VertexIndex, j: VertexIndex): number {
             let a, b;
