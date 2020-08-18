@@ -6,7 +6,7 @@
 
 import { Column, Table } from '../../mol-data/db';
 import { Model, Symmetry } from '../../mol-model/structure/model';
-import { MoleculeType } from '../../mol-model/structure/model/types';
+import { MoleculeType, BondType } from '../../mol-model/structure/model/types';
 import { RuntimeContext, Task } from '../../mol-task';
 import { createModels } from './basic/parser';
 import { BasicSchema, createBasic } from './basic/schema';
@@ -22,6 +22,7 @@ import { IndexPairBonds } from './property/bonds/index-pair';
 import { AtomSiteAnisotrop } from './property/anisotropic';
 import { guessElementSymbolString } from './util';
 import { Trajectory } from '../../mol-model/structure';
+import { cantorPairing } from '../../mol-data/util';
 
 function getSpacegroupNameOrNumber(space_group: CifCore_Database['space_group']) {
     const groupNumber = space_group.IT_number.value(0);
@@ -36,7 +37,7 @@ function getSymmetry(db: CifCore_Database): Symmetry {
     const nameOrNumber = getSpacegroupNameOrNumber(space_group);
     const spaceCell = SpacegroupCell.create(nameOrNumber,
         Vec3.create(cell.length_a.value(0), cell.length_b.value(0), cell.length_c.value(0)),
-        Vec3.scale(Vec3.zero(), Vec3.create(cell.angle_alpha.value(0), cell.angle_beta.value(0), cell.angle_gamma.value(0)), Math.PI / 180));
+        Vec3.scale(Vec3(), Vec3.create(cell.angle_alpha.value(0), cell.angle_beta.value(0), cell.angle_gamma.value(0)), Math.PI / 180));
 
     return {
         spacegroup: Spacegroup.create(spaceCell),
@@ -166,28 +167,59 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
                 labelIndexMap[label.value(i)] = i;
             }
 
+            const bond_type = format.data.frame.categories.ccdc_geom_bond_type?.getField('');
+
             const indexA: number[] = [];
             const indexB: number[] = [];
             const order: number[] = [];
-            const symmetryA: string[] = [];
-            const symmetryB: string[] = [];
+            const dist: number[] = [];
+            const flag: number[] = [];
 
-            const { atom_site_label_1, atom_site_label_2, valence, site_symmetry_1, site_symmetry_2 } = db.geom_bond;
+            const included = new Set<number>();
+            let j = 0;
+
+            const { atom_site_label_1, atom_site_label_2, valence, distance } = db.geom_bond;
             for (let i = 0; i < bondCount; ++i) {
-                indexA[i] = labelIndexMap[atom_site_label_1.value(i)];
-                indexB[i] = labelIndexMap[atom_site_label_2.value(i)];
-                // TODO derive order from bond length if undefined
-                order[i] = valence.isDefined ? valence.value(i) : 1;
-                symmetryA[i] = site_symmetry_1.value(i) || '1_555';
-                symmetryB[i] = site_symmetry_2.value(i) || '1_555';
+                const iA = labelIndexMap[atom_site_label_1.value(i)];
+                const iB = labelIndexMap[atom_site_label_2.value(i)];
+                const id = iA < iB ? cantorPairing(iA, iB) : cantorPairing(iB, iA);
+                if (included.has(id)) continue;
+                included.add(id);
+
+                indexA[j] = iA;
+                indexB[j] = iB;
+                dist[j] = distance.value(i) || -1;
+
+                if (bond_type) {
+                    const t = bond_type.str(i);
+                    if (t === 'D') {
+                        order[j] = 2;
+                        flag[j] = BondType.Flag.Covalent;
+                    } else if (t === 'A') {
+                        order[j] = 1;
+                        flag[j] = BondType.Flag.Covalent | BondType.Flag.Aromatic;
+                    } else if (t === 'S') {
+                        order[j] = 1;
+                        flag[j] = BondType.Flag.Covalent;
+                    } else {
+                        order[j] = 1;
+                        flag[j] = BondType.Flag.Covalent;
+                    }
+                } else {
+                    flag[j] = BondType.Flag.Covalent;
+                    // TODO derive order from bond length if undefined
+                    order[j] = valence.isDefined ? valence.value(i) : 1;
+                }
+
+                j += 1;
             }
 
             IndexPairBonds.Provider.set(first, IndexPairBonds.fromData({ pairs: {
                 indexA: Column.ofIntArray(indexA),
                 indexB: Column.ofIntArray(indexB),
                 order: Column.ofIntArray(order),
-                symmetryA: Column.ofStringArray(symmetryA),
-                symmetryB: Column.ofStringArray(symmetryB)
+                distance: Column.ofFloatArray(dist),
+                flag: Column.ofIntArray(flag)
             }, count: indexA.length }));
         }
     }

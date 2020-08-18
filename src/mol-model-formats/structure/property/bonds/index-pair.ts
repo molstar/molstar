@@ -8,27 +8,29 @@ import { CustomPropertyDescriptor } from '../../../../mol-model/custom-property'
 import { IntAdjacencyGraph } from '../../../../mol-math/graph';
 import { Column } from '../../../../mol-data/db';
 import { FormatPropertyProvider } from '../../common/property';
+import { BondType } from '../../../../mol-model/structure/model/types';
+import { ElementIndex } from '../../../../mol-model/structure';
 
 export type IndexPairBondsProps = {
     readonly order: ArrayLike<number>
-    readonly symmetryA: ArrayLike<string>
-    readonly symmetryB: ArrayLike<string>
+    readonly distance: ArrayLike<number>
+    readonly flag: ArrayLike<BondType.Flag>
 }
-export type IndexPairBonds = IntAdjacencyGraph<number, IndexPairBondsProps>
+export type IndexPairBonds = IntAdjacencyGraph<ElementIndex, IndexPairBondsProps>
 
-function getGraph(indexA: ArrayLike<number>, indexB: ArrayLike<number>, props: Partial<IndexPairBondsProps>, count: number): IndexPairBonds {
+function getGraph(indexA: ArrayLike<ElementIndex>, indexB: ArrayLike<ElementIndex>, props: Partial<IndexPairBondsProps>, count: number): IndexPairBonds {
     const builder = new IntAdjacencyGraph.EdgeBuilder(count, indexA, indexB);
     const order = new Int8Array(builder.slotCount);
-    const symmetryA = new Array(builder.slotCount);
-    const symmetryB = new Array(builder.slotCount);
+    const distance = new Array(builder.slotCount);
+    const flag = new Array(builder.slotCount);
     for (let i = 0, _i = builder.edgeCount; i < _i; i++) {
         builder.addNextEdge();
         builder.assignProperty(order, props.order ? props.order[i] : 1);
-        builder.assignProperty(symmetryA, props.symmetryA ? props.symmetryA[i] : '');
-        builder.assignProperty(symmetryB, props.symmetryB ? props.symmetryB[i] : '');
+        builder.assignProperty(distance, props.distance ? props.distance[i] : -1);
+        builder.assignProperty(flag, props.flag ? props.flag[i] : BondType.Flag.Covalent);
     }
 
-    return builder.createGraph({ order, symmetryA, symmetryB });
+    return builder.createGraph({ order, distance, flag });
 }
 
 export namespace IndexPairBonds {
@@ -43,19 +45,19 @@ export namespace IndexPairBonds {
             indexA: Column<number>,
             indexB: Column<number>
             order?: Column<number>,
-            symmetryA?: Column<string>,
-            symmetryB?: Column<string>,
+            distance?: Column<number>,
+            flag?: Column<BondType.Flag>,
         },
         count: number
     }
 
     export function fromData(data: Data) {
         const { pairs, count } = data;
-        const indexA = pairs.indexA.toArray();
-        const indexB = pairs.indexB.toArray();
+        const indexA = pairs.indexA.toArray() as ArrayLike<ElementIndex>;
+        const indexB = pairs.indexB.toArray() as ArrayLike<ElementIndex>;
         const order = pairs.order && pairs.order.toArray();
-        const symmetryA = pairs.symmetryA && pairs.symmetryA.toArray();
-        const symmetryB = pairs.symmetryB && pairs.symmetryB.toArray();
-        return getGraph(indexA, indexB, { order, symmetryA, symmetryB }, count);
+        const distance = pairs.distance && pairs.distance.toArray();
+        const flag = pairs.flag && pairs.flag.toArray();
+        return getGraph(indexA, indexB, { order, distance, flag }, count);
     }
 }
