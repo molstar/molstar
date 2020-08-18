@@ -306,7 +306,7 @@ function buildText(data: DihedralData, props: DihedralProps, text?: Text): Text 
         Vec3.setMagnitude(tmpVec, tmpVec, tmpState.radius);
         Vec3.add(tmpVec, tmpState.arcCenter, tmpVec);
 
-        const angle = Math.abs(radToDeg(tmpState.angle)).toFixed(2);
+        const angle = radToDeg(tmpState.angle).toFixed(2);
         const label =  props.customText || `${angle}\u00B0`;
         const radius = Math.max(2, tmpState.sphereA.radius, tmpState.sphereB.radius, tmpState.sphereC.radius, tmpState.sphereD.radius);
         const scale = radius / 2;

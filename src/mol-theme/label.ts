@@ -330,7 +330,7 @@ export function angleLabel(triple: Loci.Bundle<3>, options: Partial<LabelOptions
 export function dihedralLabel(quad: Loci.Bundle<4>, options: Partial<LabelOptions & { measureOnly: boolean }> = {}) {
     const o = { ...DefaultLabelOptions, measureOnly: false, ...options };
     const [cA, cB, cC, cD] = quad.loci.map(l => Loci.getCenter(l)!);
-    const dihedral = `${Math.abs(radToDeg(Vec3.dihedralAngle(cA, cB, cC, cD))).toFixed(2)}\u00B0`;
+    const dihedral = `${radToDeg(Vec3.dihedralAngle(cA, cB, cC, cD)).toFixed(2)}\u00B0`;
     if (o.measureOnly) return dihedral;
     const label = bundleLabel(quad, o);
     return o.condensed ? `${dihedral} | ${label}` : `Dihedral ${dihedral}</br>${label}`;
