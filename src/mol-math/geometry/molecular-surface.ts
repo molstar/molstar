@@ -15,7 +15,7 @@ import { PositionData } from './common';
 import { Mat4 } from '../../mol-math/linear-algebra/3d';
 import { Box3D, GridLookup3D, fillGridDim } from '../../mol-math/geometry';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
-import { Boundary } from '../../mol-model/structure/structure/util/boundary';
+import { Boundary } from './boundary';
 
 function normalToLine (out: Vec3, p: Vec3) {
     out[0] = out[1] = out[2] = 1.0;

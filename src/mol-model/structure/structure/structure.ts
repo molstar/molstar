@@ -28,11 +28,12 @@ import { UUID } from '../../../mol-util';
 import { CustomProperties } from '../../custom-property';
 import { AtomicHierarchy } from '../model/properties/atomic';
 import { StructureSelection } from '../query/selection';
-import { getBoundary } from '../../../mol-math/geometry/boundary';
+import { getBoundary, Boundary } from '../../../mol-math/geometry/boundary';
 import { ElementSymbol } from '../model/types';
 import { CustomStructureProperty } from '../../../mol-model-props/common/custom-structure-property';
 import { Trajectory } from '../trajectory';
 import { RuntimeContext, Task } from '../../../mol-task';
+import { computeStructureBoundary } from './util/boundary';
 
 class Structure {
     /** Maps unit.id to unit */
@@ -44,6 +45,7 @@ class Structure {
 
     private _props: {
         parent?: Structure,
+        boundary?: Boundary,
         lookup3d?: StructureLookup3D,
         interUnitBonds?: InterUnitBonds,
         unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
@@ -225,7 +227,9 @@ class Structure {
     }
 
     get boundary() {
-        return this.lookup3d.boundary;
+        if (this._props.boundary) return this._props.boundary;
+        this._props.boundary = computeStructureBoundary(this);
+        return this._props.boundary;
     }
 
     get lookup3d() {

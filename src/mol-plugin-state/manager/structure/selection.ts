@@ -11,7 +11,6 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Structure, StructureElement, StructureSelection } from '../../../mol-model/structure';
-import { Boundary } from '../../../mol-model/structure/structure/util/boundary';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateObjectRef } from '../../../mol-state';
 import { Task } from '../../../mol-task';
@@ -22,6 +21,7 @@ import { StructureSelectionQuery } from '../../helpers/structure-selection-query
 import { PluginStateObject as PSO } from '../../objects';
 import { UUID } from '../../../mol-util';
 import { StructureRef } from './hierarchy-state';
+import { Boundary } from '../../../mol-math/geometry/boundary';
 
 interface StructureSelectionManagerState {
     entries: Map<string, SelectionEntry>,

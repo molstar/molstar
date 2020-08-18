@@ -5,24 +5,23 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Box3D, Sphere3D } from '../../../../mol-math/geometry';
-import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { Sphere3D } from '../../../../mol-math/geometry';
 import Structure from '../structure';
 import { BoundaryHelper } from '../../../../mol-math/geometry/boundary-helper';
+import { Boundary } from '../../../../mol-math/geometry/boundary';
 
-export type Boundary = { box: Box3D, sphere: Sphere3D }
-
-const tmpBox = Box3D();
 const tmpSphere = Sphere3D();
 
-const boundaryHelper = new BoundaryHelper('98');
+const boundaryHelperCoarse = new BoundaryHelper('14');
+const boundaryHelperFine = new BoundaryHelper('98');
+function getBoundaryHelper(count: number) {
+    return count > 10_000 ? boundaryHelperCoarse : boundaryHelperFine;
+}
 
 export function computeStructureBoundary(s: Structure): Boundary {
-    const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
-    const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
-
     const { units } = s;
 
+    const boundaryHelper = getBoundaryHelper(units.length);
     boundaryHelper.reset();
 
     for (let i = 0, _i = units.length; i < _i; i++) {
@@ -31,17 +30,10 @@ export function computeStructureBoundary(s: Structure): Boundary {
         const o = u.conformation.operator;
 
         if (o.isIdentity) {
-            Vec3.min(min, min, invariantBoundary.box.min);
-            Vec3.max(max, max, invariantBoundary.box.max);
-
-            boundaryHelper.includePositionRadius(invariantBoundary.sphere.center, invariantBoundary.sphere.radius);
+            boundaryHelper.includeSphere(invariantBoundary.sphere);
         } else {
-            Box3D.transform(tmpBox, invariantBoundary.box, o.matrix);
-            Vec3.min(min, min, tmpBox.min);
-            Vec3.max(max, max, tmpBox.max);
-
             Sphere3D.transform(tmpSphere, invariantBoundary.sphere, o.matrix);
-            boundaryHelper.includePositionRadius(tmpSphere.center, tmpSphere.radius);
+            boundaryHelper.includeSphere(tmpSphere);
         }
     }
 
@@ -53,12 +45,12 @@ export function computeStructureBoundary(s: Structure): Boundary {
         const o = u.conformation.operator;
 
         if (o.isIdentity) {
-            boundaryHelper.radiusPositionRadius(invariantBoundary.sphere.center, invariantBoundary.sphere.radius);
+            boundaryHelper.radiusSphere(invariantBoundary.sphere);
         } else {
             Sphere3D.transform(tmpSphere, invariantBoundary.sphere, o.matrix);
-            boundaryHelper.radiusPositionRadius(tmpSphere.center, tmpSphere.radius);
+            boundaryHelper.radiusSphere(tmpSphere);
         }
     }
 
-    return { box: { min, max }, sphere: boundaryHelper.getSphere() };
+    return { box: boundaryHelper.getBox(), sphere: boundaryHelper.getSphere() };
 }

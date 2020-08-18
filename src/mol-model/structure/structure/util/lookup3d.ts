@@ -1,19 +1,17 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import Structure from '../structure';
-import { Lookup3D, GridLookup3D, Box3D, Sphere3D, Result } from '../../../../mol-math/geometry';
+import { Lookup3D, GridLookup3D, Result } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
-import { computeStructureBoundary } from './boundary';
 import { OrderedSet } from '../../../../mol-data/int';
 import { StructureUniqueSubsetBuilder } from './unique-subset-builder';
 import StructureElement from '../element';
 import Unit from '../unit';
-import { getBoundary } from '../../../../mol-math/geometry/boundary';
 
 export interface StructureResult extends Result<StructureElement.UnitIndex> {
     units: Unit[]
@@ -145,16 +143,12 @@ export class StructureLookup3D {
         return false;
     }
 
-    _boundary: { box: Box3D; sphere: Sphere3D; } | undefined = void 0;
-
     get boundary() {
-        if (this._boundary) return this._boundary!;
-        this._boundary = computeStructureBoundary(this.structure);
-        return this._boundary!;
+        return this.structure.boundary;
     }
 
     constructor(private structure: Structure) {
-        const { units } = structure;
+        const { units, boundary } = structure;
         const unitCount = units.length;
         const xs = new Float32Array(unitCount);
         const ys = new Float32Array(unitCount);
@@ -176,6 +170,6 @@ export class StructureLookup3D {
         }
 
         const position = { x: xs, y: ys, z: zs, radius, indices: OrderedSet.ofBounds(0, unitCount) };
-        this.unitLookup = GridLookup3D(position, getBoundary(position));
+        this.unitLookup = GridLookup3D(position, boundary);
     }
 }
