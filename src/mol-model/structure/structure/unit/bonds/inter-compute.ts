@@ -18,6 +18,7 @@ import { getInterBondOrderFromTable } from '../../../model/properties/atomic/bon
 import { IndexPairBonds } from '../../../../../mol-model-formats/structure/property/bonds/index-pair';
 import { InterUnitGraph } from '../../../../../mol-math/graph/inter-unit-graph';
 import { StructConn } from '../../../../../mol-model-formats/structure/property/bonds/struct_conn';
+import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
 
 const MAX_RADIUS = 4;
 
@@ -29,7 +30,8 @@ function getDistance(unitA: Unit.Atomic, indexA: ElementIndex, unitB: Unit.Atomi
     return Vec3.distance(tmpDistVecA, tmpDistVecB);
 }
 
-const _imageTransform = Mat4.zero();
+const _imageTransform = Mat4();
+const _imageA = Vec3();
 
 function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComputationProps, builder: InterUnitGraph.Builder<Unit.Atomic, StructureElement.UnitIndex, InterUnitEdgeProps>) {
     const { elements: atomsA, residueIndex: residueIndexA } = unitA;
@@ -50,36 +52,34 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const indexPairs = unitA.model === unitB.model && IndexPairBonds.Provider.get(unitA.model);
 
     // the lookup queries need to happen in the "unitB space".
-    // that means imageA = inverseOperB(operA(aI))
+    // that means _imageA = inverseOperB(operA(aI))
     const imageTransform = Mat4.mul(_imageTransform, unitB.conformation.operator.inverse, unitA.conformation.operator.matrix);
     const isNotIdentity = !Mat4.isIdentity(imageTransform);
-    const imageA = Vec3.zero();
 
     const { center: bCenter, radius: bRadius } = lookup3d.boundary.sphere;
     const testDistanceSq = (bRadius + MAX_RADIUS) * (bRadius + MAX_RADIUS);
 
     builder.startUnitPair(unitA, unitB);
-    const symmUnitA = unitA.conformation.operator.name;
-    const symmUnitB = unitB.conformation.operator.name;
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atomsA[_aI];
-        Vec3.set(imageA, xA[aI], yA[aI], zA[aI]);
-        if (isNotIdentity) Vec3.transformMat4(imageA, imageA, imageTransform);
-        if (Vec3.squaredDistance(imageA, bCenter) > testDistanceSq) continue;
+        Vec3.set(_imageA, xA[aI], yA[aI], zA[aI]);
+        if (isNotIdentity) Vec3.transformMat4(_imageA, _imageA, imageTransform);
+        if (Vec3.squaredDistance(_imageA, bCenter) > testDistanceSq) continue;
 
         if (!props.forceCompute && indexPairs) {
-            const { order, symmetryA, symmetryB } = indexPairs.edgeProps;
+            const { order, distance, flag } = indexPairs.edgeProps;
             for (let i = indexPairs.offset[aI], il = indexPairs.offset[aI + 1]; i < il; ++i) {
                 const bI = indexPairs.b[i];
                 if (aI >= bI) continue;
 
-                const _bI = SortedArray.indexOf(unitA.elements, bI) as StructureElement.UnitIndex;
+                const _bI = SortedArray.indexOf(unitB.elements, bI) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
-                if (symmetryA[i] === symmetryB[i]) continue;
-                if (type_symbolA.value(aI) === 'H' && type_symbolB.value(indexPairs.b[i]) === 'H') continue;
-                if (symmUnitA === symmetryA[i] && symmUnitB === symmetryB[i]) {
-                    builder.add(_aI, _bI, { order: order[i], flag: BondType.Flag.Covalent });
+                if (type_symbolA.value(aI) === 'H' && type_symbolB.value(bI) === 'H') continue;
+
+                const d = distance[i];
+                if (d === -1 || equalEps(getDistance(unitA, aI, unitB, bI), d, 0.5)) {
+                    builder.add(_aI, _bI, { order: order[i], flag: flag[i] });
                 }
             }
             continue; // assume `indexPairs` supplies all bonds
@@ -107,7 +107,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
         const occA = occupancyA.value(aI);
 
-        const { indices, count, squaredDistances } = lookup3d.find(imageA[0], imageA[1], imageA[2], MAX_RADIUS);
+        const { indices, count, squaredDistances } = lookup3d.find(_imageA[0], _imageA[1], _imageA[2], MAX_RADIUS);
         if (count === 0) continue;
 
         const aeI = getElementIdx(type_symbolA.value(aI));

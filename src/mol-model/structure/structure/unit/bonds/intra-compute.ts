@@ -16,6 +16,9 @@ import StructureElement from '../../element';
 import { IndexPairBonds } from '../../../../../mol-model-formats/structure/property/bonds/index-pair';
 import { ComponentBond } from '../../../../../mol-model-formats/structure/property/bonds/chem_comp';
 import { StructConn } from '../../../../../mol-model-formats/structure/property/bonds/struct_conn';
+import { Vec3 } from '../../../../../mol-math/linear-algebra';
+import { ElementIndex } from '../../../model/indexing';
+import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
 
 function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.UnitIndex[], _order: number[], _flags: number[], atomCount: number): IntraUnitBonds {
     const builder = new IntAdjacencyGraph.EdgeBuilder(atomCount, atomA, atomB);
@@ -28,6 +31,14 @@ function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.U
     }
 
     return builder.createGraph({ flags, order });
+}
+
+const tmpDistVecA = Vec3();
+const tmpDistVecB = Vec3();
+function getDistance(unit: Unit.Atomic, indexA: ElementIndex, indexB: ElementIndex) {
+    unit.conformation.position(indexA, tmpDistVecA);
+    unit.conformation.position(indexB, tmpDistVecB);
+    return Vec3.distance(tmpDistVecA, tmpDistVecB);
 }
 
 const __structConnAdded = new Set<StructureElement.UnitIndex>();
@@ -69,12 +80,15 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
 
                 const _bI = SortedArray.indexOf(unit.elements, bI) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
-                if (edgeProps.symmetryA[i] !== edgeProps.symmetryB[i]) continue;
-                if (type_symbol.value(aI) === 'H' && type_symbol.value(indexPairs.b[i]) === 'H') continue;
-                atomA[atomA.length] = _aI;
-                atomB[atomB.length] = _bI;
-                order[order.length] = edgeProps.order[i];
-                flags[flags.length] = BondType.Flag.Covalent;
+                if (type_symbol.value(aI) === 'H' && type_symbol.value(bI) === 'H') continue;
+
+                const d = edgeProps.distance[i];
+                if (d === -1 || equalEps(getDistance(unit, aI, bI), d, 0.5)) {
+                    atomA[atomA.length] = _aI;
+                    atomB[atomB.length] = _bI;
+                    order[order.length] = edgeProps.order[i];
+                    flags[flags.length] = edgeProps.flag[i];
+                }
             }
             continue; // assume `indexPairs` supplies all bonds
         }
