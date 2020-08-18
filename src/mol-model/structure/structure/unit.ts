@@ -21,7 +21,7 @@ import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { getPrincipalAxes } from './util/principal-axes';
 import { Boundary, getBoundary } from '../../../mol-math/geometry/boundary';
-import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Mat4 } from '../../../mol-math/linear-algebra';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -106,23 +106,6 @@ namespace Unit {
         return hash2(u.invariantId, SortedArray.hashCode(u.elements));
     }
 
-    const tmpV = Vec3();
-
-    export function positionHash(unit: Unit) {
-        let hval = 0x811c9dc5;
-        const pos = unit.conformation.invariantPosition;
-        for (let i = 0, il = unit.elements.length; i < il; ++i) {
-            pos(unit.elements[i], tmpV);
-            hval ^= tmpV[0];
-            hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
-            hval ^= tmpV[1];
-            hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
-            hval ^= tmpV[2];
-            hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
-        }
-        return hval >>> 0;
-    }
-
     export type Traits = BitFlags<Trait>
     export const enum Trait {
         None = 0x0,
@@ -164,7 +147,6 @@ namespace Unit {
         principalAxes?: PrincipalAxes
         polymerElements?: SortedArray<ElementIndex>
         gapElements?: SortedArray<ElementIndex>
-        positionHash?: number
     }
 
 
@@ -222,7 +204,7 @@ namespace Unit {
         }
 
         remapModel(model: Model) {
-            const props = { ...this.props, positionHash: undefined };
+            const props = { ...this.props };
             const conformation = this.model.atomicConformation !== model.atomicConformation
                 ? SymmetryOperator.createMapping(this.conformation.operator, model.atomicConformation)
                 : this.conformation;
@@ -247,12 +229,6 @@ namespace Unit {
             if (this.props.principalAxes) return this.props.principalAxes;
             this.props.principalAxes = getPrincipalAxes(this);
             return this.props.principalAxes;
-        }
-
-        get positionHash() {
-            if (this.props.positionHash) return this.props.positionHash;
-            this.props.positionHash = Unit.positionHash(this);
-            return this.props.positionHash;
         }
 
         get bonds() {
@@ -366,7 +342,7 @@ namespace Unit {
         }
 
         remapModel(model: Model): Unit.Spheres | Unit.Gaussians {
-            const props = { ...this.props, positionHash: undefined };
+            const props = { ...this.props };
             let conformation: SymmetryOperator.ArrayMapping<ElementIndex>;
             if (this.kind === Kind.Spheres) {
                 conformation = this.model.coarseConformation.spheres !== model.coarseConformation.spheres
@@ -402,12 +378,6 @@ namespace Unit {
             if (this.props.principalAxes) return this.props.principalAxes;
             this.props.principalAxes = getPrincipalAxes(this as Unit.Spheres | Unit.Gaussians); // TODO get rid of casting
             return this.props.principalAxes;
-        }
-
-        get positionHash() {
-            if (this.props.positionHash) return this.props.positionHash;
-            this.props.positionHash = Unit.positionHash(this as Unit.Spheres | Unit.Gaussians); // TODO get rid of casting
-            return this.props.positionHash;
         }
 
         get polymerElements() {
@@ -457,6 +427,22 @@ namespace Unit {
 
     export function areSameChainOperatorGroup(a: Unit, b: Unit) {
         return a.chainGroupId === b.chainGroupId && a.conformation.operator.name === b.conformation.operator.name;
+    }
+
+    export function areAreConformationsEquivalent(a: Unit, b: Unit) {
+        if (a.elements.length !== b.elements.length) return false;
+        if (!Mat4.areEqual(a.conformation.operator.matrix, b.conformation.operator.matrix, 1e-6)) return false;
+
+        const xs = a.elements, ys = b.elements;
+        const { x: xa, y: ya, z: za } = a.conformation.coordinates;
+        const { x: xb, y: yb, z: zb } = b.conformation.coordinates;
+
+        for (let i = 0, _i = xs.length; i < _i; i++) {
+            const u = xs[i], v = ys[i];
+            if (xa[u] !== xb[v] || ya[u] !== yb[v] || za[u] !== zb[v]) return false;
+        }
+
+        return true;
     }
 }
 

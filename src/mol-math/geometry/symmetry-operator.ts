@@ -151,6 +151,7 @@ namespace SymmetryOperator {
 
     export interface CoordinateMapper<T extends number> { (index: T, slot: Vec3): Vec3 }
     export interface ArrayMapping<T extends number> {
+        readonly coordinates: Coordinates,
         readonly operator: SymmetryOperator,
         readonly invariantPosition: CoordinateMapper<T>,
         readonly position: CoordinateMapper<T>,
@@ -166,7 +167,7 @@ namespace SymmetryOperator {
         const invariantPosition = SymmetryOperator.createCoordinateMapper(SymmetryOperator.Default, coords);
         const position = operator.isIdentity ? invariantPosition : SymmetryOperator.createCoordinateMapper(operator, coords);
         const { x, y, z } = createProjections(operator, coords);
-        return { operator, invariantPosition, position, x, y, z, r: radius ? radius : _zeroRadius };
+        return { operator, coordinates: coords, invariantPosition, position, x, y, z, r: radius ? radius : _zeroRadius };
     }
 
     export function createCoordinateMapper<T extends number>(t: SymmetryOperator, coords: Coordinates): CoordinateMapper<T> {
