@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { arrayPickIndices, cantorPairing } from '../../mol-data/util';
+import { arrayPickIndices, cantorPairing, hashFnv32a, hash1 } from '../../mol-data/util';
 import { LinkedIndex, SortedArray } from '../../mol-data/int';
 import { AssignableArrayLike } from '../../mol-util/type-helpers';
 
@@ -23,7 +23,8 @@ export interface IntAdjacencyGraph<VertexIndex extends number, EdgeProps extends
     readonly b: ArrayLike<VertexIndex>,
     readonly vertexCount: number,
     readonly edgeCount: number,
-    readonly edgeProps: Readonly<EdgeProps>
+    readonly edgeProps: Readonly<EdgeProps>,
+    readonly hashCode: number,
 
     /**
      * Get the edge index between i-th and j-th vertex.
@@ -51,6 +52,31 @@ export namespace IntAdjacencyGraph {
     class IntGraphImpl<VertexIndex extends number, EdgeProps extends IntAdjacencyGraph.EdgePropsBase> implements IntAdjacencyGraph<VertexIndex, EdgeProps> {
         readonly vertexCount: number;
         readonly edgeProps: EdgeProps;
+
+        private _hashCode = -1;
+        private computeHash() {
+            let hash = 23;
+            hash = (31 * hash + hashFnv32a(this.a)) | 0;
+            hash = (31 * hash + hashFnv32a(this.b)) | 0;
+            hash = (31 * hash + hashFnv32a(this.offset)) | 0;
+            for (const k in this.edgeProps) {
+                if (typeof this.edgeProps[k][0] === 'string') {
+                    // TODO
+                    hash = (31 * hash + this.edgeProps[k].length) | 0;
+                } else {
+                    hash = (31 * hash + hashFnv32a(this.edgeProps[k])) | 0;
+                }
+            }
+            hash = hash1(hash);
+            if (hash === -1) hash = 0;
+            this._hashCode = hash;
+            return hash;
+        }
+
+        get hashCode() {
+            if (this._hashCode !== -1) return this._hashCode;
+            return this.computeHash();
+        }
 
         getEdgeIndex(i: VertexIndex, j: VertexIndex): number {
             let a, b;

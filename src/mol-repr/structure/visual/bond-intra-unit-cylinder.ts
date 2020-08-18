@@ -13,7 +13,7 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BitFlags, arrayEqual } from '../../../mol-util';
 import { createLinkCylinderMesh, LinkStyle } from './util/link';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
@@ -114,7 +114,7 @@ export function IntraUnitBondCylinderVisual(materialId: number): UnitsVisual<Int
         createLocationIterator: BondIterator.fromGroup,
         getLoci: getIntraBondLoci,
         eachLocation: eachIntraBond,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondCylinderParams>, currentProps: PD.Values<IntraUnitBondCylinderParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondCylinderParams>, currentProps: PD.Values<IntraUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
@@ -126,6 +126,16 @@ export function IntraUnitBondCylinderVisual(materialId: number): UnitsVisual<Int
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );
+
+            const newUnit = newStructureGroup.group.units[0];
+            const currentUnit = currentStructureGroup.group.units[0];
+            if (Unit.isAtomic(newUnit) && Unit.isAtomic(currentUnit)) {
+                if (newUnit.bonds.hashCode !== currentUnit.bonds.hashCode) {
+                    state.createGeometry = true;
+                    state.updateColor = true;
+                    state.updateSize = true;
+                }
+            }
         }
     }, materialId);
 }
