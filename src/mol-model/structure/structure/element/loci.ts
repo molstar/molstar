@@ -11,7 +11,6 @@ import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 import Structure from '../structure';
 import Unit from '../unit';
-import { Boundary } from '../util/boundary';
 import { sortArray, hashFnv32a, hash2 } from '../../../../mol-data/util';
 import Expression from '../../../../mol-script/language/expression';
 import { ElementIndex } from '../../model';
@@ -22,6 +21,7 @@ import { PrincipalAxes } from '../../../../mol-math/linear-algebra/matrix/princi
 import { NumberArray } from '../../../../mol-util/type-helpers';
 import StructureProperties from '../properties';
 import { BoundaryHelper } from '../../../../mol-math/geometry/boundary-helper';
+import { Boundary } from '../../../../mol-math/geometry/boundary';
 
 /** Represents multiple structure element index locations */
 export interface Loci {

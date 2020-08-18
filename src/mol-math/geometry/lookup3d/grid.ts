@@ -11,7 +11,7 @@ import { Sphere3D } from '../primitives/sphere3d';
 import { PositionData } from '../common';
 import { Vec3 } from '../../linear-algebra';
 import { OrderedSet } from '../../../mol-data/int';
-import { Boundary } from '../../../mol-model/structure/structure/util/boundary';
+import { Boundary } from '../boundary';
 
 interface GridLookup3D<T = number> extends Lookup3D<T> {
     readonly buckets: { readonly offset: ArrayLike<number>, readonly count: ArrayLike<number>, readonly array: ArrayLike<number> }
