@@ -419,9 +419,13 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
         });
     },
     update: ({ a, b, oldParams, newParams }) => {
-        if (!b.data.models.includes(a.data)) return StateTransformer.UpdateResult.Recreate;
         if (!deepEqual(oldParams, newParams)) return StateTransformer.UpdateResult.Recreate;
-        return StateTransformer.UpdateResult.Unchanged;
+        if (b.data.model === a.data) return StateTransformer.UpdateResult.Unchanged;
+        if (Model.getRoot(b.data.model) !== Model.getRoot(a.data) && a.data.atomicHierarchy !== b.data.model.atomicHierarchy) return StateTransformer.UpdateResult.Recreate;
+
+        b.data = Structure.remapModel(b.data, a.data);
+
+        return StateTransformer.UpdateResult.Updated;
     },
     dispose({ b }) {
         b?.data.customPropertyDescriptors.dispose();
