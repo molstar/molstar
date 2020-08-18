@@ -18,6 +18,7 @@ import { BondType } from '../../../mol-model/structure/model/types';
 import { ignoreBondType, BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
+import { IntAdjacencyGraph } from '../../../mol-math/graph';
 
 function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondLineParams>, lines?: Lines) {
     if (!Unit.isAtomic(unit)) return Lines.createEmpty(lines);
@@ -124,7 +125,7 @@ export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUn
             const newUnit = newStructureGroup.group.units[0];
             const currentUnit = currentStructureGroup.group.units[0];
             if (Unit.isAtomic(newUnit) && Unit.isAtomic(currentUnit)) {
-                if (newUnit.bonds.hashCode !== currentUnit.bonds.hashCode) {
+                if (!IntAdjacencyGraph.areEqual(newUnit.bonds, currentUnit.bonds)) {
                     state.createGeometry = true;
                     state.updateColor = true;
                     state.updateSize = true;
