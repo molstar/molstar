@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,19 +7,23 @@
 import { Vec3, Mat4 } from '../../../../mol-math/linear-algebra';
 import { MeshBuilder } from '../mesh-builder';
 import { Primitive, transformPrimitive } from '../../../primitive/primitive';
-import { Cylinder, CylinderProps } from '../../../primitive/cylinder';
+import { Cylinder, CylinderProps, DefaultCylinderProps } from '../../../primitive/cylinder';
 import { Prism } from '../../../primitive/prism';
 import { polygon } from '../../../primitive/polygon';
+import { hashFnv32a } from '../../../../mol-data/util';
 
-const cylinderMap = new Map<string, Primitive>();
+const cylinderMap = new Map<number, Primitive>();
 const up = Vec3.create(0, 1, 0);
 
-const tmpCylinderDir = Vec3.zero();
-const tmpCylinderMatDir = Vec3.zero();
-const tmpCylinderCenter = Vec3.zero();
-const tmpCylinderMat = Mat4.zero();
-const tmpCylinderStart = Vec3.zero();
-const tmpUp = Vec3.zero();
+const tmpCylinderDir = Vec3();
+const tmpCylinderMatDir = Vec3();
+const tmpCylinderCenter = Vec3();
+const tmpCylinderMat = Mat4();
+const tmpCylinderMatRot = Mat4();
+const tmpCylinderScale = Vec3();
+const tmpCylinderMatScale = Mat4();
+const tmpCylinderStart = Vec3();
+const tmpUp = Vec3();
 
 function setCylinderMat(m: Mat4, start: Vec3, dir: Vec3, length: number) {
     Vec3.setMagnitude(tmpCylinderMatDir, dir, length / 2);
@@ -27,12 +31,28 @@ function setCylinderMat(m: Mat4, start: Vec3, dir: Vec3, length: number) {
     // ensure the direction used to create the rotation is always pointing in the same
     // direction so the triangles of adjacent cylinder will line up
     Vec3.matchDirection(tmpUp, up, tmpCylinderMatDir);
-    Vec3.makeRotation(m, tmpUp, tmpCylinderMatDir);
+    Mat4.fromScaling(tmpCylinderMatScale, Vec3.set(tmpCylinderScale, 1, length, 1));
+    Vec3.makeRotation(tmpCylinderMatRot, tmpUp, tmpCylinderMatDir);
+    Mat4.mul(m, tmpCylinderMatRot, tmpCylinderMatScale);
     return Mat4.setTranslation(m, tmpCylinderCenter);
 }
 
+const tmpPropValues = new Int32Array(9);
+function getCylinderPropsKey(props: CylinderProps) {
+    tmpPropValues[0] = Math.round(1000 * (props.radiusTop ?? DefaultCylinderProps.radiusTop));
+    tmpPropValues[1] = Math.round(1000 * (props.radiusBottom ?? DefaultCylinderProps.radiusBottom));
+    tmpPropValues[2] = Math.round(1000 * (props.height ?? DefaultCylinderProps.height));
+    tmpPropValues[3] = props.radialSegments ?? DefaultCylinderProps.radialSegments;
+    tmpPropValues[4] = props.heightSegments ?? DefaultCylinderProps.heightSegments;
+    tmpPropValues[5] = (props.topCap ?? DefaultCylinderProps.topCap) ? 1 : 0;
+    tmpPropValues[6] = (props.bottomCap ?? DefaultCylinderProps.bottomCap) ? 1 : 0;
+    tmpPropValues[7] = Math.round(1000 * (props.thetaStart ?? DefaultCylinderProps.thetaStart));
+    tmpPropValues[8] = Math.round(1000 * (props.thetaLength ?? DefaultCylinderProps.thetaLength));
+    return hashFnv32a(tmpPropValues);
+}
+
 function getCylinder(props: CylinderProps) {
-    const key = JSON.stringify(props);
+    const key = getCylinderPropsKey(props);
     let cylinder = cylinderMap.get(key);
     if (cylinder === undefined) {
         if (props.radialSegments && props.radialSegments <= 4) {
@@ -46,17 +66,17 @@ function getCylinder(props: CylinderProps) {
     return cylinder;
 }
 
-export function addCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps) {
+export type BasicCylinderProps = Omit<CylinderProps, 'height'>
+
+export function addCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, props: BasicCylinderProps) {
     const d = Vec3.distance(start, end) * lengthScale;
-    props.height = d;
     Vec3.sub(tmpCylinderDir, end, start);
     setCylinderMat(tmpCylinderMat, start, tmpCylinderDir, d);
     MeshBuilder.addPrimitive(state, tmpCylinderMat, getCylinder(props));
 }
 
-export function addDoubleCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps) {
+export function addDoubleCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: BasicCylinderProps) {
     const d = Vec3.distance(start, end) * lengthScale;
-    props.height = d;
     const cylinder = getCylinder(props);
     Vec3.sub(tmpCylinderDir, end, start);
     // positivly shifted cylinder
@@ -69,7 +89,7 @@ export function addDoubleCylinder(state: MeshBuilder.State, start: Vec3, end: Ve
     MeshBuilder.addPrimitive(state, tmpCylinderMat, cylinder);
 }
 
-export function addFixedCountDashedCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps) {
+export function addFixedCountDashedCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: BasicCylinderProps) {
     const s = Math.floor(segmentCount / 2);
     const step = 1 / segmentCount;
 
@@ -81,7 +101,6 @@ export function addFixedCountDashedCylinder(state: MeshBuilder.State, start: Vec
     }
 
     const d = Vec3.distance(start, end) * lengthScale;
-    props.height = d * step;
     const cylinder = getCylinder(props);
     Vec3.sub(tmpCylinderDir, end, start);
 
