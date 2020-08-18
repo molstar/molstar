@@ -130,7 +130,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         if (Unit.conformationId(newUnit) !== Unit.conformationId(currentUnit)) {
             // console.log('new conformation');
             updateState.updateTransform = true;
-            if (newUnit.positionHash !== currentUnit.positionHash) {
+            if (!Unit.areAreConformationsEquivalent(newUnit, currentUnit)) {
                 // console.log('new position');
                 updateState.createGeometry = true;
             }
