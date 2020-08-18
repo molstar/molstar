@@ -100,7 +100,9 @@ namespace InteractivityManager {
         }
 
         protected mark(current: Representation.Loci, action: MarkerAction) {
-            for (let p of this.providers) p(current, action);
+            if (!Loci.isEmpty(current.loci)) {
+                for (let p of this.providers) p(current, action);
+            }
         }
 
         constructor(public readonly ctx: PluginContext, props: Partial<Props> = {}) {
@@ -232,14 +234,16 @@ namespace InteractivityManager {
 
         protected mark(current: Representation.Loci, action: MarkerAction.Select | MarkerAction.Deselect) {
             const { loci } = current;
-            if (StructureElement.Loci.is(loci)) {
-                // do a full deselect/select for the current structure so visuals that are
-                // marked with granularity unequal to 'element' and join/intersect operations
-                // are handled properly
-                super.mark({ loci: Structure.Loci(loci.structure) }, MarkerAction.Deselect);
-                super.mark({ loci: this.sel.getLoci(loci.structure) }, MarkerAction.Select);
-            } else {
-                super.mark(current, action);
+            if (!Loci.isEmpty(loci)) {
+                if (StructureElement.Loci.is(loci)) {
+                    // do a full deselect/select for the current structure so visuals that are
+                    // marked with granularity unequal to 'element' and join/intersect operations
+                    // are handled properly
+                    super.mark({ loci: Structure.Loci(loci.structure) }, MarkerAction.Deselect);
+                    super.mark({ loci: this.sel.getLoci(loci.structure) }, MarkerAction.Select);
+                } else {
+                    super.mark(current, action);
+                }
             }
         }
 
