@@ -11,7 +11,7 @@ import { Theme } from '../../../mol-theme/theme';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BitFlags, arrayEqual } from '../../../mol-util';
 import { LinkStyle, createLinkLines } from './util/link';
-import { UnitsVisual, UnitsLinesParams, UnitsLinesVisual } from '../units-visual';
+import { UnitsVisual, UnitsLinesParams, UnitsLinesVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
@@ -111,7 +111,7 @@ export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUn
         createLocationIterator: BondIterator.fromGroup,
         getLoci: getIntraBondLoci,
         eachLocation: eachIntraBond,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondLineParams>, currentProps: PD.Values<IntraUnitBondLineParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondLineParams>, currentProps: PD.Values<IntraUnitBondLineParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.linkScale !== currentProps.linkScale ||
@@ -120,6 +120,16 @@ export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUn
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );
+
+            const newUnit = newStructureGroup.group.units[0];
+            const currentUnit = currentStructureGroup.group.units[0];
+            if (Unit.isAtomic(newUnit) && Unit.isAtomic(currentUnit)) {
+                if (newUnit.bonds.hashCode !== currentUnit.bonds.hashCode) {
+                    state.createGeometry = true;
+                    state.updateColor = true;
+                    state.updateSize = true;
+                }
+            }
         }
     }, materialId);
 }
