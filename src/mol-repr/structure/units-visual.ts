@@ -106,17 +106,17 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup);
 
         if (!ColorTheme.areEqual(newTheme.color, currentTheme.color)) {
-            // console.log('new colorTheme')
+            // console.log('new colorTheme');
             updateState.updateColor = true;
         }
 
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
-            // console.log('new unitKinds')
+            // console.log('new unitKinds');
             updateState.createGeometry = true;
         }
 
         if (newStructureGroup.group.transformHash !== currentStructureGroup.group.transformHash) {
-            // console.log('new transformHash')
+            // console.log('new transformHash');
             if (newStructureGroup.group.units.length !== currentStructureGroup.group.units.length || updateState.updateColor) {
                 updateState.updateTransform = true;
             } else {
@@ -127,24 +127,24 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         // check if the conformation of unit.model has changed
         const newUnit = newStructureGroup.group.units[0];
         const currentUnit = currentStructureGroup.group.units[0];
-        // if (Unit.conformationId(newUnit) !== Unit.conformationId(currentUnit)) {
-        if (Unit.conformationId(newUnit) !== Unit.conformationId(currentUnit)
-            // TODO: this needs more attention
-            || newUnit.conformation !== currentUnit.conformation) {
-            // console.log('new conformation')
+        if (Unit.conformationId(newUnit) !== Unit.conformationId(currentUnit)) {
+            // console.log('new conformation');
             updateState.updateTransform = true;
-            updateState.createGeometry = true;
+            if (newUnit.positionHash !== currentUnit.positionHash) {
+                // console.log('new position');
+                updateState.createGeometry = true;
+            }
         }
 
         if (updateState.updateTransform) {
-            updateState.updateColor = true;
-            updateState.updateSize = true;
             updateState.updateMatrix = true;
         }
 
-        if (updateState.createGeometry) {
-            updateState.updateColor = true;
-            updateState.updateSize = true;
+        if (updateState.createGeometry || updateState.updateTransform) {
+            if (currentStructureGroup.structure.hashCode !== newStructureGroup.structure.hashCode) {
+                updateState.updateColor = true;
+                updateState.updateSize = true;
+            }
         }
     }
 
@@ -162,19 +162,19 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             }
 
             if (updateState.updateTransform) {
-                // console.log('update transform')
+                // console.log('update transform');
                 locationIt = createLocationIterator(newStructureGroup);
                 const { instanceCount, groupCount } = locationIt;
                 createMarkers(instanceCount * groupCount, renderObject.values);
             }
 
             if (updateState.updateMatrix) {
-                // console.log('update matrix')
+                // console.log('update matrix');
                 createUnitsTransform(newStructureGroup.group, renderObject.values);
             }
 
             if (updateState.createGeometry) {
-                // console.log('update geometry')
+                // console.log('update geometry');
                 if (newGeometry) {
                     ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
                 } else {
@@ -183,20 +183,20 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             }
 
             if (updateState.updateTransform || updateState.createGeometry) {
-                // console.log('UnitsVisual.updateBoundingSphere')
+                // console.log('UnitsVisual.updateBoundingSphere');
                 updateBoundingSphere(renderObject.values as RenderObjectValues<G['kind']>, newGeometry || geometry);
             }
 
             if (updateState.updateSize) {
                 // not all geometries have size data, so check here
                 if ('uSize' in renderObject.values) {
-                    // console.log('update size')
+                    // console.log('update size');
                     createSizes(locationIt, newTheme.size, renderObject.values as SizeValues);
                 }
             }
 
             if (updateState.updateColor) {
-                // console.log('update color')
+                // console.log('update color');
                 createColors(locationIt, newTheme.color, renderObject.values);
             }
 

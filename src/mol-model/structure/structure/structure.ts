@@ -1062,7 +1062,7 @@ namespace Structure {
         if (!structure.units.some(u => validUnit(u))) return;
 
         const lookup = structure.lookup3d;
-        const imageCenter = Vec3.zero();
+        const imageCenter = Vec3();
 
         for (const unit of structure.units) {
             if (!validUnit(unit)) continue;
@@ -1078,6 +1078,13 @@ namespace Structure {
                 else callback(other, unit);
             }
         }
+    }
+
+    export function remapModel(structure: Structure, model: Model) {
+        const units = structure.units.map(u => u.remapModel(model));
+        return Structure.create(units, {
+            label: structure.label
+        });
     }
 
     //

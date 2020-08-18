@@ -51,6 +51,8 @@ export interface Model extends Readonly<{
 
     sourceData: ModelFormat,
 
+    parent: Model | undefined,
+
     entities: Entities,
     sequence: StructureSequence,
 
@@ -190,6 +192,10 @@ export namespace Model {
 
     export type Index = number;
     export const Index = CustomModelProperty.createSimple<Index>('index', 'static');
+
+    export function getRoot(model: Model) {
+        return model.parent || model;
+    }
 
     //
 
