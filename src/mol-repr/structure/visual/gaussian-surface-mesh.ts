@@ -49,7 +49,9 @@ async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structu
     Mesh.transform(surface, transform);
     if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset);
+    // Add 3 to the offset so that the surface boundary doesn't get cut off by clipping plane
+    // TODO: is 3 too low/high?
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + 3);
     surface.setBoundingSphere(sphere);
 
     return surface;

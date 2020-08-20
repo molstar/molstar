@@ -29,7 +29,9 @@ async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure
 
     Lines.transform(wireframe, transform);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset);
+    // Add 3 to the offset so that the surface boundary doesn't get cut off by clipping plane
+    // TODO: is 3 too low/high?
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + 3);
     wireframe.setBoundingSphere(sphere);
 
     return wireframe;
