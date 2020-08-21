@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,6 +10,7 @@ import { RuntimeContext } from '../../../mol-task';
 import { PositionData, DensityData } from '../common';
 import { OrderedSet } from '../../../mol-data/int';
 import { GaussianDensityProps } from '../gaussian-density';
+import { fasterExp } from '../../approx';
 
 export async function GaussianDensityCPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps): Promise<DensityData> {
     const { resolution, radiusOffset, smoothness } = props;
@@ -96,7 +97,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
                         const dz = gridz[zi] - vz;
                         const dSq = dxySq + dz * dz;
                         if (dSq <= r2sq) {
-                            const dens = Math.exp(-alpha * (dSq * rSqInv));
+                            const dens = fasterExp(-alpha * (dSq * rSqInv));
                             const idx = zi + xyIdx;
                             data[idx] += dens;
                             if (dens > densData[idx]) {
