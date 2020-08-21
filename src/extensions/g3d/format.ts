@@ -5,15 +5,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { TrajectoryFormatProvider, TrajectoryFormatCategory } from '../../mol-plugin-state/formats/trajectory';
-import { PluginStateTransform, PluginStateObject as SO } from '../../mol-plugin-state/objects';
-import { G3dHeader, getG3dHeader, getG3dDataBlock } from './data';
-import { Task } from '../../mol-task';
-import { PluginContext } from '../../mol-plugin/context';
-import { ParamDefinition } from '../../mol-util/param-definition';
-import { trajectoryFromG3D } from './model';
-import { StateObjectRef, StateAction } from '../../mol-state';
+import { Trajectory } from '../../mol-model/structure';
+import { TrajectoryFormatCategory, TrajectoryFormatProvider } from '../../mol-plugin-state/formats/trajectory';
+import { PluginStateObject as SO, PluginStateTransform } from '../../mol-plugin-state/objects';
 import { PluginBehavior } from '../../mol-plugin/behavior';
+import { PluginContext } from '../../mol-plugin/context';
+import { DefaultQueryRuntimeTable } from '../../mol-script/runtime/query/base';
+import { StateAction, StateObjectRef } from '../../mol-state';
+import { Task } from '../../mol-task';
+import { ParamDefinition } from '../../mol-util/param-definition';
+import { G3dHeader, getG3dDataBlock, getG3dHeader } from './data';
+import { g3dHaplotypeQuery, G3dInfoPropertyProvider, G3dLabelProvider, trajectoryFromG3D } from './model';
 
 export const G3dProvider: TrajectoryFormatProvider = {
     label: 'G3D',
@@ -29,18 +31,29 @@ export const G3dProvider: TrajectoryFormatProvider = {
 
         return { trajectory };
     },
-    visuals: defaultVisuals
+    visuals: defaultStructure
 };
 
-async function defaultVisuals(plugin: PluginContext, data: { trajectory: StateObjectRef<SO.Molecule.Trajectory> }) {
+async function defaultStructure(plugin: PluginContext, data: { trajectory: StateObjectRef<SO.Molecule.Trajectory> }) {
     const builder = plugin.builders.structure;
     const model = await builder.createModel(data.trajectory);
     const modelProperties = await builder.insertModelProperties(model);
     const structure = await builder.createStructure(modelProperties);
-    const all = await builder.tryCreateComponentStatic(structure, 'all');
 
-    if (all) {
-        await builder.representation.addRepresentation(all, {
+    const m = await builder.tryCreateComponentFromExpression(structure, g3dHaplotypeQuery('maternal'), 'maternal', { label: 'Maternal' });
+    const p = await builder.tryCreateComponentFromExpression(structure, g3dHaplotypeQuery('paternal'), 'paternal', { label: 'Paternal' });
+
+    if (m) {
+        await builder.representation.addRepresentation(m, {
+            type: 'cartoon',
+            color: 'polymer-index',
+            size: 'uniform',
+            sizeParams: { value: 2 }
+        });
+    }
+
+    if (p) {
+        await builder.representation.addRepresentation(p, {
             type: 'cartoon',
             color: 'polymer-index',
             size: 'uniform',
@@ -51,7 +64,8 @@ async function defaultVisuals(plugin: PluginContext, data: { trajectory: StateOb
 
 export class G3dHeaderObject extends SO.Create<{
     header: G3dHeader,
-    urlOrData: Uint8Array | string
+    urlOrData: Uint8Array | string,
+    cache: { [resolution: number]: Trajectory | undefined }
 }>({ name: 'G3D Header', typeClass: 'Data' }) { }
 
 export type G3DHeaderFromFile = typeof G3DHeaderFromFile
@@ -64,7 +78,7 @@ export const G3DHeaderFromFile = PluginStateTransform.BuiltIn({
     apply({ a }, plugin: PluginContext) {
         return Task.create('Parse G3D', async () => {
             const header = await getG3dHeader(plugin, a.data);
-            return new G3dHeaderObject({ header, urlOrData: a.data }, { label: header.name, description: header.genome });
+            return new G3dHeaderObject({ header, urlOrData: a.data, cache: { } }, { label: header.name, description: header.genome });
         });
     }
 });
@@ -80,7 +94,7 @@ export const G3DHeaderFromUrl = PluginStateTransform.BuiltIn({
     apply({ params }, plugin: PluginContext) {
         return Task.create('Parse G3D', async () => {
             const header = await getG3dHeader(plugin, params.url);
-            return new G3dHeaderObject({ header, urlOrData: params.url }, { label: header.name, description: header.genome });
+            return new G3dHeaderObject({ header, urlOrData: params.url, cache: { } }, { label: header.name, description: header.genome });
         });
     }
 });
@@ -101,8 +115,12 @@ export const G3DTrajectory = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('G3D Trajectory', async ctx => {
+            if (a.data.cache[params.resolution]) {
+                return new SO.Molecule.Trajectory(a.data.cache[params.resolution]!, { label: a.label, description: a.description });
+            }
             const data = await getG3dDataBlock(plugin, a.data.header, a.data.urlOrData, params.resolution);
             const traj = await trajectoryFromG3D(data).runInContext(ctx);
+            a.data.cache[params.resolution] = traj;
             return new SO.Molecule.Trajectory(traj, { label: a.label, description: a.description });
         });
     }
@@ -125,7 +143,7 @@ export const LoadG3D = StateAction.build({
             .apply(G3DTrajectory)
             .commit();
 
-        await defaultVisuals(ctx, { trajectory });
+        await defaultStructure(ctx, { trajectory });
     }).runInContext(taskCtx);
 }));
 
@@ -139,9 +157,17 @@ export const G3DFormat = PluginBehavior.create<{ autoAttach: boolean, showToolti
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
         register() {
             this.ctx.state.data.actions.add(LoadG3D);
+
+            DefaultQueryRuntimeTable.addCustomProp(G3dInfoPropertyProvider.descriptor);
+            this.ctx.customModelProperties.register(G3dInfoPropertyProvider, false);
+            this.ctx.managers.lociLabels.addProvider(G3dLabelProvider);
         }
         unregister() {
             this.ctx.state.data.actions.remove(LoadG3D);
+
+            DefaultQueryRuntimeTable.removeCustomProp(G3dInfoPropertyProvider.descriptor);
+            this.ctx.customModelProperties.unregister(G3dInfoPropertyProvider.descriptor.name);
+            this.ctx.managers.lociLabels.removeProvider(G3dLabelProvider);
         }
     }
 });
