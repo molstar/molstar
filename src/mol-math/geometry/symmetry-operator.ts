@@ -188,7 +188,9 @@ function createProjections(t: SymmetryOperator, coords: SymmetryOperator.Coordin
 }
 
 function projectCoord(xs: ArrayLike<number>) {
-    return (i: number) => xs[i];
+    return function projectCoord(i: number) {
+        return xs[i];
+    };
 }
 
 function isW1(m: Mat4) {
@@ -200,10 +202,12 @@ function projectX({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: Symm
 
     if (isW1(m)) {
         // this should always be the case.
-        return (i: number) => xx * xs[i] + yy * ys[i] + zz * zs[i] + tx;
+        return function projectX_W1(i: number) {
+            return xx * xs[i] + yy * ys[i] + zz * zs[i] + tx;
+        };
     }
 
-    return (i: number) => {
+    return function projectX(i: number) {
         const x = xs[i], y = ys[i], z = zs[i], w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
         return (xx * x + yy * y + zz * z + tx) / w;
     };
@@ -214,10 +218,12 @@ function projectY({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: Symm
 
     if (isW1(m)) {
         // this should always be the case.
-        return (i: number) => xx * xs[i] + yy * ys[i] + zz * zs[i] + ty;
+        return function projectY_W1(i: number) {
+            return xx * xs[i] + yy * ys[i] + zz * zs[i] + ty;
+        };
     }
 
-    return (i: number) => {
+    return function projectY(i: number) {
         const x = xs[i], y = ys[i], z = zs[i], w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
         return (xx * x + yy * y + zz * z + ty) / w;
     };
@@ -228,17 +234,19 @@ function projectZ({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: Symm
 
     if (isW1(m)) {
         // this should always be the case.
-        return (i: number) => xx * xs[i] + yy * ys[i] + zz * zs[i] + tz;
+        return function projectZ_W1(i: number) {
+            return xx * xs[i] + yy * ys[i] + zz * zs[i] + tz;
+        };
     }
 
-    return (i: number) => {
+    return function projectZ(i: number) {
         const x = xs[i], y = ys[i], z = zs[i], w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
         return (xx * x + yy * y + zz * z + tz) / w;
     };
 }
 
 function identityPosition<T extends number>({ x, y, z }: SymmetryOperator.Coordinates): SymmetryOperator.CoordinateMapper<T> {
-    return (i, s) => {
+    return function identityPosition(i: T, s: Vec3): Vec3 {
         s[0] = x[i];
         s[1] = y[i];
         s[2] = z[i];
@@ -249,7 +257,7 @@ function identityPosition<T extends number>({ x, y, z }: SymmetryOperator.Coordi
 function generalPosition<T extends number>({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: SymmetryOperator.Coordinates) {
     if (isW1(m)) {
         // this should always be the case.
-        return (i: T, r: Vec3): Vec3 => {
+        return function generalPosition_W1(i: T, r: Vec3): Vec3 {
             const x = xs[i], y = ys[i], z = zs[i];
             r[0] = m[0] * x + m[4] * y + m[8] * z + m[12];
             r[1] = m[1] * x + m[5] * y + m[9] * z + m[13];
@@ -257,7 +265,7 @@ function generalPosition<T extends number>({ matrix: m }: SymmetryOperator, { x:
             return r;
         };
     }
-    return (i: T, r: Vec3): Vec3 => {
+    return function generalPosition(i: T, r: Vec3): Vec3 {
         r[0] = xs[i];
         r[1] = ys[i];
         r[2] = zs[i];
