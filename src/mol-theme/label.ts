@@ -294,7 +294,7 @@ function _coarseElementLabel(location: StructureElement.Location<Unit.Spheres | 
                 const entityIndex = Props.coarse.entityKey(location);
                 const seq = location.unit.model.sequence.byEntityKey[entityIndex];
                 const comp_id = seq.sequence.compId.value(seq_id_begin - 1); // 1-indexed
-                label.push(`<b>${comp_id} ${seq_id_begin}-${seq_id_end}</b>`);
+                label.push(`<b>${comp_id} ${seq_id_begin}</b>`);
             } else {
                 label.push(`<b>${seq_id_begin}-${seq_id_end}</b>`);
             }

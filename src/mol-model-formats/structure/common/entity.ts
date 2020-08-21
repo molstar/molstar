@@ -32,10 +32,10 @@ export class EntityBuilder {
         this.descriptions.push([description]);
     }
 
-    getEntityId(compId: string, moleculeType: MoleculeType, chainId: string): string {
+    getEntityId(compId: string, moleculeType: MoleculeType, chainId: string, options?: { customName?: string }): string {
         if (moleculeType === MoleculeType.Water) {
             if (this.waterId === undefined) {
-                this.set('water', 'Water');
+                this.set('water', options?.customName || 'Water');
                 this.waterId = `${this.count}`;
             }
             return this.waterId;
@@ -44,14 +44,14 @@ export class EntityBuilder {
                 return this.compoundsMap.get(chainId)!;
             } else {
                 if (!this.chainMap.has(chainId)) {
-                    this.set('polymer', `Polymer ${this.chainMap.size + 1}`);
+                    this.set('polymer', options?.customName || `Polymer ${this.chainMap.size + 1}`);
                     this.chainMap.set(chainId, `${this.count}`);
                 }
                 return this.chainMap.get(chainId)!;
             }
         } else {
             if (!this.heteroMap.has(compId)) {
-                this.set('non-polymer', this.namesMap.get(compId) || compId);
+                this.set('non-polymer', options?.customName || this.namesMap.get(compId) || compId);
                 this.heteroMap.set(compId, `${this.count}`);
             }
             return this.heteroMap.get(compId)!;
