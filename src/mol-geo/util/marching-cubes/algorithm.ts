@@ -145,7 +145,7 @@ class MarchingCubesState {
         // clear either the top or bottom half of the buffer...
         const start = k % 2 === 0 ? 0 : 3 * this.nX * this.nY;
         const end = k % 2 === 0 ? 3 * this.nX * this.nY : this.verticesOnEdges.length;
-        for (let i = start; i < end; i++) this.verticesOnEdges[i] = 0;
+        this.verticesOnEdges.fill(0, start, end);
     }
 
     private interpolate(edgeNum: number) {
