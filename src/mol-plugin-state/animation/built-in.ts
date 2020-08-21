@@ -21,7 +21,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
             loop: PD.Group({ }),
             once: PD.Group({ direction: PD.Select('forward', [['forward', 'Forward'], ['backward', 'Backward']]) }, { isFlat: true })
         }, { options: [['palindrome', 'Palindrome'], ['loop', 'Loop'], ['once', 'Once']] }),
-        maxFPS: PD.Numeric(15, { min: 1, max: 30, step: 1 })
+        maxFPS: PD.Numeric(15, { min: 1, max: 60, step: 1 })
     }),
     canApply(ctx) {
         const state = ctx.state.data;
