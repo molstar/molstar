@@ -643,6 +643,10 @@ export namespace BondType {
         return (flags & BondType.Flag.Covalent) !== 0;
     }
 
+    export function isAll(flags: BondType.Flag) {
+        return flags === Math.pow(2, 6) - 1;
+    }
+
     export const Names = {
         'covalent': Flag.Covalent,
         'metal-coordination': Flag.MetallicCoordination,

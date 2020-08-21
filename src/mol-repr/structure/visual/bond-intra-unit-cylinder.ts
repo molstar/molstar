@@ -11,7 +11,7 @@ import { Unit, Structure, StructureElement } from '../../../mol-model/structure'
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { BitFlags, arrayEqual } from '../../../mol-util';
+import { arrayEqual } from '../../../mol-util';
 import { createLinkCylinderMesh, LinkStyle } from './util/link';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
@@ -20,6 +20,9 @@ import { BondType } from '../../../mol-model/structure/model/types';
 import { ignoreBondType, BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
+
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const isBondType = BondType.is;
 
 function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondCylinderParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
@@ -35,9 +38,16 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
 
-    const ignoreHydrogen = ignoreHydrogens ? (edgeIndex: number) => {
-        return isHydrogen(unit, elements[a[edgeIndex]]) || isHydrogen(unit, elements[b[edgeIndex]]);
-    } : () => false;
+    const allBondTypes = BondType.isAll(include) && BondType.Flag.None === exclude;
+
+    let ignore: undefined | ((edgeIndex: number) => boolean) = undefined;
+    if (!allBondTypes && ignoreHydrogens) {
+        ignore = (edgeIndex: number) => isHydrogen(unit, elements[a[edgeIndex]]) || isHydrogen(unit, elements[b[edgeIndex]]) || ignoreBondType(include, exclude, _flags[edgeIndex]);
+    } else if (!allBondTypes) {
+        ignore = (edgeIndex: number) => ignoreBondType(include, exclude, _flags[edgeIndex]);
+    } else if (ignoreHydrogens) {
+        ignore = (edgeIndex: number) => isHydrogen(unit, elements[a[edgeIndex]]) || isHydrogen(unit, elements[b[edgeIndex]]);
+    }
 
     if (!edgeCount) return Mesh.createEmpty(mesh);
 
@@ -51,7 +61,7 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
 
             if (aI > bI) [aI, bI] = [bI, aI];
             if (offset[aI + 1] - offset[aI] === 1) [aI, bI] = [bI, aI];
-            // TODO prefer reference atoms in rings
+            // TODO prefer reference atoms within rings
 
             for (let i = offset[aI], il = offset[aI + 1]; i < il; ++i) {
                 const _bI = b[i];
@@ -69,8 +79,8 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
         },
         style: (edgeIndex: number) => {
             const o = _order[edgeIndex];
-            const f = BitFlags.create(_flags[edgeIndex]);
-            if (BondType.is(f, BondType.Flag.MetallicCoordination) || BondType.is(f, BondType.Flag.HydrogenBond)) {
+            const f = _flags[edgeIndex];
+            if (isBondType(f, BondType.Flag.MetallicCoordination) || isBondType(f, BondType.Flag.HydrogenBond)) {
                 // show metall coordinations and hydrogen bonds with dashed cylinders
                 return LinkStyle.Dashed;
             } else if (o === 2) {
@@ -88,7 +98,7 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
             const sizeB = theme.size.size(location);
             return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio;
         },
-        ignore: (edgeIndex: number) => ignoreHydrogen(edgeIndex) || ignoreBondType(include, exclude, _flags[edgeIndex])
+        ignore
     };
 
     const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
