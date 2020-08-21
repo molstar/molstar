@@ -14,6 +14,11 @@ const quadIndices = new Uint16Array([
     1, 3, 2
 ]);
 
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const caAdd3 = ChunkedArray.add3;
+const caAdd2 = ChunkedArray.add2;
+const caAdd = ChunkedArray.add;
+
 export interface TextBuilder {
     add(str: string, x: number, y: number, z: number, depth: number, scale: number, group: number): void
     getText(): Text
@@ -38,9 +43,9 @@ export namespace TextBuilder {
         const outline = fontAtlas.buffer / fontAtlas.lineHeight;
 
         const add = (x: number, y: number, z: number, depth: number, group: number) => {
-            ChunkedArray.add3(centers, x, y, z);
-            ChunkedArray.add(depths, depth);
-            ChunkedArray.add(groups, group);
+            caAdd3(centers, x, y, z);
+            caAdd(depths, depth);
+            caAdd(groups, group);
         };
 
         return {
@@ -117,18 +122,18 @@ export namespace TextBuilder {
 
                 // background
                 if (background) {
-                    ChunkedArray.add2(mappings, xLeft, yTop); // top left
-                    ChunkedArray.add2(mappings, xLeft, yBottom); // bottom left
-                    ChunkedArray.add2(mappings, xRight, yTop); // top right
-                    ChunkedArray.add2(mappings, xRight, yBottom); // bottom right
+                    caAdd2(mappings, xLeft, yTop); // top left
+                    caAdd2(mappings, xLeft, yBottom); // bottom left
+                    caAdd2(mappings, xRight, yTop); // top right
+                    caAdd2(mappings, xRight, yBottom); // bottom right
 
                     const offset = centers.elementCount;
                     for (let i = 0; i < 4; ++i) {
-                        ChunkedArray.add2(tcoords, 10, 10);
+                        caAdd2(tcoords, 10, 10);
                         add(x, y, z, depth, group);
                     }
-                    ChunkedArray.add3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2]);
-                    ChunkedArray.add3(indices, offset + quadIndices[3], offset + quadIndices[4], offset + quadIndices[5]);
+                    caAdd3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2]);
+                    caAdd3(indices, offset + quadIndices[3], offset + quadIndices[4], offset + quadIndices[5]);
                 }
 
                 if (tether) {
@@ -234,18 +239,18 @@ export namespace TextBuilder {
                         default:
                             throw new Error('unsupported attachment');
                     }
-                    ChunkedArray.add2(mappings, xTip, yTip); // tip
-                    ChunkedArray.add2(mappings, xBaseA, yBaseA); // base A
-                    ChunkedArray.add2(mappings, xBaseB, yBaseB); // base B
-                    ChunkedArray.add2(mappings, xBaseCenter, yBaseCenter); // base center
+                    caAdd2(mappings, xTip, yTip); // tip
+                    caAdd2(mappings, xBaseA, yBaseA); // base A
+                    caAdd2(mappings, xBaseB, yBaseB); // base B
+                    caAdd2(mappings, xBaseCenter, yBaseCenter); // base center
 
                     const offset = centers.elementCount;
                     for (let i = 0; i < 4; ++i) {
-                        ChunkedArray.add2(tcoords, 10, 10);
+                        caAdd2(tcoords, 10, 10);
                         add(x, y, z, depth, group);
                     }
-                    ChunkedArray.add3(indices, offset, offset + 1, offset + 3);
-                    ChunkedArray.add3(indices, offset, offset + 3, offset + 2);
+                    caAdd3(indices, offset, offset + 1, offset + 3);
+                    caAdd3(indices, offset, offset + 3, offset + 2);
                 }
 
                 xShift += outline;
@@ -260,25 +265,25 @@ export namespace TextBuilder {
                     const top = (c.nh - yShift) * scale;
                     const bottom = (-yShift) * scale;
 
-                    ChunkedArray.add2(mappings, left, top);
-                    ChunkedArray.add2(mappings, left, bottom);
-                    ChunkedArray.add2(mappings, right, top);
-                    ChunkedArray.add2(mappings, right, bottom);
+                    caAdd2(mappings, left, top);
+                    caAdd2(mappings, left, bottom);
+                    caAdd2(mappings, right, top);
+                    caAdd2(mappings, right, bottom);
 
                     const texWidth = fontAtlas.texture.width;
                     const texHeight = fontAtlas.texture.height;
 
-                    ChunkedArray.add2(tcoords, c.x / texWidth, c.y / texHeight); // top left
-                    ChunkedArray.add2(tcoords, c.x / texWidth, (c.y + c.h) / texHeight); // bottom left
-                    ChunkedArray.add2(tcoords, (c.x + c.w) / texWidth, c.y / texHeight); // top right
-                    ChunkedArray.add2(tcoords, (c.x + c.w) / texWidth, (c.y + c.h) / texHeight); // bottom right
+                    caAdd2(tcoords, c.x / texWidth, c.y / texHeight); // top left
+                    caAdd2(tcoords, c.x / texWidth, (c.y + c.h) / texHeight); // bottom left
+                    caAdd2(tcoords, (c.x + c.w) / texWidth, c.y / texHeight); // top right
+                    caAdd2(tcoords, (c.x + c.w) / texWidth, (c.y + c.h) / texHeight); // bottom right
 
                     xadvance += c.nw - 2 * outline;
 
                     const offset = centers.elementCount;
                     for (let i = 0; i < 4; ++i) add(x, y, z, depth, group);
-                    ChunkedArray.add3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2]);
-                    ChunkedArray.add3(indices, offset + quadIndices[3], offset + quadIndices[4], offset + quadIndices[5]);
+                    caAdd3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2]);
+                    caAdd3(indices, offset + quadIndices[3], offset + quadIndices[4], offset + quadIndices[5]);
                 }
             },
             getText: () => {

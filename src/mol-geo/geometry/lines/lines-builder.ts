@@ -21,6 +21,11 @@ const tmpVecA = Vec3();
 const tmpVecB = Vec3();
 const tmpDir = Vec3();
 
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const caAdd = ChunkedArray.add;
+const caAdd2 = ChunkedArray.add2;
+const caAdd3 = ChunkedArray.add3;
+
 export namespace LinesBuilder {
     export function create(initialCount = 2048, chunkSize = 1024, lines?: Lines): LinesBuilder {
         const mappings = ChunkedArray.create(Float32Array, 2, chunkSize, lines ? lines.mappingBuffer.ref.value : initialCount);
@@ -32,16 +37,16 @@ export namespace LinesBuilder {
         const add = (startX: number, startY: number, startZ: number, endX: number, endY: number, endZ: number, group: number) => {
             const offset = mappings.elementCount;
             for (let i = 0; i < 4; ++i) {
-                ChunkedArray.add3(starts, startX, startY, startZ);
-                ChunkedArray.add3(ends, endX, endY, endZ);
-                ChunkedArray.add(groups, group);
+                caAdd3(starts, startX, startY, startZ);
+                caAdd3(ends, endX, endY, endZ);
+                caAdd(groups, group);
             }
-            ChunkedArray.add2(mappings, -1, 1);
-            ChunkedArray.add2(mappings, -1, -1);
-            ChunkedArray.add2(mappings, 1, 1);
-            ChunkedArray.add2(mappings, 1, -1);
-            ChunkedArray.add3(indices, offset, offset + 1, offset + 2);
-            ChunkedArray.add3(indices, offset + 1, offset + 3, offset + 2);
+            caAdd2(mappings, -1, 1);
+            caAdd2(mappings, -1, -1);
+            caAdd2(mappings, 1, 1);
+            caAdd2(mappings, 1, -1);
+            caAdd3(indices, offset, offset + 1, offset + 2);
+            caAdd3(indices, offset + 1, offset + 3, offset + 2);
         };
 
         const addFixedCountDashes = (start: Vec3, end: Vec3, segmentCount: number, group: number) => {
