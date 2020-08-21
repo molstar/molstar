@@ -71,7 +71,7 @@ export interface LinkBuilderProps {
     ignore?: (edgeIndex: number) => boolean
 }
 
-export enum LinkStyle {
+export const enum LinkStyle {
     Solid = 0,
     Dashed = 1,
     Double = 2,
@@ -120,7 +120,12 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
         const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
         builderState.currentGroup = edgeIndex;
 
-        if (linkStyle === LinkStyle.Dashed) {
+        if (linkStyle === LinkStyle.Solid) {
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
+            cylinderProps.topCap = cylinderProps.bottomCap = linkCap;
+
+            addCylinder(builderState, va, vb, 0.5, cylinderProps);
+        } else if (linkStyle === LinkStyle.Dashed) {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius / 3;
             cylinderProps.topCap = cylinderProps.bottomCap = true;
 
@@ -153,11 +158,6 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
             }
 
             addCylinder(builderState, va, vb, 0.5, cylinderProps);
-        } else {
-            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
-            cylinderProps.topCap = cylinderProps.bottomCap = linkCap;
-
-            addCylinder(builderState, va, vb, 0.5, cylinderProps);
         }
     }
 
@@ -188,10 +188,11 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
         position(va, vb, edgeIndex);
         v3scale(vb, v3add(vb, va, vb), 0.5);
 
-        // TODO use line width?
         const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
 
-        if (linkStyle === LinkStyle.Dashed) {
+        if (linkStyle === LinkStyle.Solid) {
+            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], edgeIndex);
+        } else if (linkStyle === LinkStyle.Dashed) {
             builder.addFixedCountDashes(va, vb, 7, edgeIndex);
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.Triple) {
             const order = LinkStyle.Double ? 2 : 3;
@@ -209,9 +210,7 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
             v3add(va, va, tmpV12);
             v3sub(vb, vb, tmpV12);
 
-            // TODO what to do here?
-            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], edgeIndex);
-        } else {
+            // TODO what to do here? Line as disk doesn't work well.
             builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], edgeIndex);
         }
     }
