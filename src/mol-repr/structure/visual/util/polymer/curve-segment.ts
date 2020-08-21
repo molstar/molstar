@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,6 +7,18 @@
 import { Vec3 } from '../../../../../mol-math/linear-algebra';
 import { NumberArray } from '../../../../../mol-util/type-helpers';
 import { lerp } from '../../../../../mol-math/interpolate';
+
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3fromArray = Vec3.fromArray;
+const v3toArray = Vec3.toArray;
+const v3normalize = Vec3.normalize;
+const v3sub = Vec3.sub;
+const v3spline = Vec3.spline;
+const v3slerp = Vec3.slerp;
+const v3copy = Vec3.copy;
+const v3cross = Vec3.cross;
+const v3orthogonalize = Vec3.orthogonalize;
+const v3matchDirection = Vec3.matchDirection;
 
 export interface CurveSegmentState {
     curvePoints: NumberArray,
@@ -43,9 +55,9 @@ export function interpolateCurveSegment(state: CurveSegmentState, controls: Curv
     interpolateNormals(state, controls);
 }
 
-const tanA = Vec3.zero();
-const tanB = Vec3.zero();
-const curvePoint = Vec3.zero();
+const tanA = Vec3();
+const tanB = Vec3();
+const curvePoint = Vec3();
 
 export function interpolatePointsAndTangents(state: CurveSegmentState, controls: CurveSegmentControls, tension: number, shift: number) {
     const { curvePoints, tangentVectors, linearSegments } = state;
@@ -60,18 +72,18 @@ export function interpolatePointsAndTangents(state: CurveSegmentState, controls:
         const t = j * 1.0 / linearSegments;
         if (t < shift1) {
             const te = lerp(tensionBeg, tension, t);
-            Vec3.spline(curvePoint, p0, p1, p2, p3, t + shift, te);
-            Vec3.spline(tanA, p0, p1, p2, p3, t + shift + 0.01, tensionBeg);
-            Vec3.spline(tanB, p0, p1, p2, p3, t + shift - 0.01, tensionBeg);
+            v3spline(curvePoint, p0, p1, p2, p3, t + shift, te);
+            v3spline(tanA, p0, p1, p2, p3, t + shift + 0.01, tensionBeg);
+            v3spline(tanB, p0, p1, p2, p3, t + shift - 0.01, tensionBeg);
         } else {
             const te = lerp(tension, tensionEnd, t);
-            Vec3.spline(curvePoint, p1, p2, p3, p4, t - shift1, te);
-            Vec3.spline(tanA, p1, p2, p3, p4, t - shift1 + 0.01, te);
-            Vec3.spline(tanB, p1, p2, p3, p4, t - shift1 - 0.01, te);
+            v3spline(curvePoint, p1, p2, p3, p4, t - shift1, te);
+            v3spline(tanA, p1, p2, p3, p4, t - shift1 + 0.01, te);
+            v3spline(tanB, p1, p2, p3, p4, t - shift1 - 0.01, te);
         }
-        Vec3.toArray(curvePoint, curvePoints, j * 3);
-        Vec3.normalize(tangentVec, Vec3.sub(tangentVec, tanA, tanB));
-        Vec3.toArray(tangentVec, tangentVectors, j * 3);
+        v3toArray(curvePoint, curvePoints, j * 3);
+        v3normalize(tangentVec, v3sub(tangentVec, tanA, tanB));
+        v3toArray(tangentVec, tangentVectors, j * 3);
     }
 }
 
@@ -95,27 +107,27 @@ export function interpolateNormals(state: CurveSegmentState, controls: CurveSegm
 
     const n = curvePoints.length / 3;
 
-    Vec3.fromArray(firstTangentVec, tangentVectors, 0);
-    Vec3.fromArray(lastTangentVec, tangentVectors, (n - 1) * 3);
+    v3fromArray(firstTangentVec, tangentVectors, 0);
+    v3fromArray(lastTangentVec, tangentVectors, (n - 1) * 3);
 
-    Vec3.orthogonalize(firstNormalVec, firstTangentVec, firstDirection);
-    Vec3.orthogonalize(lastNormalVec, lastTangentVec, lastDirection);
-    Vec3.matchDirection(lastNormalVec, lastNormalVec, firstNormalVec);
+    v3orthogonalize(firstNormalVec, firstTangentVec, firstDirection);
+    v3orthogonalize(lastNormalVec, lastTangentVec, lastDirection);
+    v3matchDirection(lastNormalVec, lastNormalVec, firstNormalVec);
 
-    Vec3.copy(prevNormal, firstNormalVec);
+    v3copy(prevNormal, firstNormalVec);
 
     for (let i = 0; i < n; ++i) {
         const t = i === 0 ? 0 : 1 / (n - i);
 
-        Vec3.fromArray(tangentVec, tangentVectors, i * 3);
+        v3fromArray(tangentVec, tangentVectors, i * 3);
 
-        Vec3.orthogonalize(normalVec, tangentVec, Vec3.slerp(tmpNormal, prevNormal, lastNormalVec, t));
-        Vec3.toArray(normalVec, normalVectors, i * 3);
+        v3orthogonalize(normalVec, tangentVec, v3slerp(tmpNormal, prevNormal, lastNormalVec, t));
+        v3toArray(normalVec, normalVectors, i * 3);
 
-        Vec3.copy(prevNormal, normalVec);
+        v3copy(prevNormal, normalVec);
 
-        Vec3.normalize(binormalVec, Vec3.cross(binormalVec, tangentVec, normalVec));
-        Vec3.toArray(binormalVec, binormalVectors, i * 3);
+        v3normalize(binormalVec, v3cross(binormalVec, tangentVec, normalVec));
+        v3toArray(binormalVec, binormalVectors, i * 3);
     }
 }
 

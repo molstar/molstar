@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -9,65 +9,77 @@ import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { ChunkedArray } from '../../../../mol-data/util';
 import { MeshBuilder } from '../mesh-builder';
 
-const tA = Vec3.zero();
-const tB = Vec3.zero();
-const tV = Vec3.zero();
+const tA = Vec3();
+const tB = Vec3();
+const tV = Vec3();
 
-const horizontalVector = Vec3.zero();
-const verticalVector = Vec3.zero();
-const verticalRightVector = Vec3.zero();
-const verticalLeftVector = Vec3.zero();
-const normalOffset = Vec3.zero();
-const positionVector = Vec3.zero();
-const normalVector = Vec3.zero();
-const torsionVector = Vec3.zero();
+const horizontalVector = Vec3();
+const verticalVector = Vec3();
+const verticalRightVector = Vec3();
+const verticalLeftVector = Vec3();
+const normalOffset = Vec3();
+const positionVector = Vec3();
+const normalVector = Vec3();
+const torsionVector = Vec3();
 
-const p1 = Vec3.zero();
-const p2 = Vec3.zero();
-const p3 = Vec3.zero();
-const p4 = Vec3.zero();
+const p1 = Vec3();
+const p2 = Vec3();
+const p3 = Vec3();
+const p4 = Vec3();
+
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3fromArray = Vec3.fromArray;
+const v3scale = Vec3.scale;
+const v3add = Vec3.add;
+const v3sub = Vec3.sub;
+const v3magnitude = Vec3.magnitude;
+const v3negate = Vec3.negate;
+const v3copy = Vec3.copy;
+const v3cross = Vec3.cross;
+const caAdd3 = ChunkedArray.add3;
+const caAdd = ChunkedArray.add;
 
 function addCap(offset: number, state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, width: number, leftHeight: number, rightHeight: number) {
     const { vertices, normals, indices } = state;
     const vertexCount = vertices.elementCount;
 
-    Vec3.fromArray(verticalLeftVector, normalVectors, offset);
-    Vec3.scale(verticalLeftVector, verticalLeftVector, leftHeight);
+    v3fromArray(verticalLeftVector, normalVectors, offset);
+    v3scale(verticalLeftVector, verticalLeftVector, leftHeight);
 
-    Vec3.fromArray(verticalRightVector, normalVectors, offset);
-    Vec3.scale(verticalRightVector, verticalRightVector, rightHeight);
+    v3fromArray(verticalRightVector, normalVectors, offset);
+    v3scale(verticalRightVector, verticalRightVector, rightHeight);
 
-    Vec3.fromArray(horizontalVector, binormalVectors, offset);
-    Vec3.scale(horizontalVector, horizontalVector, width);
+    v3fromArray(horizontalVector, binormalVectors, offset);
+    v3scale(horizontalVector, horizontalVector, width);
 
-    Vec3.fromArray(positionVector, controlPoints, offset);
+    v3fromArray(positionVector, controlPoints, offset);
 
-    Vec3.add(p1, Vec3.add(p1, positionVector, horizontalVector), verticalRightVector);
-    Vec3.sub(p2, Vec3.add(p2, positionVector, horizontalVector), verticalLeftVector);
-    Vec3.sub(p3, Vec3.sub(p3, positionVector, horizontalVector), verticalLeftVector);
-    Vec3.add(p4, Vec3.sub(p4, positionVector, horizontalVector), verticalRightVector);
+    v3add(p1, v3add(p1, positionVector, horizontalVector), verticalRightVector);
+    v3sub(p2, v3add(p2, positionVector, horizontalVector), verticalLeftVector);
+    v3sub(p3, v3sub(p3, positionVector, horizontalVector), verticalLeftVector);
+    v3add(p4, v3sub(p4, positionVector, horizontalVector), verticalRightVector);
 
     if (leftHeight < rightHeight) {
-        ChunkedArray.add3(vertices, p4[0], p4[1], p4[2]);
-        ChunkedArray.add3(vertices, p3[0], p3[1], p3[2]);
-        ChunkedArray.add3(vertices, p2[0], p2[1], p2[2]);
-        ChunkedArray.add3(vertices, p1[0], p1[1], p1[2]);
-        Vec3.copy(verticalVector, verticalRightVector);
+        caAdd3(vertices, p4[0], p4[1], p4[2]);
+        caAdd3(vertices, p3[0], p3[1], p3[2]);
+        caAdd3(vertices, p2[0], p2[1], p2[2]);
+        caAdd3(vertices, p1[0], p1[1], p1[2]);
+        v3copy(verticalVector, verticalRightVector);
     } else {
-        ChunkedArray.add3(vertices, p1[0], p1[1], p1[2]);
-        ChunkedArray.add3(vertices, p2[0], p2[1], p2[2]);
-        ChunkedArray.add3(vertices, p3[0], p3[1], p3[2]);
-        ChunkedArray.add3(vertices, p4[0], p4[1], p4[2]);
-        Vec3.copy(verticalVector, verticalLeftVector);
+        caAdd3(vertices, p1[0], p1[1], p1[2]);
+        caAdd3(vertices, p2[0], p2[1], p2[2]);
+        caAdd3(vertices, p3[0], p3[1], p3[2]);
+        caAdd3(vertices, p4[0], p4[1], p4[2]);
+        v3copy(verticalVector, verticalLeftVector);
     }
 
-    Vec3.cross(normalVector, horizontalVector, verticalVector);
+    v3cross(normalVector, horizontalVector, verticalVector);
 
     for (let i = 0; i < 4; ++i) {
-        ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
+        caAdd3(normals, normalVector[0], normalVector[1], normalVector[2]);
     }
-    ChunkedArray.add3(indices, vertexCount + 2, vertexCount + 1, vertexCount);
-    ChunkedArray.add3(indices, vertexCount, vertexCount + 3, vertexCount + 2);
+    caAdd3(indices, vertexCount + 2, vertexCount + 1, vertexCount);
+    caAdd3(indices, vertexCount, vertexCount + 3, vertexCount + 2);
 }
 
 /** set arrowHeight = 0 for no arrow */
@@ -78,9 +90,9 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
     let offsetLength = 0;
 
     if (arrowHeight > 0) {
-        Vec3.fromArray(tA, controlPoints, 0);
-        Vec3.fromArray(tB, controlPoints, linearSegments * 3);
-        offsetLength = arrowHeight / Vec3.magnitude(Vec3.sub(tV, tB, tA));
+        v3fromArray(tA, controlPoints, 0);
+        v3fromArray(tB, controlPoints, linearSegments * 3);
+        offsetLength = arrowHeight / v3magnitude(v3sub(tV, tB, tA));
     }
 
     for (let i = 0; i <= linearSegments; ++i) {
@@ -90,70 +102,70 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
         const actualHeight = arrowHeight === 0 ? height : arrowHeight * (1 - i / linearSegments);
         const i3 = i * 3;
 
-        Vec3.fromArray(verticalVector, normalVectors, i3);
-        Vec3.scale(verticalVector, verticalVector, actualHeight);
+        v3fromArray(verticalVector, normalVectors, i3);
+        v3scale(verticalVector, verticalVector, actualHeight);
 
-        Vec3.fromArray(horizontalVector, binormalVectors, i3);
-        Vec3.scale(horizontalVector, horizontalVector, width);
+        v3fromArray(horizontalVector, binormalVectors, i3);
+        v3scale(horizontalVector, horizontalVector, width);
 
         if (arrowHeight > 0) {
-            Vec3.fromArray(tA, normalVectors, i3);
-            Vec3.fromArray(tB, binormalVectors, i3);
-            Vec3.scale(normalOffset, Vec3.cross(normalOffset, tA, tB), offsetLength);
+            v3fromArray(tA, normalVectors, i3);
+            v3fromArray(tB, binormalVectors, i3);
+            v3scale(normalOffset, v3cross(normalOffset, tA, tB), offsetLength);
         }
 
-        Vec3.fromArray(positionVector, controlPoints, i3);
-        Vec3.fromArray(normalVector, normalVectors, i3);
-        Vec3.fromArray(torsionVector, binormalVectors, i3);
+        v3fromArray(positionVector, controlPoints, i3);
+        v3fromArray(normalVector, normalVectors, i3);
+        v3fromArray(torsionVector, binormalVectors, i3);
 
-        Vec3.add(tA, Vec3.add(tA, positionVector, horizontalVector), verticalVector);
-        Vec3.copy(tB, normalVector);
-        ChunkedArray.add3(vertices, tA[0], tA[1], tA[2]);
-        ChunkedArray.add3(normals, tB[0], tB[1], tB[2]);
+        v3add(tA, v3add(tA, positionVector, horizontalVector), verticalVector);
+        v3copy(tB, normalVector);
+        caAdd3(vertices, tA[0], tA[1], tA[2]);
+        caAdd3(normals, tB[0], tB[1], tB[2]);
 
-        Vec3.add(tA, Vec3.sub(tA, positionVector, horizontalVector), verticalVector);
-        ChunkedArray.add3(vertices, tA[0], tA[1], tA[2]);
-        ChunkedArray.add3(normals, tB[0], tB[1], tB[2]);
+        v3add(tA, v3sub(tA, positionVector, horizontalVector), verticalVector);
+        caAdd3(vertices, tA[0], tA[1], tA[2]);
+        caAdd3(normals, tB[0], tB[1], tB[2]);
 
-        // Vec3.add(tA, Vec3.sub(tA, positionVector, horizontalVector), verticalVector) // reuse tA
-        Vec3.add(tB, Vec3.negate(tB, torsionVector), normalOffset);
-        ChunkedArray.add3(vertices, tA[0], tA[1], tA[2]);
-        ChunkedArray.add3(normals, tB[0], tB[1], tB[2]);
+        // v3add(tA, v3sub(tA, positionVector, horizontalVector), verticalVector) // reuse tA
+        v3add(tB, v3negate(tB, torsionVector), normalOffset);
+        caAdd3(vertices, tA[0], tA[1], tA[2]);
+        caAdd3(normals, tB[0], tB[1], tB[2]);
 
-        Vec3.sub(tA, Vec3.sub(tA, positionVector, horizontalVector), verticalVector);
-        ChunkedArray.add3(vertices, tA[0], tA[1], tA[2]);
-        ChunkedArray.add3(normals, tB[0], tB[1], tB[2]);
+        v3sub(tA, v3sub(tA, positionVector, horizontalVector), verticalVector);
+        caAdd3(vertices, tA[0], tA[1], tA[2]);
+        caAdd3(normals, tB[0], tB[1], tB[2]);
 
-        // Vec3.sub(tA, Vec3.sub(tA, positionVector, horizontalVector), verticalVector) // reuse tA
-        Vec3.negate(tB, normalVector);
-        ChunkedArray.add3(vertices, tA[0], tA[1], tA[2]);
-        ChunkedArray.add3(normals, tB[0], tB[1], tB[2]);
+        // v3sub(tA, v3sub(tA, positionVector, horizontalVector), verticalVector) // reuse tA
+        v3negate(tB, normalVector);
+        caAdd3(vertices, tA[0], tA[1], tA[2]);
+        caAdd3(normals, tB[0], tB[1], tB[2]);
 
-        Vec3.sub(tA, Vec3.add(tA, positionVector, horizontalVector), verticalVector);
-        ChunkedArray.add3(vertices, tA[0], tA[1], tA[2]);
-        ChunkedArray.add3(normals, tB[0], tB[1], tB[2]);
+        v3sub(tA, v3add(tA, positionVector, horizontalVector), verticalVector);
+        caAdd3(vertices, tA[0], tA[1], tA[2]);
+        caAdd3(normals, tB[0], tB[1], tB[2]);
 
-        // Vec3.sub(tA, Vec3.add(tA, positionVector, horizontalVector), verticalVector) // reuse tA
-        Vec3.add(tB, torsionVector, normalOffset);
-        ChunkedArray.add3(vertices, tA[0], tA[1], tA[2]);
-        ChunkedArray.add3(normals, tB[0], tB[1], tB[2]);
+        // v3sub(tA, v3add(tA, positionVector, horizontalVector), verticalVector) // reuse tA
+        v3add(tB, torsionVector, normalOffset);
+        caAdd3(vertices, tA[0], tA[1], tA[2]);
+        caAdd3(normals, tB[0], tB[1], tB[2]);
 
-        Vec3.add(tA, Vec3.add(tA, positionVector, horizontalVector), verticalVector);
-        ChunkedArray.add3(vertices, tA[0], tA[1], tA[2]);
-        ChunkedArray.add3(normals, tB[0], tB[1], tB[2]);
+        v3add(tA, v3add(tA, positionVector, horizontalVector), verticalVector);
+        caAdd3(vertices, tA[0], tA[1], tA[2]);
+        caAdd3(normals, tB[0], tB[1], tB[2]);
     }
 
     for (let i = 0; i < linearSegments; ++i) {
         // the triangles are arranged such that opposing triangles of the sheet align
         // which prevents triangle intersection within tight curves
         for (let j = 0; j < 2; j++) {
-            ChunkedArray.add3(
+            caAdd3(
                 indices,
                 vertexCount + i * 8 + 2 * j, // a
                 vertexCount + (i + 1) * 8 + 2 * j + 1, // c
                 vertexCount + i * 8 + 2 * j + 1 // b
             );
-            ChunkedArray.add3(
+            caAdd3(
                 indices,
                 vertexCount + i * 8 + 2 * j, // a
                 vertexCount + (i + 1) * 8 + 2 * j, // d
@@ -161,13 +173,13 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
             );
         }
         for (let j = 2; j < 4; j++) {
-            ChunkedArray.add3(
+            caAdd3(
                 indices,
                 vertexCount + i * 8 + 2 * j, // a
                 vertexCount + (i + 1) * 8 + 2 * j, // d
                 vertexCount + i * 8 + 2 * j + 1, // b
             );
-            ChunkedArray.add3(
+            caAdd3(
                 indices,
                 vertexCount + (i + 1) * 8 + 2 * j, // d
                 vertexCount + (i + 1) * 8 + 2 * j + 1, // c
@@ -198,5 +210,5 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
     const addedVertexCount = (linearSegments + 1) * 8 +
         (startCap ? 4 : (arrowHeight > 0 ? 8 : 0)) +
         (endCap && arrowHeight === 0 ? 4 : 0);
-    for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(groups, currentGroup);
+    for (let i = 0, il = addedVertexCount; i < il; ++i) caAdd(groups, currentGroup);
 }
