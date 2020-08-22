@@ -79,6 +79,7 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties,
+        customData: Object.create(null),
         customProperties: new CustomProperties(),
         _staticPropertyData: Object.create(null),
         _dynamicPropertyData: Object.create(null)
@@ -118,6 +119,7 @@ function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Mo
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties,
+        customData: Object.create(null),
         customProperties: new CustomProperties(),
         _staticPropertyData: Object.create(null),
         _dynamicPropertyData: Object.create(null)

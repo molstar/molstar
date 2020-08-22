@@ -421,7 +421,11 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
     update: ({ a, b, oldParams, newParams }) => {
         if (!deepEqual(oldParams, newParams)) return StateTransformer.UpdateResult.Recreate;
         if (b.data.model === a.data) return StateTransformer.UpdateResult.Unchanged;
-        if (Model.getRoot(b.data.model) !== Model.getRoot(a.data) && a.data.atomicHierarchy !== b.data.model.atomicHierarchy) return StateTransformer.UpdateResult.Recreate;
+        if (Model.getRoot(b.data.model) !== Model.getRoot(a.data)
+            && (a.data.atomicHierarchy !== b.data.model.atomicHierarchy
+                || a.data.coarseHierarchy !== b.data.model.coarseHierarchy)) {
+            return StateTransformer.UpdateResult.Recreate;
+        }
 
         b.data = Structure.remapModel(b.data, a.data);
 
@@ -908,6 +912,8 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
         });
     },
     update({ a, b, oldParams, newParams }, ctx: PluginContext) {
+        if (a.data !== b.data) return StateTransformer.UpdateResult.Recreate;
+
         return Task.create('Custom Props', async taskCtx => {
             b.data = a.data;
             b.label = a.label;
