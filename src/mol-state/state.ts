@@ -42,7 +42,7 @@ class State {
             removed: this.ev<State.ObjectEvent & { parent: StateTransform.Ref }>(),
         },
         object: {
-            updated: this.ev<State.ObjectEvent & { action: 'in-place' | 'recreate', obj: StateObject, oldObj?: StateObject }>(),
+            updated: this.ev<State.ObjectEvent & { action: 'in-place' | 'recreate', obj: StateObject, oldObj?: StateObject, oldData?: any }>(),
             created: this.ev<State.ObjectEvent & { obj: StateObject }>(),
             removed: this.ev<State.ObjectEvent & { obj?: StateObject }>()
         },
@@ -545,7 +545,7 @@ async function update(ctx: UpdateContext) {
                 if (!transform.state.isGhost && update.obj !== StateObject.Null) newCurrent = update.ref;
             }
         } else if (update.action === 'updated') {
-            ctx.parent.events.object.updated.next({ state: ctx.parent, ref: update.ref, action: 'in-place', obj: update.obj });
+            ctx.parent.events.object.updated.next({ state: ctx.parent, ref: update.ref, action: 'in-place', obj: update.obj, oldData: update.oldData });
         } else if (update.action === 'replaced') {
             ctx.parent.events.object.updated.next({ state: ctx.parent, ref: update.ref, action: 'recreate', obj: update.obj, oldObj: update.oldObj });
         }
@@ -780,7 +780,7 @@ function doError(ctx: UpdateContext, ref: Ref, errorObject: any | undefined, sil
 
 type UpdateNodeResult =
     | { ref: Ref, action: 'created', obj: StateObject }
-    | { ref: Ref, action: 'updated', obj: StateObject }
+    | { ref: Ref, action: 'updated', oldData?: any, obj: StateObject }
     | { ref: Ref, action: 'replaced', oldObj?: StateObject, obj: StateObject }
     | { action: 'none' }
 
@@ -870,6 +870,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     } else {
         const oldParams = current.params.values;
         const oldCache = current.cache;
+        const oldData = current.obj?.data;
         const newParams = params.values;
         current.params = params;
 
@@ -891,7 +892,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
             }
             case StateTransformer.UpdateResult.Updated:
                 updateTag(current.obj, transform);
-                return { ref: currentRef, action: 'updated', obj: current.obj! };
+                return { ref: currentRef, action: 'updated', oldData, obj: current.obj! };
             case StateTransformer.UpdateResult.Null: {
                 dispose(transform, current.obj, oldParams, oldCache, ctx.parent.globalContext);
 
