@@ -6,7 +6,7 @@
  */
 
 import { Vec3 } from '../../../../mol-math/linear-algebra';
-import { Unit, StructureElement, Structure } from '../../../../mol-model/structure';
+import { Unit, StructureElement, Structure, ElementIndex } from '../../../../mol-model/structure';
 import { Loci, EmptyLoci } from '../../../../mol-model/loci';
 import { Interval, OrderedSet } from '../../../../mol-data/int';
 import { Mesh } from '../../../../mol-geo/geometry/mesh/mesh';
@@ -20,32 +20,50 @@ import { Theme } from '../../../../mol-theme/theme';
 import { StructureGroup } from '../../../../mol-repr/structure/units-visual';
 import { Spheres } from '../../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../../mol-geo/geometry/spheres/spheres-builder';
-import { isHydrogen, isTrace } from './common';
+import { isTrace, isH } from './common';
 import { Sphere3D } from '../../../../mol-math/geometry';
 
-export interface ElementSphereMeshProps {
-    detail: number,
-    sizeFactor: number,
+type ElementProps = {
     ignoreHydrogens: boolean,
     traceOnly: boolean,
 }
 
+export type ElementSphereMeshProps = {
+    detail: number,
+    sizeFactor: number,
+} & ElementProps
+
+export function makeElementIgnoreTest(unit: Unit, props: ElementProps): undefined | ((unit: Unit, i: ElementIndex) => boolean) {
+    const { ignoreHydrogens, traceOnly } = props;
+
+    const { atomicNumber } = unit.model.atomicHierarchy.derived.atom;
+    const isCoarse = Unit.isCoarse(unit);
+
+    if (!isCoarse && ignoreHydrogens && traceOnly) {
+        return (unit: Unit, element: ElementIndex) => isH(atomicNumber, element) && !isTrace(unit, element);
+    } else if (!isCoarse && ignoreHydrogens) {
+        return (unit: Unit, element: ElementIndex) => isH(atomicNumber, element);
+    } else if (!isCoarse && traceOnly) {
+        return (unit: Unit, element: ElementIndex) => !isTrace(unit, element);
+    }
+}
+
 export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereMeshProps, mesh?: Mesh): Mesh {
-    const { detail, sizeFactor, ignoreHydrogens, traceOnly } = props;
+    const { detail, sizeFactor } = props;
 
     const { elements } = unit;
     const elementCount = elements.length;
     const vertexCount = elementCount * sphereVertexCount(detail);
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
 
-    const v = Vec3.zero();
+    const v = Vec3();
     const pos = unit.conformation.invariantPosition;
+    const ignore = makeElementIgnoreTest(unit, props);
     const l = StructureElement.Location.create(structure);
     l.unit = unit;
 
     for (let i = 0; i < elementCount; i++) {
-        if (ignoreHydrogens && isHydrogen(unit, elements[i])) continue;
-        if (traceOnly && !isTrace(unit, elements[i])) continue;
+        if (ignore && ignore(unit, elements[i])) continue;
 
         l.element = elements[i];
         pos(elements[i], v);
@@ -62,27 +80,28 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     return m;
 }
 
-export interface ElementSphereImpostorProps {
-    ignoreHydrogens: boolean,
-    traceOnly: boolean
-}
+export type ElementSphereImpostorProps = ElementProps
 
 export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereImpostorProps, spheres?: Spheres): Spheres {
-    const { ignoreHydrogens, traceOnly } = props;
-
     const { elements } = unit;
     const elementCount = elements.length;
     const builder = SpheresBuilder.create(elementCount, elementCount / 2, spheres);
 
-    const v = Vec3.zero();
+    const v = Vec3();
     const pos = unit.conformation.invariantPosition;
+    const ignore = makeElementIgnoreTest(unit, props);
 
-    for (let i = 0; i < elementCount; i++) {
-        if (ignoreHydrogens && isHydrogen(unit, elements[i])) continue;
-        if (traceOnly && !isTrace(unit, elements[i])) continue;
-
-        pos(elements[i], v);
-        builder.add(v[0], v[1], v[2], i);
+    if (ignore) {
+        for (let i = 0; i < elementCount; i++) {
+            if (ignore(unit, elements[i])) continue;
+            pos(elements[i], v);
+            builder.add(v[0], v[1], v[2], i);
+        }
+    } else {
+        for (let i = 0; i < elementCount; i++) {
+            pos(elements[i], v);
+            builder.add(v[0], v[1], v[2], i);
+        }
     }
 
     const s = builder.getSpheres();
