@@ -72,7 +72,7 @@ export function tryAdjustBoundary(data: PositionData, boundary: Boundary): Bound
 
     const adjustedRadius = Math.sqrt(maxDistSq);
     const deltaRadius = adjustedRadius - radius;
-    if (Math.abs(deltaRadius) < radius / 100) {
+    if (Math.abs(deltaRadius) < (radius / 100) * 5) {
         // TODO: The expanded sphere extrema are not correct if the principal axes differ
         const sphere = Sphere3D.expand(Sphere3D(), boundary.sphere, deltaRadius);
         const box = Box3D.fromSphere3D(Box3D(), sphere);
