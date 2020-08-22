@@ -82,3 +82,16 @@ export function computeStructureGaussianDensityTexture(structure: Structure, pro
         return GaussianDensityTexture(webgl, position, box, radius, p, texture);
     });
 }
+
+export function getUnitExtraRadius(unit: Unit) {
+    if (Unit.isAtomic(unit)) return 4;
+
+    let max = 0;
+    const { elements } = unit;
+    const { r } = unit.conformation;
+    for (let i = 0, _i = elements.length; i < _i; i++) {
+        const _r = r(elements[i]);
+        if (_r > max) max = _r;
+    }
+    return max + 1;
+}
