@@ -9,7 +9,7 @@ import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
-import { computeUnitGaussianDensity, GaussianDensityParams, GaussianDensityProps } from './util/gaussian';
+import { computeUnitGaussianDensity, GaussianDensityParams, GaussianDensityProps, getUnitExtraRadius } from './util/gaussian';
 import { computeMarchingCubesLines } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { UnitsLinesParams, UnitsVisual, UnitsLinesVisual } from '../units-visual';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
@@ -29,9 +29,7 @@ async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure
 
     Lines.transform(wireframe, transform);
 
-    // Add 3 to the offset so that the surface boundary doesn't get cut off by clipping plane
-    // TODO: is 3 too low/high?
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + 3);
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getUnitExtraRadius(unit));
     wireframe.setBoundingSphere(sphere);
 
     return wireframe;

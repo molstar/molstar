@@ -5,23 +5,22 @@
  */
 
 import { Column, Table } from '../../mol-data/db';
+import { OrderedSet } from '../../mol-data/int';
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { createModels } from '../../mol-model-formats/structure/basic/parser';
 import { BasicSchema, createBasic } from '../../mol-model-formats/structure/basic/schema';
 import { EntityBuilder } from '../../mol-model-formats/structure/common/entity';
-import { CustomModelProperty } from '../../mol-model-props/common/custom-model-property';
+import { Loci } from '../../mol-model/loci';
 import { Model, Trajectory, Unit } from '../../mol-model/structure';
 import { MoleculeType } from '../../mol-model/structure/model/types';
+import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
 import Type from '../../mol-script/language/type';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
-import { Task, RuntimeContext } from '../../mol-task';
+import { RuntimeContext, Task } from '../../mol-task';
 import { objectForEach } from '../../mol-util/object';
-import { ParamDefinition } from '../../mol-util/param-definition';
-import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { G3dDataBlock } from './data';
-import { Loci } from '../../mol-model/loci';
-import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
-import { OrderedSet } from '../../mol-data/int';
 
 interface NormalizedData {
     entity_id: string[],
@@ -32,6 +31,7 @@ interface NormalizedData {
     x: Float32Array,
     y: Float32Array,
     z: Float32Array,
+    r: Float32Array,
     haplotype: string[]
 }
 
@@ -50,24 +50,55 @@ function getColumns(block: G3dDataBlock) {
         x: new Float32Array(size),
         y: new Float32Array(size),
         z: new Float32Array(size),
+        r: new Float32Array(size),
         haplotype: new Array(size)
     };
+
+    const p = [Vec3(), Vec3(), Vec3()];
 
     let o = 0;
     objectForEach(data, (hs, h) => {
         objectForEach(hs, (chs, ch) => {
             const entity_id = `${ch}-${h}`;
-            for (let i = 0, _i = chs.start.length; i < _i; i++) {
+            const l =  chs.start.length;
+            if (l === 0) return;
+
+            let x = chs.x[0];
+            let y = chs.y[0];
+            let z = chs.z[0];
+
+            Vec3.set(p[0], x, y, z);
+            Vec3.set(p[2], x, y, z);
+
+            for (let i = 0; i < l; i++) {
                 normalized.entity_id[o] = entity_id;
                 normalized.chromosome[o] = ch;
                 normalized.start[o] = chs.start[i];
                 normalized.seq_id_begin[o] = o;
                 normalized.seq_id_end[o] = o;
-                normalized.x[o] = 10 * chs.x[i];
-                normalized.y[o] = 10 * chs.y[i];
-                normalized.z[o] = 10 * chs.z[i];
+
+                x = chs.x[i];
+                y = chs.y[i];
+                z = chs.z[i];
+
+                Vec3.set(p[1], x, y, z);
+                if (i + 1 < l) Vec3.set(p[2], chs.x[i + 1], chs.y[i + 1], chs.z[i + 1]);
+                else Vec3.set(p[2], x, y, z);
+
+                normalized.x[o] = x;
+                normalized.y[o] = y;
+                normalized.z[o] = z;
+                normalized.r[o] = 2 / 3 * Math.min(Vec3.distance(p[0], p[1]), Vec3.distance(p[1], p[2]));
                 normalized.haplotype[o] = h;
+
+                const _p = p[0];
+                p[0] = p[1];
+                p[1] = _p;
                 o++;
+            }
+
+            if (l === 1) {
+                normalized.r[o - 1] = 1;
             }
         });
     });
@@ -81,9 +112,6 @@ async function getTraj(ctx: RuntimeContext, data: G3dDataBlock) {
     const rowCount = normalized.seq_id_begin.length;
     const entityIds = new Array<string>(rowCount);
     const entityBuilder = new EntityBuilder();
-
-    const stride = normalized.seq_id_begin[1] - normalized.seq_id_begin[0];
-    const objectRadius = stride / 3500;
 
     const eName = { customName: '' };
     for (let i = 0; i < rowCount; ++i) {
@@ -104,7 +132,7 @@ async function getTraj(ctx: RuntimeContext, data: G3dDataBlock) {
         Cartn_y: Column.ofFloatArray(normalized.y),
         Cartn_z: Column.ofFloatArray(normalized.z),
 
-        object_radius: Column.ofConst(objectRadius, rowCount, Column.Schema.float),
+        object_radius: Column.ofFloatArray(normalized.r),
         rmsf: Column.ofConst(0, rowCount, Column.Schema.float),
         model_id: Column.ofConst(1, rowCount, Column.Schema.int),
     }, rowCount);
@@ -120,11 +148,12 @@ async function getTraj(ctx: RuntimeContext, data: G3dDataBlock) {
 
     const models = await createModels(basic, { kind: 'g3d', name: 'G3D', data }, ctx);
 
-    await G3dInfoPropertyProvider.attach({ runtime: ctx, assetManager: void 0 as any }, models.representative, {
-        resolution: data.resolution,
+    models.representative.customData.g3dInfo = {
+        haplotypes: Object.keys(data.data),
         haplotype: normalized.haplotype,
+        resolution: data.resolution,
         start: normalized.start
-    });
+    } as G3dInfoData;
 
     return models;
 }
@@ -139,40 +168,34 @@ export const G3dSymbols = {
     haplotype: QuerySymbolRuntime.Dynamic(CustomPropSymbol('g3d', 'haplotype', Type.Str),
         ctx => {
             if (Unit.isAtomic(ctx.element.unit)) return '';
-            const info = G3dInfoPropertyProvider.get(ctx.element.unit.model);
+            const info =  getG3dInfoData(ctx.element.unit.model);
+            if (!info) return '';
             const seqId = ctx.element.unit.model.coarseHierarchy.spheres.seq_id_begin.value(ctx.element.element);
-            return info.value?.haplotype[seqId] || '';
+            return info.haplotype[seqId] || '';
         }
     )
 };
 
-export function g3dHaplotypeQuery(haplotype: 'maternal' | 'paternal') {
+export function g3dHaplotypeQuery(haplotype: string) {
     return MS.struct.generator.atomGroups({
         'chain-test': MS.core.rel.eq([G3dSymbols.haplotype.symbol(), haplotype]),
     });
 }
 
-export const G3dInfoPropertyParams = {
-    haplotype: ParamDefinition.Value<string[]>([]),
-    start: ParamDefinition.Value<Int32Array>(new Int32Array(0)),
-    resolution: ParamDefinition.Numeric(0)
+export interface G3dInfoData {
+    haplotypes: string[],
+    haplotype: string[],
+    start: Int32Array,
+    resolution: number
 };
 
-export type G3dInfoPropertyParams = typeof G3dInfoPropertyParams
-export type G3dInfoPropertyParamsProps = ParamDefinition.Values<G3dInfoPropertyParams>
+export function setG3dInfoData(model: Model, data: G3dInfoData) {
+    model.customData.g3dInfo = data;
+}
 
-export const G3dInfoPropertyProvider: CustomModelProperty.Provider<G3dInfoPropertyParams, G3dInfoPropertyParamsProps> = CustomModelProperty.createProvider({
-    label: 'G3d Info',
-    type: 'static',
-    isHidden: true,
-    defaultParams: G3dInfoPropertyParams,
-    descriptor: { name: 'g3d_info', symbols: G3dSymbols },
-    getParams: (data: Model) => G3dInfoPropertyParams,
-    isApplicable: (data: Model) => true,
-    obtain: async (ctx, data, props) => {
-        return { value: props as any };
-    }
-});
+export function getG3dInfoData(model: Model): G3dInfoData | undefined {
+    return model.customData.g3dInfo;
+}
 
 export const G3dLabelProvider: LociLabelProvider = {
     label: (e: Loci): string | undefined => {
@@ -180,11 +203,11 @@ export const G3dLabelProvider: LociLabelProvider = {
 
         const first = e.elements[0];
         if (e.elements.length !== 1 || Unit.isAtomic(first.unit)) return;
-        const info = G3dInfoPropertyProvider.get(first.unit.model);
+        const info = getG3dInfoData(first.unit.model);
         if (!info) return;
 
         const eI = first.unit.elements[OrderedSet.getAt(first.indices, 0)];
         const seqId = first.unit.model.coarseHierarchy.spheres.seq_id_begin.value(eI);
-        return `<b>Start:</b> ${info.value?.start[seqId]} <small>| resolution ${info.value?.resolution}<small>`;
+        return `<b>Start:</b> ${info.start[seqId]} <small>| resolution ${info.resolution}<small>`;
     }
 };

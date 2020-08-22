@@ -15,7 +15,11 @@ import { StateAction, StateObjectRef } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { G3dHeader, getG3dDataBlock, getG3dHeader } from './data';
-import { g3dHaplotypeQuery, G3dInfoPropertyProvider, G3dLabelProvider, trajectoryFromG3D } from './model';
+import { g3dHaplotypeQuery, G3dLabelProvider, trajectoryFromG3D, G3dSymbols, getG3dInfoData } from './model';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
+import { stringToWords } from '../../mol-util/string';
+import { objectForEach } from '../../mol-util/object';
 
 export const G3dProvider: TrajectoryFormatProvider = {
     label: 'G3D',
@@ -37,29 +41,29 @@ export const G3dProvider: TrajectoryFormatProvider = {
 async function defaultStructure(plugin: PluginContext, data: { trajectory: StateObjectRef<SO.Molecule.Trajectory> }) {
     const builder = plugin.builders.structure;
     const model = await builder.createModel(data.trajectory);
-    const modelProperties = await builder.insertModelProperties(model);
-    const structure = await builder.createStructure(modelProperties);
 
-    const m = await builder.tryCreateComponentFromExpression(structure, g3dHaplotypeQuery('maternal'), 'maternal', { label: 'Maternal' });
-    const p = await builder.tryCreateComponentFromExpression(structure, g3dHaplotypeQuery('paternal'), 'paternal', { label: 'Paternal' });
+    if (!model) return;
+    const structure = await builder.createStructure(model);
 
-    if (m) {
-        await builder.representation.addRepresentation(m, {
-            type: 'cartoon',
-            color: 'polymer-index',
-            size: 'uniform',
-            sizeParams: { value: 2 }
-        });
+    const info = getG3dInfoData(model.data!);
+    if (!info) return;
+
+    const components = plugin.build().to(structure);
+
+    const repr = createStructureRepresentationParams(plugin, void 0, {
+        type: 'cartoon',
+        color: 'polymer-index',
+        size: 'uniform',
+        sizeParams: { value: 0.25 }
+    });
+
+    for (const h of info.haplotypes) {
+        components
+            .apply(StateTransforms.Model.StructureSelectionFromExpression, { expression: g3dHaplotypeQuery(h), label: stringToWords(h) })
+            .apply(StateTransforms.Representation.StructureRepresentation3D, repr);
     }
 
-    if (p) {
-        await builder.representation.addRepresentation(p, {
-            type: 'cartoon',
-            color: 'polymer-index',
-            size: 'uniform',
-            sizeParams: { value: 2 }
-        });
-    }
+    await components.commit();
 }
 
 export class G3dHeaderObject extends SO.Create<{
@@ -157,16 +161,12 @@ export const G3DFormat = PluginBehavior.create<{ autoAttach: boolean, showToolti
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
         register() {
             this.ctx.state.data.actions.add(LoadG3D);
-
-            DefaultQueryRuntimeTable.addCustomProp(G3dInfoPropertyProvider.descriptor);
-            this.ctx.customModelProperties.register(G3dInfoPropertyProvider, false);
+            objectForEach(G3dSymbols, s => DefaultQueryRuntimeTable.addSymbol(s));
             this.ctx.managers.lociLabels.addProvider(G3dLabelProvider);
         }
         unregister() {
             this.ctx.state.data.actions.remove(LoadG3D);
-
-            DefaultQueryRuntimeTable.removeCustomProp(G3dInfoPropertyProvider.descriptor);
-            this.ctx.customModelProperties.unregister(G3dInfoPropertyProvider.descriptor.name);
+            objectForEach(G3dSymbols, s => DefaultQueryRuntimeTable.removeSymbol(s));
             this.ctx.managers.lociLabels.removeProvider(G3dLabelProvider);
         }
     }
