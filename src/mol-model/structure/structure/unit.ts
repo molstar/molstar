@@ -20,7 +20,7 @@ import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElement
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { getPrincipalAxes } from './util/principal-axes';
-import { Boundary, getBoundary } from '../../../mol-math/geometry/boundary';
+import { Boundary, getBoundary, tryAdjustBoundary } from '../../../mol-math/geometry/boundary';
 import { Mat4 } from '../../../mol-math/linear-algebra';
 
 /**
@@ -204,7 +204,12 @@ namespace Unit {
         }
 
         remapModel(model: Model) {
-            const props = { ...this.props };
+            let boundary = this.props.boundary;
+            if (boundary) {
+                const { x, y, z } = this.model.atomicConformation;
+                boundary = tryAdjustBoundary({ x, y, z, indices: this.elements }, boundary);
+            }
+            const props = { ...this.props, boundary, lookup3d: undefined, principalAxes: undefined };
             const conformation = this.model.atomicConformation !== model.atomicConformation
                 ? SymmetryOperator.createMapping(this.conformation.operator, model.atomicConformation)
                 : this.conformation;
@@ -342,15 +347,21 @@ namespace Unit {
         }
 
         remapModel(model: Model): Unit.Spheres | Unit.Gaussians {
-            const props = { ...this.props };
+            const coarseConformation = this.getCoarseConformation();
+            let boundary = this.props.boundary;
+            if (boundary) {
+                const { x, y, z } = coarseConformation;
+                boundary = tryAdjustBoundary({ x, y, z, indices: this.elements }, boundary);
+            }
+            const props = { ...this.props, boundary, lookup3d: undefined, principalAxes: undefined };
             let conformation: SymmetryOperator.ArrayMapping<ElementIndex>;
             if (this.kind === Kind.Spheres) {
-                conformation = this.model.coarseConformation.spheres !== model.coarseConformation.spheres
-                    ? SymmetryOperator.createMapping(this.conformation.operator, model.atomicConformation)
+                conformation = coarseConformation !== model.coarseConformation.spheres
+                    ? SymmetryOperator.createMapping(this.conformation.operator, coarseConformation)
                     : this.conformation;
             } else if (this.kind === Kind.Gaussians) {
-                conformation = this.model.coarseConformation.gaussians !== model.coarseConformation.gaussians
-                    ? SymmetryOperator.createMapping(this.conformation.operator, model.atomicConformation)
+                conformation = coarseConformation !== model.coarseConformation.gaussians
+                    ? SymmetryOperator.createMapping(this.conformation.operator, coarseConformation)
                     : this.conformation;
             } else {
                 throw new Error('unexpected unit kind');
