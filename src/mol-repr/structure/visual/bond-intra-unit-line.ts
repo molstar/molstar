@@ -13,9 +13,8 @@ import { arrayEqual } from '../../../mol-util';
 import { LinkStyle, createLinkLines } from './util/link';
 import { UnitsVisual, UnitsLinesParams, UnitsLinesVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
-import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { ignoreBondType, BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond } from './util/bond';
+import { BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond, makeIntraBondIgnoreTest } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
@@ -32,25 +31,11 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
     const { order: _order, flags: _flags } = edgeProps;
-    const { sizeFactor, ignoreHydrogens, includeTypes, excludeTypes } = props;
-
-    const include = BondType.fromNames(includeTypes);
-    const exclude = BondType.fromNames(excludeTypes);
-
-    const allBondTypes = BondType.isAll(include) && BondType.Flag.None === exclude;
-
-    let ignore: undefined | ((edgeIndex: number) => boolean) = undefined;
-    if (!allBondTypes && ignoreHydrogens) {
-        ignore = (edgeIndex: number) => isHydrogen(unit, elements[a[edgeIndex]]) || isHydrogen(unit, elements[b[edgeIndex]]) || ignoreBondType(include, exclude, _flags[edgeIndex]);
-    } else if (!allBondTypes) {
-        ignore = (edgeIndex: number) => ignoreBondType(include, exclude, _flags[edgeIndex]);
-    } else if (ignoreHydrogens) {
-        ignore = (edgeIndex: number) => isHydrogen(unit, elements[a[edgeIndex]]) || isHydrogen(unit, elements[b[edgeIndex]]);
-    }
+    const { sizeFactor } = props;
 
     if (!edgeCount) return Lines.createEmpty(lines);
 
-    const vRef = Vec3.zero();
+    const vRef = Vec3();
     const pos = unit.conformation.invariantPosition;
 
     const builderProps = {
@@ -97,7 +82,7 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
             const sizeB = theme.size.size(location);
             return Math.min(sizeA, sizeB) * sizeFactor;
         },
-        ignore
+        ignore: makeIntraBondIgnoreTest(unit, props)
     };
 
     const l = createLinkLines(ctx, builderProps, props, lines);
@@ -111,7 +96,6 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
 export const IntraUnitBondLineParams = {
     ...UnitsLinesParams,
     ...BondLineParams,
-    ignoreHydrogens: PD.Boolean(false),
 };
 export type IntraUnitBondLineParams = typeof IntraUnitBondLineParams
 

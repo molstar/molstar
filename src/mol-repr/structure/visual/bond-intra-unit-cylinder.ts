@@ -15,9 +15,8 @@ import { arrayEqual } from '../../../mol-util';
 import { createLinkCylinderMesh, LinkStyle } from './util/link';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
-import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { ignoreBondType, BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci } from './util/bond';
+import { BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci, makeIntraBondIgnoreTest } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
 
@@ -33,25 +32,11 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
     const { order: _order, flags: _flags } = edgeProps;
-    const { sizeFactor, sizeAspectRatio, ignoreHydrogens, includeTypes, excludeTypes } = props;
-
-    const include = BondType.fromNames(includeTypes);
-    const exclude = BondType.fromNames(excludeTypes);
-
-    const allBondTypes = BondType.isAll(include) && BondType.Flag.None === exclude;
-
-    let ignore: undefined | ((edgeIndex: number) => boolean) = undefined;
-    if (!allBondTypes && ignoreHydrogens) {
-        ignore = (edgeIndex: number) => isHydrogen(unit, elements[a[edgeIndex]]) || isHydrogen(unit, elements[b[edgeIndex]]) || ignoreBondType(include, exclude, _flags[edgeIndex]);
-    } else if (!allBondTypes) {
-        ignore = (edgeIndex: number) => ignoreBondType(include, exclude, _flags[edgeIndex]);
-    } else if (ignoreHydrogens) {
-        ignore = (edgeIndex: number) => isHydrogen(unit, elements[a[edgeIndex]]) || isHydrogen(unit, elements[b[edgeIndex]]);
-    }
+    const { sizeFactor, sizeAspectRatio } = props;
 
     if (!edgeCount) return Mesh.createEmpty(mesh);
 
-    const vRef = Vec3.zero();
+    const vRef = Vec3();
     const pos = unit.conformation.invariantPosition;
 
     const builderProps = {
@@ -98,7 +83,7 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
             const sizeB = theme.size.size(location);
             return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio;
         },
-        ignore
+        ignore: makeIntraBondIgnoreTest(unit, props)
     };
 
     const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
@@ -114,7 +99,6 @@ export const IntraUnitBondCylinderParams = {
     ...BondCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
-    ignoreHydrogens: PD.Boolean(false),
 };
 export type IntraUnitBondCylinderParams = typeof IntraUnitBondCylinderParams
 
