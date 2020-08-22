@@ -30,10 +30,21 @@ namespace Box3D {
         return copy(empty(), a);
     }
 
+    /** Get box from sphere, uses extrema if available */
     export function fromSphere3D(out: Box3D, sphere: Sphere3D): Box3D {
+        if (Sphere3D.hasExtrema(sphere)) return fromVec3Array(out, sphere.extrema);
         const r = Vec3.create(sphere.radius, sphere.radius, sphere.radius);
         Vec3.sub(out.min, sphere.center, r);
         Vec3.add(out.max, sphere.center, r);
+        return out;
+    }
+
+    /** Get box from sphere, uses extrema if available */
+    export function fromVec3Array(out: Box3D, array: Vec3[]): Box3D {
+        Box3D.setEmpty(out);
+        for (let i = 0, il = array.length; i < il; i++) {
+            Box3D.add(out, array[i]);
+        }
         return out;
     }
 
