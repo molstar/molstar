@@ -72,6 +72,12 @@ export interface Model extends Readonly<{
         readonly structAsymMap: StructAsymMap
     },
 
+    /**
+     * Object that allows to store any custom related to the model,
+     * This is different from the custom properties to bypass having to store the data
+     * in the CustomProperty props.
+     */
+    customData: { [key: string]: any },
     customProperties: CustomProperties,
 
     /**

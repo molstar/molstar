@@ -22,7 +22,7 @@ export type G3dDataBlock = {
     header: G3dHeader,
     resolution: number,
     data: {
-        [HTMLBRElement in 'paternal' | 'maternal']: {
+        [haplotype: string]: {
             [ch: string]: {
                 start: number[]
                 x: number[],
