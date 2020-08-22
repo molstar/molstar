@@ -17,7 +17,7 @@ import { StructureElement } from '../../mol-model/structure';
 // TODO: make this customizable somewhere?
 const DefaultCameraFocusOptions = {
     minRadius: 5,
-    extraRadius: 6,
+    extraRadius: 4,
     durationMs: 250
 };
 
