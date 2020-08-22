@@ -5,24 +5,22 @@
  */
 
 import { Column, Table } from '../../mol-data/db';
+import { OrderedSet } from '../../mol-data/int';
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { createModels } from '../../mol-model-formats/structure/basic/parser';
 import { BasicSchema, createBasic } from '../../mol-model-formats/structure/basic/schema';
 import { EntityBuilder } from '../../mol-model-formats/structure/common/entity';
-import { CustomModelProperty } from '../../mol-model-props/common/custom-model-property';
+import { Loci } from '../../mol-model/loci';
 import { Model, Trajectory, Unit } from '../../mol-model/structure';
 import { MoleculeType } from '../../mol-model/structure/model/types';
+import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
 import Type from '../../mol-script/language/type';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
-import { Task, RuntimeContext } from '../../mol-task';
+import { RuntimeContext, Task } from '../../mol-task';
 import { objectForEach } from '../../mol-util/object';
-import { ParamDefinition } from '../../mol-util/param-definition';
-import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { G3dDataBlock } from './data';
-import { Loci } from '../../mol-model/loci';
-import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
-import { OrderedSet } from '../../mol-data/int';
-import { Vec3 } from '../../mol-math/linear-algebra';
 
 interface NormalizedData {
     entity_id: string[],

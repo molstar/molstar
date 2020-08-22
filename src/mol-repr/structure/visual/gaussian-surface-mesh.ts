@@ -6,7 +6,7 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsMeshParams, UnitsTextureMeshParams, UnitsVisual, UnitsMeshVisual, UnitsTextureMeshVisual } from '../units-visual';
-import { GaussianDensityParams, computeUnitGaussianDensity, GaussianDensityTextureProps, computeUnitGaussianDensityTexture2d, GaussianDensityProps, computeStructureGaussianDensity } from './util/gaussian';
+import { GaussianDensityParams, computeUnitGaussianDensity, GaussianDensityTextureProps, computeUnitGaussianDensityTexture2d, GaussianDensityProps, computeStructureGaussianDensity, getUnitExtraRadius } from './util/gaussian';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
@@ -49,9 +49,7 @@ async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structu
     Mesh.transform(surface, transform);
     if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
 
-    // Add 3 to the offset so that the surface boundary doesn't get cut off by clipping plane
-    // TODO: is 3 too low/high?
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + 3);
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getUnitExtraRadius(unit));
     surface.setBoundingSphere(sphere);
 
     return surface;
