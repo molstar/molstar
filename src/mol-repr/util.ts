@@ -97,7 +97,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     let volume = 0;
     if (quality === 'auto' && data instanceof Structure) {
         quality = getStructureQuality(data.root);
-        volume = Box3D.volume(data.boundary.box);
+        volume = Box3D.volume(data.root.boundary.box);
     }
 
     switch (quality) {
