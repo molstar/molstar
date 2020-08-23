@@ -15,7 +15,7 @@ import { StateAction, StateObjectRef } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { G3dHeader, getG3dDataBlock, getG3dHeader } from './data';
-import { g3dHaplotypeQuery, G3dLabelProvider, trajectoryFromG3D, G3dSymbols, getG3dInfoData } from './model';
+import { g3dHaplotypeQuery, G3dLabelProvider, trajectoryFromG3D, G3dSymbols, G3dInfoDataProperty } from './model';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { stringToWords } from '../../mol-util/string';
@@ -45,7 +45,7 @@ async function defaultStructure(plugin: PluginContext, data: { trajectory: State
     if (!model) return;
     const structure = await builder.createStructure(model);
 
-    const info = getG3dInfoData(model.data!);
+    const info = G3dInfoDataProperty.get(model.data!);
     if (!info) return;
 
     const components = plugin.build().to(structure);
