@@ -26,7 +26,7 @@ export function computeStructureBoundary(s: Structure): Boundary {
 
     for (let i = 0, _i = units.length; i < _i; i++) {
         const u = units[i];
-        const invariantBoundary = u.lookup3d.boundary;
+        const invariantBoundary = u.boundary;
         const o = u.conformation.operator;
 
         if (o.isIdentity) {
@@ -41,7 +41,7 @@ export function computeStructureBoundary(s: Structure): Boundary {
 
     for (let i = 0, _i = units.length; i < _i; i++) {
         const u = units[i];
-        const invariantBoundary = u.lookup3d.boundary;
+        const invariantBoundary = u.boundary;
         const o = u.conformation.operator;
 
         if (o.isIdentity) {
