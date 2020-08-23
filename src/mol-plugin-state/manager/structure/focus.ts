@@ -13,6 +13,8 @@ import { Loci } from '../../../mol-model/loci';
 import { lociLabel } from '../../../mol-theme/label';
 import { PluginStateObject } from '../../objects';
 import { StateSelection } from '../../../mol-state';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 export type FocusEntry = {
     label: string
@@ -137,26 +139,19 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
         this.set({ label, loci, category });
     }
 
-    // this.subscribeObservable(this.plugin.state.events.object.updated, o => {
-    //     if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || !StructureElement.Loci.is(lastLoci)) return;
-    //     if (lastLoci.structure === o.oldObj.data) {
-    //         lastLoci = EmptyLoci;
-    //     }
-    // });
-
     constructor(private plugin: PluginContext) {
         super({ history: [] });
 
-        plugin.state.data.events.object.removed.subscribe(o => {
-            if (!PluginStateObject.Molecule.Structure.is(o.obj)) return;
+        plugin.state.data.events.object.removed.subscribe(({ obj }) => {
+            if (!PluginStateObject.Molecule.Structure.is(obj)) return;
 
-            if (this.current?.loci.structure === o.obj.data) {
+            if (this.current?.loci.structure === obj.data) {
                 this.clear();
             }
 
             const keep: FocusEntry[] = [];
             for (const e of this.history) {
-                if (e.loci.structure === o.obj.data) keep.push(e);
+                if (e.loci.structure === obj.data) keep.push(e);
             }
             if (keep.length !== this.history.length) {
                 this.history.length = 0;
@@ -164,6 +159,33 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
                 this.events.historyUpdated.next();
             }
         });
-        // plugin.state.data.events.object.updated.subscribe(e => this.onUpdate(e.ref, e.oldObj, e.obj));
+
+        const sphere = Sphere3D();
+
+        plugin.state.data.events.object.updated.subscribe(({ oldData, obj, action }) => {
+            if (!PluginStateObject.Molecule.Structure.is(obj)) return;
+
+            if (action === 'in-place') {
+                const current = this.state.current;
+                const structure = obj.data as Structure;
+
+                if (current && current.loci.structure === oldData) {
+                    const loci = StructureElement.Loci.remap(current.loci, structure);
+                    this.state.current = { ...current, loci };
+                    this.behaviors.current.next(this.state.current);
+
+                    Loci.getBoundingSphere(loci, sphere);
+                    const camera = this.plugin.canvas3d?.camera!;
+                    const d = camera.getTargetDistance(sphere.radius + 4); // default extraRadius
+                    if (Vec3.distance(camera.target, sphere.center) > sphere.radius ||
+                        d > camera.viewport.height / camera.zoom
+                    ) {
+                        this.plugin.managers.camera.focusSphere(sphere, { durationMs: 0 });
+                    }
+                }
+
+                // TODO remap history as well
+            }
+        });
     }
 }

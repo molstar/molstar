@@ -71,13 +71,20 @@ export interface LinkBuilderProps {
     ignore?: (edgeIndex: number) => boolean
 }
 
-export enum LinkStyle {
+export const enum LinkStyle {
     Solid = 0,
     Dashed = 1,
     Double = 2,
     Triple = 3,
     Disk = 4
 }
+
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3scale = Vec3.scale;
+const v3add = Vec3.add;
+const v3sub = Vec3.sub;
+const v3setMagnitude = Vec3.setMagnitude;
+const v3dot = Vec3.dot;
 
 /**
  * Each edge is included twice to allow for coloring/picking
@@ -113,7 +120,12 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
         const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
         builderState.currentGroup = edgeIndex;
 
-        if (linkStyle === LinkStyle.Dashed) {
+        if (linkStyle === LinkStyle.Solid) {
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
+            cylinderProps.topCap = cylinderProps.bottomCap = linkCap;
+
+            addCylinder(builderState, va, vb, 0.5, cylinderProps);
+        } else if (linkStyle === LinkStyle.Dashed) {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius / 3;
             cylinderProps.topCap = cylinderProps.bottomCap = true;
 
@@ -124,7 +136,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
             const absOffset = (linkRadius - multiRadius) * linkSpacing;
 
             calculateShiftDir(vShift, va, vb, referencePosition ? referencePosition(edgeIndex) : null);
-            Vec3.setMagnitude(vShift, vShift, absOffset);
+            v3setMagnitude(vShift, vShift, absOffset);
 
             cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius;
             cylinderProps.topCap = cylinderProps.bottomCap = linkCap;
@@ -132,23 +144,18 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
             if (order === 3) addCylinder(builderState, va, vb, 0.5, cylinderProps);
             addDoubleCylinder(builderState, va, vb, 0.5, vShift, cylinderProps);
         } else if (linkStyle === LinkStyle.Disk) {
-            Vec3.scale(tmpV12, Vec3.sub(tmpV12, vb, va), 0.475);
-            Vec3.add(va, va, tmpV12);
-            Vec3.sub(vb, vb, tmpV12);
+            v3scale(tmpV12, v3sub(tmpV12, vb, va), 0.475);
+            v3add(va, va, tmpV12);
+            v3sub(vb, vb, tmpV12);
 
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
-            if (Vec3.dot(tmpV12, up) > 0) {
+            if (v3dot(tmpV12, up) > 0) {
                 cylinderProps.topCap = false;
                 cylinderProps.bottomCap = linkCap;
             } else {
                 cylinderProps.topCap = linkCap;
                 cylinderProps.bottomCap = false;
             }
-
-            addCylinder(builderState, va, vb, 0.5, cylinderProps);
-        } else {
-            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
-            cylinderProps.topCap = cylinderProps.bottomCap = linkCap;
 
             addCylinder(builderState, va, vb, 0.5, cylinderProps);
         }
@@ -179,12 +186,13 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
         if (ignore && ignore(edgeIndex)) continue;
 
         position(va, vb, edgeIndex);
-        Vec3.scale(vb, Vec3.add(vb, va, vb), 0.5);
+        v3scale(vb, v3add(vb, va, vb), 0.5);
 
-        // TODO use line width?
         const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
 
-        if (linkStyle === LinkStyle.Dashed) {
+        if (linkStyle === LinkStyle.Solid) {
+            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], edgeIndex);
+        } else if (linkStyle === LinkStyle.Dashed) {
             builder.addFixedCountDashes(va, vb, 7, edgeIndex);
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.Triple) {
             const order = LinkStyle.Double ? 2 : 3;
@@ -192,19 +200,17 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
             const absOffset = (1 - multiRadius) * linkSpacing;
 
             calculateShiftDir(vShift, va, vb, referencePosition ? referencePosition(edgeIndex) : null);
-            Vec3.setMagnitude(vShift, vShift, absOffset);
+            v3setMagnitude(vShift, vShift, absOffset);
 
             if (order === 3) builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], edgeIndex);
             builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vb[0] + vShift[0], vb[1] + vShift[1], vb[2] + vShift[2], edgeIndex);
             builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vb[0] - vShift[0], vb[1] - vShift[1], vb[2] - vShift[2], edgeIndex);
         } else if (linkStyle === LinkStyle.Disk) {
-            Vec3.scale(tmpV12, Vec3.sub(tmpV12, vb, va), 0.475);
-            Vec3.add(va, va, tmpV12);
-            Vec3.sub(vb, vb, tmpV12);
+            v3scale(tmpV12, v3sub(tmpV12, vb, va), 0.475);
+            v3add(va, va, tmpV12);
+            v3sub(vb, vb, tmpV12);
 
-            // TODO what to do here?
-            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], edgeIndex);
-        } else {
+            // TODO what to do here? Line as disk doesn't work well.
             builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], edgeIndex);
         }
     }

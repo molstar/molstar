@@ -153,8 +153,9 @@ export const SelectLoci = PluginBehavior.create({
             this.subscribeObservable(this.ctx.state.events.object.updated, ({ ref, obj, oldObj, action }) => {
                 const cell = this.ctx.state.data.cells.get(ref);
                 if (cell && SO.Molecule.Structure.is(cell.obj)) {
+                    if (action === 'recreate' && obj.data.hashCode === oldObj?.data.hashCode) return;
                     // TODO how to ensure that in-place updates result in compatible structures?
-                    if (obj.data.hashCode === oldObj?.data.hashCode || action === 'in-place') return;
+                    if (action === 'in-place') return;
 
                     const reprs = this.ctx.state.data.select(StateSelection.Generators.ofType(SO.Molecule.Structure.Representation3D, ref));
                     for (const repr of reprs) this.applySelectMark(repr.transform.ref, true);

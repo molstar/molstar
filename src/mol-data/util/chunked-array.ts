@@ -47,33 +47,40 @@ namespace ChunkedArray {
     export function add4<T>(array: ChunkedArray<T, 4>, x: T, y: T, z: T, w: T) {
         if (array.currentIndex >= array.currentSize) allocateNext(array);
         const c = array.currentChunk;
-        c[array.currentIndex++] = x;
-        c[array.currentIndex++] = y;
-        c[array.currentIndex++] = z;
-        c[array.currentIndex++] = w;
+        const i = array.currentIndex;
+        c[i] = x;
+        c[i + 1] = y;
+        c[i + 2] = z;
+        c[i + 3] = w;
+        array.currentIndex += 4;
         return array.elementCount++;
     }
 
     export function add3<T>(array: ChunkedArray<T, 3>, x: T, y: T, z: T) {
         if (array.currentIndex >= array.currentSize) allocateNext(array);
         const c = array.currentChunk;
-        c[array.currentIndex++] = x;
-        c[array.currentIndex++] = y;
-        c[array.currentIndex++] = z;
+        const i = array.currentIndex;
+        c[i] = x;
+        c[i + 1] = y;
+        c[i + 2] = z;
+        array.currentIndex += 3;
         return array.elementCount++;
     }
 
     export function add2<T>(array: ChunkedArray<T, 2>, x: T, y: T) {
         if (array.currentIndex >= array.currentSize) allocateNext(array);
         const c = array.currentChunk;
-        c[array.currentIndex++] = x;
-        c[array.currentIndex++] = y;
+        const i = array.currentIndex;
+        c[i] = x;
+        c[i + 1] = y;
+        array.currentIndex += 2;
         return array.elementCount++;
     }
 
     export function add<T>(array: ChunkedArray<T, 1>, x: T) {
         if (array.currentIndex >= array.currentSize) allocateNext(array);
-        array.currentChunk[array.currentIndex++] = x;
+        array.currentChunk[array.currentIndex] = x;
+        array.currentIndex += 1;
         return array.elementCount++;
     }
 

@@ -10,7 +10,7 @@ import { TransformData, createTransform } from '../../../../mol-geo/geometry/tra
 import { OrderedSet, SortedArray } from '../../../../mol-data/int';
 import { EmptyLoci, Loci } from '../../../../mol-model/loci';
 import { PhysicalSizeTheme } from '../../../../mol-theme/size/physical';
-import { AtomicNumbers, AtomNumber } from '../../../../mol-model/structure/model/properties/atomic';
+import { AtomicNumbers } from '../../../../mol-model/structure/model/properties/atomic';
 import { fillSerial } from '../../../../mol-util/array';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { AssignableArrayLike } from '../../../../mol-util/type-helpers';
@@ -269,8 +269,10 @@ export function getStructureConformationAndRadius(structure: Structure, ignoreHy
 const _H = AtomicNumbers['H'];
 export function isHydrogen(unit: Unit, element: ElementIndex) {
     if (Unit.isCoarse(unit)) return false;
-    if (AtomNumber(unit.model.atomicHierarchy.atoms.type_symbol.value(element)) === _H) return true;
-    return false;
+    return unit.model.atomicHierarchy.derived.atom.atomicNumber[element] === _H;
+}
+export function isH(atomicNumber: ArrayLike<number>, element: ElementIndex) {
+    return atomicNumber[element] === _H;
 }
 
 export function isTrace(unit: Unit, element: ElementIndex) {

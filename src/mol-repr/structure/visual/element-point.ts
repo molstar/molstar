@@ -12,10 +12,9 @@ import { Theme } from '../../../mol-theme/theme';
 import { Points } from '../../../mol-geo/geometry/points/points';
 import { PointsBuilder } from '../../../mol-geo/geometry/points/points-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { ElementIterator, getElementLoci, eachElement } from './util/element';
+import { ElementIterator, getElementLoci, eachElement, makeElementIgnoreTest } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { isTrace, isHydrogen } from './util/common';
 
 export const ElementPointParams = {
     ...UnitsPointsParams,
@@ -29,21 +28,27 @@ export type ElementPointParams = typeof ElementPointParams
 // TODO size
 
 export function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ElementPointParams>, points: Points) {
-    const { ignoreHydrogens, traceOnly } = props; // TODO sizeFactor
+    // TODO sizeFactor
 
     const elements = unit.elements;
     const n = elements.length;
     const builder = PointsBuilder.create(n, n / 10, points);
 
+    const p = Vec3();
     const pos = unit.conformation.invariantPosition;
-    const p = Vec3.zero();
+    const ignore = makeElementIgnoreTest(unit, props);
 
-    for (let i = 0; i < n; ++i) {
-        if (ignoreHydrogens && isHydrogen(unit, elements[i])) continue;
-        if (traceOnly && !isTrace(unit, elements[i])) continue;
-
-        pos(elements[i], p);
-        builder.add(p[0], p[1], p[2], i);
+    if (ignore) {
+        for (let i = 0; i < n; ++i) {
+            if (ignore(unit, elements[i])) continue;
+            pos(elements[i], p);
+            builder.add(p[0], p[1], p[2], i);
+        }
+    } else {
+        for (let i = 0; i < n; ++i) {
+            pos(elements[i], p);
+            builder.add(p[0], p[1], p[2], i);
+        }
     }
 
     const pt = builder.getPoints();

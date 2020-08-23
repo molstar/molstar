@@ -13,9 +13,8 @@ import { BitFlags, arrayEqual } from '../../../mol-util';
 import { LinkStyle, createLinkLines } from './util/link';
 import { ComplexVisual, ComplexLinesVisual, ComplexLinesParams } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
-import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { ignoreBondType, BondIterator, getInterBondLoci, eachInterBond, BondLineParams } from './util/bond';
+import { BondIterator, getInterBondLoci, eachInterBond, BondLineParams, makeInterBondIgnoreTest } from './util/bond';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator();
@@ -35,16 +34,7 @@ const tmpLoc = StructureElement.Location.create(void 0);
 function createInterUnitBondLines(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondLineParams>, lines?: Lines) {
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
-    const { sizeFactor, ignoreHydrogens, includeTypes, excludeTypes } = props;
-
-    const include = BondType.fromNames(includeTypes);
-    const exclude = BondType.fromNames(excludeTypes);
-
-    const ignoreHydrogen = ignoreHydrogens ? (edgeIndex: number) => {
-        const b = edges[edgeIndex];
-        const uA = b.unitA, uB = b.unitB;
-        return isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB]);
-    } : () => false;
+    const { sizeFactor } = props;
 
     if (!edgeCount) return Lines.createEmpty(lines);
 
@@ -96,7 +86,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
             const sizeB = theme.size.size(tmpLoc);
             return Math.min(sizeA, sizeB) * sizeFactor;
         },
-        ignore: (edgeIndex: number) => ignoreHydrogen(edgeIndex) || ignoreBondType(include, exclude, edges[edgeIndex].props.flag)
+        ignore: makeInterBondIgnoreTest(structure, props)
     };
 
     return createLinkLines(ctx, builderProps, props, lines);
@@ -105,7 +95,6 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
 export const InterUnitBondLineParams = {
     ...ComplexLinesParams,
     ...BondLineParams,
-    ignoreHydrogens: PD.Boolean(false),
 };
 export type InterUnitBondLineParams = typeof InterUnitBondLineParams
 

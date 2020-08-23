@@ -19,6 +19,11 @@ const quadIndices = new Uint16Array([
     1, 3, 2
 ]);
 
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const caAdd3 = ChunkedArray.add3;
+const caAdd2 = ChunkedArray.add2;
+const caAdd = ChunkedArray.add;
+
 export interface SpheresBuilder {
     add(x: number, y: number, z: number, group: number): void
     getSpheres(): Spheres
@@ -37,12 +42,12 @@ export namespace SpheresBuilder {
             add: (x: number, y: number, z: number, group: number) => {
                 const offset = centers.elementCount;
                 for (let i = 0; i < 4; ++i) {
-                    ChunkedArray.add3(centers, x, y, z);
-                    ChunkedArray.add2(mappings, quadMapping[i * 2], quadMapping[i * 2 + 1]);
-                    ChunkedArray.add(groups, group);
+                    caAdd3(centers, x, y, z);
+                    caAdd2(mappings, quadMapping[i * 2], quadMapping[i * 2 + 1]);
+                    caAdd(groups, group);
                 }
-                ChunkedArray.add3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2]);
-                ChunkedArray.add3(indices, offset + quadIndices[3], offset + quadIndices[4], offset + quadIndices[5]);
+                caAdd3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2]);
+                caAdd3(indices, offset + quadIndices[3], offset + quadIndices[4], offset + quadIndices[5]);
             },
             getSpheres: () => {
                 const cb = ChunkedArray.compact(centers, true) as Float32Array;

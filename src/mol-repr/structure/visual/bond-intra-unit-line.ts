@@ -9,16 +9,18 @@ import { VisualContext } from '../../visual';
 import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { BitFlags, arrayEqual } from '../../../mol-util';
+import { arrayEqual } from '../../../mol-util';
 import { LinkStyle, createLinkLines } from './util/link';
 import { UnitsVisual, UnitsLinesParams, UnitsLinesVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
-import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { ignoreBondType, BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond } from './util/bond';
+import { BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond, makeIntraBondIgnoreTest } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
+
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const isBondType = BondType.is;
 
 function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondLineParams>, lines?: Lines) {
     if (!Unit.isAtomic(unit)) return Lines.createEmpty(lines);
@@ -29,18 +31,11 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
     const { order: _order, flags: _flags } = edgeProps;
-    const { sizeFactor, ignoreHydrogens, includeTypes, excludeTypes } = props;
-
-    const include = BondType.fromNames(includeTypes);
-    const exclude = BondType.fromNames(excludeTypes);
-
-    const ignoreHydrogen = ignoreHydrogens ? (edgeIndex: number) => {
-        return isHydrogen(unit, elements[a[edgeIndex]]) || isHydrogen(unit, elements[b[edgeIndex]]);
-    } : () => false;
+    const { sizeFactor } = props;
 
     if (!edgeCount) return Lines.createEmpty(lines);
 
-    const vRef = Vec3.zero();
+    const vRef = Vec3();
     const pos = unit.conformation.invariantPosition;
 
     const builderProps = {
@@ -50,7 +45,7 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
 
             if (aI > bI) [aI, bI] = [bI, aI];
             if (offset[aI + 1] - offset[aI] === 1) [aI, bI] = [bI, aI];
-            // TODO prefer reference atoms in rings
+            // TODO prefer reference atoms within rings
 
             for (let i = offset[aI], il = offset[aI + 1]; i < il; ++i) {
                 const _bI = b[i];
@@ -68,8 +63,8 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
         },
         style: (edgeIndex: number) => {
             const o = _order[edgeIndex];
-            const f = BitFlags.create(_flags[edgeIndex]);
-            if (BondType.is(f, BondType.Flag.MetallicCoordination) || BondType.is(f, BondType.Flag.HydrogenBond)) {
+            const f = _flags[edgeIndex];
+            if (isBondType(f, BondType.Flag.MetallicCoordination) || isBondType(f, BondType.Flag.HydrogenBond)) {
                 // show metall coordinations and hydrogen bonds with dashed cylinders
                 return LinkStyle.Dashed;
             } else if (o === 2) {
@@ -87,7 +82,7 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
             const sizeB = theme.size.size(location);
             return Math.min(sizeA, sizeB) * sizeFactor;
         },
-        ignore: (edgeIndex: number) => ignoreHydrogen(edgeIndex) || ignoreBondType(include, exclude, _flags[edgeIndex])
+        ignore: makeIntraBondIgnoreTest(unit, props)
     };
 
     const l = createLinkLines(ctx, builderProps, props, lines);
@@ -101,7 +96,6 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
 export const IntraUnitBondLineParams = {
     ...UnitsLinesParams,
     ...BondLineParams,
-    ignoreHydrogens: PD.Boolean(false),
 };
 export type IntraUnitBondLineParams = typeof IntraUnitBondLineParams
 

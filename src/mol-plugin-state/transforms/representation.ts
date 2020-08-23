@@ -36,6 +36,7 @@ import { DihedralParams, DihedralRepresentation } from '../../mol-repr/shape/loc
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 import { Clipping } from '../../mol-theme/clipping';
 import { ObjectKeys } from '../../mol-util/type-helpers';
+import { deepEqual } from '../../mol-util';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -127,18 +128,12 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
             const provider = plugin.representation.structure.registry.get(params.type.name);
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
-            const props = params.type.params || {};
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, provider.getParams);
             await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, params);
             repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, params));
 
-            // // TODO: build this into representation?
-            // if (!a.data.coordinateSystem.isIdentity) {
-            //     (cache as any)['transform'] = a.data.coordinateSystem;
-            //     repr.setState({ transform: a.data.coordinateSystem.matrix });
-            // }
-
             // TODO set initial state, repr.setState({})
+            const props = params.type.params || {};
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             return new SO.Molecule.Structure.Representation3D({ repr, source: a }, { label: provider.label });
         });
@@ -147,24 +142,19 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Structure Representation', async ctx => {
             if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
 
-            // dispose isn't called on update so we need to handle it manually
-            const oldProvider = plugin.representation.structure.registry.get(oldParams.type.name);
-            if (oldProvider.ensureCustomProperties) oldProvider.ensureCustomProperties.detach(a.data);
-            Theme.releaseDependencies(plugin.representation.structure.themes, { structure: a.data }, oldParams);
-
             const provider = plugin.representation.structure.registry.get(newParams.type.name);
             const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
+
+            if (!deepEqual(oldParams, newParams) || a.data.hashCode !== b.data.source.data.hashCode) {
+                // dispose isn't called on update so we need to handle it manually
+                Theme.releaseDependencies(plugin.representation.structure.themes, { structure: b.data.source.data }, oldParams);
+
+                await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, newParams);
+                b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, newParams));
+            }
+
             const props = { ...b.data.repr.props, ...newParams.type.params };
-            await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, newParams);
-            b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, newParams));
-
-            // // TODO: build this into representation?
-            // if ((cache as any)['transform'] !== a.data.coordinateSystem) {
-            //     (cache as any)['transform'] = a.data.coordinateSystem;
-            //     b.data.repr.setState({ transform: a.data.coordinateSystem.matrix });
-            // }
-
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.data.source = a;
             return StateTransformer.UpdateResult.Updated;

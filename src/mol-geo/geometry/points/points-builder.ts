@@ -7,6 +7,10 @@
 import { ChunkedArray } from '../../../mol-data/util';
 import { Points } from './points';
 
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const caAdd3 = ChunkedArray.add3;
+const caAdd = ChunkedArray.add;
+
 export interface PointsBuilder {
     add(x: number, y: number, z: number, group: number): void
     getPoints(): Points
@@ -19,8 +23,8 @@ export namespace PointsBuilder {
 
         return {
             add: (x: number, y: number, z: number, group: number) => {
-                ChunkedArray.add3(centers, x, y, z);
-                ChunkedArray.add(groups, group);
+                caAdd3(centers, x, y, z);
+                caAdd(groups, group);
             },
             getPoints: () => {
                 const cb = ChunkedArray.compact(centers, true) as Float32Array;

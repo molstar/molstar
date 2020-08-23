@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { AtomicData } from '../atomic';
+import { AtomicData, AtomNumber } from '../atomic';
 import { AtomicIndex, AtomicDerivedData, AtomicSegments } from '../atomic/hierarchy';
 import { ElementIndex, ResidueIndex } from '../../indexing';
 import { MoleculeType, getMoleculeType, getComponentType, PolymerType, getPolymerType } from '../../types';
@@ -13,20 +13,26 @@ import { ChemicalComponentMap } from '../common';
 import { isProductionMode } from '../../../../../mol-util/debug';
 
 export function getAtomicDerivedData(data: AtomicData, segments: AtomicSegments, index: AtomicIndex, chemicalComponentMap: ChemicalComponentMap): AtomicDerivedData {
-    const { label_comp_id } = data.atoms;
-    const { _rowCount: n } = data.residues;
+    const { label_comp_id, type_symbol, _rowCount: atomCount } = data.atoms;
+    const { _rowCount: residueCount } = data.residues;
     const { offsets } = segments.residueAtomSegments;
 
-    const traceElementIndex = new Int32Array(n);
-    const directionFromElementIndex = new Int32Array(n);
-    const directionToElementIndex = new Int32Array(n);
-    const moleculeType = new Uint8Array(n);
-    const polymerType = new Uint8Array(n);
+    const atomicNumber = new Uint8Array(atomCount);
+
+    for (let i = 0; i < atomCount; ++i) {
+        atomicNumber[i] = AtomNumber(type_symbol.value(i));
+    }
+
+    const traceElementIndex = new Int32Array(residueCount);
+    const directionFromElementIndex = new Int32Array(residueCount);
+    const directionToElementIndex = new Int32Array(residueCount);
+    const moleculeType = new Uint8Array(residueCount);
+    const polymerType = new Uint8Array(residueCount);
 
     const moleculeTypeMap = new Map<string, MoleculeType>();
     const polymerTypeMap = new Map<string, PolymerType>();
 
-    for (let i = 0 as ResidueIndex; i < n; ++i) {
+    for (let i = 0 as ResidueIndex; i < residueCount; ++i) {
         const compId = label_comp_id.value(offsets[i]);
         const chemCompMap = chemicalComponentMap;
 
@@ -68,6 +74,9 @@ export function getAtomicDerivedData(data: AtomicData, segments: AtomicSegments,
     }
 
     return {
+        atom: {
+            atomicNumber: atomicNumber as unknown as ArrayLike<number>
+        },
         residue: {
             traceElementIndex: traceElementIndex as unknown as ArrayLike<ElementIndex | -1>,
             directionFromElementIndex: directionFromElementIndex as unknown as ArrayLike<ElementIndex | -1>,

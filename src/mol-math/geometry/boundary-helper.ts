@@ -97,12 +97,7 @@ export class BoundaryHelper {
     }
 
     getBox(box?: Box3D) {
-        if (!box) box = Box3D();
-        Box3D.setEmpty(box);
-        for (let i = 0; i < this.extrema.length; i++) {
-            Box3D.add(box, this.extrema[i]);
-        }
-        return box;
+        return Box3D.fromVec3Array(box || Box3D(), this.extrema);
     }
 
     reset() {

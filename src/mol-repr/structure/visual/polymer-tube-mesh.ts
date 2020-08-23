@@ -95,7 +95,7 @@ function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Struct
         } else if (radialSegments === 4) {
             addSheet(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, 0, startCap, endCap);
         } else {
-            addTube(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, radialSegments, widthValues, heightValues, 1, startCap, endCap);
+            addTube(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, radialSegments, widthValues, heightValues, startCap, endCap);
         }
 
         ++i;
