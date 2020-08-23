@@ -427,7 +427,7 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
             return StateTransformer.UpdateResult.Recreate;
         }
 
-        b.data = Structure.remapModel(b.data, a.data);
+        b.data = b.data.remapModel(a.data);
 
         return StateTransformer.UpdateResult.Updated;
     },

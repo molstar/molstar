@@ -359,6 +359,14 @@ class Structure {
         return this.models.indexOf(m);
     }
 
+    remapModel(m: Model) {
+        const units = this.units.map(u => u.remapModel(m));
+        return Structure.create(units, {
+            label: this.label,
+            interUnitBonds: this._props.interUnitBonds,
+        });
+    }
+
     private initUnits(units: ArrayLike<Unit>) {
         const unitMap = IntMap.Mutable<Unit>();
         const unitIndexMap = IntMap.Mutable<number>();
@@ -387,6 +395,7 @@ class Structure {
         this.units = units as ReadonlyArray<Unit>;
 
         if (props.parent) this._props.parent = props.parent.parent || props.parent;
+        if (props.interUnitBonds) this._props.interUnitBonds = props.interUnitBonds;
 
         if (props.coordinateSystem) this._props.coordinateSystem = props.coordinateSystem;
         else if (props.parent) this._props.coordinateSystem = props.parent.coordinateSystem;
@@ -592,6 +601,7 @@ namespace Structure {
 
     export interface Props {
         parent?: Structure
+        interUnitBonds?: InterUnitBonds
         coordinateSystem?: SymmetryOperator
         label?: string
         /** Master model for structures of a protein model and multiple ligand models */
@@ -1078,13 +1088,6 @@ namespace Structure {
                 else callback(other, unit);
             }
         }
-    }
-
-    export function remapModel(structure: Structure, model: Model) {
-        const units = structure.units.map(u => u.remapModel(model));
-        return Structure.create(units, {
-            label: structure.label
-        });
     }
 
     //
