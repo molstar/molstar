@@ -11,7 +11,7 @@ import { createModels } from '../../mol-model-formats/structure/basic/parser';
 import { BasicSchema, createBasic } from '../../mol-model-formats/structure/basic/schema';
 import { EntityBuilder } from '../../mol-model-formats/structure/common/entity';
 import { Loci } from '../../mol-model/loci';
-import { Model, Trajectory, Unit } from '../../mol-model/structure';
+import { Trajectory, Unit } from '../../mol-model/structure';
 import { MoleculeType } from '../../mol-model/structure/model/types';
 import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
@@ -21,6 +21,7 @@ import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
 import { RuntimeContext, Task } from '../../mol-task';
 import { objectForEach } from '../../mol-util/object';
 import { G3dDataBlock } from './data';
+import { FormatPropertyProvider } from '../../mol-model-formats/structure/common/property';
 
 interface NormalizedData {
     entity_id: string[],
@@ -148,12 +149,12 @@ async function getTraj(ctx: RuntimeContext, data: G3dDataBlock) {
 
     const models = await createModels(basic, { kind: 'g3d', name: 'G3D', data }, ctx);
 
-    models.representative.customData.g3dInfo = {
+    G3dInfoDataProperty.set(models.representative, {
         haplotypes: Object.keys(data.data),
         haplotype: normalized.haplotype,
         resolution: data.resolution,
         start: normalized.start
-    } as G3dInfoData;
+    });
 
     return models;
 }
@@ -168,13 +169,15 @@ export const G3dSymbols = {
     haplotype: QuerySymbolRuntime.Dynamic(CustomPropSymbol('g3d', 'haplotype', Type.Str),
         ctx => {
             if (Unit.isAtomic(ctx.element.unit)) return '';
-            const info =  getG3dInfoData(ctx.element.unit.model);
+            const info = (G3dInfoDataProperty as any).get(ctx.element.unit.model);
             if (!info) return '';
             const seqId = ctx.element.unit.model.coarseHierarchy.spheres.seq_id_begin.value(ctx.element.element);
             return info.haplotype[seqId] || '';
         }
     )
 };
+
+export const G3dInfoDataProperty = FormatPropertyProvider.create<G3dInfoData>({ name: 'g3d_info' });
 
 export function g3dHaplotypeQuery(haplotype: string) {
     return MS.struct.generator.atomGroups({
@@ -189,21 +192,13 @@ export interface G3dInfoData {
     resolution: number
 };
 
-export function setG3dInfoData(model: Model, data: G3dInfoData) {
-    model.customData.g3dInfo = data;
-}
-
-export function getG3dInfoData(model: Model): G3dInfoData | undefined {
-    return model.customData.g3dInfo;
-}
-
 export const G3dLabelProvider: LociLabelProvider = {
     label: (e: Loci): string | undefined => {
         if (e.kind !== 'element-loci' || Loci.isEmpty(e)) return;
 
         const first = e.elements[0];
         if (e.elements.length !== 1 || Unit.isAtomic(first.unit)) return;
-        const info = getG3dInfoData(first.unit.model);
+        const info = G3dInfoDataProperty.get(first.unit.model);
         if (!info) return;
 
         const eI = first.unit.elements[OrderedSet.getAt(first.indices, 0)];
