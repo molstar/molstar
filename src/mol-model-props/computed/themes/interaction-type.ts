@@ -14,6 +14,7 @@ import { InteractionType } from '../interactions/common';
 import { TableLegend } from '../../../mol-util/legend';
 import { Interactions } from '../interactions/interactions';
 import { CustomProperty } from '../../common/custom-property';
+import { hash2 } from '../../../mol-data/util';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Assigns colors according the interaction type of a link.';
@@ -73,7 +74,7 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
     let color: LocationColor;
 
     const interactions = ctx.structure ? InteractionsProvider.get(ctx.structure) : undefined;
-    const contextHash = interactions?.version;
+    const contextHash = interactions ? hash2(interactions.id, interactions.version) : -1;
 
     if (interactions && interactions.value) {
         color = (location: Location) => {

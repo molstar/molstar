@@ -36,7 +36,6 @@ import { DihedralParams, DihedralRepresentation } from '../../mol-repr/shape/loc
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 import { Clipping } from '../../mol-theme/clipping';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { deepEqual } from '../../mol-util';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -146,13 +145,12 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
 
-            if (!deepEqual(oldParams, newParams) || a.data.hashCode !== b.data.source.data.hashCode) {
-                // dispose isn't called on update so we need to handle it manually
-                Theme.releaseDependencies(plugin.representation.structure.themes, { structure: b.data.source.data }, oldParams);
-
-                await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, newParams);
-                b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, newParams));
-            }
+            // TODO: if themes had a .needsUpdate method the following block could
+            //       be optimized and only executed conditionally
+            // dispose isn't called on update so we need to handle it manually
+            Theme.releaseDependencies(plugin.representation.structure.themes, { structure: b.data.source.data }, oldParams);
+            await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, newParams);
+            b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, newParams));
 
             const props = { ...b.data.repr.props, ...newParams.type.params };
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);

@@ -14,6 +14,7 @@ import { AccessibleSurfaceAreaProvider } from '../accessible-surface-area';
 import { AccessibleSurfaceArea } from '../accessible-surface-area/shrake-rupley';
 import { CustomProperty } from '../../common/custom-property';
 import { Location } from '../../../mol-model/location';
+import { hash2 } from '../../../mol-data/util';
 
 const DefaultColor = Color(0xFAFAFA);
 const Description = 'Assigns a color based on the relative accessible surface area of a residue.';
@@ -36,7 +37,7 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
     });
 
     const accessibleSurfaceArea = ctx.structure && AccessibleSurfaceAreaProvider.get(ctx.structure);
-    const contextHash = accessibleSurfaceArea?.version;
+    const contextHash = accessibleSurfaceArea ? hash2(accessibleSurfaceArea.id, accessibleSurfaceArea.version) : -1;
 
     if (accessibleSurfaceArea?.value && ctx.structure) {
         const asa = accessibleSurfaceArea.value;
