@@ -65,7 +65,7 @@ export function calculateShiftDir (out: Vec3, v1: Vec3, v2: Vec3, v3: Vec3 | nul
 export interface LinkBuilderProps {
     linkCount: number
     position: (posA: Vec3, posB: Vec3, edgeIndex: number) => void
-    radius: (edgeIndex: number) => number
+    radius: (edgeIndex: number) => number,
     referencePosition?: (edgeIndex: number) => Vec3 | null
     style?: (edgeIndex: number) => LinkStyle
     ignore?: (edgeIndex: number) => boolean

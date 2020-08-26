@@ -36,8 +36,18 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
 
     if (!edgeCount) return Mesh.createEmpty(mesh);
 
-    const vRef = Vec3();
+    const vRef = Vec3(), delta = Vec3();
     const pos = unit.conformation.invariantPosition;
+
+    const radiusA = (edgeIndex: number) => {
+        location.element = elements[a[edgeIndex]];
+        return theme.size.size(location) * sizeFactor;
+    };
+
+    const radiusB = (edgeIndex: number) => {
+        location.element = elements[b[edgeIndex]];
+        return theme.size.size(location) * sizeFactor;
+    };
 
     const builderProps = {
         linkCount: edgeCount * 2,
@@ -59,8 +69,19 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
             return null;
         },
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
+            const rA = radiusA(edgeIndex), rB = radiusB(edgeIndex);
+            const r = Math.min(rA, rB) * sizeAspectRatio;
+            const oA = Math.sqrt(Math.max(0, rA * rA - r * r)) - 0.05;
+            const oB = Math.sqrt(Math.max(0, rB * rB - r * r)) - 0.05;
+                        
             pos(elements[a[edgeIndex]], posA);
             pos(elements[b[edgeIndex]], posB);
+
+            if (oA <= 0.01 && oB <= 0.01) return;
+
+            Vec3.normalize(delta, Vec3.sub(delta, posB, posA));
+            Vec3.scaleAndAdd(posA, posA, delta, oA);
+            Vec3.scaleAndAdd(posB, posB, delta, -oB);
         },
         style: (edgeIndex: number) => {
             const o = _order[edgeIndex];
@@ -77,11 +98,7 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
             }
         },
         radius: (edgeIndex: number) => {
-            location.element = elements[a[edgeIndex]];
-            const sizeA = theme.size.size(location);
-            location.element = elements[b[edgeIndex]];
-            const sizeB = theme.size.size(location);
-            return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio;
+            return Math.min(radiusA(edgeIndex), radiusB(edgeIndex)) * sizeAspectRatio;
         },
         ignore: makeIntraBondIgnoreTest(unit, props)
     };
