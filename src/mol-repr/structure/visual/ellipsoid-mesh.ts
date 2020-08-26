@@ -15,7 +15,7 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { sphereVertexCount } from '../../../mol-geo/primitive/sphere';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Vec3, Mat3, Tensor, EPSILON } from '../../../mol-math/linear-algebra';
-import { isHydrogen } from '../../../mol-repr/structure/visual/util/common';
+import { isH } from '../../../mol-repr/structure/visual/util/common';
 import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
 import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/property/anisotropic';
 import { equalEps } from '../../../mol-math/linear-algebra/3d/common';
@@ -60,6 +60,7 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
     const { detail, sizeFactor } = props;
 
     const { elements, model } = unit;
+    const { atomicNumber } = unit.model.atomicHierarchy.derived.atom;
     const elementCount = elements.length;
     const vertexCount = elementCount * sphereVertexCount(detail);
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
@@ -83,7 +84,7 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
         const ei = elements[i];
         const ai = elementToAnsiotrop[ei];
         if (ai === -1) continue;
-        if (props.ignoreHydrogens && isHydrogen(unit, ei)) continue;
+        if (props.ignoreHydrogens && isH(atomicNumber, ei)) continue;
 
         l.element = ei;
         pos(ei, v);
