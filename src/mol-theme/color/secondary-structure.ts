@@ -16,6 +16,7 @@ import { TableLegend } from '../../mol-util/legend';
 import { SecondaryStructureProvider, SecondaryStructureValue } from '../../mol-model-props/computed/secondary-structure';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
+import { hash2 } from '../../mol-data/util';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)
 const SecondaryStructureColors = ColorMap({
@@ -85,7 +86,7 @@ export function secondaryStructureColor(colorMap: SecondaryStructureColors, unit
 export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Values<SecondaryStructureColorThemeParams>): ColorTheme<SecondaryStructureColorThemeParams> {
 
     const computedSecondaryStructure = ctx.structure && SecondaryStructureProvider.get(ctx.structure);
-    const contextHash = computedSecondaryStructure && computedSecondaryStructure.version;
+    const contextHash = computedSecondaryStructure ? hash2(computedSecondaryStructure.id, computedSecondaryStructure.version) : -1;
 
     const colorMap = getAdjustedColorMap(SecondaryStructureColors, props.saturation, props.lightness);
 
