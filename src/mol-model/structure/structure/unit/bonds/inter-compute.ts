@@ -47,7 +47,6 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const { occupancy: occupancyB } = unitB.model.atomicConformation;
     const hasOccupancy = occupancyA.isDefined && occupancyB.isDefined;
 
-    const { lookup3d } = unitB;
     const structConn = unitA.model === unitB.model && StructConn.Provider.get(unitA.model);
     const indexPairs = unitA.model === unitB.model && IndexPairBonds.Provider.get(unitA.model);
 
@@ -56,7 +55,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const imageTransform = Mat4.mul(_imageTransform, unitB.conformation.operator.inverse, unitA.conformation.operator.matrix);
     const isNotIdentity = !Mat4.isIdentity(imageTransform);
 
-    const { center: bCenter, radius: bRadius } = lookup3d.boundary.sphere;
+    const { center: bCenter, radius: bRadius } = unitB.boundary.sphere;
     const testDistanceSq = (bRadius + MAX_RADIUS) * (bRadius + MAX_RADIUS);
 
     builder.startUnitPair(unitA, unitB);
@@ -107,6 +106,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
         const occA = occupancyA.value(aI);
 
+        const { lookup3d } = unitB;
         const { indices, count, squaredDistances } = lookup3d.find(_imageA[0], _imageA[1], _imageA[2], MAX_RADIUS);
         if (count === 0) continue;
 
