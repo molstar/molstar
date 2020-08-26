@@ -42,7 +42,7 @@ export namespace StructureResult {
 
 export class StructureLookup3D {
     private unitLookup: Lookup3D;
-    private pivot = Vec3.zero();
+    private pivot = Vec3();
 
     findUnitIndices(x: number, y: number, z: number, radius: number): Result<number> {
         return this.unitLookup.find(x, y, z, radius);
@@ -155,11 +155,10 @@ export class StructureLookup3D {
         const zs = new Float32Array(unitCount);
         const radius = new Float32Array(unitCount);
 
-        const center = Vec3.zero();
+        const center = Vec3();
         for (let i = 0; i < unitCount; i++) {
             const unit = units[i];
-            const lookup = unit.lookup3d;
-            const s = lookup.boundary.sphere;
+            const s = unit.boundary.sphere;
 
             Vec3.transformMat4(center, s.center, unit.conformation.operator.matrix);
 
