@@ -99,15 +99,17 @@ export function printBonds(structure: Structure, showIntra: boolean, showInter: 
         for (const unit of structure.units) {
             if (!Unit.isAtomic(unit)) continue;
 
-            for (const pairBonds of bonds.getConnectedUnits(unit)) {
+            for (const pairBonds of bonds.getConnectedUnits(unit.id)) {
                 if (!pairBonds.areUnitsOrdered || pairBonds.edgeCount === 0) continue;
 
-                const { unitA, unitB } = pairBonds;
-                console.log(`${pairBonds.unitA.id} - ${pairBonds.unitB.id}: ${pairBonds.edgeCount} bond(s)`);
+                const { unitA, unitB, edgeCount } = pairBonds;
+                const uA = structure.unitMap.get(unitA);
+                const uB = structure.unitMap.get(unitB);
+                console.log(`${unitA} - ${unitB}: ${edgeCount} bond(s)`);
 
                 for (const aI of pairBonds.connectedIndices) {
                     for (const bond of pairBonds.getEdges(aI)) {
-                        console.log(`${atomLabel(unitA.model, unitA.elements[aI])} -- ${atomLabel(unitB.model, unitB.elements[bond.indexB])}`);
+                        console.log(`${atomLabel(uA.model, uA.elements[aI])} -- ${atomLabel(uB.model, uB.elements[bond.indexB])}`);
                     }
                 }
             }

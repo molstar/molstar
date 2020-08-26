@@ -269,12 +269,13 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
         const unit = structure.units[i];
         if (!Unit.isAtomic(unit)) continue;
 
-        structure.interUnitBonds.getConnectedUnits(unit).forEach(pairBonds => {
+        structure.interUnitBonds.getConnectedUnits(unit.id).forEach(pairBonds => {
             pairBonds.connectedIndices.forEach(indexA => {
                 pairBonds.getEdges(indexA).forEach(({ props, indexB }) => {
                     if (!BondType.isCovalent(props.flag)) return;
 
-                    const { unitA, unitB } = pairBonds;
+                    const unitA = structure.unitMap.get(pairBonds.unitA) as Unit.Atomic;
+                    const unitB = structure.unitMap.get(pairBonds.unitB) as Unit.Atomic;
                     const ringElementIndicesA = getRingElementIndices(unitA, indexA);
                     const ringElementIndicesB = getRingElementIndices(unitB, indexB);
                     if (ringElementIndicesA.length > 0 && ringElementIndicesB.length > 0) {

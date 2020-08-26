@@ -73,7 +73,7 @@ export function explicitValence (structure: Structure, unit: Unit.Atomic, index:
         if (BondType.isCovalent(flags[i])) v += order[i];
     }
     // inter-unit bonds
-    structure.interUnitBonds.getEdgeIndices(index, unit).forEach(i => {
+    structure.interUnitBonds.getEdgeIndices(index, unit.id).forEach(i => {
         const b = structure.interUnitBonds.edges[i];
         if (BondType.isCovalent(b.props.flag)) v += b.props.order;
     });

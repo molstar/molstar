@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -34,7 +34,7 @@ export function compId(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
 
 export function interBondCount(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex): number {
     let count = 0;
-    const indices = structure.interUnitBonds.getEdgeIndices(index, unit);
+    const indices = structure.interUnitBonds.getEdgeIndices(index, unit.id);
     for (let i = 0, il = indices.length; i < il; ++i) {
         const b = structure.interUnitBonds.edges[indices[i]];
         if (BondType.isCovalent(b.props.flag)) count += 1;
@@ -75,7 +75,7 @@ export function intraConnectedTo(unit: Unit.Atomic, indexA: StructureElement.Uni
 }
 
 export function interConnectedTo(structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex) {
-    const b = structure.interUnitBonds.getEdge(indexA, unitA, indexB, unitB);
+    const b = structure.interUnitBonds.getEdge(indexA, unitA.id, indexB, unitB.id);
     return b && BondType.isCovalent(b.props.flag);
 }
 
@@ -86,10 +86,11 @@ export function connectedTo(structure: Structure, unitA: Unit.Atomic, indexA: St
 //
 
 export function eachInterBondedAtom(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex, cb: (unit: Unit.Atomic, index: StructureElement.UnitIndex) => void): void {
-    const indices = structure.interUnitBonds.getEdgeIndices(index, unit);
+    const indices = structure.interUnitBonds.getEdgeIndices(index, unit.id);
     for (let i = 0, il = indices.length; i < il; ++i) {
         const b = structure.interUnitBonds.edges[indices[i]];
-        if (BondType.isCovalent(b.props.flag)) cb(b.unitB, b.indexB);
+        const uB = structure.unitMap.get(b.unitB) as Unit.Atomic;
+        if (BondType.isCovalent(b.props.flag)) cb(uB, b.indexB);
     }
 }
 

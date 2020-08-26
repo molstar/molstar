@@ -42,14 +42,18 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
         linkCount: edgeCount,
         referencePosition: (edgeIndex: number) => {
             const b = edges[edgeIndex];
-            let unitA: Unit, unitB: Unit;
+            let unitA: Unit.Atomic, unitB: Unit.Atomic;
             let indexA: StructureElement.UnitIndex, indexB: StructureElement.UnitIndex;
-            if (b.unitA.id < b.unitB.id) {
-                unitA = b.unitA, unitB = b.unitB;
-                indexA = b.indexA, indexB = b.indexB;
-            } else if (b.unitA.id > b.unitB.id) {
-                unitA = b.unitB, unitB = b.unitA;
-                indexA = b.indexB, indexB = b.indexA;
+            if (b.unitA < b.unitB) {
+                unitA = structure.unitMap.get(b.unitA) as Unit.Atomic;
+                unitB = structure.unitMap.get(b.unitB) as Unit.Atomic;
+                indexA = b.indexA;
+                indexB = b.indexB;
+            } else if (b.unitA > b.unitB) {
+                unitA = structure.unitMap.get(b.unitB) as Unit.Atomic;
+                unitB = structure.unitMap.get(b.unitA) as Unit.Atomic;
+                indexA = b.indexB;
+                indexB = b.indexA;
             } else {
                 throw new Error('same units in createInterUnitBondCylinderMesh');
             }
@@ -57,7 +61,8 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
         },
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const b = edges[edgeIndex];
-            const uA = b.unitA, uB = b.unitB;
+            const uA = structure.unitMap.get(b.unitA);
+            const uB = structure.unitMap.get(b.unitB);
             uA.conformation.position(uA.elements[b.indexA], posA);
             uB.conformation.position(uB.elements[b.indexB], posB);
         },
@@ -78,11 +83,11 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
         radius: (edgeIndex: number) => {
             const b = edges[edgeIndex];
             tmpLoc.structure = structure;
-            tmpLoc.unit = b.unitA;
-            tmpLoc.element = b.unitA.elements[b.indexA];
+            tmpLoc.unit = structure.unitMap.get(b.unitA);
+            tmpLoc.element = tmpLoc.unit.elements[b.indexA];
             const sizeA = theme.size.size(tmpLoc);
-            tmpLoc.unit = b.unitB;
-            tmpLoc.element = b.unitB.elements[b.indexB];
+            tmpLoc.unit = structure.unitMap.get(b.unitB);
+            tmpLoc.element = tmpLoc.unit.elements[b.indexB];
             const sizeB = theme.size.size(tmpLoc);
             return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio;
         },

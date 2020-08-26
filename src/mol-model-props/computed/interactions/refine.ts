@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -31,10 +31,12 @@ export function refineInteractions(structure: Structure, interactions: Interacti
 
     for (let i = 0, il = contacts.edgeCount; i < il; ++i) {
         const e = contacts.edges[i];
+        const uA = structure.unitMap.get(e.unitA) as Unit.Atomic;
+        const uB = structure.unitMap.get(e.unitB) as Unit.Atomic;
 
-        const infoA = Features.Info(structure, e.unitA as Unit.Atomic, unitsFeatures.get(e.unitA.id));
+        const infoA = Features.Info(structure, uA, unitsFeatures.get(e.unitA));
         infoA.feature = e.indexA;
-        const infoB = Features.Info(structure, e.unitB as Unit.Atomic, unitsFeatures.get(e.unitB.id));
+        const infoB = Features.Info(structure, uB, unitsFeatures.get(e.unitB));
         infoB.feature = e.indexB;
 
         for (const refiner of contactRefiners) {
@@ -144,7 +146,7 @@ function weakHydrogenBondsRefiner(structure: Structure, interactions: Interactio
         }
 
         // check inter
-        const interIndices = contacts.getEdgeIndices(acc.feature, acc.unit);
+        const interIndices = contacts.getEdgeIndices(acc.feature, acc.unit.id);
         for (let i = 0, il = interIndices.length; i < il; ++i) {
             if (contacts.edges[interIndices[i]].props.type === InteractionType.HydrogenBond) return true;
         }

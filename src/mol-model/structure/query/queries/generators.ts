@@ -332,11 +332,11 @@ export function bondedAtomicPairs(bondTest?: QueryPredicate): StructureQuery {
 
         // Process inter unit bonds
         for (const bond of interBonds.edges) {
-            atomicBond.a.unit = bond.unitA;
-            atomicBond.a.element = bond.unitA.elements[bond.indexA];
+            atomicBond.a.unit = structure.unitMap.get(bond.unitA) as Unit.Atomic;
+            atomicBond.a.element = atomicBond.a.unit.elements[bond.indexA];
             atomicBond.aIndex = bond.indexA;
-            atomicBond.b.unit = bond.unitB;
-            atomicBond.b.element = bond.unitB.elements[bond.indexB];
+            atomicBond.b.unit = structure.unitMap.get(bond.unitA) as Unit.Atomic;
+            atomicBond.b.element = atomicBond.b.unit.elements[bond.indexB];
             atomicBond.bIndex = bond.indexB;
             atomicBond.order = bond.props.order;
             atomicBond.type = bond.props.flag;

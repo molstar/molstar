@@ -249,7 +249,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
         const inputUnit = input.unitMap.get(unit.id) as Unit.Atomic;
 
         const { offset, b, edgeProps: { flags, order } } = inputUnit.bonds;
-        const bondedUnits = interBonds.getConnectedUnits(unit);
+        const bondedUnits = interBonds.getConnectedUnits(unit.id);
         const buCount = bondedUnits.length;
 
         const srcElements = unit.elements;
@@ -278,11 +278,12 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
 
             for (let li = 0; li < buCount; li++) {
                 const lu = bondedUnits[li];
-                const bElements = lu.unitB.elements;
+                const bUnit = structure.unitMap.get(lu.unitB) as Unit.Atomic;
+                const bElements = bUnit.elements;
                 const bonds = lu.getEdges(inputIndex);
                 for (let bi = 0, _bi = bonds.length; bi < _bi; bi++) {
                     const bond = bonds[bi];
-                    atomicBond.b.unit = lu.unitB;
+                    atomicBond.b.unit = bUnit;
                     atomicBond.b.element = bElements[bond.indexB];
                     if (!target.hasElement(atomicBond.b)) continue;
                     if (disjunct && structure.hasElement(atomicBond.b)) continue;

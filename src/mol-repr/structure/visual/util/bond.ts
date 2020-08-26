@@ -78,7 +78,8 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
 
     const ignoreHydrogen = (edgeIndex: number) => {
         const b = edges[edgeIndex];
-        const uA = b.unitA, uB = b.unitB;
+        const uA = structure.unitMap.get(b.unitA);
+        const uB = structure.unitMap.get(b.unitB);
         return isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB]);
     };
 
@@ -113,8 +114,8 @@ export namespace BondIterator {
         const location = StructureElement.Location.create(structure);
         const getLocation = (groupIndex: number) => {
             const bond = structure.interUnitBonds.edges[groupIndex];
-            location.unit = bond.unitA;
-            location.element = bond.unitA.elements[bond.indexA];
+            location.unit = structure.unitMap.get(bond.unitA);
+            location.element = location.unit.elements[bond.indexA];
             return location;
         };
         return LocationIterator(groupCount, instanceCount, getLocation, true);
@@ -189,16 +190,12 @@ export function eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply:
 export function getInterBondLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
-        const bond = structure.interUnitBonds.edges[groupId];
+        const b = structure.interUnitBonds.edges[groupId];
+        const uA = structure.unitMap.get(b.unitA);
+        const uB = structure.unitMap.get(b.unitB);
         return Bond.Loci(structure, [
-            Bond.Location(
-                structure, bond.unitA, bond.indexA as StructureElement.UnitIndex,
-                structure, bond.unitB, bond.indexB as StructureElement.UnitIndex
-            ),
-            Bond.Location(
-                structure, bond.unitB, bond.indexB as StructureElement.UnitIndex,
-                structure, bond.unitA, bond.indexA as StructureElement.UnitIndex
-            )
+            Bond.Location(structure, uA, b.indexA, structure, uB, b.indexB),
+            Bond.Location(structure, uB, b.indexB, structure, uA, b.indexA)
         ]);
     }
     return EmptyLoci;
@@ -224,14 +221,14 @@ export function eachInterBond(loci: Loci, structure: Structure, apply: (interval
         for (const e of loci.elements) {
             const { unit } = e;
             if (!Unit.isAtomic(unit)) continue;
-            structure.interUnitBonds.getConnectedUnits(unit).forEach(b => {
-                const otherLociIndices = map.get(b.unitB.id);
+            structure.interUnitBonds.getConnectedUnits(unit.id).forEach(b => {
+                const otherLociIndices = map.get(b.unitB);
                 if (otherLociIndices) {
                     OrderedSet.forEach(e.indices, v => {
                         if (!b.connectedIndices.includes(v)) return;
                         b.getEdges(v).forEach(bi => {
                             if (!isMarking || OrderedSet.has(otherLociIndices, bi.indexB)) {
-                                const idx = structure.interUnitBonds.getEdgeIndex(v, unit, bi.indexB, b.unitB);
+                                const idx = structure.interUnitBonds.getEdgeIndex(v, unit.id, bi.indexB, b.unitB);
                                 if (apply(Interval.ofSingleton(idx))) changed = true;
                             }
                         });

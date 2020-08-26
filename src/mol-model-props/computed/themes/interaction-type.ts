@@ -86,7 +86,7 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
                     const idx = links.getDirectedEdgeIndex(indexA, indexB);
                     return typeColor(links.edgeProps.type[idx]);
                 } else {
-                    const idx = contacts.getEdgeIndex(indexA, unitA, indexB, unitB);
+                    const idx = contacts.getEdgeIndex(indexA, unitA.id, indexB, unitB.id);
                     return typeColor(contacts.edges[idx].props.type);
                 }
             }

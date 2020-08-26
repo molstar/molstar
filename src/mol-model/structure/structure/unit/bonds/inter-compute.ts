@@ -33,7 +33,7 @@ function getDistance(unitA: Unit.Atomic, indexA: ElementIndex, unitB: Unit.Atomi
 const _imageTransform = Mat4();
 const _imageA = Vec3();
 
-function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComputationProps, builder: InterUnitGraph.Builder<Unit.Atomic, StructureElement.UnitIndex, InterUnitEdgeProps>) {
+function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComputationProps, builder: InterUnitGraph.Builder<number, StructureElement.UnitIndex, InterUnitEdgeProps>) {
     const { elements: atomsA, residueIndex: residueIndexA } = unitA;
     const { x: xA, y: yA, z: zA } = unitA.model.atomicConformation;
     const { elements: atomsB, residueIndex: residueIndexB } = unitB;
@@ -58,7 +58,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const { center: bCenter, radius: bRadius } = unitB.boundary.sphere;
     const testDistanceSq = (bRadius + MAX_RADIUS) * (bRadius + MAX_RADIUS);
 
-    builder.startUnitPair(unitA, unitB);
+    builder.startUnitPair(unitA.id, unitB.id);
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atomsA[_aI];
@@ -171,7 +171,7 @@ export interface InterBondComputationProps extends BondComputationProps {
 }
 
 function findBonds(structure: Structure, props: InterBondComputationProps) {
-    const builder = new InterUnitGraph.Builder<Unit.Atomic, StructureElement.UnitIndex, InterUnitEdgeProps>();
+    const builder = new InterUnitGraph.Builder<number, StructureElement.UnitIndex, InterUnitEdgeProps>();
 
     if (props.noCompute) {
         // TODO add function that only adds bonds defined in structConn and avoids using

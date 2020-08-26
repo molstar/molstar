@@ -80,7 +80,7 @@ namespace Interactions {
             const idx = contacts.getDirectedEdgeIndex(indexA, indexB);
             return interactionTypeLabel(contacts.edgeProps.type[idx]);
         } else {
-            const idx = contacts.getEdgeIndex(indexA, unitA, indexB, unitB);
+            const idx = contacts.getEdgeIndex(indexA, unitA.id, indexB, unitB.id);
             return interactionTypeLabel(contacts.edges[idx].props.type);
         }
     }

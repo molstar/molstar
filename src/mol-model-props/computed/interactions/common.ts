@@ -84,25 +84,25 @@ namespace InteractionsIntraContacts {
 }
 
 export { InteractionsInterContacts };
-class InteractionsInterContacts extends InterUnitGraph<Unit, Features.FeatureIndex, InteractionsInterContacts.Props> {
+class InteractionsInterContacts extends InterUnitGraph<number, Features.FeatureIndex, InteractionsInterContacts.Props> {
     private readonly elementKeyIndex: Map<string, number[]>
 
     getContactIndicesForElement(index: StructureElement.UnitIndex, unit: Unit): ReadonlyArray<number> {
-        return this.elementKeyIndex.get(this.getElementKey(index, unit)) || [];
+        return this.elementKeyIndex.get(this.getElementKey(index, unit.id)) || [];
     }
 
-    private getElementKey(index: StructureElement.UnitIndex, unit: Unit): string {
-        return `${index}|${unit.id}`;
+    private getElementKey(index: StructureElement.UnitIndex, unitId: number): string {
+        return `${index}|${unitId}`;
     }
 
-    constructor(map: Map<number, InterUnitGraph.UnitPairEdges<Unit, Features.FeatureIndex, InteractionsInterContacts.Props>[]>, unitsFeatures: IntMap<Features>) {
+    constructor(map: Map<number, InterUnitGraph.UnitPairEdges<number, Features.FeatureIndex, InteractionsInterContacts.Props>[]>, unitsFeatures: IntMap<Features>) {
         super(map);
 
         let count = 0;
         const elementKeyIndex = new Map<string, number[]>();
 
-        const add = (index: StructureElement.UnitIndex, unit: Unit) => {
-            const vertexKey = this.getElementKey(index, unit);
+        const add = (index: StructureElement.UnitIndex, unitId: number) => {
+            const vertexKey = this.getElementKey(index, unitId);
             const e = elementKeyIndex.get(vertexKey);
             if (e === undefined) elementKeyIndex.set(vertexKey, [count]);
             else e.push(count);
@@ -114,13 +114,13 @@ class InteractionsInterContacts extends InterUnitGraph<Unit, Features.FeatureInd
                     pairEdges.getEdges(indexA).forEach(edgeInfo => {
                         const { unitA, unitB } = pairEdges;
 
-                        const { offsets: offsetsA, members: membersA } = unitsFeatures.get(unitA.id);
+                        const { offsets: offsetsA, members: membersA } = unitsFeatures.get(unitA);
                         for (let j = offsetsA[indexA], jl = offsetsA[indexA + 1]; j < jl; ++j) {
                             add(membersA[j], unitA);
                         }
 
                         const { indexB } = edgeInfo;
-                        const { offsets: offsetsB, members: membersB } = unitsFeatures.get(unitB.id);
+                        const { offsets: offsetsB, members: membersB } = unitsFeatures.get(unitB);
                         for (let j = offsetsB[indexB], jl = offsetsB[indexB + 1]; j < jl; ++j) {
                             add(membersB[j], unitB);
                         }
