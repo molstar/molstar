@@ -1077,7 +1077,7 @@ namespace Structure {
         for (const unit of structure.units) {
             if (!validUnit(unit)) continue;
 
-            const bs = unit.lookup3d.boundary.sphere;
+            const bs = unit.boundary.sphere;
             Vec3.transformMat4(imageCenter, bs.center, unit.conformation.operator.matrix);
             const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + maxRadius);
             for (let i = 0; i < closeUnits.count; i++) {

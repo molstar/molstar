@@ -64,11 +64,11 @@ interface InterContactsBuilder {
 
 namespace InterContactsBuilder {
     export function create(): InterContactsBuilder {
-        const builder = new InterUnitGraph.Builder<Unit, Features.FeatureIndex, InteractionsInterContacts.Props>();
+        const builder = new InterUnitGraph.Builder<number, Features.FeatureIndex, InteractionsInterContacts.Props>();
 
         return {
             startUnitPair(unitA: Unit, unitB: Unit) {
-                builder.startUnitPair(unitA, unitB);
+                builder.startUnitPair(unitA.id, unitB.id);
             },
             finishUnitPair() {
                 builder.finishUnitPair();

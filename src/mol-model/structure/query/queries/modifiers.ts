@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -390,30 +390,31 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
         }
 
         // Process inter unit bonds
-        for (const bondedUnit of interBonds.getConnectedUnits(inputUnitA)) {
-            const currentUnitB = structure.unitMap.get(bondedUnit.unitB.id);
+        for (const bondedUnit of interBonds.getConnectedUnits(inputUnitA.id)) {
+            const currentUnitB = structure.unitMap.get(bondedUnit.unitB);
+            const inputUnitB = inputStructure.unitMap.get(bondedUnit.unitB) as Unit.Atomic;
 
             for (const aI of bondedUnit.connectedIndices) {
                 // check if the element is in the expanded structure
                 if (!SortedArray.has(unit.elements, inputUnitA.elements[aI])) continue;
 
                 for (const bond of bondedUnit.getEdges(aI)) {
-                    const bElement = bondedUnit.unitB.elements[bond.indexB];
+                    const bElement = inputUnitB.elements[bond.indexB];
 
                     // Check if the element is already present:
-                    if ((currentUnitB && SortedArray.has(currentUnitB.elements, bElement)) || builder.has(bondedUnit.unitB.id, bElement)) continue;
+                    if ((currentUnitB && SortedArray.has(currentUnitB.elements, bElement)) || builder.has(bondedUnit.unitB, bElement)) continue;
 
                     atomicBond.a.unit = inputUnitA;
                     atomicBond.aIndex = aI;
                     atomicBond.a.element = inputUnitA.elements[aI];
-                    atomicBond.b.unit = bondedUnit.unitB;
+                    atomicBond.b.unit = inputUnitB;
                     atomicBond.bIndex = bond.indexB;
                     atomicBond.b.element = bElement;
                     atomicBond.type = bond.props.flag;
                     atomicBond.order = bond.props.order;
 
                     if (atomicBond.test(ctx, true)) {
-                        builder.addToUnit(bondedUnit.unitB.id, bElement);
+                        builder.addToUnit(bondedUnit.unitB, bElement);
                     }
                 }
             }

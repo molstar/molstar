@@ -199,7 +199,7 @@ namespace Bond {
             this.unit = unit;
             this.index = index;
 
-            this.interBondIndices = structure.interUnitBonds.getEdgeIndices(index, unit);
+            this.interBondIndices = structure.interUnitBonds.getEdgeIndices(index, unit.id);
             this.interBondCount = this.interBondIndices.length;
             this.interBondIndex = 0;
 
@@ -218,7 +218,7 @@ namespace Bond {
                 this.intraBondIndex += 1;
             } else if (this.interBondIndex < this.interBondCount) {
                 const b = this.structure.interUnitBonds.edges[this.interBondIndex];
-                this.current.otherUnit = b.unitA !== this.unit ? b.unitA : b.unitB;
+                this.current.otherUnit = this.structure.unitMap.get(b.unitA !== this.unit.id ? b.unitA : b.unitB) as Unit.Atomic;
                 this.current.otherIndex = b.indexA !== this.index ? b.indexA : b.indexB;
                 this.current.type = b.props.flag;
                 this.current.order = b.props.order;

@@ -159,7 +159,8 @@ function createInterUnitClashCylinderMesh(ctx: VisualContext, structure: Structu
         linkCount: edgeCount,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const b = edges[edgeIndex];
-            const uA = b.unitA, uB = b.unitB;
+            const uA = structure.unitMap.get(b.unitA);
+            const uB = structure.unitMap.get(b.unitB);
             uA.conformation.position(uA.elements[b.indexA], posA);
             uB.conformation.position(uB.elements[b.indexB], posB);
         },
@@ -197,11 +198,13 @@ export function InterUnitClashVisual(materialId: number): ComplexVisual<InterUni
     }, materialId);
 }
 
-function getInterClashBoundingSphere(clashes: InterUnitClashes, elements: number[], boundingSphere: Sphere3D) {
+function getInterClashBoundingSphere(structure: Structure, clashes: InterUnitClashes, elements: number[], boundingSphere: Sphere3D) {
     return CentroidHelper.fromPairProvider(elements.length, (i, pA, pB) => {
         const c = clashes.edges[elements[i]];
-        c.unitA.conformation.position(c.unitA.elements[c.indexA], pA);
-        c.unitB.conformation.position(c.unitB.elements[c.indexB], pB);
+        const uA = structure.unitMap.get(c.unitA);
+        const uB = structure.unitMap.get(c.unitB);
+        uA.conformation.position(uA.elements[c.indexA], pA);
+        uB.conformation.position(uB.elements[c.indexB], pB);
     }, boundingSphere);
 }
 
@@ -209,18 +212,20 @@ function getInterClashLabel(structure: Structure, clashes: InterUnitClashes, ele
     const idx = elements[0];
     if (idx === undefined) return '';
     const c = clashes.edges[idx];
+    const uA = structure.unitMap.get(c.unitA);
+    const uB = structure.unitMap.get(c.unitB);
     const mag = c.props.magnitude.toFixed(2);
     const dist = c.props.distance.toFixed(2);
 
     return [
         `Clash id: ${c.props.id} | Magnitude: ${mag} \u212B | Distance: ${dist} \u212B`,
-        bondLabel(Bond.Location(structure, c.unitA, c.indexA, structure, c.unitB, c.indexB))
+        bondLabel(Bond.Location(structure, uA, c.indexA, structure, uB, c.indexB))
     ].join('</br>');
 }
 
 function InterClashLoci(structure: Structure, clashes: InterUnitClashes, elements: number[]) {
     return DataLoci('inter-clashes', clashes, elements,
-        (boundingSphere: Sphere3D) =>  getInterClashBoundingSphere(clashes, elements, boundingSphere),
+        (boundingSphere: Sphere3D) =>  getInterClashBoundingSphere(structure, clashes, elements, boundingSphere),
         () => getInterClashLabel(structure, clashes, elements));
 }
 
@@ -246,8 +251,8 @@ function createInterClashIterator(structure: Structure): LocationIterator {
     const location = StructureElement.Location.create(structure);
     const getLocation = (groupIndex: number) => {
         const clash = clashes.edges[groupIndex];
-        location.unit = clash.unitA;
-        location.element = clash.unitA.elements[clash.indexA];
+        location.unit = structure.unitMap.get(clash.unitA);
+        location.element = location.unit.elements[clash.indexA];
         return location;
     };
     return LocationIterator(groupCount, instanceCount, getLocation, true);

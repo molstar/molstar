@@ -187,7 +187,7 @@ type InterUnitClashesProps = {
 }
 
 export type IntraUnitClashes = IntAdjacencyGraph<UnitIndex, IntraUnitClashesProps>
-export type InterUnitClashes = InterUnitGraph<Unit.Atomic, UnitIndex, InterUnitClashesProps>
+export type InterUnitClashes = InterUnitGraph<number, UnitIndex, InterUnitClashesProps>
 
 export interface Clashes {
     readonly interUnit: InterUnitClashes
@@ -195,7 +195,7 @@ export interface Clashes {
 }
 
 function createInterUnitClashes(structure: Structure, clashes: ValidationReport['clashes']) {
-    const builder = new InterUnitGraph.Builder<Unit.Atomic, UnitIndex, InterUnitClashesProps>();
+    const builder = new InterUnitGraph.Builder<number, UnitIndex, InterUnitClashesProps>();
     const { a, b, edgeProps: { id, magnitude, distance } } = clashes;
 
     const pA = Vec3(), pB = Vec3();
@@ -204,7 +204,7 @@ function createInterUnitClashes(structure: Structure, clashes: ValidationReport[
         const elementsA = unitA.elements;
         const elementsB = unitB.elements;
 
-        builder.startUnitPair(unitA as Unit.Atomic, unitB as Unit.Atomic);
+        builder.startUnitPair(unitA.id, unitB.id);
 
         for (let i = 0, il = clashes.edgeCount * 2; i < il; ++i) {
             // TODO create lookup

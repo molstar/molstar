@@ -38,26 +38,28 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
         linkCount: edgeCount,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const { unitA, indexA, unitB, indexB } = edges[edgeIndex];
-            const fA = unitsFeatures.get(unitA.id);
-            const fB = unitsFeatures.get(unitB.id);
+            const fA = unitsFeatures.get(unitA);
+            const fB = unitsFeatures.get(unitB);
+            const uA = structure.unitMap.get(unitA);
+            const uB = structure.unitMap.get(unitB);
 
             Vec3.set(posA, fA.x[indexA], fA.y[indexA], fA.z[indexA]);
-            Vec3.transformMat4(posA, posA, unitA.conformation.operator.matrix);
+            Vec3.transformMat4(posA, posA, uA.conformation.operator.matrix);
 
             Vec3.set(posB, fB.x[indexB], fB.y[indexB], fB.z[indexB]);
-            Vec3.transformMat4(posB, posB, unitB.conformation.operator.matrix);
+            Vec3.transformMat4(posB, posB, uB.conformation.operator.matrix);
         },
         style: (edgeIndex: number) => LinkStyle.Dashed,
         radius: (edgeIndex: number) => {
             const b = edges[edgeIndex];
-            const fA = unitsFeatures.get(b.unitA.id);
+            const fA = unitsFeatures.get(b.unitA);
             tmpLoc.structure = structure;
-            tmpLoc.unit = b.unitA;
-            tmpLoc.element = b.unitA.elements[fA.members[fA.offsets[b.indexA]]];
+            tmpLoc.unit = structure.unitMap.get(b.unitA);
+            tmpLoc.element = tmpLoc.unit.elements[fA.members[fA.offsets[b.indexA]]];
             const sizeA = theme.size.size(tmpLoc);
-            const fB = unitsFeatures.get(b.unitB.id);
-            tmpLoc.unit = b.unitB;
-            tmpLoc.element = b.unitB.elements[fB.members[fB.offsets[b.indexB]]];
+            const fB = unitsFeatures.get(b.unitB);
+            tmpLoc.unit = structure.unitMap.get(b.unitB);
+            tmpLoc.element = tmpLoc.unit.elements[fB.members[fB.offsets[b.indexB]]];
             const sizeB = theme.size.size(tmpLoc);
             return Math.min(sizeA, sizeB) * sizeFactor;
         },
@@ -102,9 +104,11 @@ function getInteractionLoci(pickingId: PickingId, structure: Structure, id: numb
     if (id === objectId) {
         const interactions = InteractionsProvider.get(structure).value!;
         const c = interactions.contacts.edges[groupId];
+        const unitA = structure.unitMap.get(c.unitA);
+        const unitB = structure.unitMap.get(c.unitB);
         return Interactions.Loci(structure, interactions, [
-            { unitA: c.unitA, indexA: c.indexA, unitB: c.unitB, indexB: c.indexB },
-            { unitA: c.unitB, indexA: c.indexB, unitB: c.unitA, indexB: c.indexA },
+            { unitA: unitA, indexA: c.indexA, unitB: unitB, indexB: c.indexB },
+            { unitA: unitB, indexA: c.indexB, unitB: unitA, indexB: c.indexA },
         ]);
     }
     return EmptyLoci;
@@ -119,7 +123,7 @@ function eachInteraction(loci: Loci, structure: Structure, apply: (interval: Int
         const { contacts } = interactions;
 
         for (const c of loci.elements) {
-            const idx = contacts.getEdgeIndex(c.indexA, c.unitA, c.indexB, c.unitB);
+            const idx = contacts.getEdgeIndex(c.indexA, c.unitA.id, c.indexB, c.unitB.id);
             if (idx !== -1) {
                 if (apply(Interval.ofSingleton(idx))) changed = true;
             }
@@ -137,9 +141,9 @@ function createInteractionsIterator(structure: Structure): LocationIterator {
     const { element } = location;
     const getLocation = (groupIndex: number) => {
         const c = contacts.edges[groupIndex];
-        element.unitA = c.unitA;
+        element.unitA = structure.unitMap.get(c.unitA);
         element.indexA = c.indexA;
-        element.unitB = c.unitB;
+        element.unitB = structure.unitMap.get(c.unitB);
         element.indexB = c.indexB;
         return location;
     };
