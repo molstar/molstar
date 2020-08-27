@@ -14,16 +14,14 @@ import { Shape } from '../../../mol-model/shape';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { lociLabel } from '../../../mol-theme/label';
-import { MeasurementRepresentationCommonTextParams } from './common';
+import { LociLabelTextParams } from './common';
 
 export interface LabelData {
     infos: { loci: Loci, label?: string }[]
 }
 
 const TextParams = {
-    ...Text.Params,
-    borderWidth: PD.Numeric(0.2, { min: 0, max: 0.5, step: 0.01 }),
-    ...MeasurementRepresentationCommonTextParams,
+    ...LociLabelTextParams,
     offsetZ: PD.Numeric(2, { min: 0, max: 10, step: 0.1 }),
 };
 type TextParams = typeof TextParams
@@ -34,6 +32,7 @@ const LabelVisuals = {
 
 export const LabelParams = {
     ...TextParams,
+    scaleByRadius: PD.Boolean(true),
     visuals: PD.MultiSelect(['text'], PD.objectToOptions(LabelVisuals)),
 };
 
@@ -62,7 +61,7 @@ function buildText(data: LabelData, props: LabelProps, text?: Text): Text {
         if (!sphere) continue;
         const { center, radius } = sphere;
         const text = label(info, true);
-        builder.add(text, center[0], center[1], center[2], radius / 0.9, Math.max(1, radius), i);
+        builder.add(text, center[0], center[1], center[2], props.scaleByRadius ? radius / 0.9 : 0, props.scaleByRadius ? Math.max(1, radius) : 1, i);
     }
     return builder.getText();
 }

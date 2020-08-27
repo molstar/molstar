@@ -23,7 +23,7 @@ import { Circle } from '../../../mol-geo/primitive/circle';
 import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
 import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
 import { dihedralLabel } from '../../../mol-theme/label';
-import { MeasurementRepresentationCommonTextParams } from './common';
+import { LociLabelTextParams } from './common';
 import { Sphere3D } from '../../../mol-math/geometry';
 
 export interface DihedralData {
@@ -66,20 +66,13 @@ const SectorParams = {
 };
 type SectorParams = typeof SectorParams
 
-const TextParams = {
-    ...Text.Params,
-    borderWidth: PD.Numeric(0.2, { min: 0, max: 0.5, step: 0.01 }),
-    ...MeasurementRepresentationCommonTextParams
-};
-type TextParams = typeof TextParams
-
 const DihedralVisuals = {
     'vectors': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, VectorsParams>) => ShapeRepresentation(getVectorsShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'extenders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ExtendersParams>) => ShapeRepresentation(getExtendersShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'connector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ExtendersParams>) => ShapeRepresentation(getConnectorShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'arc': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ArcParams>) => ShapeRepresentation(getArcShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }), modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, markerActions: MarkerAction.None }) }),
+    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, LociLabelTextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, markerActions: MarkerAction.None }) }),
 };
 
 export const DihedralParams = {
@@ -87,7 +80,7 @@ export const DihedralParams = {
     ...ExtendersParams,
     ...ArcParams,
     ...SectorParams,
-    ...TextParams,
+    ...LociLabelTextParams,
     visuals: PD.MultiSelect(['extenders', 'sector', 'text'], PD.objectToOptions(DihedralVisuals)),
 };
 export type DihedralParams = typeof DihedralParams
