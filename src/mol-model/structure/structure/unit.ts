@@ -209,7 +209,8 @@ namespace Unit {
                 const { x, y, z } = this.model.atomicConformation;
                 boundary = tryAdjustBoundary({ x, y, z, indices: this.elements }, boundary);
             }
-            const props = { ...this.props, boundary, lookup3d: undefined, principalAxes: undefined };
+            const bonds = this.props.bonds && canRemapBonds(this, model) ? this.props.bonds : void 0;
+            const props = { ...this.props, bonds, boundary, lookup3d: undefined, principalAxes: undefined };
             const conformation = this.model.atomicConformation !== model.atomicConformation
                 ? SymmetryOperator.createMapping(this.conformation.operator, model.atomicConformation)
                 : this.conformation;
@@ -451,6 +452,19 @@ namespace Unit {
         for (let i = 0, _i = xs.length; i < _i; i++) {
             const u = xs[i], v = ys[i];
             if (xa[u] !== xb[v] || ya[u] !== yb[v] || za[u] !== zb[v]) return false;
+        }
+
+        return true;
+    }
+
+    function canRemapBonds(a: Atomic, model: Model) {
+        const xs = a.elements;
+        const { x: xa, y: ya, z: za } = a.conformation.coordinates;
+        const { x: xb, y: yb, z: zb } = model.atomicConformation;
+
+        for (let i = 0, _i = xs.length; i < _i; i++) {
+            const u = xs[i];
+            if (xa[u] !== xb[u] || ya[u] !== yb[u] || za[u] !== zb[u]) return false;
         }
 
         return true;
