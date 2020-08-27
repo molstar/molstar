@@ -24,7 +24,7 @@ import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
 import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
 import { angleLabel } from '../../../mol-theme/label';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { MeasurementRepresentationCommonTextParams } from './common';
+import { LociLabelTextParams } from './common';
 
 export interface AngleData {
     triples: Loci.Bundle<3>[]
@@ -61,25 +61,18 @@ const SectorParams = {
 };
 type SectorParams = typeof SectorParams
 
-const TextParams = {
-    ...Text.Params,
-    ...MeasurementRepresentationCommonTextParams,
-    borderWidth: PD.Numeric(0.2, { min: 0, max: 0.5, step: 0.01 })
-};
-type TextParams = typeof TextParams
-
 const AngleVisuals = {
     'vectors': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, VectorsParams>) => ShapeRepresentation(getVectorsShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'arc': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, ArcParams>) => ShapeRepresentation(getArcShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }), modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, markerActions: MarkerAction.None }) }),
+    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, LociLabelTextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, markerActions: MarkerAction.None }) }),
 };
 
 export const AngleParams = {
     ...VectorsParams,
     ...ArcParams,
     ...SectorParams,
-    ...TextParams,
+    ...LociLabelTextParams,
     visuals: PD.MultiSelect(['vectors', 'sector', 'text'], PD.objectToOptions(AngleVisuals)),
 };
 export type AngleParams = typeof AngleParams

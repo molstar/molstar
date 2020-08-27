@@ -18,7 +18,7 @@ import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
 import { distanceLabel } from '../../../mol-theme/label';
-import { MeasurementRepresentationCommonTextParams } from './common';
+import { LociLabelTextParams } from './common';
 import { Sphere3D } from '../../../mol-math/geometry';
 
 export interface DistanceData {
@@ -40,10 +40,8 @@ const LineParams = {
 type LineParams = typeof LineParams
 
 const TextParams = {
-    ...Text.Params,
+    ...LociLabelTextParams,
     ...SharedParams,
-    borderWidth: PD.Numeric(0.2, { min: 0, max: 0.5, step: 0.01 }),
-    ...MeasurementRepresentationCommonTextParams
 };
 type TextParams = typeof TextParams
 
