@@ -38,7 +38,7 @@ export const TrackballControlsParams = {
 
     rotateSpeed: PD.Numeric(3.0, { min: 0.1, max: 10, step: 0.1 }),
     zoomSpeed: PD.Numeric(6.0, { min: 0.1, max: 10, step: 0.1 }),
-    panSpeed: PD.Numeric(0.8, { min: 0.1, max: 5, step: 0.1 }),
+    panSpeed: PD.Numeric(1.0, { min: 0.1, max: 5, step: 0.1 }),
 
     spin: PD.Boolean(false, { description: 'Spin the 3D scene around the x-axis in view space' }),
     spinSpeed: PD.Numeric(1, { min: -20, max: 20, step: 1 }),
@@ -227,7 +227,8 @@ namespace TrackballControls {
             Vec2.sub(panMouseChange, Vec2.copy(panMouseChange, _panEnd), _panStart);
 
             if (Vec2.squaredMagnitude(panMouseChange)) {
-                Vec2.scale(panMouseChange, panMouseChange, Vec3.magnitude(_eye) * p.panSpeed);
+                panMouseChange[0] *= (1 / camera.zoom) * camera.viewport.width * p.panSpeed;
+                panMouseChange[1] *= (1 / camera.zoom) * camera.viewport.height * p.panSpeed;
 
                 Vec3.cross(panOffset, Vec3.copy(panOffset, _eye), camera.up);
                 Vec3.setMagnitude(panOffset, panOffset, panMouseChange[0]);
