@@ -73,7 +73,7 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
             const r = Math.min(rA, rB) * sizeAspectRatio;
             const oA = Math.sqrt(Math.max(0, rA * rA - r * r)) - 0.05;
             const oB = Math.sqrt(Math.max(0, rB * rB - r * r)) - 0.05;
-                        
+
             pos(elements[a[edgeIndex]], posA);
             pos(elements[b[edgeIndex]], posB);
 
