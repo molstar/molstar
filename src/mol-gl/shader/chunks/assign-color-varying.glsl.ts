@@ -13,11 +13,6 @@ export default `
     #ifdef dOverpaint
         vOverpaint = readFromTexture(tOverpaint, aInstance * float(uGroupCount) + group, uOverpaintTexDim);
     #endif
-
-    #ifdef dTransparency
-        vGroup = group;
-        vTransparency = readFromTexture(tTransparency, aInstance * float(uGroupCount) + group, uTransparencyTexDim).a;
-    #endif
 #elif defined(dRenderVariant_pick)
     #if defined(dRenderVariant_pickObject)
         vColor = vec4(encodeFloatRGB(float(uObjectId)), 1.0);
@@ -26,5 +21,10 @@ export default `
     #elif defined(dRenderVariant_pickGroup)
         vColor = vec4(encodeFloatRGB(group), 1.0);
     #endif
+#endif
+
+#ifdef dTransparency
+    vGroup = group;
+    vTransparency = readFromTexture(tTransparency, aInstance * float(uGroupCount) + group, uTransparencyTexDim).a;
 #endif
 `;

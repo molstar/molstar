@@ -10,10 +10,24 @@ export default `
     #if defined(dOverpaint)
         material.rgb = mix(material.rgb, vOverpaint.rgb, vOverpaint.a);
     #endif
+#elif defined(dRenderVariant_pick)
+    vec4 material = vColor;
+#elif defined(dRenderVariant_depth)
+    #ifdef enabledFragDepth
+        vec4 material = packDepthToRGBA(gl_FragDepthEXT);
+    #else
+        vec4 material = packDepthToRGBA(gl_FragCoord.z);
+    #endif
+#endif
 
-    // apply screendoor transparency
-    #if defined(dTransparency)
-        float ta = 1.0 - vTransparency;
+// apply screendoor transparency
+#if defined(dTransparency)
+    float ta = 1.0 - vTransparency;
+
+    #if defined(dRenderVariant_pick)
+        if (ta < uPickingAlphaThreshold)
+            discard; // ignore so the element below can be picked
+    #else
         float at = 0.0;
 
         // shift by view-offset during multi-sample rendering to allow for blending
@@ -31,15 +45,8 @@ export default `
             at = fract(dot(vec3(coord, vGroup + 0.5), vec3(2.0, 7.0, 23.0) / 17.0f));
         #endif
 
-        if (ta < 0.99 && (ta < 0.01 || ta < at)) discard;
-    #endif
-#elif defined(dRenderVariant_pick)
-    vec4 material = vColor;
-#elif defined(dRenderVariant_depth)
-    #ifdef enabledFragDepth
-        vec4 material = packDepthToRGBA(gl_FragDepthEXT);
-    #else
-        vec4 material = packDepthToRGBA(gl_FragCoord.z);
+        if (ta < 0.99 && (ta < 0.01 || ta < at))
+            discard;
     #endif
 #endif
 `;

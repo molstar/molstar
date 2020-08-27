@@ -16,18 +16,18 @@ export default `
         uniform vec2 uOverpaintTexDim;
         uniform sampler2D tOverpaint;
     #endif
-
-    #ifdef dTransparency
-        varying float vGroup;
-        varying float vTransparency;
-        uniform vec2 uTransparencyTexDim;
-        uniform sampler2D tTransparency;
-    #endif
 #elif defined(dRenderVariant_pick)
     #if __VERSION__ != 300
         varying vec4 vColor;
     #else
         flat out vec4 vColor;
     #endif
+#endif
+
+#ifdef dTransparency
+    varying float vGroup;
+    varying float vTransparency;
+    uniform vec2 uTransparencyTexDim;
+    uniform sampler2D tTransparency;
 #endif
 `;
