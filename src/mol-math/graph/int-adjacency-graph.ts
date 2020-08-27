@@ -17,13 +17,14 @@ import { AssignableArrayLike } from '../../mol-util/type-helpers';
  *
  * Edge properties are indexed same as in the arrays a and b.
  */
-export interface IntAdjacencyGraph<VertexIndex extends number, EdgeProps extends IntAdjacencyGraph.EdgePropsBase> {
+export interface IntAdjacencyGraph<VertexIndex extends number, EdgeProps extends IntAdjacencyGraph.EdgePropsBase, Props = any> {
     readonly offset: ArrayLike<number>,
     readonly a: ArrayLike<VertexIndex>,
     readonly b: ArrayLike<VertexIndex>,
     readonly vertexCount: number,
     readonly edgeCount: number,
-    readonly edgeProps: Readonly<EdgeProps>
+    readonly edgeProps: Readonly<EdgeProps>,
+    readonly props?: Props
 
     /**
      * Get the edge index between i-th and j-th vertex.
@@ -49,6 +50,8 @@ export namespace IntAdjacencyGraph {
     export type EdgePropsBase = { [name: string]: ArrayLike<any> }
 
     export function areEqual<I extends number, P extends IntAdjacencyGraph.EdgePropsBase>(a: IntAdjacencyGraph<I, P>, b: IntAdjacencyGraph<I, P>) {
+        if (a === b) return true;
+
         if (a.vertexCount !== b.vertexCount || a.edgeCount !== b.edgeCount) return false;
 
         const { a: aa, b: ab, offset: ao } = a;
@@ -78,7 +81,7 @@ export namespace IntAdjacencyGraph {
         return true;
     }
 
-    class IntGraphImpl<VertexIndex extends number, EdgeProps extends IntAdjacencyGraph.EdgePropsBase> implements IntAdjacencyGraph<VertexIndex, EdgeProps> {
+    class IntGraphImpl<VertexIndex extends number, EdgeProps extends IntAdjacencyGraph.EdgePropsBase, Props> implements IntAdjacencyGraph<VertexIndex, EdgeProps, Props> {
         readonly vertexCount: number;
         readonly edgeProps: EdgeProps;
 
@@ -106,14 +109,14 @@ export namespace IntAdjacencyGraph {
             return this.offset[i + 1] - this.offset[i];
         }
 
-        constructor(public offset: ArrayLike<number>, public a: ArrayLike<VertexIndex>, public b: ArrayLike<VertexIndex>, public edgeCount: number, edgeProps?: EdgeProps) {
+        constructor(public offset: ArrayLike<number>, public a: ArrayLike<VertexIndex>, public b: ArrayLike<VertexIndex>, public edgeCount: number, edgeProps?: EdgeProps, public props?: Props) {
             this.vertexCount = offset.length - 1;
             this.edgeProps = (edgeProps || {}) as EdgeProps;
         }
     }
 
-    export function create<VertexIndex extends number, EdgeProps extends IntAdjacencyGraph.EdgePropsBase>(offset: ArrayLike<number>, a: ArrayLike<VertexIndex>, b: ArrayLike<VertexIndex>, edgeCount: number, edgeProps?: EdgeProps): IntAdjacencyGraph<VertexIndex, EdgeProps> {
-        return new IntGraphImpl(offset, a, b, edgeCount, edgeProps) as IntAdjacencyGraph<VertexIndex, EdgeProps>;
+    export function create<VertexIndex extends number, EdgeProps extends IntAdjacencyGraph.EdgePropsBase, Props>(offset: ArrayLike<number>, a: ArrayLike<VertexIndex>, b: ArrayLike<VertexIndex>, edgeCount: number, edgeProps?: EdgeProps, props?: Props): IntAdjacencyGraph<VertexIndex, EdgeProps, Props> {
+        return new IntGraphImpl(offset, a, b, edgeCount, edgeProps, props) as IntAdjacencyGraph<VertexIndex, EdgeProps, Props>;
     }
 
     export class EdgeBuilder<VertexIndex extends number> {
@@ -129,8 +132,8 @@ export namespace IntAdjacencyGraph {
         a: AssignableArrayLike<VertexIndex>;
         b: AssignableArrayLike<VertexIndex>;
 
-        createGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase>(edgeProps: EdgeProps) {
-            return create<VertexIndex, EdgeProps>(this.offsets, this.a, this.b, this.edgeCount, edgeProps);
+        createGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase, Props>(edgeProps: EdgeProps, props?: Props) {
+            return create<VertexIndex, EdgeProps, Props>(this.offsets, this.a, this.b, this.edgeCount, edgeProps, props);
         }
 
         /**

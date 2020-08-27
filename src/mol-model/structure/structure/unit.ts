@@ -22,6 +22,7 @@ import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal
 import { getPrincipalAxes } from './util/principal-axes';
 import { Boundary, getBoundary, tryAdjustBoundary } from '../../../mol-math/geometry/boundary';
 import { Mat4 } from '../../../mol-math/linear-algebra';
+import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -209,8 +210,8 @@ namespace Unit {
                 const { x, y, z } = this.model.atomicConformation;
                 boundary = tryAdjustBoundary({ x, y, z, indices: this.elements }, boundary);
             }
-            const bonds = this.props.bonds && canRemapBonds(this, model) ? this.props.bonds : void 0;
-            const props = { ...this.props, bonds, boundary, lookup3d: undefined, principalAxes: undefined };
+            // TODO: add element set based bond caching?
+            const props = { ...this.props, bonds: tryRemapBonds(this, this.props.bonds, model), boundary, lookup3d: undefined, principalAxes: undefined };
             const conformation = this.model.atomicConformation !== model.atomicConformation
                 ? SymmetryOperator.createMapping(this.conformation.operator, model.atomicConformation)
                 : this.conformation;
@@ -457,7 +458,25 @@ namespace Unit {
         return true;
     }
 
-    function canRemapBonds(a: Atomic, model: Model) {
+    function tryRemapBonds(a: Atomic, old: IntraUnitBonds | undefined, model: Model) {
+        // TODO: should include additional checks?
+
+        if (!old) return void 0;
+        if (a.model.atomicConformation.id === model.atomicConformation.id) return old;
+
+        const oldIndex = IndexPairBonds.Provider.get(a.model);
+        if (oldIndex) {
+            const newIndex = IndexPairBonds.Provider.get(model);
+            // TODO: check the actual indices instead of just reference equality?
+            if (!newIndex || oldIndex === newIndex) return old;
+            return void 0;
+        }
+
+        if (old.props?.canRemap) return old;
+        return isSameConformation(a, model) ? old : void 0;
+    }
+
+    function isSameConformation(a: Atomic, model: Model) {
         const xs = a.elements;
         const { x: xa, y: ya, z: za } = a.conformation.coordinates;
         const { x: xb, y: yb, z: zb } = model.atomicConformation;
