@@ -42,7 +42,7 @@ const atom = {
     occupancy: p(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.model.atomicConformation.occupancy.value(l.element)),
     B_iso_or_equiv: p(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.model.atomicConformation.B_iso_or_equiv.value(l.element)),
     sourceIndex: p(l => Unit.isAtomic(l.unit)
-        ? l.unit.model.atomicHierarchy.atoms.sourceIndex.value(l.element)
+        ? l.unit.model.atomicHierarchy.atomSourceIndex.value(l.element)
         // TODO: when implemented, this should map to the source index.
         : l.element),
 

@@ -62,8 +62,7 @@ function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, o
         label_alt_id: atom_site.label_alt_id,
         label_comp_id: atom_site.label_comp_id,
         auth_comp_id: atom_site.auth_comp_id,
-        pdbx_formal_charge: atom_site.pdbx_formal_charge,
-        sourceIndex
+        pdbx_formal_charge: atom_site.pdbx_formal_charge
     });
 
     const residues = Table.view(atom_site, ResiduesSchema, offsets.residues);
@@ -94,7 +93,7 @@ function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, o
     substUndefinedColumn(residues, 'label_seq_id', 'auth_seq_id');
     substUndefinedColumn(chains, 'label_asym_id', 'auth_asym_id');
 
-    return { atoms, residues, chains };
+    return { atoms, residues, chains, atomSourceIndex: sourceIndex };
 }
 
 function getConformation(atom_site: AtomSite): AtomicConformation {
@@ -111,7 +110,6 @@ function getConformation(atom_site: AtomSite): AtomicConformation {
 }
 
 function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
-    // TODO need to cast because of how TS handles type resolution for interfaces https://github.com/Microsoft/TypeScript/issues/15300
     return Table.areEqual(a.chains, b.chains)
         && Table.areEqual(a.residues, b.residues)
         && Table.areEqual(a.atoms, b.atoms);

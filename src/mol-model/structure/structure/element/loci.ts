@@ -529,7 +529,7 @@ export namespace Loci {
 
     function sourceIndex(unit: Unit, element: ElementIndex) {
         return Unit.isAtomic(unit)
-            ? unit.model.atomicHierarchy.atoms.sourceIndex.value(element)
+            ? unit.model.atomicHierarchy.atomSourceIndex.value(element)
             // TODO: when implemented, this should map to the source index.
             : element;
     }

@@ -26,7 +26,7 @@ export function trajectoryFromPDB(pdb: PdbFile): Task<Trajectory> {
             //      would need to do model splitting again
             if (models.frameCount === 1) {
                 const first = models.representative;
-                const srcIndex = first.atomicHierarchy.atoms.sourceIndex;
+                const srcIndex = first.atomicHierarchy.atomSourceIndex;
                 const isIdentity = Column.isIdentity(srcIndex);
                 const srcIndexArray = isIdentity ? void 0 : srcIndex.toArray({ array: Int32Array });
 
