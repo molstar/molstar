@@ -23,6 +23,7 @@ import { getPrincipalAxes } from './util/principal-axes';
 import { Boundary, getBoundary, tryAdjustBoundary } from '../../../mol-math/geometry/boundary';
 import { Mat4 } from '../../../mol-math/linear-algebra';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
+import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -210,7 +211,6 @@ namespace Unit {
                 const { x, y, z } = this.model.atomicConformation;
                 boundary = tryAdjustBoundary({ x, y, z, indices: this.elements }, boundary);
             }
-            // TODO: add element set based bond caching?
             const props = { ...this.props, bonds: tryRemapBonds(this, this.props.bonds, model), boundary, lookup3d: undefined, principalAxes: undefined };
             const conformation = this.model.atomicConformation !== model.atomicConformation
                 ? SymmetryOperator.createMapping(this.conformation.operator, model.atomicConformation)
@@ -240,7 +240,14 @@ namespace Unit {
 
         get bonds() {
             if (this.props.bonds) return this.props.bonds;
-            this.props.bonds = computeIntraUnitBonds(this);
+
+            const cache = ElementSetIntraBondCache.get(this.model);
+            let bonds = cache.get(this.elements);
+            if (!bonds) {
+                bonds = computeIntraUnitBonds(this);
+                cache.set(this.elements, bonds);
+            }
+            this.props.bonds = bonds;
             return this.props.bonds;
         }
 
@@ -472,7 +479,9 @@ namespace Unit {
             return void 0;
         }
 
-        if (old.props?.canRemap) return old;
+        if (old.props?.canRemap) {
+            return old;
+        }
         return isSameConformation(a, model) ? old : void 0;
     }
 
