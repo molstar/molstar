@@ -2,6 +2,7 @@
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as React from 'react';
@@ -64,6 +65,7 @@ export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, View
         this.subscribe(resized.pipe(debounceTime(1000 / 24)), () => this.handleResize());
         this.subscribe(canvas3d.input.resize, resize);
         this.subscribe(canvas3d.interaction.click, e => this.plugin.behaviors.interaction.click.next(e));
+        this.subscribe(canvas3d.interaction.drag, e => this.plugin.behaviors.interaction.drag.next(e));
         this.subscribe(canvas3d.interaction.hover, e => this.plugin.behaviors.interaction.hover.next(e));
         this.subscribe(this.plugin.layout.events.updated, resize);
     }
