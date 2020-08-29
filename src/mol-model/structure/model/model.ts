@@ -92,7 +92,7 @@ export namespace Model {
         const trajectory: Model[] = [];
         const { frames } = coordinates;
 
-        const srcIndex = model.atomicHierarchy.atoms.sourceIndex;
+        const srcIndex = model.atomicHierarchy.atomSourceIndex;
         const isIdentity = Column.isIdentity(srcIndex);
         const srcIndexArray = isIdentity ? void 0 : srcIndex.toArray({ array: Int32Array });
 

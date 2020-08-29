@@ -13,7 +13,8 @@ import { arraySetAdd } from '../../../mol-util/array';
 import { PluginStateObject } from '../../objects';
 import { StatefulPluginComponent } from '../../component';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { MeasurementRepresentationCommonTextParams } from '../../../mol-repr/shape/loci/common';
+import { MeasurementRepresentationCommonTextParams, LociLabelTextParams } from '../../../mol-repr/shape/loci/common';
+import { LineParams } from '../../../mol-repr/structure/representation/line';
 
 export { StructureMeasurementManager };
 
@@ -40,7 +41,9 @@ export interface StructureMeasurementManagerState {
 type StructureMeasurementManagerAddOptions = {
     customText?: string,
     selectionTags?: string | string[],
-    reprTags?: string | string[]
+    reprTags?: string | string[],
+    lineParams?: Partial<PD.Values<LineParams>>,
+    labelParams?: Partial<PD.Values<LociLabelTextParams>>
 }
 
 class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasurementManagerState>  {
@@ -108,7 +111,9 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             .apply(StateTransforms.Representation.StructureSelectionsDistance3D, {
                 customText: options?.customText || '',
                 unitLabel: this.state.options.distanceUnitLabel,
-                textColor: this.state.options.textColor
+                textColor: this.state.options.textColor,
+                ...options?.lineParams,
+                ...options?.labelParams
             }, { tags: options?.reprTags });
 
         const state = this.plugin.state.data;
@@ -139,7 +144,9 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             }, { dependsOn, tags: options?.selectionTags })
             .apply(StateTransforms.Representation.StructureSelectionsAngle3D, {
                 customText: options?.customText || '',
-                textColor: this.state.options.textColor
+                textColor: this.state.options.textColor,
+                ...options?.lineParams,
+                ...options?.labelParams
             }, { tags: options?.reprTags });
 
         const state = this.plugin.state.data;
@@ -173,14 +180,16 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             }, { dependsOn, tags: options?.selectionTags })
             .apply(StateTransforms.Representation.StructureSelectionsDihedral3D, {
                 customText: options?.customText || '',
-                textColor: this.state.options.textColor
+                textColor: this.state.options.textColor,
+                ...options?.lineParams,
+                ...options?.labelParams
             }, { tags: options?.reprTags });
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
-    async addLabel(a: StructureElement.Loci, options?: Omit<StructureMeasurementManagerAddOptions, 'customText'>) {
+    async addLabel(a: StructureElement.Loci, options?: Omit<StructureMeasurementManagerAddOptions, 'customText' | 'lineParams'>) {
         const cellA = this.plugin.helpers.substructureParent.get(a.structure);
 
         if (!cellA) return;
@@ -197,7 +206,8 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 label: 'Label'
             }, { dependsOn, tags: options?.selectionTags })
             .apply(StateTransforms.Representation.StructureSelectionsLabel3D, {
-                textColor: this.state.options.textColor
+                textColor: this.state.options.textColor,
+                ...options?.labelParams
             }, { tags: options?.reprTags });
 
         const state = this.plugin.state.data;

@@ -38,6 +38,24 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
 
     if (!edgeCount) return Mesh.createEmpty(mesh);
 
+    const delta = Vec3();
+
+    const radiusA = (edgeIndex: number) => {
+        const b = edges[edgeIndex];
+        tmpLoc.structure = structure;
+        tmpLoc.unit = structure.unitMap.get(b.unitA);
+        tmpLoc.element = tmpLoc.unit.elements[b.indexA];
+        return theme.size.size(tmpLoc) * sizeFactor;
+    };
+
+    const radiusB = (edgeIndex: number) => {
+        const b = edges[edgeIndex];
+        tmpLoc.structure = structure;
+        tmpLoc.unit = structure.unitMap.get(b.unitB);
+        tmpLoc.element = tmpLoc.unit.elements[b.indexB];
+        return theme.size.size(tmpLoc) * sizeFactor;
+    };
+
     const builderProps = {
         linkCount: edgeCount,
         referencePosition: (edgeIndex: number) => {
@@ -63,8 +81,20 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
             const b = edges[edgeIndex];
             const uA = structure.unitMap.get(b.unitA);
             const uB = structure.unitMap.get(b.unitB);
+
+            const rA = radiusA(edgeIndex), rB = radiusB(edgeIndex);
+            const r = Math.min(rA, rB) * sizeAspectRatio;
+            const oA = Math.sqrt(Math.max(0, rA * rA - r * r)) - 0.05;
+            const oB = Math.sqrt(Math.max(0, rB * rB - r * r)) - 0.05;
+
             uA.conformation.position(uA.elements[b.indexA], posA);
             uB.conformation.position(uB.elements[b.indexB], posB);
+
+            if (oA <= 0.01 && oB <= 0.01) return;
+
+            Vec3.normalize(delta, Vec3.sub(delta, posB, posA));
+            Vec3.scaleAndAdd(posA, posA, delta, oA);
+            Vec3.scaleAndAdd(posB, posB, delta, -oB);
         },
         style: (edgeIndex: number) => {
             const o = edges[edgeIndex].props.order;
@@ -81,15 +111,7 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
             }
         },
         radius: (edgeIndex: number) => {
-            const b = edges[edgeIndex];
-            tmpLoc.structure = structure;
-            tmpLoc.unit = structure.unitMap.get(b.unitA);
-            tmpLoc.element = tmpLoc.unit.elements[b.indexA];
-            const sizeA = theme.size.size(tmpLoc);
-            tmpLoc.unit = structure.unitMap.get(b.unitB);
-            tmpLoc.element = tmpLoc.unit.elements[b.indexB];
-            const sizeB = theme.size.size(tmpLoc);
-            return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio;
+            return Math.min(radiusA(edgeIndex), radiusB(edgeIndex)) * sizeAspectRatio;
         },
         ignore: makeInterBondIgnoreTest(structure, props)
     };

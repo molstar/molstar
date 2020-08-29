@@ -22,6 +22,8 @@ import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal
 import { getPrincipalAxes } from './util/principal-axes';
 import { Boundary, getBoundary, tryAdjustBoundary } from '../../../mol-math/geometry/boundary';
 import { Mat4 } from '../../../mol-math/linear-algebra';
+import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
+import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -209,7 +211,7 @@ namespace Unit {
                 const { x, y, z } = this.model.atomicConformation;
                 boundary = tryAdjustBoundary({ x, y, z, indices: this.elements }, boundary);
             }
-            const props = { ...this.props, boundary, lookup3d: undefined, principalAxes: undefined };
+            const props = { ...this.props, bonds: tryRemapBonds(this, this.props.bonds, model), boundary, lookup3d: undefined, principalAxes: undefined };
             const conformation = this.model.atomicConformation !== model.atomicConformation
                 ? SymmetryOperator.createMapping(this.conformation.operator, model.atomicConformation)
                 : this.conformation;
@@ -238,7 +240,14 @@ namespace Unit {
 
         get bonds() {
             if (this.props.bonds) return this.props.bonds;
-            this.props.bonds = computeIntraUnitBonds(this);
+
+            const cache = ElementSetIntraBondCache.get(this.model);
+            let bonds = cache.get(this.elements);
+            if (!bonds) {
+                bonds = computeIntraUnitBonds(this);
+                cache.set(this.elements, bonds);
+            }
+            this.props.bonds = bonds;
             return this.props.bonds;
         }
 
@@ -451,6 +460,39 @@ namespace Unit {
         for (let i = 0, _i = xs.length; i < _i; i++) {
             const u = xs[i], v = ys[i];
             if (xa[u] !== xb[v] || ya[u] !== yb[v] || za[u] !== zb[v]) return false;
+        }
+
+        return true;
+    }
+
+    function tryRemapBonds(a: Atomic, old: IntraUnitBonds | undefined, model: Model) {
+        // TODO: should include additional checks?
+
+        if (!old) return void 0;
+        if (a.model.atomicConformation.id === model.atomicConformation.id) return old;
+
+        const oldIndex = IndexPairBonds.Provider.get(a.model);
+        if (oldIndex) {
+            const newIndex = IndexPairBonds.Provider.get(model);
+            // TODO: check the actual indices instead of just reference equality?
+            if (!newIndex || oldIndex === newIndex) return old;
+            return void 0;
+        }
+
+        if (old.props?.canRemap) {
+            return old;
+        }
+        return isSameConformation(a, model) ? old : void 0;
+    }
+
+    function isSameConformation(a: Atomic, model: Model) {
+        const xs = a.elements;
+        const { x: xa, y: ya, z: za } = a.conformation.coordinates;
+        const { x: xb, y: yb, z: zb } = model.atomicConformation;
+
+        for (let i = 0, _i = xs.length; i < _i; i++) {
+            const u = xs[i];
+            if (xa[u] !== xb[u] || ya[u] !== yb[u] || za[u] !== zb[u]) return false;
         }
 
         return true;
