@@ -160,6 +160,10 @@ namespace Representation {
             return a.repr === b.repr && ModelLoci.areEqual(a.loci, b.loci);
         }
 
+        export function isEmpty(a: Loci) {
+            return ModelLoci.isEmpty(a.loci);
+        }
+
         export const Empty: Loci = { loci: EmptyLoci };
     }
 

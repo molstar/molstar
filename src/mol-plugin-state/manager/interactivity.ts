@@ -15,6 +15,7 @@ import { shallowEqual } from '../../mol-util/object';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StatefulPluginComponent } from '../component';
 import { StructureSelectionManager } from './structure/selection';
+import { Vec2 } from '../../mol-math/linear-algebra';
 
 export { InteractivityManager };
 
@@ -70,6 +71,7 @@ namespace InteractivityManager {
     export type Props = PD.Values<Params>
 
     export interface HoverEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
+    export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
 
     export type LociMarkProvider = (loci: Representation.Loci, action: MarkerAction) => void

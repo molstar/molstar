@@ -59,6 +59,7 @@ import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
 import { objectForEach } from '../mol-util/object';
 import { VolumeHierarchyManager } from '../mol-plugin-state/manager/volume/hierarchy';
 import { filter, take } from 'rxjs/operators';
+import { Vec2 } from '../mol-math/linear-algebra';
 
 export class PluginContext {
     runTask = <T>(task: Task<T>) => this.tasks.run(task);
@@ -98,6 +99,7 @@ export class PluginContext {
         interaction: {
             hover: this.ev.behavior<InteractivityManager.HoverEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
             click: this.ev.behavior<InteractivityManager.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
+            drag: this.ev.behavior<InteractivityManager.DragEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0, pageStart: Vec2(), pageEnd: Vec2() }),
             selectionMode: this.ev.behavior<boolean>(false)
         },
         labels: {

@@ -7,7 +7,7 @@
 
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { now } from '../mol-util/now';
-import { Vec3 } from '../mol-math/linear-algebra';
+import { Vec3, Vec2 } from '../mol-math/linear-algebra';
 import InputObserver, { ModifiersKeys, ButtonsType } from '../mol-util/input/input-observer';
 import Renderer, { RendererStats, RendererParams } from '../mol-gl/renderer';
 import { GraphicsRenderObject } from '../mol-gl/render-object';
@@ -114,6 +114,7 @@ const requestAnimationFrame = typeof window !== 'undefined' ? window.requestAnim
 
 namespace Canvas3D {
     export interface HoverEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
+    export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
 
     export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}) {
