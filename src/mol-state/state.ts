@@ -201,7 +201,7 @@ class State {
                 if (!restored) {
                     restored = true;
                     await this.updateTree(snapshot).runInContext(ctx);
-                    this.events.log.error(e);
+                    this.events.log.next(LogEntry.error('' + e));
                 }
                 if (isNested) {
                     this.inTransactionError = true;
