@@ -24,10 +24,20 @@ class TaskManager {
         finished: this.ev<{ id: number }>()
     };
 
+    private tryGetAbortTaskId(node: Progress.Node): number | undefined {
+        if (this.abortRequests.has(node.progress.taskId)) return node.progress.taskId;
+        for (const c of node.children) {
+            const abort = this.tryGetAbortTaskId(c);
+            if (abort !== void 0) return abort;
+        }
+        return void 0;
+    }
+
     private track(internalId: number, taskId: number) {
         return (progress: Progress) => {
-            if (progress.canAbort && progress.requestAbort && this.abortRequests.has(progress.root.progress.taskId)) {
-                progress.requestAbort(this.abortRequests.get(taskId));
+            if (progress.canAbort && progress.requestAbort) {
+                const abortTaskId = this.tryGetAbortTaskId(progress.root);
+                if (abortTaskId !== void 0) progress.requestAbort(this.abortRequests.get(abortTaskId));
             }
             const elapsed = now() - progress.root.progress.startedTime;
             this.events.progress.next({
