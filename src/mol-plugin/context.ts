@@ -228,7 +228,7 @@ export class PluginContext {
         this.behaviors.interaction.selectionMode.next(mode);
     }
 
-    dataTransaction(f: (ctx: RuntimeContext) => Promise<void> | void, options?: { canUndo?: string | boolean }) {
+    dataTransaction(f: (ctx: RuntimeContext) => Promise<void> | void, options?: { canUndo?: string | boolean, rethrowErrors?: boolean }) {
         return this.runTask(this.state.data.transaction(f, options));
     }
 
