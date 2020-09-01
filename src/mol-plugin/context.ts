@@ -30,7 +30,7 @@ import { Representation } from '../mol-repr/representation';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
 import { StateTransform } from '../mol-state';
-import { Progress, Task, RuntimeContext } from '../mol-task';
+import { Task, RuntimeContext } from '../mol-task';
 import { ColorTheme } from '../mol-theme/color';
 import { SizeTheme } from '../mol-theme/size';
 import { ThemeRegistryContext } from '../mol-theme/theme';
@@ -62,7 +62,7 @@ import { filter, take } from 'rxjs/operators';
 import { Vec2 } from '../mol-math/linear-algebra';
 
 export class PluginContext {
-    runTask = <T>(task: Task<T>) => this.tasks.run(task);
+    runTask = <T>(task: Task<T>) => this.managers.task.run(task);
     resolveTask = <T>(object: Task<T> | T | undefined) => {
         if (!object) return void 0;
         if (Task.is(object)) return this.runTask(object);
@@ -71,18 +71,9 @@ export class PluginContext {
 
     private disposed = false;
     private ev = RxEventHelper.create();
-    private tasks = new TaskManager();
 
     readonly state = new PluginState(this);
     readonly commands = new PluginCommandManager();
-
-    readonly events = {
-        log: this.ev<LogEntry>(),
-        task: this.tasks.events,
-        canvas3d: {
-            settingsUpdated: this.ev(),
-        }
-    } as const
 
     readonly config = new PluginConfigManager(this.spec.config);
 
@@ -166,8 +157,17 @@ export class PluginContext {
         snapshot: new PluginStateSnapshotManager(this),
         lociLabels: void 0 as any as LociLabelManager,
         toast: new PluginToastManager(this),
-        asset: new AssetManager()
-    } as const
+        asset: new AssetManager(),
+        task: new TaskManager()
+    } as const;
+
+    readonly events = {
+        log: this.ev<LogEntry>(),
+        task: this.managers.task.events,
+        canvas3d: {
+            settingsUpdated: this.ev(),
+        }
+    } as const;
 
     readonly customModelProperties = new CustomProperty.Registry<Model>();
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
@@ -232,10 +232,6 @@ export class PluginContext {
         return this.runTask(this.state.data.transaction(f, options));
     }
 
-    requestTaskAbort(progress: Progress, reason?: string) {
-        this.tasks.requestAbort(progress, reason);
-    }
-
     clear(resetViewportSettings = false) {
         if (resetViewportSettings) this.canvas3d?.setProps(DefaultCanvas3DParams);
         return PluginCommands.State.RemoveObject(this, { state: this.state.data, ref: StateTransform.RootRef });
@@ -247,7 +243,7 @@ export class PluginContext {
         this.canvas3d?.dispose();
         this.ev.dispose();
         this.state.dispose();
-        this.tasks.dispose();
+        this.managers.task.dispose();
         this.layout.dispose();
         this.helpers.substructureParent.dispose();
 

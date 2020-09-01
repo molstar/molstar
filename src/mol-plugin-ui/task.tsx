@@ -34,7 +34,7 @@ export class BackgroundTaskProgress extends PluginUIComponent<{ }, { tracked: Or
 
 class ProgressEntry extends PluginUIComponent<{ event: TaskManager.ProgressEvent }> {
     abort = () => {
-        this.plugin.requestTaskAbort(this.props.event.progress, 'User Request');
+        this.plugin.managers.task.requestAbort(this.props.event.progress.root.progress.taskId, 'User Request');
     }
 
     render() {

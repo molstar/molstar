@@ -15,6 +15,7 @@ export { TaskManager };
 class TaskManager {
     private ev = RxEventHelper.create();
     private id = 0;
+    private runningTasks = new Set<number>();
     private abortRequests = new Map<number, string | undefined>();
     private currentContext: { ctx: RuntimeContext, refCount: number }[] = [];
 
@@ -50,9 +51,11 @@ class TaskManager {
         }
 
         try {
+            this.runningTasks.add(task.id);
             const ret = await ExecuteInContext(ctx.ctx, task);
             return ret;
         } finally {
+            this.runningTasks.delete(task.id);
             this.events.finished.next({ id });
             this.abortRequests.delete(task.id);
             ctx.refCount--;
@@ -60,8 +63,15 @@ class TaskManager {
         }
     }
 
-    requestAbort(progress: Progress, reason?: string) {
-        this.abortRequests.set(progress.root.progress.taskId, reason);
+    requestAbortAll(reason?: string) {
+        this.runningTasks.forEach(id => this.abortRequests.set(id, reason));
+    }
+
+    requestAbort(taskIdOrProgress: number | Progress, reason?: string) {
+        const id = typeof taskIdOrProgress === 'number'
+            ? taskIdOrProgress
+            : taskIdOrProgress.root.progress.taskId;
+        this.abortRequests.set(id, reason);
     }
 
     dispose() {
