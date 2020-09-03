@@ -40,6 +40,7 @@ interface FormatPropertyProvider<T> {
     isApplicable(model: Model): boolean
     get(model: Model): T | undefined
     set(model: Model, value: T): void
+    delete(model: Model): void
 }
 
 namespace FormatPropertyProvider {
@@ -66,6 +67,9 @@ namespace FormatPropertyProvider {
             },
             set(model: Model, value: T) {
                 model._staticPropertyData[name] = value;
+            },
+            delete(model: Model) {
+                delete model._staticPropertyData[name];
             }
         };
     }
