@@ -17,6 +17,7 @@ import { IndexPairBonds } from './property/bonds/index-pair';
 import { Mol2File } from '../../mol-io/reader/mol2/schema';
 import { AtomPartialCharge } from './property/partial-charge';
 import { Trajectory, ArrayTrajectory } from '../../mol-model/structure';
+import { guessElementSymbolString } from './util';
 
 async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
     const models: Model[] = [];
@@ -26,9 +27,14 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
 
         const A = Column.ofConst('A', atoms.count, Column.Schema.str);
 
+        const type_symbol = new Array<string>(atoms.count);
+        for (let i = 0; i < atoms.count; ++i) {
+            type_symbol[i] = guessElementSymbolString(atoms.atom_name.value(i));
+        }
+
         const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
             auth_asym_id: A,
-            auth_atom_id: Column.asArrayColumn(atoms.atom_type),
+            auth_atom_id: Column.asArrayColumn(atoms.atom_name),
             auth_comp_id: atoms.subst_name,
             auth_seq_id: atoms.subst_id,
             Cartn_x: Column.asArrayColumn(atoms.x, Float32Array),
@@ -37,13 +43,13 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
             id: Column.asArrayColumn(atoms.atom_id),
 
             label_asym_id: A,
-            label_atom_id: Column.asArrayColumn(atoms.atom_type),
+            label_atom_id: Column.asArrayColumn(atoms.atom_name),
             label_comp_id: atoms.subst_name,
             label_seq_id: atoms.subst_id,
             label_entity_id: Column.ofConst('1', atoms.count, Column.Schema.str),
 
             occupancy: Column.ofConst(1, atoms.count, Column.Schema.float),
-            type_symbol: Column.asArrayColumn(atoms.atom_name),
+            type_symbol: Column.ofStringArray(type_symbol),
 
             pdbx_PDB_model_num: Column.ofConst(i, atoms.count, Column.Schema.int),
         }, atoms.count);
