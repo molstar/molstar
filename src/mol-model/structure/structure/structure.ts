@@ -891,8 +891,8 @@ namespace Structure {
             return unit;
         }
 
-        addWithOperator(unit: Unit, operator: SymmetryOperator): Unit {
-            return this.add(unit.applyOperator(this.units.length, operator));
+        addWithOperator(unit: Unit, operator: SymmetryOperator, dontCompose = false): Unit {
+            return this.add(unit.applyOperator(this.units.length, operator, dontCompose));
         }
 
         getStructure(): Structure {
