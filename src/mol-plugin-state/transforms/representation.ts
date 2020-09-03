@@ -702,7 +702,7 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
         return Task.create('Model Unit Cell', async ctx => {
             const symmetry = ModelSymmetry.Provider.get(a.data);
             if (!symmetry) return StateObject.Null;
-            const data = getUnitcellData(a.data, symmetry);
+            const data = getUnitcellData(a.data, symmetry, params);
             const repr = UnitcellRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => UnitcellParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, source: a }, { label: `Unit Cell`, description: symmetry.spacegroup.name });
@@ -713,7 +713,7 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
             const symmetry = ModelSymmetry.Provider.get(a.data);
             if (!symmetry) return StateTransformer.UpdateResult.Null;
             const props = { ...b.data.repr.props, ...newParams };
-            const data = getUnitcellData(a.data, symmetry);
+            const data = getUnitcellData(a.data, symmetry, props);
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
             b.data.source = a;
             return StateTransformer.UpdateResult.Updated;

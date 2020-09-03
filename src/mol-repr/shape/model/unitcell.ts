@@ -29,10 +29,16 @@ interface UnitcellData {
     ref: Vec3
 }
 
+const CellRef = {
+    origin: 'Origin',
+    model: 'Model'
+};
+
 const CellParams = {
     ...Mesh.Params,
     cellColor: PD.Color(ColorNames.orange),
-    cellScale: PD.Numeric(2, { min: 0.1, max: 5, step: 0.1 })
+    cellScale: PD.Numeric(2, { min: 0.1, max: 5, step: 0.1 }),
+    ref: PD.Select('model', PD.objectToOptions(CellRef), { isEssential: true })
 };
 type MeshParams = typeof CellParams
 
@@ -98,11 +104,12 @@ function getUnitcellShape(ctx: RuntimeContext, data: UnitcellData, props: Unitce
 
 //
 
-export function getUnitcellData(model: Model, symmetry: Symmetry) {
-    return {
-        symmetry,
-        ref: Vec3.transformMat4(Vec3(), Model.getCenter(model), symmetry.spacegroup.cell.toFractional)
-    };
+export function getUnitcellData(model: Model, symmetry: Symmetry, props: UnitcellProps) {
+    const ref = Vec3();
+    if (props.ref === 'model') {
+        Vec3.transformMat4(ref, Model.getCenter(model), symmetry.spacegroup.cell.toFractional);
+    }
+    return { symmetry, ref };
 }
 
 export type UnitcellRepresentation = Representation<UnitcellData, UnitcellParams>
