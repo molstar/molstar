@@ -213,7 +213,7 @@ export function eachInterBond(loci: Loci, structure: Structure, apply: (interval
         }
     } else if (StructureElement.Loci.is(loci)) {
         if (!Structure.areEquivalent(loci.structure, structure)) return false;
-        if (loci.elements.length === 1) return false; // only a single unit
+        if (isMarking && loci.elements.length === 1) return false; // only a single unit
 
         const map = new Map<number, OrderedSet<StructureElement.UnitIndex>>();
         for (const e of loci.elements) map.set(e.unit.id, e.indices);
@@ -223,11 +223,11 @@ export function eachInterBond(loci: Loci, structure: Structure, apply: (interval
             if (!Unit.isAtomic(unit)) continue;
             structure.interUnitBonds.getConnectedUnits(unit.id).forEach(b => {
                 const otherLociIndices = map.get(b.unitB);
-                if (otherLociIndices) {
+                if (!isMarking || otherLociIndices) {
                     OrderedSet.forEach(e.indices, v => {
                         if (!b.connectedIndices.includes(v)) return;
                         b.getEdges(v).forEach(bi => {
-                            if (!isMarking || OrderedSet.has(otherLociIndices, bi.indexB)) {
+                            if (!isMarking || (otherLociIndices && OrderedSet.has(otherLociIndices, bi.indexB))) {
                                 const idx = structure.interUnitBonds.getEdgeIndex(v, unit.id, bi.indexB, b.unitB);
                                 if (apply(Interval.ofSingleton(idx))) changed = true;
                             }

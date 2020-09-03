@@ -16,6 +16,7 @@ import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
 import { BondIterator, getInterBondLoci, eachInterBond, BondLineParams, makeInterBondIgnoreTest } from './util/bond';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator();
 function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
@@ -94,7 +95,12 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
         ignore: makeInterBondIgnoreTest(structure, props)
     };
 
-    return createLinkLines(ctx, builderProps, props, lines);
+    const l = createLinkLines(ctx, builderProps, props, lines);
+
+    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * sizeFactor);
+    l.setBoundingSphere(sphere);
+
+    return l;
 }
 
 export const InterUnitBondLineParams = {

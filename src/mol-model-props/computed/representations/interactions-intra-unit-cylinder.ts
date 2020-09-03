@@ -7,7 +7,7 @@
 import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Loci, EmptyLoci } from '../../../mol-model/loci';
-import { Interval } from '../../../mol-data/int';
+import { Interval, OrderedSet } from '../../../mol-data/int';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { PickingId } from '../../../mol-geo/geometry/picking';
@@ -101,7 +101,7 @@ function getInteractionLoci(pickingId: PickingId, structureGroup: StructureGroup
     return EmptyLoci;
 }
 
-function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean) {
     let changed = false;
     if (Interactions.isLoci(loci)) {
         const { structure, group } = structureGroup;
@@ -119,6 +119,35 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
                     if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true;
                 }
             }
+        }
+    } else if (StructureElement.Loci.is(loci)) {
+        const { structure, group } = structureGroup;
+        if (!Structure.areEquivalent(loci.structure, structure)) return false;
+
+        const interactions = InteractionsProvider.get(structure).value;
+        if (!interactions) return false;
+        const unit = group.units[0];
+        const contacts = interactions.unitsContacts.get(unit.id);
+        const features = interactions.unitsFeatures.get(unit.id);
+        const groupCount = contacts.edgeCount * 2;
+
+        const { offset } = contacts;
+        const { offsets: fOffsets, indices: fIndices } = features.elementsIndex;
+
+        // TODO when isMarking, all elements of contact features need to be in the loci
+        for (const e of loci.elements) {
+            const unitIdx = group.unitIndexMap.get(e.unit.id);
+            if (unitIdx !== undefined) continue;
+            if (isMarking && OrderedSet.size(e.indices) === 1) continue;
+
+            OrderedSet.forEach(e.indices, v => {
+                for (let i = fOffsets[v], il = fOffsets[v + 1]; i < il; ++i) {
+                    const fI = fIndices[i];
+                    for (let j = offset[fI], jl = offset[fI + 1]; j < jl; ++j) {
+                        if (apply(Interval.ofSingleton(unitIdx * groupCount + j))) changed = true;
+                    }
+                }
+            });
         }
     }
     return changed;

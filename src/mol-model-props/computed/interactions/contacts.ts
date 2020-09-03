@@ -38,11 +38,13 @@ export interface ContactTester {
 function validPair(structure: Structure, infoA: Features.Info, infoB: Features.Info): boolean {
     const indexA = infoA.members[infoA.offsets[infoA.feature]];
     const indexB = infoB.members[infoB.offsets[infoB.feature]];
-    if (indexA === indexB) return false; // no self interaction
+    if (indexA === indexB && infoA.unit === infoB.unit) return false; // no self interaction
+
     const altA = altLoc(infoA.unit, indexA);
     const altB = altLoc(infoB.unit, indexB);
     if (altA && altB && altA !== altB) return false; // incompatible alternate location id
-    if (infoA.unit.residueIndex[infoA.unit.elements[indexA]] === infoB.unit.residueIndex[infoB.unit.elements[indexB]]) return false; // same residue
+    if (infoA.unit.residueIndex[infoA.unit.elements[indexA]] === infoB.unit.residueIndex[infoB.unit.elements[indexB]] && infoA.unit === infoB.unit) return false; // same residue
+
     // e.g. no hbond if donor and acceptor are bonded
     if (connectedTo(structure, infoA.unit, indexA, infoB.unit, indexB)) return false;
 

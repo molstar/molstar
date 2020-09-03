@@ -16,6 +16,7 @@ import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../complex-
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
 import { BondCylinderParams, BondIterator, getInterBondLoci, eachInterBond, makeInterBondIgnoreTest } from './util/bond';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator();
 function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
@@ -116,7 +117,12 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
         ignore: makeInterBondIgnoreTest(structure, props)
     };
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+
+    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * sizeFactor);
+    m.setBoundingSphere(sphere);
+
+    return m;
 }
 
 export const InterUnitBondCylinderParams = {
