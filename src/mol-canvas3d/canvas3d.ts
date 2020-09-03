@@ -321,7 +321,7 @@ namespace Canvas3D {
                 const duration = nextCameraResetDuration === undefined ? p.cameraResetDurationMs : nextCameraResetDuration;
                 const focus = camera.getFocus(center, radius);
                 const snapshot = nextCameraResetSnapshot ? { ...focus, ...nextCameraResetSnapshot } : focus;
-                camera.setState(snapshot, duration);
+                camera.setState({ ...snapshot, radiusMax: scene.boundingSphere.radius }, duration);
             }
 
             nextCameraResetDuration = void 0;
