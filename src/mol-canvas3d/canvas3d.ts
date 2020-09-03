@@ -16,7 +16,6 @@ import { Viewport } from './camera/util';
 import { createContext, WebGLContext, getGLContext } from '../mol-gl/webgl/context';
 import { Representation } from '../mol-repr/representation';
 import Scene from '../mol-gl/scene';
-import { GraphicsRenderVariant } from '../mol-gl/webgl/render-item';
 import { PickingId } from '../mol-geo/geometry/picking';
 import { MarkerAction } from '../mol-util/marker-action';
 import { Loci, EmptyLoci, isEmptyLoci } from '../mol-model/loci';
@@ -27,8 +26,6 @@ import { SetUtils } from '../mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
 import { PostprocessingParams, PostprocessingPass } from './passes/postprocessing';
 import { MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
-import { PixelData } from '../mol-util/image';
-import { readTexture } from '../mol-gl/compute/util';
 import { DrawPass } from './passes/draw';
 import { PickPass } from './passes/pick';
 import { ImagePass, ImageProps } from './passes/image';
@@ -97,7 +94,6 @@ interface Canvas3D {
     requestCameraReset(options?: { durationMs?: number, snapshot?: Partial<Camera.Snapshot> }): void
     readonly camera: Camera
     readonly boundingSphere: Readonly<Sphere3D>
-    getPixelData(variant: GraphicsRenderVariant): PixelData
     setProps(props: PartialCanvas3DProps | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void)): void
     getImagePass(props: Partial<ImageProps>): ImagePass
 
@@ -122,7 +118,7 @@ namespace Canvas3D {
             alpha: true,
             antialias: true,
             depth: true,
-            preserveDrawingBuffer: true,
+            preserveDrawingBuffer: false,
             premultipliedAlpha: false,
         });
         if (gl === null) throw new Error('Could not create a WebGL rendering context');
@@ -520,15 +516,6 @@ namespace Canvas3D {
             },
             camera,
             boundingSphere: scene.boundingSphere,
-            getPixelData: (variant: GraphicsRenderVariant) => {
-                switch (variant) {
-                    case 'color': return webgl.getDrawingBufferPixelData();
-                    case 'pickObject': return pickPass.objectPickTarget.getPixelData();
-                    case 'pickInstance': return pickPass.instancePickTarget.getPixelData();
-                    case 'pickGroup': return pickPass.groupPickTarget.getPixelData();
-                    case 'depth': return readTexture(webgl, drawPass.depthTexture) as PixelData;
-                }
-            },
             didDraw,
             reprCount,
             setProps: (properties) => {
