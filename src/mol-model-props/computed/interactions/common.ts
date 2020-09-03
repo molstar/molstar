@@ -109,24 +109,13 @@ class InteractionsInterContacts extends InterUnitGraph<number, Features.FeatureI
         };
 
         this.map.forEach(pairEdgesArray => {
-            pairEdgesArray.forEach(pairEdges => {
-                pairEdges.connectedIndices.forEach(indexA => {
-                    pairEdges.getEdges(indexA).forEach(edgeInfo => {
-                        const { unitA, unitB } = pairEdges;
-
-                        const { offsets: offsetsA, members: membersA } = unitsFeatures.get(unitA);
-                        for (let j = offsetsA[indexA], jl = offsetsA[indexA + 1]; j < jl; ++j) {
-                            add(membersA[j], unitA);
-                        }
-
-                        const { indexB } = edgeInfo;
-                        const { offsets: offsetsB, members: membersB } = unitsFeatures.get(unitB);
-                        for (let j = offsetsB[indexB], jl = offsetsB[indexB + 1]; j < jl; ++j) {
-                            add(membersB[j], unitB);
-                        }
-
-                        count += 1;
-                    });
+            pairEdgesArray.forEach(({ unitA, connectedIndices }) => {
+                connectedIndices.forEach(indexA => {
+                    const { offsets: offsetsA, members: membersA } = unitsFeatures.get(unitA);
+                    for (let j = offsetsA[indexA], jl = offsetsA[indexA + 1]; j < jl; ++j) {
+                        add(membersA[j], unitA);
+                    }
+                    count += 1;
                 });
             });
         });

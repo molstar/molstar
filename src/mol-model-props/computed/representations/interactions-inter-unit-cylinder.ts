@@ -15,11 +15,12 @@ import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../../../mo
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
-import { Interval } from '../../../mol-data/int';
+import { Interval, OrderedSet } from '../../../mol-data/int';
 import { Interactions } from '../interactions/interactions';
 import { InteractionsProvider } from '../interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { InteractionFlag } from '../interactions/common';
+import { Unit } from '../../../mol-model/structure/structure';
 
 const tmpLoc = StructureElement.Location.create(void 0);
 
@@ -114,7 +115,7 @@ function getInteractionLoci(pickingId: PickingId, structure: Structure, id: numb
     return EmptyLoci;
 }
 
-function eachInteraction(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+function eachInteraction(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean) {
     let changed = false;
     if (Interactions.isLoci(loci)) {
         if (!Structure.areEquivalent(loci.data.structure, structure)) return false;
@@ -127,6 +128,25 @@ function eachInteraction(loci: Loci, structure: Structure, apply: (interval: Int
             if (idx !== -1) {
                 if (apply(Interval.ofSingleton(idx))) changed = true;
             }
+        }
+    } else if (StructureElement.Loci.is(loci)) {
+        if (!Structure.areEquivalent(loci.structure, structure)) return false;
+        if (isMarking && loci.elements.length === 1) return false; // only a single unit
+
+        const contacts = InteractionsProvider.get(structure).value?.contacts;
+        if (!contacts) return false;
+
+        // TODO when isMarking, all elements of contact features need to be in the loci
+        for (const e of loci.elements) {
+            const { unit } = e;
+            if (!Unit.isAtomic(unit)) continue;
+            if (isMarking && OrderedSet.size(e.indices) === 1) continue;
+
+            OrderedSet.forEach(e.indices, v => {
+                for (const idx of contacts.getContactIndicesForElement(v, unit)) {
+                    if (apply(Interval.ofSingleton(idx))) changed = true;
+                }
+            });
         }
     }
     return changed;
