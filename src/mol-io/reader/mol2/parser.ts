@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Zepei Xu <xuzepei19950617@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -70,35 +70,28 @@ function handleMolecule(state: State) {
     molecule.num_sets = parseInt(values[4]);
 
     markLine(tokenizer);
-    molecule.mol_type = getTokenString(tokenizer);
+    const mol_type = getTokenString(tokenizer);
+    if (mol_type.startsWith('@<TRIPOS>')) return;
+    molecule.mol_type = mol_type;
 
     markLine(tokenizer);
-    molecule.charge_type = getTokenString(tokenizer);
+    const charge_type = getTokenString(tokenizer);
+    if (charge_type.startsWith('@<TRIPOS>')) return;
+    molecule.charge_type = charge_type;
 
     markLine(tokenizer);
-    if (getTokenString(tokenizer) === '') return;
-    molecule.status_bits = getTokenString(tokenizer);
+    const status_bits = getTokenString(tokenizer);
+    if (status_bits.startsWith('@<TRIPOS>')) return;
+    molecule.status_bits = status_bits;
 
     markLine(tokenizer);
-    if (getTokenString(tokenizer) === '') return;
-    molecule.mol_comment = getTokenString(tokenizer);
-}
-
-function isStatus_bit(aString: string): boolean {
-    if (aString.includes('DSPMOD') || aString.includes('TYPECOL') || aString.includes('CAP')
-        || aString.includes('BACKBONE') || aString.includes('DICT') || aString.includes('ESSENTIAL')
-        || aString.includes('WATER') || aString.includes('DIRECT')) {
-        return true;
-    }
-    return false;
+    const mol_comment = getTokenString(tokenizer);
+    if (mol_comment.startsWith('@<TRIPOS>')) return;
+    molecule.mol_comment = mol_comment;
 }
 
 async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     const { tokenizer, molecule } = state;
-    let hasSubst_id = false;
-    let hasSubst_name = false;
-    let hasCharge = false;
-    let hasStatus_bit = false;
 
     // skip empty lines and '@<TRIPOS>ATOM'
     while (getTokenString(tokenizer) !== '@<TRIPOS>ATOM' && tokenizer.position < tokenizer.data.length) {
@@ -109,61 +102,23 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     const initialTokenizerLineNumber = tokenizer.lineNumber;
     const firstLine = readLine(tokenizer);
     const firstLineArray = firstLine.trim().split(/\s+/g);
-    const firstLineLength = firstLineArray.length;
+    const columnCount = firstLineArray.length;
 
-    // optional columns are in order "integer string float string".
-    // Use this to find out which column is missing or empty
-    for (let i = 6; i < firstLineLength; i++) {
-        if (!isNaN(Number(firstLineArray[i]))) {
-            if (firstLineArray[i].indexOf('.') === -1) {
-                hasSubst_id = true;
-            } else {
-                hasCharge = true;
-            }
-        } else if (isNaN(Number(firstLineArray[i]))) {
-            if (!isStatus_bit(firstLineArray[i])) {
-                hasSubst_name = true;
-            } else {
-                hasStatus_bit = true;
-            }
-        }
-    }
-
-    // required columns
+    // columns
     const atom_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
     const atom_nameTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
     const xTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
     const yTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
     const zTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
     const atom_typeTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
-
-    const atom_idTokenColumn = TokenColumn(atom_idTokens);
-    const atom_nameTokenColumn = TokenColumn(atom_nameTokens);
-    const xTokenColumn = TokenColumn(xTokens);
-    const yTokenColumn = TokenColumn(yTokens);
-    const zTokenColumn = TokenColumn(zTokens);
-    const atom_typeColumn = TokenColumn(atom_typeTokens);
-
-    // optional columns
     const subst_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
     const subst_nameTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
     const chargeTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
     const status_bitTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
 
-    const subst_idTokenColumn = TokenColumn(subst_idTokens);
-    const subst_nameTokenColumn = TokenColumn(subst_nameTokens);
-    const chargeTokenColumn = TokenColumn(chargeTokens);
-    const status_bitTokenColumn = TokenColumn(status_bitTokens);
-
     const undefFloat = Column.Undefined(molecule.num_atoms, Column.Schema.float);
     const undefInt = Column.Undefined(molecule.num_atoms, Column.Schema.int);
     const undefStr = Column.Undefined(molecule.num_atoms, Column.Schema.str);
-
-    let numOfColumn = 6;
-    if (hasSubst_id) { numOfColumn++; }
-    if (hasSubst_name) { numOfColumn++; }
-    if (hasCharge) { numOfColumn++; }
-    if (hasStatus_bit) { numOfColumn++; }
 
     tokenizer.position = initialTokenizerPosition;
     tokenizer.lineNumber = initialTokenizerLineNumber;
@@ -173,11 +128,7 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     await chunkedSubtask(state.runtimeCtx, 100000, void 0, chunkSize => {
         const linesToRead = Math.min(molecule.num_atoms - linesAlreadyRead, chunkSize);
         for (let i = 0; i < linesToRead; i++) {
-            let subst_idWritten = false;
-            let subst_nameWritten = false;
-            let chargeWritten = false;
-            let status_bitWritten = false;
-            for (let j = 0; j < numOfColumn; j++) {
+            for (let j = 0; j < columnCount; j++) {
                 skipWhitespace(tokenizer);
                 tokenizer.tokenStart = tokenizer.position;
                 eatValue(tokenizer);
@@ -200,20 +151,18 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
                     case 5:
                         TokenBuilder.addUnchecked(atom_typeTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
                         break;
-                    default:
-                        if (hasSubst_id === true && subst_idWritten === false) {
-                            TokenBuilder.addUnchecked(subst_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                            subst_idWritten = true;
-                        } else if (hasSubst_name === true && subst_nameWritten === false) {
-                            TokenBuilder.addUnchecked(subst_nameTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                            subst_nameWritten = true;
-                        } else if (hasCharge === true && chargeWritten === false) {
-                            TokenBuilder.addUnchecked(chargeTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                            chargeWritten = true;
-                        } else if (hasStatus_bit === true && status_bitWritten === false) {
-                            TokenBuilder.addUnchecked(status_bitTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                            status_bitWritten = true;
-                        }
+                    case 6:
+                        TokenBuilder.addUnchecked(subst_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
+                        break;
+                    case 7:
+                        TokenBuilder.addUnchecked(subst_nameTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
+                        break;
+                    case 8:
+                        TokenBuilder.addUnchecked(chargeTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
+                        break;
+                    case 9:
+                        TokenBuilder.addUnchecked(status_bitTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
+                        break;
                 }
             }
         }
@@ -223,25 +172,24 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
 
     const ret = {
         count: molecule.num_atoms,
-        atom_id: atom_idTokenColumn(Column.Schema.int),
-        atom_name: atom_nameTokenColumn(Column.Schema.str),
-        x: xTokenColumn(Column.Schema.float),
-        y: yTokenColumn(Column.Schema.float),
-        z: zTokenColumn(Column.Schema.float),
-        atom_type: atom_typeColumn(Column.Schema.str),
 
-        // optional columns
-        subst_id: hasSubst_id ? subst_idTokenColumn(Column.Schema.int) : undefInt,
-        subst_name: hasSubst_name ? subst_nameTokenColumn(Column.Schema.str) : undefStr,
-        charge: hasCharge ? chargeTokenColumn(Column.Schema.float) : undefFloat,
-        status_bit: hasStatus_bit ? status_bitTokenColumn(Column.Schema.str) : undefStr,
+        atom_id: TokenColumn(atom_idTokens)(Column.Schema.int),
+        atom_name: TokenColumn(atom_nameTokens)(Column.Schema.str),
+        x: TokenColumn(xTokens)(Column.Schema.float),
+        y: TokenColumn(yTokens)(Column.Schema.float),
+        z: TokenColumn(zTokens)(Column.Schema.float),
+
+        atom_type: columnCount > 5 ? TokenColumn(atom_typeTokens)(Column.Schema.str) : undefStr,
+        subst_id: columnCount > 6 ? TokenColumn(subst_idTokens)(Column.Schema.int) : undefInt,
+        subst_name: columnCount > 7 ? TokenColumn(subst_nameTokens)(Column.Schema.str) : undefStr,
+        charge: columnCount > 8 ? TokenColumn(chargeTokens)(Column.Schema.float) : undefFloat,
+        status_bit: columnCount > 9 ? TokenColumn(status_bitTokens)(Column.Schema.str) : undefStr,
     };
     return ret;
 }
 
 async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     const { tokenizer, molecule } = state;
-    let hasStatus_bit = false;
 
     while (getTokenString(tokenizer) !== '@<TRIPOS>BOND' && tokenizer.position < tokenizer.data.length) {
         markLine(tokenizer);
@@ -251,29 +199,14 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     const initialTokenizerLineNumber = tokenizer.lineNumber;
     const firstLine = readLine(tokenizer);
     const firstLineArray = firstLine.trim().split(/\s+/g);
-    const firstLineLength = firstLineArray.length;
-    if (firstLineLength === 5) {
-        hasStatus_bit = true;
-    }
+    const columnCount = firstLineArray.length;
 
-    // required columns
+    // columns
     const bond_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
     const origin_bond_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
     const target_bond_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
     const bondTypeTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
-
-    const bond_idTokenColumn = TokenColumn(bond_idTokens);
-    const origin_bond_idTokenColumn = TokenColumn(origin_bond_idTokens);
-    const target_bond_idTokenColumn = TokenColumn(target_bond_idTokens);
-    const bondTypeTokenColumn = TokenColumn(bondTypeTokens);
-
-    // optional columns
     const status_bitTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
-    const status_bitTokenColumn = TokenColumn(status_bitTokens);
-    const undefStr = Column.Undefined(molecule.num_bonds, Column.Schema.str);
-
-    let numberOfColumn = 4;
-    if (hasStatus_bit) { numberOfColumn++; }
 
     tokenizer.position = initialTokenizerPosition;
     tokenizer.lineNumber = initialTokenizerLineNumber;
@@ -283,7 +216,7 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     await chunkedSubtask(state.runtimeCtx, 100000, void 0, chunkSize => {
         const linesToRead = Math.min(molecule.num_bonds - linesAlreadyRead, chunkSize);
         for (let i = 0; i < linesToRead; i++) {
-            for (let j = 0; j < numberOfColumn; j++) {
+            for (let j = 0; j < columnCount; j++) {
                 skipWhitespace(tokenizer);
                 tokenizer.tokenStart = tokenizer.position;
                 eatValue(tokenizer);
@@ -312,13 +245,15 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
 
     const ret = {
         count: molecule.num_bonds,
-        bond_id: bond_idTokenColumn(Column.Schema.int),
-        origin_atom_id: origin_bond_idTokenColumn(Column.Schema.int),
-        target_atom_id: target_bond_idTokenColumn(Column.Schema.int),
-        bond_type: bondTypeTokenColumn(Column.Schema.str),
 
-        // optional columns
-        status_bits: hasStatus_bit ? status_bitTokenColumn(Column.Schema.str) : undefStr,
+        bond_id: TokenColumn(bond_idTokens)(Column.Schema.int),
+        origin_atom_id: TokenColumn(origin_bond_idTokens)(Column.Schema.int),
+        target_atom_id: TokenColumn(target_bond_idTokens)(Column.Schema.int),
+        bond_type: TokenColumn(bondTypeTokens)(Column.Schema.str),
+
+        status_bits: columnCount > 4
+            ? TokenColumn(status_bitTokens)(Column.Schema.str)
+            : Column.Undefined(molecule.num_bonds, Column.Schema.str),
     };
 
     return ret;
@@ -336,6 +271,9 @@ async function parseInternal(ctx: RuntimeContext, data: string, name: string): P
         const bonds = await handleBonds(state);
         structures.push({ molecule: state.molecule, atoms, bonds });
         skipWhitespace(tokenizer);
+        while (getTokenString(tokenizer) !== '@<TRIPOS>MOLECULE' && tokenizer.position < tokenizer.data.length) {
+            markLine(tokenizer);
+        }
     }
 
     const result: Schema.Mol2File = { name, structures };
