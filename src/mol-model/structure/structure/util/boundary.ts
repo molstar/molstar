@@ -15,7 +15,7 @@ const tmpSphere = Sphere3D();
 const boundaryHelperCoarse = new BoundaryHelper('14');
 const boundaryHelperFine = new BoundaryHelper('98');
 function getBoundaryHelper(count: number) {
-    return count > 10_000 ? boundaryHelperCoarse : boundaryHelperFine;
+    return count > 500 ? boundaryHelperCoarse : boundaryHelperFine;
 }
 
 export function computeStructureBoundary(s: Structure): Boundary {
