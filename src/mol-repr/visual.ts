@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -35,7 +35,7 @@ interface Visual<D, P extends PD.Params> {
     /** Number of addressable groups in all instances of the visual */
     readonly groupCount: number
     readonly renderObject: GraphicsRenderObject | undefined
-    createOrUpdate: (ctx: VisualContext, theme: Theme, props?: Partial<PD.Values<P>>, data?: D) => Promise<void> | void
+    createOrUpdate: (ctx: VisualContext, theme: Theme, props: PD.Values<P>, data?: D) => Promise<void> | void
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     setVisibility: (visible: boolean) => void
