@@ -26,6 +26,7 @@ function getWholeResidues(ctx: QueryContext, source: Structure, structure: Struc
         }
 
         const { residueAtomSegments } = unit.model.atomicHierarchy;
+        const sourceElements = source.unitMap.get(unit.id).elements;
 
         const elements = unit.elements;
         builder.beginUnit(unit.id);
@@ -33,7 +34,7 @@ function getWholeResidues(ctx: QueryContext, source: Structure, structure: Struc
         while (residuesIt.hasNext) {
             const rI = residuesIt.move().index;
             for (let j = residueAtomSegments.offsets[rI], _j = residueAtomSegments.offsets[rI + 1]; j < _j; j++) {
-                builder.addElement(j);
+                if (SortedArray.has(sourceElements, j)) builder.addElement(j);
             }
         }
         builder.commitUnit();
