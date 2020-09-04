@@ -87,7 +87,7 @@ const boundaryHelperCoarse = new BoundaryHelper('14');
 const boundaryHelperFine = new BoundaryHelper('98');
 
 function getHelper(count: number) {
-    return count > 500_000 ? boundaryHelperCoarse : boundaryHelperFine;
+    return count > 100_000 ? boundaryHelperCoarse : boundaryHelperFine;
 }
 
 export function calculateInvariantBoundingSphere(position: Float32Array, positionCount: number, stepFactor: number): Sphere3D {
