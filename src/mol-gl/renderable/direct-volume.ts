@@ -50,6 +50,7 @@ export const DirectVolumeSchema = {
     matrix: ValueSpec('m4'),
     transform: ValueSpec('float32'),
     extraTransform: ValueSpec('float32'),
+    hasReflection: ValueSpec('boolean'),
 
     boundingSphere: ValueSpec('sphere'),
     invariantBoundingSphere: ValueSpec('sphere'),
