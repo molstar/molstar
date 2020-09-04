@@ -253,6 +253,8 @@ export const BaseSchema = {
     transform: ValueSpec('float32'),
     /** additional per-instance transform, see aTransform */
     extraTransform: ValueSpec('float32'),
+    /** denotes reflection in transform */
+    hasReflection: ValueSpec('boolean'),
 
     /** bounding sphere taking aTransform into account and encompases all instances */
     boundingSphere: ValueSpec('sphere'),

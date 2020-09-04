@@ -67,6 +67,7 @@ export class BoundingSphereHelper {
                 uInstanceCount: ro.values.uInstanceCount,
                 instanceCount: ro.values.instanceCount,
                 aInstance: ro.values.aInstance,
+                hasReflection: ro.values.hasReflection,
             });
             if (newInstanceData) this.instancesData.set(ro, newInstanceData);
         });

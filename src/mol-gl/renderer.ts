@@ -262,7 +262,7 @@ namespace Renderer {
             }
 
             if (r.values.dDoubleSided) {
-                if (r.values.dDoubleSided.ref.value) {
+                if (r.values.dDoubleSided.ref.value || r.values.hasReflection.ref.value) {
                     state.disable(gl.CULL_FACE);
                 } else {
                     state.enable(gl.CULL_FACE);

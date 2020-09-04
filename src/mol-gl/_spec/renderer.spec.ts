@@ -78,6 +78,7 @@ function createPoints() {
         matrix: ValueCell.create(m4),
         transform,
         extraTransform,
+        hasReflection: ValueCell.create(false),
         boundingSphere,
         invariantBoundingSphere,
 

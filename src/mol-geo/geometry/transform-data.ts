@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ValueCell } from '../../mol-util';
-import { Mat4 } from '../../mol-math/linear-algebra';
+import { Mat4, Mat3 } from '../../mol-math/linear-algebra';
 import { fillSerial } from '../../mol-util/array';
 
 export type TransformData = {
@@ -24,9 +24,23 @@ export type TransformData = {
     uInstanceCount: ValueCell<number>,
     instanceCount: ValueCell<number>,
     aInstance: ValueCell<Float32Array>,
+
+    hasReflection: ValueCell<boolean>,
+}
+
+const _m3 = Mat3();
+const _m4 = Mat4();
+function checkReflection(transformArray: Float32Array, instanceCount: number) {
+    for (let i = 0; i < instanceCount; i++) {
+        Mat3.fromMat4(_m3, Mat4.fromArray(_m4, transformArray, i * 16));
+        if (Mat3.determinant(_m3) < 0) return true;
+    }
+    return false;
 }
 
 export function createTransform(transformArray: Float32Array, instanceCount: number, transformData?: TransformData): TransformData {
+    const hasReflection = checkReflection(transformArray, instanceCount);
+
     if (transformData) {
         ValueCell.update(transformData.matrix, transformData.matrix.ref.value);
         ValueCell.update(transformData.transform, transformArray);
@@ -44,6 +58,8 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
         const aInstance = transformData.aInstance.ref.value.length >= instanceCount ? transformData.aInstance.ref.value : new Float32Array(instanceCount);
         ValueCell.update(transformData.aInstance, fillSerial(aInstance, instanceCount));
 
+        ValueCell.update(transformData.hasReflection, hasReflection);
+
         updateTransformData(transformData);
         return transformData;
     } else {
@@ -54,7 +70,8 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
             extraTransform: ValueCell.create(fillIdentityTransform(new Float32Array(instanceCount * 16), instanceCount)),
             uInstanceCount: ValueCell.create(instanceCount),
             instanceCount: ValueCell.create(instanceCount),
-            aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount)))
+            aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
+            hasReflection: ValueCell.create(hasReflection),
         };
     }
 }
