@@ -67,6 +67,14 @@ namespace Unit {
         return unitIndexMap;
     }
 
+    function getTransformHash(units: Unit[]) {
+        const ids: number[] = [];
+        for (let i = 0, _i = units.length; i < _i; i++) {
+            ids.push(units[i].id);
+        }
+        return hashFnv32a(ids);
+    }
+
     export function SymmetryGroup(units: Unit[]) {
         const props: {
             unitIndexMap?: IntMap<number>
@@ -81,7 +89,7 @@ namespace Unit {
                 return props.unitIndexMap;
             },
             hashCode: hashUnit(units[0]),
-            transformHash: hashFnv32a(units.map(u => u.id))
+            transformHash: getTransformHash(units)
         };
     }
 
@@ -207,8 +215,8 @@ namespace Unit {
 
         remapModel(model: Model) {
             let boundary = this.props.boundary;
-            if (boundary) {
-                const { x, y, z } = this.model.atomicConformation;
+            if (boundary && !Unit.isSameConformation(this, model)) {
+                const { x, y, z } = model.atomicConformation;
                 boundary = tryAdjustBoundary({ x, y, z, indices: this.elements }, boundary);
             }
             const props = { ...this.props, bonds: tryRemapBonds(this, this.props.bonds, model), boundary, lookup3d: undefined, principalAxes: undefined };
@@ -357,24 +365,16 @@ namespace Unit {
 
         remapModel(model: Model): Unit.Spheres | Unit.Gaussians {
             const coarseConformation = this.getCoarseConformation();
+            const modelCoarseConformation = getCoarseConformation(this.kind, model);
             let boundary = this.props.boundary;
             if (boundary) {
-                const { x, y, z } = coarseConformation;
+                const { x, y, z } = modelCoarseConformation;
                 boundary = tryAdjustBoundary({ x, y, z, indices: this.elements }, boundary);
             }
             const props = { ...this.props, boundary, lookup3d: undefined, principalAxes: undefined };
-            let conformation: SymmetryOperator.ArrayMapping<ElementIndex>;
-            if (this.kind === Kind.Spheres) {
-                conformation = coarseConformation !== model.coarseConformation.spheres
-                    ? SymmetryOperator.createMapping(this.conformation.operator, coarseConformation)
-                    : this.conformation;
-            } else if (this.kind === Kind.Gaussians) {
-                conformation = coarseConformation !== model.coarseConformation.gaussians
-                    ? SymmetryOperator.createMapping(this.conformation.operator, coarseConformation)
-                    : this.conformation;
-            } else {
-                throw new Error('unexpected unit kind');
-            }
+            const conformation = coarseConformation !== modelCoarseConformation
+                ? SymmetryOperator.createMapping(this.conformation.operator, modelCoarseConformation)
+                : this.conformation;
             return new Coarse(this.id, this.invariantId, this.chainGroupId, this.traits, model, this.kind, this.elements, conformation, props) as Unit.Spheres | Unit.Gaussians; // TODO get rid of casting
         }
 
@@ -413,7 +413,7 @@ namespace Unit {
         }
 
         private getCoarseConformation() {
-            return this.kind === Kind.Spheres ? this.model.coarseConformation.spheres : this.model.coarseConformation.gaussians;
+            return getCoarseConformation(this.kind, this.model);
         }
 
         constructor(id: number, invariantId: number, chainGroupId: number, traits: Traits, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties) {
@@ -430,6 +430,10 @@ namespace Unit {
             this.coarseConformation = (kind === Kind.Spheres ? model.coarseConformation.spheres : model.coarseConformation.gaussians) as C;
             this.props = props;
         }
+    }
+
+    function getCoarseConformation(kind: Kind, model: Model) {
+        return kind === Kind.Spheres ? model.coarseConformation.spheres : model.coarseConformation.gaussians;
     }
 
     interface CoarseProperties extends BaseProperties { }
@@ -485,7 +489,7 @@ namespace Unit {
         return isSameConformation(a, model) ? old : void 0;
     }
 
-    function isSameConformation(a: Atomic, model: Model) {
+    export function isSameConformation(a: Atomic, model: Model) {
         const xs = a.elements;
         const { x: xa, y: ya, z: za } = a.conformation.coordinates;
         const { x: xb, y: yb, z: zb } = model.atomicConformation;
