@@ -5,7 +5,7 @@
  */
 
 import { Sphere3D } from '../../mol-math/geometry';
-import { Vec3 } from '../../mol-math/linear-algebra';
+import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 
 export function calculateTextureInfo (n: number, itemSize: number) {
@@ -118,7 +118,15 @@ export function calculateInvariantBoundingSphere(position: Float32Array, positio
     return sphere;
 }
 
+const _mat4 = Mat4();
+
 export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere3D, transform: Float32Array, transformCount: number): Sphere3D {
+    if (transformCount === 1) {
+        Mat4.fromArray(_mat4, transform, 0);
+        const s = Sphere3D.clone(invariantBoundingSphere);
+        return Mat4.isIdentity(_mat4) ? s : Sphere3D.transform(s, s, _mat4);
+    }
+
     const boundaryHelper = getHelper(transformCount);
     boundaryHelper.reset();
 

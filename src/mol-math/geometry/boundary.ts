@@ -10,6 +10,7 @@ import { Vec3 } from '../linear-algebra';
 import { OrderedSet } from '../../mol-data/int';
 import { BoundaryHelper } from './boundary-helper';
 import { Box3D, Sphere3D } from '../geometry';
+import { EPSILON } from '../linear-algebra/3d/common';
 
 export type Boundary = { readonly box: Box3D, readonly sphere: Sphere3D }
 
@@ -72,7 +73,11 @@ export function tryAdjustBoundary(data: PositionData, boundary: Boundary): Bound
 
     const adjustedRadius = Math.sqrt(maxDistSq);
     const deltaRadius = adjustedRadius - radius;
-    if (Math.abs(deltaRadius) < (radius / 100) * 5) {
+    const absDeltaRadius = Math.abs(deltaRadius);
+
+    if (absDeltaRadius < EPSILON) {
+        return boundary;
+    } else if (absDeltaRadius < (radius / 100) * 5) {
         // TODO: The expanded sphere extrema are not correct if the principal axes differ
         const sphere = Sphere3D.expand(Sphere3D(), boundary.sphere, deltaRadius);
         const box = Box3D.fromSphere3D(Box3D(), sphere);
