@@ -150,12 +150,12 @@ export const SelectLoci = PluginBehavior.create({
             this.subscribeObservable(this.ctx.state.events.object.created, ({ ref }) => this.applySelectMark(ref));
 
             // re-apply select-mark to all representation of an updated structure
-            this.subscribeObservable(this.ctx.state.events.object.updated, ({ ref, obj, oldObj, action }) => {
+            this.subscribeObservable(this.ctx.state.events.object.updated, ({ ref, obj, oldObj, oldData, action }) => {
                 const cell = this.ctx.state.data.cells.get(ref);
                 if (cell && SO.Molecule.Structure.is(cell.obj)) {
-                    if (action === 'recreate' && obj.data.hashCode === oldObj?.data.hashCode) return;
-                    // TODO how to ensure that in-place updates result in compatible structures?
-                    if (action === 'in-place') return;
+                    const h = obj.data.hashCode;
+                    if (action === 'recreate' && h === oldObj?.data?.hashCode) return;
+                    if (action === 'in-place' && h === oldData?.hashCode) return;
 
                     const reprs = this.ctx.state.data.select(StateSelection.Generators.ofType(SO.Molecule.Structure.Representation3D, ref));
                     for (const repr of reprs) this.applySelectMark(repr.transform.ref, true);
