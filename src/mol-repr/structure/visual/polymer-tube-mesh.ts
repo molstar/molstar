@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,8 +10,8 @@ import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
-import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment, interpolateSizes, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement, HelixTension, StandardTension, StandardShift, NucleicShift, OverhangFactor } from './util/polymer';
-import { isNucleic, SecondaryStructureType } from '../../../mol-model/structure/model/types';
+import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment, interpolateSizes, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement, StandardTension, StandardShift, NucleicShift, OverhangFactor } from './util/polymer';
+import { isNucleic } from '../../../mol-model/structure/model/types';
 import { addTube } from '../../../mol-geo/geometry/mesh/builder/tube';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
@@ -46,20 +46,18 @@ function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Struct
     const { curvePoints, normalVectors, binormalVectors, widthValues, heightValues } = state;
 
     let i = 0;
-    const polymerTraceIt = PolymerTraceIterator(unit, structure);
+    const polymerTraceIt = PolymerTraceIterator(unit, structure, true);
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move();
         builderState.currentGroup = i;
 
         const isNucleicType = isNucleic(v.moleculeType);
-        const isHelix = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix);
-        const tension = isHelix ? HelixTension : StandardTension;
         const shift = isNucleicType ? NucleicShift : StandardShift;
 
-        interpolateCurveSegment(state, v, tension, shift);
+        interpolateCurveSegment(state, v, StandardTension, shift);
 
-        const startCap = v.secStrucFirst || v.coarseBackboneFirst || v.first;
-        const endCap = v.secStrucLast || v.coarseBackboneLast || v.last;
+        const startCap = v.coarseBackboneFirst || v.first;
+        const endCap = v.coarseBackboneLast || v.last;
 
         let s0 = theme.size.size(v.centerPrev) * sizeFactor;
         let s1 = theme.size.size(v.center) * sizeFactor;
