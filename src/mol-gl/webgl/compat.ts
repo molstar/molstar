@@ -135,10 +135,12 @@ export interface COMPAT_color_buffer_float {
 export function getColorBufferFloat(gl: GLRenderingContext): COMPAT_color_buffer_float | null {
     if (isWebGL2(gl)) {
         if (gl.getExtension('EXT_color_buffer_float') === null) return null;
+        gl.getExtension('EXT_float_blend');
         return { RGBA32F: gl.RGBA32F };
     } else {
         const ext = gl.getExtension('WEBGL_color_buffer_float');
         if (ext === null) return null;
+        gl.getExtension('EXT_float_blend');
         return { RGBA32F: ext.RGBA32F_EXT };
     }
 }
