@@ -65,11 +65,6 @@ export class Canvas3dInteractionHelper {
             this.startY = this.endY;
         }
 
-        if (!this.id) {
-            this.prevLoci = Representation.Loci.Empty;
-            return;
-        }
-
         if (e === InputEvent.Click) {
             const loci = this.getLoci(this.id);
             this.events.click.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers });
@@ -77,7 +72,7 @@ export class Canvas3dInteractionHelper {
             return;
         }
 
-        if (!this.inside || this.currentIdentifyT !== t) {
+        if (!this.inside || this.currentIdentifyT !== t || !xyChanged) {
             return;
         }
 
@@ -170,6 +165,9 @@ export class Canvas3dInteractionHelper {
             this.isInteracting = false;
         });
 
-        input.modifiers.subscribe(modifiers => this.modify(modifiers));
+        input.modifiers.subscribe(modifiers => {
+            // console.log('modifiers');
+            this.modify(modifiers);
+        });
     }
 }
