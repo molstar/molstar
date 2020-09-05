@@ -84,7 +84,7 @@ interface Canvas3D {
     animate(): void
     identify(x: number, y: number): PickingId | undefined
     mark(loci: Representation.Loci, action: MarkerAction): void
-    getLoci(pickingId: PickingId): Representation.Loci
+    getLoci(pickingId: PickingId | undefined): Representation.Loci
 
     readonly didDraw: BehaviorSubject<now.Timestamp>
     readonly reprCount: BehaviorSubject<number>
@@ -203,9 +203,10 @@ namespace Canvas3D {
         let nextCameraResetDuration: number | undefined = void 0;
         let nextCameraResetSnapshot: Partial<Camera.Snapshot> | undefined = void 0;
 
-        function getLoci(pickingId: PickingId) {
+        function getLoci(pickingId: PickingId | undefined) {
             let loci: Loci = EmptyLoci;
             let repr: Representation.Any = Representation.Empty;
+            if (pickingId) {
             loci = handleHelper.getLoci(pickingId);
             reprRenderObjects.forEach((_, _repr) => {
                 const _loci = _repr.getLoci(pickingId);
@@ -217,6 +218,7 @@ namespace Canvas3D {
                     repr = _repr;
                 }
             });
+            }
             return { loci, repr };
         }
 

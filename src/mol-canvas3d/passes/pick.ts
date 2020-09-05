@@ -13,6 +13,8 @@ import { decodeFloatRGB } from '../../mol-util/float-packing';
 import { Camera } from '../camera';
 import { HandleHelper } from '../helper/handle-helper';
 
+const NullId = Math.pow(2, 24) - 2;
+
 export class PickPass {
     pickDirty = true
 
@@ -118,13 +120,13 @@ export class PickPass {
         const yp = Math.round(y * pickScale);
 
         const objectId = this.getId(xp, yp, this.objectBuffer);
-        if (objectId === -1) return;
+        if (objectId === -1 || objectId === NullId) return;
 
         const instanceId = this.getId(xp, yp, this.instanceBuffer);
-        if (instanceId === -1) return;
+        if (instanceId === -1 || instanceId === NullId) return;
 
         const groupId = this.getId(xp, yp, this.groupBuffer);
-        if (groupId === -1) return;
+        if (groupId === -1 || groupId === NullId) return;
 
         return { objectId, instanceId, groupId };
     }
