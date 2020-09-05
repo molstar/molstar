@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,15 +14,14 @@ import { CoarseSphereConformation, CoarseGaussianConformation } from '../../../.
 import { getPolymerRanges } from '../polymer';
 import { AtomicConformation } from '../../../../../mol-model/structure/model/properties/atomic';
 import { SecondaryStructureProvider } from '../../../../../mol-model-props/computed/secondary-structure';
-import { SecondaryStructure } from '../../../../../mol-model/structure/model/properties/seconday-structure';
 
 /**
  * Iterates over individual residues/coarse elements in polymers of a unit while
  * providing information about the neighbourhood in the underlying model for drawing splines
  */
-export function PolymerTraceIterator(unit: Unit, structure: Structure): Iterator<PolymerTraceElement> {
+export function PolymerTraceIterator(unit: Unit, structure: Structure, ignoreSecondaryStructure = false): Iterator<PolymerTraceElement> {
     switch (unit.kind) {
-        case Unit.Kind.Atomic: return new AtomicPolymerTraceIterator(unit, structure);
+        case Unit.Kind.Atomic: return new AtomicPolymerTraceIterator(unit, structure, ignoreSecondaryStructure);
         case Unit.Kind.Spheres:
         case Unit.Kind.Gaussians:
             return new CoarsePolymerTraceIterator(unit, structure);
@@ -76,8 +75,6 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private residueIt: Segmentation.SegmentIterator<ResidueIndex>
     private polymerSegment: Segmentation.Segment<number>
     private cyclicPolymerMap: Map<ResidueIndex, ResidueIndex>
-    private secondaryStructureType: SecondaryStructure['type']
-    private secondaryStructureGetIndex: SecondaryStructure['getIndex']
     private residueSegmentMin: ResidueIndex
     private residueSegmentMax: ResidueIndex
     private prevSecStrucType: SecondaryStructureType
@@ -143,9 +140,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         return residueIndex as ResidueIndex;
     }
 
-    private getSecStruc(residueIndex: number) {
-        return this.secondaryStructureType[this.secondaryStructureGetIndex(residueIndex as ResidueIndex)];
-    }
+    private getSecStruc: (residueIndex: ResidueIndex) => SecondaryStructureType.Flag
 
     private setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: ResidueIndex) {
         const ss =  this.getSecStruc(residueIndex);
@@ -289,7 +284,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         return this.value;
     }
 
-    constructor(private unit: Unit.Atomic, structure: Structure) {
+    constructor(private unit: Unit.Atomic, structure: Structure, ignoreSecondaryStructure = false) {
         this.atomicConformation = unit.model.atomicConformation;
         this.residueAtomSegments = unit.model.atomicHierarchy.residueAtomSegments;
         this.polymerRanges = unit.model.atomicRanges.polymerRanges;
@@ -303,10 +298,13 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         this.value = createPolymerTraceElement(structure, unit);
         this.hasNext = this.residueIt.hasNext && this.polymerIt.hasNext;
 
-        const secondaryStructure = SecondaryStructureProvider.get(structure).value?.get(unit.invariantId);
-        if (!secondaryStructure) throw new Error('missing secondary structure');
-        this.secondaryStructureType = secondaryStructure.type;
-        this.secondaryStructureGetIndex = secondaryStructure.getIndex;
+        const secondaryStructure = !ignoreSecondaryStructure && SecondaryStructureProvider.get(structure).value?.get(unit.invariantId);
+        if (secondaryStructure) {
+            const { type, getIndex } = secondaryStructure;
+            this.getSecStruc = (residueIndex: ResidueIndex) => type[getIndex(residueIndex as ResidueIndex)];
+        } else {
+            this.getSecStruc = (residueIndex: ResidueIndex) => SecStrucTypeNA;
+        }
     }
 }
 
