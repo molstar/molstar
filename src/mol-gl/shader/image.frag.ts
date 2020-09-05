@@ -111,11 +111,7 @@ void main() {
         if (imageData.a < 0.05)
             discard;
 
-        #ifdef enabledFragDepth
-            gl_FragColor = packDepthToRGBA(gl_FragDepthEXT);
-        #else
-            gl_FragColor = packDepthToRGBA(gl_FragCoord.z);
-        #endif
+        gl_FragColor = packDepthToRGBA(gl_FragCoord.z);
     #elif defined(dRenderVariant_color)
         if (imageData.a < 0.05)
             discard;
