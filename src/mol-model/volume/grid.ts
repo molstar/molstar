@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
+import { SpacegroupCell, Box3D, Sphere3D } from '../../mol-math/geometry';
 import { Tensor, Mat4, Vec3 } from '../../mol-math/linear-algebra';
 
 /** The basic unit cell that contains the grid data. */
@@ -51,6 +51,14 @@ namespace Grid {
 
     export function isEmpty(grid: Grid) {
         return grid.cells.data.length === 0;
+    }
+
+    export function getBoundingSphere(grid: Grid, boundingSphere?: Sphere3D) {
+        if (!boundingSphere) boundingSphere = Sphere3D();
+
+        const dimensions = grid.cells.space.dimensions as Vec3;
+        const transform = Grid.getGridToCartesianTransform(grid);
+        return Sphere3D.fromDimensionsAndTransform(boundingSphere, dimensions, transform);
     }
 }
 

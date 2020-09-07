@@ -7,9 +7,9 @@
 import { hashFnv32a } from '../../../mol-data/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { RenderableState } from '../../../mol-gl/renderable';
-import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere, TextureImage } from '../../../mol-gl/renderable/util';
+import { calculateTransformBoundingSphere, TextureImage } from '../../../mol-gl/renderable/util';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { Vec2, Vec4 } from '../../../mol-math/linear-algebra';
+import { Vec2, Vec4, Vec3 } from '../../../mol-math/linear-algebra';
 import { Theme } from '../../../mol-theme/theme';
 import { ValueCell } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
@@ -211,5 +211,23 @@ namespace Image {
 //
 
 function getBoundingSphere(corners: Float32Array) {
-    return calculateInvariantBoundingSphere(corners, corners.length / 3, 1);
+    const center = Vec3();
+    const extrema: Vec3[] = [];
+    for (let i = 0, il = corners.length; i < il; i += 3) {
+        const e = Vec3.fromArray(Vec3(), corners, i);
+        extrema.push(e);
+        Vec3.add(center, center, e);
+    }
+    Vec3.scale(center, center, 1 / (corners.length / 3));
+
+    let radius = 0;
+    for (const e of extrema) {
+        const d = Vec3.distance(center, e);
+        if (d > radius) radius = d;
+    }
+
+    const sphere = Sphere3D.create(center, radius);
+    Sphere3D.setExtrema(sphere, extrema);
+
+    return sphere;
 }
