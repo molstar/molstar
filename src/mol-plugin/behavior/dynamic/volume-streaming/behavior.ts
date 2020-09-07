@@ -8,7 +8,6 @@
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
 import { Volume, Grid } from '../../../../mol-model/volume';
-import { createIsoValueParam } from '../../../../mol-repr/volume/isosurface';
 import { VolumeServerHeader, VolumeServerInfo } from './model';
 import { Box3D } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
@@ -39,10 +38,10 @@ export namespace VolumeStreaming {
 
     function channelParam(label: string, color: Color, defaultValue: Volume.IsoValue, stats: Grid['stats'], defaults: Partial<ChannelParams> = {}) {
         return PD.Group<ChannelParams>({
-            isoValue: createIsoValueParam(typeof defaults.isoValue !== 'undefined' ? defaults.isoValue : defaultValue, stats),
-            color: PD.Color(typeof defaults.color !== 'undefined' ? defaults.color : color),
-            wireframe: PD.Boolean(typeof defaults.wireframe !== 'undefined' ? defaults.wireframe : false),
-            opacity: PD.Numeric(typeof defaults.opacity !== 'undefined' ? defaults.opacity : 0.3, { min: 0, max: 1, step: 0.01 })
+            isoValue: Volume.createIsoValueParam(defaults.isoValue ?? defaultValue, stats),
+            color: PD.Color(defaults.color ?? color),
+            wireframe: PD.Boolean(defaults.wireframe ?? false),
+            opacity: PD.Numeric(defaults.opacity ?? 0.3, { min: 0, max: 1, step: 0.01 })
         }, { label, isExpanded: true });
     }
 

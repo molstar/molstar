@@ -17,56 +17,15 @@ import { NullLocation } from '../../mol-model/location';
 import { VisualUpdateState } from '../util';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
-import { toPrecision } from '../../mol-util/number';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
-import { Interval, OrderedSet } from '../../mol-data/int';
+import { Interval } from '../../mol-data/int';
 import { Tensor } from '../../mol-math/linear-algebra';
 import { fillSerial } from '../../mol-util/array';
-
-const defaultStats: Grid['stats'] = { min: -1, max: 1, mean: 0, sigma: 0.1  };
-export function createIsoValueParam(defaultValue: Volume.IsoValue, stats?: Grid['stats']) {
-    const sts = stats || defaultStats;
-    const { min, max, mean, sigma } = sts;
-
-    // using ceil/floor could lead to "ouf of bounds" when converting
-    const relMin = (min - mean) / sigma;
-    const relMax = (max - mean) / sigma;
-
-    let def = defaultValue;
-    if (defaultValue.kind === 'absolute') {
-        if (defaultValue.absoluteValue < min) def = Volume.IsoValue.absolute(min);
-        else if (defaultValue.absoluteValue > max) def = Volume.IsoValue.absolute(max);
-    } else {
-        if (defaultValue.relativeValue < relMin) def = Volume.IsoValue.relative(relMin);
-        else if (defaultValue.relativeValue > relMax) def = Volume.IsoValue.relative(relMax);
-    }
-
-    return PD.Conditioned(
-        def,
-        {
-            'absolute': PD.Converted(
-                (v: Volume.IsoValue) => Volume.IsoValue.toAbsolute(v, Grid.One.stats).absoluteValue,
-                (v: number) => Volume.IsoValue.absolute(v),
-                PD.Numeric(mean, { min, max, step: toPrecision(sigma / 100, 2) })
-            ),
-            'relative': PD.Converted(
-                (v: Volume.IsoValue) => Volume.IsoValue.toRelative(v, Grid.One.stats).relativeValue,
-                (v: number) => Volume.IsoValue.relative(v),
-                PD.Numeric(Math.min(1, relMax), { min: relMin, max: relMax, step: toPrecision(Math.round(((max - min) / sigma)) / 100, 2) })
-            )
-        },
-        (v: Volume.IsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
-        (v: Volume.IsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? Volume.IsoValue.toAbsolute(v, sts) : Volume.IsoValue.toRelative(v, sts),
-        { isEssential: true }
-    );
-}
-
-export const IsoValueParam = createIsoValueParam(Volume.IsoValue.relative(2));
-type IsoValueParam = typeof IsoValueParam
+import { eachVolumeLoci } from './util';
 
 export const VolumeIsosurfaceParams = {
-    isoValue: IsoValueParam
+    isoValue: Volume.IsoValueParam
 };
 export type VolumeIsosurfaceParams = typeof VolumeIsosurfaceParams
 export type VolumeIsosurfaceProps = PD.Values<VolumeIsosurfaceParams>
@@ -83,26 +42,8 @@ function getIsosurfaceLoci(pickingId: PickingId, volume: Volume, props: VolumeIs
     return EmptyLoci;
 }
 
-function eachIsosurface(loci: Loci, volume: Volume, props: VolumeIsosurfaceProps, apply: (interval: Interval) => boolean) {
-    let changed = false;
-    if (Volume.isLoci(loci)) {
-        if (!Volume.areEquivalent(loci.volume, volume)) return false;
-        if (apply(Interval.ofLength(volume.grid.cells.data.length))) changed = true;
-    } else if (Volume.Isosurface.isLoci(loci)) {
-        if (!Volume.areEquivalent(loci.volume, volume)) return false;
-        if (!Volume.IsoValue.areSame(loci.isoValue, props.isoValue, volume.grid.stats)) return false;
-        if (apply(Interval.ofLength(volume.grid.cells.data.length))) changed = true;
-    } else if (Volume.Cell.isLoci(loci)) {
-        if (!Volume.areEquivalent(loci.volume, volume)) return false;
-        if (Interval.is(loci.indices)) {
-            if (apply(loci.indices)) changed = true;
-        } else {
-            OrderedSet.forEach(loci.indices, v => {
-                if (apply(Interval.ofSingleton(v))) changed = true;
-            });
-        }
-    }
-    return changed;
+export function eachIsosurface(loci: Loci, volume: Volume, props: VolumeIsosurfaceProps, apply: (interval: Interval) => boolean) {
+    return eachVolumeLoci(loci, volume, props.isoValue, apply);
 }
 
 //
@@ -205,7 +146,7 @@ export const IsosurfaceParams = {
 export type IsosurfaceParams = typeof IsosurfaceParams
 export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: Volume) {
     const p = PD.clone(IsosurfaceParams);
-    p.isoValue = createIsoValueParam(Volume.IsoValue.relative(2), volume.grid.stats);
+    p.isoValue = Volume.createIsoValueParam(Volume.IsoValue.relative(2), volume.grid.stats);
     return p;
 }
 

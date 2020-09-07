@@ -20,7 +20,6 @@ import { Interval, OrderedSet, SortedArray } from '../../mol-data/int';
 import { transformPositionArray } from '../../mol-geo/util';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { RenderableState } from '../../mol-gl/renderable';
-import { createIsoValueParam, IsoValueParam } from './isosurface';
 import { Color } from '../../mol-util/color';
 import { ColorTheme } from '../../mol-theme/color';
 
@@ -177,7 +176,7 @@ export const SliceParams = {
         y: PD.Numeric(0, { min: 0, max: 0, step: 1 }),
         z: PD.Numeric(0, { min: 0, max: 0, step: 1 }),
     }, { isEssential: true }),
-    isoValue: IsoValueParam,
+    isoValue: Volume.IsoValueParam,
 };
 export type SliceParams = typeof SliceParams
 export function getSliceParams(ctx: ThemeRegistryContext, volume: Volume) {
@@ -188,7 +187,7 @@ export function getSliceParams(ctx: ThemeRegistryContext, volume: Volume) {
         y: PD.Numeric(0, { min: 0, max: dim[1] - 1, step: 1 }),
         z: PD.Numeric(0, { min: 0, max: dim[2] - 1, step: 1 }),
     }, { isEssential: true });
-    p.isoValue = createIsoValueParam(Volume.IsoValue.absolute(volume.grid.stats.min), volume.grid.stats);
+    p.isoValue = Volume.createIsoValueParam(Volume.IsoValue.absolute(volume.grid.stats.min), volume.grid.stats);
     return p;
 }
 
