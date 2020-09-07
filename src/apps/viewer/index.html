@@ -46,12 +46,14 @@
             }
 
             var debugMode = getParam('debug-mode', '[^&]+').trim() === '1';
-            if (debugMode) molstar.setDebugMode(debugMode);
+            if (debugMode) molstar.setDebugMode(debugMode, debugMode);
 
+            var disableAntialiasing = getParam('disable-antialiasing', '[^&]+').trim() === '1';
             var hideControls = getParam('hide-controls', '[^&]+').trim() === '1';
             var pdbProvider = getParam('pdb-provider', '[^&]+').trim().toLowerCase();
             var emdbProvider = getParam('emdb-provider', '[^&]+').trim().toLowerCase();
             var viewer = new molstar.Viewer('app', {
+                disableAntialiasing: disableAntialiasing,
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
                 pdbProvider: pdbProvider || 'pdbe',

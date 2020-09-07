@@ -187,7 +187,8 @@ export class PluginContext {
             this.layout.setRoot(container);
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
 
-            (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas);
+            const antialias = !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false);
+            (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas, {}, { antialias });
             this.canvas3dInit.next(true);
             this.canvas3d?.setProps(this.spec.components?.viewport?.canvas3d || { renderer: { backgroundColor: Color(0xFCFBF9) } });
             this.canvas3d!.animate();
