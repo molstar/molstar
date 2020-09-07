@@ -82,7 +82,7 @@ export function printImageData(imageData: ImageData, scale = 1, pixelated = fals
 
 //
 
-const v = Vec3.zero();
+const v = Vec3();
 const boundaryHelperCoarse = new BoundaryHelper('14');
 const boundaryHelperFine = new BoundaryHelper('98');
 
