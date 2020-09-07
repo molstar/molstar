@@ -11,7 +11,6 @@ import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { Task } from '../../../../mol-task';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { urlCombine } from '../../../../mol-util/url';
-import { createIsoValueParam } from '../../../../mol-repr/volume/isosurface';
 import { Volume } from '../../../../mol-model/volume';
 import { StateAction, StateObject, StateTransformer } from '../../../../mol-state';
 import { getStreamingMethod, getIds, getContourLevel, getEmdbIds } from './util';
@@ -157,7 +156,7 @@ const InfoEntryParams = {
     dataId: PD.Text(''),
     source: PD.MappedStatic('x-ray', {
         'em': PD.Group({
-            isoValue: createIsoValueParam(Volume.IsoValue.relative(1))
+            isoValue: Volume.createIsoValueParam(Volume.IsoValue.relative(1))
         }),
         'x-ray': PD.Group({ })
     })

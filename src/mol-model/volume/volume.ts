@@ -13,6 +13,8 @@ import { CubeFormat } from '../../mol-model-formats/volume/cube';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { ModelFormat } from '../../mol-model-formats/format';
 import { CustomProperties } from '../custom-property';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { toPrecision } from '../../mol-util/number';
 
 export interface Volume {
     readonly label?: string
@@ -71,6 +73,47 @@ export namespace Volume {
                 : `${value.absoluteValue.toPrecision(4)}`;
         }
     }
+
+    const defaultStats: Grid['stats'] = { min: -1, max: 1, mean: 0, sigma: 0.1  };
+    export function createIsoValueParam(defaultValue: Volume.IsoValue, stats?: Grid['stats']) {
+        const sts = stats || defaultStats;
+        const { min, max, mean, sigma } = sts;
+
+        // using ceil/floor could lead to "ouf of bounds" when converting
+        const relMin = (min - mean) / sigma;
+        const relMax = (max - mean) / sigma;
+
+        let def = defaultValue;
+        if (defaultValue.kind === 'absolute') {
+            if (defaultValue.absoluteValue < min) def = Volume.IsoValue.absolute(min);
+            else if (defaultValue.absoluteValue > max) def = Volume.IsoValue.absolute(max);
+        } else {
+            if (defaultValue.relativeValue < relMin) def = Volume.IsoValue.relative(relMin);
+            else if (defaultValue.relativeValue > relMax) def = Volume.IsoValue.relative(relMax);
+        }
+
+        return PD.Conditioned(
+            def,
+            {
+                'absolute': PD.Converted(
+                    (v: Volume.IsoValue) => Volume.IsoValue.toAbsolute(v, Grid.One.stats).absoluteValue,
+                    (v: number) => Volume.IsoValue.absolute(v),
+                    PD.Numeric(mean, { min, max, step: toPrecision(sigma / 100, 2) })
+                ),
+                'relative': PD.Converted(
+                    (v: Volume.IsoValue) => Volume.IsoValue.toRelative(v, Grid.One.stats).relativeValue,
+                    (v: number) => Volume.IsoValue.relative(v),
+                    PD.Numeric(Math.min(1, relMax), { min: relMin, max: relMax, step: toPrecision(Math.round(((max - min) / sigma)) / 100, 2) })
+                )
+            },
+            (v: Volume.IsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
+            (v: Volume.IsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? Volume.IsoValue.toAbsolute(v, sts) : Volume.IsoValue.toRelative(v, sts),
+            { isEssential: true }
+        );
+    }
+
+    export const IsoValueParam = createIsoValueParam(Volume.IsoValue.relative(2));
+    export type IsoValueParam = typeof IsoValueParam
 
     export const One: Volume = {
         label: '',
