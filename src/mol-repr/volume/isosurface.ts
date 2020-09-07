@@ -119,8 +119,10 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
     }, mesh).runAsChild(ctx.runtime);
 
     const transform = Grid.getGridToCartesianTransform(volume.grid);
-    ctx.runtime.update({ message: 'Transforming mesh...' });
     Mesh.transform(surface, transform);
+
+    surface.setBoundingSphere(Volume.getBoundingSphere(volume));
+
     return surface;
 }
 
@@ -160,6 +162,8 @@ export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume
 
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     Lines.transform(wireframe, transform);
+
+    wireframe.setBoundingSphere(Volume.getBoundingSphere(volume));
 
     return wireframe;
 }
@@ -213,7 +217,7 @@ export function IsosurfaceRepresentation(ctx: RepresentationContext, getParams: 
 export const IsosurfaceRepresentationProvider = VolumeRepresentationProvider({
     name: 'isosurface',
     label: 'Isosurface',
-    description: 'Displays an isosurface of volumetric data.',
+    description: 'Displays a triangulated isosurface of volumetric data.',
     factory: IsosurfaceRepresentation,
     getParams: getIsosurfaceParams,
     defaultValues: PD.getDefaultValues(IsosurfaceParams),

@@ -92,6 +92,22 @@ namespace Sphere3D {
     export function transform(out: Sphere3D, sphere: Sphere3D, m: Mat4): Sphere3D {
         Vec3.transformMat4(out.center, sphere.center, m);
         out.radius = sphere.radius * Mat4.getMaxScaleOnAxis(m);
+        if (hasExtrema(sphere)) {
+            setExtrema(out, [
+                ...sphere.extrema.map(e => Vec3.transformMat4(Vec3(), e, m)),
+            ]);
+        }
+        return out;
+    }
+
+    /** Translate sphere by Vec3 */
+    export function translate(out: Sphere3D, sphere: Sphere3D, v: Vec3) {
+        Vec3.add(out.center, sphere.center, v);
+        if (hasExtrema(sphere)) {
+            setExtrema(out, [
+                ...sphere.extrema.map(e => Vec3.add(Vec3(), e, v)),
+            ]);
+        }
         return out;
     }
 
@@ -115,6 +131,30 @@ namespace Sphere3D {
     export function fromAxes3D(out: Sphere3D, axes: Axes3D) {
         Vec3.copy(out.center, axes.origin);
         out.radius = Math.max(Vec3.magnitude(axes.dirA), Vec3.magnitude(axes.dirB), Vec3.magnitude(axes.dirC));
+        return out;
+    }
+
+    const tmpCenter = Vec3();
+    /** Get a tight sphere around a transformed box */
+    export function fromDimensionsAndTransform(out: Sphere3D, dimensions: Vec3, transform: Mat4) {
+        const [x, y, z] = dimensions;
+
+        const cpA = Vec3.create(0, 0, 0); Vec3.transformMat4(cpA, cpA, transform);
+        const cpB = Vec3.create(x, y, z); Vec3.transformMat4(cpB, cpB, transform);
+        const cpC = Vec3.create(x, 0, 0); Vec3.transformMat4(cpC, cpC, transform);
+        const cpD = Vec3.create(0, y, z); Vec3.transformMat4(cpD, cpD, transform);
+
+        const cpE = Vec3.create(0, 0, z); Vec3.transformMat4(cpE, cpE, transform);
+        const cpF = Vec3.create(x, 0, z); Vec3.transformMat4(cpF, cpF, transform);
+        const cpG = Vec3.create(x, y, 0); Vec3.transformMat4(cpG, cpG, transform);
+        const cpH = Vec3.create(0, y, 0); Vec3.transformMat4(cpH, cpH, transform);
+
+        Vec3.add(tmpCenter, cpA, cpB);
+        Vec3.scale(tmpCenter, tmpCenter, 0.5);
+        const d = Math.max(Vec3.distance(cpA, cpB), Vec3.distance(cpC, cpD));
+        Sphere3D.set(out, tmpCenter, d / 2);
+        Sphere3D.setExtrema(out, [cpA, cpB, cpC, cpD, cpE, cpF, cpG, cpH]);
+
         return out;
     }
 

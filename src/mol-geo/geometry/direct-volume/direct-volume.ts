@@ -1,15 +1,14 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { hashFnv32a } from '../../../mol-data/util';
-import { transformPositionArray } from '../../../mol-geo/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { DirectVolumeValues } from '../../../mol-gl/renderable/direct-volume';
-import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
+import { calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
@@ -226,16 +225,6 @@ export namespace DirectVolume {
 
 //
 
-const mTmp = Mat4.identity();
-const mTmp2 = Mat4.identity();
-const vHalfUnit = Vec3.create(0.5, 0.5, 0.5);
-const tmpVertices = new Float32Array(VolumeBox.vertices.length);
 function getBoundingSphere(gridDimension: Vec3, gridTransform: Mat4) {
-    tmpVertices.set(VolumeBox.vertices);
-    Mat4.fromTranslation(mTmp, vHalfUnit);
-    Mat4.mul(mTmp, Mat4.fromScaling(mTmp2, gridDimension), mTmp);
-    Mat4.mul(mTmp, gridTransform, mTmp);
-    transformPositionArray(mTmp, tmpVertices, 0, tmpVertices.length / 3);
-    return calculateInvariantBoundingSphere(tmpVertices, tmpVertices.length / 3, 1);
-    // return calculateBoundingSphere(tmpVertices, tmpVertices.length / 3, transform, transformCount)
+    return Sphere3D.fromDimensionsAndTransform(Sphere3D(), gridDimension, gridTransform);
 }

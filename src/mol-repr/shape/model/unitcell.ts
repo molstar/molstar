@@ -65,30 +65,9 @@ function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) 
     state.currentGroup = 1;
     MeshBuilder.addCage(state, fromFractional, cellCage, radius, 2, 20);
 
-    const cpA = Vec3.create(0, 0, 0);
-    Vec3.transformMat4(cpA, Vec3.add(cpA, cpA, tmpRef), fromFractional);
-    const cpB = Vec3.create(1, 1, 1);
-    Vec3.transformMat4(cpB, Vec3.add(cpB, cpB, tmpRef), fromFractional);
-    const cpC = Vec3.create(1, 0, 0);
-    Vec3.transformMat4(cpC, Vec3.add(cpC, cpC, tmpRef), fromFractional);
-    const cpD = Vec3.create(0, 1, 1);
-    Vec3.transformMat4(cpD, Vec3.add(cpD, cpD, tmpRef), fromFractional);
-
-    const cpE = Vec3.create(0, 0, 1);
-    Vec3.transformMat4(cpE, Vec3.add(cpE, cpE, tmpRef), fromFractional);
-    const cpF = Vec3.create(1, 0, 1);
-    Vec3.transformMat4(cpF, Vec3.add(cpF, cpF, tmpRef), fromFractional);
-    const cpG = Vec3.create(1, 1, 0);
-    Vec3.transformMat4(cpG, Vec3.add(cpG, cpG, tmpRef), fromFractional);
-    const cpH = Vec3.create(0, 1, 0);
-    Vec3.transformMat4(cpH, Vec3.add(cpH, cpH, tmpRef), fromFractional);
-
-    const center = Vec3();
-    Vec3.add(center, cpA, cpB);
-    Vec3.scale(center, center, 0.5);
-    const d = Math.max(Vec3.distance(cpA, cpB), Vec3.distance(cpC, cpD));
-    const sphere = Sphere3D.create(center, d / 2);
-    Sphere3D.setExtrema(sphere, [cpA, cpB, cpC, cpD, cpE, cpF, cpG, cpH]);
+    const sphere = Sphere3D.fromDimensionsAndTransform(Sphere3D(), Vec3.unit, fromFractional);
+    Vec3.transformMat4(tmpRef, tmpRef, fromFractional);
+    Sphere3D.translate(sphere, sphere, tmpRef);
     Sphere3D.expand(sphere, sphere, radius);
 
     const m = MeshBuilder.getMesh(state);

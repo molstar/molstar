@@ -100,29 +100,7 @@ export namespace Volume {
     export function isLociEmpty(loci: Loci) { return Grid.isEmpty(loci.volume.grid); }
 
     export function getBoundingSphere(volume: Volume, boundingSphere?: Sphere3D) {
-        if (!boundingSphere) boundingSphere = Sphere3D();
-
-        const transform = Grid.getGridToCartesianTransform(volume.grid);
-        const [x, y, z] = volume.grid.cells.space.dimensions;
-
-        const cpA = Vec3.create(0, 0, 0); Vec3.transformMat4(cpA, cpA, transform);
-        const cpB = Vec3.create(x, y, z); Vec3.transformMat4(cpB, cpB, transform);
-        const cpC = Vec3.create(x, 0, 0); Vec3.transformMat4(cpC, cpC, transform);
-        const cpD = Vec3.create(0, y, z); Vec3.transformMat4(cpD, cpC, transform);
-
-        const cpE = Vec3.create(0, 0, z); Vec3.transformMat4(cpE, cpE, transform);
-        const cpF = Vec3.create(x, 0, z); Vec3.transformMat4(cpF, cpF, transform);
-        const cpG = Vec3.create(x, y, 0); Vec3.transformMat4(cpG, cpG, transform);
-        const cpH = Vec3.create(0, y, 0); Vec3.transformMat4(cpH, cpH, transform);
-
-        const center = Vec3();
-        Vec3.add(center, cpA, cpB);
-        Vec3.scale(center, center, 0.5);
-        const d = Math.max(Vec3.distance(cpA, cpB), Vec3.distance(cpC, cpD));
-        Sphere3D.set(boundingSphere, center, d / 2);
-        Sphere3D.setExtrema(boundingSphere, [cpA, cpB, cpC, cpD, cpE, cpF, cpG, cpH]);
-
-        return boundingSphere;
+        return Grid.getBoundingSphere(volume.grid, boundingSphere);
     }
 
     export namespace Isosurface {
