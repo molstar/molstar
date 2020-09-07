@@ -176,7 +176,7 @@ export const SizeSchema = {
     // aSize: AttributeSpec('float32', 1, 0), // TODO
     uSize: UniformSpec('f', true),
     uSizeTexDim: UniformSpec('v2'),
-    tSize: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+    tSize: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
     uSizeFactor: UniformSpec('f'),
 } as const;

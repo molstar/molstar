@@ -7,25 +7,26 @@
 import { clamp } from '../mol-math/interpolate';
 import { fasterExp, fasterLog } from '../mol-math/approx';
 import { Vec3, Vec4 } from '../mol-math/linear-algebra';
+import { NumberArray } from './type-helpers';
 
 const maxFloat = 10000.0; // NOTE same constant is set in shaders
-const floatLogFactor = fasterLog(maxFloat + 1.0);
+const floatLogFactor = fasterLog(maxFloat + 1);
 
 /** encode float logarithmically */
-export function encodeFloatLog(value: number) { return fasterLog(value + 1.0) / floatLogFactor; }
+export function encodeFloatLog(value: number) { return fasterLog(value + 1) / floatLogFactor; }
 
 /** decode logarithmically encoded float */
-export function decodeFloatLog(value: number) { return fasterExp(value * floatLogFactor) - 1.0; }
+export function decodeFloatLog(value: number) { return fasterExp(value * floatLogFactor) - 1; }
 
-/** encode float as normalized rgb triplet */
-export function encodeFloatRGB(value: number) {
-    value = clamp(value, 0.0, 16777216.0 - 1.0) + 1.0;
-    const b = (value % 256) / 255.0;
-    value = Math.floor(value / 256.0);
-    const g = (value % 256) / 255.0;
-    value = Math.floor(value / 256.0);
-    const r = (value % 256) / 255.0;
-    return [r, g, b];
+/** encode float as rgb triplet into array at offset */
+export function encodeFloatRGBtoArray(value: number, array: NumberArray, offset: number) {
+    value = clamp(value, 0, 16777216 - 1) + 1;
+    array[offset + 2] = value % 256;
+    value = Math.floor(value / 256);
+    array[offset + 1] = value % 256;
+    value = Math.floor(value / 256);
+    array[offset] = value % 256;
+    return array;
 }
 
 /** decode float encoded as rgb triplet */
