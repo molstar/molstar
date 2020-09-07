@@ -113,10 +113,10 @@ namespace Canvas3D {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
 
-    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}) {
+    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, attribs: Partial<{ antialias: boolean }> = {}) {
         const gl = getGLContext(canvas, {
             alpha: true,
-            antialias: true,
+            antialias: attribs.antialias ?? true,
             depth: true,
             preserveDrawingBuffer: false,
             premultipliedAlpha: false,
@@ -207,17 +207,17 @@ namespace Canvas3D {
             let loci: Loci = EmptyLoci;
             let repr: Representation.Any = Representation.Empty;
             if (pickingId) {
-            loci = handleHelper.getLoci(pickingId);
-            reprRenderObjects.forEach((_, _repr) => {
-                const _loci = _repr.getLoci(pickingId);
-                if (!isEmptyLoci(_loci)) {
-                    if (!isEmptyLoci(loci)) {
-                        console.warn('found another loci, this should not happen');
+                loci = handleHelper.getLoci(pickingId);
+                reprRenderObjects.forEach((_, _repr) => {
+                    const _loci = _repr.getLoci(pickingId);
+                    if (!isEmptyLoci(_loci)) {
+                        if (!isEmptyLoci(loci)) {
+                            console.warn('found another loci, this should not happen');
+                        }
+                        loci = _loci;
+                        repr = _repr;
                     }
-                    loci = _loci;
-                    repr = _repr;
-                }
-            });
+                });
             }
             return { loci, repr };
         }
@@ -381,6 +381,7 @@ namespace Canvas3D {
                 instanceCount: r.values.instanceCount.ref.value,
                 materialId: r.materialId,
             })));
+            console.log(webgl.stats);
         }
 
         function add(repr: Representation.Any) {
