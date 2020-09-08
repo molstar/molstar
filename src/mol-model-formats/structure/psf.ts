@@ -17,9 +17,6 @@ import { getChainId } from './common/util';
 import { guessElementSymbolString } from './util';
 
 function getBasic(atoms: PsfFile['atoms']) {
-    const auth_atom_id = atoms.atomName;
-    const auth_comp_id = atoms.residueName;
-
     const entityIds = new Array<string>(atoms.count);
     const asymIds = new Array<string>(atoms.count);
     const seqIds = new Uint32Array(atoms.count);
@@ -38,13 +35,14 @@ function getBasic(atoms: PsfFile['atoms']) {
 
     for (let i = 0, il = atoms.count; i < il; ++i) {
         const residueNumber = atoms.residueId.value(i);
+        const segmentName = atoms.segmentName.value(i);
 
-        if (currentSegmentName !== atoms.segmentName.value(i)) {
+        if (currentSegmentName !== segmentName) {
             currentAsymId = getChainId(currentAsymIndex);
             currentAsymIndex += 1;
             currentSeqId = 0;
             segmentChanged = true;
-            currentSegmentName = atoms.segmentName.value(i);
+            currentSegmentName = segmentName;
         } else {
             segmentChanged = false;
         }
@@ -72,18 +70,16 @@ function getBasic(atoms: PsfFile['atoms']) {
         ids[i] = i;
     }
 
-    const auth_asym_id = Column.ofStringArray(asymIds);
-
     const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
-        auth_asym_id,
-        auth_atom_id,
-        auth_comp_id,
+        auth_asym_id: atoms.segmentName,
+        auth_atom_id: atoms.atomName,
+        auth_comp_id: atoms.residueName,
         auth_seq_id: atoms.residueId,
         id: Column.ofIntArray(ids),
 
-        label_asym_id: auth_asym_id,
-        label_atom_id: auth_atom_id,
-        label_comp_id: auth_comp_id,
+        label_asym_id: Column.ofStringArray(asymIds),
+        label_atom_id: atoms.atomName,
+        label_comp_id: atoms.residueName,
         label_seq_id: Column.ofIntArray(seqIds),
         label_entity_id: Column.ofStringArray(entityIds),
 
