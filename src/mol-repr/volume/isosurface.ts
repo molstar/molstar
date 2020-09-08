@@ -61,6 +61,7 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
 
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     Mesh.transform(surface, transform);
+    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
 
     surface.setBoundingSphere(Volume.getBoundingSphere(volume));
 
