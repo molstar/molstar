@@ -702,27 +702,40 @@ namespace Structure {
             // note that it assumes there are no "zero atom residues"
             let singleAtomResidues = AtomicHierarchy.chainResidueCount(model.atomicHierarchy, c) === chains.offsets[c + 1] - chains.offsets[c];
 
-            // merge all consecutive "single atom chains" with same entity_id and same auth_asym_id
             let multiChain = false;
-            while (c + 1 < chains.count
-                && chains.offsets[c + 1] - chains.offsets[c] === 1
-                && chains.offsets[c + 2] - chains.offsets[c + 1] === 1
-            ) {
-                singleAtomResidues = true;
-                const e1 = index.getEntityFromChain(c);
-                const e2 = index.getEntityFromChain(c + 1 as ChainIndex);
-                if (e1 !== e2) break;
 
-                const a1 = auth_asym_id.value(c);
-                const a2 = auth_asym_id.value(c + 1);
-                if (a1 !== a2) break;
+            if (isWaterChain(model, c)) {
+                // merge consecutive water chains
+                while (c + 1 < chains.count && isWaterChain(model, c + 1 as ChainIndex)) {
+                    const op1 = atomicChainOperatorMappinng.get(c);
+                    const op2 = atomicChainOperatorMappinng.get(c + 1 as ChainIndex);
+                    if (op1 !== op2) break;
 
-                const op1 = atomicChainOperatorMappinng.get(c);
-                const op2 = atomicChainOperatorMappinng.get(c + 1 as ChainIndex);
-                if (op1 !== op2) break;
+                    multiChain = true;
+                    c++;
+                }
+            } else {
+                // merge consecutive "single atom chains" with same entity_id and auth_asym_id
+                while (c + 1 < chains.count
+                    && chains.offsets[c + 1] - chains.offsets[c] === 1
+                    && chains.offsets[c + 2] - chains.offsets[c + 1] === 1
+                ) {
+                    singleAtomResidues = true;
+                    const e1 = index.getEntityFromChain(c);
+                    const e2 = index.getEntityFromChain(c + 1 as ChainIndex);
+                    if (e1 !== e2) break;
 
-                multiChain = true;
-                c++;
+                    const a1 = auth_asym_id.value(c);
+                    const a2 = auth_asym_id.value(c + 1);
+                    if (a1 !== a2) break;
+
+                    const op1 = atomicChainOperatorMappinng.get(c);
+                    const op2 = atomicChainOperatorMappinng.get(c + 1 as ChainIndex);
+                    if (op1 !== op2) break;
+
+                    multiChain = true;
+                    c++;
+                }
             }
 
             const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
