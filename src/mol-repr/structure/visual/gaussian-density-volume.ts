@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,8 +24,9 @@ async function createGaussianDensityVolume(ctx: VisualContext, structure: Struct
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
     const densityTextureData = await computeStructureGaussianDensityTexture(structure, p, webgl, oldTexture).runInContext(runtime);
     const { transform, texture, bbox, gridDim } = densityTextureData;
+    const stats = { min: 0, max: 1, mean: 0.5, sigma: 0.1 };
 
-    return DirectVolume.create(bbox, gridDim, transform, texture, directVolume);
+    return DirectVolume.create(bbox, gridDim, transform, texture, stats, directVolume);
 }
 
 export const GaussianDensityVolumeParams = {
@@ -45,10 +46,7 @@ export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<G
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianDensityVolumeParams>, currentProps: PD.Values<GaussianDensityVolumeParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true;
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true;
-            if (newProps.smoothness !== currentProps.smoothness) {
-                state.createGeometry = true;
-                newProps.isoValueNorm = Math.exp(-newProps.smoothness);
-            }
+            if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
         }

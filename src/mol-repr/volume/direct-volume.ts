@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,13 +13,16 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { VisualContext } from '../visual';
 import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
-import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { NullLocation } from '../../mol-model/location';
-import { EmptyLoci } from '../../mol-model/loci';
 import { VisualUpdateState } from '../util';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
+import { Interval } from '../../mol-data/int';
+import { Loci, EmptyLoci } from '../../mol-model/loci';
+import { PickingId } from '../../mol-geo/geometry/picking';
+import { eachVolumeLoci } from './util';
+import { encodeFloatRGBtoArray } from '../../mol-util/float-packing';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D.empty();
@@ -49,33 +52,29 @@ function getVolumeTexture2dLayout(dim: Vec3, maxTextureSize: number) {
 }
 
 function createVolumeTexture2d(volume: Volume, maxTextureSize: number) {
-    const { cells: { space, data }, stats } = volume.grid;
+    const { cells: { space, data }, stats: { max, min } } = volume.grid;
     const dim = space.dimensions as Vec3;
-    const { get } = space;
-    const { width, height, columns, rows } = getVolumeTexture2dLayout(dim, maxTextureSize);
+    const { dataOffset } = space;
+    const { width, height } = getVolumeTexture2dLayout(dim, maxTextureSize);
 
     const array = new Uint8Array(width * height * 4);
     const textureImage = { array, width, height };
 
+    const diff = max - min;
     const [ xl, yl, zl ] = dim;
     const xlp = xl + 1; // horizontal padding
     const ylp = yl + 1; // vertical padding
 
-    function setTex(value: number, x: number, y: number, z: number) {
-        const column = Math.floor(((z * xlp) % width) / xlp);
-        const row = Math.floor((z * xlp) / width);
-        const px = column * xlp + x;
-        const index = 4 * ((row * ylp * width) + (y * width) + px);
-        array[index + 3] = ((value - stats.min) / (stats.max - stats.min)) * 255;
-    }
-
-    console.log('dim', dim);
-    console.log('layout', { width, height, columns, rows });
-
     for (let z = 0; z < zl; ++z) {
         for (let y = 0; y < yl; ++y) {
             for (let x = 0; x < xl; ++x) {
-                setTex(get(data, x, y, z), x, y, z);
+                const column = Math.floor(((z * xlp) % width) / xlp);
+                const row = Math.floor((z * xlp) / width);
+                const px = column * xlp + x;
+                const index = 4 * ((row * ylp * width) + (y * width) + px);
+                const offset = dataOffset(x, y, z);
+                encodeFloatRGBtoArray(offset, array, index);
+                array[index + 3] = ((data[offset] - min) / diff) * 255;
             }
         }
     }
@@ -91,32 +90,32 @@ export function createDirectVolume2d(ctx: RuntimeContext, webgl: WebGLContext, v
     const bbox = getBoundingBox(gridDimension, transform);
     const dim = Vec3.create(gridDimension[0], gridDimension[1], gridDimension[2]);
     dim[0] += 1; // horizontal padding
-    dim[0] += 1; // vertical padding
+    dim[1] += 1; // vertical padding
 
-    const texture = directVolume ? directVolume.gridTexture.ref.value : webgl.resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear');
+    const texture = directVolume ? directVolume.gridTexture.ref.value : webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     texture.load(textureImage);
 
-    return DirectVolume.create(bbox, dim, transform, texture, directVolume);
+    return DirectVolume.create(bbox, dim, transform, texture, volume.grid.stats, directVolume);
 }
 
 // 3d volume texture
 
 function createVolumeTexture3d(volume: Volume) {
-    const { cells: { space, data }, stats } = volume.grid;
+    const { cells: { space, data }, stats: { max, min } } = volume.grid;
     const [ width, height, depth ] = space.dimensions as Vec3;
-    const { get } = space;
+    const { dataOffset } = space;
 
     const array = new Uint8Array(width * height * depth * 4);
     const textureVolume = { array, width, height, depth };
+    const diff = max - min;
 
     let i = 0;
     for (let z = 0; z < depth; ++z) {
         for (let y = 0; y < height; ++y) {
             for (let x = 0; x < width; ++x) {
-                if (i < 100) {
-                    console.log(get(data, x, y, z), ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255);
-                }
-                array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255;
+                const offset = dataOffset(x, y, z);
+                encodeFloatRGBtoArray(offset, array, i);
+                array[i + 3] = ((data[offset] - min) / diff) * 255;
                 i += 4;
             }
         }
@@ -129,13 +128,12 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
     const gridDimension = volume.grid.cells.space.dimensions as Vec3;
     const textureVolume = createVolumeTexture3d(volume);
     const transform = Grid.getGridToCartesianTransform(volume.grid);
-    // Mat4.invert(transform, transform)
     const bbox = getBoundingBox(gridDimension, transform);
 
     const texture = directVolume ? directVolume.gridTexture.ref.value : webgl.resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear');
     texture.load(textureVolume);
 
-    return DirectVolume.create(bbox, gridDimension, transform, texture, directVolume);
+    return DirectVolume.create(bbox, gridDimension, transform, texture, volume.grid.stats, directVolume);
 }
 
 //
@@ -153,24 +151,41 @@ function getLoci(volume: Volume, props: PD.Values<DirectVolumeParams>) {
     return Volume.Loci(volume);
 }
 
+export function getDirectVolumeLoci(pickingId: PickingId, volume: Volume, props: DirectVolumeProps, id: number) {
+    const { objectId, groupId } = pickingId;
+    if (id === objectId) {
+        return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+    }
+    return EmptyLoci;
+}
+
+export function eachDirectVolume(loci: Loci, volume: Volume, props: DirectVolumeProps, apply: (interval: Interval) => boolean) {
+    return props.renderMode.name === 'isosurface'
+        ? eachVolumeLoci(loci, volume, props.renderMode.params.isoValue, apply)
+        : false;
+}
+
 //
 
 export const DirectVolumeParams = {
-    ...BaseGeometry.Params,
-    ...DirectVolume.Params
+    ...DirectVolume.Params,
+    quality: { ...DirectVolume.Params.quality, isEssential: false },
 };
 export type DirectVolumeParams = typeof DirectVolumeParams
 export function getDirectVolumeParams(ctx: ThemeRegistryContext, volume: Volume) {
-    return PD.clone(DirectVolumeParams);
+    const p = PD.clone(DirectVolumeParams);
+    p.renderMode = DirectVolume.createRenderModeParam(volume);
+    return p;
 }
+export type DirectVolumeProps = PD.Values<DirectVolumeParams>
 
 export function DirectVolumeVisual(materialId: number): VolumeVisual<DirectVolumeParams> {
     return VolumeVisual<DirectVolume, DirectVolumeParams>({
         defaultProps: PD.getDefaultValues(DirectVolumeParams),
         createGeometry: createDirectVolume,
-        createLocationIterator: (volume: Volume) => LocationIterator(1, 1, () => NullLocation),
-        getLoci: () => EmptyLoci,
-        eachLocation: () => false,
+        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, () => NullLocation),
+        getLoci: getDirectVolumeLoci,
+        eachLocation: eachDirectVolume,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<DirectVolumeParams>, currentProps: PD.Values<DirectVolumeParams>) => {
         },
         geometryUtils: DirectVolume.Utils
@@ -184,7 +199,7 @@ export function DirectVolumeRepresentation(ctx: RepresentationContext, getParams
 export const DirectVolumeRepresentationProvider = VolumeRepresentationProvider({
     name: 'direct-volume',
     label: 'Direct Volume',
-    description: 'Direct volume rendering of volumetric data.',
+    description: 'Direct rendering of volumetric data.',
     factory: DirectVolumeRepresentation,
     getParams: getDirectVolumeParams,
     defaultValues: PD.getDefaultValues(DirectVolumeParams),
