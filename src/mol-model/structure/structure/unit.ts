@@ -20,7 +20,7 @@ import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElement
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { getPrincipalAxes } from './util/principal-axes';
-import { Boundary, getBoundary, tryAdjustBoundary } from '../../../mol-math/geometry/boundary';
+import { Boundary, getBoundary } from '../../../mol-math/geometry/boundary';
 import { Mat4 } from '../../../mol-math/linear-algebra';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache';
@@ -214,11 +214,7 @@ namespace Unit {
         }
 
         remapModel(model: Model) {
-            let boundary = this.props.boundary;
-            if (boundary && !Unit.isSameConformation(this, model)) {
-                const { x, y, z } = model.atomicConformation;
-                boundary = tryAdjustBoundary({ x, y, z, indices: this.elements }, boundary);
-            }
+            const boundary = Unit.isSameConformation(this, model) ? this.props.boundary : undefined;
             const props = { ...this.props, bonds: tryRemapBonds(this, this.props.bonds, model), boundary, lookup3d: undefined, principalAxes: undefined };
             const conformation = this.model.atomicConformation !== model.atomicConformation
                 ? SymmetryOperator.createMapping(this.conformation.operator, model.atomicConformation)
@@ -358,19 +354,13 @@ namespace Unit {
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            const ret = createCoarse(id, this.invariantId, this.chainGroupId, this.traits, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseConformation(), this.conformation.r), this.props);
-            // (ret as Coarse<K, C>)._lookup3d = this._lookup3d;
-            return ret;
+            return createCoarse(id, this.invariantId, this.chainGroupId, this.traits, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseConformation(), this.conformation.r), this.props);
         }
 
         remapModel(model: Model): Unit.Spheres | Unit.Gaussians {
             const coarseConformation = this.getCoarseConformation();
             const modelCoarseConformation = getCoarseConformation(this.kind, model);
-            let boundary = this.props.boundary;
-            if (boundary) {
-                const { x, y, z } = modelCoarseConformation;
-                boundary = tryAdjustBoundary({ x, y, z, indices: this.elements }, boundary);
-            }
+            const boundary = Unit.isSameConformation(this as Unit.Spheres | Unit.Gaussians, model) ? this.props.boundary : undefined; // TODO get rid of casting
             const props = { ...this.props, boundary, lookup3d: undefined, principalAxes: undefined };
             const conformation = coarseConformation !== modelCoarseConformation
                 ? SymmetryOperator.createMapping(this.conformation.operator, modelCoarseConformation)
@@ -489,9 +479,9 @@ namespace Unit {
         return isSameConformation(a, model) ? old : void 0;
     }
 
-    export function isSameConformation(a: Atomic, model: Model) {
-        const xs = a.elements;
-        const { x: xa, y: ya, z: za } = a.conformation.coordinates;
+    export function isSameConformation(u: Unit, model: Model) {
+        const xs = u.elements;
+        const { x: xa, y: ya, z: za } = u.conformation.coordinates;
         const { x: xb, y: yb, z: zb } = model.atomicConformation;
 
         for (let i = 0, _i = xs.length; i < _i; i++) {
@@ -500,6 +490,12 @@ namespace Unit {
         }
 
         return true;
+    }
+
+    export function getConformation(u: Unit) {
+        return u.kind === Kind.Atomic ? u.model.atomicConformation :
+            u.kind === Kind.Spheres ? u.model.coarseConformation.spheres :
+                u.model.coarseConformation.gaussians;
     }
 }
 
