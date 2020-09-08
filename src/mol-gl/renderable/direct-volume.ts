@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -60,11 +60,11 @@ export const DirectVolumeSchema = {
 
     uAlpha: UniformSpec('f'),
 
-    uIsoValue: UniformSpec('f'),
+    uIsoValue: UniformSpec('v2'),
     uBboxMin: UniformSpec('v3'),
     uBboxMax: UniformSpec('v3'),
     uBboxSize: UniformSpec('v3'),
-    dMaxSteps: DefineSpec('number'),
+    uMaxSteps: UniformSpec('i'),
     uTransform: UniformSpec('m4'),
     uGridDim: UniformSpec('v3'),
     dRenderMode: DefineSpec('string', ['isosurface', 'volume']),
@@ -72,13 +72,23 @@ export const DirectVolumeSchema = {
 
     dGridTexType: DefineSpec('string', ['2d', '3d']),
     uGridTexDim: UniformSpec('v3'),
-    tGridTex: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+    tGridTex: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    uGridStats: UniformSpec('v4'), // [min, max, mean, sigma]
+
+    dDoubleSided: DefineSpec('boolean'),
+    dFlipSided: DefineSpec('boolean'),
+    dFlatShaded: DefineSpec('boolean'),
+    dIgnoreLight: DefineSpec('boolean'),
 };
 export type DirectVolumeSchema = typeof DirectVolumeSchema
 export type DirectVolumeValues = Values<DirectVolumeSchema>
 
 export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: DirectVolumeValues, state: RenderableState, materialId: number): Renderable<DirectVolumeValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...DirectVolumeSchema };
+    if (!ctx.isWebGL2) {
+        // workaround for webgl1 limitation that loop counters need to be `const`
+        (schema.uMaxSteps as any) = DefineSpec('number');
+    }
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
     };

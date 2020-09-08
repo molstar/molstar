@@ -563,7 +563,11 @@ export namespace VolumeRepresentation3DHelpers {
     }
 
     export function getDescription(props: any) {
-        return props.isoValue && Volume.IsoValue.toString(props.isoValue);
+        if (props.isoValue) {
+            return Volume.IsoValue.toString(props.isoValue);
+        } else if (props.renderMode?.params?.isoValue) {
+            return Volume.IsoValue.toString(props.renderMode?.params?.isoValue);
+        }
     }
 }
 type VolumeRepresentation3D = typeof VolumeRepresentation3D

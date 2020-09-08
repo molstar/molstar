@@ -9,6 +9,7 @@ import { Volume } from '../../mol-model/volume';
 import { IsosurfaceRepresentationProvider } from './isosurface';
 import { objectForEach } from '../../mol-util/object';
 import { SliceRepresentationProvider } from './slice';
+import { DirectVolumeRepresentationProvider } from './direct-volume';
 
 export class VolumeRepresentationRegistry extends RepresentationRegistry<Volume, Representation.State> {
     constructor() {
@@ -24,7 +25,7 @@ export namespace VolumeRepresentationRegistry {
     export const BuiltIn = {
         'isosurface': IsosurfaceRepresentationProvider,
         'slice': SliceRepresentationProvider,
-        // 'direct-volume': DirectVolumeRepresentationProvider, // TODO disabled for now, needs more work
+        'direct-volume': DirectVolumeRepresentationProvider,
     };
 
     type _BuiltIn = typeof BuiltIn
