@@ -40,6 +40,13 @@ export class StructureSubsetBuilder {
         this.elementCount++;
     }
 
+    addElementRange(elements: StructureElement.Set, start: number, end: number) {
+        for (let i = start; i < end; i++) {
+            this.currentUnit[this.currentUnit.length] = elements[i];
+            this.elementCount++;
+        }
+    }
+
     commitUnit() {
         if (this.currentUnit.length === 0) return;
         this.ids[this.ids.length] = this.parentId;
