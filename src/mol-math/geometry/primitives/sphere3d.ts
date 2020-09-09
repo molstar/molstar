@@ -32,7 +32,7 @@ namespace Sphere3D {
 
     export function clone(a: Sphere3D): Sphere3D {
         const out = create(Vec3.clone(a.center), a.radius);
-        if (hasExtrema(a)) out.extrema = a.extrema;
+        if (hasExtrema(a)) out.extrema = a.extrema.map(e => Vec3.clone(e));
         return out;
     }
 
@@ -45,16 +45,17 @@ namespace Sphere3D {
     export function copy(out: Sphere3D, a: Sphere3D) {
         Vec3.copy(out.center, a.center);
         out.radius = a.radius;
-        if (hasExtrema(a)) setExtrema(out, a.extrema);
+        if (hasExtrema(a)) setExtrema(out, a.extrema.map(e => Vec3.clone(e)));
         return out;
     }
 
+    /** Note that `extrema` must not be reused elsewhere */
     export function setExtrema(out: Sphere3D, extrema: Vec3[]): Sphere3D {
         if (out.extrema !== undefined) {
             out.extrema.length = 0;
             out.extrema.push(...extrema);
         } else {
-            out.extrema = [...extrema];
+            out.extrema = extrema;
         }
         return out;
     }
@@ -93,9 +94,7 @@ namespace Sphere3D {
         Vec3.transformMat4(out.center, sphere.center, m);
         out.radius = sphere.radius * Mat4.getMaxScaleOnAxis(m);
         if (hasExtrema(sphere)) {
-            setExtrema(out, [
-                ...sphere.extrema.map(e => Vec3.transformMat4(Vec3(), e, m)),
-            ]);
+            setExtrema(out, sphere.extrema.map(e => Vec3.transformMat4(Vec3(), e, m)));
         }
         return out;
     }
@@ -104,9 +103,7 @@ namespace Sphere3D {
     export function translate(out: Sphere3D, sphere: Sphere3D, v: Vec3) {
         Vec3.add(out.center, sphere.center, v);
         if (hasExtrema(sphere)) {
-            setExtrema(out, [
-                ...sphere.extrema.map(e => Vec3.add(Vec3(), e, v)),
-            ]);
+            setExtrema(out, sphere.extrema.map(e => Vec3.add(Vec3(), e, v)));
         }
         return out;
     }
