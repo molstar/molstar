@@ -5,16 +5,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { UniqueArray } from '../../../../mol-data/generic';
+import { Segmentation, SortedArray } from '../../../../mol-data/int';
+import { ElementIndex } from '../../model';
+import { StructureElement, StructureProperties as P, Unit } from '../../structure';
+import Structure from '../../structure/structure';
+import { UnitRing } from '../../structure/unit/rings';
+import { QueryContextView, QueryFn, QueryPredicate } from '../context';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
-import { Unit, StructureProperties as P, StructureElement } from '../../structure';
-import { Segmentation, SortedArray } from '../../../../mol-data/int';
 import { LinearGroupingBuilder } from '../utils/builders';
-import { QueryPredicate, QueryFn, QueryContextView } from '../context';
-import { UnitRing } from '../../structure/unit/rings';
-import Structure from '../../structure/structure';
-import { ElementIndex } from '../../model';
-import { UniqueArray } from '../../../../mol-data/generic';
 import { structureSubtract } from '../utils/structure-set';
 
 export const none: StructureQuery = ctx => StructureSelection.Sequence(ctx.inputStructure, []);
@@ -90,6 +90,9 @@ function atomGroupsSegmented({ unitTest, entityTest, chainTest, residueTest, ato
         const l = ctx.pushCurrentElement();
         const builder = inputStructure.subsetBuilder(true);
 
+        const chainLevel = residueTest === _true && atomTest === _true;
+        const residueLevel = atomTest === _true;
+
         l.structure = inputStructure;
         for (const unit of units) {
             l.unit = unit;
@@ -108,6 +111,11 @@ function atomGroupsSegmented({ unitTest, entityTest, chainTest, residueTest, ato
                     // test entity and chain
                     if (!entityTest(ctx) || !chainTest(ctx)) continue;
 
+                    if (chainLevel) {
+                        builder.addElementRange(elements, chainSegment.start, chainSegment.end);
+                        continue;
+                    }
+
                     residuesIt.setSegment(chainSegment);
                     while (residuesIt.hasNext) {
                         const residueSegment = residuesIt.move();
@@ -115,6 +123,11 @@ function atomGroupsSegmented({ unitTest, entityTest, chainTest, residueTest, ato
 
                         // test residue
                         if (!residueTest(ctx)) continue;
+
+                        if (residueLevel) {
+                            builder.addElementRange(elements, residueSegment.start, residueSegment.end);
+                            continue;
+                        }
 
                         for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
                             l.element = elements[j];
@@ -134,6 +147,11 @@ function atomGroupsSegmented({ unitTest, entityTest, chainTest, residueTest, ato
                     l.element = elements[chainSegment.start];
                     // test entity and chain
                     if (!entityTest(ctx) || !chainTest(ctx)) continue;
+
+                    if (chainLevel) {
+                        builder.addElementRange(elements, chainSegment.start, chainSegment.end);
+                        continue;
+                    }
 
                     for (let j = chainSegment.start, _j = chainSegment.end; j < _j; j++) {
                         l.element = elements[j];
