@@ -7,6 +7,7 @@
 
 import { SpacegroupCell, Box3D, Sphere3D } from '../../mol-math/geometry';
 import { Tensor, Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { Histogram, calculateHistogram } from '../../mol-math/histogram';
 
 /** The basic unit cell that contains the grid data. */
 interface Grid {
@@ -59,6 +60,21 @@ namespace Grid {
         const dimensions = grid.cells.space.dimensions as Vec3;
         const transform = Grid.getGridToCartesianTransform(grid);
         return Sphere3D.fromDimensionsAndTransform(boundingSphere, dimensions, transform);
+    }
+
+    /**
+     * Compute histogram with given bin count.
+     * Cached on the Grid object.
+     */
+    export function getHistogram(grid: Grid, binCount: number) {
+        let histograms = (grid as any)._historams as { [binCount: number]: Histogram };
+        if (!histograms) {
+            histograms = (grid as any)._historams = { };
+        }
+        if (!histograms[binCount]) {
+            histograms[binCount] = calculateHistogram(grid.cells.data, binCount, { min: grid.stats.min, max: grid.stats.max });
+        }
+        return histograms[binCount];
     }
 }
 
