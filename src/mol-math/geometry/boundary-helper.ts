@@ -93,7 +93,7 @@ export class BoundaryHelper {
     }
 
     getSphere(sphere?: Sphere3D) {
-        return Sphere3D.setExtrema(this.centroidHelper.getSphere(sphere), this.extrema);
+        return Sphere3D.setExtrema(this.centroidHelper.getSphere(sphere), [...this.extrema]);
     }
 
     getBox(box?: Box3D) {
