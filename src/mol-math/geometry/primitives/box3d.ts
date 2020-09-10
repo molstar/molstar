@@ -13,12 +13,12 @@ import { Sphere3D } from './sphere3d';
 interface Box3D { min: Vec3, max: Vec3 }
 
 function Box3D() {
-    return Box3D.empty();
+    return Box3D.zero();
 }
 
 namespace Box3D {
     export function create(min: Vec3, max: Vec3): Box3D { return { min, max }; }
-    export function empty(): Box3D { return { min: Vec3(), max: Vec3() }; }
+    export function zero(): Box3D { return { min: Vec3(), max: Vec3() }; }
 
     export function copy(out: Box3D, a: Box3D): Box3D {
         Vec3.copy(out.min, a.min);
@@ -27,7 +27,7 @@ namespace Box3D {
     }
 
     export function clone(a: Box3D): Box3D {
-        return copy(empty(), a);
+        return copy(zero(), a);
     }
 
     /** Get box from sphere, uses extrema if available */
@@ -77,6 +77,7 @@ namespace Box3D {
         return tmpSizeV[0] * tmpSizeV[1] * tmpSizeV[2];
     }
 
+    /** Sets min to Number.MAX_VALUE and max to -Number.MAX_VALUE */
     export function setEmpty(box: Box3D): Box3D {
         Vec3.set(box.min, Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
         Vec3.set(box.max, -Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);

@@ -168,7 +168,7 @@ function _build(state: BuildState): Grid3D {
 
 function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | number) {
     // need to expand the grid bounds to avoid rounding errors
-    const expandedBox = Box3D.expand(Box3D.empty(), boundary.box, Vec3.create(0.5, 0.5, 0.5));
+    const expandedBox = Box3D.expand(Box3D(), boundary.box, Vec3.create(0.5, 0.5, 0.5));
     const { indices } = data;
 
     const S = Box3D.size(Vec3.zero(), expandedBox);
