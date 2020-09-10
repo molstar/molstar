@@ -25,7 +25,7 @@ import { eachVolumeLoci } from './util';
 import { encodeFloatRGBtoArray } from '../../mol-util/float-packing';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
-    const bbox = Box3D.empty();
+    const bbox = Box3D.setEmpty(Box3D());
     Box3D.add(bbox, gridDimension);
     Box3D.transform(bbox, bbox, transform);
     return bbox;

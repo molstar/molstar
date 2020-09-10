@@ -71,7 +71,7 @@ export namespace VolumeStreaming {
 
         // fake the info
         const info = entryData || { kind: 'em', header: { sampling: [fakeSampling], availablePrecisions: [{ precision: 0, maxVoxels: 0 }] }, emDefaultContourLevel: Volume.IsoValue.relative(0) };
-        const box = (structure && structure.boundary.box) || Box3D.empty();
+        const box = (structure && structure.boundary.box) || Box3D();
 
         return {
             view: PD.MappedStatic(defaultView || (info.kind === 'em' ? 'cell' : 'selection-box'), {
@@ -304,13 +304,13 @@ export namespace VolumeStreaming {
 
         private getBoxFromLoci(loci: StructureElement.Loci | EmptyLoci): Box3D {
             if (Loci.isEmpty(loci)) {
-                return Box3D.empty();
+                return Box3D();
             }
 
             const parent = this.plugin.helpers.substructureParent.get(loci.structure, true);
-            if (!parent) return Box3D.empty();
+            if (!parent) return Box3D();
             const root = this.getStructureRoot();
-            if (!root || root.obj?.data !== parent.obj?.data) return Box3D.empty();
+            if (!root || root.obj?.data !== parent.obj?.data) return Box3D();
 
             const extendedLoci = StructureElement.Loci.extendToWholeResidues(loci);
             const box = StructureElement.Loci.getBoundary(extendedLoci).box;
@@ -341,14 +341,14 @@ export namespace VolumeStreaming {
         private updateSelectionBox(loci: StructureElement.Loci | EmptyLoci) {
             if (Loci.areEqual(this.lastLoci, loci)) {
                 this.lastLoci = EmptyLoci;
-                this.updateSelectionBoxParams(Box3D.empty());
+                this.updateSelectionBoxParams(Box3D());
                 return;
             }
 
             this.lastLoci = loci;
 
             if (isEmptyLoci(loci)) {
-                this.updateSelectionBoxParams(Box3D.empty());
+                this.updateSelectionBoxParams(Box3D());
                 return;
             }
 
@@ -373,7 +373,7 @@ export namespace VolumeStreaming {
                     break;
                 case 'selection-box': {
                     if (switchedToSelection) {
-                        box = this.getBoxFromLoci(this.lastLoci) || Box3D.empty();
+                        box = this.getBoxFromLoci(this.lastLoci) || Box3D();
                     } else {
                         box = Box3D.create(Vec3.clone(params.entry.params.view.params.bottomLeft), Vec3.clone(params.entry.params.view.params.topRight));
                     }
