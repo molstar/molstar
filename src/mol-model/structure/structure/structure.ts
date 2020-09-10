@@ -1018,7 +1018,7 @@ namespace Structure {
         }
     }
 
-    const distVec = Vec3.zero();
+    const distVec = Vec3();
     function unitElementMinDistance(unit: Unit, p: Vec3, eRadius: number) {
         const { elements, conformation: { position, r } } = unit, dV = distVec;
         let minD = Number.MAX_VALUE;
@@ -1041,7 +1041,7 @@ namespace Structure {
         return minD;
     }
 
-    const distPivot = Vec3.zero();
+    const distPivot = Vec3();
     export function distance(a: Structure, b: Structure) {
         if (a.elementCount === 0 || b.elementCount === 0) return 0;
 
@@ -1109,7 +1109,7 @@ namespace Structure {
         /** Must be lower to be small */
         smallResidueCount: 10,
         /** Must be lower to be medium */
-        mediumResidueCount: 3000,
+        mediumResidueCount: 5000,
         /** Must be lower to be large (big ribosomes like 4UG0 should still be `large`) */
         largeResidueCount: 20000,
         /**
