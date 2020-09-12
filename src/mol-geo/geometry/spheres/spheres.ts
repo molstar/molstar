@@ -111,10 +111,12 @@ export namespace Spheres {
     }
 
     function update(centers: Float32Array, mappings: Float32Array, indices: Uint32Array, groups: Float32Array, sphereCount: number, spheres: Spheres) {
+        if (sphereCount > spheres.sphereCount) {
+            ValueCell.update(spheres.mappingBuffer, mappings);
+            ValueCell.update(spheres.indexBuffer, indices);
+        }
         spheres.sphereCount = sphereCount;
         ValueCell.update(spheres.centerBuffer, centers);
-        ValueCell.update(spheres.mappingBuffer, mappings);
-        ValueCell.update(spheres.indexBuffer, indices);
         ValueCell.update(spheres.groupBuffer, groups);
         return spheres;
     }

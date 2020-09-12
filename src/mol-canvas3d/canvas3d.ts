@@ -413,7 +413,6 @@ namespace Canvas3D {
             if (renderObjects) {
                 renderObjects.forEach(o => scene.remove(o));
                 reprRenderObjects.delete(repr);
-                scene.update(repr.renderObjects, false, true);
                 forceDrawAfterAllCommited = true;
                 if (isDebugMode) consoleStats();
             }

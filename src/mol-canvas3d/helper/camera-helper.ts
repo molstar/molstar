@@ -15,7 +15,6 @@ import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { ColorNames } from '../../mol-util/color/names';
 import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
 import { Viewport } from '../camera/util';
-import { ValueCell } from '../../mol-util';
 import { Sphere3D } from '../../mol-math/geometry';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import produce from 'immer';
@@ -91,19 +90,14 @@ export class CameraHelper {
         if (!this.renderObject) return;
 
         updateCamera(this.camera, camera.viewport);
-
-        const m = this.renderObject.values.aTransform.ref.value as unknown as Mat4;
-        Mat4.extractRotation(m, camera.view);
+        Mat4.extractRotation(this.scene.view, camera.view);
 
         const r = this.renderObject.values.boundingSphere.ref.value.radius;
-        Mat4.setTranslation(m, Vec3.create(
+        Mat4.setTranslation(this.scene.view, Vec3.create(
             -camera.viewport.width / 2 + r,
             -camera.viewport.height / 2 + r,
             0
         ));
-
-        ValueCell.update(this.renderObject.values.aTransform, this.renderObject.values.aTransform.ref.value);
-        this.scene.update([this.renderObject], true);
     }
 }
 

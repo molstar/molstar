@@ -135,7 +135,11 @@ function createBuffer(gl: GLRenderingContext, array: ArrayType, usageHint: Usage
         updateData,
         updateSubData: (array: ArrayType, offset: number, count: number) => {
             gl.bindBuffer(_bufferType, _buffer);
-            gl.bufferSubData(_bufferType, offset * _bpe, array.subarray(offset, offset + count));
+            if (count - offset === array.length) {
+                gl.bufferSubData(_bufferType, 0, array);
+            } else {
+                gl.bufferSubData(_bufferType, offset * _bpe, array.subarray(offset, offset + count));
+            }
         },
 
         reset: () => {

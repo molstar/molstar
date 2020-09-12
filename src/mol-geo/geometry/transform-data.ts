@@ -44,8 +44,8 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
     if (transformData) {
         ValueCell.update(transformData.matrix, transformData.matrix.ref.value);
         ValueCell.update(transformData.transform, transformArray);
-        ValueCell.update(transformData.uInstanceCount, instanceCount);
-        ValueCell.update(transformData.instanceCount, instanceCount);
+        ValueCell.updateIfChanged(transformData.uInstanceCount, instanceCount);
+        ValueCell.updateIfChanged(transformData.instanceCount, instanceCount);
 
         const aTransform = transformData.aTransform.ref.value.length >= instanceCount * 16 ? transformData.aTransform.ref.value : new Float32Array(instanceCount * 16);
         aTransform.set(transformArray);

@@ -126,7 +126,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
                 if (updateState.createGeometry) {
                     // console.log('update geometry')
-                    ValueCell.update(_renderObject.values.drawCount, Geometry.getDrawCount(_shape.geometry));
+                    ValueCell.updateIfChanged(_renderObject.values.drawCount, Geometry.getDrawCount(_shape.geometry));
                 }
 
                 if (updateState.updateTransform || updateState.createGeometry) {

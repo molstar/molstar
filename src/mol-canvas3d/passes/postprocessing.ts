@@ -152,11 +152,16 @@ export class PostprocessingPass {
     }
 
     render(toDrawingBuffer: boolean) {
-        ValueCell.update(this.renderable.values.uFar, this.camera.far);
-        ValueCell.update(this.renderable.values.uNear, this.camera.near);
-        ValueCell.update(this.renderable.values.uFogFar, this.camera.fogFar);
-        ValueCell.update(this.renderable.values.uFogNear, this.camera.fogNear);
-        ValueCell.update(this.renderable.values.dOrthographic, this.camera.state.mode === 'orthographic' ? 1 : 0);
+        ValueCell.updateIfChanged(this.renderable.values.uFar, this.camera.far);
+        ValueCell.updateIfChanged(this.renderable.values.uNear, this.camera.near);
+        ValueCell.updateIfChanged(this.renderable.values.uFogFar, this.camera.fogFar);
+        ValueCell.updateIfChanged(this.renderable.values.uFogNear, this.camera.fogNear);
+
+        const orthographic = this.camera.state.mode === 'orthographic' ? 1 : 0;
+        if (this.renderable.values.dOrthographic.ref.value !==  orthographic) {
+            ValueCell.updateIfChanged(this.renderable.values.dOrthographic, orthographic);
+            this.renderable.update();
+        }
 
         const { gl, state } = this.webgl;
         if (toDrawingBuffer) {

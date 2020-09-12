@@ -138,7 +138,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
             if (updateState.createGeometry) {
                 if (newGeometry) {
-                    ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
+                    ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
                     updateBoundingSphere(renderObject.values as RenderObjectValues<G['kind']>, newGeometry);
                 } else {
                     throw new Error('expected geometry to be given');
