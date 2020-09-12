@@ -31,6 +31,8 @@ async function ensureAvailable(path: string, url: string) {
 
 async function ensureLipidsAvailable() { await ensureAvailable(MARTINI_LIPIDS_PATH, MARTINI_LIPIDS_URL); }
 
+const extraLipids = ['DMPC'];
+
 async function run(out: string) {
     await ensureLipidsAvailable();
     const lipidsItpStr = fs.readFileSync(MARTINI_LIPIDS_PATH, 'utf8');
@@ -44,6 +46,9 @@ async function run(out: string) {
         UniqueArray.add(lipids, v, v);
     }
 
+    for (const v of extraLipids) {
+        UniqueArray.add(lipids, v, v);
+    }
 
     const lipidNames = JSON.stringify(lipids.array);
 
