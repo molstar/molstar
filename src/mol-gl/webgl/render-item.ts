@@ -205,14 +205,14 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             for (let i = 0, il = defineValueEntries.length; i < il; ++i) {
                 const [k, value] = defineValueEntries[i];
                 if (value.ref.version !== versions[k]) {
-                    // console.log('define version changed', k)
+                    // console.log('define version changed', k);
                     valueChanges.defines = true;
                     versions[k] = value.ref.version;
                 }
             }
 
             if (valueChanges.defines) {
-                // console.log('some defines changed, need to rebuild programs')
+                // console.log('some defines changed, need to rebuild programs');
                 for (const k of renderVariants) {
                     programs[k].destroy();
                     programs[k] = createProgramVariant(ctx, k, defineValues, shaderCode, schema);
@@ -220,14 +220,14 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             }
 
             if (values.drawCount.ref.version !== versions.drawCount) {
-                // console.log('drawCount version changed')
+                // console.log('drawCount version changed');
                 stats.drawCount += values.drawCount.ref.value - drawCount;
                 stats.instancedDrawCount += instanceCount * values.drawCount.ref.value - instanceCount * drawCount;
                 drawCount = values.drawCount.ref.value;
                 versions.drawCount = values.drawCount.ref.version;
             }
             if (values.instanceCount.ref.version !== versions.instanceCount) {
-                // console.log('instanceCount version changed')
+                // console.log('instanceCount version changed');
                 stats.instanceCount += values.instanceCount.ref.value - instanceCount;
                 stats.instancedDrawCount += values.instanceCount.ref.value * drawCount - instanceCount * drawCount;
                 instanceCount = values.instanceCount.ref.value;
@@ -239,10 +239,10 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 const value = attributeValues[k];
                 if (value.ref.version !== versions[k]) {
                     if (buffer.length >= value.ref.value.length) {
-                        // console.log('attribute array large enough to update', buffer.id, k, value.ref.id, value.ref.version)
-                        buffer.updateData(value.ref.value);
+                        // console.log('attribute array large enough to update', buffer.id, k, value.ref.id, value.ref.version);
+                        buffer.updateSubData(value.ref.value, 0, buffer.length);
                     } else {
-                        // console.log('attribute array too small, need to create new attribute', buffer.id, k, value.ref.id, value.ref.version)
+                        // console.log('attribute array too small, need to create new attribute', buffer.id, k, value.ref.id, value.ref.version);
                         buffer.destroy();
                         const { itemSize, divisor } = schema[k] as AttributeSpec<AttributeKind>;
                         attributeBuffers[i][1] = resources.attribute(value.ref.value, itemSize, divisor);
@@ -254,10 +254,10 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
 
             if (elementsBuffer && values.elements.ref.version !== versions.elements) {
                 if (elementsBuffer.length >= values.elements.ref.value.length) {
-                    // console.log('elements array large enough to update', values.elements.ref.id, values.elements.ref.version)
-                    elementsBuffer.updateData(values.elements.ref.value);
+                    // console.log('elements array large enough to update', values.elements.ref.id, values.elements.ref.version);
+                    elementsBuffer.updateSubData(values.elements.ref.value, 0, elementsBuffer.length);
                 } else {
-                    // console.log('elements array to small, need to create new elements', values.elements.ref.id, values.elements.ref.version)
+                    // console.log('elements array to small, need to create new elements', values.elements.ref.id, values.elements.ref.version);
                     elementsBuffer.destroy();
                     elementsBuffer = resources.elements(values.elements.ref.value);
                     valueChanges.elements = true;
@@ -266,7 +266,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             }
 
             if (valueChanges.attributes || valueChanges.defines || valueChanges.elements) {
-                // console.log('program/defines or buffers changed, update vaos')
+                // console.log('program/defines or buffers changed, update vaos');
                 for (const k of renderVariants) {
                     const vertexArray = vertexArrays[k];
                     if (vertexArray) vertexArray.destroy();
@@ -280,7 +280,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 if (value.ref.version !== versions[k]) {
                     // update of textures with kind 'texture' is done externally
                     if (schema[k].kind !== 'texture') {
-                        // console.log('texture version changed, uploading image', k)
+                        // console.log('texture version changed, uploading image', k);
                         texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
                         versions[k] = value.ref.version;
                         valueChanges.textures = true;

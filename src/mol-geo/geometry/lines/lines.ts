@@ -140,9 +140,11 @@ export namespace Lines {
     }
 
     function update(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, lineCount: number, lines: Lines) {
+        if (lineCount > lines.lineCount) {
+            ValueCell.update(lines.mappingBuffer, mappings);
+            ValueCell.update(lines.indexBuffer, indices);
+        }
         lines.lineCount = lineCount;
-        ValueCell.update(lines.mappingBuffer, mappings);
-        ValueCell.update(lines.indexBuffer, indices);
         ValueCell.update(lines.groupBuffer, groups);
         ValueCell.update(lines.startBuffer, starts);
         ValueCell.update(lines.endBuffer, ends);

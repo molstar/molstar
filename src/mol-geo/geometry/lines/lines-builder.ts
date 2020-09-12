@@ -23,30 +23,20 @@ const tmpDir = Vec3();
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const caAdd = ChunkedArray.add;
-const caAdd2 = ChunkedArray.add2;
 const caAdd3 = ChunkedArray.add3;
 
 export namespace LinesBuilder {
     export function create(initialCount = 2048, chunkSize = 1024, lines?: Lines): LinesBuilder {
-        const mappings = ChunkedArray.create(Float32Array, 2, chunkSize, lines ? lines.mappingBuffer.ref.value : initialCount);
         const groups = ChunkedArray.create(Float32Array, 1, chunkSize, lines ? lines.groupBuffer.ref.value : initialCount);
-        const indices = ChunkedArray.create(Uint32Array, 3, chunkSize * 3, lines ? lines.indexBuffer.ref.value : initialCount * 3);
         const starts = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.startBuffer.ref.value : initialCount);
         const ends = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.endBuffer.ref.value : initialCount);
 
         const add = (startX: number, startY: number, startZ: number, endX: number, endY: number, endZ: number, group: number) => {
-            const offset = mappings.elementCount;
             for (let i = 0; i < 4; ++i) {
                 caAdd3(starts, startX, startY, startZ);
                 caAdd3(ends, endX, endY, endZ);
                 caAdd(groups, group);
             }
-            caAdd2(mappings, -1, 1);
-            caAdd2(mappings, -1, -1);
-            caAdd2(mappings, 1, 1);
-            caAdd2(mappings, 1, -1);
-            caAdd3(indices, offset, offset + 1, offset + 2);
-            caAdd3(indices, offset + 1, offset + 3, offset + 2);
         };
 
         const addFixedCountDashes = (start: Vec3, end: Vec3, segmentCount: number, group: number) => {
@@ -83,13 +73,32 @@ export namespace LinesBuilder {
                 }
             },
             getLines: () => {
-                const mb = ChunkedArray.compact(mappings, true) as Float32Array;
-                const ib = ChunkedArray.compact(indices, true) as Uint32Array;
+                const lineCount = groups.elementCount / 4;
                 const gb = ChunkedArray.compact(groups, true) as Float32Array;
                 const sb = ChunkedArray.compact(starts, true) as Float32Array;
                 const eb = ChunkedArray.compact(ends, true) as Float32Array;
-                return Lines.create(mb, ib, gb, sb, eb, indices.elementCount / 2, lines);
+                const mb = lines && lineCount <= lines.lineCount ? lines.mappingBuffer.ref.value : new Float32Array(lineCount * 8);
+                const ib = lines && lineCount <= lines.lineCount ? lines.indexBuffer.ref.value : new Uint32Array(lineCount * 6);
+                if (!lines || lineCount > lines.lineCount) fillMappingAndIndices(lineCount, mb, ib);
+                return Lines.create(mb, ib, gb, sb, eb, lineCount, lines);
             }
         };
+    }
+}
+
+function fillMappingAndIndices(n: number, mb: Float32Array, ib: Uint32Array) {
+    for (let i = 0; i < n; ++i) {
+        const mo = i * 8;
+        mb[mo] = -1; mb[mo + 1] = 1;
+        mb[mo + 2] = -1; mb[mo + 3] = -1;
+        mb[mo + 4] = 1; mb[mo + 5] = 1;
+        mb[mo + 6] = 1; mb[mo + 7] = -1;
+    }
+
+    for (let i = 0; i < n; ++i) {
+        const o = i * 4;
+        const io = i * 6;
+        ib[io] = o; ib[io + 1] = o + 1; ib[io + 2] = o + 2;
+        ib[io + 3] = o + 1; ib[io + 4] = o + 3; ib[io + 5] = o + 2;
     }
 }

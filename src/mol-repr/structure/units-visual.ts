@@ -176,7 +176,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             if (updateState.createGeometry) {
                 // console.log('update geometry');
                 if (newGeometry) {
-                    ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
+                    ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
                 } else {
                     throw new Error('expected geometry to be given');
                 }

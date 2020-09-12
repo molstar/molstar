@@ -21,7 +21,7 @@ export function normalizeVec3Array<T extends NumberArray> (a: T, count: number) 
     return a;
 }
 
-const tmpV3 = Vec3.zero();
+const tmpV3 = Vec3();
 
 export function transformPositionArray (t: Mat4, array: NumberArray, offset: number, count: number) {
     for (let i = 0, il = count * 3; i < il; i += 3) {
