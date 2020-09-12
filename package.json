@@ -29,11 +29,11 @@
     "watch-webpack": "webpack -w --mode development --display minimal",
     "watch-webpack-viewer": "webpack -w --mode development --display errors-only --info-verbosity verbose --config ./webpack.config.viewer.js",
     "watch-webpack-viewer-debug": "webpack -w --mode development --display errors-only --info-verbosity verbose --config ./webpack.config.viewer.debug.js",
-    "serve": "http-server -p 1338",
+    "serve": "http-server -p 1338 -g",
     "model-server": "node lib/commonjs/servers/model/server.js",
     "model-server-watch": "nodemon --watch lib lib/commonjs/servers/model/server.js",
     "volume-server-test": "node lib/commonjs/servers/volume/server.js --idMap em 'test/${id}.mdb' --defaultPort 1336",
-    "plugin-state": "node lib/commonjs/servers/plugin-state/index.js",
+    "plugin-state": "node lib/commonjs/servers/plugin-state/index.js --working-folder ./build/state --port 1339",
     "preversion": "npm run test",
     "version": "npm run build",
     "postversion": "git push && git push --tags"
