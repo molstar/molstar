@@ -160,6 +160,20 @@ namespace Vec3 {
         return out;
     }
 
+    export function addScalar(out: Vec3, a: Vec3, b: number) {
+        out[0] = a[0] + b;
+        out[1] = a[1] + b;
+        out[2] = a[2] + b;
+        return out;
+    }
+
+    export function subScalar(out: Vec3, a: Vec3, b: number) {
+        out[0] = a[0] - b;
+        out[1] = a[1] - b;
+        out[2] = a[2] - b;
+        return out;
+    }
+
     /**
      * Math.round the components of a Vec3
      */
@@ -187,6 +201,16 @@ namespace Vec3 {
         out[0] = Math.floor(a[0]);
         out[1] = Math.floor(a[1]);
         out[2] = Math.floor(a[2]);
+        return out;
+    }
+
+    /**
+     * Math.trunc the components of a Vec3
+     */
+    export function trunc(out: Vec3, a: Vec3) {
+        out[0] = Math.trunc(a[0]);
+        out[1] = Math.trunc(a[1]);
+        out[2] = Math.trunc(a[2]);
         return out;
     }
 

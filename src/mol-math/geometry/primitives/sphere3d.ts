@@ -122,6 +122,18 @@ namespace Sphere3D {
     export function fromBox3D(out: Sphere3D, box: Box3D) {
         Vec3.scale(out.center, Vec3.add(out.center, box.max, box.min), 0.5);
         out.radius = Vec3.distance(out.center, box.max);
+
+        Sphere3D.setExtrema(out, [
+            Vec3.create(box.min[0], box.min[1], box.min[2]),
+            Vec3.create(box.max[0], box.max[1], box.max[2]),
+            Vec3.create(box.max[0], box.min[1], box.min[2]),
+            Vec3.create(box.min[0], box.max[1], box.max[2]),
+            Vec3.create(box.min[0], box.min[1], box.max[2]),
+            Vec3.create(box.max[0], box.min[1], box.max[2]),
+            Vec3.create(box.max[0], box.max[1], box.min[2]),
+            Vec3.create(box.min[0], box.max[1], box.min[2]),
+        ]);
+
         return out;
     }
 
