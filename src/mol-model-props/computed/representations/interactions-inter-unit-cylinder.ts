@@ -21,6 +21,7 @@ import { InteractionsProvider } from '../interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { InteractionFlag } from '../interactions/common';
 import { Unit } from '../../../mol-model/structure/structure';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 const tmpLoc = StructureElement.Location.create(void 0);
 
@@ -67,7 +68,12 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
         ignore: (edgeIndex: number) => edges[edgeIndex].props.flag === InteractionFlag.Filtered
     };
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+
+    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * sizeFactor);
+    m.setBoundingSphere(sphere);
+
+    return m;
 }
 
 export const InteractionsInterUnitParams = {

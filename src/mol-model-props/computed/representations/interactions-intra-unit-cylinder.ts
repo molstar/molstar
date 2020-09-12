@@ -20,6 +20,7 @@ import { VisualUpdateState } from '../../../mol-repr/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { Interactions } from '../interactions/interactions';
 import { InteractionFlag } from '../interactions/common';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<InteractionsIntraUnitParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
@@ -53,7 +54,12 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
         ignore: (edgeIndex: number) => flag[edgeIndex] === InteractionFlag.Filtered
     };
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * sizeFactor);
+    m.setBoundingSphere(sphere);
+
+    return m;
 }
 
 export const InteractionsIntraUnitParams = {
