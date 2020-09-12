@@ -241,3 +241,30 @@ export function getDepthTexture(gl: GLRenderingContext): COMPAT_depth_texture | 
         };
     }
 }
+
+export interface COMPAT_sRGB {
+    readonly FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING: number;
+    readonly SRGB8_ALPHA8: number;
+    readonly SRGB8: number;
+    readonly SRGB: number;
+}
+
+export function getSRGB(gl: GLRenderingContext): COMPAT_sRGB | null {
+    if (isWebGL2(gl)) {
+        return {
+            FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING: gl.FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING,
+            SRGB8_ALPHA8: gl.SRGB8_ALPHA8,
+            SRGB8: gl.SRGB8,
+            SRGB: gl.SRGB
+        };
+    } else {
+        const ext = gl.getExtension('EXT_sRGB');
+        if (ext === null) return null;
+        return {
+            FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING: ext.FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING_EXT,
+            SRGB8_ALPHA8: ext.SRGB8_ALPHA8_EXT,
+            SRGB8: ext.SRGB_ALPHA_EXT,
+            SRGB: ext.SRGB_EXT
+        };
+    }
+}
