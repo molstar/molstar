@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -119,6 +119,14 @@ namespace Box3D {
         add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, maxX, maxY, minZ), m));
         add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, maxX, maxY, maxZ), m));
         return out;
+    }
+
+    export function containsVec3(box: Box3D, v: Vec3) {
+        return (
+            v[0] < box.min[0] || v[0] > box.max[0] ||
+            v[1] < box.min[1] || v[1] > box.max[1] ||
+            v[2] < box.min[2] || v[2] > box.max[2]
+        ) ? false : true;
     }
 }
 
