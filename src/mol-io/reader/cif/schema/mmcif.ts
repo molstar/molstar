@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.326, IHM 1.09, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.333, IHM 1.12, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -139,6 +139,10 @@ export const mmCIF_Schema = {
          * introduced that was independent of the different modes of
          * identifying the atoms. For compatibility with older CIFs,
          * _atom_site_label is aliased to _atom_site.id.
+         *
+         * In general, this aggregate identifier does not uniquely
+         * identify an atom site as for non-polymers _atom_site.label_seq_id
+         * is '.'.
          */
         id: int,
         /**
@@ -492,7 +496,7 @@ export const mmCIF_Schema = {
          * linking monomers, monomers with some type of N-terminal (or 5')
          * cap and monomers with some type of C-terminal (or 3') cap.
          */
-        type: Aliased<'D-peptide linking' | 'L-peptide linking' | 'D-peptide NH3 amino terminus' | 'L-peptide NH3 amino terminus' | 'D-peptide COOH carboxy terminus' | 'L-peptide COOH carboxy terminus' | 'DNA linking' | 'RNA linking' | 'L-RNA linking' | 'L-DNA linking' | 'DNA OH 5 prime terminus' | 'RNA OH 5 prime terminus' | 'DNA OH 3 prime terminus' | 'RNA OH 3 prime terminus' | 'D-saccharide 1,4 and 1,4 linking' | 'L-saccharide 1,4 and 1,4 linking' | 'D-saccharide 1,4 and 1,6 linking' | 'L-saccharide 1,4 and 1,6 linking' | 'D-saccharide, beta linking' | 'D-saccharide, alpha linking' | 'L-saccharide, beta linking' | 'L-saccharide, alpha linking' | 'L-saccharide' | 'D-saccharide' | 'saccharide' | 'non-polymer' | 'peptide linking' | 'peptide-like' | 'L-gamma-peptide, C-delta linking' | 'D-gamma-peptide, C-delta linking' | 'L-beta-peptide, C-gamma linking' | 'D-beta-peptide, C-gamma linking' | 'other'>(str),
+        type: Aliased<'D-peptide linking' | 'L-peptide linking' | 'D-peptide NH3 amino terminus' | 'L-peptide NH3 amino terminus' | 'D-peptide COOH carboxy terminus' | 'L-peptide COOH carboxy terminus' | 'DNA linking' | 'RNA linking' | 'L-RNA linking' | 'L-DNA linking' | 'DNA OH 5 prime terminus' | 'RNA OH 5 prime terminus' | 'DNA OH 3 prime terminus' | 'RNA OH 3 prime terminus' | 'D-saccharide, beta linking' | 'D-saccharide, alpha linking' | 'L-saccharide, beta linking' | 'L-saccharide, alpha linking' | 'L-saccharide' | 'D-saccharide' | 'saccharide' | 'non-polymer' | 'peptide linking' | 'peptide-like' | 'L-gamma-peptide, C-delta linking' | 'D-gamma-peptide, C-delta linking' | 'L-beta-peptide, C-gamma linking' | 'D-beta-peptide, C-gamma linking' | 'other'>(str),
         /**
          * Synonym list for the component.
          */
@@ -1407,10 +1411,9 @@ export const mmCIF_Schema = {
          * The value of _struct_ncs_oper.id must uniquely identify a
          * record in the STRUCT_NCS_OPER list.
          *
-         * Note that this item need not be a number; it can be any unique
-         * identifier.
+         * Note that for PDB _struct_ncs_oper.id must be a number.
          */
-        id: str,
+        id: int,
         /**
          * The elements of the 3x3 matrix component of a
          * noncrystallographic symmetry operation.
@@ -2408,7 +2411,7 @@ export const mmCIF_Schema = {
         /**
          * Broadly defines the function of the molecule.
          */
-        class: Aliased<'Antagonist' | 'Antibiotic' | 'Anticancer' | 'Anticoagulant' | 'Antifungal' | 'Antiinflammatory' | 'Antimicrobial' | 'Antineoplastic' | 'Antiparasitic' | 'Antiretroviral' | 'Anthelmintic' | 'Antithrombotic' | 'Antitumor' | 'Antiviral' | 'CASPASE inhibitor' | 'Chaperone binding' | 'Enzyme inhibitor' | 'Growth factor' | 'Immunosuppressant' | 'Inhibitor' | 'Lantibiotic' | 'Metabolism' | 'Metal transport' | 'Oxidation-reduction' | 'Receptor' | 'Thrombin inhibitor' | 'Trypsin inhibitor' | 'Toxin' | 'Transport activator' | 'Unknown' | 'Anticoagulant, Antithrombotic' | 'Antibiotic, Antimicrobial' | 'Antibiotic, Anthelmintic' | 'Antibiotic, Antineoplastic' | 'Antimicrobial, Antiretroviral' | 'Antimicrobial, Antitumor' | 'Antimicrobial, Antiparasitic, Antibiotic' | 'Thrombin inhibitor, Trypsin inhibitor'>(str),
+        class: Aliased<'Antagonist' | 'Antibiotic' | 'Anticancer' | 'Anticoagulant' | 'Antifungal' | 'Antigen' | 'Antiinflammatory' | 'Antimicrobial' | 'Antineoplastic' | 'Antiparasitic' | 'Antiretroviral' | 'Anthelmintic' | 'Antithrombotic' | 'Antitumor' | 'Antiviral' | 'CASPASE inhibitor' | 'Chaperone binding' | 'Enzyme inhibitor' | 'Drug delivery' | 'Glycan component' | 'Growth factor' | 'Immunosuppressant' | 'Inducer' | 'Inhibitor' | 'Lantibiotic' | 'Metabolism' | 'Metal transport' | 'Nutrient' | 'Oxidation-reduction' | 'Protein binding' | 'Receptor' | 'Substrate analog' | 'Synthetic opioid' | 'Thrombin inhibitor' | 'Transition state mimetic' | 'Transport activator' | 'Trypsin inhibitor' | 'Toxin' | 'Unknown' | 'Water retention' | 'Anticoagulant, Antithrombotic' | 'Antibiotic, Antimicrobial' | 'Antibiotic, Anthelmintic' | 'Antibiotic, Antineoplastic' | 'Antimicrobial, Antiretroviral' | 'Antimicrobial, Antitumor' | 'Antimicrobial, Antiparasitic, Antibiotic' | 'Thrombin inhibitor, Trypsin inhibitor'>(str),
         /**
          * Defines the structural classification of the molecule.
          */
@@ -2798,6 +2801,27 @@ export const mmCIF_Schema = {
          * ATOM_SITE category.
          */
         auth_mon_id: str,
+    },
+    /**
+     * PDBX_CHEM_COMP_RELATED describes the relationship between two chemical components.
+     */
+    pdbx_chem_comp_related: {
+        /**
+         * The chemical component for which this relationship applies.
+         */
+        comp_id: str,
+        /**
+         * The related chemical component for which this chemical component is based.
+         */
+        related_comp_id: str,
+        /**
+         * Describes the type of relationship
+         */
+        relationship_type: Aliased<'Carbohydrate core' | 'Precursor'>(str),
+        /**
+         * Describes the type of relationship
+         */
+        details: str,
     },
     /**
      * Data items in the IHM_STARTING_MODEL_DETAILS category records the
@@ -3497,7 +3521,7 @@ export const mmCIF_Schema = {
         /**
          * The type of data held in the dataset.
          */
-        data_type: Aliased<'NMR data' | '3DEM volume' | '2DEM class average' | 'EM raw micrographs' | 'SAS data' | 'CX-MS data' | 'Mass Spectrometry data' | 'EPR data' | 'H/D exchange data' | 'Single molecule FRET data' | 'Experimental model' | 'Comparative model' | 'Integrative model' | 'De Novo model' | 'Predicted contacts' | 'Mutagenesis data' | 'DNA footprinting data' | 'Hydroxyl radical footprinting data' | 'Yeast two-hybrid screening data' | 'Quantitative measurements of genetic interactions' | 'Other'>(str),
+        data_type: Aliased<'NMR data' | '3DEM volume' | '2DEM class average' | 'EM raw micrographs' | 'X-ray diffraction data' | 'SAS data' | 'CX-MS data' | 'Mass Spectrometry data' | 'EPR data' | 'H/D exchange data' | 'Single molecule FRET data' | 'Experimental model' | 'Comparative model' | 'Integrative model' | 'De Novo model' | 'Predicted contacts' | 'Mutagenesis data' | 'DNA footprinting data' | 'Hydroxyl radical footprinting data' | 'Yeast two-hybrid screening data' | 'Quantitative measurements of genetic interactions' | 'Other'>(str),
         /**
          * A flag that indicates whether the dataset is archived in
          * an IHM related database or elsewhere.
@@ -3906,7 +3930,7 @@ export const mmCIF_Schema = {
         /**
          * The type of crosslinker used.
          */
-        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'DSG' | 'BSP' | 'BMSO' | 'DHSO' | 'CYS' | 'Other'>(str),
+        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'DSG' | 'BSP' | 'BMSO' | 'DHSO' | 'CYS' | 'SDA' | 'DSA' | 'Other'>(str),
         /**
          * Identifier to the crosslinking dataset.
          * This data item is a pointer to the _ihm_dataset_list.id in the
@@ -4646,7 +4670,7 @@ export const mmCIF_Schema = {
         /**
          * The type of distance restraint applied.
          */
-        restraint_type: Aliased<'lower bound' | 'upper bound' | 'lower and upper bound'>(str),
+        restraint_type: Aliased<'lower bound' | 'upper bound' | 'lower and upper bound' | 'harmonic'>(str),
         /**
          * Identifier to the input data from which the distance restraint is derived.
          * This data item is a pointer to the _ihm_dataset_list.id in the
@@ -4657,27 +4681,6 @@ export const mmCIF_Schema = {
          * handled in the IHM_INTERFACE_RESIDUE_FEATURE category rather than here.
          */
         dataset_list_id: int,
-    },
-    /**
-     * PDBX_CHEM_COMP_RELATED describes the relationship between two chemical components.
-     */
-    pdbx_chem_comp_related: {
-        /**
-         * The chemical component for which this relationship applies.
-         */
-        comp_id: str,
-        /**
-         * The related chemical component for which this chemical component is based.
-         */
-        related_comp_id: str,
-        /**
-         * Describes the type of relationship
-         */
-        relationship_type: Aliased<'Carbohydrate core' | 'Precursor'>(str),
-        /**
-         * Describes the type of relationship
-         */
-        details: str,
     },
 };
 
