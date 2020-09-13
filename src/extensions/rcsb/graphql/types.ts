@@ -1,7 +1,7 @@
 /* eslint-disable */
 export type Maybe<T> = T | null;
-
-// Generated in 2020-05-27T17:35:45-07:00
+export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+// Generated on 2020-09-13T02:52:22-07:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -120,32 +120,40 @@ export type PdbxChemCompAudit = {
 export type Query = {
   /** Get a PDB polymer entity instance (chain), given the PDB ID and ENTITY INSTANCE ID. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
   readonly polymer_entity_instance?: Maybe<CorePolymerEntityInstance>;
-  /** Get a list of assemblies given the list of ASSEMBLY IDs. Here an ASSEMBLY ID is a compound identifier that includes entry_id and assembly_id separated by '-', e.g. 1XXX-1. */
-  readonly assemblies?: Maybe<ReadonlyArray<Maybe<CoreAssembly>>>;
   /** Get a list of PDB non-polymer entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. */
   readonly nonpolymer_entities?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntity>>>;
-  /** Get a PDB non-polymer entity instance (chain), given the PDB ID and ENTITY INSTANCE ID. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
-  readonly nonpolymer_entity_instance?: Maybe<CoreNonpolymerEntityInstance>;
   /** Get a list of PDB polymer entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. */
   readonly polymer_entities?: Maybe<ReadonlyArray<Maybe<CorePolymerEntity>>>;
   /** Get a PDB polymer entity, given the PDB ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
   readonly polymer_entity?: Maybe<CorePolymerEntity>;
+  /** Get literature information from PubMed database given the PubMed identifier. */
+  readonly pubmed?: Maybe<CorePubmed>;
+  /** Get an assembly given the PDB ID and ASSEMBLY ID. Here ASSEMBLY ID is '1', '2', '3', etc. or 'deposited' for deposited coordinates. */
+  readonly assembly?: Maybe<CoreAssembly>;
+  /** Get a list of PDB branched entity instances (chains), given the list of ENTITY INSTANCE IDs. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
+  readonly branched_entity_instances?: Maybe<ReadonlyArray<Maybe<CoreBranchedEntityInstance>>>;
+  /** Get a list of PDB polymer entity instances (chains), given the list of ENTITY INSTANCE IDs. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
+  readonly polymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CorePolymerEntityInstance>>>;
+  /** Get a list of assemblies given the list of ASSEMBLY IDs. Here an ASSEMBLY ID is a compound identifier that includes entry_id and assembly_id separated by '-', e.g. 1XXX-1. */
+  readonly assemblies?: Maybe<ReadonlyArray<Maybe<CoreAssembly>>>;
+  /** Get a PDB branched entity, given the PDB ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
+  readonly branched_entity?: Maybe<CoreBranchedEntity>;
+  /** Get a PDB branched entity instance (chain), given the PDB ID and ENTITY INSTANCE ID. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
+  readonly branched_entity_instance?: Maybe<CoreBranchedEntityInstance>;
+  /** Get a PDB non-polymer entity instance (chain), given the PDB ID and ENTITY INSTANCE ID. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
+  readonly nonpolymer_entity_instance?: Maybe<CoreNonpolymerEntityInstance>;
   /** Get a chemical component given the CHEMICAL COMPONENT ID, e.g. 'CFF', 'HEM', 'FE'.For nucleic acid polymer entities, use the one-letter code for the base. */
   readonly chem_comp?: Maybe<CoreChemComp>;
   /** Get PDB entry given the PDB id. */
   readonly entry?: Maybe<CoreEntry>;
   /** Get a list of PDB entries given a list of PDB IDs. */
   readonly entries?: Maybe<ReadonlyArray<Maybe<CoreEntry>>>;
-  /** Get literature information from PubMed database given the PubMed identifier. */
-  readonly pubmed?: Maybe<CorePubmed>;
-  /** Get an assembly given the PDB ID and ASSEMBLY ID. Here ASSEMBLY ID is '1', '2', '3', etc. or 'deposited' for deposited coordinates. */
-  readonly assembly?: Maybe<CoreAssembly>;
+  /** Get a list of PDB branched entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. */
+  readonly branched_entities?: Maybe<ReadonlyArray<Maybe<CoreBranchedEntity>>>;
   /** Get UniProt KB entry given the UniProt primary accession. */
   readonly uniprot?: Maybe<CoreUniprot>;
   /** Get a list of PDB non-polymer entity instances (chains), given the list of ENTITY INSTANCE IDs. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
   readonly nonpolymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntityInstance>>>;
-  /** Get a list of PDB polymer entity instances (chains), given the list of ENTITY INSTANCE IDs. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
-  readonly polymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CorePolymerEntityInstance>>>;
   /** Get a PDB non-polymer entity, given the PDB ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
   readonly nonpolymer_entity?: Maybe<CoreNonpolymerEntity>;
 };
@@ -159,21 +167,8 @@ export type QueryPolymer_Entity_InstanceArgs = {
 
 
 /** Query root */
-export type QueryAssembliesArgs = {
-  assembly_ids: ReadonlyArray<Maybe<Scalars['String']>>;
-};
-
-
-/** Query root */
 export type QueryNonpolymer_EntitiesArgs = {
   entity_ids: ReadonlyArray<Scalars['String']>;
-};
-
-
-/** Query root */
-export type QueryNonpolymer_Entity_InstanceArgs = {
-  asym_id: Scalars['String'];
-  entry_id: Scalars['String'];
 };
 
 
@@ -186,6 +181,58 @@ export type QueryPolymer_EntitiesArgs = {
 /** Query root */
 export type QueryPolymer_EntityArgs = {
   entity_id: Scalars['String'];
+  entry_id: Scalars['String'];
+};
+
+
+/** Query root */
+export type QueryPubmedArgs = {
+  pubmed_id: Scalars['Int'];
+};
+
+
+/** Query root */
+export type QueryAssemblyArgs = {
+  assembly_id: Scalars['String'];
+  entry_id: Scalars['String'];
+};
+
+
+/** Query root */
+export type QueryBranched_Entity_InstancesArgs = {
+  instance_ids: ReadonlyArray<Maybe<Scalars['String']>>;
+};
+
+
+/** Query root */
+export type QueryPolymer_Entity_InstancesArgs = {
+  instance_ids: ReadonlyArray<Maybe<Scalars['String']>>;
+};
+
+
+/** Query root */
+export type QueryAssembliesArgs = {
+  assembly_ids: ReadonlyArray<Maybe<Scalars['String']>>;
+};
+
+
+/** Query root */
+export type QueryBranched_EntityArgs = {
+  entity_id: Scalars['String'];
+  entry_id: Scalars['String'];
+};
+
+
+/** Query root */
+export type QueryBranched_Entity_InstanceArgs = {
+  asym_id: Scalars['String'];
+  entry_id: Scalars['String'];
+};
+
+
+/** Query root */
+export type QueryNonpolymer_Entity_InstanceArgs = {
+  asym_id: Scalars['String'];
   entry_id: Scalars['String'];
 };
 
@@ -209,15 +256,8 @@ export type QueryEntriesArgs = {
 
 
 /** Query root */
-export type QueryPubmedArgs = {
-  pubmed_id: Scalars['Int'];
-};
-
-
-/** Query root */
-export type QueryAssemblyArgs = {
-  assembly_id: Scalars['String'];
-  entry_id: Scalars['String'];
+export type QueryBranched_EntitiesArgs = {
+  entity_ids: ReadonlyArray<Scalars['String']>;
 };
 
 
@@ -229,12 +269,6 @@ export type QueryUniprotArgs = {
 
 /** Query root */
 export type QueryNonpolymer_Entity_InstancesArgs = {
-  instance_ids: ReadonlyArray<Maybe<Scalars['String']>>;
-};
-
-
-/** Query root */
-export type QueryPolymer_Entity_InstancesArgs = {
   instance_ids: ReadonlyArray<Maybe<Scalars['String']>>;
 };
 
@@ -601,7 +635,7 @@ export type RcsbChemCompRelated = {
    * The method used to establish the resource correspondence.
    * 
    * Allowable values:
-   * assigned by DrugBank resource, assigned by PDB, matching InChIKey in DrugBank, matching InChIKey-prefix in DrugBank, matching by RESID resource
+   * assigned by DrugBank resource, assigned by PDB, assigned by PubChem resource, matching ChEMBL ID in Pharos, matching InChIKey in DrugBank, matching InChIKey in PubChem, matching InChIKey-prefix in DrugBank, matching by RESID resource
    */
   readonly related_mapping_method?: Maybe<Scalars['String']>;
   /**
@@ -615,7 +649,7 @@ export type RcsbChemCompRelated = {
    * The resource name for the related chemical reference.
    * 
    * Allowable values:
-   * CAS, CCDC/CSD, ChEBI, ChEMBL, DrugBank, PubChem, RESID
+   * CAS, CCDC/CSD, ChEBI, ChEMBL, DrugBank, Pharos, PubChem, RESID
    */
   readonly resource_name?: Maybe<Scalars['String']>;
 };
@@ -697,6 +731,15 @@ export type PdbxAuditRevisionHistory = {
    * 2017-03-08
    */
   readonly revision_date?: Maybe<Scalars['Date']>;
+};
+
+export type RcsbBranchedEntityAnnotationAnnotationLineage = {
+  /** Members of the annotation lineage as parent lineage depth (1-N) */
+  readonly depth?: Maybe<Scalars['Int']>;
+  /** Members of the annotation lineage as parent class identifiers. */
+  readonly id?: Maybe<Scalars['String']>;
+  /** Members of the annotation lineage as parent class names. */
+  readonly name?: Maybe<Scalars['String']>;
 };
 
 export type DiffrnSource = {
@@ -849,6 +892,14 @@ export type RcsbPolymerEntityInstanceContainerIdentifiers = {
   readonly asym_id: Scalars['String'];
   /** Author instance identifier for this container. */
   readonly auth_asym_id?: Maybe<Scalars['String']>;
+  /**
+   * Residue index mappings between author provided and entity polymer sequence positions.
+   * 
+   *  Author residue indices (auth_seq_num) include insertion codes when present.
+   *  The array indices correspond to the indices (1-based) of the deposited sample
+   *  sequence (entity_poly_seq). Unmodelled residues are represented with a "?" value.
+   */
+  readonly auth_to_entity_poly_seq_mapping?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
   /** Entity identifier for the container. */
   readonly entity_id?: Maybe<Scalars['String']>;
   /** Entry identifier for the container. */
@@ -858,6 +909,43 @@ export type RcsbPolymerEntityInstanceContainerIdentifiers = {
    *  an 'dot' (.) separated concatenation of entry and entity instance identifiers.
    */
   readonly rcsb_id?: Maybe<Scalars['String']>;
+};
+
+export type RcsbBranchedEntityNameSys = {
+  /** The systematic name for the branched entity. */
+  readonly name: Scalars['String'];
+  /** The system used to generate the systematic name of the branched entity. */
+  readonly system?: Maybe<Scalars['String']>;
+};
+
+export type RcsbBranchedEntityAnnotation = {
+  /** An identifier for the annotation. */
+  readonly annotation_id?: Maybe<Scalars['String']>;
+  readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbBranchedEntityAnnotationAnnotationLineage>>>;
+  /** Identifies the version of the annotation assignment. */
+  readonly assignment_version?: Maybe<Scalars['String']>;
+  /** A description for the annotation. */
+  readonly description?: Maybe<Scalars['String']>;
+  /** A name for the annotation. */
+  readonly name?: Maybe<Scalars['String']>;
+  /**
+   * Code identifying the individual, organization or program that
+   *  assigned the annotation.
+   */
+  readonly provenance_source?: Maybe<Scalars['String']>;
+  /** A type or category of the annotation. */
+  readonly type?: Maybe<Scalars['String']>;
+};
+
+export type RcsbBranchedInstanceFeatureFeaturePositions = {
+  /** An identifier for the monomer(s) corresponding to the feature assignment. */
+  readonly beg_comp_id?: Maybe<Scalars['String']>;
+  /** An identifier for the leading monomer feature position. */
+  readonly beg_seq_id: Scalars['Int'];
+  /** An identifier for the terminal monomer feature position. */
+  readonly end_seq_id?: Maybe<Scalars['Int']>;
+  /** The value of the feature at the monomer position. */
+  readonly value?: Maybe<Scalars['Float']>;
 };
 
 export type EmCtfCorrection = {
@@ -1256,11 +1344,11 @@ export type RcsbUniprotAlignments = {
 };
 
 export type CoreNonpolymerEntity = {
-  /** Get PDB entry that contains this molecular entity. */
+  /** Get PDB entry that contains this non-polymer entity. */
   readonly entry?: Maybe<CoreEntry>;
   /** Get a non-polymer chemical components described in this molecular entity. */
   readonly nonpolymer_comp?: Maybe<CoreChemComp>;
-  /** Get all unique non-polymer instances (chains) for this molecular entity. */
+  /** Get all unique non-polymer instances (chains) for this non-polymer entity. */
   readonly nonpolymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntityInstance>>>;
   readonly pdbx_entity_nonpoly?: Maybe<PdbxEntityNonpoly>;
   /** Get a BIRD chemical components described in this molecular entity. */
@@ -1330,8 +1418,13 @@ export type RcsbPolymerEntity = {
    * N, Y
    */
   readonly rcsb_multiple_source_flag?: Maybe<Scalars['String']>;
-  /** The number of biological sources for the polymer entity. */
+  /**
+   * The number of biological sources for the polymer entity. Multiple source contributions
+   *  may come from the same organism (taxonomy).
+   */
   readonly rcsb_source_part_count?: Maybe<Scalars['Int']>;
+  /** The number of distinct source taxonomies for the polymer entity. Commonly used to identify chimeric polymers. */
+  readonly rcsb_source_taxonomy_count?: Maybe<Scalars['Int']>;
   /**
    * The method by which the sample for the polymer entity was produced.
    *  Entities isolated directly from natural sources (tissues, soil
@@ -1394,9 +1487,16 @@ export type RcsbChemCompSynonyms = {
    * The provenance of this synonym.
    * 
    * Allowable values:
-   * ACDLabs, Author, ChEBI, ChEMBL, DrugBank, GMML, Lexichem, OpenEye OEToolkits, OpenEye/Lexichem, PDB Reference Data, PDB-CARE, PubChem, RESID
+   * ACDLabs, Author, ChEBI, ChEMBL, DrugBank, GMML, Lexichem, OpenEye OEToolkits, OpenEye/Lexichem, PDB Reference Data, PDB Reference Data (Preferred), PDB-CARE, PubChem, RESID
    */
   readonly provenance_source?: Maybe<Scalars['String']>;
+  /**
+   * This data item contains the synonym type.
+   * 
+   * Allowable values:
+   * Common Name, Condensed IUPAC Carbohydrate Symbol, IUPAC Carbohydrate Symbol, Preferred Common Name, Preferred Name, Preferred Synonym, SNFG Carbohydrate Symbol, Synonym, Systematic Name
+   */
+  readonly type?: Maybe<Scalars['String']>;
 };
 
 export type PdbxDepositGroup = {
@@ -1739,9 +1839,9 @@ export type RcsbPolymerEntityRcsbEcLineage = {
 export type RcsbAssemblyInfo = {
   /** Entity identifier for the container. */
   readonly assembly_id?: Maybe<Scalars['String']>;
-  /** The assembly atomic coordinate count. */
+  /** The assembly non-hydrogen atomic coordinate count. */
   readonly atom_count?: Maybe<Scalars['Int']>;
-  /** The assembly branched entity atomic coordinate count. */
+  /** The assembly non-hydrogen branched entity atomic coordinate count. */
   readonly branched_atom_count?: Maybe<Scalars['Int']>;
   /** The number of distinct branched entities in the generated assembly. */
   readonly branched_entity_count?: Maybe<Scalars['Int']>;
@@ -1765,7 +1865,7 @@ export type RcsbAssemblyInfo = {
    * DNA (only), DNA/RNA (only), NA-hybrid (only), Other, RNA (only)
    */
   readonly na_polymer_entity_types?: Maybe<Scalars['String']>;
-  /** The assembly non-polymer entity atomic coordinate count. */
+  /** The assembly non-hydrogen non-polymer entity atomic coordinate count. */
   readonly nonpolymer_atom_count?: Maybe<Scalars['Int']>;
   /** The number of distinct non-polymer entities in the generated assembly exclusive of solvent. */
   readonly nonpolymer_entity_count?: Maybe<Scalars['Int']>;
@@ -1774,7 +1874,7 @@ export type RcsbAssemblyInfo = {
    *  This is the total count of non-polymer entity instances generated in the assembly coordinate data.
    */
   readonly nonpolymer_entity_instance_count?: Maybe<Scalars['Int']>;
-  /** The assembly polymer entity atomic coordinate count. */
+  /** The assembly non-hydrogen polymer entity atomic coordinate count. */
   readonly polymer_atom_count?: Maybe<Scalars['Int']>;
   /**
    * Categories describing the polymer entity composition for the generated assembly.
@@ -1838,7 +1938,7 @@ export type RcsbAssemblyInfo = {
    * Nucleic acid (only), Other, Protein (only), Protein/NA
    */
   readonly selected_polymer_entity_types?: Maybe<Scalars['String']>;
-  /** The assembly solvent atomic coordinate count. */
+  /** The assembly non-hydrogen solvent atomic coordinate count. */
   readonly solvent_atom_count?: Maybe<Scalars['Int']>;
   /** The number of distinct solvent entities in the generated assembly. */
   readonly solvent_entity_count?: Maybe<Scalars['Int']>;
@@ -1889,8 +1989,8 @@ export type RcsbBindingAffinity = {
   /**
    * Binding affinity measurement given in one of the following types:  The concentration constants: IC50: the concentration of ligand that reduces enzyme activity by 50%;  EC50: the concentration of compound that generates a half-maximal response;  The binding constant:  Kd: dissociation constant;  Ka: association constant;  Ki: enzyme inhibition constant;  The thermodynamic parameters:  delta G: Gibbs free energy of binding (for association reaction);  delta H: change in enthalpy associated with a chemical reaction;  delta S: change in entropy associated with a chemical reaction.
    * 
-   * Examples:
-   * IC50, EC50, Kd, Ka, Ki
+   * Allowable values:
+   * IC50, EC50, Kd, Ka, Ki, &Delta;G, &Delta;H, -T&Delta;S
    */
   readonly type: Scalars['String'];
   /**
@@ -1902,6 +2002,28 @@ export type RcsbBindingAffinity = {
   readonly unit: Scalars['String'];
   /** Binding affinity value between a ligand and its target molecule. */
   readonly value: Scalars['Float'];
+};
+
+export type RcsbBranchedEntityFeatureSummary = {
+  /** The feature count. */
+  readonly count?: Maybe<Scalars['Int']>;
+  /** The fractional feature coverage relative to the full branched entity. */
+  readonly coverage?: Maybe<Scalars['Float']>;
+  /** The maximum feature length. */
+  readonly maximum_length?: Maybe<Scalars['Int']>;
+  /** The maximum feature value. */
+  readonly maximum_value?: Maybe<Scalars['Float']>;
+  /** The minimum feature length. */
+  readonly minimum_length?: Maybe<Scalars['Int']>;
+  /** The minimum feature value. */
+  readonly minimum_value?: Maybe<Scalars['Float']>;
+  /**
+   * Type or category of the feature.
+   * 
+   * Allowable values:
+   * mutation
+   */
+  readonly type?: Maybe<Scalars['String']>;
 };
 
 export type EmEntityAssembly = {
@@ -2023,7 +2145,7 @@ export type RcsbChemCompAnnotation = {
    * A type or category of the annotation.
    * 
    * Allowable values:
-   * ATC, Generating Enzyme, Modification Type, PSI-MOD
+   * ATC, Carbohydrate Anomer, Carbohydrate Isomer, Carbohydrate Primary Carbonyl Group, Carbohydrate Ring, Generating Enzyme, Modification Type, PSI-MOD
    */
   readonly type?: Maybe<Scalars['String']>;
 };
@@ -2098,6 +2220,39 @@ export type ExptlCrystalGrow = {
    *  crystal growth.
    */
   readonly temp_details?: Maybe<Scalars['String']>;
+};
+
+export type CoreBranchedEntityInstance = {
+  /** Get branched entity for this branched entity instance. */
+  readonly branched_entity?: Maybe<CoreBranchedEntity>;
+  readonly pdbx_struct_special_symmetry?: Maybe<ReadonlyArray<Maybe<PdbxStructSpecialSymmetry>>>;
+  readonly rcsb_branched_entity_instance_container_identifiers?: Maybe<RcsbBranchedEntityInstanceContainerIdentifiers>;
+  readonly rcsb_branched_instance_annotation?: Maybe<ReadonlyArray<Maybe<RcsbBranchedInstanceAnnotation>>>;
+  readonly rcsb_branched_instance_feature?: Maybe<ReadonlyArray<Maybe<RcsbBranchedInstanceFeature>>>;
+  readonly rcsb_branched_instance_feature_summary?: Maybe<ReadonlyArray<Maybe<RcsbBranchedInstanceFeatureSummary>>>;
+  readonly rcsb_branched_struct_conn?: Maybe<ReadonlyArray<Maybe<RcsbBranchedStructConn>>>;
+  /**
+   * A unique identifier for each object in this entity instance container formed by
+   *  an 'dot' (.) separated concatenation of entry and entity instance identifiers.
+   */
+  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>;
+};
+
+export type RcsbBranchedEntity = {
+  /** A description of special aspects of the branched entity. */
+  readonly details?: Maybe<Scalars['String']>;
+  /** Formula mass (KDa) of the branched entity. */
+  readonly formula_weight?: Maybe<Scalars['Float']>;
+  /** A description of the branched entity. */
+  readonly pdbx_description?: Maybe<Scalars['String']>;
+  /**
+   * The number of molecules of the branched entity in the entry.
+   * 
+   * Examples:
+   * 1, 2, 3
+   */
+  readonly pdbx_number_of_molecules?: Maybe<Scalars['Int']>;
 };
 
 export type RcsbPolymerEntityAlignAlignedRegions = {
@@ -2215,6 +2370,8 @@ export type CoreEntry = {
   /** Get all assemblies for this PDB entry. */
   readonly assemblies?: Maybe<ReadonlyArray<Maybe<CoreAssembly>>>;
   readonly audit_author?: Maybe<ReadonlyArray<Maybe<AuditAuthor>>>;
+  /** Get all branched entities for this PDB entry. */
+  readonly branched_entities?: Maybe<ReadonlyArray<Maybe<CoreBranchedEntity>>>;
   readonly cell?: Maybe<Cell>;
   readonly citation?: Maybe<ReadonlyArray<Maybe<Citation>>>;
   readonly diffrn?: Maybe<ReadonlyArray<Maybe<Diffrn>>>;
@@ -2583,9 +2740,14 @@ export type RcsbPolymerEntityNameCom = {
   readonly name: Scalars['String'];
 };
 
+export type RcsbBranchedEntityKeywords = {
+  /** Keywords describing this branched entity. */
+  readonly text?: Maybe<Scalars['String']>;
+};
+
 export type EmSingleParticleEntity = {
   /** Unique category label. */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['Int'];
   /** pointer to _em_image_processing.id. */
   readonly image_processing_id: Scalars['String'];
   /** Point symmetry symbol, either Cn, Dn, T, O, or I */
@@ -2631,6 +2793,8 @@ export type RcsbEntryInfo = {
    *  per deposited structure model.
    */
   readonly deposited_polymer_monomer_count?: Maybe<Scalars['Int']>;
+  /** The number of heavy solvent atom coordinates records per deposited structure model. */
+  readonly deposited_solvent_atom_count?: Maybe<Scalars['Int']>;
   /**
    * The number of unmodeled polymer monomers in the deposited coordinate data. This is
    *  the total count of monomers with unreported coordinate data for all polymer
@@ -2641,6 +2805,7 @@ export type RcsbEntryInfo = {
   readonly diffrn_radiation_wavelength_maximum?: Maybe<Scalars['Float']>;
   /** The minimum radiation wavelength in angstroms. */
   readonly diffrn_radiation_wavelength_minimum?: Maybe<Scalars['Float']>;
+  readonly diffrn_resolution_high?: Maybe<RcsbEntryInfoDiffrnResolutionHigh>;
   /** The number of disulfide bonds per deposited structure model. */
   readonly disulfide_bond_count?: Maybe<Scalars['Int']>;
   /** The number of distinct polymer, non-polymer, branched molecular, and solvent entities per deposited structure model. */
@@ -2704,7 +2869,7 @@ export type RcsbEntryInfo = {
   readonly polymer_monomer_count_maximum?: Maybe<Scalars['Int']>;
   /** The minimum monomer count of a polymer entity per deposited structure model. */
   readonly polymer_monomer_count_minimum?: Maybe<Scalars['Int']>;
-  /** Combined estimates of experimental resolution. */
+  /** Combined estimates of experimental resolution contributing to the refined structural model. */
   readonly resolution_combined?: Maybe<ReadonlyArray<Maybe<Scalars['Float']>>>;
   /**
    * Selected polymer entity type categories describing the entry.
@@ -2737,8 +2902,8 @@ export type PdbxChemCompFeature = {
   /**
    * The component feature type.
    * 
-   * Examples:
-   * FUNCTION, ENZYME INHIBITED, STRUCTURE IMAGE URL, CARBOHYDRATE ANOMER, CARBOHYDRATE ISOMER, CARBOHYDRATE RING
+   * Allowable values:
+   * CARBOHYDRATE ANOMER, CARBOHYDRATE ISOMER, CARBOHYDRATE PRIMARY CARBONYL GROUP, CARBOHYDRATE RING
    */
   readonly type: Scalars['String'];
   /** The component feature value. */
@@ -2792,6 +2957,74 @@ export type RcsbMembraneLineage = {
   readonly id?: Maybe<Scalars['String']>;
   /** Membrane protein classification term. */
   readonly name?: Maybe<Scalars['String']>;
+};
+
+export type RcsbBranchedStructConnConnectTarget = {
+  /**
+   * A component of the identifier for the target of the structure
+   *  connection.
+   * 
+   *  This data item is a pointer to _atom_site.auth_asym_id in the
+   *  ATOM_SITE category.
+   */
+  readonly auth_asym_id?: Maybe<Scalars['String']>;
+  /**
+   * A component of the identifier for the target of the structure
+   *  connection.
+   * 
+   *  This data item is a pointer to _atom_site.auth_seq_id in the
+   *  ATOM_SITE category.
+   */
+  readonly auth_seq_id?: Maybe<Scalars['String']>;
+  /**
+   * A component of the identifier for the target of the structure
+   *  connection.
+   * 
+   *  This data item is a pointer to _atom_site.label_alt_id in the
+   *  ATOM_SITE category.
+   */
+  readonly label_alt_id?: Maybe<Scalars['String']>;
+  /**
+   * A component of the identifier for the target of the structure
+   *  connection.
+   * 
+   *  This data item is a pointer to _atom_site.label_asym_id in the
+   *  ATOM_SITE category.
+   */
+  readonly label_asym_id: Scalars['String'];
+  /**
+   * A component of the identifier for the target of the structure
+   *  connection.
+   * 
+   *  This data item is a pointer to _atom_site.label_atom_id in the
+   *  ATOM_SITE category.
+   */
+  readonly label_atom_id?: Maybe<Scalars['String']>;
+  /**
+   * A component of the identifier for the target of the structure
+   *  connection.
+   * 
+   *  This data item is a pointer to _atom_site.label_comp_id in the
+   *  ATOM_SITE category.
+   */
+  readonly label_comp_id: Scalars['String'];
+  /**
+   * A component of the identifier for the target of the structure
+   *  connection.
+   * 
+   *  This data item is a pointer to _atom_site.connect_target_label_seq_id in the
+   *  ATOM_SITE category.
+   */
+  readonly label_seq_id?: Maybe<Scalars['Int']>;
+  /**
+   * Describes the symmetry operation that should be applied to the
+   *  atom set specified by _rcsb_branched_struct_conn.label* to generate the
+   *  target of the structure connection.
+   * 
+   * Examples:
+   * 1_555, 7_645
+   */
+  readonly symmetry?: Maybe<Scalars['String']>;
 };
 
 export type PdbxNmrRefine = {
@@ -3222,6 +3455,40 @@ export type RefineAnalyze = {
   readonly pdbx_refine_id: Scalars['String'];
 };
 
+export type RcsbBranchedInstanceFeature = {
+  /** Identifies the version of the feature assignment. */
+  readonly assignment_version?: Maybe<Scalars['String']>;
+  /** A description for the feature. */
+  readonly description?: Maybe<Scalars['String']>;
+  /** An identifier for the feature. */
+  readonly feature_id?: Maybe<Scalars['String']>;
+  readonly feature_positions?: Maybe<ReadonlyArray<Maybe<RcsbBranchedInstanceFeatureFeaturePositions>>>;
+  readonly feature_value?: Maybe<ReadonlyArray<Maybe<RcsbBranchedInstanceFeatureFeatureValue>>>;
+  /** A name for the feature. */
+  readonly name?: Maybe<Scalars['String']>;
+  /** Ordinal identifier for this category */
+  readonly ordinal: Scalars['Int'];
+  /**
+   * Code identifying the individual, organization or program that
+   *  assigned the feature.
+   */
+  readonly provenance_source?: Maybe<Scalars['String']>;
+  /**
+   * Code residue coordinate system for the assigned feature.
+   * 
+   * Allowable values:
+   * PDB entity, PDB entry
+   */
+  readonly reference_scheme?: Maybe<Scalars['String']>;
+  /**
+   * A type or category of the feature.
+   * 
+   * Allowable values:
+   * BINDING_SITE, CATH, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, RSRCC_OUTLIER, RSRZ_OUTLIER, SCOP, UNOBSERVED_ATOM_XYZ, UNOBSERVED_RESIDUE_XYZ, ZERO_OCCUPANCY_ATOM_XYZ, ZERO_OCCUPANCY_RESIDUE_XYZ
+   */
+  readonly type?: Maybe<Scalars['String']>;
+};
+
 export type PdbxEntityNonpoly = {
   /** This data item is a pointer to _chem_comp.id in the CHEM_COMP category. */
   readonly comp_id?: Maybe<Scalars['String']>;
@@ -3310,6 +3577,34 @@ export type PdbxDatabaseStatus = {
    * AUTH, HOLD, HPUB, OBS, POLC, PROC, REL, REPL, RMVD, WAIT, WDRN
    */
   readonly status_code_sf?: Maybe<Scalars['String']>;
+};
+
+export type PdbxEntityBranchDescriptor = {
+  /**
+   * This data item contains the descriptor value for this 
+   *  entity.
+   */
+  readonly descriptor?: Maybe<Scalars['String']>;
+  /**
+   * This data item contains the name of the program
+   *  or library used to compute the descriptor.
+   * 
+   * Examples:
+   * PDB-CARE, OTHER, GEMS
+   */
+  readonly program?: Maybe<Scalars['String']>;
+  /**
+   * This data item contains the version of the program
+   *  or library used to compute the descriptor.
+   */
+  readonly program_version?: Maybe<Scalars['String']>;
+  /**
+   * This data item contains the descriptor type.
+   * 
+   * Allowable values:
+   * Glycam Condensed Core Sequence, Glycam Condensed Sequence, LINUCS, WURCS
+   */
+  readonly type?: Maybe<Scalars['String']>;
 };
 
 export type Em2dCrystalEntity = {
@@ -3464,6 +3759,33 @@ export type RcsbNonpolymerStructConnConnectTarget = {
   readonly symmetry?: Maybe<Scalars['String']>;
 };
 
+export type CoreBranchedEntity = {
+  /** Get all unique branched instances (chains) for this molecular entity. */
+  readonly branched_entity_instances?: Maybe<ReadonlyArray<Maybe<CoreBranchedEntityInstance>>>;
+  /** Get all unique monomers described in this branched entity. */
+  readonly chem_comp_monomers?: Maybe<ReadonlyArray<Maybe<CoreChemComp>>>;
+  /** Get PDB entry that contains this branched entity. */
+  readonly entry?: Maybe<CoreEntry>;
+  readonly pdbx_entity_branch?: Maybe<PdbxEntityBranch>;
+  readonly pdbx_entity_branch_descriptor?: Maybe<ReadonlyArray<Maybe<PdbxEntityBranchDescriptor>>>;
+  /** Get a BIRD chemical components described in this branched entity. */
+  readonly prd?: Maybe<CoreChemComp>;
+  readonly rcsb_branched_entity?: Maybe<RcsbBranchedEntity>;
+  readonly rcsb_branched_entity_annotation?: Maybe<ReadonlyArray<Maybe<RcsbBranchedEntityAnnotation>>>;
+  readonly rcsb_branched_entity_container_identifiers?: Maybe<RcsbBranchedEntityContainerIdentifiers>;
+  readonly rcsb_branched_entity_feature?: Maybe<ReadonlyArray<Maybe<RcsbBranchedEntityFeature>>>;
+  readonly rcsb_branched_entity_feature_summary?: Maybe<ReadonlyArray<Maybe<RcsbBranchedEntityFeatureSummary>>>;
+  readonly rcsb_branched_entity_keywords?: Maybe<RcsbBranchedEntityKeywords>;
+  readonly rcsb_branched_entity_name_com?: Maybe<RcsbBranchedEntityNameCom>;
+  readonly rcsb_branched_entity_name_sys?: Maybe<ReadonlyArray<Maybe<RcsbBranchedEntityNameSys>>>;
+  /**
+   * A unique identifier for each object in this entity container formed by
+   *  an underscore separated concatenation of entry and entity identifiers.
+   */
+  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>;
+};
+
 export type Em3dCrystalEntity = {
   /** Unit-cell angle alpha in degrees. */
   readonly angle_alpha?: Maybe<Scalars['Float']>;
@@ -3490,6 +3812,17 @@ export type Em3dCrystalEntity = {
   readonly space_group_name?: Maybe<Scalars['String']>;
   /** Space group number. */
   readonly space_group_num?: Maybe<Scalars['Int']>;
+};
+
+export type RcsbBranchedEntityFeatureFeaturePositions = {
+  /** An identifier for the leading monomer corresponding to the feature assignment. */
+  readonly beg_comp_id?: Maybe<Scalars['String']>;
+  /** An identifier for the leading monomer position of the feature. */
+  readonly beg_seq_id: Scalars['Int'];
+  /** An identifier for the leading monomer position of the feature. */
+  readonly end_seq_id?: Maybe<Scalars['Int']>;
+  /** The value for the feature at this monomer. */
+  readonly value?: Maybe<Scalars['Float']>;
 };
 
 export type GeneName = {
@@ -4084,6 +4417,16 @@ export type RcsbUniprotKeyword = {
   readonly value?: Maybe<Scalars['String']>;
 };
 
+export type RcsbBranchedEntityNameCom = {
+  /**
+   * A common name for the branched entity.
+   * 
+   * Examples:
+   * HIV protease monomer, hemoglobin alpha chain
+   */
+  readonly name?: Maybe<Scalars['String']>;
+};
+
 export type RcsbGenomicLineage = {
   /** Classification hierarchy depth. */
   readonly depth?: Maybe<Scalars['Int']>;
@@ -4138,6 +4481,34 @@ export type RcsbSchemaContainerIdentifiers = {
   readonly collection_schema_version?: Maybe<Scalars['String']>;
   /** Schema name associated with the data in the container. */
   readonly schema_name: Scalars['String'];
+};
+
+export type RcsbBranchedInstanceAnnotation = {
+  /** An identifier for the annotation. */
+  readonly annotation_id?: Maybe<Scalars['String']>;
+  readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbBranchedInstanceAnnotationAnnotationLineage>>>;
+  /** Identifies the version of the annotation assignment. */
+  readonly assignment_version?: Maybe<Scalars['String']>;
+  /** Chemical component identifier. */
+  readonly comp_id?: Maybe<Scalars['String']>;
+  /** A description for the annotation. */
+  readonly description?: Maybe<Scalars['String']>;
+  /** A name for the annotation. */
+  readonly name?: Maybe<Scalars['String']>;
+  /** Ordinal identifier for this category */
+  readonly ordinal: Scalars['Int'];
+  /**
+   * Code identifying the individual, organization or program that
+   *  assigned the annotation.
+   */
+  readonly provenance_source?: Maybe<Scalars['String']>;
+  /**
+   * A type or category of the annotation.
+   * 
+   * Allowable values:
+   * CATH, SCOP
+   */
+  readonly type?: Maybe<Scalars['String']>;
 };
 
 export type CorePfam = {
@@ -4310,6 +4681,15 @@ export type RcsbBirdCitation = {
    * 1984
    */
   readonly year?: Maybe<Scalars['Int']>;
+};
+
+export type RcsbBranchedInstanceAnnotationAnnotationLineage = {
+  /** Members of the annotation lineage as parent lineage depth (1-N) */
+  readonly depth?: Maybe<Scalars['Int']>;
+  /** Members of the annotation lineage as parent class identifiers. */
+  readonly id?: Maybe<Scalars['String']>;
+  /** Members of the annotation lineage as parent class names. */
+  readonly name?: Maybe<Scalars['String']>;
 };
 
 export type RcsbNonpolymerInstanceAnnotationAnnotationLineage = {
@@ -5813,6 +6193,44 @@ export type PdbxChemCompIdentifier = {
   readonly type: Scalars['String'];
 };
 
+export type RcsbBranchedStructConn = {
+  readonly connect_partner?: Maybe<RcsbBranchedStructConnConnectPartner>;
+  readonly connect_target?: Maybe<RcsbBranchedStructConnConnectTarget>;
+  /**
+   * The connection type.
+   * 
+   * Allowable values:
+   * covalent bond, hydrogen bond, ionic interaction, metal coordination, mismatched base pairs
+   */
+  readonly connect_type?: Maybe<Scalars['String']>;
+  /** A description of special details of the connection. */
+  readonly description?: Maybe<Scalars['String']>;
+  /** Distance value for this contact. */
+  readonly dist_value?: Maybe<Scalars['Float']>;
+  /** The value of _rcsb_branched_struct_conn.id is an identifier for connection. */
+  readonly id?: Maybe<Scalars['String']>;
+  /**
+   * The value of _rcsb_branched_struct_conn.id must uniquely identify a record in
+   *  the rcsb_branched_struct_conn list.
+   */
+  readonly ordinal_id: Scalars['Int'];
+  /**
+   * The chemical or structural role of the interaction
+   * 
+   * Allowable values:
+   * C-Mannosylation, N-Glycosylation, O-Glycosylation
+   */
+  readonly role?: Maybe<Scalars['String']>;
+  /**
+   * The chemical bond order associated with the specified atoms in
+   *  this contact.
+   * 
+   * Allowable values:
+   * doub, quad, sing, trip
+   */
+  readonly value_order?: Maybe<Scalars['String']>;
+};
+
 export type RcsbPolymerInstanceFeature = {
   /** Identifies the version of the feature assignment. */
   readonly assignment_version?: Maybe<Scalars['String']>;
@@ -6724,8 +7142,7 @@ export type PdbxVrptSummary = {
   readonly Babinet_b?: Maybe<Scalars['Float']>;
   /**
    * REFMAC scaling parameter as reported in log output line starting 'bulk solvent: scale'.
-   * Example: 
-   * X-ray entry specific, obtained in the eds step from REFMAC calculation.
+   * Example:            X-ray entry specific, obtained in the eds step from REFMAC calculation.
    */
   readonly Babinet_k?: Maybe<Scalars['Float']>;
   /**
@@ -6766,21 +7183,29 @@ export type PdbxVrptSummary = {
    */
   readonly EDS_resolution_low?: Maybe<Scalars['Float']>;
   /**
-   * Fo,Fc correlation: The difference between the observed structure factors (Fo) and the 
+   * Date in yyyy-mm-dd format when map was deposited to the EMDB.
+   * Reports produced by the validation server or during the initial deposition process should not have this item.
+   * If there is a difficulty parsing the item then "unknown" will be given.
+   */
+  readonly EMDB_deposition_date?: Maybe<Scalars['Date']>;
+  /** Either a decimal number or the string "NotAvailable". */
+  readonly EMDB_resolution?: Maybe<Scalars['Float']>;
+  /**
+   * Fo,Fc correlation: The difference between the observed structure factors (Fo) and the
    * calculated structure factors (Fc) measures the correlation between the PDB_model_num and the i
-   * experimental data. 
+   * experimental data.
    * Example:            X-ray entry specific, obtained in the eds step from REFMAC calculation.
    */
   readonly Fo_Fc_correlation?: Maybe<Scalars['Float']>;
   /**
-   * Each reflection has an intensity (I) and an uncertainty in measurement 
+   * Each reflection has an intensity (I) and an uncertainty in measurement
    * (sigma(I)), so I/sigma(I) is the signal-to-noise ratio. This
    * ratio decreases at higher resolution. <I/sigma(I)> is the mean of individual I/sigma(I)
    * values. Value for outer resolution shell is given in parentheses. In case
    * structure factor amplitudes are deposited, Xtriage estimates the intensities
    * first and then calculates this metric. When intensities are available in the
    * deposited file, these are converted to amplitudes and then back to intensity
-   * estimate before calculating the metric.  
+   * estimate before calculating the metric.
    * Example            X-ray entry specific, calculated by Phenix Xtriage program.
    */
   readonly I_over_sigma?: Maybe<Scalars['String']>;
@@ -6790,8 +7215,8 @@ export type PdbxVrptSummary = {
   readonly PDB_Rfree?: Maybe<Scalars['Float']>;
   /**
    * Date in yyyy-mm-dd format when structure was deposited to the PDB.
-   * Obtained from mmCIF table _database_PDB_rev item _database_PDB_rev.date_original 
-   * Reports produced by the validation server or during the initial depositon process should not have this item.
+   * Obtained from mmCIF table _database_PDB_rev item _database_PDB_rev.date_original
+   * Reports produced by the validation server or during the initial deposition process should not have this item.
    * If there is a difficulty parsing the item then "unknown" will be given.
    */
   readonly PDB_deposition_date?: Maybe<Scalars['Date']>;
@@ -6819,105 +7244,131 @@ export type PdbxVrptSummary = {
    */
   readonly RNA_suiteness?: Maybe<Scalars['Float']>;
   /**
-   * Result of absolute likelihood based Wilson scaling, 
-   * The anisotropic B value of the data is determined using a likelihood based approach. 
+   * Result of absolute likelihood based Wilson scaling,
+   * The anisotropic B value of the data is determined using a likelihood based approach.
    * The resulting B tensor is reported, the 3 diagonal values are given first, followed
    * by the 3 off diagonal values.
-   * A large spread in (especially the diagonal) values indicates anisotropy. 
-   * Example: 
-   * X-ray entry specific, calculated by Phenix Xtriage program.
+   * A large spread in (especially the diagonal) values indicates anisotropy.
+   * Example:            X-ray entry specific, calculated by Phenix Xtriage program.
    */
   readonly Wilson_B_aniso?: Maybe<Scalars['String']>;
   /**
-   * An estimate of the overall B-value of the structure, calculated from the diffraction data. 
+   * An estimate of the overall B-value of the structure, calculated from the diffraction data.
    * Units Angstroms squared.
-   * It serves as an indicator of the degree of order in the crystal and the value is usually 
+   * It serves as an indicator of the degree of order in the crystal and the value is usually
    * not hugely different from the average B-value calculated from the model.
    * Example:            X-ray entry specific, calculated by Phenix Xtriage program.
    */
   readonly Wilson_B_estimate?: Maybe<Scalars['Float']>;
   /**
-   * Structures are judged in comparison to previously deposited PDB entries. 
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries 
+   * Structures are judged in comparison to previously deposited PDB entries.
+   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
    * that are equal or poorer than this structure in terms of a quality indicator.
    * Percentile ranks range from 0 (the worst) to 100 (the best).
    */
   readonly absolute_percentile_DCC_Rfree?: Maybe<Scalars['Float']>;
   /**
-   * Structures are judged in comparison to previously deposited PDB entries. 
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries 
+   * Structures are judged in comparison to previously deposited PDB entries.
+   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
    * that are equal or poorer than this structure in terms of a quality indicator.
    * Percentile ranks range from 0 (the worst) to 100 (the best).
    */
   readonly absolute_percentile_RNA_suiteness?: Maybe<Scalars['Float']>;
   /**
-   * Structures are judged in comparison to previously deposited PDB entries. 
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries 
+   * Structures are judged in comparison to previously deposited PDB entries.
+   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
    * that are equal or poorer than this structure in terms of a quality indicator.
    * Percentile ranks range from 0 (the worst) to 100 (the best).
    */
   readonly absolute_percentile_clashscore?: Maybe<Scalars['Float']>;
   /**
-   * Structures are judged in comparison to previously deposited PDB entries. 
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries 
+   * Structures are judged in comparison to previously deposited PDB entries.
+   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
    * that are equal or poorer than this structure in terms of a quality indicator.
    * Percentile ranks range from 0 (the worst) to 100 (the best).
    */
   readonly absolute_percentile_percent_RSRZ_outliers?: Maybe<Scalars['Float']>;
   /**
-   * Structures are judged in comparison to previously deposited PDB entries. 
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries 
+   * Structures are judged in comparison to previously deposited PDB entries.
+   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
    * that are equal or poorer than this structure in terms of a quality indicator.
    * Percentile ranks range from 0 (the worst) to 100 (the best).
    */
   readonly absolute_percentile_percent_ramachandran_outliers?: Maybe<Scalars['Float']>;
   /**
-   * Structures are judged in comparison to previously deposited PDB entries. 
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries 
+   * Structures are judged in comparison to previously deposited PDB entries.
+   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
    * that are equal or poorer than this structure in terms of a quality indicator.
    * Percentile ranks range from 0 (the worst) to 100 (the best).
    */
   readonly absolute_percentile_percent_rotamer_outliers?: Maybe<Scalars['Float']>;
   /**
-   * The number of acentric reflections that Xtriage identifies as outliers on the basis 
-   * of Wilson statistics. Note that if pseudo translational symmetry is present, 
+   * The number of acentric reflections that Xtriage identifies as outliers on the basis
+   * of Wilson statistics. Note that if pseudo translational symmetry is present,
    * a large number of 'outliers' will be present.
    * Example:            X-ray entry specific, calculated by Phenix Xtriage program.
    */
   readonly acentric_outliers?: Maybe<Scalars['Int']>;
   /**
-   * The overall root mean square of the Z-score for deviations of bond angles in comparison to 
+   * The overall root mean square of the Z-score for deviations of bond angles in comparison to
    * "standard geometry" made using the MolProbity dangle program.
    * Standard geometry parameters are taken from Engh and Huber (2001) and Parkinson et al. (1996).
    * This value is for all chains in the structure.
    */
   readonly angles_RMSZ?: Maybe<Scalars['Float']>;
+  /** The proportion of all non hydrogen atoms within density. */
+  readonly atom_inclusion_all_atoms?: Maybe<Scalars['Float']>;
+  /** The proportion of backbone atoms within density. */
+  readonly atom_inclusion_backbone?: Maybe<Scalars['Float']>;
   /**
-   * The steps that were attempted by the validation pipeline software. 
+   * The steps that were attempted by the validation pipeline software.
    * A step typically involves running a 3rd party validation tool, for instance "mogul"
    * Each step that was successfully completed will result in a pdbx_vrpt_software element in the pdbx_vrpt_sotfware_notused list.
    */
   readonly attempted_validation_steps?: Maybe<Scalars['String']>;
+  /** The resolution from the intersection of the author provided fsc and the indicator curve halfbit. */
+  readonly author_provided_fsc_resolution_by_cutoff_halfbit?: Maybe<Scalars['Float']>;
+  /** The resolution from the intersection of the author provided fsc and the indicator curve onebit. */
+  readonly author_provided_fsc_resolution_by_cutoff_onebit?: Maybe<Scalars['Float']>;
+  /** The resolution from the intersection of the author provided fsc and the indicator curve 0.143. */
+  readonly author_provided_fsc_resolution_by_cutoff_pt_143?: Maybe<Scalars['Float']>;
+  /** The resolution from the intersection of the author provided fsc and the indicator curve 0.333. */
+  readonly author_provided_fsc_resolution_by_cutoff_pt_333?: Maybe<Scalars['Float']>;
+  /** The resolution from the intersection of the author provided fsc and the indicator curve 0.5. */
+  readonly author_provided_fsc_resolution_by_cutoff_pt_5?: Maybe<Scalars['Float']>;
+  /** The resolution from the intersection of the author provided fsc and the indicator curve threesigma. */
+  readonly author_provided_fsc_resolution_by_cutoff_threesigma?: Maybe<Scalars['Float']>;
   /**
-   * The overall root mean square of the Z-score for deviations of bond lengths in comparison to 
+   * The overall root mean square of the Z-score for deviations of bond lengths in comparison to
    * "standard geometry" made using the MolProbity dangle program.
    * Standard geometry parameters are taken from Engh and Huber (2001) and Parkinson et al. (1996).
    * This value is for all chains in the structure.
    */
   readonly bonds_RMSZ?: Maybe<Scalars['Float']>;
   /**
-   * REFMAC scaling parameter as reported in log output line starting 
+   * REFMAC scaling parameter as reported in log output line starting
    * 'Partial structure    1: scale.'
-   * Example: 
-   * X-ray entry specific, obtained in the eds step from REFMAC calculation.
+   * Example:            X-ray entry specific, obtained in the eds step from REFMAC calculation.
    */
   readonly bulk_solvent_b?: Maybe<Scalars['Float']>;
   /**
-   * REFMAC scaling parameter as reported in log output line starting 
+   * REFMAC scaling parameter as reported in log output line starting
    * 'Partial structure    1: scale.'
    * Example:            X-ray entry specific, obtained in the eds step from REFMAC calculation.
    */
   readonly bulk_solvent_k?: Maybe<Scalars['Float']>;
+  /** The resolution from the intersection of the fsc curve generated by from the provided halfmaps and the indicator curve halfbit. */
+  readonly calculated_fsc_resolution_by_cutoff_halfbit?: Maybe<Scalars['Float']>;
+  /** The resolution from the intersection of the fsc curve generated by from the provided halfmaps and the indicator curve onebit. */
+  readonly calculated_fsc_resolution_by_cutoff_onebit?: Maybe<Scalars['Float']>;
+  /** The resolution from the intersection of the fsc curve generated by from the provided halfmaps and the indicator curve 0.143. */
+  readonly calculated_fsc_resolution_by_cutoff_pt_143?: Maybe<Scalars['Float']>;
+  /** The resolution from the intersection of the fsc curve generated by from the provided halfmaps and the indicator curve 0.333. */
+  readonly calculated_fsc_resolution_by_cutoff_pt_333?: Maybe<Scalars['Float']>;
+  /** The resolution from the intersection of the fsc curve generated by from the provided halfmaps and the indicator curve 0.5. */
+  readonly calculated_fsc_resolution_by_cutoff_pt_5?: Maybe<Scalars['Float']>;
+  /** The resolution from the intersection of the fsc curve generated by from the provided halfmaps and the indicator curve threesigma. */
+  readonly calculated_fsc_resolution_by_cutoff_threesigma?: Maybe<Scalars['Float']>;
   /**
    * The version of CCP4 suite pdbx_vrpt_sotfware_notused used in the analysis.
    * Example:            X-ray entry specific, obtained from the eds step.
@@ -6929,12 +7380,12 @@ export type PdbxVrptSummary = {
    */
   readonly centric_outliers?: Maybe<Scalars['Float']>;
   /**
-   * Overall completeness of the chemical shift assignments for the well-defined 
+   * Overall completeness of the chemical shift assignments for the well-defined
    * regions of the structure.
    */
   readonly chemical_shift_completeness?: Maybe<Scalars['Float']>;
   /**
-   * Overall completeness of the chemical shift assignments for the full 
+   * Overall completeness of the chemical shift assignments for the full
    * macromolecule or complex as suggested by the molecular description of an entry
    * (whether some portion of it is modelled or not).
    */
@@ -6945,21 +7396,23 @@ export type PdbxVrptSummary = {
    */
   readonly chemical_shifts_input_filename?: Maybe<Scalars['String']>;
   /**
-   * This score is derived from the number of pairs of atoms in the PDB_model_num that are unusually close to each other. 
+   * This score is derived from the number of pairs of atoms in the PDB_model_num that are unusually close to each other.
    * It is calculated by the MolProbity pdbx_vrpt_software and expressed as the number or such clashes per thousand atoms.
-   * For structures determined by NMR the clashscore value here will only consider label_atom_id pairs in the 
+   * For structures determined by NMR the clashscore value here will only consider label_atom_id pairs in the
    * well-defined (core) residues from ensemble analysis.
    */
   readonly clashscore?: Maybe<Scalars['Float']>;
   /** Only given for structures determined by NMR. The MolProbity pdbx_vrpt_clashes score for all label_atom_id pairs. */
   readonly clashscore_full_length?: Maybe<Scalars['Float']>;
+  /** The recommended contour level for the primary map of this deposition. */
+  readonly contour_level_primary_map?: Maybe<Scalars['String']>;
   /**
    * The filename for the input mmCIF coordinate file given to the validation pipeline.
    * Not reported for runs at the annotation or release stage.
    */
   readonly coordinates_input_filename?: Maybe<Scalars['String']>;
   /**
-   * Diagnostic message from the wrapper of Cyrange software which identifies the 
+   * Diagnostic message from the wrapper of Cyrange software which identifies the
    * well-defined cores (domains) of NMR protein structures.
    */
   readonly cyrange_error?: Maybe<Scalars['String']>;
@@ -6968,8 +7421,8 @@ export type PdbxVrptSummary = {
   /** Reference for the Cyrange software. */
   readonly cyrange_version?: Maybe<Scalars['String']>;
   /**
-   * The ratio (Bmax &#8209; Bmin) / Bmean where Bmax, Bmin and Bmean are computed from the B-values 
-   * associated with the principal axes of the anisotropic thermal ellipsoid. 
+   * The ratio (Bmax &#8209; Bmin) / Bmean where Bmax, Bmin and Bmean are computed from the B-values
+   * associated with the principal axes of the anisotropic thermal ellipsoid.
    * This ratio is usually less than 0.5; for only 1% of PDB entries it is more than 1.0 (Read et al., 2011).
    * Example:            X-ray entry specific, obtained from the Xtriage program.
    */
@@ -6977,17 +7430,22 @@ export type PdbxVrptSummary = {
   /** A percentage, Normally percent proportion of the total number. Between 0% and 100%. */
   readonly data_completeness?: Maybe<Scalars['Float']>;
   /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating 
-   * the attribute "relative-percentile-DCC_Rfree". 
-   * Note that the "high_resol_relative_percentile_DCC_Rfree" value is numerically smaller than the 
+   * An identifier for the map
+   * For released or annotated structures this will be the EMDB ID EMD-\d{4-5} eg "EMD-1001", "EMD-12325"
+   */
+  readonly emdb_id?: Maybe<Scalars['String']>;
+  /**
+   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
+   * the attribute "relative-percentile-DCC_Rfree".
+   * Note that the "high_resol_relative_percentile_DCC_Rfree" value is numerically smaller than the
    * corresponding low-* value.
    * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
    */
   readonly high_resol_relative_percentile_DCC_Rfree?: Maybe<Scalars['Float']>;
   /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating 
-   * the attribute "relative-percentile-RNAsuiteness". 
-   * Note that the "high_resol_relative_percentile_RNA_suiteness" value is numerically smaller than the 
+   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
+   * the attribute "relative-percentile-RNAsuiteness".
+   * Note that the "high_resol_relative_percentile_RNA_suiteness" value is numerically smaller than the
    * corresponding low value.
    * Example:            Specific to entries that contain RNA polymers (and have a RNA_suiteness attribute),
    * and have been determined by X-ray crystallography.
@@ -6995,35 +7453,35 @@ export type PdbxVrptSummary = {
    */
   readonly high_resol_relative_percentile_RNA_suiteness?: Maybe<Scalars['Float']>;
   /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating 
-   * the attribute "relative-percentile-clashscore". 
-   * Note that the "high_resol_relative_percentile_clashscore" value is numerically smaller than the 
+   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
+   * the attribute "relative-percentile-clashscore".
+   * Note that the "high_resol_relative_percentile_clashscore" value is numerically smaller than the
    * corresponding low value.
    * Example:            Specific to that have a clashscore attribute and have been determined by X-ray crystallography.
    * Produced by the percentiles step of the validation pipeline software.
    */
   readonly high_resol_relative_percentile_clashscore?: Maybe<Scalars['Float']>;
   /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating 
-   * the attribute "relative-percentile-percent-RSRZ-outliers". 
-   * Note that the "high_resol_relative_percentile_percent_RSRZ_outliers" value is numerically smaller than the 
+   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
+   * the attribute "relative-percentile-percent-RSRZ-outliers".
+   * Note that the "high_resol_relative_percentile_percent_RSRZ_outliers" value is numerically smaller than the
    * corresponding low-* value.
    * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
    */
   readonly high_resol_relative_percentile_percent_RSRZ_outliers?: Maybe<Scalars['Float']>;
   /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating 
-   * the attribute "relative-percentile-percent-rama-outliers". 
-   * Note that the "high_resol_relative_percentile_percent_ramachandran_outliers" value is numerically smaller than the 
+   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
+   * the attribute "relative-percentile-percent-rama-outliers".
+   * Note that the "high_resol_relative_percentile_percent_ramachandran_outliers" value is numerically smaller than the
    * corresponding low value.
    * Example:            Specific to structures that have a percent_ramachandran_outliers attribute and have been determined by X-ray crystallography.
    * Produced by the percentiles step of the validation pipeline software.
    */
   readonly high_resol_relative_percentile_percent_ramachandran_outliers?: Maybe<Scalars['Float']>;
   /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating 
-   * the attribute "relative-percentile-percent-rota-outliers". 
-   * Note that the "high_resol_relative_percentile_percent_rotamer_outliers" value is numerically smaller than the 
+   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
+   * the attribute "relative-percentile-percent-rota-outliers".
+   * Note that the "high_resol_relative_percentile_percent_rotamer_outliers" value is numerically smaller than the
    * corresponding low value.
    * Example:            Specific to that have a percent_rotamer_outliers attribute and have been determined by X-ray crystallography.
    * Produced by the percentiles step of the validation pipeline software.
@@ -7037,17 +7495,17 @@ export type PdbxVrptSummary = {
    */
   readonly ligands_for_buster_report?: Maybe<Scalars['String']>;
   /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating 
-   * the attribute "relative-percentile-DCC_Rfree". 
-   * Note that the "low_resol_relative_percentile_DCC_Rfree" value is numerically greater than the 
+   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
+   * the attribute "relative-percentile-DCC_Rfree".
+   * Note that the "low_resol_relative_percentile_DCC_Rfree" value is numerically greater than the
    * corresponding high value.
    * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
    */
   readonly low_resol_relative_percentile_DCC_Rfree?: Maybe<Scalars['Float']>;
   /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating 
-   * the attribute "relative-percentile-RNAsuiteness". 
-   * Note that the "low_resol_relative_percentile_RNA_suiteness" value is numerically greater than the 
+   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
+   * the attribute "relative-percentile-RNAsuiteness".
+   * Note that the "low_resol_relative_percentile_RNA_suiteness" value is numerically greater than the
    * corresponding high value.
    * Example:            Specific to entries that contain RNA polymers (and have a RNA_suiteness attribute),
    * and have been determined by X-ray crystallography.
@@ -7055,49 +7513,49 @@ export type PdbxVrptSummary = {
    */
   readonly low_resol_relative_percentile_RNA_suiteness?: Maybe<Scalars['Float']>;
   /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating 
-   * the attribute "relative-percentile-clashscore". 
-   * Note that the "low_resol_relative_percentile_clashscore" value is numerically greater than the 
+   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
+   * the attribute "relative-percentile-clashscore".
+   * Note that the "low_resol_relative_percentile_clashscore" value is numerically greater than the
    * corresponding high value.
    * Example:            Specific to that have a clashscore attribute and have been determined by X-ray crystallography.
    * Produced by the percentiles step of the validation pipeline software.
    */
   readonly low_resol_relative_percentile_clashscore?: Maybe<Scalars['Float']>;
   /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating 
-   * the attribute "relative-percentile-percent-RSRZ-outliers". 
-   * Note that the "low_resol_relative_percentile_percent_RSRZ_outliers" value is numerically greater than the 
+   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
+   * the attribute "relative-percentile-percent-RSRZ-outliers".
+   * Note that the "low_resol_relative_percentile_percent_RSRZ_outliers" value is numerically greater than the
    * corresponding high value.
    * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
    */
   readonly low_resol_relative_percentile_percent_RSRZ_outliers?: Maybe<Scalars['Float']>;
   /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating 
-   * the attribute "relative-percentile-percent-rama-outliers". 
-   * Note that the "low_resol_relative_percentile_percent_ramachandran_outliers" value is numerically greater than the 
+   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
+   * the attribute "relative-percentile-percent-rama-outliers".
+   * Note that the "low_resol_relative_percentile_percent_ramachandran_outliers" value is numerically greater than the
    * corresponding high value.
    * Example:            Specific to that have a percent_ramachandran_outliers attribute and have been determined by X-ray crystallography.
    * Produced by the percentiles step of the validation pipeline software.
    */
   readonly low_resol_relative_percentile_percent_ramachandran_outliers?: Maybe<Scalars['Float']>;
   /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating 
-   * the attribute "relative-percentile-percent-rota-outliers". 
-   * Note that the "low_resol_relative_percentile_percent_rotamer_outliers" value is numerically greater than the 
+   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
+   * the attribute "relative-percentile-percent-rota-outliers".
+   * Note that the "low_resol_relative_percentile_percent_rotamer_outliers" value is numerically greater than the
    * corresponding high value.
    * Example:            Specific to that have a percent_rotamer_outliers attribute and have been determined by X-ray crystallography.
    * Produced by the percentiles step of the validation pipeline software.
    */
   readonly low_resol_relative_percentile_percent_rotamer_outliers?: Maybe<Scalars['Float']>;
   /**
-   * For each Cyrange well-defined core ("cyrange_domain") the id of the PDB_model_num which is most 
-   * similar to other models as measured by pairwise RMSDs over the domain. 
+   * For each Cyrange well-defined core ("cyrange_domain") the id of the PDB_model_num which is most
+   * similar to other models as measured by pairwise RMSDs over the domain.
    * For the whole entry ("Entry"), the medoid PDB_model_num of the largest core is taken as an overall
    * representative of the structure.
    */
   readonly medoid_model?: Maybe<Scalars['Int']>;
   /**
-   * A flag indicating if all models in the NMR ensemble contain the exact 
+   * A flag indicating if all models in the NMR ensemble contain the exact
    * same atoms ("True") or if the models differ in this respect ("False").
    */
   readonly nmr_models_consistency_flag?: Maybe<Scalars['String']>;
@@ -7131,7 +7589,7 @@ export type PdbxVrptSummary = {
    */
   readonly no_ligands_for_mogul?: Maybe<Scalars['String']>;
   /**
-   * Will be set to "true" if no property was found to do percentile analysis on. 
+   * Will be set to "true" if no property was found to do percentile analysis on.
    * Please note that currently due to a bug that this attribute is "true" erronously for NMR structures.
    */
   readonly no_percentile_property?: Maybe<Scalars['String']>;
@@ -7141,34 +7599,33 @@ export type PdbxVrptSummary = {
    */
   readonly num_H_reduce?: Maybe<Scalars['Float']>;
   /**
-   * The number of PDB depositions used in the comparison when calculating the attribute 
+   * The number of PDB depositions used in the comparison when calculating the attribute
    * "absolute-percentile-DCC_Rfree".
-   * Example: 
-   * X-ray entry specific, produced by the percentiles step of the validation pipeline software.
+   * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
    */
   readonly num_PDBids_absolute_percentile_DCC_Rfree?: Maybe<Scalars['Int']>;
   /**
-   * The number of PDB depositions used in the comparison when calculating the attribute 
+   * The number of PDB depositions used in the comparison when calculating the attribute
    * "absolute-percentile-RNAsuiteness".
    * Example:            Specific to entries that contain RNA polymers (and have a RNA_suiteness attribute).
    * Produced by the percentiles step of the validation pipeline software.
    */
   readonly num_PDBids_absolute_percentile_RNA_suiteness?: Maybe<Scalars['Int']>;
   /**
-   * The number of PDB depositions used in the comparison when calculating the attribute 
+   * The number of PDB depositions used in the comparison when calculating the attribute
    * "absolute-percentile-clashscore"
    * Example:             Produced by the percentiles step of the validation pipeline software.
    */
   readonly num_PDBids_absolute_percentile_clashscore?: Maybe<Scalars['Int']>;
   /**
-   * The number of PDB depositions used in the comparison when calculating the attribute 
+   * The number of PDB depositions used in the comparison when calculating the attribute
    * "absolute-percentile-percent-RSRZ-outliers".
    * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
    */
   readonly num_PDBids_absolute_percentile_percent_RSRZ_outliers?: Maybe<Scalars['Int']>;
   /**
-   * The number of PDB depositions used in the comparison when calculating the attribute 
-   * "absolute_percentile_percent_ramachandran_outliers" 
+   * The number of PDB depositions used in the comparison when calculating the attribute
+   * "absolute-percentile-percent-rama-outliers"
    * Example:            Produced by the percentiles step of the validation pipeline software.
    */
   readonly num_PDBids_absolute_percentile_percent_ramachandran_outliers?: Maybe<Scalars['Int']>;
@@ -7179,39 +7636,38 @@ export type PdbxVrptSummary = {
    */
   readonly num_PDBids_absolute_percentile_percent_rotamer_outliers?: Maybe<Scalars['Int']>;
   /**
-   * The number of PDB depositions used in the comparison when calculating the attribute 
+   * The number of PDB depositions used in the comparison when calculating the attribute
    * "relative-percentile-DCC_Rfree".
-   * Example: 
-   * X-ray entry specific, produced by the percentiles step of the validation pipeline software.
+   * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
    */
   readonly num_PDBids_relative_percentile_DCC_Rfree?: Maybe<Scalars['Int']>;
   /**
-   * The number of PDB depositions used in the comparison when calculating the attribute 
+   * The number of PDB depositions used in the comparison when calculating the attribute
    * "relative-percentile-RNAsuiteness".
    * Example:            Specific to entries that contain RNA polymers (and have a RNA_suiteness attribute).
    * Produced by the percentiles step of the validation pipeline software.
    */
   readonly num_PDBids_relative_percentile_RNA_suiteness?: Maybe<Scalars['Int']>;
   /**
-   * The number of PDB depositions used in the comparison when calculating the attribute 
+   * The number of PDB depositions used in the comparison when calculating the attribute
    * "relative-percentile-clashscore"
    * Example:            Produced by the percentiles step of the validation pipeline software.
    */
   readonly num_PDBids_relative_percentile_clashscore?: Maybe<Scalars['Int']>;
   /**
-   * The number of PDB depositions used in the comparison when calculating the attribute 
+   * The number of PDB depositions used in the comparison when calculating the attribute
    * "relative-percentile-percent-RSRZ-outliers".
    * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
    */
   readonly num_PDBids_relative_percentile_percent_RSRZ_outliers?: Maybe<Scalars['Int']>;
   /**
-   * The number of PDB depositions used in the comparison when calculating the attribute 
+   * The number of PDB depositions used in the comparison when calculating the attribute
    * "relative-percentile-percent-rama-outliers"
    * Example:            Produced by the percentiles step of the validation pipeline software.
    */
   readonly num_PDBids_relative_percentile_percent_ramachandran_outliers?: Maybe<Scalars['Int']>;
   /**
-   * The number of PDB depositions used in the comparison when calculating the attribute 
+   * The number of PDB depositions used in the comparison when calculating the attribute
    * "relative-percentile-percent-rota-outliers"
    * Example:            Produced by the percentiles step of the validation pipeline software.
    */
@@ -7229,7 +7685,7 @@ export type PdbxVrptSummary = {
    */
   readonly num_bonds_RMSZ?: Maybe<Scalars['Int']>;
   /**
-   * The number of reflections in the free set as defined in the input structure factor file supplied to the validation pipeline. 
+   * The number of reflections in the free set as defined in the input structure factor file supplied to the validation pipeline.
    * example:            X-ray entry specific, obtained from the DCC program.
    */
   readonly num_free_reflections?: Maybe<Scalars['Int']>;
@@ -7256,8 +7712,8 @@ export type PdbxVrptSummary = {
   /**
    * The percentile bins that this structure would contribute to in a recalculation of
    * percentile. The string is a comma separated list.
-   * Example: An X-ray entry with a resolution of 1.8 Angstroms, 
-   * that would contribute to bins all structures, what ever bin 1.8 Angstrom resolution is in and 
+   * Example: An X-ray entry with a resolution of 1.8 Angstroms,
+   * that would contribute to bins all structures, what ever bin 1.8 Angstrom resolution is in and
    * the all xray bin.
    * Example #2: An EM entry that would contribute to all and em structures bins.
    * Example #3: A NMR entry hat would contribute to all and nmr structures bins.
@@ -7268,7 +7724,7 @@ export type PdbxVrptSummary = {
    * and have _entity_poly.type indicating that they are protein, RNA or DNA: that is in the list
    * 'polypeptide(L)', 'polypeptide(D)', 'polyribonucleotide, 'polydeoxyribonucleotide'  or
    * 'polydeoxyribonucleotide/polyribonucleotide hybrid'.
-   * Normally the entity.id's are integer numbers but not necessarily so. 
+   * Normally the entity.id's are integer numbers but not necessarily so.
    * Example
    */
   readonly protein_DNA_RNA_entities?: Maybe<Scalars['String']>;
@@ -7280,77 +7736,77 @@ export type PdbxVrptSummary = {
    */
   readonly reflections_input_filename?: Maybe<Scalars['String']>;
   /**
-   * Version of the REFMAC pdbx_vrpt_software used in the EDS step.                               
+   * Version of the REFMAC pdbx_vrpt_software used in the EDS step.
    * Example:           X-ray entry specific, obtained in the eds step from REFMAC calculation.
    */
   readonly refmac_version?: Maybe<Scalars['String']>;
   /**
-   * Structures are judged in comparison to previously deposited PDB entries. 
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries 
+   * Structures are judged in comparison to previously deposited PDB entries.
+   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
    * that are equal or poorer than this structure in terms of a quality indicator.
    * Percentile ranks range from 0 (the worst) to 100 (the best).
    */
   readonly relative_percentile_DCC_Rfree?: Maybe<Scalars['Float']>;
   /**
-   * Structures are judged in comparison to previously deposited PDB entries. 
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries 
+   * Structures are judged in comparison to previously deposited PDB entries.
+   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
    * that are equal or poorer than this structure in terms of a quality indicator.
    * Percentile ranks range from 0 (the worst) to 100 (the best).
    */
   readonly relative_percentile_RNA_suiteness?: Maybe<Scalars['Float']>;
   /**
-   * Structures are judged in comparison to previously deposited PDB entries. 
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries 
+   * Structures are judged in comparison to previously deposited PDB entries.
+   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
    * that are equal or poorer than this structure in terms of a quality indicator.
    * Percentile ranks range from 0 (the worst) to 100 (the best).
    */
   readonly relative_percentile_clashscore?: Maybe<Scalars['Float']>;
   /**
-   * Structures are judged in comparison to previously deposited PDB entries. 
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries 
+   * Structures are judged in comparison to previously deposited PDB entries.
+   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
    * that are equal or poorer than this structure in terms of a quality indicator.
    * Percentile ranks range from 0 (the worst) to 100 (the best).
    */
   readonly relative_percentile_percent_RSRZ_outliers?: Maybe<Scalars['Float']>;
   /**
-   * Structures are judged in comparison to previously deposited PDB entries. 
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries 
+   * Structures are judged in comparison to previously deposited PDB entries.
+   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
    * that are equal or poorer than this structure in terms of a quality indicator.
    * Percentile ranks range from 0 (the worst) to 100 (the best).
    */
   readonly relative_percentile_percent_ramachandran_outliers?: Maybe<Scalars['Float']>;
   /**
-   * Structures are judged in comparison to previously deposited PDB entries. 
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries 
+   * Structures are judged in comparison to previously deposited PDB entries.
+   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
    * that are equal or poorer than this structure in terms of a quality indicator.
    * Percentile ranks range from 0 (the worst) to 100 (the best).
    */
   readonly relative_percentile_percent_rotamer_outliers?: Maybe<Scalars['Float']>;
   /**
-   * The date, time and time-zone that the validation XML file was created. 
+   * The date, time and time-zone that the validation XML file was created.
    * The string will be formatted like "Feb  7, 2017 -- 12:32 pm GMT".
    */
   readonly report_creation_date?: Maybe<Scalars['String']>;
   /**
-   * The data high resolution diffraction limit, in Angstroms, obtained from cif item 
+   * The data high resolution diffraction limit, in Angstroms, obtained from cif item
    * _reflns.d_resolution_high.
    * X-ray entry specific.
    */
   readonly resol_high_from_reflectionsfile?: Maybe<Scalars['Float']>;
   /**
-   * The data low resolution diffraction limit, in Angstroms, obtained from cif item 
+   * The data low resolution diffraction limit, in Angstroms, obtained from cif item
    * _reflns.d_resolution_low.
    * X-ray entry specific.
    */
   readonly resol_low_from_reflectionsfile?: Maybe<Scalars['Float']>;
   /**
-   * This is a comma separated list of the residue types whose bond lengths and bond angles have 
+   * This is a comma separated list of the residue types whose bond lengths and bond angles have
    * not been checked against "standard geometry" using the MolProbity dangle program.
    * Standard geometry parameters are taken from Engh and Huber (2001) and Parkinson et al. (1996)
    */
   readonly restypes_notchecked_for_bond_angle_geometry?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
   /**
-   * Version of the software for chemical shift outlier detection - currently 
+   * Version of the software for chemical shift outlier detection - currently
    * same as revision number of the validation pipeline.
    */
   readonly shiftchecker_version?: Maybe<Scalars['String']>;
@@ -7361,20 +7817,20 @@ export type PdbxVrptSummary = {
    */
   readonly trans_NSC?: Maybe<Scalars['String']>;
   /**
-   * Padilla and Yeates twinning parameter <|L|>. 
+   * Padilla and Yeates twinning parameter <|L|>.
    * Theoretical values is 0.5 in the untwinned case, and 0.375 in the perfectly twinned case.
    * Example:            X-ray entry specific, obtained from the Xtriage program.
    */
   readonly twin_L?: Maybe<Scalars['Float']>;
   /**
-   * Padilla and Yeates twinning parameter <|L**2|>. 
+   * Padilla and Yeates twinning parameter <|L**2|>.
    * Theoretical values is 0.333 in the untwinned case, and 0.2 in the perfectly twinned case.
    * Example:            X-ray entry specific, obtained from the Xtriage program.
    */
   readonly twin_L2?: Maybe<Scalars['Float']>;
   /**
    * Estimated twinning fraction for operators as identified by Xtriage. A semicolon separated
-   * list of operators with fractions is givens 
+   * list of operators with fractions is givens
    * Example:            X-ray entry specific, obtained from the Xtriage program.
    */
   readonly twin_fraction?: Maybe<Scalars['String']>;
@@ -7438,7 +7894,7 @@ export type RcsbPolymerStructConn = {
    * The chemical or structural role of the interaction
    * 
    * Allowable values:
-   * C-Mannosylation, N-Glycosylation, O-Glycosylation
+   * C-Mannosylation, N-Glycosylation, O-Glycosylation, S-Glycosylation
    */
   readonly role?: Maybe<Scalars['String']>;
   /**
@@ -7547,6 +8003,26 @@ export type PdbxStructAssembly = {
    * author_and_software_defined_assembly, author_defined_assembly, software_defined_assembly
    */
   readonly rcsb_details?: Maybe<Scalars['String']>;
+};
+
+export type RcsbBranchedEntityContainerIdentifiers = {
+  /** Instance identifiers corresponding to copies of the entity in this container. */
+  readonly asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  /** Author instance identifiers corresponding to copies of the entity in this container. */
+  readonly auth_asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  /** Unique list of monomer chemical component identifiers in the entity in this container. */
+  readonly chem_comp_monomers?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  /** Entity identifier for the container. */
+  readonly entity_id: Scalars['String'];
+  /** Entry identifier for the container. */
+  readonly entry_id: Scalars['String'];
+  /** The BIRD identifier for the entity in this container. */
+  readonly prd_id?: Maybe<Scalars['String']>;
+  /**
+   * A unique identifier for each object in this entity container formed by
+   *  an underscore separated concatenation of entry and entity identifiers.
+   */
+  readonly rcsb_id?: Maybe<Scalars['String']>;
 };
 
 export type RcsbRepositoryHoldingsCurrentEntryContainerIdentifiers = {
@@ -7721,7 +8197,7 @@ export type ChemComp = {
    *  cap and monomers with some type of C-terminal (or 3') cap.
    * 
    * Allowable values:
-   * D-beta-peptide, C-gamma linking, D-gamma-peptide, C-delta linking, D-peptide COOH carboxy terminus, D-peptide NH3 amino terminus, D-peptide linking, D-saccharide, D-saccharide 1,4 and 1,4 linking, D-saccharide 1,4 and 1,6 linking, D-saccharide, alpha linking, D-saccharide, beta linking, DNA OH 3 prime terminus, DNA OH 5 prime terminus, DNA linking, L-DNA linking, L-RNA linking, L-beta-peptide, C-gamma linking, L-gamma-peptide, C-delta linking, L-peptide COOH carboxy terminus, L-peptide NH3 amino terminus, L-peptide linking, L-saccharide, L-saccharide 1,4 and 1,4 linking, L-saccharide 1,4 and 1,6 linking, L-saccharide, alpha linking, L-saccharide, beta linking, RNA OH 3 prime terminus, RNA OH 5 prime terminus, RNA linking, non-polymer, other, peptide linking, peptide-like, saccharide
+   * D-beta-peptide, C-gamma linking, D-gamma-peptide, C-delta linking, D-peptide COOH carboxy terminus, D-peptide NH3 amino terminus, D-peptide linking, D-saccharide, D-saccharide, alpha linking, D-saccharide, beta linking, DNA OH 3 prime terminus, DNA OH 5 prime terminus, DNA linking, L-DNA linking, L-RNA linking, L-beta-peptide, C-gamma linking, L-gamma-peptide, C-delta linking, L-peptide COOH carboxy terminus, L-peptide NH3 amino terminus, L-peptide linking, L-saccharide, L-saccharide, alpha linking, L-saccharide, beta linking, RNA OH 3 prime terminus, RNA OH 5 prime terminus, RNA linking, non-polymer, other, peptide linking, peptide-like, saccharide
    */
   readonly type?: Maybe<Scalars['String']>;
 };
@@ -7755,7 +8231,7 @@ export type PdbxReferenceEntityPoly = {
    * The type of the polymer.
    * 
    * Allowable values:
-   * nucleic-acid-like, peptide-like, polysaccharide-like
+   * nucleic-acid-like, oligosaccharide, peptide-like, polysaccharide-like
    */
   readonly type?: Maybe<Scalars['String']>;
 };
@@ -7776,13 +8252,23 @@ export type RcsbStructSymmetry = {
    * Global Symmetry, Pseudo Symmetry, Local Symmetry
    */
   readonly kind: Scalars['String'];
-  /** Oligomeric state refers to a composition of polymeric subunits in quaternary structure. Quaternary structure may be composed either exclusively of several copies of identical subunits, in which case they are termed homo-oligomers, or alternatively by at least one copy of different subunits (hetero-oligomers). Quaternary structure composed of a single subunit is denoted as 'Monomer'. */
+  /**
+   * Oligomeric state refers to a composition of polymeric subunits in quaternary structure. Quaternary structure may be composed either exclusively of several copies of identical subunits, in which case they are termed homo-oligomers, or alternatively by at least one copy of different subunits (hetero-oligomers). Quaternary structure composed of a single subunit is denoted as 'Monomer'.
+   * 
+   * Examples:
+   * Monomer, Homo 2-mer, Hetero 3-mer
+   */
   readonly oligomeric_state: Scalars['String'];
   /** The orientation of the principal rotation (symmetry) axis. */
   readonly rotation_axes?: Maybe<ReadonlyArray<Maybe<RcsbStructSymmetryRotationAxes>>>;
   /** Each type of different subunits is assigned a latter. The number of equivalent subunits is added as a coefficient after each letter (except 1 which is not added explicitly). */
   readonly stoichiometry: ReadonlyArray<Maybe<Scalars['String']>>;
-  /** Symmetry symbol refers to point group or helical symmetry of identical polymeric subunits in Schönflies notation. Contains point group symbol (e.g., C2, C5, D2, T, O, I) or H for helical symmetry. */
+  /**
+   * Symmetry symbol refers to point group or helical symmetry of identical polymeric subunits in Schönflies notation. Contains point group symbol (e.g., C2, C5, D2, T, O, I) or H for helical symmetry.
+   * 
+   * Examples:
+   * C1, D3, H
+   */
   readonly symbol: Scalars['String'];
   /**
    * Symmetry type refers to point group or helical symmetry of identical polymeric subunits. Contains point group types (e.g. Cyclic, Dihedral) or Helical for helical symmetry.
@@ -8129,9 +8615,9 @@ export type PdbxReferenceMolecule = {
    * Broadly defines the function of the entity.
    * 
    * Allowable values:
-   * Antagonist, Anthelmintic, Antibiotic, Anticancer, Anticoagulant, Antifungal, Antiinflammatory, Antimicrobial, Antineoplastic, Antiparasitic, Antiretroviral, Antithrombotic, Antitumor, Antiviral, CASPASE inhibitor, Chaperone binding, Enzyme inhibitor, Growth factor, Immunosuppressant, Inhibitor, Lantibiotic, Metabolism, Metal transport, Oxidation-reduction, RNA synthesis Inhibitor, Receptor, Synthetic opioid, Thrombin inhibitor, Toxin, Transition state mimetic, Transport activator, Trypsin inhibitor, Unknown
+   * Antagonist, Anthelmintic, Antibiotic, Antibiotic, Anthelmintic, Antibiotic, Antimicrobial, Antibiotic, Antineoplastic, Anticancer, Anticoagulant, Anticoagulant, Antithrombotic, Antifungal, Antigen, Antiinflammatory, Antimicrobial, Antimicrobial, Antiparasitic, Antibiotic, Antimicrobial, Antiretroviral, Antimicrobial, Antitumor, Antineoplastic, Antiparasitic, Antiretroviral, Antithrombotic, Antitumor, Antiviral, CASPASE inhibitor, Chaperone binding, Drug delivery, Enzyme inhibitor, Glycan component, Growth factor, Immunosuppressant, Inducer, Inhibitor, Lantibiotic, Metabolism, Metal transport, Nutrient, Oxidation-reduction, Protein binding, Receptor, Substrate analog, Synthetic opioid, Thrombin inhibitor, Thrombin inhibitor, Trypsin inhibitor, Toxin, Transition state mimetic, Transport activator, Trypsin inhibitor, Unknown, Water retention
    */
-  readonly class?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly class?: Maybe<Scalars['String']>;
   /** Evidence for the assignment of _pdbx_reference_molecule.class */
   readonly class_evidence_code?: Maybe<Scalars['String']>;
   /** Special details about this molecule. */
@@ -8208,9 +8694,9 @@ export type PdbxReferenceMolecule = {
    * Defines the structural classification of the entity.
    * 
    * Allowable values:
-   * Amino acid, Aminoglycoside, Ansamycin, Anthracycline, Anthraquinone, Chalkophore, Chalkophore, Polypeptide, Chromophore, Cyclic depsipeptide, Cyclic lipopeptide, Cyclic peptide, Glycopeptide, Heterocyclic, Imino sugar, Keto acid, Lipoglycopeptide, Lipopeptide, Macrolide, Non-polymer, Nucleoside, Oligopeptide, Oligosaccharide, Peptaibol, Peptide-like, Polycyclic, Polypeptide, Polysaccharide, Quinolone, Siderophore, Thiolactone, Thiopeptide, Tricyclic pentaglycosidic antineoplastic antibiotic, Unknown
+   * Amino acid, Aminoglycoside, Ansamycin, Anthracycline, Anthraquinone, Chalkophore, Chalkophore, Polypeptide, Chromophore, Cyclic depsipeptide, Cyclic lipopeptide, Cyclic peptide, Glycopeptide, Heterocyclic, Imino sugar, Keto acid, Lipoglycopeptide, Lipopeptide, Macrolide, Non-polymer, Nucleoside, Oligopeptide, Oligosaccharide, Peptaibol, Peptide-like, Polycyclic, Polypeptide, Polysaccharide, Quinolone, Siderophore, Thiolactone, Thiopeptide, Unknown
    */
-  readonly type?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly type?: Maybe<Scalars['String']>;
   /** Evidence for the assignment of _pdbx_reference_molecule.type */
   readonly type_evidence_code?: Maybe<Scalars['String']>;
 };
@@ -8695,11 +9181,33 @@ export type PdbxStructAssemblyAuthEvidence = {
    * Provides the experimental method to determine the state of this assembly
    * 
    * Allowable values:
-   * SAXS, assay for oligomerization, cross-linking, equilibrium centrifugation, fluorescence resonance energy transfer, gel filtration, homology, immunoprecipitation, isothermal titration calorimetry, light scattering, mass spectrometry, microscopy, native gel electrophoresis, none, scanning transmission electron microscopy, surface plasmon resonance
+   * NMR relaxation study, SAXS, assay for oligomerization, cross-linking, equilibrium centrifugation, fluorescence resonance energy transfer, gel filtration, homology, immunoprecipitation, isothermal titration calorimetry, light scattering, mass spectrometry, microscopy, native gel electrophoresis, none, scanning transmission electron microscopy, surface plasmon resonance
    */
   readonly experimental_support?: Maybe<Scalars['String']>;
   /** Identifies a unique record in pdbx_struct_assembly_auth_evidence. */
   readonly id: Scalars['String'];
+};
+
+export type RcsbBranchedInstanceFeatureSummary = {
+  /** The feature count. */
+  readonly count?: Maybe<Scalars['Int']>;
+  /** The fractional feature coverage relative to the full branched entity. */
+  readonly coverage?: Maybe<Scalars['Float']>;
+  /** The maximum feature length. */
+  readonly maximum_length?: Maybe<Scalars['Int']>;
+  /** The maximum feature value. */
+  readonly maximum_value?: Maybe<Scalars['Float']>;
+  /** The minimum feature length. */
+  readonly minimum_length?: Maybe<Scalars['Int']>;
+  /** The minimum feature value. */
+  readonly minimum_value?: Maybe<Scalars['Float']>;
+  /**
+   * Type or category of the feature.
+   * 
+   * Allowable values:
+   * BINDING_SITE, CATH, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, RSRCC_OUTLIER, RSRZ_OUTLIER, SCOP, UNOBSERVED_ATOM_XYZ, UNOBSERVED_RESIDUE_XYZ, ZERO_OCCUPANCY_ATOM_XYZ, ZERO_OCCUPANCY_RESIDUE_XYZ
+   */
+  readonly type?: Maybe<Scalars['String']>;
 };
 
 export type RcsbNonpolymerInstanceAnnotation = {
@@ -8861,7 +9369,7 @@ export type RcsbNonpolymerStructConn = {
    * The chemical or structural role of the interaction
    * 
    * Allowable values:
-   * C-Mannosylation, N-Glycosylation, O-Glycosylation
+   * C-Mannosylation, N-Glycosylation, O-Glycosylation, S-Glycosylation
    */
   readonly role?: Maybe<Scalars['String']>;
   /**
@@ -9055,6 +9563,18 @@ export type RcsbClusterFlexibility = {
   readonly provenance_code?: Maybe<Scalars['String']>;
 };
 
+export type RcsbEntryInfoDiffrnResolutionHigh = {
+  /**
+   * The provenence source for the high resolution limit of data collection.
+   * 
+   * Allowable values:
+   * Depositor assigned, From refinement resolution cutoff, From the high resolution shell
+   */
+  readonly provenance_source?: Maybe<Scalars['String']>;
+  /** The high resolution limit of data collection. */
+  readonly value?: Maybe<Scalars['Float']>;
+};
+
 export type RcsbNonpolymerEntityContainerIdentifiers = {
   /** Instance identifiers corresponding to copies of the entity in this container. */
   readonly asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
@@ -9145,7 +9665,7 @@ export type PdbxAuditRevisionDetails = {
    * A type classification of the revision
    * 
    * Allowable values:
-   * Coordinate replacement, Initial release, Obsolete
+   * Coordinate replacement, Initial release, Obsolete, Remediation
    */
   readonly type?: Maybe<Scalars['String']>;
 };
@@ -9229,6 +9749,26 @@ export type Struct = {
    * T4 lysozyme mutant - S32A, 5'-D(*(I)CP*CP*GP*G)-3, T4 lysozyme mutant - S32A, hen egg white lysozyme at -30 degrees C, quail egg white lysozyme at 2 atmospheres
    */
   readonly title?: Maybe<Scalars['String']>;
+};
+
+export type RcsbBranchedInstanceFeatureFeatureValue = {
+  /** The chemical component identifier for the instance of the feature value. */
+  readonly comp_id?: Maybe<Scalars['String']>;
+  /** Specific details about the feature. */
+  readonly details?: Maybe<Scalars['String']>;
+  /** The reference value of the feature. */
+  readonly reference?: Maybe<Scalars['Float']>;
+  /** The reported value of the feature. */
+  readonly reported?: Maybe<Scalars['Float']>;
+  /** The estimated uncertainty of the reported feature value. */
+  readonly uncertainty_estimate?: Maybe<Scalars['Float']>;
+  /**
+   * The type of estimated uncertainty for the reported feature value.
+   * 
+   * Allowable values:
+   * Z-Score
+   */
+  readonly uncertainty_estimate_type?: Maybe<Scalars['String']>;
 };
 
 export type RcsbNonpolymerStructConnConnectPartner = {
@@ -9486,6 +10026,22 @@ export type RcsbNonpolymerEntity = {
    * 1, 2, 3
    */
   readonly pdbx_number_of_molecules?: Maybe<Scalars['Int']>;
+};
+
+export type RcsbBranchedEntityInstanceContainerIdentifiers = {
+  /** Instance identifier for this container. */
+  readonly asym_id: Scalars['String'];
+  /** Author instance identifier for this container. */
+  readonly auth_asym_id?: Maybe<Scalars['String']>;
+  /** Entity identifier for the container. */
+  readonly entity_id?: Maybe<Scalars['String']>;
+  /** Entry identifier for the container. */
+  readonly entry_id: Scalars['String'];
+  /**
+   * A unique identifier for each object in this entity instance container formed by
+   *  an 'dot' (.) separated concatenation of entry and entity instance identifiers.
+   */
+  readonly rcsb_id?: Maybe<Scalars['String']>;
 };
 
 export type EntitySrcGen = {
@@ -9998,6 +10554,18 @@ export type EmSoftware = {
    * 9.03, 2.1
    */
   readonly version?: Maybe<Scalars['String']>;
+};
+
+export type PdbxEntityBranch = {
+  /** Number of constituent chemical components in the branched entity. */
+  readonly rcsb_branched_component_count?: Maybe<Scalars['Int']>;
+  /**
+   * The type of this branched oligosaccharide.
+   * 
+   * Allowable values:
+   * oligosaccharide
+   */
+  readonly type?: Maybe<Scalars['String']>;
 };
 
 export type RcsbAccessionInfo = {
@@ -10516,6 +11084,89 @@ export type PdbxSerialCrystallographyMeasurement = {
   readonly xfel_pulse_repetition_rate?: Maybe<Scalars['Float']>;
 };
 
+export type RcsbBranchedStructConnConnectPartner = {
+  /**
+   * A component of the identifier for the partner in the structure
+   *  connection.
+   * 
+   *  This data item is a pointer to _atom_site.label_alt_id in the
+   *  ATOM_SITE category.
+   */
+  readonly label_alt_id?: Maybe<Scalars['String']>;
+  /**
+   * A component of the identifier for the partner in the structure
+   *  connection.
+   * 
+   *  This data item is a pointer to _atom_site.label_asym_id in the
+   *  ATOM_SITE category.
+   */
+  readonly label_asym_id: Scalars['String'];
+  /**
+   * A component of the identifier for the partner in the structure
+   *  connection.
+   * 
+   *  This data item is a pointer to _chem_comp_atom.atom_id in the
+   *  CHEM_COMP_ATOM category.
+   */
+  readonly label_atom_id?: Maybe<Scalars['String']>;
+  /**
+   * A component of the identifier for the partner in the structure
+   *  connection.
+   * 
+   *  This data item is a pointer to _atom_site.label_comp_id in the
+   *  ATOM_SITE category.
+   */
+  readonly label_comp_id: Scalars['String'];
+  /**
+   * A component of the identifier for the partner in the structure
+   *  connection.
+   * 
+   *  This data item is a pointer to _atom_site.label_seq_id in the
+   *  ATOM_SITE category.
+   */
+  readonly label_seq_id?: Maybe<Scalars['Int']>;
+  /**
+   * Describes the symmetry operation that should be applied to the
+   *  atom set specified by _rcsb_branched_struct_conn.connect_partner_label* to generate the
+   *  partner in the structure connection.
+   * 
+   * Examples:
+   * 1_555, 7_645
+   */
+  readonly symmetry?: Maybe<Scalars['String']>;
+};
+
+export type RcsbBranchedEntityFeature = {
+  /** Identifies the version of the feature assignment. */
+  readonly assignment_version?: Maybe<Scalars['String']>;
+  /** A description for the feature. */
+  readonly description?: Maybe<Scalars['String']>;
+  /** An identifier for the feature. */
+  readonly feature_id?: Maybe<Scalars['String']>;
+  readonly feature_positions?: Maybe<ReadonlyArray<Maybe<RcsbBranchedEntityFeatureFeaturePositions>>>;
+  /** A name for the feature. */
+  readonly name?: Maybe<Scalars['String']>;
+  /**
+   * Code identifying the individual, organization or program that
+   *  assigned the feature.
+   */
+  readonly provenance_source?: Maybe<Scalars['String']>;
+  /**
+   * Code residue coordinate system for the assigned feature.
+   * 
+   * Allowable values:
+   * PDB entity
+   */
+  readonly reference_scheme?: Maybe<Scalars['String']>;
+  /**
+   * A type or category of the feature.
+   * 
+   * Allowable values:
+   * mutation
+   */
+  readonly type?: Maybe<Scalars['String']>;
+};
+
 export type RcsbRepositoryHoldingsCurrent = {
   /**
    * The list of content types associated with this entry.
@@ -10532,7 +11183,7 @@ export type PdbxMoleculeFeatures = {
    * Broadly defines the function of the molecule.
    * 
    * Allowable values:
-   * Antagonist, Anthelmintic, Antibiotic, Antibiotic, Anthelmintic, Antibiotic, Antimicrobial, Antibiotic, Antineoplastic, Anticancer, Anticoagulant, Anticoagulant, Antithrombotic, Antifungal, Antiinflammatory, Antimicrobial, Antimicrobial, Antiparasitic, Antibiotic, Antimicrobial, Antiretroviral, Antimicrobial, Antitumor, Antineoplastic, Antiparasitic, Antiretroviral, Antithrombotic, Antitumor, Antiviral, CASPASE inhibitor, Chaperone binding, Enzyme inhibitor, Growth factor, Immunosuppressant, Inhibitor, Lantibiotic, Metabolism, Metal transport, Oxidation-reduction, Receptor, Thrombin inhibitor, Thrombin inhibitor, Trypsin inhibitor, Toxin, Transport activator, Trypsin inhibitor, Unknown
+   * Antagonist, Anthelmintic, Antibiotic, Antibiotic, Anthelmintic, Antibiotic, Antimicrobial, Antibiotic, Antineoplastic, Anticancer, Anticoagulant, Anticoagulant, Antithrombotic, Antifungal, Antigen, Antiinflammatory, Antimicrobial, Antimicrobial, Antiparasitic, Antibiotic, Antimicrobial, Antiretroviral, Antimicrobial, Antitumor, Antineoplastic, Antiparasitic, Antiretroviral, Antithrombotic, Antitumor, Antiviral, CASPASE inhibitor, Chaperone binding, Drug delivery, Enzyme inhibitor, Glycan component, Growth factor, Immunosuppressant, Inducer, Inhibitor, Lantibiotic, Metabolism, Metal transport, Nutrient, Oxidation-reduction, Protein binding, Receptor, Substrate analog, Synthetic opioid, Thrombin inhibitor, Thrombin inhibitor, Trypsin inhibitor, Toxin, Transition state mimetic, Transport activator, Trypsin inhibitor, Unknown, Water retention
    */
   readonly class?: Maybe<Scalars['String']>;
   /** Additional details describing the molecule. */
@@ -10683,10 +11334,10 @@ export type RcsbPolymerInstanceFeatureFeaturePositions = {
   readonly value?: Maybe<Scalars['Float']>;
 };
 
-export type AssemblySymmetryQueryVariables = {
+export type AssemblySymmetryQueryVariables = Exact<{
   assembly_id: Scalars['String'];
   entry_id: Scalars['String'];
-};
+}>;
 
 
 export type AssemblySymmetryQuery = { readonly assembly?: Maybe<{ readonly rcsb_struct_symmetry?: Maybe<ReadonlyArray<Maybe<(

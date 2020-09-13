@@ -20,8 +20,8 @@ interface SymmetryOperator {
         readonly operId: number
     },
 
-    /** pointer to `struct_ncs_oper.id` or empty string */
-    readonly ncsId: string,
+    /** pointer to `struct_ncs_oper.id` or -1 */
+    readonly ncsId: number,
 
     readonly hkl: Vec3,
     /** spacegroup symmetry operator index, -1 if not applicable */
@@ -48,12 +48,12 @@ namespace SymmetryOperator {
 
     export const RotationTranslationEpsilon = 0.005;
 
-    export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: string, hkl?: Vec3, spgrOp?: number }
+    export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: number, hkl?: Vec3, spgrOp?: number }
     export function create(name: string, matrix: Mat4, info?: CreateInfo): SymmetryOperator {
         let { assembly, ncsId, hkl, spgrOp } = info || { };
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3.zero();
         spgrOp = defaults(spgrOp, -1);
-        ncsId = ncsId || '';
+        ncsId = ncsId || -1;
         const suffix = getSuffix(info);
         if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix };
         if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
@@ -72,7 +72,7 @@ namespace SymmetryOperator {
             return `-${info.spgrOp + 1}_${5 + i}${5 + j}${5 + k}`;
         }
 
-        if (info.ncsId) {
+        if (info.ncsId !== -1) {
             return `_${info.ncsId}`;
         }
 
@@ -90,7 +90,7 @@ namespace SymmetryOperator {
         return Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon);
     }
 
-    export function ofRotationAndOffset(name: string, rot: Mat3, offset: Vec3, ncsId?: string) {
+    export function ofRotationAndOffset(name: string, rot: Mat3, offset: Vec3, ncsId?: number) {
         const t = Mat4.identity();
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
