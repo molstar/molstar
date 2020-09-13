@@ -360,7 +360,15 @@ class Structure {
     }
 
     remapModel(m: Model) {
-        const units = this.units.map(u => u.remapModel(m));
+        const units: Unit[] = [];
+        for (const ug of this.unitSymmetryGroups) {
+            const unit = ug.units[0].remapModel(m);
+            units.push(unit);
+            for (let i = 1, il = ug.units.length; i < il; ++i) {
+                const u = ug.units[i];
+                units.push(u.remapModel(m, unit.props));
+            }
+        }
         return Structure.create(units, {
             label: this.label,
             interUnitBonds: this._props.interUnitBonds,

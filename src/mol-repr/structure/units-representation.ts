@@ -65,7 +65,8 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                     visuals.set(group.hashCode, { visual, group });
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
                 }
-            } else if (structure && !Structure.areEquivalent(structure, _structure)) {
+            } else if (structure && !Structure.areUnitAndIndicesEqual(structure, _structure)) {
+                // console.log(label, 'structures not equivalent');
                 // Tries to re-use existing visuals for the groups of the new structure.
                 // Creates additional visuals if needed, destroys left-over visuals.
                 _groups = structure.unitSymmetryGroups;
@@ -118,7 +119,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                 //     visuals.set(group.hashCode, { visual, group })
                 // })
                 // unusedVisuals.forEach(visual => visual.destroy())
-            } else if (structure && structure !== _structure && Structure.areEquivalent(structure, _structure)) {
+            } else if (structure && structure !== _structure && Structure.areUnitAndIndicesEqual(structure, _structure)) {
                 // console.log(label, 'structures equivalent but not identical');
                 // Expects that for structures with the same hashCode,
                 // the unitSymmetryGroups are the same as well.

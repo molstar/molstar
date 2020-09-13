@@ -93,8 +93,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         VisualUpdateState.reset(updateState);
 
         if (!renderObject) {
+            // console.log('create new - no renderObject');
             updateState.createNew = true;
         } else if (!currentStructureGroup || !Unit.SymmetryGroup.areInvariantElementsEqual(newStructureGroup.group, currentStructureGroup.group)) {
+            // console.log('create new - elements not equal');
             updateState.createNew = true;
         }
 
@@ -127,13 +129,9 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         // check if the conformation of unit.model has changed
         const newUnit = newStructureGroup.group.units[0];
         const currentUnit = currentStructureGroup.group.units[0];
-        if (Unit.conformationId(newUnit) !== Unit.conformationId(currentUnit)) {
+        if (!Unit.areAreConformationsEquivalent(newUnit, currentUnit)) {
             // console.log('new conformation');
-            updateState.updateTransform = true;
-            if (!updateState.createGeometry && !Unit.areAreConformationsEquivalent(newUnit, currentUnit)) {
-                // console.log('new position');
-                updateState.createGeometry = true;
-            }
+            updateState.createGeometry = true;
         }
 
         if (updateState.updateTransform) {
@@ -142,6 +140,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
         if (updateState.createGeometry || updateState.updateTransform) {
             if (currentStructureGroup.structure.hashCode !== newStructureGroup.structure.hashCode) {
+                // console.log('new hashCode');
                 updateState.updateColor = true;
                 updateState.updateSize = true;
             }

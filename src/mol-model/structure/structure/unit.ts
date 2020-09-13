@@ -7,7 +7,7 @@
 
 import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator';
 import { Model } from '../model';
-import { GridLookup3D, Lookup3D } from '../../../mol-math/geometry';
+import { GridLookup3D, Lookup3D, Spacegroup } from '../../../mol-math/geometry';
 import { IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds';
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
 import { BitFlags } from '../../../mol-util';
@@ -21,9 +21,10 @@ import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { getPrincipalAxes } from './util/principal-axes';
 import { Boundary, getBoundary } from '../../../mol-math/geometry/boundary';
-import { Mat4 } from '../../../mol-math/linear-algebra';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache';
+import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -136,6 +137,7 @@ namespace Unit {
         readonly elements: StructureElement.Set,
         readonly model: Model,
         readonly conformation: SymmetryOperator.ArrayMapping<ElementIndex>,
+        readonly props: BaseProperties,
 
         getChild(elements: StructureElement.Set): Unit,
         applyOperator(id: number, operator: SymmetryOperator, dontCompose?: boolean /* = false */): Unit,
@@ -201,7 +203,7 @@ namespace Unit {
         /** Reference `chainIndex` from `model` for faster access. */
         readonly chainIndex: ArrayLike<ChainIndex>;
 
-        private props: AtomicProperties;
+        readonly props: AtomicProperties;
 
         getChild(elements: StructureElement.Set): Unit {
             if (elements.length === this.elements.length) return this;
@@ -213,11 +215,27 @@ namespace Unit {
             return new Atomic(id, this.invariantId, this.chainGroupId, this.traits, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomicConformation, this.conformation.r), this.props);
         }
 
-        remapModel(model: Model) {
-            const boundary = Unit.isSameConformation(this, model) ? this.props.boundary : undefined;
-            const props = { ...this.props, bonds: tryRemapBonds(this, this.props.bonds, model), boundary, lookup3d: undefined, principalAxes: undefined };
-            const conformation = this.model.atomicConformation !== model.atomicConformation
-                ? SymmetryOperator.createMapping(this.conformation.operator, model.atomicConformation)
+        remapModel(model: Model, props?: AtomicProperties) {
+            if (!props) {
+                props = { ...this.props, bonds: tryRemapBonds(this, this.props.bonds, model) };
+                if (!Unit.isSameConformation(this, model)) {
+                    props.boundary = undefined;
+                    props.lookup3d = undefined;
+                    props.principalAxes = undefined;
+                }
+            }
+
+            let operator = this.conformation.operator;
+            const symmetry = ModelSymmetry.Provider.get(model);
+            if (operator.spgrOp !== -1 && symmetry && symmetry !== ModelSymmetry.Provider.get(this.model)) {
+                const [i, j, k] = operator.hkl;
+                const { toFractional } = symmetry.spacegroup.cell;
+                const ref = Vec3.transformMat4(Vec3(), Model.getCenter(model), toFractional);
+                operator = Spacegroup.getSymmetryOperatorRef(symmetry.spacegroup, operator.spgrOp, i, j, k, ref);
+            }
+
+            const conformation = (this.model.atomicConformation !== model.atomicConformation || operator !== this.conformation.operator)
+                ? SymmetryOperator.createMapping(operator, model.atomicConformation)
                 : this.conformation;
             return new Atomic(this.id, this.invariantId, this.chainGroupId, this.traits, model, this.elements, conformation, props);
         }
@@ -345,7 +363,7 @@ namespace Unit {
         readonly coarseElements: CoarseElements;
         readonly coarseConformation: C;
 
-        private props: CoarseProperties;
+        readonly props: CoarseProperties;
 
         getChild(elements: StructureElement.Set): Unit {
             if (elements.length === this.elements.length) return this as any as Unit /** lets call this an ugly temporary hack */;
@@ -357,11 +375,15 @@ namespace Unit {
             return createCoarse(id, this.invariantId, this.chainGroupId, this.traits, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseConformation(), this.conformation.r), this.props);
         }
 
-        remapModel(model: Model): Unit.Spheres | Unit.Gaussians {
+        remapModel(model: Model, props?: CoarseProperties): Unit.Spheres | Unit.Gaussians {
             const coarseConformation = this.getCoarseConformation();
             const modelCoarseConformation = getCoarseConformation(this.kind, model);
-            const boundary = Unit.isSameConformation(this as Unit.Spheres | Unit.Gaussians, model) ? this.props.boundary : undefined; // TODO get rid of casting
-            const props = { ...this.props, boundary, lookup3d: undefined, principalAxes: undefined };
+
+            if (!props) {
+                const boundary = Unit.isSameConformation(this as Unit.Spheres | Unit.Gaussians, model) ? this.props.boundary : undefined; // TODO get rid of casting
+                props = { ...this.props, boundary, lookup3d: undefined, principalAxes: undefined };
+            }
+
             const conformation = coarseConformation !== modelCoarseConformation
                 ? SymmetryOperator.createMapping(this.conformation.operator, modelCoarseConformation)
                 : this.conformation;
@@ -444,19 +466,10 @@ namespace Unit {
     }
 
     export function areAreConformationsEquivalent(a: Unit, b: Unit) {
-        if (a.elements.length !== b.elements.length) return false;
+        if (!SortedArray.areEqual(a.elements, b.elements)) return false;
         if (!Mat4.areEqual(a.conformation.operator.matrix, b.conformation.operator.matrix, 1e-6)) return false;
 
-        const xs = a.elements, ys = b.elements;
-        const { x: xa, y: ya, z: za } = a.conformation.coordinates;
-        const { x: xb, y: yb, z: zb } = b.conformation.coordinates;
-
-        for (let i = 0, _i = xs.length; i < _i; i++) {
-            const u = xs[i], v = ys[i];
-            if (xa[u] !== xb[v] || ya[u] !== yb[v] || za[u] !== zb[v]) return false;
-        }
-
-        return true;
+        return isSameConformation(a, b.model);
     }
 
     function tryRemapBonds(a: Atomic, old: IntraUnitBonds | undefined, model: Model) {
@@ -480,9 +493,12 @@ namespace Unit {
     }
 
     export function isSameConformation(u: Unit, model: Model) {
+        const coordsHistory = Model.CoordinatesHistory.get(Model.getRoot(model));
+        if (coordsHistory?.areEqual(u, model)) return true;
+
         const xs = u.elements;
         const { x: xa, y: ya, z: za } = u.conformation.coordinates;
-        const { x: xb, y: yb, z: zb } = model.atomicConformation;
+        const { x: xb, y: yb, z: zb } = getConformation(u.kind, model);
 
         for (let i = 0, _i = xs.length; i < _i; i++) {
             const u = xs[i];
@@ -492,10 +508,10 @@ namespace Unit {
         return true;
     }
 
-    export function getConformation(u: Unit) {
-        return u.kind === Kind.Atomic ? u.model.atomicConformation :
-            u.kind === Kind.Spheres ? u.model.coarseConformation.spheres :
-                u.model.coarseConformation.gaussians;
+    export function getConformation(kind: Unit.Kind, model: Model) {
+        return kind === Kind.Atomic ? model.atomicConformation :
+            kind === Kind.Spheres ? model.coarseConformation.spheres :
+                model.coarseConformation.gaussians;
     }
 }
 
