@@ -27,6 +27,7 @@ import { ModelSymmetry } from '../../../mol-model-formats/structure/property/sym
 import { Column } from '../../../mol-data/db';
 import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
 import { Trajectory, ArrayTrajectory } from '../trajectory';
+import { Unit } from '../structure';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -202,6 +203,19 @@ export namespace Model {
     export function getRoot(model: Model) {
         return model.parent || model;
     }
+
+    const CoordinatesHistoryProp = '__CoordinatesHistory__';
+    export type CoordinatesHistory = {
+        areEqual(unit: Unit, model: Model): boolean
+    }
+    export const CoordinatesHistory = {
+        get(model: Model): CoordinatesHistory | undefined {
+            return model._staticPropertyData[CoordinatesHistoryProp];
+        },
+        set(model: Model, coordinatesHistory: CoordinatesHistory) {
+            return model._staticPropertyData[CoordinatesHistoryProp] = coordinatesHistory;
+        }
+    };
 
     //
 
