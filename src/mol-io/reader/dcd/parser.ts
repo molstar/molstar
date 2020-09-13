@@ -6,9 +6,7 @@
 
 import { ReaderResult as Result } from '../result';
 import { Task } from '../../../mol-task';
-import { Cell } from '../../../mol-math/geometry/spacegroup/cell';
-import { Vec3 } from '../../../mol-math/linear-algebra';
-import { Mutable } from '../../../mol-util/type-helpers';
+import { Mutable, FiniteArray } from '../../../mol-util/type-helpers';
 import { uint8ToString } from '../../common/binary';
 
 export interface DcdHeader {
@@ -30,7 +28,7 @@ export interface DcdFrame {
     readonly z: ArrayLike<number>
 
     // optional cell
-    readonly cell?: Cell
+    readonly cell?: FiniteArray<number, 6>
 }
 
 export interface DcdFile {
@@ -158,19 +156,14 @@ export function _parseDcd(data: Uint8Array): DcdFile {
 
         if (extraBlock) {
             nextPos += 4; // block start
-            // TODO this is not standardized and we need to add heuristics to handle more variants
-            // cell: A, alpha, B, beta, gamma, C (doubles)
-            const size = Vec3.create(
+            frame.cell = [
                 dv.getFloat64(nextPos, ef),
-                dv.getFloat64(nextPos + 2 * 8, ef),
-                dv.getFloat64(nextPos + 5 * 8, ef)
-            );
-            const anglesInRadians = Vec3.create(
                 dv.getFloat64(nextPos + 1, ef),
+                dv.getFloat64(nextPos + 2 * 8, ef),
                 dv.getFloat64(nextPos + 3 * 8, ef),
-                dv.getFloat64(nextPos + 4 * 8, ef)
-            );
-            frame.cell = Cell.create(size, anglesInRadians);
+                dv.getFloat64(nextPos + 4 * 8, ef),
+                dv.getFloat64(nextPos + 5 * 8, ef)
+            ] as const;
             nextPos += 48;
             nextPos += 4; // block end
         }

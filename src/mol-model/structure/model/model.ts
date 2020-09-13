@@ -111,6 +111,12 @@ export namespace Model {
                 _staticPropertyData: Object.create(null),
                 _dynamicPropertyData: Object.create(null)
             };
+
+            if (f.cell) {
+                const symmetry = ModelSymmetry.fromCell(f.cell.size, f.cell.anglesInRadians);
+                ModelSymmetry.Provider.set(m, symmetry);
+            }
+
             trajectory.push(m);
         }
         return { trajectory, srcIndexArray };

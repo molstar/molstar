@@ -39,6 +39,12 @@ namespace ModelSymmetry {
         const isNonStandardCrystalFrame = checkNonStandardCrystalFrame(data.atom_sites, spacegroup);
         return { assemblies, spacegroup, isNonStandardCrystalFrame, ncsOperators: getNcsOperators(data.struct_ncs_oper) };
     }
+
+    export function fromCell(size: Vec3, anglesInRadians: Vec3): Symmetry {
+        const spaceCell = SpacegroupCell.create('P 1', size, anglesInRadians);
+        const spacegroup = Spacegroup.create(spaceCell);
+        return { assemblies: [], spacegroup, isNonStandardCrystalFrame: false };
+    }
 }
 
 function checkNonStandardCrystalFrame(atom_sites: Table<mmCIF_Schema['atom_sites']>, spacegroup: Spacegroup) {

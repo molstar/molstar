@@ -34,11 +34,17 @@ const CellRef = {
     model: 'Model'
 };
 
+const CellAttachement = {
+    corner: 'Corner',
+    center: 'Center'
+};
+
 const CellParams = {
     ...Mesh.Params,
     cellColor: PD.Color(ColorNames.orange),
     cellScale: PD.Numeric(2, { min: 0.1, max: 5, step: 0.1 }),
-    ref: PD.Select('model', PD.objectToOptions(CellRef), { isEssential: true })
+    ref: PD.Select('model', PD.objectToOptions(CellRef), { isEssential: true }),
+    attachement: PD.Select('corner', PD.objectToOptions(CellAttachement), { isEssential: true }),
 };
 type MeshParams = typeof CellParams
 
@@ -57,7 +63,13 @@ function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) 
 
     const { fromFractional } = data.symmetry.spacegroup.cell;
 
-    Vec3.floor(tmpRef, data.ref);
+    Vec3.copy(tmpRef, data.ref);
+    if (props.attachement === 'center') {
+        Vec3.trunc(tmpRef, tmpRef);
+        Vec3.subScalar(tmpRef, tmpRef, 0.5);
+    } else {
+        Vec3.floor(tmpRef, tmpRef);
+    }
     Mat4.fromTranslation(tmpTranslate, tmpRef);
     const cellCage = transformCage(cloneCage(unitCage), tmpTranslate);
 
