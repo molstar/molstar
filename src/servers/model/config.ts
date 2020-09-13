@@ -214,7 +214,8 @@ export const ModelServerConfigTemplate: ModelServerConfig = {
 };
 
 // TODO: include once properly supported
-delete ModelServerConfigTemplate.customProperties;
+// cast to any to prevent "The operand of a 'delete' operator must be optional"
+delete (ModelServerConfigTemplate as any).customProperties;
 
 interface ServerJsonConfig {
     cfg?: string,
