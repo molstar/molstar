@@ -615,7 +615,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
                     let update = false;
 
                     if (!!newParams.isTransitive) {
-                        if (Structure.areUnitAndIndicesEqual(entry.originalStructure, structure)) {
+                        if (Structure.areUnitIdsAndIndicesEqual(entry.originalStructure, structure)) {
                             const selection = StructureQueryHelper.run(entry, entry.originalStructure);
                             entry.currentStructure = structure;
                             entries.set(sel.key, entry);

@@ -47,7 +47,7 @@ export function intersect(queries: ArrayLike<StructureQuery>): StructureQuery {
         }
 
         ctx.throwIfTimedOut();
-        const pivotSet = HashSet<Structure>(s => s.hashCode, Structure.areUnitAndIndicesEqual);
+        const pivotSet = HashSet<Structure>(s => s.hashCode, Structure.areUnitIdsAndIndicesEqual);
         StructureSelection.forEach(selections[pivotIndex], s => pivotSet.add(s));
 
         const ret = StructureSelection.UniqueBuilder(ctx.inputStructure);

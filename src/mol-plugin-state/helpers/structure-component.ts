@@ -108,7 +108,7 @@ export function updateStructureComponent(a: Structure, b: SO.Molecule.Structure,
             if (oldParams.type.params !== newParams.type.params) {
                 return StateTransformer.UpdateResult.Recreate;
             }
-            if (a.hashCode !== cache.source.hashCode) {
+            if (!Structure.areEquivalent(a, cache.source)) {
                 return StateTransformer.UpdateResult.Recreate;
             }
             if (b.data.model === a.model) return StateTransformer.UpdateResult.Unchanged;

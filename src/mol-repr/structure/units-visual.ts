@@ -107,6 +107,12 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
         setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup);
 
+        if (!Structure.areHierarchiesEqual(currentStructureGroup.structure, newStructureGroup.structure)) {
+            // console.log('new hierarchy');
+            updateState.updateTransform = true;
+            updateState.updateColor = true;
+        }
+
         if (!ColorTheme.areEqual(newTheme.color, currentTheme.color)) {
             // console.log('new colorTheme');
             updateState.updateColor = true;
@@ -126,10 +132,14 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             }
         }
 
-        // check if the conformation of unit.model has changed
+        // check if the operator or conformation of unit has changed
         const newUnit = newStructureGroup.group.units[0];
         const currentUnit = currentStructureGroup.group.units[0];
-        if (!Unit.areAreConformationsEquivalent(newUnit, currentUnit)) {
+        if (!Unit.areOperatorsEqual(newUnit, currentUnit)) {
+            // console.log('new operators');
+            updateState.updateTransform = true;
+        }
+        if (!Unit.areConformationsEqual(newUnit, currentUnit)) {
             // console.log('new conformation');
             updateState.createGeometry = true;
         }

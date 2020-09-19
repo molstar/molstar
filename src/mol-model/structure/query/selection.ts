@@ -111,7 +111,7 @@ namespace StructureSelection {
     class HashBuilderImpl implements Builder {
         private structures: Structure[] = [];
         private allSingletons = true;
-        private uniqueSets = HashSet(Structure.hashCode, Structure.areUnitAndIndicesEqual);
+        private uniqueSets = HashSet(Structure.hashCode, Structure.areUnitIdsAndIndicesEqual);
 
         add(structure: Structure) {
             const atomCount = structure.elementCount;
