@@ -13,4 +13,4 @@ module.exports = [
     createApp('docking-viewer', 'molstar'),
     ...examples.map(createExample),
     ...tests.map(createBrowserTest)
-]
+];
