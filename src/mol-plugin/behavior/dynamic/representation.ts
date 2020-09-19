@@ -33,6 +33,7 @@ const DefaultHighlightLociBindings = {
 };
 const HighlightLociParams = {
     bindings: PD.Value(DefaultHighlightLociBindings, { isHidden: true }),
+    ignore: PD.Value<Loci['kind'][]>([], { isHidden: true }),
     mark: PD.Boolean(true)
 };
 type HighlightLociProps = PD.Values<typeof HighlightLociParams>
@@ -48,6 +49,11 @@ export const HighlightLoci = PluginBehavior.create({
         register() {
             this.subscribeObservable(this.ctx.behaviors.interaction.hover, ({ current, buttons, modifiers }) => {
                 if (!this.ctx.canvas3d || this.ctx.isBusy) return;
+                if (this.params.ignore?.indexOf(current.loci.kind) >= 0) {
+                    this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EmptyLoci });
+                    return;
+                }
+
                 let matched = false;
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnly, buttons, modifiers)) {
@@ -86,6 +92,7 @@ const DefaultSelectLociBindings = {
 };
 const SelectLociParams = {
     bindings: PD.Value(DefaultSelectLociBindings, { isHidden: true }),
+    ignore: PD.Value<Loci['kind'][]>([], { isHidden: true }),
     mark: PD.Boolean(true)
 };
 type SelectLociProps = PD.Values<typeof SelectLociParams>
@@ -136,6 +143,7 @@ export const SelectLoci = PluginBehavior.create({
 
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d || this.ctx.isBusy || !this.ctx.selectionMode) return;
+                if (this.params.ignore?.indexOf(current.loci.kind) >= 0) return;
 
                 // only trigger the 1st action that matches
                 for (const [binding, action, condition] of actions) {
