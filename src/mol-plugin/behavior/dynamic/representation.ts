@@ -161,9 +161,12 @@ export const SelectLoci = PluginBehavior.create({
             this.subscribeObservable(this.ctx.state.events.object.updated, ({ ref, obj, oldObj, oldData, action }) => {
                 const cell = this.ctx.state.data.cells.get(ref);
                 if (cell && SO.Molecule.Structure.is(cell.obj)) {
-                    const h = obj.data.hashCode;
-                    if (action === 'recreate' && h === oldObj?.data?.hashCode) return;
-                    if (action === 'in-place' && h === oldData?.hashCode) return;
+                    const structure: Structure = obj.data;
+                    const oldStructure: Structure | undefined = action === 'recreate' ? oldObj?.data :
+                        action === 'in-place' ? oldData : undefined;
+                    if (oldStructure &&
+                        Structure.areEquivalent(structure, oldStructure) &&
+                        Structure.areHierarchiesEqual(structure, oldStructure)) return;
 
                     const reprs = this.ctx.state.data.select(StateSelection.Generators.ofType(SO.Molecule.Structure.Representation3D, ref));
                     for (const repr of reprs) this.applySelectMark(repr.transform.ref, true);

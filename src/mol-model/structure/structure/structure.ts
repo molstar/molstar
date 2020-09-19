@@ -943,7 +943,7 @@ namespace Structure {
     }
 
     // TODO: there should be a version that properly supports partitioned units
-    export function areUnitAndIndicesEqual(a: Structure, b: Structure) {
+    export function areUnitIdsEqual(a: Structure, b: Structure) {
         if (a === b) return true;
 
         if (a.elementCount !== b.elementCount) return false;
@@ -954,10 +954,24 @@ namespace Structure {
             if (a.units[i].id !== b.units[i].id) return false;
         }
 
-        for (let i = 0; i < len; i++) {
+        return true;
+    }
+
+    export function areUnitIdsAndIndicesEqual(a: Structure, b: Structure) {
+        if (!areUnitIdsEqual(a, b)) return false;
+
+        for (let i = 0, il = a.units.length; i < il; i++) {
             if (!SortedArray.areEqual(a.units[i].elements, b.units[i].elements)) return false;
         }
+        return true;
+    }
 
+    export function areHierarchiesEqual(a: Structure, b: Structure) {
+        if (!areUnitIdsEqual(a, b)) return false;
+
+        for (let i = 0, il = a.units.length; i < il; i++) {
+            if (Unit.getHierarchy(a.units[i]) !== Unit.getHierarchy(b.units[i])) return false;
+        }
         return true;
     }
 

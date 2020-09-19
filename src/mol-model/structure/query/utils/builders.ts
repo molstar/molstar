@@ -12,7 +12,7 @@ import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
 import { ElementIndex } from '../../model';
 
 export class UniqueStructuresBuilder {
-    private set = HashSet(Structure.hashCode, Structure.areUnitAndIndicesEqual);
+    private set = HashSet(Structure.hashCode, Structure.areUnitIdsAndIndicesEqual);
     private structures: Structure[] = [];
     private allSingletons = true;
 

@@ -465,10 +465,12 @@ namespace Unit {
         return a.chainGroupId === b.chainGroupId && a.conformation.operator.name === b.conformation.operator.name;
     }
 
-    export function areAreConformationsEquivalent(a: Unit, b: Unit) {
-        if (!SortedArray.areEqual(a.elements, b.elements)) return false;
-        if (!Mat4.areEqual(a.conformation.operator.matrix, b.conformation.operator.matrix, 1e-6)) return false;
+    export function areOperatorsEqual(a: Unit, b: Unit) {
+        return Mat4.areEqual(a.conformation.operator.matrix, b.conformation.operator.matrix, 1e-6);
+    }
 
+    export function areConformationsEqual(a: Unit, b: Unit) {
+        if (!SortedArray.areEqual(a.elements, b.elements)) return false;
         return isSameConformation(a, b.model);
     }
 
@@ -498,7 +500,7 @@ namespace Unit {
 
         const xs = u.elements;
         const { x: xa, y: ya, z: za } = u.conformation.coordinates;
-        const { x: xb, y: yb, z: zb } = getConformation(u.kind, model);
+        const { x: xb, y: yb, z: zb } = getModelConformationOfKind(u.kind, model);
 
         for (let i = 0, _i = xs.length; i < _i; i++) {
             const u = xs[i];
@@ -508,10 +510,24 @@ namespace Unit {
         return true;
     }
 
-    export function getConformation(kind: Unit.Kind, model: Model) {
+    export function getModelConformationOfKind(kind: Unit.Kind, model: Model) {
         return kind === Kind.Atomic ? model.atomicConformation :
             kind === Kind.Spheres ? model.coarseConformation.spheres :
                 model.coarseConformation.gaussians;
+    }
+
+    export function getConformation(u: Unit) {
+        return getModelConformationOfKind(u.kind, u.model);
+    }
+
+    export function getModelHierarchyOfKind(kind: Unit.Kind, model: Model) {
+        return kind === Kind.Atomic ? model.atomicHierarchy :
+            kind === Kind.Spheres ? model.coarseHierarchy.spheres :
+                model.coarseHierarchy.gaussians;
+    }
+
+    export function getHierarchy(u: Unit) {
+        return getModelHierarchyOfKind(u.kind, u.model);
     }
 }
 

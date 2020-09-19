@@ -100,6 +100,7 @@ export function InteractionsInterUnitVisual(materialId: number): ComplexVisual<I
             if ((state.info.interactionsHash as number) !== interactionsHash) {
                 state.createGeometry = true;
                 state.updateTransform = true;
+                state.updateColor = true;
                 state.info.interactionsHash = interactionsHash;
             }
         }
