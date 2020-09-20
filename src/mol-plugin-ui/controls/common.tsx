@@ -141,7 +141,7 @@ export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>
     }
 
     onKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.charCode === 27 || e.keyCode === 27 /* esc */) {
+        if (e.charCode === 27 || e.keyCode === 27 || e.key === 'Escape') {
             if (this.props.blurOnEscape && this.input.current) {
                 this.input.current.blur();
             }
@@ -149,7 +149,7 @@ export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>
     }
 
     onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.keyCode === 13 || e.charCode === 13 /* enter */) {
+        if (e.keyCode === 13 || e.charCode === 13 || e.key === 'Enter') {
             if (this.isPending) {
                 this.clearTimeout();
                 this.raiseOnChange();
