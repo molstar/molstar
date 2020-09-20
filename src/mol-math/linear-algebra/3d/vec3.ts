@@ -215,6 +215,16 @@ namespace Vec3 {
     }
 
     /**
+     * Math.abs the components of a Vec3
+     */
+    export function abs(out: Vec3, a: Vec3) {
+        out[0] = Math.abs(a[0]);
+        out[1] = Math.abs(a[1]);
+        out[2] = Math.abs(a[2]);
+        return out;
+    }
+
+    /**
      * Returns the minimum of two Vec3's
      */
     export function min(out: Vec3, a: Vec3, b: Vec3) {
@@ -327,7 +337,7 @@ namespace Vec3 {
         return out;
     }
 
-    const slerpRelVec = Vec3.zero();
+    const slerpRelVec = zero();
     export function slerp(out: Vec3, a: Vec3, b: Vec3, t: number) {
         const dot = clamp(Vec3.dot(a, b), -1, 1);
         const theta = Math.acos(dot) * t;
@@ -536,7 +546,7 @@ namespace Vec3 {
         return scale(out, vector, scalar);
     }
 
-    const tmpProject = Vec3();
+    const tmpProject = zero();
     export function projectOnPlane(out: Vec3, p: Vec3, normal: Vec3) {
         projectOnVector(tmpProject, p, normal);
         return sub(out, p, tmpProject);
