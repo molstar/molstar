@@ -316,9 +316,14 @@ const atomicDetail = StructureRepresentationPresetProvider({
         };
 
         const structure = structureCell.obj!.data;
-        const highElementCount = structure.elementCount > 200_000; // TODO make configurable
-        const atomicType = highElementCount ? 'line' : 'ball-and-stick';
-        const showCarbohydrateSymbol = params.showCarbohydrateSymbol && !highElementCount;
+        const highElementCount = structure.elementCount > 100_000; // TODO make configurable
+        const lowResidueElementRatio = structure.atomicResidueCount &&
+            structure.elementCount > 1000 &&
+            structure.atomicResidueCount / structure.elementCount < 3;
+
+        const atomicType = lowResidueElementRatio ? 'spacefill' :
+            highElementCount ? 'line' : 'ball-and-stick';
+        const showCarbohydrateSymbol = params.showCarbohydrateSymbol && !highElementCount && !lowResidueElementRatio;
 
         if (showCarbohydrateSymbol) {
             Object.assign(components, {
@@ -327,8 +332,12 @@ const atomicDetail = StructureRepresentationPresetProvider({
         }
 
         const { update, builder, typeParams, color, ballAndStickColor } = reprBuilder(plugin, params);
+        const colorParams = lowResidueElementRatio
+            ? { carbonColor: { name: 'element-symbol', params: {} } }
+            : ballAndStickColor;
+
         const representations = {
-            all: builder.buildRepresentation(update, components.all, { type: atomicType, typeParams, color, colorParams: ballAndStickColor }, { tag: 'all' }),
+            all: builder.buildRepresentation(update, components.all, { type: atomicType, typeParams, color, colorParams }, { tag: 'all' }),
         };
         if (showCarbohydrateSymbol) {
             Object.assign(representations, {
