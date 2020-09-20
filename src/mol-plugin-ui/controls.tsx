@@ -118,18 +118,18 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
     keyUp = (e: KeyboardEvent) => {
         if (!e.ctrlKey || this.state.isBusy || e.target !== document.body) return;
         const snapshots = this.plugin.managers.snapshot;
-        if (e.keyCode === 37) { // left
+        if (e.keyCode === 37 || e.key === 'ArrowLeft') {
             if (snapshots.state.isPlaying) snapshots.stop();
             this.prev();
-        } else if (e.keyCode === 38) { // up
+        } else if (e.keyCode === 38 || e.key === 'ArrowUp') {
             if (snapshots.state.isPlaying) snapshots.stop();
             if (snapshots.state.entries.size === 0) return;
             const e = snapshots.state.entries.get(0);
             this.update(e.snapshot.id);
-        } else if (e.keyCode === 39) { // right
+        } else if (e.keyCode === 39 || e.key === 'ArrowRight') {
             if (snapshots.state.isPlaying) snapshots.stop();
             this.next();
-        } else if (e.keyCode === 40) { // down
+        } else if (e.keyCode === 40 || e.key === 'ArrowDown') {
             if (snapshots.state.isPlaying) snapshots.stop();
             if (snapshots.state.entries.size === 0) return;
             const e = snapshots.state.entries.get(snapshots.state.entries.size - 1);

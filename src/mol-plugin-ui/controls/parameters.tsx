@@ -379,7 +379,7 @@ export class TextControl extends SimpleParam<PD.Text> {
     }
 
     onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if ((e.keyCode === 13 || e.charCode === 13)) {
+        if ((e.keyCode === 13 || e.charCode === 13 || e.key === 'Enter')) {
             if (this.props.onEnter) this.props.onEnter();
         }
         e.stopPropagation();
@@ -794,7 +794,7 @@ export class UrlControl extends SimpleParam<PD.UrlParam> {
     }
 
     onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if ((e.keyCode === 13 || e.charCode === 13)) {
+        if ((e.keyCode === 13 || e.charCode === 13 || e.key === 'Enter')) {
             if (this.props.onEnter) this.props.onEnter();
         }
         e.stopPropagation();
@@ -813,6 +813,8 @@ export class UrlControl extends SimpleParam<PD.UrlParam> {
 }
 
 export class FileControl extends React.PureComponent<ParamProps<PD.FileParam>> {
+    state = { showHelp: false };
+
     change(value: File) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value: Asset.File(value) });
     }
@@ -821,16 +823,34 @@ export class FileControl extends React.PureComponent<ParamProps<PD.FileParam>> {
         this.change(e.target.files![0]);
     }
 
-    render() {
+    toggleHelp = () => this.setState({ showHelp: !this.state.showHelp });
+
+    renderControl() {
         const value = this.props.value;
 
         return <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
             {value ? value.name : 'Select a file...'} <input disabled={this.props.isDisabled} onChange={this.onChangeFile} type='file' multiple={false} accept={this.props.param.accept} />
         </div>;
     }
+
+    render() {
+        if (this.props.param.label) {
+            return renderSimple({
+                props: this.props,
+                state: this.state,
+                control: this.renderControl(),
+                toggleHelp: this.toggleHelp,
+                addOn: null
+            });
+        } else {
+            return this.renderControl();
+        }
+    }
 }
 
 export class FileListControl extends React.PureComponent<ParamProps<PD.FileListParam>> {
+    state = { showHelp: false };
+
     change(value: FileList) {
         const files: Asset.File[] = [];
         if (value) {
@@ -845,7 +865,9 @@ export class FileListControl extends React.PureComponent<ParamProps<PD.FileListP
         this.change(e.target.files!);
     }
 
-    render() {
+    toggleHelp = () => this.setState({ showHelp: !this.state.showHelp });
+
+    renderControl() {
         const value = this.props.value;
 
         const names: string[] = [];
@@ -861,6 +883,20 @@ export class FileListControl extends React.PureComponent<ParamProps<PD.FileListP
         return <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
             {label} <input disabled={this.props.isDisabled} onChange={this.onChangeFileList} type='file' multiple={true} accept={this.props.param.accept} />
         </div>;
+    }
+
+    render() {
+        if (this.props.param.label) {
+            return renderSimple({
+                props: this.props,
+                state: this.state,
+                control: this.renderControl(),
+                toggleHelp: this.toggleHelp,
+                addOn: null
+            });
+        } else {
+            return this.renderControl();
+        }
     }
 }
 
@@ -1258,7 +1294,7 @@ export class ScriptControl extends SimpleParam<PD.Script> {
     }
 
     onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if ((e.keyCode === 13 || e.charCode === 13)) {
+        if ((e.keyCode === 13 || e.charCode === 13 || e.key === 'Enter')) {
             if (this.props.onEnter) this.props.onEnter();
         }
         e.stopPropagation();
