@@ -8,6 +8,7 @@ import { UUID } from '../../../mol-util';
 import { getQueryByName, QueryDefinition, QueryName, QueryParams, Encoding } from './api';
 import { LinkedList } from '../../../mol-data/generic';
 import { ResultWriter } from '../utils/writer';
+import { Mat4 } from '../../../mol-math/linear-algebra';
 
 export interface ResponseFormat {
     tarball: boolean,
@@ -41,7 +42,8 @@ export interface JobEntry {
     queryDefinition: QueryDefinition,
     normalizedParams: any,
     modelNums?: number[],
-    copyAllCategories: boolean
+    copyAllCategories: boolean,
+    transformation?: Mat4
 }
 
 interface JobEntryDefinition<Name extends QueryName> {
@@ -50,7 +52,8 @@ interface JobEntryDefinition<Name extends QueryName> {
     queryName: Name,
     queryParams: QueryParams<Name>,
     modelNums?: number[],
-    copyAllCategories: boolean
+    copyAllCategories: boolean,
+    transformation?: Mat4
 }
 
 export function JobEntry<Name extends QueryName>(definition: JobEntryDefinition<Name>): JobEntry {
@@ -68,7 +71,8 @@ export function JobEntry<Name extends QueryName>(definition: JobEntryDefinition<
         queryDefinition,
         normalizedParams,
         modelNums: definition.modelNums,
-        copyAllCategories: !!definition.copyAllCategories
+        copyAllCategories: !!definition.copyAllCategories,
+        transformation: definition.transformation
     };
 }
 
