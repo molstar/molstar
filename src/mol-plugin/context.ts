@@ -190,7 +190,13 @@ export class PluginContext {
             const antialias = !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false);
             (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas, {}, { antialias });
             this.canvas3dInit.next(true);
-            this.canvas3d?.setProps(this.spec.components?.viewport?.canvas3d || { renderer: { backgroundColor: Color(0xFCFBF9) } });
+            const props = this.spec.components?.viewport?.canvas3d;
+            if (!props || props.renderer?.backgroundColor === void 0) {
+                this.canvas3d?.setProps({ renderer: { backgroundColor: Color(0xFCFBF9) } });
+            }
+            if (props) {
+                this.canvas3d?.setProps(props);
+            }
             this.canvas3d!.animate();
             (this.helpers.viewportScreenshot as ViewportScreenshotHelper) = new ViewportScreenshotHelper(this);
             return true;
