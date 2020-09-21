@@ -9,7 +9,6 @@ import { StructureSelection } from '../../mol-model/structure';
 import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
 import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { Script } from '../../mol-script/script';
@@ -113,8 +112,10 @@ class BasicWrapper {
 
     interactivity = {
         highlightOn: () => {
+            const data = this.plugin.managers.structure.hierarchy.current.structures[0]?.cell.obj?.data;
+            if (!data) return;
+
             const seq_id = 7;
-            const data = (this.plugin.state.data.select('asm')[0].obj as PluginStateObject.Molecule.Structure).data;
             const sel = Script.getStructureSelection(Q => Q.struct.generator.atomGroups({
                 'residue-test': Q.core.rel.eq([Q.struct.atomProperty.macromolecular.label_seq_id(), seq_id]),
                 'group-by': Q.struct.atomProperty.macromolecular.residueKey()
