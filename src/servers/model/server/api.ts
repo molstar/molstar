@@ -8,6 +8,7 @@ import { Queries, Structure, StructureQuery, StructureSymmetry, StructurePropert
 import { getAtomsTests } from '../query/atoms';
 import { CifWriter } from '../../../mol-io/writer/cif';
 import { QuerySchemas } from '../query/schemas';
+import { Mat4 } from '../../../mol-math/linear-algebra';
 
 export enum QueryParamType {
     JSON,
@@ -55,7 +56,8 @@ export interface CommonQueryParamsInfo {
     model_nums?: number[],
     encoding?: Encoding,
     copy_all_categories?: boolean
-    data_source?: string
+    data_source?: string,
+    transformation?: Mat4
 }
 
 export const AtomSiteSchemaElement = {
@@ -289,7 +291,8 @@ export function normalizeRestCommonParams(params: any): CommonQueryParamsInfo {
         model_nums: params.model_nums ? ('' + params.model_nums).split(',').map(n => n.trim()).filter(n => !!n).map(n => +n) : void 0,
         data_source: params.data_source,
         copy_all_categories: Boolean(params.copy_all_categories),
-        encoding: mapEncoding(('' + params.encoding).toLocaleLowerCase())
+        encoding: mapEncoding(('' + params.encoding).toLocaleLowerCase()),
+        transformation: params.transformation ? createMat4(('' + params.transformation).split(',').map(n => n.trim()).map(n => +n)) : Mat4.identity()
     };
 }
 
@@ -306,4 +309,10 @@ function mapEncoding(value: string) {
         default:
             return 'cif';
     }
+}
+
+function createMat4(array: number[]): Mat4 {
+    const out = Mat4();
+    Mat4.fromArray(out, array, 0);
+    return out;
 }
