@@ -4,4 +4,4 @@ module.exports = [
         ...createViewer,
         devtool: 'eval'
     }
-]
+];

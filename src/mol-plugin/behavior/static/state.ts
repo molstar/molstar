@@ -104,6 +104,7 @@ function setVisibilityVisitor(t: StateTransform, tree: StateTree, ctx: { state: 
 
 export function Highlight(ctx: PluginContext) {
     PluginCommands.Interactivity.Object.Highlight.subscribe(ctx, ({ state, ref }) => {
+        if (!ctx.canvas3d || ctx.isBusy) return;
         ctx.managers.interactivity.lociHighlights.clearHighlights();
 
         const refs = typeof ref === 'string' ? [ref] : ref;

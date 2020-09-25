@@ -63,7 +63,7 @@ export function createTextureColor(colors: TextureImage<Uint8Array>, type: Color
         return colorData;
     } else {
         return {
-            uColor: ValueCell.create(Vec3.zero()),
+            uColor: ValueCell.create(Vec3()),
             tColor: ValueCell.create(colors),
             uColorTexDim: ValueCell.create(Vec2.create(colors.width, colors.height)),
             dColorType: ValueCell.create(type),

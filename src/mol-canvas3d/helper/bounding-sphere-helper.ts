@@ -132,7 +132,7 @@ function updateBoundingSphereData(scene: Scene, boundingSphere: Sphere3D, data: 
         const mesh = createBoundingSphereMesh(boundingSphere, data && data.mesh);
         const renderObject = data ? data.renderObject : createBoundingSphereRenderObject(mesh, color, materialId, transform);
         if (data) {
-            ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(mesh));
+            ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(mesh));
         } else {
             scene.add(renderObject);
         }

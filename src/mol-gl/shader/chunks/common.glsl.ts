@@ -52,12 +52,19 @@ const vec4 UnpackFactors = UnpackDownscale / vec4(PackFactors, 1.0);
 const float ShiftRight8 = 1.0 / 256.0;
 
 vec4 packDepthToRGBA(const in float v) {
-	vec4 r = vec4(fract(v * PackFactors), v);
-	r.yzw -= r.xyz * ShiftRight8; // tidy overflow
-	return r * PackUpscale;
+    vec4 r = vec4(fract(v * PackFactors), v);
+    r.yzw -= r.xyz * ShiftRight8; // tidy overflow
+    return r * PackUpscale;
 }
 float unpackRGBAToDepth(const in vec4 v) {
-	return dot(v, UnpackFactors);
+    return dot(v, UnpackFactors);
+}
+
+vec4 sRGBToLinear(const in vec4 c) {
+    return vec4(mix(pow(c.rgb * 0.9478672986 + vec3(0.0521327014), vec3(2.4)), c.rgb * 0.0773993808, vec3(lessThanEqual(c.rgb, vec3(0.04045)))), c.a);
+}
+vec4 linearTosRGB(const in vec4 c) {
+    return vec4(mix(pow(c.rgb, vec3(0.41666)) * 1.055 - vec3(0.055), c.rgb * 12.92, vec3(lessThanEqual(c.rgb, vec3(0.0031308)))), c.a);
 }
 
 #if __VERSION__ != 300

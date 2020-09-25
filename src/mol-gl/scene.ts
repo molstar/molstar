@@ -68,7 +68,7 @@ interface Scene extends Object3D {
 
     /** Returns `true` if some visibility has changed, `false` otherwise. */
     syncVisibility: () => boolean
-    update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean, isRemoving?: boolean) => void
+    update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean) => void
     add: (o: GraphicsRenderObject) => void // Renderable<any>
     remove: (o: GraphicsRenderObject) => void
     commit: (maxTimeMs?: number) => boolean
@@ -170,7 +170,7 @@ namespace Scene {
             get up () { return object3d.up; },
 
             syncVisibility,
-            update(objects, keepBoundingSphere, isRemoving) {
+            update(objects, keepBoundingSphere) {
                 Object3D.update(object3d);
                 if (objects) {
                     for (let i = 0, il = objects.length; i < il; ++i) {
@@ -178,7 +178,7 @@ namespace Scene {
                         if (!o) continue;
                         o.update();
                     }
-                } else if (!isRemoving) {
+                } else {
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         renderables[i].update();
                     }

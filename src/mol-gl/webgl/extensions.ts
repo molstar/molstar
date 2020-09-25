@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB } from './compat';
 import { isDebugMode } from '../../mol-util/debug';
 
 export type WebGLExtensions = {
@@ -21,6 +21,7 @@ export type WebGLExtensions = {
     colorBufferFloat: COMPAT_color_buffer_float | null
     drawBuffers: COMPAT_draw_buffers | null
     shaderTextureLod: COMPAT_shader_texture_lod | null
+    sRGB: COMPAT_sRGB | null
 }
 
 export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
@@ -79,6 +80,10 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (isDebugMode && shaderTextureLod === null) {
         console.log('Could not find support for "shader_texture_lod"');
     }
+    const sRGB = getSRGB(gl);
+    if (isDebugMode && sRGB === null) {
+        console.log('Could not find support for "sRGB"');
+    }
 
     return {
         instancedArrays,
@@ -94,5 +99,6 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         colorBufferFloat,
         drawBuffers,
         shaderTextureLod,
+        sRGB,
     };
 }

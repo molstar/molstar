@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,8 @@
 import { defaults } from '../mol-util';
 import { Structure } from '../mol-model/structure';
 import { VisualQuality } from '../mol-geo/geometry/base';
-import { Box3D } from '../mol-math/geometry';
+import { Box3D, SpacegroupCell } from '../mol-math/geometry';
+import { ModelSymmetry } from '../mol-model-formats/structure/property/symmetry';
 
 export interface VisualUpdateState {
     updateTransform: boolean
@@ -86,6 +87,21 @@ export function getStructureQuality(structure: Structure, tresholds: Partial<Qua
     }
 }
 
+/**
+ * Uses cell volume to avoid costly boundary calculation if
+ * - single model
+ * - non-empty 'P 1' spacegroup
+ */
+function getRootVolume(structure: Structure) {
+    if (structure.root.models.length === 1) {
+        const sym = ModelSymmetry.Provider.get(structure.root.model);
+        if (sym && sym.spacegroup.name === 'P 1' && !SpacegroupCell.isZero(sym.spacegroup.cell)) {
+            return sym.spacegroup.cell.volume;
+        }
+    }
+    return Box3D.volume(structure.root.boundary.box);
+}
+
 export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     let quality = defaults(props.quality, 'auto' as VisualQuality);
     let detail = defaults(props.detail, 1);
@@ -97,7 +113,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     let volume = 0;
     if (quality === 'auto' && data instanceof Structure) {
         quality = getStructureQuality(data.root);
-        volume = Box3D.volume(data.root.boundary.box);
+        volume = getRootVolume(data);
     }
 
     switch (quality) {

@@ -38,7 +38,8 @@ import { HandleHelper, HandleHelperParams } from './helper/handle-helper';
 export const Canvas3DParams = {
     camera: PD.Group({
         mode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']] as const, { label: 'Camera' }),
-        helper: PD.Group(CameraHelperParams, { isFlat: true })
+        helper: PD.Group(CameraHelperParams, { isFlat: true }),
+        manualReset: PD.Boolean(false, { isHidden: true })
     }, { pivot: 'mode' }),
     cameraFog: PD.MappedStatic('on', {
         on: PD.Group({
@@ -363,7 +364,7 @@ namespace Canvas3D {
             if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) return false;
 
             if (debugHelper.isEnabled) debugHelper.update();
-            if (reprCount.value === 0 || shouldResetCamera()) {
+            if (!p.camera.manualReset && (reprCount.value === 0 || shouldResetCamera())) {
                 cameraResetRequested = true;
             }
             if (oldBoundingSphereVisible.radius === 0) nextCameraResetDuration = 0;
@@ -413,7 +414,6 @@ namespace Canvas3D {
             if (renderObjects) {
                 renderObjects.forEach(o => scene.remove(o));
                 reprRenderObjects.delete(repr);
-                scene.update(repr.renderObjects, false, true);
                 forceDrawAfterAllCommited = true;
                 if (isDebugMode) consoleStats();
             }
@@ -443,7 +443,8 @@ namespace Canvas3D {
             return {
                 camera: {
                     mode: camera.state.mode,
-                    helper: { ...drawPass.props.cameraHelper }
+                    helper: { ...drawPass.props.cameraHelper },
+                    manualReset: p.camera.manualReset
                 },
                 cameraFog: camera.state.fog > 0
                     ? { name: 'on' as const, params: { intensity: camera.state.fog } }
@@ -549,6 +550,7 @@ namespace Canvas3D {
                 if (Object.keys(cameraState).length > 0) camera.setState(cameraState);
 
                 if (props.camera?.helper) drawPass.setProps({ cameraHelper: props.camera.helper });
+                if (props.camera?.manualReset !== undefined) p.camera.manualReset = props.camera.manualReset;
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs;
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
 
@@ -566,29 +568,7 @@ namespace Canvas3D {
             },
 
             get props() {
-                const radius = scene.boundingSphere.radius > 0
-                    ? 100 - Math.round((camera.transition.target.radius / scene.boundingSphere.radius) * 100)
-                    : 0;
-
-                return {
-                    camera: {
-                        mode: camera.state.mode,
-                        helper: { ...drawPass.props.cameraHelper }
-                    },
-                    cameraFog: camera.state.fog > 0
-                        ? { name: 'on' as const, params: { intensity: camera.state.fog } }
-                        : { name: 'off' as const, params: {} },
-                    cameraClipping: { far: camera.state.clipFar, radius },
-                    cameraResetDurationMs: p.cameraResetDurationMs,
-                    transparentBackground: p.transparentBackground,
-
-                    postprocessing: { ...postprocessing.props },
-                    multiSample: { ...multiSample.props },
-                    renderer: { ...renderer.props },
-                    trackball: { ...controls.props },
-                    debug: { ...debugHelper.props },
-                    handle: { ...handleHelper.props },
-                };
+                return getProps();
             },
             get input() {
                 return input;

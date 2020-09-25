@@ -121,6 +121,7 @@ export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUn
             if (Unit.isAtomic(newUnit) && Unit.isAtomic(currentUnit)) {
                 if (!IntAdjacencyGraph.areEqual(newUnit.bonds, currentUnit.bonds)) {
                     state.createGeometry = true;
+                    state.updateTransform = true;
                     state.updateColor = true;
                     state.updateSize = true;
                 }

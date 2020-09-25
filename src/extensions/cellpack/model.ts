@@ -442,9 +442,9 @@ async function handleHivRna(plugin: PluginContext, packings: CellPacking[], base
 
 async function loadMembrane(plugin: PluginContext, name: string, state: State, params: LoadCellPackModelParams) {
     let file: Asset.File | undefined = undefined;
-    if (params.ingredients.files !== null) {
+    if (params.ingredients !== null) {
         const fileName = `${name}.bcif`;
-        for (const f of params.ingredients.files) {
+        for (const f of params.ingredients) {
             if (fileName === f.name) {
                 file = f;
                 break;
@@ -453,7 +453,7 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
         if (!file){
             // check for cif directly
             const cifileName = `${name}.cif`;
-            for (const f of params.ingredients.files) {
+            for (const f of params.ingredients) {
                 if (cifileName === f.name) {
                     file = f;
                     break;
@@ -488,7 +488,7 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
 }
 
 async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
-    const ingredientFiles = params.ingredients.files || [];
+    const ingredientFiles = params.ingredients || [];
 
     let cellPackJson: StateBuilder.To<PSO.Format.Json, StateTransformer<PSO.Data.String, PSO.Format.Json>>;
     if (params.source.name === 'id') {
@@ -563,9 +563,7 @@ const LoadCellPackModelParams = {
     }, { options: [['id', 'Id'], ['file', 'File']] }),
     baseUrl: PD.Text(DefaultCellPackBaseUrl),
     membrane: PD.Boolean(true),
-    ingredients : PD.Group({
-        files: PD.FileList({ accept: '.cif,.bcif,.pdb' })
-    }, { isExpanded: true }),
+    ingredients: PD.FileList({ accept: '.cif,.bcif,.pdb', label: 'Ingredients' }),
     preset: PD.Group({
         traceOnly: PD.Boolean(false),
         representation: PD.Select('gaussian-surface', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'orientation']))

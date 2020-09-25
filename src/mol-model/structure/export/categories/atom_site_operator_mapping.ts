@@ -37,7 +37,7 @@ export const AtomSiteOperatorMappingSchema = {
         symmetry_hkl: Column.Schema.Vector(3),
 
         // NCS
-        ncs_id: Column.Schema.Str(),
+        ncs_id: Column.Schema.Int(),
     }
 };
 
@@ -57,7 +57,7 @@ const Fields = CifWriter.fields<number, Entry[], keyof (typeof AtomSiteOperatorM
     .int('symmetry_operator_index', (i, xs) => xs[i].operator.spgrOp, { valueKind: symmetryValueKind })
     .vec('symmetry_hkl', [(i, xs) => xs[i].operator.hkl[0], (i, xs) => xs[i].operator.hkl[1], (i, xs) => xs[i].operator.hkl[2]], { valueKind: symmetryValueKind })
     // NCS
-    .str('ncs_id', (i, xs) => xs[i].operator.ncsId || '', { valueKind: (i, xs) => !xs[i].operator.ncsId ? Column.ValueKind.NotPresent : Column.ValueKind.Present })
+    .int('ncs_id', (i, xs) => xs[i].operator.ncsId, { valueKind: symmetryValueKind })
     .getFields();
 
 const Category: CifWriter.Category<Entry[]> = {

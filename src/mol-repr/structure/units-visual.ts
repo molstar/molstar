@@ -93,8 +93,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         VisualUpdateState.reset(updateState);
 
         if (!renderObject) {
+            // console.log('create new - no renderObject');
             updateState.createNew = true;
         } else if (!currentStructureGroup || !Unit.SymmetryGroup.areInvariantElementsEqual(newStructureGroup.group, currentStructureGroup.group)) {
+            // console.log('create new - elements not equal');
             updateState.createNew = true;
         }
 
@@ -104,6 +106,12 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         }
 
         setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup);
+
+        if (!Structure.areHierarchiesEqual(currentStructureGroup.structure, newStructureGroup.structure)) {
+            // console.log('new hierarchy');
+            updateState.updateTransform = true;
+            updateState.updateColor = true;
+        }
 
         if (!ColorTheme.areEqual(newTheme.color, currentTheme.color)) {
             // console.log('new colorTheme');
@@ -124,16 +132,16 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             }
         }
 
-        // check if the conformation of unit.model has changed
+        // check if the operator or conformation of unit has changed
         const newUnit = newStructureGroup.group.units[0];
         const currentUnit = currentStructureGroup.group.units[0];
-        if (Unit.conformationId(newUnit) !== Unit.conformationId(currentUnit)) {
-            // console.log('new conformation');
+        if (!Unit.areOperatorsEqual(newUnit, currentUnit)) {
+            // console.log('new operators');
             updateState.updateTransform = true;
-            if (!updateState.createGeometry && !Unit.areAreConformationsEquivalent(newUnit, currentUnit)) {
-                // console.log('new position');
-                updateState.createGeometry = true;
-            }
+        }
+        if (!Unit.areConformationsEqual(newUnit, currentUnit)) {
+            // console.log('new conformation');
+            updateState.createGeometry = true;
         }
 
         if (updateState.updateTransform) {
@@ -142,6 +150,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
         if (updateState.createGeometry || updateState.updateTransform) {
             if (currentStructureGroup.structure.hashCode !== newStructureGroup.structure.hashCode) {
+                // console.log('new hashCode');
                 updateState.updateColor = true;
                 updateState.updateSize = true;
             }
@@ -176,7 +185,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             if (updateState.createGeometry) {
                 // console.log('update geometry');
                 if (newGeometry) {
-                    ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
+                    ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
                 } else {
                     throw new Error('expected geometry to be given');
                 }

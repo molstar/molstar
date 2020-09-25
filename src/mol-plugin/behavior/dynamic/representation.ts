@@ -33,6 +33,7 @@ const DefaultHighlightLociBindings = {
 };
 const HighlightLociParams = {
     bindings: PD.Value(DefaultHighlightLociBindings, { isHidden: true }),
+    ignore: PD.Value<Loci['kind'][]>([], { isHidden: true }),
     mark: PD.Boolean(true)
 };
 type HighlightLociProps = PD.Values<typeof HighlightLociParams>
@@ -48,6 +49,11 @@ export const HighlightLoci = PluginBehavior.create({
         register() {
             this.subscribeObservable(this.ctx.behaviors.interaction.hover, ({ current, buttons, modifiers }) => {
                 if (!this.ctx.canvas3d || this.ctx.isBusy) return;
+                if (this.params.ignore?.indexOf(current.loci.kind) >= 0) {
+                    this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EmptyLoci });
+                    return;
+                }
+
                 let matched = false;
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnly, buttons, modifiers)) {
@@ -86,6 +92,7 @@ const DefaultSelectLociBindings = {
 };
 const SelectLociParams = {
     bindings: PD.Value(DefaultSelectLociBindings, { isHidden: true }),
+    ignore: PD.Value<Loci['kind'][]>([], { isHidden: true }),
     mark: PD.Boolean(true)
 };
 type SelectLociProps = PD.Values<typeof SelectLociParams>
@@ -136,6 +143,7 @@ export const SelectLoci = PluginBehavior.create({
 
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d || this.ctx.isBusy || !this.ctx.selectionMode) return;
+                if (this.params.ignore?.indexOf(current.loci.kind) >= 0) return;
 
                 // only trigger the 1st action that matches
                 for (const [binding, action, condition] of actions) {
@@ -153,9 +161,12 @@ export const SelectLoci = PluginBehavior.create({
             this.subscribeObservable(this.ctx.state.events.object.updated, ({ ref, obj, oldObj, oldData, action }) => {
                 const cell = this.ctx.state.data.cells.get(ref);
                 if (cell && SO.Molecule.Structure.is(cell.obj)) {
-                    const h = obj.data.hashCode;
-                    if (action === 'recreate' && h === oldObj?.data?.hashCode) return;
-                    if (action === 'in-place' && h === oldData?.hashCode) return;
+                    const structure: Structure = obj.data;
+                    const oldStructure: Structure | undefined = action === 'recreate' ? oldObj?.data :
+                        action === 'in-place' ? oldData : undefined;
+                    if (oldStructure &&
+                        Structure.areEquivalent(structure, oldStructure) &&
+                        Structure.areHierarchiesEqual(structure, oldStructure)) return;
 
                     const reprs = this.ctx.state.data.select(StateSelection.Generators.ofType(SO.Molecule.Structure.Representation3D, ref));
                     for (const repr of reprs) this.applySelectMark(repr.transform.ref, true);

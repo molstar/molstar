@@ -76,7 +76,8 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
                 if (type_symbolA.value(aI) === 'H' && type_symbolB.value(bI) === 'H') continue;
 
                 const d = distance[i];
-                if (d === -1 || equalEps(getDistance(unitA, aI, unitB, bI), d, 0.5)) {
+                // only allow inter-unit index-pair bonds when a distance is given
+                if (d !== -1 && equalEps(getDistance(unitA, aI, unitB, bI), d, 0.5)) {
                     builder.add(_aI, _bI, { order: order[i], flag: flag[i] });
                 }
             }
@@ -177,6 +178,19 @@ function findBonds(structure: Structure, props: InterBondComputationProps) {
         //      structure.lookup and unit.lookup (expensive for large structure and not
         //      needed for archival files or files with an MD topology)
         return new InterUnitBonds(builder.getMap());
+    }
+
+    const indexPairs = structure.models.length === 1 && IndexPairBonds.Provider.get(structure.model);
+    if (indexPairs) {
+        const { distance } = indexPairs.edgeProps;
+        let hasDistance = false;
+        for (let i = 0, il = distance.length; i < il; ++i) {
+            if (distance[i] !== -1) {
+                hasDistance = true;
+                break;
+            }
+        }
+        if (!hasDistance) return new InterUnitBonds(builder.getMap());
     }
 
     Structure.eachUnitPair(structure, (unitA: Unit, unitB: Unit) => {

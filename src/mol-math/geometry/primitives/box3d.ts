@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -13,12 +13,12 @@ import { Sphere3D } from './sphere3d';
 interface Box3D { min: Vec3, max: Vec3 }
 
 function Box3D() {
-    return Box3D.empty();
+    return Box3D.zero();
 }
 
 namespace Box3D {
     export function create(min: Vec3, max: Vec3): Box3D { return { min, max }; }
-    export function empty(): Box3D { return { min: Vec3(), max: Vec3() }; }
+    export function zero(): Box3D { return { min: Vec3(), max: Vec3() }; }
 
     export function copy(out: Box3D, a: Box3D): Box3D {
         Vec3.copy(out.min, a.min);
@@ -27,7 +27,7 @@ namespace Box3D {
     }
 
     export function clone(a: Box3D): Box3D {
-        return copy(empty(), a);
+        return copy(zero(), a);
     }
 
     /** Get box from sphere, uses extrema if available */
@@ -77,6 +77,7 @@ namespace Box3D {
         return tmpSizeV[0] * tmpSizeV[1] * tmpSizeV[2];
     }
 
+    /** Sets min to Number.MAX_VALUE and max to -Number.MAX_VALUE */
     export function setEmpty(box: Box3D): Box3D {
         Vec3.set(box.min, Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
         Vec3.set(box.max, -Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
@@ -118,6 +119,14 @@ namespace Box3D {
         add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, maxX, maxY, minZ), m));
         add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, maxX, maxY, maxZ), m));
         return out;
+    }
+
+    export function containsVec3(box: Box3D, v: Vec3) {
+        return (
+            v[0] < box.min[0] || v[0] > box.max[0] ||
+            v[1] < box.min[1] || v[1] > box.max[1] ||
+            v[2] < box.min[2] || v[2] > box.max[2]
+        ) ? false : true;
     }
 }
 

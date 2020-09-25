@@ -360,7 +360,15 @@ class Structure {
     }
 
     remapModel(m: Model) {
-        const units = this.units.map(u => u.remapModel(m));
+        const units: Unit[] = [];
+        for (const ug of this.unitSymmetryGroups) {
+            const unit = ug.units[0].remapModel(m);
+            units.push(unit);
+            for (let i = 1, il = ug.units.length; i < il; ++i) {
+                const u = ug.units[i];
+                units.push(u.remapModel(m, unit.props));
+            }
+        }
         return Structure.create(units, {
             label: this.label,
             interUnitBonds: this._props.interUnitBonds,
@@ -935,7 +943,7 @@ namespace Structure {
     }
 
     // TODO: there should be a version that properly supports partitioned units
-    export function areUnitAndIndicesEqual(a: Structure, b: Structure) {
+    export function areUnitIdsEqual(a: Structure, b: Structure) {
         if (a === b) return true;
 
         if (a.elementCount !== b.elementCount) return false;
@@ -946,10 +954,24 @@ namespace Structure {
             if (a.units[i].id !== b.units[i].id) return false;
         }
 
-        for (let i = 0; i < len; i++) {
+        return true;
+    }
+
+    export function areUnitIdsAndIndicesEqual(a: Structure, b: Structure) {
+        if (!areUnitIdsEqual(a, b)) return false;
+
+        for (let i = 0, il = a.units.length; i < il; i++) {
             if (!SortedArray.areEqual(a.units[i].elements, b.units[i].elements)) return false;
         }
+        return true;
+    }
 
+    export function areHierarchiesEqual(a: Structure, b: Structure) {
+        if (!areUnitIdsEqual(a, b)) return false;
+
+        for (let i = 0, il = a.units.length; i < il; i++) {
+            if (Unit.getHierarchy(a.units[i]) !== Unit.getHierarchy(b.units[i])) return false;
+        }
         return true;
     }
 
@@ -1018,7 +1040,7 @@ namespace Structure {
         }
     }
 
-    const distVec = Vec3.zero();
+    const distVec = Vec3();
     function unitElementMinDistance(unit: Unit, p: Vec3, eRadius: number) {
         const { elements, conformation: { position, r } } = unit, dV = distVec;
         let minD = Number.MAX_VALUE;
@@ -1041,7 +1063,7 @@ namespace Structure {
         return minD;
     }
 
-    const distPivot = Vec3.zero();
+    const distPivot = Vec3();
     export function distance(a: Structure, b: Structure) {
         if (a.elementCount === 0 || b.elementCount === 0) return 0;
 
@@ -1109,7 +1131,7 @@ namespace Structure {
         /** Must be lower to be small */
         smallResidueCount: 10,
         /** Must be lower to be medium */
-        mediumResidueCount: 3000,
+        mediumResidueCount: 5000,
         /** Must be lower to be large (big ribosomes like 4UG0 should still be `large`) */
         largeResidueCount: 20000,
         /**

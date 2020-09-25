@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'CifCore' schema file. Dictionary versions: CifCore 3.0.13.
+ * Code-generated 'CifCore' schema file. Dictionary versions: CifCore 3.0.14.
  *
  * @author molstar/ciftools package
  */

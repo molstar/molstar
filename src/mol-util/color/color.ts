@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -117,6 +117,32 @@ export namespace Color {
 
     export function lighten(c: Color, amount: number): Color {
         return darken(c, -amount);
+    }
+
+    //
+
+    function _sRGBToLinear(c: number) {
+        return (c < 0.04045) ? c * 0.0773993808 : Math.pow(c * 0.9478672986 + 0.0521327014, 2.4);
+    }
+
+    export function sRGBToLinear(c: Color) {
+        return fromNormalizedRgb(
+            _sRGBToLinear((c >> 16 & 255) / 255),
+            _sRGBToLinear((c >> 8 & 255) / 255),
+            _sRGBToLinear((c & 255) / 255)
+        );
+    }
+
+    function _linearToSRGB(c: number) {
+        return (c < 0.0031308) ? c * 12.92 : 1.055 * (Math.pow(c, 0.41666)) - 0.055;
+    }
+
+    export function linearToSRGB(c: Color) {
+        return fromNormalizedRgb(
+            _linearToSRGB((c >> 16 & 255) / 255),
+            _linearToSRGB((c >> 8 & 255) / 255),
+            _linearToSRGB((c & 255) / 255)
+        );
     }
 }
 

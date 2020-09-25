@@ -160,6 +160,20 @@ namespace Vec3 {
         return out;
     }
 
+    export function addScalar(out: Vec3, a: Vec3, b: number) {
+        out[0] = a[0] + b;
+        out[1] = a[1] + b;
+        out[2] = a[2] + b;
+        return out;
+    }
+
+    export function subScalar(out: Vec3, a: Vec3, b: number) {
+        out[0] = a[0] - b;
+        out[1] = a[1] - b;
+        out[2] = a[2] - b;
+        return out;
+    }
+
     /**
      * Math.round the components of a Vec3
      */
@@ -187,6 +201,26 @@ namespace Vec3 {
         out[0] = Math.floor(a[0]);
         out[1] = Math.floor(a[1]);
         out[2] = Math.floor(a[2]);
+        return out;
+    }
+
+    /**
+     * Math.trunc the components of a Vec3
+     */
+    export function trunc(out: Vec3, a: Vec3) {
+        out[0] = Math.trunc(a[0]);
+        out[1] = Math.trunc(a[1]);
+        out[2] = Math.trunc(a[2]);
+        return out;
+    }
+
+    /**
+     * Math.abs the components of a Vec3
+     */
+    export function abs(out: Vec3, a: Vec3) {
+        out[0] = Math.abs(a[0]);
+        out[1] = Math.abs(a[1]);
+        out[2] = Math.abs(a[2]);
         return out;
     }
 
@@ -303,7 +337,7 @@ namespace Vec3 {
         return out;
     }
 
-    const slerpRelVec = Vec3.zero();
+    const slerpRelVec = zero();
     export function slerp(out: Vec3, a: Vec3, b: Vec3, t: number) {
         const dot = clamp(Vec3.dot(a, b), -1, 1);
         const theta = Math.acos(dot) * t;
@@ -512,7 +546,7 @@ namespace Vec3 {
         return scale(out, vector, scalar);
     }
 
-    const tmpProject = Vec3();
+    const tmpProject = zero();
     export function projectOnPlane(out: Vec3, p: Vec3, normal: Vec3) {
         projectOnVector(tmpProject, p, normal);
         return sub(out, p, tmpProject);

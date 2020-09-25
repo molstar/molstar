@@ -53,7 +53,7 @@ const sharedConfig = {
         aggregateTimeout: 750
     },
     devtool: ''
-}
+};
 
 function createEntry(src, outFolder, outFilename, isNode) {
     return {
@@ -62,7 +62,7 @@ function createEntry(src, outFolder, outFilename, isNode) {
         entry: path.resolve(__dirname, `lib/${src}.js`),
         output: { filename: `${outFilename}.js`, path: path.resolve(__dirname, `build/${outFolder}`) },
         ...sharedConfig
-    }
+    };
 }
 
 function createEntryPoint(name, dir, out, library) {
@@ -71,7 +71,7 @@ function createEntryPoint(name, dir, out, library) {
         entry: path.resolve(__dirname, `lib/${dir}/${name}.js`),
         output: { filename: `${library || name}.js`, path: path.resolve(__dirname, `build/${out}`), library: library || out, libraryTarget: 'umd' },
         ...sharedConfig
-    }
+    };
 }
 
 function createNodeEntryPoint(name, dir, out) {
@@ -86,13 +86,13 @@ function createNodeEntryPoint(name, dir, out) {
             xhr2: 'require("xhr2")',
         },
         ...sharedConfig
-    }
+    };
 }
 
-function createApp(name, library) { return createEntryPoint('index', `apps/${name}`, name, library) }
-function createExample(name) { return createEntry(`examples/${name}/index`, `examples/${name}`, 'index') }
-function createBrowserTest(name) { return createEntryPoint(name, 'tests/browser', 'tests') }
-function createNodeApp(name) { return createNodeEntryPoint('index', `apps/${name}`, name) }
+function createApp(name, library) { return createEntryPoint('index', `apps/${name}`, name, library); }
+function createExample(name) { return createEntry(`examples/${name}/index`, `examples/${name}`, 'index'); }
+function createBrowserTest(name) { return createEntryPoint(name, 'tests/browser', 'tests'); }
+function createNodeApp(name) { return createNodeEntryPoint('index', `apps/${name}`, name); }
 
 module.exports = {
     createApp,
@@ -101,4 +101,4 @@ module.exports = {
     createBrowserTest,
     createNodeEntryPoint,
     createNodeApp
-}
+};

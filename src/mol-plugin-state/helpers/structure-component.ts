@@ -7,7 +7,7 @@
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import Expression from '../../mol-script/language/expression';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
-import { StructureElement, Structure, StructureSelection as Sel, StructureQuery, Queries, QueryContext } from '../../mol-model/structure';
+import { StructureElement, Structure, StructureSelection as Sel, StructureQuery, Queries, QueryContext, Model } from '../../mol-model/structure';
 import { StructureQueryHelper } from './structure-query';
 import { PluginStateObject as SO } from '../objects';
 import { StructureSelectionQueries } from './structure-selection-query';
@@ -105,10 +105,21 @@ export function updateStructureComponent(a: Structure, b: SO.Molecule.Structure,
 
     switch (newParams.type.name) {
         case 'static': {
-            if (a !== cache.source || oldParams.type.params !== newParams.type.params) {
+            if (oldParams.type.params !== newParams.type.params) {
                 return StateTransformer.UpdateResult.Recreate;
             }
-            break;
+            if (!Structure.areEquivalent(a, cache.source)) {
+                return StateTransformer.UpdateResult.Recreate;
+            }
+            if (b.data.model === a.model) return StateTransformer.UpdateResult.Unchanged;
+            if (Model.getRoot(b.data.model) !== Model.getRoot(a.model)
+                && (a.model.atomicHierarchy !== b.data.model.atomicHierarchy
+                    || a.model.coarseHierarchy !== b.data.model.coarseHierarchy)) {
+                return StateTransformer.UpdateResult.Recreate;
+            }
+
+            b.data = b.data.remapModel(a.model);
+            return StateTransformer.UpdateResult.Updated;
         }
         case 'script':
             if (!Script.areEqual(oldParams.type.params as Script, newParams.type.params)) {

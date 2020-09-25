@@ -29,7 +29,7 @@ export interface ShapeRepresentation<D, G extends Geometry, P extends Geometry.P
 export type ShapeGetter<D, G extends Geometry, P extends Geometry.Params<G>> = (ctx: RuntimeContext, data: D, props: PD.Values<P>, shape?: Shape<G>) => Shape<G> | Promise<Shape<G>>
 
 export interface ShapeBuilder<G extends Geometry, P extends Geometry.Params<G>> {
-    /** Hook to modify represetantion props */
+    /** Hook to modify representation props */
     modifyProps?: (props: Partial<PD.Values<P>>) => Partial<PD.Values<P>>
     /** Hook to modify representation state */
     modifyState?: (state: Partial<Representation.State>) => Partial<Representation.State>
@@ -126,7 +126,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
                 if (updateState.createGeometry) {
                     // console.log('update geometry')
-                    ValueCell.update(_renderObject.values.drawCount, Geometry.getDrawCount(_shape.geometry));
+                    ValueCell.updateIfChanged(_renderObject.values.drawCount, Geometry.getDrawCount(_shape.geometry));
                 }
 
                 if (updateState.updateTransform || updateState.createGeometry) {

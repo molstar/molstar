@@ -260,7 +260,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         if (!structure) return;
 
         // oldObj is not defined for inserts (e.g. TransformStructureConformation)
-        if (!oldObj?.data || Structure.areUnitAndIndicesEqual(oldObj.data, obj.data)) {
+        if (!oldObj?.data || Structure.areUnitIdsAndIndicesEqual(oldObj.data, obj.data)) {
             this.entries.set(ref, remapSelectionEntry(this.entries.get(ref)!, structure));
 
             // remap referenceLoci & prevHighlight if needed and possible

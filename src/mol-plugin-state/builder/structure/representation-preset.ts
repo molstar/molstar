@@ -164,7 +164,7 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
             nonStandard: builder.buildRepresentation(update, components.nonStandard, { type: 'ball-and-stick', typeParams, color, colorParams: ballAndStickColor }, { tag: 'non-standard' }),
             branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color, colorParams: ballAndStickColor }, { tag: 'branched-ball-and-stick' }),
             branchedSnfg3d: builder.buildRepresentation(update, components.branched, { type: 'carbohydrate', typeParams, color }, { tag: 'branched-snfg-3d' }),
-            water: builder.buildRepresentation(update, components.water, { type: waterType, typeParams: { ...typeParams, alpha: 0.6 }, color }, { tag: 'water' }),
+            water: builder.buildRepresentation(update, components.water, { type: waterType, typeParams: { ...typeParams, alpha: 0.6 }, color, colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'water' }),
             ion: builder.buildRepresentation(update, components.ion, { type: 'ball-and-stick', typeParams, color, colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ion' }),
             lipid: builder.buildRepresentation(update, components.lipid, { type: lipidType, typeParams: { ...typeParams, alpha: 0.6 }, color, colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'lipid' }),
             coarse: builder.buildRepresentation(update, components.coarse, { type: 'spacefill', typeParams, color: color || 'chain-id' }, { tag: 'coarse' })
@@ -316,9 +316,14 @@ const atomicDetail = StructureRepresentationPresetProvider({
         };
 
         const structure = structureCell.obj!.data;
-        const highElementCount = structure.elementCount > 200_000; // TODO make configurable
-        const atomicType = highElementCount ? 'line' : 'ball-and-stick';
-        const showCarbohydrateSymbol = params.showCarbohydrateSymbol && !highElementCount;
+        const highElementCount = structure.elementCount > 100_000; // TODO make configurable
+        const lowResidueElementRatio = structure.atomicResidueCount &&
+            structure.elementCount > 1000 &&
+            structure.atomicResidueCount / structure.elementCount < 3;
+
+        const atomicType = lowResidueElementRatio ? 'spacefill' :
+            highElementCount ? 'line' : 'ball-and-stick';
+        const showCarbohydrateSymbol = params.showCarbohydrateSymbol && !highElementCount && !lowResidueElementRatio;
 
         if (showCarbohydrateSymbol) {
             Object.assign(components, {
@@ -327,8 +332,12 @@ const atomicDetail = StructureRepresentationPresetProvider({
         }
 
         const { update, builder, typeParams, color, ballAndStickColor } = reprBuilder(plugin, params);
+        const colorParams = lowResidueElementRatio
+            ? { carbonColor: { name: 'element-symbol', params: {} } }
+            : ballAndStickColor;
+
         const representations = {
-            all: builder.buildRepresentation(update, components.all, { type: atomicType, typeParams, color, colorParams: ballAndStickColor }, { tag: 'all' }),
+            all: builder.buildRepresentation(update, components.all, { type: atomicType, typeParams, color, colorParams }, { tag: 'all' }),
         };
         if (showCarbohydrateSymbol) {
             Object.assign(representations, {

@@ -28,6 +28,11 @@ export function getBoundary(data: PositionData): Boundary {
     const { x, y, z, radius, indices } = data;
     const n = OrderedSet.size(indices);
 
+    if (n > 250_000) {
+        const box = Box3D.computeBounding(data);
+        return { box, sphere: Sphere3D.fromBox3D(Sphere3D(), box) };
+    }
+
     const boundaryHelper = getBoundaryHelper(n);
     boundaryHelper.reset();
     for (let t = 0; t < n; t++) {
