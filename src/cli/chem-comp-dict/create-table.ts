@@ -136,11 +136,11 @@ function checkAddingBondsFromPVCD(pvcd: DatabaseCollection<CCD_Schema>) {
     }
 }
 
-async function createBonds(atomsRequested: boolean) {
-    await ensureDataAvailable();
-    const ccd = await readCCD();
-    const pvcd = await readPVCD();
-
+async function createBonds(
+    ccd: DatabaseCollection<CCD_Schema>,
+    pvcd: DatabaseCollection<CCD_Schema>,
+    atomsRequested: boolean
+) {
     const ccbSet = new Set<string>();
 
     const comp_id: string[] = [];
@@ -243,8 +243,37 @@ function createAtoms(ccd: DatabaseCollection<CCD_Schema>) {
     );
 }
 
-async function run(out: string, binary = false, ccaOut?: string) {
-    const { bonds, atoms } = await createBonds(!!ccaOut);
+function extractIonNames(ccd: DatabaseCollection<CCD_Schema>) {
+    const ionNames: string[] = [];
+    for (const k in ccd) {
+        const {chem_comp} = ccd[k];
+        if (chem_comp.name.value(0).toUpperCase().includes(' ION')) {
+            ionNames.push(chem_comp.id.value(0));
+        }
+    }
+    return ionNames;
+}
+
+function writeIonNamesFile(filePath: string, ionNames: string[]) {
+    const output = `/**
+* Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+*
+* Code-generated ion names params file. Names extracted from CCD components.
+*
+* @author molstar/chem-comp-dict/create-table cli
+*/
+
+export const IonNames = new Set(${JSON.stringify(ionNames).replace(/"/g, "'").replace(/,/g, ', ')});
+`;
+    writeFile(filePath, output);
+}
+
+async function run(out: string, binary = false, ionNamesOut?: string, ccaOut?: string) {
+    await ensureDataAvailable();
+    const ccd = await readCCD();
+    const pvcd = await readPVCD();
+
+    const { bonds, atoms } = await createBonds(ccd, pvcd, !!ccaOut);
 
     const ccbCif = getEncodedCif(CCB_TABLE_NAME, bonds, binary);
     if (!fs.existsSync(path.dirname(out))) {
@@ -258,6 +287,14 @@ async function run(out: string, binary = false, ccaOut?: string) {
             fs.mkdirSync(path.dirname(ccaOut));
         }
         writeFile(ccaOut, ccaCif);
+    }
+
+    if (!!ionNamesOut) {
+        const ionNames = extractIonNames(ccd);
+        if (!fs.existsSync(path.dirname(ionNamesOut))) {
+            fs.mkdirSync(path.dirname(ionNamesOut));
+        }
+        writeIonNamesFile(ionNamesOut, ionNames);
     }
 }
 
@@ -285,18 +322,23 @@ parser.addArgument([ '--binary', '-b' ], {
     action: 'storeTrue',
     help: 'Output as BinaryCIF.'
 });
+parser.addArgument([ '--ionNamesOut', '-ino' ], {
+    help: 'Extract and store ion names.',
+    required: false
+});
 parser.addArgument(['--ccaOut', '-a'], {
     help: 'Optional generated file output path for chem_comp_atom data.',
     required: false
 });
 interface Args {
-    out: string
-    forceDownload?: boolean
+    out: string,
+    forceDownload?: boolean,
     binary?: boolean,
+    ionNamesOut?: string,
     ccaOut?: string
 }
 const args: Args = parser.parseArgs();
 
 const FORCE_DOWNLOAD = args.forceDownload;
 
-run(args.out, args.binary, args.ccaOut);
+run(args.out, args.binary, args.ionNamesOut, args.ccaOut);
