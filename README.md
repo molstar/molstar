@@ -99,6 +99,10 @@ and navigate to `build/viewer`
 
     node lib/commonjs/cli/lipid-params -o src/mol-model/structure/model/types/lipids.ts
 
+**Ion names**
+
+    node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-dict/create-table.js build/data/ccb.bcif -ino src/mol-model/structure/model/types/ions.ts
+
 **GraphQL schemas**
 
     node node_modules//@graphql-codegen/cli/bin -c src/extensions/rcsb/graphql/codegen.yml
