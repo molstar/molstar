@@ -323,7 +323,7 @@ parser.addArgument([ '--binary', '-b' ], {
     help: 'Output as BinaryCIF.'
 });
 parser.addArgument([ '--ionNamesOut', '-ino' ], {
-    help: 'Extract and store ion names.',
+    help: 'Generated file output path to save extracted ion names.',
     required: false
 });
 parser.addArgument(['--ccaOut', '-a'], {
