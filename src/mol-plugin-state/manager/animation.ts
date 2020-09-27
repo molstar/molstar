@@ -22,7 +22,8 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     private _params?: PD.For<PluginAnimationManager.State['params']> = void 0;
 
     readonly events = {
-        updated: this.ev()
+        updated: this.ev(),
+        applied: this.ev(),
     };
 
     get isEmpty() { return this.animations.length === 0; }
@@ -30,6 +31,10 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
 
     private triggerUpdate() {
         this.events.updated.next();
+    }
+
+    private triggerApply() {
+        this.events.applied.next();
     }
 
     getParams(): PD.Params {
@@ -150,6 +155,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         } else if (newState.kind === 'skip') {
             if (this.state.animationState === 'playing') this._frame = requestAnimationFrame(this.animate);
         }
+        this.triggerApply();
     }
 
     getSnapshot(): PluginAnimationManager.Snapshot {
