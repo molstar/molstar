@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -160,6 +160,11 @@ export type PinchInput = {
     isStart: boolean
 } & BaseInput
 
+export type KeyInput = {
+    key: string,
+    modifiers: ModifiersKeys
+}
+
 export type ResizeInput = {
 
 }
@@ -192,6 +197,7 @@ interface InputObserver {
     readonly enter: Observable<undefined>,
     readonly resize: Observable<ResizeInput>,
     readonly modifiers: Observable<ModifiersKeys>
+    readonly key: Observable<KeyInput>
 
     dispose: () => void
 }
@@ -208,6 +214,7 @@ function createEvents() {
         leave: new Subject<undefined>(),
         enter: new Subject<undefined>(),
         modifiers: new Subject<ModifiersKeys>(),
+        key: new Subject<KeyInput>(),
     };
 }
 
@@ -228,11 +235,11 @@ namespace InputObserver {
         let { noScroll, noMiddleClickScroll, noContextMenu, noPinchZoom } = { ...DefaultInputObserverProps, ...props };
 
         let lastTouchDistance = 0;
-        const pointerDown = Vec2.zero();
-        const pointerStart = Vec2.zero();
-        const pointerEnd = Vec2.zero();
-        const pointerDelta = Vec2.zero();
-        const rectSize = Vec2.zero();
+        const pointerDown = Vec2();
+        const pointerStart = Vec2();
+        const pointerEnd = Vec2();
+        const pointerDelta = Vec2();
+        const rectSize = Vec2();
         const modifierKeys: ModifiersKeys = {
             shift: false,
             alt: false,
@@ -251,7 +258,7 @@ namespace InputObserver {
         let isInside = false;
 
         const events = createEvents();
-        const { drag, interactionEnd, wheel, pinch, click, move, leave, enter, resize, modifiers } = events;
+        const { drag, interactionEnd, wheel, pinch, click, move, leave, enter, resize, modifiers, key } = events;
 
         attach();
 
@@ -288,6 +295,7 @@ namespace InputObserver {
             window.addEventListener('blur', handleBlur);
             window.addEventListener('keyup', handleKeyUp as EventListener, false);
             window.addEventListener('keydown', handleKeyDown as EventListener, false);
+            window.addEventListener('keypress', handleKeyPress as EventListener, false);
 
             window.addEventListener('resize', onResize, false);
         }
@@ -313,6 +321,7 @@ namespace InputObserver {
             window.removeEventListener('blur', handleBlur);
             window.removeEventListener('keyup', handleKeyUp as EventListener, false);
             window.removeEventListener('keydown', handleKeyDown as EventListener, false);
+            window.removeEventListener('keypress', handleKeyPress as EventListener, false);
 
             window.removeEventListener('resize', onResize, false);
         }
@@ -356,6 +365,13 @@ namespace InputObserver {
             if (modifierKeys.meta && !event.metaKey) { changed = true; modifierKeys.meta = false; }
 
             if (changed && isInside) modifiers.next(getModifierKeys());
+        }
+
+        function handleKeyPress(event: KeyboardEvent) {
+            key.next({
+                key: event.key,
+                modifiers: getModifierKeys()
+            });
         }
 
         function getCenterTouch(ev: TouchEvent): PointerEvent {
