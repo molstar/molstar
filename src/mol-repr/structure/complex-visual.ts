@@ -98,7 +98,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
         setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
 
-        if (Structure.conformationHash(newStructure) !== Structure.conformationHash(currentStructure)) {
+        if (!Structure.areHierarchiesEqual(newStructure, currentStructure)) {
             updateState.updateTransform = true;
             updateState.createGeometry = true;
         }
@@ -113,6 +113,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
         if (updateState.createGeometry) {
             updateState.updateColor = true;
+            updateState.updateSize = true;
         }
     }
 
@@ -241,7 +242,7 @@ export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexM
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
-            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true;
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true;
         },
         geometryUtils: Mesh.Utils
     }, materialId);

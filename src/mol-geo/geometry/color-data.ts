@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -34,9 +34,7 @@ export function createColors(locationIt: LocationIterator, colorTheme: ColorThem
 export function createValueColor(value: Color, colorData?: ColorData): ColorData {
     if (colorData) {
         ValueCell.update(colorData.uColor, Color.toVec3Normalized(colorData.uColor.ref.value, value));
-        if (colorData.dColorType.ref.value !== 'uniform') {
-            ValueCell.update(colorData.dColorType, 'uniform');
-        }
+        ValueCell.updateIfChanged(colorData.dColorType, 'uniform');
         return colorData;
     } else {
         return {
@@ -57,9 +55,7 @@ export function createTextureColor(colors: TextureImage<Uint8Array>, type: Color
     if (colorData) {
         ValueCell.update(colorData.tColor, colors);
         ValueCell.update(colorData.uColorTexDim, Vec2.create(colors.width, colors.height));
-        if (colorData.dColorType.ref.value !== type) {
-            ValueCell.update(colorData.dColorType, type);
-        }
+        ValueCell.updateIfChanged(colorData.dColorType, type);
         return colorData;
     } else {
         return {

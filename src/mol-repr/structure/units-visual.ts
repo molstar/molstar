@@ -111,6 +111,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             // console.log('new hierarchy');
             updateState.updateTransform = true;
             updateState.updateColor = true;
+            updateState.updateSize = true;
         }
 
         if (!ColorTheme.areEqual(newTheme.color, currentTheme.color)) {
