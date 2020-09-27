@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -31,7 +31,7 @@ export function createTransparency(count: number, transparencyData?: Transparenc
     if (transparencyData) {
         ValueCell.update(transparencyData.tTransparency, transparency);
         ValueCell.update(transparencyData.uTransparencyTexDim, Vec2.create(transparency.width, transparency.height));
-        ValueCell.update(transparencyData.dTransparency, count > 0);
+        ValueCell.updateIfChanged(transparencyData.dTransparency, count > 0);
         return transparencyData;
     } else {
         return {

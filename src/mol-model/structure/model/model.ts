@@ -21,13 +21,14 @@ import { Task } from '../../../mol-task';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { createModels } from '../../../mol-model-formats/structure/basic/parser';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
-import { ChainIndex } from './indexing';
+import { ChainIndex, ElementIndex } from './indexing';
 import { SymmetryOperator } from '../../../mol-math/geometry';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 import { Column } from '../../../mol-data/db';
 import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
 import { Trajectory, ArrayTrajectory } from '../trajectory';
 import { Unit } from '../structure';
+import SortedArray from '../../../mol-data/int/sorted-array';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -206,7 +207,7 @@ export namespace Model {
 
     const CoordinatesHistoryProp = '__CoordinatesHistory__';
     export type CoordinatesHistory = {
-        areEqual(unit: Unit, model: Model): boolean
+        areEqual(elements: SortedArray<ElementIndex>, kind: Unit.Kind, model: Model): boolean
     }
     export const CoordinatesHistory = {
         get(model: Model): CoordinatesHistory | undefined {

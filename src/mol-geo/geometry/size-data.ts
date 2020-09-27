@@ -64,9 +64,7 @@ function createEmptySizeTexture() {
 export function createValueSize(value: number, sizeData?: SizeData): SizeData {
     if (sizeData) {
         ValueCell.update(sizeData.uSize, value);
-        if (sizeData.dSizeType.ref.value !== 'uniform') {
-            ValueCell.update(sizeData.dSizeType, 'uniform');
-        }
+        ValueCell.updateIfChanged(sizeData.dSizeType, 'uniform');
         return sizeData;
     } else {
         return {
@@ -86,9 +84,7 @@ export function createTextureSize(sizes: TextureImage<Uint8Array>, type: SizeTyp
     if (sizeData) {
         ValueCell.update(sizeData.tSize, sizes);
         ValueCell.update(sizeData.uSizeTexDim, Vec2.create(sizes.width, sizes.height));
-        if (sizeData.dSizeType.ref.value !== type) {
-            ValueCell.update(sizeData.dSizeType, type);
-        }
+        ValueCell.updateIfChanged(sizeData.dSizeType, type);
         return sizeData;
     } else {
         return {

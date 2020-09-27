@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -33,7 +33,7 @@ export function createOverpaint(count: number, overpaintData?: OverpaintData): O
     if (overpaintData) {
         ValueCell.update(overpaintData.tOverpaint, overpaint);
         ValueCell.update(overpaintData.uOverpaintTexDim, Vec2.create(overpaint.width, overpaint.height));
-        ValueCell.update(overpaintData.dOverpaint, count > 0);
+        ValueCell.updateIfChanged(overpaintData.dOverpaint, count > 0);
         return overpaintData;
     } else {
         return {

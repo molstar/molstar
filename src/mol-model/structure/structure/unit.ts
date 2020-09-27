@@ -496,7 +496,7 @@ namespace Unit {
 
     export function isSameConformation(u: Unit, model: Model) {
         const coordsHistory = Model.CoordinatesHistory.get(Model.getRoot(model));
-        if (coordsHistory?.areEqual(u, model)) return true;
+        if (coordsHistory) return coordsHistory.areEqual(u.elements, u.kind, model);
 
         const xs = u.elements;
         const { x: xa, y: ya, z: za } = u.conformation.coordinates;

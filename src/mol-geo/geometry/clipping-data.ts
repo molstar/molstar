@@ -34,7 +34,7 @@ export function createClipping(count: number, clippingData?: ClippingData): Clip
     if (clippingData) {
         ValueCell.update(clippingData.tClipping, clipping);
         ValueCell.update(clippingData.uClippingTexDim, Vec2.create(clipping.width, clipping.height));
-        ValueCell.update(clippingData.dClipping, count > 0);
+        ValueCell.updateIfChanged(clippingData.dClipping, count > 0);
         return clippingData;
     } else {
         return {
