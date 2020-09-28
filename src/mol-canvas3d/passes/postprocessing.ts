@@ -25,7 +25,7 @@ import postprocessing_frag from '../../mol-gl/shader/postprocessing.frag';
 const PostprocessingSchema = {
     ...QuadSchema,
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
-    tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tPackedDepth: TextureSpec('texture', 'depth', 'ushort', 'nearest'),
     uTexSize: UniformSpec('v2'),
 
     dOrthographic: DefineSpec('number'),
@@ -43,8 +43,6 @@ const PostprocessingSchema = {
     dOutlineEnable: DefineSpec('boolean'),
     uOutlineScale: UniformSpec('f'),
     uOutlineThreshold: UniformSpec('f'),
-
-    dPackedDepth: DefineSpec('boolean'),
 };
 
 export const PostprocessingParams = {
@@ -73,7 +71,7 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
     const values: Values<typeof PostprocessingSchema> = {
         ...QuadValues,
         tColor: ValueCell.create(colorTexture),
-        tDepth: ValueCell.create(depthTexture),
+        tPackedDepth: ValueCell.create(depthTexture),
         uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
 
         dOrthographic: ValueCell.create(0),
@@ -91,8 +89,6 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         dOutlineEnable: ValueCell.create(p.outline.name === 'on'),
         uOutlineScale: ValueCell.create((p.outline.name === 'on' ? p.outline.params.scale : 1) * ctx.pixelRatio),
         uOutlineThreshold: ValueCell.create(p.outline.name === 'on' ? p.outline.params.threshold : 0.8),
-
-        dPackedDepth: ValueCell.create(packedDepth),
     };
 
     const schema = { ...PostprocessingSchema };

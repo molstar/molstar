@@ -154,12 +154,6 @@ export type TextureId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 1
 export type TextureValues = { [k: string]: ValueCell<TextureValueType> }
 export type Textures = [string, Texture][]
 
-type FramebufferAttachment = {
-    framebuffer: Framebuffer
-    attachment: TextureAttachment
-    layer?: number
-}
-
 function getTexture(gl: GLRenderingContext) {
     const texture = gl.createTexture();
     if (texture === null) {
@@ -167,7 +161,7 @@ function getTexture(gl: GLRenderingContext) {
     }
     return texture;
 }
-// export type TextureProps = { kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter }
+
 export function createTexture(gl: GLRenderingContext, extensions: WebGLExtensions, kind: TextureKind, _format: TextureFormat, _type: TextureType, _filter: TextureFilter): Texture {
     const id = getNextTextureId();
     let texture = getTexture(gl);
@@ -197,8 +191,6 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         gl.bindTexture(target, null);
     }
     init();
-
-    let fba: undefined | FramebufferAttachment = undefined;
 
     let width = 0, height = 0, depth = 0;
     let loadedData: undefined | TextureImage<any> | TextureVolume<any>;
@@ -237,9 +229,6 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
     }
 
     function attachFramebuffer(framebuffer: Framebuffer, attachment: TextureAttachment, layer?: number) {
-        if (fba && fba.framebuffer === framebuffer && fba.attachment === attachment && fba.layer === layer) {
-            return;
-        }
         framebuffer.bind();
         if (target === gl.TEXTURE_2D) {
             gl.framebufferTexture2D(gl.FRAMEBUFFER, getAttachment(gl, extensions, attachment), gl.TEXTURE_2D, texture, 0);
@@ -249,7 +238,6 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         } else {
             throw new Error('unknown texture target');
         }
-        fba = { framebuffer, attachment, layer };
     }
 
     return {
@@ -283,7 +271,6 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
             } else {
                 throw new Error('unknown texture target');
             }
-            fba = undefined;
         },
         reset: () => {
             texture = getTexture(gl);
@@ -293,12 +280,6 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
                 load(loadedData);
             } else {
                 define(width, height, depth);
-            }
-
-            if (fba) {
-                // TODO unclear why calling `attachFramebuffer` here does not work reliably after context loss
-                // e.g. it still needs to be called in `DrawPass` to work
-                fba = undefined;
             }
         },
         destroy: () => {
@@ -315,12 +296,15 @@ export function createTextures(ctx: WebGLContext, schema: RenderableSchema, valu
     Object.keys(schema).forEach(k => {
         const spec = schema[k];
         if (spec.type === 'texture') {
-            if (spec.kind === 'texture') {
-                textures[textures.length] = [k, values[k].ref.value as Texture];
-            } else {
-                const texture = resources.texture(spec.kind, spec.format, spec.dataType, spec.filter);
-                texture.load(values[k].ref.value as TextureImage<any> | TextureVolume<any>);
-                textures[textures.length] = [k, texture];
+            const value = values[k];
+            if (value) {
+                if (spec.kind === 'texture') {
+                    textures[textures.length] = [k, value.ref.value as Texture];
+                } else {
+                    const texture = resources.texture(spec.kind, spec.format, spec.dataType, spec.filter);
+                    texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
+                    textures[textures.length] = [k, texture];
+                }
             }
         }
     });

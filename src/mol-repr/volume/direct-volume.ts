@@ -22,10 +22,9 @@ import { Interval } from '../../mol-data/int';
 import { Loci, EmptyLoci } from '../../mol-model/loci';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { eachVolumeLoci } from './util';
-import { encodeFloatRGBtoArray } from '../../mol-util/float-packing';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
-    const bbox = Box3D.setEmpty(Box3D());
+    const bbox = Box3D();
     Box3D.add(bbox, gridDimension);
     Box3D.transform(bbox, bbox, transform);
     return bbox;
@@ -54,7 +53,7 @@ function getVolumeTexture2dLayout(dim: Vec3, maxTextureSize: number) {
 function createVolumeTexture2d(volume: Volume, maxTextureSize: number) {
     const { cells: { space, data }, stats: { max, min } } = volume.grid;
     const dim = space.dimensions as Vec3;
-    const { dataOffset } = space;
+    const { dataOffset: o } = space;
     const { width, height } = getVolumeTexture2dLayout(dim, maxTextureSize);
 
     const array = new Uint8Array(width * height * 4);
@@ -65,6 +64,10 @@ function createVolumeTexture2d(volume: Volume, maxTextureSize: number) {
     const xlp = xl + 1; // horizontal padding
     const ylp = yl + 1; // vertical padding
 
+    const n0 = Vec3();
+    const n1 = Vec3();
+
+    let i = 0;
     for (let z = 0; z < zl; ++z) {
         for (let y = 0; y < yl; ++y) {
             for (let x = 0; x < xl; ++x) {
@@ -72,9 +75,16 @@ function createVolumeTexture2d(volume: Volume, maxTextureSize: number) {
                 const row = Math.floor((z * xlp) / width);
                 const px = column * xlp + x;
                 const index = 4 * ((row * ylp * width) + (y * width) + px);
-                const offset = dataOffset(x, y, z);
-                encodeFloatRGBtoArray(offset, array, index);
+                const offset = o(x, y, z);
+
+                Vec3.set(n0, data[o(x - 1, y, z)], data[o(x, y - 1, z)], data[o(x, y, z - 1)]);
+                Vec3.set(n1, data[o(x + 1, y, z)], data[o(x, y + 1, z)], data[o(x, y, z + 1)]);
+                Vec3.normalize(n0, Vec3.sub(n0, n0, n1));
+                Vec3.addScalar(n0, Vec3.scale(n0, n0, 0.5), 0.5);
+                Vec3.toArray(Vec3.scale(n0, n0, 255), array, i);
+
                 array[index + 3] = ((data[offset] - min) / diff) * 255;
+                i += 4;
             }
         }
     }
@@ -95,7 +105,8 @@ export function createDirectVolume2d(ctx: RuntimeContext, webgl: WebGLContext, v
     const texture = directVolume ? directVolume.gridTexture.ref.value : webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     texture.load(textureImage);
 
-    return DirectVolume.create(bbox, dim, transform, texture, volume.grid.stats, directVolume);
+    const { unitToCartn, cellDim } = getUnitToCartn(volume.grid);
+    return DirectVolume.create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, volume.grid.stats, false, directVolume);
 }
 
 // 3d volume texture
@@ -103,18 +114,27 @@ export function createDirectVolume2d(ctx: RuntimeContext, webgl: WebGLContext, v
 function createVolumeTexture3d(volume: Volume) {
     const { cells: { space, data }, stats: { max, min } } = volume.grid;
     const [ width, height, depth ] = space.dimensions as Vec3;
-    const { dataOffset } = space;
+    const { dataOffset: o } = space;
 
     const array = new Uint8Array(width * height * depth * 4);
     const textureVolume = { array, width, height, depth };
     const diff = max - min;
 
+    const n0 = Vec3();
+    const n1 = Vec3();
+
     let i = 0;
     for (let z = 0; z < depth; ++z) {
         for (let y = 0; y < height; ++y) {
             for (let x = 0; x < width; ++x) {
-                const offset = dataOffset(x, y, z);
-                encodeFloatRGBtoArray(offset, array, i);
+                const offset = o(x, y, z);
+
+                Vec3.set(n0, data[o(x - 1, y, z)], data[o(x, y - 1, z)], data[o(x, y, z - 1)]);
+                Vec3.set(n1, data[o(x + 1, y, z)], data[o(x, y + 1, z)], data[o(x, y, z + 1)]);
+                Vec3.normalize(n0, Vec3.sub(n0, n0, n1));
+                Vec3.addScalar(n0, Vec3.scale(n0, n0, 0.5), 0.5);
+                Vec3.toArray(Vec3.scale(n0, n0, 255), array, i);
+
                 array[i + 3] = ((data[offset] - min) / diff) * 255;
                 i += 4;
             }
@@ -122,6 +142,27 @@ function createVolumeTexture3d(volume: Volume) {
     }
 
     return textureVolume;
+}
+
+function getUnitToCartn(grid: Grid) {
+    if (grid.transform.kind === 'matrix') {
+        // TODO:
+        return {
+            unitToCartn: Mat4.mul(Mat4(),
+                Grid.getGridToCartesianTransform(grid),
+                Mat4.fromScaling(Mat4(), grid.cells.space.dimensions as Vec3)),
+            cellDim: Vec3.create(1, 1, 1)
+        };
+    }
+    const box = grid.transform.fractionalBox;
+    const size = Box3D.size(Vec3(), box);
+    return {
+        unitToCartn: Mat4.mul3(Mat4(),
+            grid.transform.cell.fromFractional,
+            Mat4.fromTranslation(Mat4(), box.min),
+            Mat4.fromScaling(Mat4(), size)),
+        cellDim: Vec3.div(Vec3(), grid.transform.cell.size, grid.cells.space.dimensions as Vec3)
+    };
 }
 
 export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, volume: Volume, directVolume?: DirectVolume) {
@@ -133,7 +174,8 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
     const texture = directVolume ? directVolume.gridTexture.ref.value : webgl.resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear');
     texture.load(textureVolume);
 
-    return DirectVolume.create(bbox, gridDimension, transform, texture, volume.grid.stats, directVolume);
+    const { unitToCartn, cellDim } = getUnitToCartn(volume.grid);
+    return DirectVolume.create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, volume.grid.stats, false, directVolume);
 }
 
 //

@@ -255,8 +255,9 @@ namespace Canvas3D {
                 if (multiSample.enabled) {
                     multiSample.render(true, p.transparentBackground);
                 } else {
-                    drawPass.render(!postprocessing.enabled, p.transparentBackground);
-                    if (postprocessing.enabled) postprocessing.render(true);
+                    const toDrawingBuffer = !postprocessing.enabled && scene.volumes.renderables.length === 0;
+                    drawPass.render(toDrawingBuffer, p.transparentBackground);
+                    if (!toDrawingBuffer) postprocessing.render(true);
                 }
                 pickPass.pickDirty = true;
                 didRender = true;

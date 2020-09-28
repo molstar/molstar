@@ -200,11 +200,17 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
             for (let i = 0, il = textures.length; i < il; ++i) {
                 const [k, texture] = textures[i];
                 const l = locations[k];
-                if (l !== null) {
-                    // TODO if the order and count of textures in a material can be made invariant
-                    //      bind needs to be called only when the material changes
-                    texture.bind(i as TextureId);
-                    uniformSetters[k](gl, l, i as TextureId);
+                if (l !== null && l !== undefined) {
+                    if (k === 'tDepth') {
+                        // TODO find more explicit way?
+                        texture.bind(15 as TextureId);
+                        uniformSetters[k](gl, l, 15 as TextureId);
+                    } else {
+                        // TODO if the order and count of textures in a material can be made invariant
+                        //      bind needs to be called only when the material changes
+                        texture.bind(i as TextureId);
+                        uniformSetters[k](gl, l, i as TextureId);
+                    }
                 }
             }
         },

@@ -42,15 +42,20 @@ export interface DirectVolume {
     readonly bboxMax: ValueCell<Vec3>
     readonly transform: ValueCell<Mat4>
 
+    readonly cellDim: ValueCell<Vec3>
+    readonly unitToCartn: ValueCell<Mat4>
+    readonly cartnToUnit: ValueCell<Mat4>
+    readonly packedGroup: ValueCell<boolean>
+
     /** Bounding sphere of the volume */
-    boundingSphere: Sphere3D
+    readonly boundingSphere: Sphere3D
 }
 
 export namespace DirectVolume {
-    export function create(bbox: Box3D, gridDimension: Vec3, transform: Mat4, texture: Texture, stats: Grid['stats'], directVolume?: DirectVolume): DirectVolume {
+    export function create(bbox: Box3D, gridDimension: Vec3, transform: Mat4, unitToCartn: Mat4, cellDim: Vec3, texture: Texture, stats: Grid['stats'], packedGroup: boolean, directVolume?: DirectVolume): DirectVolume {
         return directVolume ?
-            update(bbox, gridDimension, transform, texture, stats, directVolume) :
-            fromData(bbox, gridDimension, transform, texture, stats);
+            update(bbox, gridDimension, transform, unitToCartn, cellDim, texture, stats, packedGroup, directVolume) :
+            fromData(bbox, gridDimension, transform, unitToCartn, cellDim, texture, stats, packedGroup);
     }
 
     function hashCode(directVolume: DirectVolume) {
@@ -61,7 +66,7 @@ export namespace DirectVolume {
         ]);
     }
 
-    function fromData(bbox: Box3D, gridDimension: Vec3, transform: Mat4, texture: Texture, stats: Grid['stats']): DirectVolume {
+    function fromData(bbox: Box3D, gridDimension: Vec3, transform: Mat4, unitToCartn: Mat4, cellDim: Vec3, texture: Texture, stats: Grid['stats'], packedGroup: boolean): DirectVolume {
         const boundingSphere = Sphere3D();
         let currentHash = -1;
 
@@ -77,8 +82,11 @@ export namespace DirectVolume {
             gridStats: ValueCell.create(Vec4.create(stats.min, stats.max, stats.mean, stats.sigma)),
             bboxMin: ValueCell.create(bbox.min),
             bboxMax: ValueCell.create(bbox.max),
-            bboxSize: ValueCell.create(Vec3.sub(Vec3.zero(), bbox.max, bbox.min)),
+            bboxSize: ValueCell.create(Vec3.sub(Vec3(), bbox.max, bbox.min)),
             transform: ValueCell.create(transform),
+            cellDim: ValueCell.create(cellDim),
+            unitToCartn: ValueCell.create(unitToCartn),
+            cartnToUnit: ValueCell.create(Mat4.invert(Mat4(), unitToCartn)),
             get boundingSphere() {
                 const newHash = hashCode(directVolume);
                 if (newHash !== currentHash) {
@@ -88,11 +96,12 @@ export namespace DirectVolume {
                 }
                 return boundingSphere;
             },
+            packedGroup: ValueCell.create(packedGroup)
         };
         return directVolume;
     }
 
-    function update(bbox: Box3D, gridDimension: Vec3, transform: Mat4, texture: Texture, stats: Grid['stats'], directVolume: DirectVolume): DirectVolume {
+    function update(bbox: Box3D, gridDimension: Vec3, transform: Mat4, unitToCartn: Mat4, cellDim: Vec3, texture: Texture, stats: Grid['stats'], packedGroup: boolean, directVolume: DirectVolume): DirectVolume {
         const width = texture.getWidth();
         const height = texture.getHeight();
         const depth = texture.getDepth();
@@ -105,6 +114,10 @@ export namespace DirectVolume {
         ValueCell.update(directVolume.bboxMax, bbox.max);
         ValueCell.update(directVolume.bboxSize, Vec3.sub(directVolume.bboxSize.ref.value, bbox.max, bbox.min));
         ValueCell.update(directVolume.transform, transform);
+        ValueCell.update(directVolume.cellDim, cellDim);
+        ValueCell.update(directVolume.unitToCartn, unitToCartn);
+        ValueCell.update(directVolume.cartnToUnit, Mat4.invert(Mat4(), unitToCartn));
+        ValueCell.updateIfChanged(directVolume.packedGroup, packedGroup);
         return directVolume;
     }
 
@@ -138,6 +151,7 @@ export namespace DirectVolume {
         flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         renderMode: createRenderModeParam(),
+        stepsPerCell: PD.Numeric(5, { min: 1, max: 20, step: 1 }),
     };
     export type Params = typeof Params
 
@@ -182,7 +196,7 @@ export namespace DirectVolume {
             ? props.renderMode.params.isoValue
             : Volume.IsoValue.relative(2);
 
-        const maxSteps = Math.ceil(Vec3.magnitude(gridDimension.ref.value) * 5);
+        const maxSteps = Math.ceil(Vec3.magnitude(gridDimension.ref.value) * props.stepsPerCell);
 
         return {
             ...color,
@@ -204,6 +218,7 @@ export namespace DirectVolume {
             uBboxMax: bboxMax,
             uBboxSize: bboxSize,
             uMaxSteps: ValueCell.create(maxSteps),
+            uStepFactor: ValueCell.create(1 / props.stepsPerCell),
             uTransform: gridTransform,
             uGridDim: gridDimension,
             dRenderMode: ValueCell.create(props.renderMode.name),
@@ -213,6 +228,11 @@ export namespace DirectVolume {
             uGridTexDim: gridTextureDim,
             tGridTex: gridTexture,
             uGridStats: gridStats,
+
+            uCellDim: directVolume.cellDim,
+            uCartnToUnit: directVolume.cartnToUnit,
+            uUnitToCartn: directVolume.unitToCartn,
+            dPackedGroup: directVolume.packedGroup,
 
             dDoubleSided: ValueCell.create(false),
             dFlatShaded: ValueCell.create(props.flatShaded),
@@ -242,6 +262,10 @@ export namespace DirectVolume {
             const controlPoints = getControlPointsFromVec2Array(props.renderMode.params.controlPoints);
             createTransferFunctionTexture(controlPoints, props.renderMode.params.list.colors, values.tTransferTex);
         }
+
+        const maxSteps = Math.ceil(Vec3.magnitude(values.uGridDim.ref.value) * props.stepsPerCell);
+        ValueCell.updateIfChanged(values.uMaxSteps, maxSteps);
+        ValueCell.updateIfChanged(values.uStepFactor, 1 / props.stepsPerCell);
     }
 
     function updateBoundingSphere(values: DirectVolumeValues, directVolume: DirectVolume) {
@@ -260,6 +284,7 @@ export namespace DirectVolume {
     function createRenderableState(props: PD.Values<Params>): RenderableState {
         const state = BaseGeometry.createRenderableState(props);
         state.opaque = false;
+        state.writeDepth = props.renderMode.name === 'isosurface';
         return state;
     }
 

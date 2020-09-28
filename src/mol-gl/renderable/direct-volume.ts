@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
-import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema, TextureSpec, ValueSpec, ElementsSpec, DefineSpec, InternalValues } from './schema';
+import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema, TextureSpec, ValueSpec, ElementsSpec, DefineSpec, InternalValues, GlobalTextureSchema } from './schema';
 import { DirectVolumeShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
 
@@ -65,6 +65,7 @@ export const DirectVolumeSchema = {
     uBboxMax: UniformSpec('v3'),
     uBboxSize: UniformSpec('v3'),
     uMaxSteps: UniformSpec('i'),
+    uStepFactor: UniformSpec('f'),
     uTransform: UniformSpec('m4'),
     uGridDim: UniformSpec('v3'),
     dRenderMode: DefineSpec('string', ['isosurface', 'volume']),
@@ -75,6 +76,11 @@ export const DirectVolumeSchema = {
     tGridTex: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     uGridStats: UniformSpec('v4'), // [min, max, mean, sigma]
 
+    uCellDim: UniformSpec('v3'),
+    uCartnToUnit: UniformSpec('m4'),
+    uUnitToCartn: UniformSpec('m4'),
+    dPackedGroup: DefineSpec('boolean'),
+
     dDoubleSided: DefineSpec('boolean'),
     dFlipSided: DefineSpec('boolean'),
     dFlatShaded: DefineSpec('boolean'),
@@ -84,7 +90,7 @@ export type DirectVolumeSchema = typeof DirectVolumeSchema
 export type DirectVolumeValues = Values<DirectVolumeSchema>
 
 export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: DirectVolumeValues, state: RenderableState, materialId: number): Renderable<DirectVolumeValues> {
-    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...DirectVolumeSchema };
+    const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...InternalSchema, ...DirectVolumeSchema };
     if (!ctx.isWebGL2) {
         // workaround for webgl1 limitation that loop counters need to be `const`
         (schema.uMaxSteps as any) = DefineSpec('number');

@@ -71,7 +71,7 @@ export function getUniformSetters(schema: RenderableSchema) {
     Object.keys(schema).forEach(k => {
         const spec = schema[k];
         if (spec.type === 'uniform') {
-            setters[k] = getUniformSetter(spec.kind as UniformKind);
+            setters[k] = getUniformSetter(spec.kind);
         } else if (spec.type === 'texture') {
             setters[k] = getUniformSetter('t');
         }
