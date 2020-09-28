@@ -286,10 +286,11 @@ export namespace ParamDefinition {
     export interface ValueRef<T = any> extends Base<{ ref: string, getValue: () => T }> {
         type: 'value-ref',
         resolveRef: (ref: string) => T,
+        // a provider because the list changes over time
         getOptions: () => Select<string>['options'],
     }
-    export function ValueRef<T>(getOptions: ValueRef['getOptions'], resolveRef: ValueRef<T>['resolveRef'], info?: Info) {
-        return setInfo<ValueRef<T>>({ type: 'value-ref', defaultValue: { ref: '', getValue: unsetGetValue as any }, getOptions, resolveRef }, info);
+    export function ValueRef<T>(getOptions: ValueRef['getOptions'], resolveRef: ValueRef<T>['resolveRef'], info?: Info & { defaultRef?: string }) {
+        return setInfo<ValueRef<T>>({ type: 'value-ref', defaultValue: { ref: info?.defaultRef ?? '', getValue: unsetGetValue as any }, getOptions, resolveRef }, info);
     }
 
     export interface Converted<T, C> extends Base<T> {

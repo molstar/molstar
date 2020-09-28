@@ -42,7 +42,7 @@ const CreateGroup = PluginStateTransform.BuiltIn({
 //     params: (_, ctx: PluginContext) => {
 //         const getOptions = () => ctx.state.data.selectQ(q => q.rootsOfType(SO.Molecule.Model)).map(m => [m.transform.ref, m.obj?.label || m.transform.ref] as [string, string]);
 //         return {
-//             ref: PD.ValueRef<SO.Molecule.Model>(getOptions, ctx.state.data.tryGetCellData)
+//             ref: PD.ValueRef<SO.Molecule.Model>(getOptions, ctx.state.data.tryGetCellData, { defaultRef: getOptions()[0]?.[0] })
 //         };
 //     }
 // })({
