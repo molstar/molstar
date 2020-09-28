@@ -146,13 +146,15 @@ export namespace Color {
     }
 }
 
+export type ColorListEntry = Color | [color: Color, offset: number /** normalized value from 0 to 1 */]
+
 export interface ColorList {
     label: string
     description: string
-    list: Color[]
+    list: ColorListEntry[]
     type: 'sequential' | 'diverging' | 'qualitative'
 }
-export function ColorList(label: string, type: 'sequential' | 'diverging' | 'qualitative', description: string, list: number[]): ColorList {
+export function ColorList(label: string, type: 'sequential' | 'diverging' | 'qualitative', description: string, list: (number | [number, number])[]): ColorList {
     return { label, description, list: list as Color[], type };
 }
 

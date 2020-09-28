@@ -6,10 +6,11 @@
 
 import { TextureImage } from '../../../mol-gl/renderable/util';
 import { spline } from '../../../mol-math/interpolate';
-import { ColorScale, Color } from '../../../mol-util/color';
+import { ColorScale } from '../../../mol-util/color';
 import { ValueCell } from '../../../mol-util';
 import { Vec2 } from '../../../mol-math/linear-algebra';
 import { ColorListName } from '../../../mol-util/color/lists';
+import { ColorListEntry } from '../../../mol-util/color/color';
 
 export interface ControlPoint { x: number, alpha: number }
 
@@ -24,7 +25,7 @@ export function getControlPointsFromVec2Array(array: Vec2[]): ControlPoint[] {
     return array.map(v => ({ x: v[0], alpha: v[1] }));
 }
 
-export function createTransferFunctionTexture(controlPoints: ControlPoint[], listOrName: Color[] | ColorListName, texture?: ValueCell<TextureImage<Uint8Array>>): ValueCell<TextureImage<Uint8Array>> {
+export function createTransferFunctionTexture(controlPoints: ControlPoint[], listOrName: ColorListEntry[] | ColorListName, texture?: ValueCell<TextureImage<Uint8Array>>): ValueCell<TextureImage<Uint8Array>> {
     const cp = [
         { x: 0, alpha: 0 },
         { x: 0, alpha: 0 },

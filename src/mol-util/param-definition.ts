@@ -14,6 +14,7 @@ import { Legend } from './legend';
 import { stringToWords } from './string';
 import { getColorListFromName, ColorListName } from './color/lists';
 import { Asset } from './assets';
+import { ColorListEntry } from './color/color';
 
 export namespace ParamDefinition {
     export interface Info {
@@ -119,11 +120,12 @@ export namespace ParamDefinition {
         return ret;
     }
 
-    export interface ColorList extends Base<{ kind: 'interpolate' | 'set', colors: ColorData[] }> {
+    export interface ColorList extends Base<{ kind: 'interpolate' | 'set', colors: ColorListEntry[] }> {
         type: 'color-list'
+        offsets: boolean
         presetKind: 'all' | 'scale' | 'set'
     }
-    export function ColorList(defaultValue: { kind: 'interpolate' | 'set', colors: ColorData[] } | ColorListName, info?: Info & { presetKind?: ColorList['presetKind'] }): ColorList {
+    export function ColorList(defaultValue: { kind: 'interpolate' | 'set', colors: ColorListEntry[] } | ColorListName, info?: Info & { presetKind?: ColorList['presetKind'], offsets?: boolean }): ColorList {
         let def: ColorList['defaultValue'];
         if (typeof defaultValue === 'string') {
             const colors = getColorListFromName(defaultValue);
@@ -131,7 +133,7 @@ export namespace ParamDefinition {
         } else {
             def = defaultValue;
         }
-        return setInfo<ColorList>({ type: 'color-list', presetKind: info?.presetKind || 'all', defaultValue: def }, info);
+        return setInfo<ColorList>({ type: 'color-list', presetKind: info?.presetKind || 'all', defaultValue: def, offsets: !!info?.offsets }, info);
     }
 
     export interface Vec3 extends Base<Vec3Data>, Range {
