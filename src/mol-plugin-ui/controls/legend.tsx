@@ -26,7 +26,7 @@ export function legendFor(legend: LegendData): Legend | undefined {
 export class ScaleLegend extends React.PureComponent<LegendProps<ScaleLegendData>> {
     render() {
         const { legend } = this.props;
-        const colors = legend.colors.map(c => Color.toStyle(c)).join(', ');
+        const colors = legend.colors.map(c => Array.isArray(c) ? `${Color.toStyle(c[0])} ${100 * c[1]}%` : Color.toStyle(c)).join(', ');
         return  <div className='msp-scale-legend'>
             <div style={{ background: `linear-gradient(to right, ${colors})` }}>
                 <span style={{float: 'left'}}>{legend.minLabel}</span>

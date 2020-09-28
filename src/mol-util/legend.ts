@@ -5,6 +5,7 @@
  */
 
 import { Color } from './color';
+import { ColorListEntry } from './color/color';
 
 export type Legend = TableLegend | ScaleLegend
 
@@ -20,8 +21,8 @@ export interface ScaleLegend {
     kind: 'scale-legend'
     minLabel: string,
     maxLabel: string,
-    colors: Color[]
+    colors: ColorListEntry[]
 }
-export function ScaleLegend(minLabel: string, maxLabel: string, colors: Color[]): ScaleLegend {
+export function ScaleLegend(minLabel: string, maxLabel: string, colors: ColorListEntry[]): ScaleLegend {
     return { kind: 'scale-legend', minLabel, maxLabel, colors };
 }

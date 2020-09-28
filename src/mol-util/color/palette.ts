@@ -73,8 +73,8 @@ export function getPalette(count: number, props: PaletteProps) {
     } else {
         let colors: Color[];
         if (props.palette.name === 'colors') {
-            colors = props.palette.params.list.colors;
-            if (colors.length === 0) colors = getColorListFromName('dark-2').list;
+            colors = props.palette.params.list.colors.map(c => Array.isArray(c) ? c[0] : c);
+            if (colors.length === 0) colors = getColorListFromName('dark-2').list.map(c => Array.isArray(c) ? c[0] : c);
         } else {
             count = Math.min(count, props.palette.params.maxCount);
             colors = distinctColors(count, props.palette.params);

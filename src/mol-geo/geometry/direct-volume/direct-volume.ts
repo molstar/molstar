@@ -27,6 +27,7 @@ import { createEmptyTransparency } from '../transparency-data';
 import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './transfer-function';
 import { createEmptyClipping } from '../clipping-data';
 import { Grid, Volume } from '../../../mol-model/volume';
+import { ColorNames } from '../../../mol-util/color/names';
 
 const VolumeBox = Box();
 
@@ -139,7 +140,16 @@ export namespace DirectVolume {
                     Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
                     Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
                 ]),
-                list: PD.ColorList('red-yellow-blue'),
+                list: PD.ColorList({
+                    kind: 'interpolate',
+                    colors: [
+                        [ColorNames.white, 0],
+                        [ColorNames.red, 0.25],
+                        [ColorNames.white, 0.5],
+                        [ColorNames.blue, 0.75],
+                        [ColorNames.white, 1]
+                    ]
+                }, { offsets: true }),
             }, { isFlat: true })
         }, { isEssential: true });
     }
