@@ -66,6 +66,9 @@ interface Scene extends Object3D {
     readonly boundingSphere: Sphere3D
     readonly boundingSphereVisible: Sphere3D
 
+    readonly primitives: Scene.Group
+    readonly volumes: Scene.Group
+
     /** Returns `true` if some visibility has changed, `false` otherwise. */
     syncVisibility: () => boolean
     update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean) => void
@@ -79,21 +82,34 @@ interface Scene extends Object3D {
 }
 
 namespace Scene {
+    export interface Group extends Object3D {
+        readonly renderables: ReadonlyArray<Renderable<RenderableValues & BaseValues>>
+    }
+
     export function create(ctx: WebGLContext): Scene {
         const renderableMap = new Map<GraphicsRenderObject, Renderable<RenderableValues & BaseValues>>();
         const renderables: Renderable<RenderableValues & BaseValues>[] = [];
         const boundingSphere = Sphere3D();
         const boundingSphereVisible = Sphere3D();
 
+        const primitives: Renderable<RenderableValues & BaseValues>[] = [];
+        const volumes: Renderable<RenderableValues & BaseValues>[] = [];
+
         let boundingSphereDirty = true;
         let boundingSphereVisibleDirty = true;
 
         const object3d = Object3D.create();
+        const { view, position, direction, up } = object3d;
 
         function add(o: GraphicsRenderObject) {
             if (!renderableMap.has(o)) {
                 const renderable = createRenderable(ctx, o);
                 renderables.push(renderable);
+                if (o.type === 'direct-volume') {
+                    volumes.push(renderable);
+                } else {
+                    primitives.push(renderable);
+                }
                 renderableMap.set(o, renderable);
                 boundingSphereDirty = true;
                 boundingSphereVisibleDirty = true;
@@ -109,6 +125,8 @@ namespace Scene {
             if (renderable) {
                 renderable.dispose();
                 arraySetRemove(renderables, renderable);
+                arraySetRemove(primitives, renderable);
+                arraySetRemove(volumes, renderable);
                 renderableMap.delete(o);
                 boundingSphereDirty = true;
                 boundingSphereVisibleDirty = true;
@@ -164,10 +182,11 @@ namespace Scene {
         }
 
         return {
-            get view () { return object3d.view; },
-            get position () { return object3d.position; },
-            get direction () { return object3d.direction; },
-            get up () { return object3d.up; },
+            view, position, direction, up,
+
+            renderables,
+            primitives: { view, position, direction, up, renderables: primitives },
+            volumes: { view, position, direction, up, renderables: volumes },
 
             syncVisibility,
             update(objects, keepBoundingSphere) {
@@ -212,7 +231,6 @@ namespace Scene {
             get count() {
                 return renderables.length;
             },
-            renderables,
             get boundingSphere() {
                 if (boundingSphereDirty) {
                     calculateBoundingSphere(renderables, boundingSphere, false);

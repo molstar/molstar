@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -72,14 +72,14 @@ export class PickPass {
         renderer.setViewport(0, 0, this.pickWidth, this.pickHeight);
 
         this.objectPickTarget.bind();
-        renderer.render(scene, camera, 'pickObject', true, false);
-        renderer.render(handleScene, camera, 'pickObject', false, false);
+        renderer.render(scene, camera, 'pickObject', true, false, null);
+        renderer.render(handleScene, camera, 'pickObject', false, false, null);
         this.instancePickTarget.bind();
-        renderer.render(scene, camera, 'pickInstance', true, false);
-        renderer.render(handleScene, camera, 'pickInstance', false, false);
+        renderer.render(scene, camera, 'pickInstance', true, false, null);
+        renderer.render(handleScene, camera, 'pickInstance', false, false, null);
         this.groupPickTarget.bind();
-        renderer.render(scene, camera, 'pickGroup', true, false);
-        renderer.render(handleScene, camera, 'pickGroup', false, false);
+        renderer.render(scene, camera, 'pickGroup', true, false, null);
+        renderer.render(handleScene, camera, 'pickGroup', false, false, null);
 
         this.pickDirty = false;
     }

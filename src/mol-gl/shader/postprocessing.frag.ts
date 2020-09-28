@@ -4,7 +4,7 @@ precision highp int;
 precision highp sampler2D;
 
 uniform sampler2D tColor;
-uniform sampler2D tDepth;
+uniform sampler2D tPackedDepth;
 uniform vec2 uTexSize;
 
 uniform float uNear;
@@ -25,52 +25,48 @@ const vec4 occlusionColor = vec4(0.0, 0.0, 0.0, 1.0);
 #include common
 
 float noise(const in vec2 coords) {
-	float a = 12.9898;
-	float b = 78.233;
-	float c = 43758.5453;
-	float dt = dot(coords, vec2(a,b));
-	float sn = mod(dt, 3.14159);
+    float a = 12.9898;
+    float b = 78.233;
+    float c = 43758.5453;
+    float dt = dot(coords, vec2(a,b));
+    float sn = mod(dt, 3.14159);
 
-	return fract(sin(sn) * c);
+    return fract(sin(sn) * c);
 }
 
 float perspectiveDepthToViewZ(const in float invClipZ, const in float near, const in float far) {
-	return (near * far) / ((far - near) * invClipZ - far);
+    return (near * far) / ((far - near) * invClipZ - far);
 }
 
 float orthographicDepthToViewZ(const in float linearClipZ, const in float near, const in float far) {
-	return linearClipZ * (near - far) - near;
+    return linearClipZ * (near - far) - near;
 }
 
 float getViewZ(const in float depth) {
-	#if dOrthographic == 1
-		return orthographicDepthToViewZ(depth, uNear, uFar);
-	#else
-		return perspectiveDepthToViewZ(depth, uNear, uFar);
-	#endif
+    #if dOrthographic == 1
+        return orthographicDepthToViewZ(depth, uNear, uFar);
+    #else
+        return perspectiveDepthToViewZ(depth, uNear, uFar);
+    #endif
 }
 
 float getDepth(const in vec2 coords) {
-	#ifdef dPackedDepth
-		return unpackRGBAToDepth(texture2D(tDepth, coords));
-	#else
-		return texture2D(tDepth, coords).r;
-	#endif
+    return unpackRGBAToDepth(texture2D(tPackedDepth, coords));
 }
 
 float calcSSAO(const in vec2 coords, const in float depth) {
-	float occlusionFactor = 0.0;
+    float occlusionFactor = 0.0;
 
-	for (int i = -dOcclusionKernelSize; i <= dOcclusionKernelSize; i++) {
-		for (int j = -dOcclusionKernelSize; j <= dOcclusionKernelSize; j++) {
-			vec2 coordsDelta = coords + uOcclusionRadius / float(dOcclusionKernelSize) * vec2(float(i) / uTexSize.x, float(j) / uTexSize.y);
+    for (int i = -dOcclusionKernelSize; i <= dOcclusionKernelSize; i++) {
+        for (int j = -dOcclusionKernelSize; j <= dOcclusionKernelSize; j++) {
+            vec2 coordsDelta = coords + uOcclusionRadius / float(dOcclusionKernelSize) * vec2(float(i) / uTexSize.x, float(j) / uTexSize.y);
             coordsDelta += noiseAmount * (noise(coordsDelta) - 0.5) / uTexSize;
             coordsDelta = clamp(coordsDelta, 0.5 / uTexSize, 1.0 - 1.0 / uTexSize);
-			if (getDepth(coordsDelta) < depth) occlusionFactor += 1.0;
-		}
-	}
+            if (getDepth(coordsDelta) < depth) occlusionFactor += 1.0;
+        }
+    }
 
-	return occlusionFactor / float((2 * dOcclusionKernelSize + 1) * (2 * dOcclusionKernelSize + 1));
+    return occlusionFactor / float((2 * dOcclusionKernelSize + 1) * (2 * dOcclusionKernelSize + 1));
 }
 
 vec2 calcEdgeDepth(const in vec2 coords) {
@@ -92,34 +88,34 @@ vec2 calcEdgeDepth(const in vec2 coords) {
     float depthFiniteDifference1 = depth3 - depth2;
 
     return vec2(
-		sqrt(pow(depthFiniteDifference0, 2.0) + pow(depthFiniteDifference1, 2.0)) * 100.0,
-		min(depth0, min(depth1, min(depth2, depth3)))
-	);
+        sqrt(pow(depthFiniteDifference0, 2.0) + pow(depthFiniteDifference1, 2.0)) * 100.0,
+        min(depth0, min(depth1, min(depth2, depth3)))
+    );
 }
 
 void main(void) {
-	vec2 coords = gl_FragCoord.xy / uTexSize;
-	vec4 color = texture2D(tColor, coords);
+    vec2 coords = gl_FragCoord.xy / uTexSize;
+    vec4 color = texture2D(tColor, coords);
 
-	#ifdef dOutlineEnable
-		vec2 edgeDepth = calcEdgeDepth(coords);
-		float edgeFlag = step(edgeDepth.x, uOutlineThreshold);
-    	color.rgb *= edgeFlag;
+    #ifdef dOutlineEnable
+        vec2 edgeDepth = calcEdgeDepth(coords);
+        float edgeFlag = step(edgeDepth.x, uOutlineThreshold);
+        color.rgb *= edgeFlag;
 
-		float viewDist = abs(getViewZ(edgeDepth.y));
-		float fogFactor = smoothstep(uFogNear, uFogFar, viewDist) * (1.0 - edgeFlag);
-		color.rgb = mix(color.rgb, uFogColor, fogFactor);
-	#endif
+        float viewDist = abs(getViewZ(edgeDepth.y));
+        float fogFactor = smoothstep(uFogNear, uFogFar, viewDist) * (1.0 - edgeFlag);
+        color.rgb = mix(color.rgb, uFogColor, fogFactor);
+    #endif
 
-	// occlusion needs to be handled after outline to darken them properly
-	#ifdef dOcclusionEnable
-		float depth = getDepth(coords);
-		if (depth != 1.0) {
-			float occlusionFactor = calcSSAO(coords, depth);
-			color = mix(color, occlusionColor, uOcclusionBias * occlusionFactor);
-		}
-	#endif
+    // occlusion needs to be handled after outline to darken them properly
+    #ifdef dOcclusionEnable
+        float depth = getDepth(coords);
+        if (depth <= 0.99) {
+            float occlusionFactor = calcSSAO(coords, depth);
+            color = mix(color, occlusionColor, uOcclusionBias * occlusionFactor);
+        }
+    #endif
 
-	gl_FragColor = color;
+    gl_FragColor = color;
 }
 `;

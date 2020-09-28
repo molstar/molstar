@@ -20,6 +20,7 @@ import { Clipping } from '../mol-theme/clipping';
 import { stringToWords } from '../mol-util/string';
 import { Transparency } from '../mol-theme/transparency';
 import { degToRad } from '../mol-math/misc';
+import { Texture } from './webgl/texture';
 
 export interface RendererStats {
     programCount: number
@@ -42,7 +43,7 @@ interface Renderer {
     readonly props: Readonly<RendererProps>
 
     clear: (transparentBackground: boolean) => void
-    render: (scene: Scene, camera: Camera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean) => void
+    render: (group: Scene.Group, camera: Camera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, depthTexture: Texture | null) => void
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
     dispose: () => void
@@ -174,6 +175,7 @@ namespace Renderer {
         const modelViewProjection = Mat4();
         const invModelViewProjection = Mat4();
 
+        const cameraDir = Vec3();
         const viewOffset = Vec2();
 
         const globalUniforms: GlobalUniformValues = {
@@ -195,6 +197,7 @@ namespace Renderer {
             uViewport: ValueCell.create(Viewport.toVec4(Vec4(), viewport)),
 
             uCameraPosition: ValueCell.create(Vec3()),
+            uCameraDir: ValueCell.create(cameraDir),
             uNear: ValueCell.create(1),
             uFar: ValueCell.create(10000),
             uFogNear: ValueCell.create(1),
@@ -228,7 +231,7 @@ namespace Renderer {
 
         let globalUniformsNeedUpdate = true;
 
-        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: GraphicsRenderVariant) => {
+        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: GraphicsRenderVariant, depthTexture: Texture | null) => {
             if (!r.state.visible || (!r.state.pickable && variant[0] === 'p')) {
                 return;
             }
@@ -260,6 +263,8 @@ namespace Renderer {
                 program.setUniforms(globalUniformList);
                 globalUniformsNeedUpdate = false;
             }
+
+            if (depthTexture) program.bindTextures([['tDepth', depthTexture]]);
 
             if (r.values.dDoubleSided) {
                 if (r.values.dDoubleSided.ref.value || r.values.hasReflection.ref.value) {
@@ -293,11 +298,11 @@ namespace Renderer {
             r.render(variant);
         };
 
-        const render = (scene: Scene, camera: Camera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean) => {
-            ValueCell.update(globalUniforms.uModel, scene.view);
+        const render = (group: Scene.Group, camera: Camera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, depthTexture: Texture | null) => {
+            ValueCell.update(globalUniforms.uModel, group.view);
             ValueCell.update(globalUniforms.uView, camera.view);
             ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view));
-            ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, scene.view, camera.view));
+            ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, group.view, camera.view));
             ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView));
             ValueCell.update(globalUniforms.uProjection, camera.projection);
             ValueCell.update(globalUniforms.uInvProjection, Mat4.invert(invProjection, camera.projection));
@@ -308,6 +313,8 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uViewOffset, camera.viewOffset.enabled ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2.set(viewOffset, 0, 0));
 
             ValueCell.update(globalUniforms.uCameraPosition, camera.state.position);
+            ValueCell.update(globalUniforms.uCameraDir, Vec3.normalize(cameraDir, Vec3.sub(cameraDir, camera.state.target, camera.state.position)));
+
             ValueCell.update(globalUniforms.uFar, camera.far);
             ValueCell.update(globalUniforms.uNear, camera.near);
             ValueCell.update(globalUniforms.uFogFar, camera.fogFar);
@@ -318,7 +325,7 @@ namespace Renderer {
             globalUniformsNeedUpdate = true;
             state.currentRenderItemId = -1;
 
-            const { renderables } = scene;
+            const { renderables } = group;
 
             state.disable(gl.SCISSOR_TEST);
             state.disable(gl.BLEND);
@@ -338,22 +345,28 @@ namespace Renderer {
             if (variant === 'color') {
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i];
-                    if (r.state.opaque) renderObject(r, variant);
+                    if (r.state.opaque) {
+                        renderObject(r, variant, depthTexture);
+                    }
                 }
 
                 state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
                 state.enable(gl.BLEND);
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i];
-                    if (!r.state.opaque && r.state.writeDepth) renderObject(r, variant);
+                    if (!r.state.opaque && r.state.writeDepth) {
+                        renderObject(r, variant, depthTexture);
+                    }
                 }
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i];
-                    if (!r.state.opaque && !r.state.writeDepth) renderObject(r, variant);
+                    if (!r.state.opaque && !r.state.writeDepth) {
+                        renderObject(r, variant, depthTexture);
+                    }
                 }
             } else { // picking & depth
                 for (let i = 0, il = renderables.length; i < il; ++i) {
-                    renderObject(renderables[i], variant);
+                    renderObject(renderables[i], variant, depthTexture);
                 }
             }
 

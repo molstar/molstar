@@ -32,8 +32,8 @@ attribute vec3 aEnd;
 void trimSegment(const in vec4 start, inout vec4 end) {
     // trim end segment so it terminates between the camera plane and the near plane
     // conservative estimate of the near plane
-    float a = uProjection[2][2];  // 3nd entry in 3th column
-    float b = uProjection[3][2];  // 3nd entry in 4th column
+    float a = uProjection[2][2];  // 3rd entry in 3rd column
+    float b = uProjection[3][2];  // 3rd entry in 4th column
     float nearEstimate = -0.5 * b / a;
     float alpha = (nearEstimate - start.z) / (end.z - start.z);
     end.xyz = mix(start.xyz, end.xyz, alpha);

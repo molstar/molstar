@@ -40,8 +40,9 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
         const spec = schema[k];
         if (spec.type === 'attribute') attributeValues[k] = values[k];
         if (spec.type === 'define') defineValues[k] = values[k];
-        if (spec.type === 'texture') textureValues[k] = values[k];
-        // check if k exists in values so that global uniforms are excluded here
+        // check if k exists in values to exclude global textures
+        if (spec.type === 'texture' && values[k] !== undefined) textureValues[k] = values[k];
+        // check if k exists in values to exclude global uniforms
         if (spec.type === 'uniform' && values[k] !== undefined) {
             if (spec.isMaterial) materialUniformValues[k] = values[k];
             else uniformValues[k] = values[k];
@@ -121,6 +122,7 @@ export const GlobalUniformSchema = {
     uViewOffset: UniformSpec('v2'),
 
     uCameraPosition: UniformSpec('v3'),
+    uCameraDir: UniformSpec('v3'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
     uFogNear: UniformSpec('f'),
@@ -154,13 +156,19 @@ export const GlobalUniformSchema = {
     uSelectColor: UniformSpec('v3'),
 } as const;
 export type GlobalUniformSchema = typeof GlobalUniformSchema
-export type GlobalUniformValues = Values<GlobalUniformSchema> // { [k in keyof GlobalUniformSchema]: ValueCell<any> }
+export type GlobalUniformValues = Values<GlobalUniformSchema>
+
+export const GlobalTextureSchema = {
+    tDepth: TextureSpec('texture', 'depth', 'ushort', 'nearest'),
+} as const;
+export type GlobalTextureSchema = typeof GlobalTextureSchema
+export type GlobalTextureValues = Values<GlobalTextureSchema>
 
 export const InternalSchema = {
     uObjectId: UniformSpec('i'),
 } as const;
 export type InternalSchema = typeof InternalSchema
-export type InternalValues = { [k in keyof InternalSchema]: ValueCell<any> }
+export type InternalValues = Values<InternalSchema>
 
 export const ColorSchema = {
     // aColor: AttributeSpec('float32', 3, 0), // TODO

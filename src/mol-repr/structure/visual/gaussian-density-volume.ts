@@ -11,10 +11,9 @@ import { Theme } from '../../../mol-theme/theme';
 import { GaussianDensityTextureProps, computeStructureGaussianDensityTexture, GaussianDensityTextureParams } from './util/gaussian';
 import { DirectVolume } from '../../../mol-geo/geometry/direct-volume/direct-volume';
 import { ComplexDirectVolumeParams, ComplexVisual, ComplexDirectVolumeVisual } from '../complex-visual';
-import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { NullLocation } from '../../../mol-model/location';
-import { EmptyLoci } from '../../../mol-model/loci';
 import { VisualUpdateState } from '../../util';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { eachSerialElement, ElementIterator, getSerialElementLoci } from './util/element';
 
 async function createGaussianDensityVolume(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityTextureProps, directVolume?: DirectVolume): Promise<DirectVolume> {
     const { runtime, webgl } = ctx;
@@ -26,7 +25,10 @@ async function createGaussianDensityVolume(ctx: VisualContext, structure: Struct
     const { transform, texture, bbox, gridDim } = densityTextureData;
     const stats = { min: 0, max: 1, mean: 0.5, sigma: 0.1 };
 
-    return DirectVolume.create(bbox, gridDim, transform, texture, stats, directVolume);
+    const unitToCartn = Mat4.mul(Mat4(), transform, Mat4.fromScaling(Mat4(), gridDim));
+    const cellDim = Vec3.create(1, 1, 1);
+
+    return DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, directVolume);
 }
 
 export const GaussianDensityVolumeParams = {
@@ -40,9 +42,9 @@ export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<G
     return ComplexDirectVolumeVisual<GaussianDensityVolumeParams>({
         defaultProps: PD.getDefaultValues(GaussianDensityVolumeParams),
         createGeometry: createGaussianDensityVolume,
-        createLocationIterator: (structure: Structure) => LocationIterator(structure.elementCount, 1, () => NullLocation),
-        getLoci: () => EmptyLoci, // TODO
-        eachLocation: () => false, // TODO
+        createLocationIterator: ElementIterator.fromStructure,
+        getLoci: getSerialElementLoci,
+        eachLocation: eachSerialElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianDensityVolumeParams>, currentProps: PD.Values<GaussianDensityVolumeParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true;
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true;
