@@ -185,6 +185,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'file': return FileControl;
         case 'file-list': return FileListControl;
         case 'select': return SelectControl;
+        case 'value-ref': return ValueRefControl;
         case 'text': return TextControl;
         case 'interval': return typeof param.min !== 'undefined' && typeof param.max !== 'undefined'
             ? BoundedIntervalControl : IntervalControl;
@@ -469,6 +470,56 @@ export class SelectControl extends React.PureComponent<ParamProps<PD.Select<stri
 
         const items = this.items(this.props.param);
         const current = ActionMenu.findItem(items, this.props.value);
+
+        return <ActionMenu items={items} current={current} onSelect={this.onSelect} />;
+    }
+
+    toggleHelp = () => this.setState({ showHelp: !this.state.showHelp });
+
+    render() {
+        return renderSimple({
+            props: this.props,
+            state: this.state,
+            control: this.renderControl(),
+            toggleHelp: this.toggleHelp,
+            addOn: this.renderAddOn()
+        });
+    }
+}
+
+export class ValueRefControl extends React.PureComponent<ParamProps<PD.ValueRef<any>>, { showHelp: boolean, showOptions: boolean }> {
+    state = { showHelp: false, showOptions: false };
+
+    onSelect: ActionMenu.OnSelect = item => {
+        if (!item || item.value === this.props.value) {
+            this.setState({ showOptions: false });
+        } else {
+            this.setState({ showOptions: false }, () => {
+                this.props.onChange({ param: this.props.param, name: this.props.name, value: { ref: item.value } });
+            });
+        }
+    }
+
+    toggle = () => this.setState({ showOptions: !this.state.showOptions });
+
+    items = memoizeLatest((param: PD.ValueRef) => ActionMenu.createItemsFromSelectOptions(param.getOptions()));
+
+    renderControl() {
+        const items = this.items(this.props.param);
+        const current = this.props.value.ref ? ActionMenu.findItem(items, this.props.value.ref) : void 0;
+        const label = current
+            ? current.label
+            : `[Ref] ${this.props.value.ref ?? ''}`;
+
+        return <ToggleButton disabled={this.props.isDisabled} style={{ textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}
+            label={label} title={label as string} toggle={this.toggle} isSelected={this.state.showOptions} />;
+    }
+
+    renderAddOn() {
+        if (!this.state.showOptions) return null;
+
+        const items = this.items(this.props.param);
+        const current = ActionMenu.findItem(items, this.props.value.ref);
 
         return <ActionMenu items={items} current={current} onSelect={this.onSelect} />;
     }

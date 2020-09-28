@@ -70,6 +70,12 @@ class State {
     readonly cells: State.Cells = new Map();
     private spine = new StateTreeSpine.Impl(this.cells);
 
+    tryGetCellData = <T extends StateObject>(ref: StateTransform.Ref) => {
+        const ret = this.cells.get(ref)?.obj?.data;
+        if (!ref) throw new Error(`Cell '${ref}' data undefined.`);
+        return ret as T;
+    }
+
     private historyCapacity = 5;
     private history: [StateTree, string][] = [];
 
@@ -835,6 +841,7 @@ function resolveParams(ctx: UpdateContext, transform: StateTransform, src: State
     (transform.params as any) = transform.params
         ? assignIfUndefined(transform.params, defaultValues)
         : defaultValues;
+    ParamDefinition.resolveValueRefs(definition, transform.params);
     return { definition, values: transform.params };
 }
 
@@ -875,7 +882,6 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
         const oldData = current.obj?.data;
         const newParams = params.values;
         current.params = params;
-
 
         const updateKind = !!current.obj && current.obj !== StateObject.Null
             ? await updateObject(ctx, current, transform.transformer, parent, current.obj!, oldParams, newParams)

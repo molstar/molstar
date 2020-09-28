@@ -277,6 +277,21 @@ export namespace ParamDefinition {
     }
     function _defaultObjectListCtor(this: ObjectList) { return getDefaultValues(this.element) as any; }
 
+
+    function unsetGetValue() {
+        throw new Error('getValue not set. Fix runtime.');
+    }
+
+    // getValue needs to be assigned by a runtime because it might not be serializable
+    export interface ValueRef<T = any> extends Base<{ ref: string, getValue: () => T }> {
+        type: 'value-ref',
+        resolveRef: (ref: string) => T,
+        getOptions: () => Select<string>['options'],
+    }
+    export function ValueRef<T>(getOptions: ValueRef['getOptions'], resolveRef: ValueRef<T>['resolveRef'], info?: Info) {
+        return setInfo<ValueRef<T>>({ type: 'value-ref', defaultValue: { ref: '', getValue: unsetGetValue as any }, getOptions, resolveRef }, info);
+    }
+
     export interface Converted<T, C> extends Base<T> {
         type: 'converted',
         converted: Any,
@@ -310,7 +325,7 @@ export namespace ParamDefinition {
 
     export type Any =
         | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Mat4 | Numeric | FileParam | UrlParam | FileListParam | Interval | LineGraph
-        | ColorList | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList
+        | ColorList | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList | ValueRef
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
@@ -335,6 +350,59 @@ export namespace ParamDefinition {
             d[k] = params[k].defaultValue;
         }
         return d as Values<T>;
+    }
+
+    function _resolveRef(resolve: (ref: string) => any, ref: string) {
+        return () => resolve(ref);
+    }
+
+    function resolveRefValue(p: Any, value: any) {
+        if (!value) return;
+
+        if (p.type === 'value-ref') {
+            const v = value as ValueRef['defaultValue'];
+            if (!v.ref) v.getValue = () => { throw new Error('Unset ref in ValueRef value.'); };
+            else v.getValue = _resolveRef(p.resolveRef, v.ref);
+        } else if (p.type === 'group') {
+            resolveValueRefs(p.params, value);
+        } else if (p.type === 'mapped') {
+            const v = value as NamedParams;
+            const param = p.map(v.name);
+            resolveRefValue(param, v.params);
+        } else if (p.type === 'object-list') {
+            if (!hasValueRef(p.element)) return;
+            for (const e of value) {
+                resolveValueRefs(p.element, e);
+            }
+        }
+    }
+
+    function hasParamValueRef(p: Any) {
+        if (p.type === 'value-ref') {
+            return true;
+        } else if (p.type === 'group') {
+            if (hasValueRef(p.params)) return true;
+        } else if (p.type === 'mapped') {
+            for (const [o] of p.select.options) {
+                if (hasParamValueRef(p.map(o))) return true;
+            }
+        } else if (p.type === 'object-list') {
+            return hasValueRef(p.element);
+        }
+        return false;
+    }
+
+    function hasValueRef(params: Params) {
+        for (const n of Object.keys(params)) {
+            if (hasParamValueRef(params[n])) return true;
+        }
+        return false;
+    }
+
+    export function resolveValueRefs(params: Params, values: any) {
+        for (const n of Object.keys(params)) {
+            resolveRefValue(params[n], values?.[n]);
+        }
     }
 
     export function setDefaultValues<T extends Params>(params: T, defaultValues: Values<T>) {

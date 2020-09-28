@@ -26,6 +26,7 @@ function paramInfo(param: PD.Any, offset: number): string {
         case 'file': return `JavaScript File Handle`;
         case 'file-list': return `JavaScript FileList Handle`;
         case 'select': return `One of ${oToS(param.options)}`;
+        case 'value-ref': return `Reference to a state object.`;
         case 'text': return 'String';
         case 'interval': return `Interval [min, max]`;
         case 'group': return `Object with:\n${getParams(param.params, offset + 2)}`;
