@@ -31,3 +31,24 @@ const CreateGroup = PluginStateTransform.BuiltIn({
         return StateTransformer.UpdateResult.Updated;
     }
 });
+
+// export { ValueRefTest };
+// type ValueRefTest = typeof ValueRefTest
+// const ValueRefTest = PluginStateTransform.BuiltIn({
+//     name: 'value-ref-test',
+//     display: { name: 'ValueRef Test' },
+//     from: SO.Root,
+//     to: SO.Data.String,
+//     params: (_, ctx: PluginContext) => {
+//         const getOptions = () => ctx.state.data.selectQ(q => q.rootsOfType(SO.Molecule.Model)).map(m => [m.transform.ref, m.obj?.label || m.transform.ref] as [string, string]);
+//         return {
+//             ref: PD.ValueRef<SO.Molecule.Model>(getOptions, ctx.state.data.tryGetCellData)
+//         };
+//     }
+// })({
+//     apply({ params }) {
+//         const model = params.ref.getValue();
+//         console.log(model);
+//         return new SO.Data.String(`Model: ${model.label}`, { label: model.label });
+//     }
+// });
