@@ -101,7 +101,8 @@ and navigate to `build/viewer`
 
 **Ion names**
 
-    node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-dict/create-table.js build/data/ccb.bcif -ino src/mol-model/structure/model/types/ions.ts
+    node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-dict/create-ions.js src/mol-model/structure/model/types/ions.ts
+
 
 **GraphQL schemas**
 
