@@ -25,8 +25,8 @@ import { DefaultMap } from '../../mol-util/map';
 import { mmCIF_chemCompBond_schema } from '../../mol-io/reader/cif/schema/mmcif-extras';
 import { ccd_chemCompAtom_schema } from '../../mol-io/reader/cif/schema/ccd-extras';
 
-export async function ensureAvailable(path: string, url: string) {
-    if (FORCE_DOWNLOAD || !fs.existsSync(path)) {
+export async function ensureAvailable(path: string, url: string, forceDownload = false) {
+    if (forceDownload || !fs.existsSync(path)) {
         console.log(`downloading ${url}...`);
         const data = await fetch(url);
         if (!fs.existsSync(DATA_DIR)) {
@@ -41,9 +41,9 @@ export async function ensureAvailable(path: string, url: string) {
     }
 }
 
-export async function ensureDataAvailable() {
-    await ensureAvailable(CCD_PATH, CCD_URL);
-    await ensureAvailable(PVCD_PATH, PVCD_URL);
+export async function ensureDataAvailable(forceDownload = false) {
+    await ensureAvailable(CCD_PATH, CCD_URL, forceDownload);
+    await ensureAvailable(PVCD_PATH, PVCD_URL, forceDownload);
 }
 
 export async function readFileAsCollection<S extends Database.Schema>(path: string, schema: S) {
@@ -243,33 +243,8 @@ function createAtoms(ccd: DatabaseCollection<CCD_Schema>) {
     );
 }
 
-function extractIonNames(ccd: DatabaseCollection<CCD_Schema>) {
-    const ionNames: string[] = [];
-    for (const k in ccd) {
-        const {chem_comp} = ccd[k];
-        if (chem_comp.name.value(0).toUpperCase().includes(' ION')) {
-            ionNames.push(chem_comp.id.value(0));
-        }
-    }
-    return ionNames;
-}
-
-function writeIonNamesFile(filePath: string, ionNames: string[]) {
-    const output = `/**
-* Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
-*
-* Code-generated ion names params file. Names extracted from CCD components.
-*
-* @author molstar/chem-comp-dict/create-table cli
-*/
-
-export const IonNames = new Set(${JSON.stringify(ionNames).replace(/"/g, "'").replace(/,/g, ', ')});
-`;
-    writeFile(filePath, output);
-}
-
-async function run(out: string, binary = false, ionNamesOut?: string, ccaOut?: string) {
-    await ensureDataAvailable();
+async function run(out: string, binary = false, forceDownload = false, ccaOut?: string) {
+    await ensureDataAvailable(forceDownload);
     const ccd = await readCCD();
     const pvcd = await readPVCD();
 
@@ -287,14 +262,6 @@ async function run(out: string, binary = false, ionNamesOut?: string, ccaOut?: s
             fs.mkdirSync(path.dirname(ccaOut));
         }
         writeFile(ccaOut, ccaCif);
-    }
-
-    if (!!ionNamesOut) {
-        const ionNames = extractIonNames(ccd);
-        if (!fs.existsSync(path.dirname(ionNamesOut))) {
-            fs.mkdirSync(path.dirname(ionNamesOut));
-        }
-        writeIonNamesFile(ionNamesOut, ionNames);
     }
 }
 
@@ -322,10 +289,6 @@ parser.addArgument([ '--binary', '-b' ], {
     action: 'storeTrue',
     help: 'Output as BinaryCIF.'
 });
-parser.addArgument([ '--ionNamesOut', '-ino' ], {
-    help: 'Generated file output path to save extracted ion names.',
-    required: false
-});
 parser.addArgument(['--ccaOut', '-a'], {
     help: 'Optional generated file output path for chem_comp_atom data.',
     required: false
@@ -334,11 +297,8 @@ interface Args {
     out: string,
     forceDownload?: boolean,
     binary?: boolean,
-    ionNamesOut?: string,
     ccaOut?: string
 }
 const args: Args = parser.parseArgs();
 
-const FORCE_DOWNLOAD = args.forceDownload;
-
-run(args.out, args.binary, args.ionNamesOut, args.ccaOut);
+run(args.out, args.binary, args.forceDownload, args.ccaOut);
