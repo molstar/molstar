@@ -64,7 +64,7 @@ function mapQuery(app: express.Express, queryName: string, queryDefinition: Quer
                 queryParams,
                 modelNums: commonParams.model_nums,
                 copyAllCategories: !!commonParams.copy_all_categories,
-                transformation: commonParams.transformation
+                transform: commonParams.transform
             })],
             writer: createResultWriter(res, commonParams.encoding!, entryId, queryName),
             options: { binary: commonParams.encoding === 'bcif', encoding: commonParams.encoding }

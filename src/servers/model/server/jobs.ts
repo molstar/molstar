@@ -43,7 +43,7 @@ export interface JobEntry {
     normalizedParams: any,
     modelNums?: number[],
     copyAllCategories: boolean,
-    transformation?: Mat4
+    transform?: Mat4
 }
 
 interface JobEntryDefinition<Name extends QueryName> {
@@ -53,7 +53,7 @@ interface JobEntryDefinition<Name extends QueryName> {
     queryParams: QueryParams<Name>,
     modelNums?: number[],
     copyAllCategories: boolean,
-    transformation?: Mat4
+    transform?: Mat4
 }
 
 export function JobEntry<Name extends QueryName>(definition: JobEntryDefinition<Name>): JobEntry {
@@ -72,7 +72,7 @@ export function JobEntry<Name extends QueryName>(definition: JobEntryDefinition<
         normalizedParams,
         modelNums: definition.modelNums,
         copyAllCategories: !!definition.copyAllCategories,
-        transformation: definition.transformation
+        transform: definition.transform
     };
 }
 
