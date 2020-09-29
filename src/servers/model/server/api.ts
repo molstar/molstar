@@ -57,7 +57,7 @@ export interface CommonQueryParamsInfo {
     encoding?: Encoding,
     copy_all_categories?: boolean
     data_source?: string,
-    transformation?: Mat4
+    transform?: Mat4
 }
 
 export const AtomSiteSchemaElement = {
@@ -292,7 +292,7 @@ export function normalizeRestCommonParams(params: any): CommonQueryParamsInfo {
         data_source: params.data_source,
         copy_all_categories: Boolean(params.copy_all_categories),
         encoding: mapEncoding(('' + params.encoding).toLocaleLowerCase()),
-        transformation: params.transformation ? createMat4(('' + params.transformation).split(',').map(n => n.trim()).map(n => +n)) : Mat4.identity()
+        transform: params.transform ? createMat4(('' + params.transform).split(',').map(n => n.trim()).map(n => +n)) : Mat4.identity()
     };
 }
 

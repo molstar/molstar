@@ -216,10 +216,10 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
         for (let i = 0; i < structures.length; i++) {
             const s = StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], { timeoutMs: Config.queryTimeoutMs }));
             if (s.elementCount > 0) {
-                if (!entry.transformation || Mat4.isIdentity(entry.transformation)) {
+                if (!entry.transform || Mat4.isIdentity(entry.transform)) {
                     result.push(s);
                 } else {
-                    result.push(Structure.transform(s, entry.transformation));
+                    result.push(Structure.transform(s, entry.transform));
                 }
             }
         }
