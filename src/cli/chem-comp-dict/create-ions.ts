@@ -21,7 +21,8 @@ function extractIonNames(ccd: DatabaseCollection<CCD_Schema>) {
     const ionNames: string[] = [];
     for (const k in ccd) {
         const {chem_comp} = ccd[k];
-        if (chem_comp.name.value(0).toUpperCase().includes(' ION')) {
+        if ((chem_comp.name.value(0).toUpperCase().includes(' ION')) &&
+            (chem_comp.pdbx_release_status.value(0) === 'REL')) {
             ionNames.push(chem_comp.id.value(0));
         }
     }
