@@ -29,6 +29,7 @@ import { Mol2Writer } from '../../../mol-io/writer/mol2';
 import { MolEncoder } from '../../../mol-io/writer/mol/encoder';
 import { Mol2Encoder } from '../../../mol-io/writer/mol2/encoder';
 import { ComponentAtom } from '../../../mol-model-formats/structure/property/atoms/chem_comp';
+import { Mat4 } from '../../../mol-math/linear-algebra';
 
 export interface Stats {
     structure: StructureWrapper,
@@ -214,7 +215,13 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
         const result: Structure[] = [];
         for (let i = 0; i < structures.length; i++) {
             const s = StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], { timeoutMs: Config.queryTimeoutMs }));
-            if (s.elementCount > 0) result.push(s);
+            if (s.elementCount > 0) {
+                if (!entry.transformation || Mat4.isIdentity(entry.transformation)) {
+                    result.push(s);
+                } else {
+                    result.push(Structure.transform(s, entry.transformation));
+                }
+            }
         }
         perf.end('query');
 
