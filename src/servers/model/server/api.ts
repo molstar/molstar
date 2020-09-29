@@ -48,7 +48,7 @@ export const CommonQueryParamsInfo: QueryParamInfo[] = [
     { name: 'encoding', type: QueryParamType.String, defaultValue: 'cif', description: `Determines the output encoding (text based 'CIF' or binary 'BCIF'). Ligands can also be exported as 'SDF', 'MOL', or 'MOL2'.`, supportedValues: ['cif', 'bcif', 'sdf', 'mol', 'mol2'] },
     { name: 'copy_all_categories', type: QueryParamType.Boolean, defaultValue: false, description: 'If true, copy all categories from the input file.' },
     { name: 'data_source', type: QueryParamType.String, defaultValue: '', description: 'Allows to control how the provided data source ID maps to input file (as specified by the server instance config).' },
-    { name: 'transformation', type: QueryParamType.JSON, defaultValue: void 0, description: `Transformation to apply to coordinates in '_atom_site'. Accepts a 4x4 transformation matrix, provided as array of 16 float values.` }
+    { name: 'transform', type: QueryParamType.JSON, defaultValue: void 0, description: `Transformation to apply to coordinates in '_atom_site'. Accepts a 4x4 transformation matrix, provided as array of 16 float values.` }
 ];
 
 export type Encoding = 'cif' | 'bcif' | 'sdf' | 'mol' | 'mol2';
