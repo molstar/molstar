@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { setAutoFreeze } from 'immer';
+import produce, { setAutoFreeze } from 'immer';
 import { List } from 'immutable';
 import { merge } from 'rxjs';
 import { Canvas3D, DefaultCanvas3DParams } from '../mol-canvas3d/canvas3d';
@@ -190,11 +190,18 @@ export class PluginContext {
             const antialias = !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false);
             (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas, {}, { antialias });
             this.canvas3dInit.next(true);
-            const props = this.spec.components?.viewport?.canvas3d;
-            if (!props || props.renderer?.backgroundColor === void 0) {
-                this.canvas3d?.setProps({ renderer: { backgroundColor: Color(0xFCFBF9) } });
-            }
-            if (props) {
+            let props = this.spec.components?.viewport?.canvas3d;
+
+            const backgroundColor = Color(0xFCFBF9);
+            if (!props) {
+                this.canvas3d?.setProps({ renderer: { backgroundColor } });
+            } else {
+                if (props.renderer?.backgroundColor === void 0) {
+                    props = produce(props, p => {
+                        if (p.renderer) p.renderer.backgroundColor = backgroundColor;
+                        else p.renderer = { backgroundColor };
+                    });
+                }
                 this.canvas3d?.setProps(props);
             }
             this.canvas3d!.animate();
