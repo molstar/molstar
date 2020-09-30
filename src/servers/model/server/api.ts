@@ -292,7 +292,7 @@ export function normalizeRestCommonParams(params: any): CommonQueryParamsInfo {
         data_source: params.data_source,
         copy_all_categories: Boolean(params.copy_all_categories),
         encoding: mapEncoding(('' + params.encoding).toLocaleLowerCase()),
-        transform: params.transform ? createMat4(('' + params.transform).split(',').map(n => n.trim()).map(n => +n)) : Mat4.identity()
+        transform: params.transform ? ('' + params.transform).split(',').map(n => n.trim()).map(n => +n) as Mat4 : Mat4.identity()
     };
 }
 
@@ -309,10 +309,4 @@ function mapEncoding(value: string) {
         default:
             return 'cif';
     }
-}
-
-function createMat4(array: number[]): Mat4 {
-    const out = Mat4();
-    Mat4.fromArray(out, array, 0);
-    return out;
 }
