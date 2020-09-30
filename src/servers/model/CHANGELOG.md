@@ -1,3 +1,6 @@
+# 0.9.3
+* optional transform parameter
+
 # 0.9.2
 * assemblyName in /residueInteraction
 * /ligand query
