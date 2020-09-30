@@ -8,6 +8,7 @@ import { Queries, Structure, StructureQuery, StructureSymmetry, StructurePropert
 import { getAtomsTests } from '../query/atoms';
 import { CifWriter } from '../../../mol-io/writer/cif';
 import { QuerySchemas } from '../query/schemas';
+import { Mat4 } from '../../../mol-math/linear-algebra';
 
 export enum QueryParamType {
     JSON,
@@ -46,7 +47,8 @@ export const CommonQueryParamsInfo: QueryParamInfo[] = [
     { name: 'model_nums', type: QueryParamType.String, description: `A comma-separated list of model ids (i.e. 1,2). If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field.` },
     { name: 'encoding', type: QueryParamType.String, defaultValue: 'cif', description: `Determines the output encoding (text based 'CIF' or binary 'BCIF'). Ligands can also be exported as 'SDF', 'MOL', or 'MOL2'.`, supportedValues: ['cif', 'bcif', 'sdf', 'mol', 'mol2'] },
     { name: 'copy_all_categories', type: QueryParamType.Boolean, defaultValue: false, description: 'If true, copy all categories from the input file.' },
-    { name: 'data_source', type: QueryParamType.String, defaultValue: '', description: 'Allows to control how the provided data source ID maps to input file (as specified by the server instance config).' }
+    { name: 'data_source', type: QueryParamType.String, defaultValue: '', description: 'Allows to control how the provided data source ID maps to input file (as specified by the server instance config).' },
+    { name: 'transform', type: QueryParamType.String, description: `Transformation to apply to coordinates in '_atom_site'. Accepts a 4x4 transformation matrix, provided as array of 16 float values.` }
 ];
 
 export type Encoding = 'cif' | 'bcif' | 'sdf' | 'mol' | 'mol2';
@@ -54,7 +56,8 @@ export interface CommonQueryParamsInfo {
     model_nums?: number[],
     encoding?: Encoding,
     copy_all_categories?: boolean
-    data_source?: string
+    data_source?: string,
+    transform?: Mat4
 }
 
 export const AtomSiteSchemaElement = {
@@ -288,7 +291,8 @@ export function normalizeRestCommonParams(params: any): CommonQueryParamsInfo {
         model_nums: params.model_nums ? ('' + params.model_nums).split(',').map(n => n.trim()).filter(n => !!n).map(n => +n) : void 0,
         data_source: params.data_source,
         copy_all_categories: Boolean(params.copy_all_categories),
-        encoding: mapEncoding(('' + params.encoding).toLocaleLowerCase())
+        encoding: mapEncoding(('' + params.encoding).toLocaleLowerCase()),
+        transform: params.transform ? ('' + params.transform).split(',').map(n => n.trim()).map(n => +n) as Mat4 : Mat4.identity()
     };
 }
 
