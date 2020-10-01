@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Josh McMenemy <josh.mcmenemy@gmail.com>
  */
@@ -14,8 +14,7 @@ const writeFile = util.promisify(fs.writeFile);
 
 import { DatabaseCollection } from '../../mol-data/db';
 import { CCD_Schema } from '../../mol-io/reader/cif/schema/ccd';
-import { ensureDataAvailable, readCCD } from './create-table';
-
+import { ensureDataAvailable, readCCD } from './util';
 
 function extractIonNames(ccd: DatabaseCollection<CCD_Schema>) {
     const ionNames: string[] = [];
@@ -32,12 +31,12 @@ function extractIonNames(ccd: DatabaseCollection<CCD_Schema>) {
 
 function writeIonNamesFile(filePath: string, ionNames: string[]) {
     const output = `/**
-* Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
-*
-* Code-generated ion names params file. Names extracted from CCD components.
-*
-* @author molstar/chem-comp-dict/create-table cli
-*/
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Code-generated ion names params file. Names extracted from CCD components.
+ *
+ * @author molstar/chem-comp-dict/create-table cli
+ */
 
 export const IonNames = new Set(${JSON.stringify(ionNames).replace(/"/g, "'").replace(/,/g, ', ')});
 `;
