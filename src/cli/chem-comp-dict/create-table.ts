@@ -25,8 +25,8 @@ import { DefaultMap } from '../../mol-util/map';
 import { mmCIF_chemCompBond_schema } from '../../mol-io/reader/cif/schema/mmcif-extras';
 import { ccd_chemCompAtom_schema } from '../../mol-io/reader/cif/schema/ccd-extras';
 
-export async function ensureAvailable(path: string, url: string) {
-    if (FORCE_DOWNLOAD || !fs.existsSync(path)) {
+export async function ensureAvailable(path: string, url: string, forceDownload = false) {
+    if (forceDownload || !fs.existsSync(path)) {
         console.log(`downloading ${url}...`);
         const data = await fetch(url);
         if (!fs.existsSync(DATA_DIR)) {
@@ -41,9 +41,9 @@ export async function ensureAvailable(path: string, url: string) {
     }
 }
 
-export async function ensureDataAvailable() {
-    await ensureAvailable(CCD_PATH, CCD_URL);
-    await ensureAvailable(PVCD_PATH, PVCD_URL);
+export async function ensureDataAvailable(forceDownload = false) {
+    await ensureAvailable(CCD_PATH, CCD_URL, forceDownload);
+    await ensureAvailable(PVCD_PATH, PVCD_URL, forceDownload);
 }
 
 export async function readFileAsCollection<S extends Database.Schema>(path: string, schema: S) {
@@ -136,11 +136,11 @@ function checkAddingBondsFromPVCD(pvcd: DatabaseCollection<CCD_Schema>) {
     }
 }
 
-async function createBonds(atomsRequested: boolean) {
-    await ensureDataAvailable();
-    const ccd = await readCCD();
-    const pvcd = await readPVCD();
-
+async function createBonds(
+    ccd: DatabaseCollection<CCD_Schema>,
+    pvcd: DatabaseCollection<CCD_Schema>,
+    atomsRequested: boolean
+) {
     const ccbSet = new Set<string>();
 
     const comp_id: string[] = [];
@@ -243,8 +243,12 @@ function createAtoms(ccd: DatabaseCollection<CCD_Schema>) {
     );
 }
 
-async function run(out: string, binary = false, ccaOut?: string) {
-    const { bonds, atoms } = await createBonds(!!ccaOut);
+async function run(out: string, binary = false, forceDownload = false, ccaOut?: string) {
+    await ensureDataAvailable(forceDownload);
+    const ccd = await readCCD();
+    const pvcd = await readPVCD();
+
+    const { bonds, atoms } = await createBonds(ccd, pvcd, !!ccaOut);
 
     const ccbCif = getEncodedCif(CCB_TABLE_NAME, bonds, binary);
     if (!fs.existsSync(path.dirname(out))) {
@@ -290,13 +294,11 @@ parser.addArgument(['--ccaOut', '-a'], {
     required: false
 });
 interface Args {
-    out: string
-    forceDownload?: boolean
+    out: string,
+    forceDownload?: boolean,
     binary?: boolean,
     ccaOut?: string
 }
 const args: Args = parser.parseArgs();
 
-const FORCE_DOWNLOAD = args.forceDownload;
-
-run(args.out, args.binary, args.ccaOut);
+run(args.out, args.binary, args.forceDownload, args.ccaOut);
