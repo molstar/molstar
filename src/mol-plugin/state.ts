@@ -19,13 +19,14 @@ import { StructureFocusSnapshot } from '../mol-plugin-state/manager/structure/fo
 import { merge } from 'rxjs';
 import { PluginContext } from './context';
 import { PluginComponent } from '../mol-plugin-state/component';
+import { PluginConfig } from './config';
 
 export { PluginState };
 
 class PluginState extends PluginComponent {
     private get animation() { return this.plugin.managers.animation; }
 
-    readonly data = State.create(new SO.Root({ }), { runTask: this.plugin.runTask, globalContext: this.plugin });
+    readonly data = State.create(new SO.Root({ }), { runTask: this.plugin.runTask, globalContext: this.plugin, historyCapacity: this.plugin.config.get(PluginConfig.State.HistoryCapacity) });
     readonly behaviors = State.create(new PluginBehavior.Root({ }), { runTask: this.plugin.runTask, globalContext: this.plugin, rootState: { isLocked: true } });
 
     readonly events = {
