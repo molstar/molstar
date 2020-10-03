@@ -56,8 +56,9 @@ function getCylinder(props: CylinderProps) {
     let cylinder = cylinderMap.get(key);
     if (cylinder === undefined) {
         if (props.radialSegments && props.radialSegments <= 4) {
-            const box = Prism(polygon(4, true, props.radiusTop), props);
-            cylinder = transformPrimitive(box, Mat4.rotX90);
+            const sideCount = Math.max(3, props.radialSegments);
+            const prism = Prism(polygon(sideCount, true, props.radiusTop), props);
+            cylinder = transformPrimitive(prism, Mat4.rotX90);
         } else {
             cylinder = Cylinder(props);
         }

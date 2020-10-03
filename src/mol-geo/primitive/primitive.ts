@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,7 +13,7 @@ export interface Primitive {
     indices: ArrayLike<number>
 }
 
-const a = Vec3.zero(), b = Vec3.zero(), c = Vec3.zero();
+const a = Vec3(), b = Vec3(), c = Vec3();
 
 /** Create primitive with face normals from vertices and indices */
 export function createPrimitive(vertices: ArrayLike<number>, indices: ArrayLike<number>): Primitive {
@@ -39,36 +39,64 @@ export function copyPrimitive(primitive: Primitive): Primitive {
 
 export interface PrimitiveBuilder {
     add(a: Vec3, b: Vec3, c: Vec3): void
+    /** Shared vertices and normals, must be flat */
+    addQuad(a: Vec3, b: Vec3, c: Vec3, d: Vec3): void
     getPrimitive(): Primitive
 }
 
-const vn = Vec3.zero();
+const vn = Vec3();
 
 /** Builder to create primitive with face normals */
-export function PrimitiveBuilder(triangleCount: number): PrimitiveBuilder {
-    const vertices = new Float32Array(triangleCount * 3 * 3);
-    const normals = new Float32Array(triangleCount * 3 * 3);
+export function PrimitiveBuilder(triangleCount: number, vertexCount?: number): PrimitiveBuilder {
+    if (vertexCount === undefined) vertexCount = triangleCount * 3;
+
+    const vertices = new Float32Array(vertexCount * 3);
+    const normals = new Float32Array(vertexCount * 3);
     const indices = new Uint32Array(triangleCount * 3);
-    let offset = 0;
+
+    let vOffset = 0;
+    let iOffset = 0;
 
     return {
         add: (a: Vec3, b: Vec3, c: Vec3) => {
-            Vec3.toArray(a, vertices, offset);
-            Vec3.toArray(b, vertices, offset + 3);
-            Vec3.toArray(c, vertices, offset + 6);
+            Vec3.toArray(a, vertices, vOffset);
+            Vec3.toArray(b, vertices, vOffset + 3);
+            Vec3.toArray(c, vertices, vOffset + 6);
             Vec3.triangleNormal(vn, a, b, c);
             for (let j = 0; j < 3; ++j) {
-                Vec3.toArray(vn, normals, offset + 3 * j);
-                indices[offset / 3 + j] = offset / 3 + j;
+                Vec3.toArray(vn, normals, vOffset + 3 * j);
+                indices[iOffset + j] = vOffset / 3 + j;
             }
-            offset += 9;
+            vOffset += 9;
+            iOffset += 3;
+        },
+        addQuad: (a: Vec3, b: Vec3, c: Vec3, d: Vec3) => {
+            Vec3.toArray(a, vertices, vOffset);
+            Vec3.toArray(b, vertices, vOffset + 3);
+            Vec3.toArray(c, vertices, vOffset + 6);
+            Vec3.toArray(d, vertices, vOffset + 9);
+            Vec3.triangleNormal(vn, a, b, c);
+            for (let j = 0; j < 4; ++j) {
+                Vec3.toArray(vn, normals, vOffset + 3 * j);
+            }
+            const vOffset3 = vOffset / 3;
+            // a, b, c
+            indices[iOffset] = vOffset3;
+            indices[iOffset + 1] = vOffset3 + 1;
+            indices[iOffset + 2] = vOffset3 + 2;
+            // a, b, c
+            indices[iOffset + 3] = vOffset3 + 2;
+            indices[iOffset + 4] = vOffset3 + 3;
+            indices[iOffset + 5] = vOffset3;
+            vOffset += 12;
+            iOffset += 6;
         },
         getPrimitive: () => ({ vertices, normals, indices })
     };
 }
 
-const tmpV = Vec3.zero();
-const tmpMat3 = Mat3.zero();
+const tmpV = Vec3();
+const tmpMat3 = Mat3();
 
 /** Transform primitive in-place */
 export function transformPrimitive(primitive: Primitive, t: Mat4) {
