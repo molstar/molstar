@@ -72,10 +72,9 @@ export class PluginContext {
     private disposed = false;
     private ev = RxEventHelper.create();
 
+    readonly config = new PluginConfigManager(this.spec.config); // needed to init state
     readonly state = new PluginState(this);
     readonly commands = new PluginCommandManager();
-
-    readonly config = new PluginConfigManager(this.spec.config);
 
     private canvas3dInit = this.ev.behavior<boolean>(false);
     readonly behaviors = {
