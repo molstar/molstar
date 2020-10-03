@@ -218,6 +218,8 @@ function createEvents() {
     };
 }
 
+const AllowedNonPrintableKeys = ['Backspace', 'Delete'];
+
 namespace InputObserver {
     export function create(props: InputObserverProps = {}): InputObserver {
         const { noScroll, noContextMenu } = { ...DefaultInputObserverProps, ...props };
@@ -365,6 +367,8 @@ namespace InputObserver {
             if (modifierKeys.meta && !event.metaKey) { changed = true; modifierKeys.meta = false; }
 
             if (changed && isInside) modifiers.next(getModifierKeys());
+
+            if (AllowedNonPrintableKeys.includes(event.key)) handleKeyPress(event);
         }
 
         function handleKeyPress(event: KeyboardEvent) {
