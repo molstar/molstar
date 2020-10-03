@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,7 +10,7 @@ import { polygon } from './polygon';
 import { Cage } from './cage';
 
 const on = Vec3.create(0, 0, -0.5), op = Vec3.create(0, 0, 0.5);
-const a = Vec3.zero(), b = Vec3.zero(), c = Vec3.zero(), d = Vec3.zero();
+const a = Vec3(), b = Vec3(), c = Vec3(), d = Vec3();
 
 /**
  * Create a pyramid with a polygonal base
@@ -18,8 +18,9 @@ const a = Vec3.zero(), b = Vec3.zero(), c = Vec3.zero(), d = Vec3.zero();
 export function Pyramid(points: ArrayLike<number>): Primitive {
     const sideCount = points.length / 3;
     const baseCount = sideCount === 3 ? 1 : sideCount === 4 ? 2 : sideCount;
-    const count = 2 * baseCount + 2 * sideCount;
-    const builder = PrimitiveBuilder(count);
+    const triangleCount = baseCount + sideCount;
+    const vertexCount = sideCount === 4 ? (sideCount * 3 + 4) : triangleCount * 3;
+    const builder = PrimitiveBuilder(triangleCount, vertexCount);
 
     // create sides
     for (let i = 0; i < sideCount; ++i) {
@@ -40,8 +41,7 @@ export function Pyramid(points: ArrayLike<number>): Primitive {
         Vec3.set(b, points[3], points[4], -0.5);
         Vec3.set(c, points[6], points[7], -0.5);
         Vec3.set(d, points[9], points[10], -0.5);
-        builder.add(c, b, a);
-        builder.add(a, d, c);
+        builder.addQuad(d, c, b, a);
     } else {
         for (let i = 0; i < sideCount; ++i) {
             const ni = (i + 1) % sideCount;

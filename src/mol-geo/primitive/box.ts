@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,14 +9,16 @@ import { Primitive, PrimitiveBuilder } from './primitive';
 import { polygon } from './polygon';
 import { Cage, createCage } from './cage';
 
-const a = Vec3.zero(), b = Vec3.zero(), c = Vec3.zero(), d = Vec3.zero();
+const a = Vec3(), b = Vec3(), c = Vec3(), d = Vec3();
 const points = polygon(4, true);
 
 /**
  * Create a box
  */
 function createBox(perforated: boolean): Primitive {
-    const builder = PrimitiveBuilder(12);
+    const triangleCount = 12;
+    const vertexCount = perforated ? 12 * 3 : 6 * 4;
+    const builder = PrimitiveBuilder(triangleCount, vertexCount);
 
     // create sides
     for (let i = 0; i < 4; ++i) {
@@ -25,8 +27,11 @@ function createBox(perforated: boolean): Primitive {
         Vec3.set(b, points[ni * 3], points[ni * 3 + 1], -0.5);
         Vec3.set(c, points[ni * 3], points[ni * 3 + 1], 0.5);
         Vec3.set(d, points[i * 3], points[i * 3 + 1], 0.5);
-        builder.add(a, b, c);
-        if (!perforated) builder.add(c, d, a);
+        if (perforated) {
+            builder.add(a, b, c);
+        } else {
+            builder.addQuad(a, b, c, d);
+        }
     }
 
     // create bases
@@ -34,14 +39,20 @@ function createBox(perforated: boolean): Primitive {
     Vec3.set(b, points[3], points[4], -0.5);
     Vec3.set(c, points[6], points[7], -0.5);
     Vec3.set(d, points[9], points[10], -0.5);
-    builder.add(c, b, a);
-    if (!perforated) builder.add(a, d, c);
+    if (perforated) {
+        builder.add(c, b, a);
+    } else {
+        builder.addQuad(d, c, b, a);
+    }
     Vec3.set(a, points[0], points[1], 0.5);
     Vec3.set(b, points[3], points[4], 0.5);
     Vec3.set(c, points[6], points[7], 0.5);
     Vec3.set(d, points[9], points[10], 0.5);
-    builder.add(a, b, c);
-    if (!perforated) builder.add(c, d, a);
+    if (perforated) {
+        builder.add(a, b, c);
+    } else {
+        builder.addQuad(a, b, c, d);
+    }
 
     return builder.getPrimitive();
 }
