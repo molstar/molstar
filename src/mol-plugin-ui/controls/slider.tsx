@@ -86,7 +86,7 @@ export class Slider2 extends React.Component<{
     state = { isChanging: false, current: [0, 1] as [number, number] }
 
     static getDerivedStateFromProps(props: { value: [number, number] }, state: { isChanging: boolean, current: [number, number] }) {
-        if (state.isChanging || (props.value[0] === state.current[0]) && (props.value[1] === state.current[1])) return null;
+        if (state.isChanging || (props.value[0] === state.current[0] && props.value[1] === state.current[1])) return null;
         return { current: props.value };
     }
 
