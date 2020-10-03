@@ -132,7 +132,7 @@ export class Slider2 extends React.Component<{
             </div>
             <div>
                 <SliderBase min={this.props.min} max={this.props.max} step={step} value={this.state.current} disabled={this.props.disabled}
-                    onBeforeChange={this.begin} onChange={this.updateCurrent as any} onAfterChange={this.end as any} range={true} pushable={true} />
+                    onBeforeChange={this.begin} onChange={this.updateCurrent as any} onAfterChange={this.end as any} range={true} allowCross />
             </div>
             <div>
                 <TextInput numeric delayMs={50}
@@ -391,14 +391,16 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
 
         const nextBounds = [...state.bounds];
         nextBounds[state.handle!] = value;
+
         let nextHandle = state.handle!;
-        if (props.pushable !== false) {
+        if (!!props.pushable) {
             const originalValue = state.bounds[nextHandle];
             this.pushSurroundingHandles(nextBounds, nextHandle, originalValue);
         } else if (props.allowCross) {
             nextBounds.sort((a, b) => a - b);
             nextHandle = nextBounds.indexOf(value);
         }
+
         this.onChange({
             handle: nextHandle,
             bounds: nextBounds,
