@@ -97,8 +97,7 @@ uniform mat4 uUnitToCartn;
         return texture3dFrom2dLinear(tGridTex, pos + (vec3(0.5, 0.5, 0.0) / uGridDim), uGridDim, uGridTexDim.xy);
     }
     vec4 textureGroup(vec3 pos) {
-        vec3 nearestPos = floor(pos * uGridDim + 0.5) / uGridDim;
-        return texture3dFrom2dNearest(tGridTex, nearestPos + (vec3(0.5, 0.5, 0.0) / uGridDim), uGridDim, uGridTexDim.xy);
+        return texture3dFrom2dNearest(tGridTex, pos + (vec3(0.5, 0.5, 0.0) / uGridDim), uGridDim, uGridTexDim.xy);
     }
 #elif defined(dGridTexType_3d)
     vec4 textureVal(vec3 pos) {
@@ -223,8 +222,21 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
                         color = uColor;
                     #endif
 
-                    bool flipped = value > uIsoValue.y; // negative isosurfaces
+                    // handle flipping and negative isosurfaces
+                    #ifdef dFlipSided
+                        bool flipped = value < uIsoValue.y; // flipped
+                    #else
+                        bool flipped = value > uIsoValue.y;
+                    #endif
                     interior = value < uIsoValue.x && flipped;
+                    #ifndef dDoubleSided
+                        if (interior) {
+                            prevValue = value;
+                            prevCell = cell;
+                            pos += step;
+                            continue;
+                        }
+                    #endif
                     vec3 vViewPosition = mvPosition.xyz;
                     vec4 material = vec4(color, uAlpha);
 
@@ -260,6 +272,10 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
 
                     src.rgb *= src.a;
                     dst = (1.0 - dst.a) * src + dst; // standard blending
+                #endif
+
+                #ifdef dSingleLayer
+                    break;
                 #endif
             }
             prevValue = value;

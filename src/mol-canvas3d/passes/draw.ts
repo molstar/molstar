@@ -147,7 +147,7 @@ export class DrawPass {
         }
 
         // do direct-volume rendering
-        if (!toDrawingBuffer && this.scene.volumes.renderables.length > 0) {
+        if (!toDrawingBuffer) {
             if (!this.packedDepth) {
                 this.depthTextureVolumes.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
                 this.webgl.state.depthMask(true);
@@ -158,7 +158,7 @@ export class DrawPass {
             // do volume depth pass if extensions.depthTexture is unsupported (i.e. depthTarget is set)
             if (this.depthTargetVolumes) {
                 this.depthTargetVolumes.bind();
-                this.renderer.render(this.scene.volumes, this.camera, 'depth', false, transparentBackground, this.depthTexturePrimitives);
+                this.renderer.render(this.scene.volumes, this.camera, 'depth', true, transparentBackground, this.depthTexturePrimitives);
                 this.colorTarget.bind();
             }
         }

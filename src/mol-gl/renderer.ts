@@ -267,7 +267,9 @@ namespace Renderer {
             if (depthTexture) program.bindTextures([['tDepth', depthTexture]]);
 
             if (r.values.dDoubleSided) {
-                if (r.values.dDoubleSided.ref.value || r.values.hasReflection.ref.value) {
+                if ((r.values.dDoubleSided.ref.value || r.values.hasReflection.ref.value) &&
+                    !r.values.uStepFactor // indicates direct-volume, always cull
+                ) {
                     state.disable(gl.CULL_FACE);
                 } else {
                     state.enable(gl.CULL_FACE);

@@ -23,6 +23,14 @@ import { Loci, EmptyLoci } from '../../mol-model/loci';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { eachVolumeLoci } from './util';
 
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3set = Vec3.set;
+const v3normalize = Vec3.normalize;
+const v3sub = Vec3.sub;
+const v3addScalar = Vec3.addScalar;
+const v3scale = Vec3.scale;
+const v3toArray = Vec3.toArray;
+
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D();
     Box3D.add(bbox, gridDimension);
@@ -45,8 +53,6 @@ function getVolumeTexture2dLayout(dim: Vec3, maxTextureSize: number) {
     } else {
         width = dim[0] * dim[2];
     }
-    width += columns; // horizontal padding
-    height += rows; // vertical padding
     return { width, height, columns, rows };
 }
 
@@ -60,31 +66,39 @@ function createVolumeTexture2d(volume: Volume, maxTextureSize: number) {
     const textureImage = { array, width, height };
 
     const diff = max - min;
-    const [ xl, yl, zl ] = dim;
-    const xlp = xl + 1; // horizontal padding
-    const ylp = yl + 1; // vertical padding
+    const [ xn, yn, zn ] = dim;
 
     const n0 = Vec3();
     const n1 = Vec3();
 
-    let i = 0;
-    for (let z = 0; z < zl; ++z) {
-        for (let y = 0; y < yl; ++y) {
-            for (let x = 0; x < xl; ++x) {
-                const column = Math.floor(((z * xlp) % width) / xlp);
-                const row = Math.floor((z * xlp) / width);
-                const px = column * xlp + x;
-                const index = 4 * ((row * ylp * width) + (y * width) + px);
+    const xn1 = xn - 1;
+    const yn1 = yn - 1;
+    const zn1 = zn - 1;
+
+    for (let z = 0; z < zn; ++z) {
+        for (let y = 0; y < yn; ++y) {
+            for (let x = 0; x < xn; ++x) {
+                const column = Math.floor(((z * xn) % width) / xn);
+                const row = Math.floor((z * xn) / width);
+                const px = column * xn + x;
+                const index = 4 * ((row * yn * width) + (y * width) + px);
                 const offset = o(x, y, z);
 
-                Vec3.set(n0, data[o(x - 1, y, z)], data[o(x, y - 1, z)], data[o(x, y, z - 1)]);
-                Vec3.set(n1, data[o(x + 1, y, z)], data[o(x, y + 1, z)], data[o(x, y, z + 1)]);
-                Vec3.normalize(n0, Vec3.sub(n0, n0, n1));
-                Vec3.addScalar(n0, Vec3.scale(n0, n0, 0.5), 0.5);
-                Vec3.toArray(Vec3.scale(n0, n0, 255), array, i);
+                v3set(n0,
+                    data[o(Math.max(0, x - 1), y, z)],
+                    data[o(x, Math.max(0, y - 1), z)],
+                    data[o(x, y, Math.max(0, z - 1))]
+                );
+                v3set(n1,
+                    data[o(Math.min(xn1, x + 1), y, z)],
+                    data[o(x, Math.min(yn1, y + 1), z)],
+                    data[o(x, y, Math.min(zn1, z + 1))]
+                );
+                v3normalize(n0, v3sub(n0, n0, n1));
+                v3addScalar(n0, v3scale(n0, n0, 0.5), 0.5);
+                v3toArray(v3scale(n0, n0, 255), array, index);
 
                 array[index + 3] = ((data[offset] - min) / diff) * 255;
-                i += 4;
             }
         }
     }
@@ -98,9 +112,6 @@ export function createDirectVolume2d(ctx: RuntimeContext, webgl: WebGLContext, v
     // debugTexture(createImageData(textureImage.array, textureImage.width, textureImage.height), 1/3)
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     const bbox = getBoundingBox(gridDimension, transform);
-    const dim = Vec3.create(gridDimension[0], gridDimension[1], gridDimension[2]);
-    dim[0] += 1; // horizontal padding
-    dim[1] += 1; // vertical padding
 
     const texture = directVolume ? directVolume.gridTexture.ref.value : webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     texture.load(textureImage);
@@ -123,17 +134,29 @@ function createVolumeTexture3d(volume: Volume) {
     const n0 = Vec3();
     const n1 = Vec3();
 
+    const width1 = width - 1;
+    const height1 = height - 1;
+    const depth1 = depth - 1;
+
     let i = 0;
     for (let z = 0; z < depth; ++z) {
         for (let y = 0; y < height; ++y) {
             for (let x = 0; x < width; ++x) {
                 const offset = o(x, y, z);
 
-                Vec3.set(n0, data[o(x - 1, y, z)], data[o(x, y - 1, z)], data[o(x, y, z - 1)]);
-                Vec3.set(n1, data[o(x + 1, y, z)], data[o(x, y + 1, z)], data[o(x, y, z + 1)]);
-                Vec3.normalize(n0, Vec3.sub(n0, n0, n1));
-                Vec3.addScalar(n0, Vec3.scale(n0, n0, 0.5), 0.5);
-                Vec3.toArray(Vec3.scale(n0, n0, 255), array, i);
+                v3set(n0,
+                    data[o(Math.max(0, x - 1), y, z)],
+                    data[o(x, Math.max(0, y - 1), z)],
+                    data[o(x, y, Math.max(0, z - 1))]
+                );
+                v3set(n1,
+                    data[o(Math.min(width1, x + 1), y, z)],
+                    data[o(x, Math.min(height1, y + 1), z)],
+                    data[o(x, y, Math.min(depth1, z + 1))]
+                );
+                v3normalize(n0, v3sub(n0, n0, n1));
+                v3addScalar(n0, v3scale(n0, n0, 0.5), 0.5);
+                v3toArray(v3scale(n0, n0, 255), array, i);
 
                 array[i + 3] = ((data[offset] - min) / diff) * 255;
                 i += 4;

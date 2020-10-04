@@ -70,6 +70,7 @@ export const DirectVolumeSchema = {
     uTransform: UniformSpec('m4'),
     uGridDim: UniformSpec('v3'),
     dRenderMode: DefineSpec('string', ['isosurface', 'volume']),
+    dSingleLayer: DefineSpec('boolean'),
     tTransferTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'linear'),
 
     dGridTexType: DefineSpec('string', ['2d', '3d']),
