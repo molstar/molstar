@@ -54,7 +54,7 @@ export namespace PolymerLocationIterator {
             location.element = polymerElements[groupIndex];
             return location;
         };
-        return LocationIterator(groupCount, instanceCount, getLocation);
+        return LocationIterator(groupCount, instanceCount, 1, getLocation);
     }
 }
 
@@ -71,7 +71,7 @@ export namespace PolymerGapLocationIterator {
             location.element = gapElements[groupIndex];
             return location;
         };
-        return LocationIterator(groupCount, instanceCount, getLocation);
+        return LocationIterator(groupCount, instanceCount, 1, getLocation);
     }
 }
 

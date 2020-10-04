@@ -174,5 +174,5 @@ function createInteractionsIterator(structure: Structure): LocationIterator {
         element.indexB = c.indexB;
         return location;
     };
-    return LocationIterator(groupCount, instanceCount, getLocation, true);
+    return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
 }

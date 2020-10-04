@@ -104,7 +104,7 @@ function UnitIterator(structureGroup: StructureGroup): LocationIterator {
         location.element = unit.elements[groupIndex];
         return location;
     };
-    return LocationIterator(groupCount, instanceCount, getLocation);
+    return LocationIterator(groupCount, instanceCount, 1, getLocation);
 }
 
 function getUnitLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {

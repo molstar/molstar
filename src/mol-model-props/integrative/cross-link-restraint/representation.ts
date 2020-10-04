@@ -84,7 +84,7 @@ function createCrossLinkRestraintIterator(structure: Structure): LocationIterato
         location.element = groupIndex;
         return location;
     };
-    return LocationIterator(groupCount, instanceCount, getLocation, true);
+    return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
 }
 
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {

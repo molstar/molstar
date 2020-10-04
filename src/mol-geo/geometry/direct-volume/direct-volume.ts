@@ -28,6 +28,7 @@ import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './
 import { createEmptyClipping } from '../clipping-data';
 import { Grid, Volume } from '../../../mol-model/volume';
 import { ColorNames } from '../../../mol-util/color/names';
+import { NullLocation } from '../../../mol-model/location';
 
 const VolumeBox = Box();
 
@@ -173,7 +174,8 @@ export namespace DirectVolume {
         updateValues,
         updateBoundingSphere,
         createRenderableState,
-        updateRenderableState
+        updateRenderableState,
+        createPositionIterator: () => LocationIterator(1, 1, 1, () => NullLocation)
     };
 
     function getNormalizedIsoValue(out: Vec2, isoValue: Volume.IsoValue, stats: Vec4) {
@@ -188,13 +190,15 @@ export namespace DirectVolume {
         const { bboxSize, bboxMin, bboxMax, gridDimension, transform: gridTransform } = directVolume;
 
         const { instanceCount, groupCount } = locationIt;
-        const color = createColors(locationIt, theme.color);
+        const positionIt = Utils.createPositionIterator(directVolume, transform);
+
+        const color = createColors(locationIt, positionIt, theme.color);
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
         const clipping = createEmptyClipping();
 
-        const counts = { drawCount: VolumeBox.indices.length, groupCount, instanceCount };
+        const counts = { drawCount: VolumeBox.indices.length, vertexCount: VolumeBox.vertices.length / 3, groupCount, instanceCount };
 
         const invariantBoundingSphere = Sphere3D.clone(directVolume.boundingSphere);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);

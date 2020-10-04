@@ -55,7 +55,7 @@ function createConfalPyramidsIterator(structureGroup: StructureGroup): LocationI
 
     const prop = ConfalPyramidsProvider.get(structure.model).value;
     if (prop === undefined || prop.data === undefined) {
-        return LocationIterator(0, 1, () => NullLocation);
+        return LocationIterator(0, 1, 1, () => NullLocation);
     }
 
     const { locations } = prop.data;
@@ -64,7 +64,7 @@ function createConfalPyramidsIterator(structureGroup: StructureGroup): LocationI
         if (locations.length <= groupIndex) return NullLocation;
         return locations[groupIndex];
     };
-    return LocationIterator(locations.length, instanceCount, getLocation);
+    return LocationIterator(locations.length, instanceCount, 1, getLocation);
 }
 
 function createConfalPyramidsMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ConfalPyramidsMeshParams>, mesh?: Mesh) {

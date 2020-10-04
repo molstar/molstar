@@ -195,7 +195,7 @@ export function SliceVisual(materialId: number): VolumeVisual<SliceParams> {
     return VolumeVisual<Image, SliceParams>({
         defaultProps: PD.getDefaultValues(SliceParams),
         createGeometry: createImage,
-        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, () => NullLocation),
+        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, 1, () => NullLocation),
         getLoci: getSliceLoci,
         eachLocation: eachSlice,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<SliceParams>, currentProps: PD.Values<SliceParams>, newTheme: Theme, currentTheme: Theme) => {

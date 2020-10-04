@@ -199,7 +199,7 @@ function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     function isSecondary (elementIndex: number, instanceIndex: number) {
         return (elementIndex % 2) === 1;
     }
-    return LocationIterator(groupCount, instanceCount, getLocation, true, isSecondary);
+    return LocationIterator(groupCount, instanceCount, 1, getLocation, true, isSecondary);
 }
 
 /** Return a Loci for the elements of the whole residue of a carbohydrate. */

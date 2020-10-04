@@ -175,7 +175,7 @@ export const ColorSchema = {
     uColor: UniformSpec('v3', true),
     uColorTexDim: UniformSpec('v2'),
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
-    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
+    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance']),
 } as const;
 export type ColorSchema = typeof ColorSchema
 export type ColorValues = Values<ColorSchema>
@@ -185,7 +185,7 @@ export const SizeSchema = {
     uSize: UniformSpec('f', true),
     uSizeTexDim: UniformSpec('v2'),
     tSize: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
-    dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
+    dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance']),
     uSizeFactor: UniformSpec('f'),
 } as const;
 export type SizeSchema = typeof SizeSchema
@@ -245,6 +245,7 @@ export const BaseSchema = {
      * final alpha, calculated as `values.alpha * state.alpha`
      */
     uAlpha: UniformSpec('f', true),
+    uVertexCount: UniformSpec('i'),
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
     uInvariantBoundingSphere: UniformSpec('v4'),

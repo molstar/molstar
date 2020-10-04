@@ -11,7 +11,7 @@ import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
 import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
-import { createRenderObject, RenderObjectValues, getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
+import { createRenderObject, getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
@@ -56,7 +56,7 @@ interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry
 
 export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geometry.Params<G>>(builder: VolumeVisualGeometryBuilder<P, G>, materialId: number): VolumeVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder;
-    const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils;
+    const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
 
     let renderObject: GraphicsRenderObject<G['kind']> | undefined;
@@ -71,6 +71,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
     let geometry: G;
     let locationIt: LocationIterator;
+    let positionIt: LocationIterator;
 
     function prepareUpdate(theme: Theme, props: Partial<PD.Values<P>>, volume: Volume) {
         if (!volume && !currentVolume) {
@@ -108,6 +109,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             locationIt = createLocationIterator(newVolume);
             if (newGeometry) {
                 renderObject = createVolumeRenderObject(newVolume, newGeometry, locationIt, newTheme, newProps, materialId);
+                positionIt = createPositionIterator(newGeometry, renderObject.values);
             } else {
                 throw new Error('expected geometry to be given');
             }
@@ -121,10 +123,15 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             if (updateState.createGeometry) {
                 if (newGeometry) {
                     ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
-                    updateBoundingSphere(renderObject.values as RenderObjectValues<G['kind']>, newGeometry);
+                    ValueCell.updateIfChanged(renderObject.values.uVertexCount, Geometry.getVertexCount(newGeometry));
                 } else {
                     throw new Error('expected geometry to be given');
                 }
+            }
+
+            if (updateState.updateTransform || updateState.createGeometry) {
+                updateBoundingSphere(renderObject.values, newGeometry || geometry);
+                positionIt = createPositionIterator(newGeometry || geometry, renderObject.values);
             }
 
             if (updateState.updateSize) {
@@ -135,7 +142,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             }
 
             if (updateState.updateColor) {
-                createColors(locationIt, newTheme.color, renderObject.values);
+                createColors(locationIt, positionIt, newTheme.color, renderObject.values);
             }
 
             updateValues(renderObject.values, newProps);

@@ -8,7 +8,7 @@ import { ValueCell } from '../../../mol-util';
 import { GeometryUtils } from '../geometry';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { TransformData } from '../transform-data';
-import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { LocationIterator, PositionLocation } from '../../../mol-geo/util/location-iterator';
 import { Theme } from '../../../mol-theme/theme';
 import { SpheresValues } from '../../../mol-gl/renderable/spheres';
 import { createColors } from '../color-data';
@@ -23,7 +23,7 @@ import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
 import { GroupMapping, createGroupMapping } from '../../util';
 import { createEmptyClipping } from '../clipping-data';
-import { Vec4 } from '../../../mol-math/linear-algebra';
+import { Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 
 export interface Spheres {
     readonly kind: 'spheres',
@@ -137,23 +137,43 @@ export namespace Spheres {
         updateValues,
         updateBoundingSphere,
         createRenderableState: BaseGeometry.createRenderableState,
-        updateRenderableState: BaseGeometry.updateRenderableState
+        updateRenderableState: BaseGeometry.updateRenderableState,
+        createPositionIterator
     };
+
+    function createPositionIterator(spheres: Spheres, transform: TransformData): LocationIterator {
+        const groupCount = spheres.sphereCount * 4;
+        const instanceCount = transform.instanceCount.ref.value;
+        const location = PositionLocation();
+        const p = location.position;
+        const v = spheres.centerBuffer.ref.value;
+        const m = transform.aTransform.ref.value;
+        const getLocation = (groupIndex: number, instanceIndex: number) => {
+            if (instanceIndex < 0) {
+                Vec3.fromArray(p, v, groupIndex * 3);
+            } else {
+                Vec3.transformMat4Offset(p, v, m, 0, groupIndex * 3, instanceIndex * 16);
+            }
+            return location;
+        };
+        return LocationIterator(groupCount, instanceCount, 4, getLocation);
+    }
 
     function createValues(spheres: Spheres, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): SpheresValues {
         const { instanceCount, groupCount } = locationIt;
         if (instanceCount !== transform.instanceCount.ref.value) {
             throw new Error('instanceCount values in TransformData and LocationIterator differ');
         }
+        const positionIt = createPositionIterator(spheres, transform);
 
-        const color = createColors(locationIt, theme.color);
+        const color = createColors(locationIt, positionIt, theme.color);
         const size = createSizes(locationIt, theme.size);
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
         const clipping = createEmptyClipping();
 
-        const counts = { drawCount: spheres.sphereCount * 2 * 3, groupCount, instanceCount };
+        const counts = { drawCount: spheres.sphereCount * 2 * 3, vertexCount: spheres.sphereCount * 4, groupCount, instanceCount };
 
         const padding = getMaxSize(size);
         const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), spheres.boundingSphere, padding);

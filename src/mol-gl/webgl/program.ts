@@ -61,6 +61,8 @@ function checkActiveAttributes(gl: GLRenderingContext, program: WebGLProgram, sc
                 // name assigned by `gl.shim.ts`, ignore for checks
                 continue;
             }
+            if (name === 'gl_InstanceID') continue; // WebGL2 built-in
+            if (name === 'gl_VertexID') continue; // WebGL2 built-in
             const spec = schema[name];
             if (spec === undefined) {
                 throw new Error(`missing 'uniform' or 'texture' with name '${name}' in schema`);

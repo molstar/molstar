@@ -11,7 +11,7 @@ import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
 import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
-import { createRenderObject, RenderObjectValues, GraphicsRenderObject } from '../../mol-gl/render-object';
+import { createRenderObject, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
@@ -58,7 +58,7 @@ interface ComplexVisualGeometryBuilder<P extends StructureParams, G extends Geom
 
 export function ComplexVisual<G extends Geometry, P extends StructureParams & Geometry.Params<G>>(builder: ComplexVisualGeometryBuilder<P, G>, materialId: number): ComplexVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder;
-    const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils;
+    const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
 
     let renderObject: GraphicsRenderObject<G['kind']> | undefined;
@@ -73,6 +73,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
     let geometry: G;
     let locationIt: LocationIterator;
+    let positionIt: LocationIterator;
 
     function prepareUpdate(theme: Theme, props: Partial<PD.Values<P>>, structure: Structure) {
         if (!structure && !currentStructure) {
@@ -121,6 +122,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             locationIt = createLocationIterator(newStructure);
             if (newGeometry) {
                 renderObject = createComplexRenderObject(newStructure, newGeometry, locationIt, newTheme, newProps, materialId);
+                positionIt = createPositionIterator(newGeometry, renderObject.values);
             } else {
                 throw new Error('expected geometry to be given');
             }
@@ -139,10 +141,15 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             if (updateState.createGeometry) {
                 if (newGeometry) {
                     ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
-                    updateBoundingSphere(renderObject.values as RenderObjectValues<G['kind']>, newGeometry);
+                    ValueCell.updateIfChanged(renderObject.values.uVertexCount, Geometry.getVertexCount(newGeometry));
                 } else {
                     throw new Error('expected geometry to be given');
                 }
+            }
+
+            if (updateState.updateTransform || updateState.createGeometry) {
+                updateBoundingSphere(renderObject.values, newGeometry || geometry);
+                positionIt = createPositionIterator(geometry, renderObject.values);
             }
 
             if (updateState.updateSize) {
@@ -153,10 +160,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             }
 
             if (updateState.updateColor) {
-                createColors(locationIt, newTheme.color, renderObject.values);
+                createColors(locationIt, positionIt, newTheme.color, renderObject.values);
             }
 
-            updateValues(renderObject.values as RenderObjectValues<G['kind']>, newProps);
+            updateValues(renderObject.values, newProps);
             updateRenderableState(renderObject.state, newProps);
         }
 

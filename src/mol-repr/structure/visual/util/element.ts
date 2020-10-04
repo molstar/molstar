@@ -204,7 +204,7 @@ export namespace ElementIterator {
             location.element = unit.elements[groupIndex];
             return location;
         };
-        return LocationIterator(groupCount, instanceCount, getLocation);
+        return LocationIterator(groupCount, instanceCount, 1, getLocation);
     }
 
     export function fromStructure(structure: Structure): LocationIterator {
@@ -218,6 +218,6 @@ export namespace ElementIterator {
             location.element = elementIndices[groupIndex];
             return location;
         };
-        return LocationIterator(groupCount, instanceCount, getLocation, true);
+        return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
     }
 }

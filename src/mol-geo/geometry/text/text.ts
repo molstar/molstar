@@ -7,7 +7,7 @@
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { ValueCell } from '../../../mol-util';
 import { GeometryUtils } from '../geometry';
-import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { LocationIterator, PositionLocation } from '../../../mol-geo/util/location-iterator';
 import { TransformData } from '../transform-data';
 import { Theme } from '../../../mol-theme/theme';
 import { createColors } from '../color-data';
@@ -183,22 +183,42 @@ export namespace Text {
         updateBoundingSphere,
         createRenderableState,
         updateRenderableState,
+        createPositionIterator
     };
+
+    function createPositionIterator(text: Text, transform: TransformData): LocationIterator {
+        const groupCount = text.charCount * 4;
+        const instanceCount = transform.instanceCount.ref.value;
+        const location = PositionLocation();
+        const p = location.position;
+        const v = text.centerBuffer.ref.value;
+        const m = transform.aTransform.ref.value;
+        const getLocation = (groupIndex: number, instanceIndex: number) => {
+            if (instanceIndex < 0) {
+                Vec3.fromArray(p, v, groupIndex * 3);
+            } else {
+                Vec3.transformMat4Offset(p, v, m, 0, groupIndex * 3, instanceIndex * 16);
+            }
+            return location;
+        };
+        return LocationIterator(groupCount, instanceCount, 4, getLocation);
+    }
 
     function createValues(text: Text, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): TextValues {
         const { instanceCount, groupCount } = locationIt;
         if (instanceCount !== transform.instanceCount.ref.value) {
             throw new Error('instanceCount values in TransformData and LocationIterator differ');
         }
+        const positionIt = createPositionIterator(text, transform);
 
-        const color = createColors(locationIt, theme.color);
+        const color = createColors(locationIt, positionIt, theme.color);
         const size = createSizes(locationIt, theme.size);
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
         const clipping = createEmptyClipping();
 
-        const counts = { drawCount: text.charCount * 2 * 3, groupCount, instanceCount };
+        const counts = { drawCount: text.charCount * 2 * 3, vertexCount: text.charCount * 4, groupCount, instanceCount };
 
         const padding = getPadding(text.mappingBuffer.ref.value, text.depthBuffer.ref.value, text.charCount, getMaxSize(size));
         const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), text.boundingSphere, padding);

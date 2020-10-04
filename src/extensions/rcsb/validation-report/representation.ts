@@ -143,7 +143,7 @@ function createIntraClashIterator(structureGroup: StructureGroup): LocationItera
         location.element = unit.elements[a[groupIndex]];
         return location;
     };
-    return LocationIterator(groupCount, instanceCount, getLocation);
+    return LocationIterator(groupCount, instanceCount, 1, getLocation);
 }
 
 //
@@ -255,7 +255,7 @@ function createInterClashIterator(structure: Structure): LocationIterator {
         location.element = location.unit.elements[clash.indexA];
         return location;
     };
-    return LocationIterator(groupCount, instanceCount, getLocation, true);
+    return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
 }
 
 //

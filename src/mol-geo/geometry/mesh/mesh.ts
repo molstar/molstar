@@ -12,7 +12,7 @@ import { transformPositionArray, transformDirectionArray, computeIndexedVertexNo
 import { GeometryUtils } from '../geometry';
 import { createMarkers } from '../marker-data';
 import { TransformData } from '../transform-data';
-import { LocationIterator } from '../../util/location-iterator';
+import { LocationIterator, PositionLocation } from '../../util/location-iterator';
 import { createColors } from '../color-data';
 import { ChunkedArray, hashFnv32a } from '../../../mol-data/util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -343,22 +343,42 @@ export namespace Mesh {
         updateValues,
         updateBoundingSphere,
         createRenderableState: BaseGeometry.createRenderableState,
-        updateRenderableState: BaseGeometry.updateRenderableState
+        updateRenderableState: BaseGeometry.updateRenderableState,
+        createPositionIterator
     };
+
+    function createPositionIterator(mesh: Mesh, transform: TransformData): LocationIterator {
+        const groupCount = mesh.vertexCount;
+        const instanceCount = transform.instanceCount.ref.value;
+        const location = PositionLocation();
+        const p = location.position;
+        const v = mesh.vertexBuffer.ref.value;
+        const m = transform.aTransform.ref.value;
+        const getLocation = (groupIndex: number, instanceIndex: number) => {
+            if (instanceIndex < 0) {
+                Vec3.fromArray(p, v, groupIndex * 3);
+            } else {
+                Vec3.transformMat4Offset(p, v, m, 0, groupIndex * 3, instanceIndex * 16);
+            }
+            return location;
+        };
+        return LocationIterator(groupCount, instanceCount, 1, getLocation);
+    }
 
     function createValues(mesh: Mesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): MeshValues {
         const { instanceCount, groupCount } = locationIt;
         if (instanceCount !== transform.instanceCount.ref.value) {
             throw new Error('instanceCount values in TransformData and LocationIterator differ');
         }
+        const positionIt = createPositionIterator(mesh, transform);
 
-        const color = createColors(locationIt, theme.color);
+        const color = createColors(locationIt, positionIt, theme.color);
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
         const clipping = createEmptyClipping();
 
-        const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount };
+        const counts = { drawCount: mesh.triangleCount * 3, vertexCount: mesh.vertexCount, groupCount, instanceCount };
 
         const invariantBoundingSphere = Sphere3D.clone(mesh.boundingSphere);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);

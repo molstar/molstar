@@ -11,6 +11,14 @@ export default `
         uniform sampler2D tColor;
     #endif
 
+    #if defined(dColorType_vertex) || defined(dColorType_vertexInstance)
+        #if __VERSION__ != 300
+            attribute float aVertex;
+        #else
+            #define aVertex float(gl_VertexID)
+        #endif
+    #endif
+
     #ifdef dOverpaint
         varying vec4 vOverpaint;
         uniform vec2 uOverpaintTexDim;

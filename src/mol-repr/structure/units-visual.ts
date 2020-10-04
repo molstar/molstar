@@ -12,7 +12,7 @@ import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
 import { createUnitsTransform, includesUnitKind } from './visual/util/common';
-import { createRenderObject, RenderObjectValues, GraphicsRenderObject } from '../../mol-gl/render-object';
+import { createRenderObject, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
@@ -65,7 +65,7 @@ interface UnitsVisualGeometryBuilder<P extends StructureParams, G extends Geomet
 
 export function UnitsVisual<G extends Geometry, P extends StructureParams & Geometry.Params<G>>(builder: UnitsVisualGeometryBuilder<P, G>, materialId: number): UnitsVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder;
-    const { createEmpty: createEmptyGeometry, updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils;
+    const { createEmpty: createEmptyGeometry, updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
 
     let renderObject: GraphicsRenderObject<G['kind']> | undefined;
@@ -80,6 +80,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
     let geometry: G;
     let locationIt: LocationIterator;
+    let positionIt: LocationIterator;
 
     function prepareUpdate(theme: Theme, props: PD.Values<P>, structureGroup: StructureGroup) {
         if (!structureGroup && !currentStructureGroup) {
@@ -153,6 +154,9 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
                 updateState.updateColor = true;
                 updateState.updateSize = true;
             }
+            if (newTheme.color.granularity.startsWith('vertex')) {
+                updateState.updateColor = true;
+            }
         }
     }
 
@@ -161,6 +165,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             locationIt = createLocationIterator(newStructureGroup);
             if (newGeometry) {
                 renderObject = createUnitsRenderObject(newStructureGroup.group, newGeometry, locationIt, newTheme, newProps, materialId);
+                positionIt = createPositionIterator(newGeometry, renderObject.values);
             } else {
                 throw new Error('expected geometry to be given');
             }
@@ -185,14 +190,15 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
                 // console.log('update geometry');
                 if (newGeometry) {
                     ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
+                    ValueCell.updateIfChanged(renderObject.values.uVertexCount, Geometry.getVertexCount(newGeometry));
                 } else {
                     throw new Error('expected geometry to be given');
                 }
             }
 
             if (updateState.updateTransform || updateState.createGeometry) {
-                // console.log('UnitsVisual.updateBoundingSphere');
-                updateBoundingSphere(renderObject.values as RenderObjectValues<G['kind']>, newGeometry || geometry);
+                updateBoundingSphere(renderObject.values, newGeometry || geometry);
+                positionIt = createPositionIterator(newGeometry || geometry, renderObject.values);
             }
 
             if (updateState.updateSize) {
@@ -205,10 +211,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
             if (updateState.updateColor) {
                 // console.log('update color');
-                createColors(locationIt, newTheme.color, renderObject.values);
+                createColors(locationIt, positionIt, newTheme.color, renderObject.values);
             }
 
-            updateValues(renderObject.values as RenderObjectValues<G['kind']>, newProps);
+            updateValues(renderObject.values, newProps);
             updateRenderableState(renderObject.state, newProps);
         }
 
