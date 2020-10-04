@@ -51,6 +51,8 @@ export interface DirectVolume {
 
     /** Bounding sphere of the volume */
     readonly boundingSphere: Sphere3D
+
+    setBoundingSphere(boundingSphere: Sphere3D): void
 }
 
 export namespace DirectVolume {
@@ -98,7 +100,11 @@ export namespace DirectVolume {
                 }
                 return boundingSphere;
             },
-            packedGroup: ValueCell.create(packedGroup)
+            packedGroup: ValueCell.create(packedGroup),
+            setBoundingSphere(sphere: Sphere3D) {
+                Sphere3D.copy(boundingSphere, sphere);
+                currentHash = hashCode(directVolume);
+            }
         };
         return directVolume;
     }
@@ -135,6 +141,7 @@ export namespace DirectVolume {
         return PD.MappedStatic('volume', {
             isosurface: PD.Group({
                 isoValue: isoValueParam,
+                singleLayer: PD.Boolean(false, { isEssential: true }),
             }, { isFlat: true }),
             volume: PD.Group({
                 controlPoints: PD.LineGraph([
@@ -157,8 +164,8 @@ export namespace DirectVolume {
 
     export const Params = {
         ...BaseGeometry.Params,
-        // doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
-        // flipSided: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
+        flipSided: PD.Boolean(false, BaseGeometry.ShadingCategory),
         flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         renderMode: createRenderModeParam(),
@@ -210,6 +217,10 @@ export namespace DirectVolume {
             ? props.renderMode.params.isoValue
             : Volume.IsoValue.relative(2);
 
+        const singleLayer = props.renderMode.name === 'isosurface'
+            ? props.renderMode.params.singleLayer
+            : false;
+
         const maxSteps = Math.ceil(Vec3.magnitude(gridDimension.ref.value) * props.stepsPerCell);
 
         return {
@@ -247,10 +258,11 @@ export namespace DirectVolume {
             uCartnToUnit: directVolume.cartnToUnit,
             uUnitToCartn: directVolume.unitToCartn,
             dPackedGroup: directVolume.packedGroup,
+            dSingleLayer: ValueCell.create(singleLayer),
 
-            dDoubleSided: ValueCell.create(false),
+            dDoubleSided: ValueCell.create(props.doubleSided),
             dFlatShaded: ValueCell.create(props.flatShaded),
-            dFlipSided: ValueCell.create(true),
+            dFlipSided: ValueCell.create(props.flipSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
         };
     }
@@ -264,14 +276,15 @@ export namespace DirectVolume {
     function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
         ValueCell.updateIfChanged(values.alpha, props.alpha);
         ValueCell.updateIfChanged(values.uAlpha, props.alpha);
-        // ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
+        ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded);
-        // ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
+        ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dRenderMode, props.renderMode.name);
 
         if (props.renderMode.name === 'isosurface') {
             ValueCell.updateIfChanged(values.uIsoValue, getNormalizedIsoValue(values.uIsoValue.ref.value, props.renderMode.params.isoValue, values.uGridStats.ref.value));
+            ValueCell.updateIfChanged(values.dSingleLayer, props.renderMode.params.singleLayer);
         } else if (props.renderMode.name === 'volume') {
             const controlPoints = getControlPointsFromVec2Array(props.renderMode.params.controlPoints);
             createTransferFunctionTexture(controlPoints, props.renderMode.params.list.colors, values.tTransferTex);
