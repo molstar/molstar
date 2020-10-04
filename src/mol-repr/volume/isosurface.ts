@@ -79,7 +79,7 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
     return VolumeVisual<Mesh, IsosurfaceMeshParams>({
         defaultProps: PD.getDefaultValues(IsosurfaceMeshParams),
         createGeometry: createVolumeIsosurfaceMesh,
-        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, () => NullLocation),
+        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, 1, () => NullLocation),
         getLoci: getIsosurfaceLoci,
         eachLocation: eachIsosurface,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
@@ -122,7 +122,7 @@ export function IsosurfaceWireframeVisual(materialId: number): VolumeVisual<Isos
     return VolumeVisual<Lines, IsosurfaceWireframeParams>({
         defaultProps: PD.getDefaultValues(IsosurfaceWireframeParams),
         createGeometry: createVolumeIsosurfaceWireframe,
-        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, () => NullLocation),
+        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, 1, () => NullLocation),
         getLoci: getIsosurfaceLoci,
         eachLocation: eachIsosurface,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<IsosurfaceWireframeParams>, currentProps: PD.Values<IsosurfaceWireframeParams>) => {

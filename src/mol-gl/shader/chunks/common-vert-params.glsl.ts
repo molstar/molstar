@@ -3,6 +3,7 @@ uniform mat4 uProjection, uModel, uView;
 uniform vec3 uCameraPosition;
 
 uniform int uObjectId;
+uniform int uVertexCount;
 uniform int uInstanceCount;
 uniform int uGroupCount;
 uniform vec4 uInvariantBoundingSphere;

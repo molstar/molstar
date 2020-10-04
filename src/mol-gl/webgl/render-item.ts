@@ -16,6 +16,7 @@ import { TextureImage, TextureVolume } from '../../mol-gl/renderable/util';
 import { checkFramebufferStatus } from './framebuffer';
 import { isDebugMode } from '../../mol-util/debug';
 import { VertexArray } from './vertex-array';
+import { fillSerial } from '../../mol-util/array';
 
 const getNextRenderItemId = idFactory();
 
@@ -107,6 +108,13 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
     const id = getNextRenderItemId();
     const { stats, state, resources } = ctx;
     const { instancedArrays, vertexArrayObject } = ctx.extensions;
+
+    // emulate gl_VertexID when needed
+    if (!ctx.isWebGL2 && values.uVertexCount) {
+        const vertexCount = values.uVertexCount.ref.value;
+        (values as any).aVertex = ValueCell.create(fillSerial(new Float32Array(vertexCount)));
+        (schema as any).aVertex = AttributeSpec('float32', 1, 0);
+    }
 
     const { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues } = splitValues(schema, values);
 
@@ -201,6 +209,13 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         },
         update: () => {
             resetValueChanges(valueChanges);
+
+            if (values.aVertex) {
+                const vertexCount = values.uVertexCount.ref.value;
+                if (values.aVertex.ref.value.length < vertexCount) {
+                    ValueCell.update(values.aVertex, fillSerial(new Float32Array(vertexCount)));
+                }
+            }
 
             for (let i = 0, il = defineValueEntries.length; i < il; ++i) {
                 const [k, value] = defineValueEntries[i];

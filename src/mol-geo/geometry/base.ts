@@ -46,11 +46,11 @@ export namespace BaseGeometry {
         hideIf: (params: PD.Values<Params>) => typeof params.quality !== 'undefined' && params.quality !== 'custom'
     };
 
-    export type Counts = { drawCount: number, groupCount: number, instanceCount: number }
+    export type Counts = { drawCount: number, vertexCount: number, groupCount: number, instanceCount: number }
 
     export function createSimple(colorValue = ColorNames.grey, sizeValue = 1, transform?: TransformData) {
         if (!transform) transform = createIdentityTransform();
-        const locationIterator = LocationIterator(1, transform.instanceCount.ref.value, () => NullLocation, false, () => false);
+        const locationIterator = LocationIterator(1, transform.instanceCount.ref.value, 1, () => NullLocation, false, () => false);
         const theme: Theme = {
             color: UniformColorTheme({}, { value: colorValue}),
             size: UniformSizeTheme({}, { value: sizeValue})
@@ -62,6 +62,7 @@ export namespace BaseGeometry {
         return {
             alpha: ValueCell.create(props.alpha),
             uAlpha: ValueCell.create(props.alpha),
+            uVertexCount: ValueCell.create(counts.vertexCount),
             uGroupCount: ValueCell.create(counts.groupCount),
             drawCount: ValueCell.create(counts.drawCount),
         };

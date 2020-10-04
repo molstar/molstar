@@ -105,7 +105,7 @@ export namespace BondIterator {
             location.element = unit.elements[(unit as Unit.Atomic).bonds.a[groupIndex]];
             return location;
         };
-        return LocationIterator(groupCount, instanceCount, getLocation);
+        return LocationIterator(groupCount, instanceCount, 1, getLocation);
     }
 
     export function fromStructure(structure: Structure): LocationIterator {
@@ -118,7 +118,7 @@ export namespace BondIterator {
             location.element = location.unit.elements[bond.indexA];
             return location;
         };
-        return LocationIterator(groupCount, instanceCount, getLocation, true);
+        return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
     }
 }
 

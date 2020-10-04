@@ -193,9 +193,7 @@ namespace Scene {
                 Object3D.update(object3d);
                 if (objects) {
                     for (let i = 0, il = objects.length; i < il; ++i) {
-                        const o = renderableMap.get(objects[i]);
-                        if (!o) continue;
-                        o.update();
+                        renderableMap.get(objects[i])?.update();
                     }
                 } else {
                     for (let i = 0, il = renderables.length; i < il; ++i) {

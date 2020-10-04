@@ -68,6 +68,7 @@ function createPoints() {
         ...clipping,
 
         uAlpha: ValueCell.create(1.0),
+        uVertexCount: ValueCell.create(3),
         uInstanceCount: ValueCell.create(1),
         uGroupCount: ValueCell.create(3),
         uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere.ref.value)),
@@ -128,7 +129,7 @@ describe('renderer', () => {
 
         scene.add(points);
         scene.commit();
-        expect(ctx.stats.resourceCounts.attribute).toBe(4);
+        expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 4 : 5);
         expect(ctx.stats.resourceCounts.texture).toBe(6);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(5);
         expect(ctx.stats.resourceCounts.program).toBe(5);

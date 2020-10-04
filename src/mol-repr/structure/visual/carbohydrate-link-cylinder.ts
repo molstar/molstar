@@ -83,7 +83,7 @@ function CarbohydrateLinkIterator(structure: Structure): LocationIterator {
         location.element = carbA.unit.elements[ringA[0]];
         return location;
     };
-    return LocationIterator(groupCount, instanceCount, getLocation, true);
+    return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
 }
 
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {

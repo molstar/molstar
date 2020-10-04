@@ -24,6 +24,8 @@ import { createEmptyTransparency } from '../transparency-data';
 import { ImageValues } from '../../../mol-gl/renderable/image';
 import { fillSerial } from '../../../mol-util/array';
 import { createEmptyClipping } from '../clipping-data';
+import { NullLocation } from '../../../mol-model/location';
+import { QuadPositions } from '../../../mol-gl/compute/util';
 
 const QuadIndices = new Uint32Array([
     0, 1, 2,
@@ -128,19 +130,21 @@ namespace Image {
         updateValues,
         updateBoundingSphere,
         createRenderableState,
-        updateRenderableState
+        updateRenderableState,
+        createPositionIterator: () => LocationIterator(1, 1, 1, () => NullLocation)
     };
 
     function createValues(image: Image, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): ImageValues {
-
         const { instanceCount, groupCount } = locationIt;
-        const color = createColors(locationIt, theme.color);
+        const positionIt = Utils.createPositionIterator(image, transform);
+
+        const color = createColors(locationIt, positionIt, theme.color);
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
         const clipping = createEmptyClipping();
 
-        const counts = { drawCount: QuadIndices.length, groupCount, instanceCount };
+        const counts = { drawCount: QuadIndices.length, vertexCount: QuadPositions.length / 3, groupCount, instanceCount };
 
         const invariantBoundingSphere = Sphere3D.clone(image.boundingSphere);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);

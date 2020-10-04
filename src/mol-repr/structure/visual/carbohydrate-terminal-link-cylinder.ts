@@ -105,7 +105,7 @@ function CarbohydrateTerminalLinkIterator(structure: Structure): LocationIterato
         }
         return location;
     };
-    return LocationIterator(groupCount, instanceCount, getLocation, true);
+    return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
 }
 
 function getTerminalLinkLoci(pickingId: PickingId, structure: Structure, id: number) {

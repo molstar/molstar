@@ -8,7 +8,7 @@ import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { Representation } from '../representation';
 import { Shape, ShapeGroup } from '../../mol-model/shape';
 import { Subject } from 'rxjs';
-import { getNextMaterialId, createRenderObject, RenderObjectValues, GraphicsRenderObject } from '../../mol-gl/render-object';
+import { getNextMaterialId, createRenderObject, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Theme } from '../../mol-theme/theme';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { VisualUpdateState } from '../util';
@@ -47,6 +47,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     let currentProps: PD.Values<P> = PD.getDefaultValues(geometryUtils.Params as P); // TODO avoid casting
     let currentParams: P;
     let locationIt: LocationIterator;
+    let positionIt: LocationIterator;
 
     if (builder.modifyState) Representation.updateState(_state, builder.modifyState(_state));
 
@@ -111,6 +112,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
                 _renderObject = createRenderObject(_shape.geometry.kind, values, state, materialId);
                 if (_renderObject) renderObjects.push(_renderObject); // add new renderObject to list
+                positionIt = geometryUtils.createPositionIterator(_shape.geometry, _renderObject.values);
             } else {
                 if (!_renderObject) {
                     throw new Error('expected renderObject to be available');
@@ -127,16 +129,18 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                 if (updateState.createGeometry) {
                     // console.log('update geometry')
                     ValueCell.updateIfChanged(_renderObject.values.drawCount, Geometry.getDrawCount(_shape.geometry));
+                    ValueCell.updateIfChanged(_renderObject.values.uVertexCount, Geometry.getVertexCount(_shape.geometry));
                 }
 
                 if (updateState.updateTransform || updateState.createGeometry) {
                     // console.log('updateBoundingSphere')
-                    geometryUtils.updateBoundingSphere(_renderObject.values as RenderObjectValues<G['kind']>, _shape.geometry);
+                    geometryUtils.updateBoundingSphere(_renderObject.values, _shape.geometry);
+                    positionIt = geometryUtils.createPositionIterator(_shape.geometry, _renderObject.values);
                 }
 
                 if (updateState.updateColor) {
                     // console.log('update color')
-                    createColors(locationIt, _theme.color, _renderObject.values);
+                    createColors(locationIt, positionIt, _theme.color, _renderObject.values);
                 }
 
                 if (updateState.updateSize) {
@@ -147,7 +151,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                     }
                 }
 
-                geometryUtils.updateValues(_renderObject.values as RenderObjectValues<G['kind']>, newProps);
+                geometryUtils.updateValues(_renderObject.values, newProps);
                 geometryUtils.updateRenderableState(_renderObject.state, newProps);
             }
 

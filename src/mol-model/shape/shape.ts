@@ -71,7 +71,7 @@ export namespace Shape {
             location.instance = instanceIndex;
             return location;
         };
-        return LocationIterator(shape.groupCount, instanceCount, getLocation);
+        return LocationIterator(shape.groupCount, instanceCount, 1, getLocation);
     }
 
     export function createTransform(transforms: Mat4[], transformData?: TransformData) {

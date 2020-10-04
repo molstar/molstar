@@ -54,6 +54,7 @@ export interface GeometryUtils<G extends Geometry, P extends PD.Params = Geometr
     updateBoundingSphere(values: V, geometry: G): void
     createRenderableState(props: Partial<PD.Values<P>>): RenderableState
     updateRenderableState(state: RenderableState, props: PD.Values<P>): void
+    createPositionIterator(geometry: G, transform: TransformData): LocationIterator
 }
 
 export namespace Geometry {
@@ -69,6 +70,19 @@ export namespace Geometry {
             case 'direct-volume': return 12 * 3;
             case 'image': return 2 * 3;
             case 'texture-mesh': return geometry.vertexCount;
+        }
+    }
+
+    export function getVertexCount(geometry: Geometry): number {
+        switch (geometry.kind) {
+            case 'mesh': return geometry.vertexCount;
+            case 'points': return geometry.pointCount;
+            case 'spheres': return geometry.sphereCount * 4;
+            case 'text': return geometry.charCount * 4;
+            case 'lines': return geometry.lineCount * 4;
+            case 'direct-volume': return 24;
+            case 'image': return 4;
+            case 'texture-mesh': return geometry.vertexCount / 3;
         }
     }
 
@@ -103,9 +117,7 @@ export namespace Geometry {
         }
     }
 
-    export function getGranularity(locationIt: LocationIterator, granularity: ColorType | SizeType) {
-        // Always use 'group' granularity for 'complex' location iterators,
-        // i.e. for which an instance may include multiple units
-        return granularity === 'instance' && locationIt.isComplex ? 'group' : granularity;
+    export function getGranularity<T extends ColorType | SizeType>(locationIt: LocationIterator, granularity: T) {
+        return granularity === 'instance' && locationIt.nonInstanceable ? 'group' : granularity;
     }
 }

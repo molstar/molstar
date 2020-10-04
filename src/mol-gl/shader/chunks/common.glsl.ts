@@ -5,7 +5,7 @@ export default `
     #define dRenderVariant_pick
 #endif
 
-#if defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance)
+#if defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance) || defined(dColorType_vertex) || defined(dColorType_vertexInstance)
     #define dColorType_texture
 #endif
 

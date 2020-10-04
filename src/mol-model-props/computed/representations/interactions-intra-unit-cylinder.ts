@@ -178,5 +178,5 @@ function createInteractionsIterator(structureGroup: StructureGroup): LocationIte
         element.indexB = contacts.b[groupIndex];
         return location;
     };
-    return LocationIterator(groupCount, instanceCount, getLocation);
+    return LocationIterator(groupCount, instanceCount, 1, getLocation);
 }

@@ -5,14 +5,14 @@
  */
 
 import { ValueCell } from '../../../mol-util';
-import { Mat4, Vec4 } from '../../../mol-math/linear-algebra';
+import { Mat4, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { transformPositionArray, GroupMapping, createGroupMapping} from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
-import { LocationIterator } from '../../util/location-iterator';
+import { LocationIterator, PositionLocation } from '../../util/location-iterator';
 import { LinesValues } from '../../../mol-gl/renderable/lines';
 import { Mesh } from '../mesh/mesh';
 import { LinesBuilder } from './lines-builder';
@@ -177,19 +177,42 @@ export namespace Lines {
         updateValues,
         updateBoundingSphere,
         createRenderableState: BaseGeometry.createRenderableState,
-        updateRenderableState: BaseGeometry.updateRenderableState
+        updateRenderableState: BaseGeometry.updateRenderableState,
+        createPositionIterator
     };
+
+    function createPositionIterator(lines: Lines, transform: TransformData): LocationIterator {
+        const groupCount = lines.lineCount * 4;
+        const instanceCount = transform.instanceCount.ref.value;
+        const location = PositionLocation();
+        const p = location.position;
+        const s = lines.startBuffer.ref.value;
+        const e = lines.endBuffer.ref.value;
+        const m = transform.aTransform.ref.value;
+        const getLocation = (groupIndex: number, instanceIndex: number) => {
+            const v = groupIndex % 4 === 0 ? s : e;
+            if (instanceIndex < 0) {
+                Vec3.fromArray(p, v, groupIndex * 3);
+            } else {
+                Vec3.transformMat4Offset(p, v, m, 0, groupIndex * 3, instanceIndex * 16);
+            }
+            return location;
+        };
+        return LocationIterator(groupCount, instanceCount, 2, getLocation);
+    }
 
     function createValues(lines: Lines, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): LinesValues {
         const { instanceCount, groupCount } = locationIt;
-        const color = createColors(locationIt, theme.color);
+        const positionIt = createPositionIterator(lines, transform);
+
+        const color = createColors(locationIt, positionIt, theme.color);
         const size = createSizes(locationIt, theme.size);
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
         const clipping = createEmptyClipping();
 
-        const counts = { drawCount: lines.lineCount * 2 * 3, groupCount, instanceCount };
+        const counts = { drawCount: lines.lineCount * 2 * 3, vertexCount: lines.lineCount * 4, groupCount, instanceCount };
 
         const invariantBoundingSphere = Sphere3D.clone(lines.boundingSphere);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);

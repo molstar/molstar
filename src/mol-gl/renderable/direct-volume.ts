@@ -15,7 +15,7 @@ export const DirectVolumeSchema = {
     uColor: UniformSpec('v3'),
     uColorTexDim: UniformSpec('v2'),
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
-    dColorType: DefineSpec('string', ['uniform', 'instance', 'group', 'group_instance']),
+    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance']),
 
     uMarkerTexDim: UniformSpec('v2'),
     tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
@@ -35,6 +35,7 @@ export const DirectVolumeSchema = {
     tClipping: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dClipping: DefineSpec('boolean'),
 
+    uVertexCount: UniformSpec('i'),
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
     uInvariantBoundingSphere: UniformSpec('v4'),

@@ -23,6 +23,7 @@ import { Texture } from '../../../mol-gl/webgl/texture';
 import { Vec2, Vec4 } from '../../../mol-math/linear-algebra';
 import { fillSerial } from '../../../mol-util/array';
 import { createEmptyClipping } from '../clipping-data';
+import { NullLocation } from '../../../mol-model/location';
 
 export interface TextureMesh {
     readonly kind: 'texture-mesh',
@@ -85,18 +86,21 @@ export namespace TextureMesh {
         updateValues,
         updateBoundingSphere,
         createRenderableState: BaseGeometry.createRenderableState,
-        updateRenderableState: BaseGeometry.updateRenderableState
+        updateRenderableState: BaseGeometry.updateRenderableState,
+        createPositionIterator: () => LocationIterator(1, 1, 1, () => NullLocation)
     };
 
     function createValues(textureMesh: TextureMesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): TextureMeshValues {
         const { instanceCount, groupCount } = locationIt;
-        const color = createColors(locationIt, theme.color);
+        const positionIt = Utils.createPositionIterator(textureMesh, transform);
+
+        const color = createColors(locationIt, positionIt, theme.color);
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
         const clipping = createEmptyClipping();
 
-        const counts = { drawCount: textureMesh.vertexCount, groupCount, instanceCount };
+        const counts = { drawCount: textureMesh.vertexCount, vertexCount: textureMesh.vertexCount / 3, groupCount, instanceCount };
 
         const transformBoundingSphere = calculateTransformBoundingSphere(textureMesh.boundingSphere, transform.aTransform.ref.value, transform.instanceCount.ref.value);
 

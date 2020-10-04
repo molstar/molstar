@@ -27,7 +27,7 @@ export namespace NucleotideLocationIterator {
             location.element = nucleotideElementIndices[groupIndex];
             return location;
         };
-        return LocationIterator(groupCount, instanceCount, getLocation);
+        return LocationIterator(groupCount, instanceCount, 1, getLocation);
     }
 }
 
