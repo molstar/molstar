@@ -102,8 +102,11 @@ namespace Unit {
 
         export function getUnitSymmetryGroupsIndexMap(symmetryGroups: ReadonlyArray<Unit.SymmetryGroup>): IntMap<number> {
             const unitSymmetryGroupsIndexMap = IntMap.Mutable<number>();
-            for (let i = 0, _i = symmetryGroups.length; i < _i; i++) {
-                unitSymmetryGroupsIndexMap.set(symmetryGroups[i].units[0].invariantId, i);
+            for (let i = 0, il = symmetryGroups.length; i < il; ++i) {
+                const sg = symmetryGroups[i];
+                for (let j = 0, jl = sg.units.length; j < jl; ++j) {
+                    unitSymmetryGroupsIndexMap.set(sg.units[j].id, i);
+                }
             }
             return unitSymmetryGroupsIndexMap;
         }

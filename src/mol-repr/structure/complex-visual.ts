@@ -85,13 +85,8 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
         VisualUpdateState.reset(updateState);
 
-        if (!renderObject) {
+        if (!renderObject || !currentStructure || !Structure.areEquivalent(newStructure, currentStructure)) {
             updateState.createNew = true;
-        } else if (!currentStructure || !Structure.areEquivalent(newStructure, currentStructure)) {
-            updateState.createNew = true;
-        }
-
-        if (updateState.createNew) {
             updateState.createGeometry = true;
             return;
         }
@@ -108,6 +103,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         }
 
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
+            updateState.createGeometry = true;
+        }
+
+        if (updateState.updateSize && !('uSize' in renderObject.values)) {
             updateState.createGeometry = true;
         }
 

@@ -205,6 +205,10 @@ export namespace Model {
         return model.parent || model;
     }
 
+    export function areHierarchiesEqual(a: Model, b: Model) {
+        return a.atomicHierarchy === b.atomicHierarchy && a.coarseHierarchy === b.coarseHierarchy;
+    }
+
     const CoordinatesHistoryProp = '__CoordinatesHistory__';
     export type CoordinatesHistory = {
         areEqual(elements: SortedArray<ElementIndex>, kind: Unit.Kind, model: Model): boolean

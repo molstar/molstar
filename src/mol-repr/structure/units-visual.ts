@@ -92,15 +92,9 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
         VisualUpdateState.reset(updateState);
 
-        if (!renderObject) {
-            // console.log('create new - no renderObject');
+        if (!renderObject || !currentStructureGroup) {
+            // console.log('create new');
             updateState.createNew = true;
-        } else if (!currentStructureGroup || !Unit.SymmetryGroup.areInvariantElementsEqual(newStructureGroup.group, currentStructureGroup.group)) {
-            // console.log('create new - elements not equal');
-            updateState.createNew = true;
-        }
-
-        if (updateState.createNew) {
             updateState.createGeometry = true;
             return;
         }
@@ -147,6 +141,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
         if (updateState.updateTransform) {
             updateState.updateMatrix = true;
+        }
+
+        if (updateState.updateSize && !('uSize' in renderObject.values)) {
+            updateState.createGeometry = true;
         }
 
         if (updateState.createGeometry || updateState.updateTransform) {

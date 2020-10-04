@@ -264,6 +264,11 @@ namespace Loci {
         }
     });
 
+    /** Exclude `Instances` granularity kinds */
+    export function simpleGranularity(granularity: Granularity) {
+        return granularity.replace('Instances', '') as Granularity;
+    }
+
     export function applyGranularity(loci: Loci, granularity: Granularity) {
         return Granularity[granularity](loci);
     }
