@@ -154,6 +154,7 @@ export function eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply:
         if (!Unit.isAtomic(unit)) return false;
         const groupCount = unit.bonds.edgeCount * 2;
         for (const b of loci.bonds) {
+            if (b.aUnit !== b.bUnit) continue;
             const unitIdx = group.unitIndexMap.get(b.aUnit.id);
             if (unitIdx !== undefined) {
                 const idx = unit.bonds.getDirectedEdgeIndex(b.aIndex, b.bIndex);

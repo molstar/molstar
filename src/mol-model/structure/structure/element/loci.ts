@@ -13,7 +13,7 @@ import Structure from '../structure';
 import Unit from '../unit';
 import { sortArray, hashFnv32a, hash2 } from '../../../../mol-data/util';
 import Expression from '../../../../mol-script/language/expression';
-import { ElementIndex } from '../../model';
+import { ElementIndex, Model } from '../../model';
 import { UnitIndex } from './element';
 import { Location } from './location';
 import { ChainIndex } from '../../model/indexing';
@@ -446,27 +446,41 @@ export namespace Loci {
         return Loci(loci.structure, elements);
     }
 
+    function getElementIndices(elements: SortedArray<ElementIndex>, indices: OrderedSet) {
+        const elementIndices: ElementIndex[] = [];
+        for (let i = 0, il = OrderedSet.size(indices); i < il; ++i) {
+            elementIndices.push(elements[OrderedSet.getAt(indices, i)]);
+        }
+        return SortedArray.ofSortedArray<ElementIndex>(elementIndices);
+    }
+
+    function getUnitIndices(elements: SortedArray<ElementIndex>, indices: SortedArray<ElementIndex>) {
+        return SortedArray.indicesOf<ElementIndex, UnitIndex>(elements, indices);
+    }
+
     export function extendToAllInstances(loci: Loci): Loci {
         const elements: Loci['elements'][0][] = [];
-        const byInvariantId = new Map<number, OrderedSet<UnitIndex>>();
-        const { unitSymmetryGroups, unitSymmetryGroupsIndexMap } = loci.structure;
+        const byModel = new Map<Model, SortedArray<ElementIndex>>();
 
         for (let i = 0, len = loci.elements.length; i < len; i++) {
             const e = loci.elements[i];
-            const { invariantId } = e.unit;
-            if (byInvariantId.has(invariantId)) {
-                byInvariantId.set(invariantId, OrderedSet.union(e.indices, byInvariantId.get(invariantId)!));
+            const { model } = e.unit;
+            const elementIndices = getElementIndices(e.unit.elements, e.indices);
+            if (byModel.has(model)) {
+                byModel.set(model, SortedArray.union(elementIndices, byModel.get(model)!));
             } else {
-                byInvariantId.set(invariantId, e.indices);
+                byModel.set(model, elementIndices);
             }
         }
 
-        byInvariantId.forEach((indices, invariantId) => {
-            const { units } = unitSymmetryGroups[unitSymmetryGroupsIndexMap.get(invariantId)];
-            for (let i = 0, il = units.length; i < il; ++i) {
-                elements[elements.length] = { unit: units[i], indices };
-            }
-        });
+        for (let i = 0, il = loci.structure.units.length; i < il; ++i) {
+            const unit = loci.structure.units[i];
+            const elementIndices = byModel.get(unit.model);
+            if (!elementIndices) continue;
+
+            const indices = getUnitIndices(unit.elements, elementIndices);
+            elements[elements.length] = { unit, indices };
+        }
 
         return Loci(loci.structure, elements);
     }
@@ -474,7 +488,7 @@ export namespace Loci {
     //
 
     const boundaryHelper = new BoundaryHelper('98');
-    const tempPosBoundary = Vec3.zero();
+    const tempPosBoundary = Vec3();
     export function getBoundary(loci: Loci): Boundary {
         boundaryHelper.reset();
 
@@ -503,7 +517,7 @@ export namespace Loci {
         return { box: boundaryHelper.getBox(), sphere: boundaryHelper.getSphere() };
     }
 
-    const tempPos = Vec3.zero();
+    const tempPos = Vec3();
     export function toPositionsArray(loci: Loci, positions: NumberArray, offset = 0) {
         let m = offset;
         for (const e of loci.elements) {

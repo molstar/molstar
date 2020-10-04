@@ -112,11 +112,7 @@ export function updateStructureComponent(a: Structure, b: SO.Molecule.Structure,
                 return StateTransformer.UpdateResult.Recreate;
             }
             if (b.data.model === a.model) return StateTransformer.UpdateResult.Unchanged;
-            if (Model.getRoot(b.data.model) !== Model.getRoot(a.model)
-                && (a.model.atomicHierarchy !== b.data.model.atomicHierarchy
-                    || a.model.coarseHierarchy !== b.data.model.coarseHierarchy)) {
-                return StateTransformer.UpdateResult.Recreate;
-            }
+            if (!Model.areHierarchiesEqual(a.model, b.data.model)) return StateTransformer.UpdateResult.Recreate;
 
             b.data = b.data.remapModel(a.model);
             return StateTransformer.UpdateResult.Updated;

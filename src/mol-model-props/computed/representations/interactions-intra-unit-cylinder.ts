@@ -119,6 +119,7 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
         const contacts = interactions.unitsContacts.get(unit.id);
         const groupCount = contacts.edgeCount * 2;
         for (const e of loci.elements) {
+            if (e.unitA !== e.unitB) continue;
             const unitIdx = group.unitIndexMap.get(e.unitA.id);
             if (unitIdx !== undefined) {
                 const idx = contacts.getDirectedEdgeIndex(e.indexA, e.indexB);

@@ -250,7 +250,7 @@ class Structure {
         return this._props.unitSymmetryGroups;
     }
 
-    /** Maps unit.invariantId to index of SymmetryGroup in unitSymmetryGroups array */
+    /** Maps unit.id to index of SymmetryGroup in unitSymmetryGroups array */
     get unitSymmetryGroupsIndexMap(): IntMap<number> {
         if (this._props.unitSymmetryGroupsIndexMap) return this._props.unitSymmetryGroupsIndexMap;
         this._props.unitSymmetryGroupsIndexMap = Unit.SymmetryGroup.getUnitSymmetryGroupsIndexMap(this.unitSymmetryGroups);
@@ -967,10 +967,13 @@ namespace Structure {
     }
 
     export function areHierarchiesEqual(a: Structure, b: Structure) {
-        if (!areUnitIdsEqual(a, b)) return false;
+        if (a.hashCode !== b.hashCode) return false;
 
-        for (let i = 0, il = a.units.length; i < il; i++) {
-            if (Unit.getHierarchy(a.units[i]) !== Unit.getHierarchy(b.units[i])) return false;
+        const len = a.models.length;
+        if (len !== b.models.length) return false;
+
+        for (let i = 0; i < len; i++) {
+            if (!Model.areHierarchiesEqual(a.models[i], b.models[i])) return false;
         }
         return true;
     }
