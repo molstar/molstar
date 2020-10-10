@@ -63,15 +63,15 @@ function getFocusEntries(structure: Structure) {
         l.element = ug.elements[0];
         const isMultiChain = Unit.Traits.is(l.unit.traits, Unit.Trait.MultiChain);
         const entityType = StructureProperties.entity.type(l);
-        const isPolymer = entityType === 'non-polymer';
+        const isNonPolymer = entityType === 'non-polymer';
         const isBranched = entityType === 'branched';
         const isBirdMolecule = !!StructureProperties.entity.prd_id(l);
 
         if (isBirdMolecule) {
             addSymmetryGroupEntries(entityEntries, l, ug, 'chain');
-        } else if (isPolymer && !isMultiChain) {
+        } else if (isNonPolymer && !isMultiChain) {
             addSymmetryGroupEntries(entityEntries, l, ug, 'residue');
-        } else if (isBranched || (isPolymer && isMultiChain)) {
+        } else if (isBranched || (isNonPolymer && isMultiChain)) {
             const u = l.unit;
             const { index: residueIndex } = u.model.atomicHierarchy.residueAtomSegments;
             let prev = -1;
@@ -91,7 +91,7 @@ function getFocusEntries(structure: Structure) {
     entityEntries.forEach((e, name) => {
         if (e.length === 1) {
             entries.push({ label: `${name}: ${e[0].label}`, loci: e[0].loci });
-        } else {
+        } else if (e.length < 2000) {
             entries.push(...e);
         }
     });
