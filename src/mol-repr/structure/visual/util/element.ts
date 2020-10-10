@@ -105,9 +105,7 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     }
 
     const s = builder.getSpheres();
-
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1);
-    s.setBoundingSphere(sphere);
+    s.setBoundingSphere(unit.boundary.sphere);
 
     return s;
 }
