@@ -556,10 +556,7 @@ export namespace Loci {
         for (const e of loci.elements) {
             const { indices } = e;
             const { elements } = e.unit;
-
-            const key = models.length === 1
-                ? e.unit.conformation.operator.name
-                : `${e.unit.conformation.operator.name} ${e.unit.model.label} ${e.unit.model.modelNum}`;
+            const key = e.unit.conformation.operator.name;
 
             let sourceIndices: UniqueArray<number, number>;
             if (sourceIndexMap.has(key)) sourceIndices = sourceIndexMap.get(key)!.xs;
