@@ -16,6 +16,7 @@ import { MultiSamplePass, MultiSampleParams } from './multi-sample';
 import { Camera } from '../camera';
 import { Viewport } from '../camera/util';
 import { HandleHelper } from '../helper/handle-helper';
+import { PixelData } from '../../mol-util/image';
 
 export const ImageParams = {
     transparentBackground: PD.Boolean(false),
@@ -41,7 +42,7 @@ export class ImagePass {
     get width() { return this._width; }
     get height() { return this._height; }
 
-    constructor(webgl: WebGLContext, private renderer: Renderer, scene: Scene, private camera: Camera, debugHelper: BoundingSphereHelper, handleHelper: HandleHelper, props: Partial<ImageProps>) {
+    constructor(private webgl: WebGLContext, private renderer: Renderer, scene: Scene, private camera: Camera, debugHelper: BoundingSphereHelper, handleHelper: HandleHelper, props: Partial<ImageProps>) {
         const p = { ...PD.getDefaultValues(ImageParams), ...props };
 
         this._transparentBackground = p.transparentBackground;
@@ -104,7 +105,10 @@ export class ImagePass {
     getImageData(width: number, height: number) {
         this.setSize(width, height);
         this.render();
-        const pd = this.colorTarget.getPixelData();
-        return new ImageData(new Uint8ClampedArray(pd.array), pd.width, pd.height);
+        this.colorTarget.bind();
+        const array = new Uint8Array(width * height * 4);
+        this.webgl.readPixels(0, 0, width, height, array);
+        PixelData.flipY({ array, width, height });
+        return new ImageData(new Uint8ClampedArray(array), width, height);
     }
 }

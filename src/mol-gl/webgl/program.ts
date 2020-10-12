@@ -131,7 +131,7 @@ export interface ProgramProps {
     schema: RenderableSchema
 }
 
-function getProgram(gl: GLRenderingContext) {
+export function getProgram(gl: GLRenderingContext) {
     const program = gl.createProgram();
     if (program === null) {
         throw new Error('Could not create WebGL program');

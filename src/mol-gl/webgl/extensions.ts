@@ -9,10 +9,10 @@ import { isDebugMode } from '../../mol-util/debug';
 
 export type WebGLExtensions = {
     instancedArrays: COMPAT_instanced_arrays
-    textureFloat: COMPAT_texture_float
     elementIndexUint: COMPAT_element_index_uint
 
     standardDerivatives: COMPAT_standard_derivatives | null
+    textureFloat: COMPAT_texture_float | null
     textureFloatLinear: COMPAT_texture_float_linear | null
     depthTexture: COMPAT_depth_texture | null
     blendMinMax: COMPAT_blend_minmax | null
@@ -29,10 +29,6 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (instancedArrays === null) {
         throw new Error('Could not find support for "instanced_arrays"');
     }
-    const textureFloat = getTextureFloat(gl);
-    if (textureFloat === null) {
-        throw new Error('Could not find support for "texture_float"');
-    }
     const elementIndexUint = getElementIndexUint(gl);
     if (elementIndexUint === null) {
         throw new Error('Could not find support for "element_index_uint"');
@@ -43,6 +39,11 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         // - non-support handled downstream (flat shading option is ignored)
         // - can't be a required extension because it is not supported by `headless-gl`
         console.log('Could not find support for "standard_derivatives"');
+    }
+    const textureFloat = getTextureFloat(gl);
+    if (isDebugMode && textureFloat === null) {
+        // TODO make sure non-support is handled downstream
+        console.log('Could not find support for "texture_float"');
     }
     const textureFloatLinear = getTextureFloatLinear(gl);
     if (isDebugMode && textureFloatLinear === null) {

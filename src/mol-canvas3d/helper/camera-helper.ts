@@ -89,7 +89,7 @@ export class CameraHelper {
     update(camera: Camera) {
         if (!this.renderObject) return;
 
-        updateCamera(this.camera, camera.viewport);
+        updateCamera(this.camera, camera.viewport, camera.viewOffset);
         Mat4.extractRotation(this.scene.view, camera.view);
 
         const r = this.renderObject.values.boundingSphere.ref.value.radius;
@@ -101,23 +101,32 @@ export class CameraHelper {
     }
 }
 
-function updateCamera(camera: Camera, viewport: Viewport) {
+function updateCamera(camera: Camera, viewport: Viewport, viewOffset: Camera.ViewOffset) {
     const { near, far } = camera;
 
-    const fullLeft = -(viewport.width - viewport.x) / 2;
-    const fullRight = (viewport.width - viewport.x) / 2;
-    const fullTop = (viewport.height - viewport.y) / 2;
-    const fullBottom = -(viewport.height - viewport.y) / 2;
+    const fullLeft = -viewport.width / 2;
+    const fullRight = viewport.width / 2;
+    const fullTop = viewport.height / 2;
+    const fullBottom = -viewport.height / 2;
 
     const dx = (fullRight - fullLeft) / 2;
     const dy = (fullTop - fullBottom) / 2;
     const cx = (fullRight + fullLeft) / 2;
     const cy = (fullTop + fullBottom) / 2;
 
-    const left = cx - dx;
-    const right = cx + dx;
-    const top = cy + dy;
-    const bottom = cy - dy;
+    let left = cx - dx;
+    let right = cx + dx;
+    let top = cy + dy;
+    let bottom = cy - dy;
+
+    if (viewOffset.enabled) {
+        const scaleW = (fullRight - fullLeft) / viewOffset.width;
+        const scaleH = (fullTop - fullBottom) / viewOffset.height;
+        left += scaleW * viewOffset.offsetX;
+        right = left + scaleW * viewOffset.width;
+        top -= scaleH * viewOffset.offsetY;
+        bottom = top - scaleH * viewOffset.height;
+    }
 
     Mat4.ortho(camera.projection, left, right, top, bottom, near, far);
 }

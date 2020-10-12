@@ -105,7 +105,7 @@ export class PostprocessingPass {
 
     constructor(private webgl: WebGLContext, private camera: Camera, drawPass: DrawPass, props: Partial<PostprocessingProps>) {
         const { gl } = webgl;
-        this.target = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight);
+        this.target = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight, false);
         this.props = { ...PD.getDefaultValues(PostprocessingParams), ...props };
         const { colorTarget, depthTexture, packedDepth } = drawPass;
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture, packedDepth, this.props);

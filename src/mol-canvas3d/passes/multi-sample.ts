@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -60,37 +60,24 @@ export class MultiSamplePass {
     private holdTarget: RenderTarget
     private compose: ComposeRenderable
 
-    private sampleIndex = -1
-    private currentTime = 0
-    private lastRenderTime = 0
+    private sampleIndex = -2
 
     constructor(private webgl: WebGLContext, private camera: Camera, private drawPass: DrawPass, private postprocessing: PostprocessingPass, props: Partial<MultiSampleProps>) {
-        const { gl } = webgl;
-        this.colorTarget = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight);
-        this.composeTarget = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight);
-        this.holdTarget = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight);
+        const { gl, extensions } = webgl;
+        this.colorTarget = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight, false);
+        this.composeTarget = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight, false, extensions.colorBufferFloat ? 'float32' : 'uint8');
+        this.holdTarget = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight, false);
         this.compose = getComposeRenderable(webgl, drawPass.colorTarget.texture);
         this.props = { ...PD.getDefaultValues(MultiSampleParams), ...props };
     }
 
     get enabled() {
-        if (this.props.mode === 'temporal') {
-            if (this.currentTime - this.lastRenderTime > 200) {
-                return this.sampleIndex !== -1;
-            } else {
-                this.sampleIndex = 0;
-                return false;
-            }
-        } else if (this.props.mode === 'on') {
-            return true;
-        } else {
-            return false;
-        }
+        return this.props.mode !== 'off';
     }
 
-    update(changed: boolean, currentTime: number) {
-        if (changed) this.lastRenderTime = currentTime;
-        this.currentTime = currentTime;
+    update(changed: boolean) {
+        if (changed) this.sampleIndex = -1;
+        return this.props.mode === 'temporal' ? this.sampleIndex !== -2 : false;
     }
 
     setSize(width: number, height: number) {
@@ -140,6 +127,7 @@ export class MultiSamplePass {
             const offset = offsetList[i];
             Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height);
             camera.update();
+            this.drawPass.cameraHelper.update(camera);
 
             // the theory is that equal weights for each sample lead to an accumulation of rounding
             // errors. The following equation varies the sampleWeight per sample so that it is uniformly
@@ -196,15 +184,17 @@ export class MultiSamplePass {
         // each sample with camera jitter and accumulates the results.
         const offsetList = JitterVectors[ Math.max(0, Math.min(this.props.sampleLevel, 5)) ];
 
-        if (this.sampleIndex === -1) return;
+        if (this.sampleIndex === -2) return;
         if (this.sampleIndex >= offsetList.length) {
-            this.sampleIndex = -1;
+            this.sampleIndex = -2;
             return;
         }
 
-        const i = this.sampleIndex;
+        const width = drawPass.colorTarget.getWidth();
+        const height = drawPass.colorTarget.getHeight();
+        const sampleWeight = 1.0 / offsetList.length;
 
-        if (i === 0) {
+        if (this.sampleIndex === -1) {
             drawPass.render(false, transparentBackground);
             if (postprocessing.enabled) postprocessing.render(false);
             ValueCell.update(compose.values.uWeight, 1.0);
@@ -214,59 +204,57 @@ export class MultiSamplePass {
             holdTarget.bind();
             state.disable(gl.BLEND);
             compose.render();
-        }
-
-        const sampleWeight = 1.0 / offsetList.length;
-
-        camera.viewOffset.enabled = true;
-        ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawPass.colorTarget.texture);
-        ValueCell.update(compose.values.uWeight, sampleWeight);
-        compose.update();
-
-        const width = drawPass.colorTarget.getWidth();
-        const height = drawPass.colorTarget.getHeight();
-
-        // render the scene multiple times, each slightly jitter offset
-        // from the last and accumulate the results.
-        const numSamplesPerFrame = Math.pow(2, this.props.sampleLevel);
-        for (let i = 0; i < numSamplesPerFrame; ++i) {
-            const offset = offsetList[this.sampleIndex];
-            Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height);
-            camera.update();
-
-            // render scene and optionally postprocess
-            drawPass.render(false, transparentBackground);
-            if (postprocessing.enabled) postprocessing.render(false);
-
-            // compose rendered scene with compose target
-            composeTarget.bind();
-            state.enable(gl.BLEND);
-            state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
-            state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
-            state.disable(gl.DEPTH_TEST);
-            state.disable(gl.SCISSOR_TEST);
-            state.depthMask(false);
-            if (this.sampleIndex === 0) {
-                state.clearColor(0, 0, 0, 0);
-                gl.clear(gl.COLOR_BUFFER_BIT);
-            }
-            compose.render();
-
             this.sampleIndex += 1;
-            if (this.sampleIndex >= offsetList.length ) break;
+        } else {
+            camera.viewOffset.enabled = true;
+            ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawPass.colorTarget.texture);
+            ValueCell.update(compose.values.uWeight, sampleWeight);
+            compose.update();
+
+            // render the scene multiple times, each slightly jitter offset
+            // from the last and accumulate the results.
+            const numSamplesPerFrame = Math.pow(2, Math.max(0, this.props.sampleLevel - 2));
+            for (let i = 0; i < numSamplesPerFrame; ++i) {
+                const offset = offsetList[this.sampleIndex];
+                Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height);
+                camera.update();
+                this.drawPass.cameraHelper.update(camera);
+
+                // render scene and optionally postprocess
+                drawPass.render(false, transparentBackground);
+                if (postprocessing.enabled) postprocessing.render(false);
+
+                // compose rendered scene with compose target
+                composeTarget.bind();
+                state.enable(gl.BLEND);
+                state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
+                state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
+                state.disable(gl.DEPTH_TEST);
+                state.disable(gl.SCISSOR_TEST);
+                state.depthMask(false);
+                if (this.sampleIndex === 0) {
+                    state.clearColor(0, 0, 0, 0);
+                    gl.clear(gl.COLOR_BUFFER_BIT);
+                }
+                compose.render();
+
+                this.sampleIndex += 1;
+                if (this.sampleIndex >= offsetList.length ) break;
+            }
         }
+
+        if (toDrawingBuffer) {
+            webgl.unbindFramebuffer();
+        } else {
+            this.colorTarget.bind();
+        }
+        gl.viewport(0, 0, width, height);
 
         const accumulationWeight = this.sampleIndex * sampleWeight;
         if (accumulationWeight > 0) {
             ValueCell.update(compose.values.uWeight, 1.0);
             ValueCell.update(compose.values.tColor, composeTarget.texture);
             compose.update();
-            if (toDrawingBuffer) {
-                webgl.unbindFramebuffer();
-            } else {
-                this.colorTarget.bind();
-            }
-            gl.viewport(0, 0, width, height);
             state.disable(gl.BLEND);
             compose.render();
         }
@@ -274,12 +262,6 @@ export class MultiSamplePass {
             ValueCell.update(compose.values.uWeight, 1.0 - accumulationWeight);
             ValueCell.update(compose.values.tColor, holdTarget.texture);
             compose.update();
-            if (toDrawingBuffer) {
-                webgl.unbindFramebuffer();
-            } else {
-                this.colorTarget.bind();
-            }
-            gl.viewport(0, 0, width, height);
             if (accumulationWeight === 0) state.disable(gl.BLEND);
             else state.enable(gl.BLEND);
             compose.render();
@@ -287,7 +269,7 @@ export class MultiSamplePass {
 
         camera.viewOffset.enabled = false;
         camera.update();
-        if (this.sampleIndex >= offsetList.length) this.sampleIndex = -1;
+        if (this.sampleIndex >= offsetList.length) this.sampleIndex = -2;
     }
 }
 

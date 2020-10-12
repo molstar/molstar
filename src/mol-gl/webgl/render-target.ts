@@ -4,13 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { readPixels } from './context';
 import { idFactory } from '../../mol-util/id-factory';
-import { Texture } from './texture';
+import { Texture, TextureFilter } from './texture';
 import { Framebuffer } from './framebuffer';
-import { TextureImage } from '../renderable/util';
-import { Mutable } from '../../mol-util/type-helpers';
-import { PixelData } from '../../mol-util/image';
 import { WebGLResources } from './resources';
 import { GLRenderingContext } from './compat';
 
@@ -18,7 +14,6 @@ const getNextRenderTargetId = idFactory();
 
 export interface RenderTarget {
     readonly id: number
-    readonly image: TextureImage<any>
     readonly texture: Texture
     readonly framebuffer: Framebuffer
 
@@ -27,48 +22,32 @@ export interface RenderTarget {
     /** binds framebuffer and sets viewport to rendertarget's width and height */
     bind: () => void
     setSize: (width: number, height: number) => void
-    readBuffer: (x: number, y: number, width: number, height: number, dst: Uint8Array) => void
-    getBuffer: () => Uint8Array
-    getPixelData: () => PixelData
     reset: () => void
     destroy: () => void
 }
 
-export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResources, _width: number, _height: number): RenderTarget {
-    const image: Mutable<TextureImage<Uint8Array>> = {
-        array: new Uint8Array(_width * _height * 4),
-        width: _width,
-        height: _height
-    };
+export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResources, _width: number, _height: number, depth = true, type: 'uint8' | 'float32' = 'uint8', filter: TextureFilter = 'nearest'): RenderTarget {
 
     const framebuffer = resources.framebuffer();
-    const targetTexture = resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+    const targetTexture = type === 'float32'
+        ? resources.texture('image-float32', 'rgba', 'float', filter)
+        : resources.texture('image-uint8', 'rgba', 'ubyte', filter);
     // make a depth renderbuffer of the same size as the targetTexture
-    const depthRenderbuffer = resources.renderbuffer('depth16', 'depth', _width, _height);
+    const depthRenderbuffer = depth
+        ? resources.renderbuffer('depth16', 'depth', _width, _height)
+        : null;
 
     function init() {
-        targetTexture.load(image);
+        targetTexture.define(_width, _height);
         targetTexture.attachFramebuffer(framebuffer, 'color0');
-        depthRenderbuffer.attachFramebuffer(framebuffer);
+        if (depthRenderbuffer) depthRenderbuffer.attachFramebuffer(framebuffer);
     }
     init();
 
     let destroyed = false;
 
-    function readBuffer(x: number, y: number, width: number, height: number, dst: Uint8Array) {
-        framebuffer.bind();
-        gl.viewport(0, 0, _width, _height);
-        readPixels(gl, x, y, width, height, dst);
-    }
-
-    function getBuffer() {
-        readBuffer(0, 0, _width, _height, image.array);
-        return image.array;
-    }
-
     return {
         id: getNextRenderTargetId(),
-        image,
         texture: targetTexture,
         framebuffer,
 
@@ -81,15 +60,9 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
         setSize: (width: number, height: number) => {
             _width = width;
             _height = height;
-            image.array = new Uint8Array(_width * _height * 4);
-            image.width = _width;
-            image.height = _height;
-            targetTexture.load(image);
-            depthRenderbuffer.setSize(_width, _height);
+            targetTexture.define(_width, _height);
+            if (depthRenderbuffer) depthRenderbuffer.setSize(_width, _height);
         },
-        readBuffer,
-        getBuffer,
-        getPixelData: () => PixelData.flipY(PixelData.create(getBuffer(), _width, _height)),
         reset: () => {
             init();
         },
@@ -97,7 +70,7 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
             if (destroyed) return;
             targetTexture.destroy();
             framebuffer.destroy();
-            depthRenderbuffer.destroy();
+            if (depthRenderbuffer) depthRenderbuffer.destroy();
             destroyed = true;
         }
     };
