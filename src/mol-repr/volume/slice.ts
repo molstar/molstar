@@ -22,6 +22,7 @@ import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { RenderableState } from '../../mol-gl/renderable';
 import { Color } from '../../mol-util/color';
 import { ColorTheme } from '../../mol-theme/color';
+import { encodeFloatRGBtoArray } from '../../mol-util/float-packing';
 
 export async function createImage(ctx: VisualContext, volume: Volume, theme: Theme, props: PD.Values<SliceParams>, image?: Image) {
     const { dimension: { name: dim }, isoValue } = props;
@@ -47,8 +48,8 @@ export async function createImage(ctx: VisualContext, volume: Volume, theme: The
                 [0, 0, z,  0, y, z,  x, 0, z,  x, y, z]
     );
 
-    const imageArray = new Float32Array(width * height * 4);
-    const groupArray = getGroupArray(volume.grid, props);
+    const imageArray = new Uint8Array(width * height * 4);
+    const groupArray = getPackedGroupArray(volume.grid, props);
 
     let i = 0;
     for (let iy = y0; iy < ny; ++iy) {
@@ -57,10 +58,10 @@ export async function createImage(ctx: VisualContext, volume: Volume, theme: The
                 const val = space.get(data, ix, iy, iz);
                 const normVal = (val - min) / (max - min);
 
-                imageArray[i] = r * normVal * 2;
-                imageArray[i + 1] = g * normVal * 2;
-                imageArray[i + 2] = b * normVal * 2;
-                imageArray[i + 3] = val >= isoVal ? 1 : 0;
+                imageArray[i] = r * normVal * 2 * 255;
+                imageArray[i + 1] = g * normVal * 2 * 255;
+                imageArray[i + 2] = b * normVal * 2 * 255;
+                imageArray[i + 3] = val >= isoVal ? 255 : 0;
 
                 i += 4;
             }
@@ -106,10 +107,27 @@ function getSliceInfo(grid: Grid, props: PD.Values<SliceParams>) {
     };
 }
 
+function getPackedGroupArray(grid: Grid, props: PD.Values<SliceParams>) {
+    const { space } = grid.cells;
+    const { width, height, x0, y0, z0, nx, ny, nz } = getSliceInfo(grid, props);
+    const groupArray = new Uint8Array(width * height * 4);
+
+    let j = 0;
+    for (let iy = y0; iy < ny; ++iy) {
+        for (let ix = x0; ix < nx; ++ix) {
+            for (let iz = z0; iz < nz; ++iz) {
+                encodeFloatRGBtoArray(space.dataOffset(ix, iy, iz), groupArray, j);
+                j += 4;
+            }
+        }
+    }
+    return groupArray;
+}
+
 function getGroupArray(grid: Grid, props: PD.Values<SliceParams>) {
     const { space } = grid.cells;
     const { width, height, x0, y0, z0, nx, ny, nz } = getSliceInfo(grid, props);
-    const groupArray = new Float32Array(width * height);
+    const groupArray = new Uint32Array(width * height);
 
     let j = 0;
     for (let iy = y0; iy < ny; ++iy) {

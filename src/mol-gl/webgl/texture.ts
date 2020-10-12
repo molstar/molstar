@@ -219,6 +219,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
             width = data.width, height = data.height;
             gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, data.array);
         } else if (isWebGL2(gl) && isTexture3d(data, target, gl)) {
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
             width = data.width, height = data.height, depth = data.depth;
             gl.texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, data.array);
         } else {

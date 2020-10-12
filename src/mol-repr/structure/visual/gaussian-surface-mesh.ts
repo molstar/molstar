@@ -7,7 +7,6 @@
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsMeshParams, UnitsTextureMeshParams, UnitsVisual, UnitsMeshVisual, UnitsTextureMeshVisual } from '../units-visual';
 import { GaussianDensityParams, computeUnitGaussianDensity, GaussianDensityTextureProps, computeUnitGaussianDensityTexture2d, GaussianDensityProps, computeStructureGaussianDensity, getUnitExtraRadius } from './util/gaussian';
-import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
@@ -28,10 +27,6 @@ export const GaussianSurfaceMeshParams = {
     ...GaussianDensityParams,
 };
 export type GaussianSurfaceMeshParams = typeof GaussianSurfaceMeshParams
-
-export function getGaussianSurfaceVisual(webgl?: WebGLContext) {
-    return webgl && webgl.extensions.drawBuffers ? GaussianSurfaceTextureMeshVisual : GaussianSurfaceMeshVisual;
-}
 
 //
 

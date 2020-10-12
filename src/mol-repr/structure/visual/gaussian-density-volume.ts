@@ -14,6 +14,7 @@ import { ComplexDirectVolumeParams, ComplexVisual, ComplexDirectVolumeVisual } f
 import { VisualUpdateState } from '../../util';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { eachSerialElement, ElementIterator, getSerialElementLoci } from './util/element';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 async function createGaussianDensityVolume(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityTextureProps, directVolume?: DirectVolume): Promise<DirectVolume> {
     const { runtime, webgl } = ctx;
@@ -23,12 +24,17 @@ async function createGaussianDensityVolume(ctx: VisualContext, structure: Struct
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
     const densityTextureData = await computeStructureGaussianDensityTexture(structure, p, webgl, oldTexture).runInContext(runtime);
     const { transform, texture, bbox, gridDim } = densityTextureData;
-    const stats = { min: 0, max: 1, mean: 0.5, sigma: 0.1 };
+    const stats = { min: 0, max: 1, mean: 0.04, sigma: 0.01 };
 
     const unitToCartn = Mat4.mul(Mat4(), transform, Mat4.fromScaling(Mat4(), gridDim));
     const cellDim = Vec3.create(1, 1, 1);
 
-    return DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, directVolume);
+    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, directVolume);
+
+    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset);
+    vol.setBoundingSphere(sphere);
+
+    return vol;
 }
 
 export const GaussianDensityVolumeParams = {

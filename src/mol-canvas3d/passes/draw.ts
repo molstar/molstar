@@ -58,16 +58,16 @@ export const DefaultDrawPassProps = PD.getDefaultValues(DrawPassParams);
 export type DrawPassProps = PD.Values<typeof DrawPassParams>
 
 export class DrawPass {
-    colorTarget: RenderTarget
-    depthTexture: Texture
-    packedDepth: boolean
+    readonly colorTarget: RenderTarget
+    readonly depthTexture: Texture
+    readonly depthTexturePrimitives: Texture
+    readonly packedDepth: boolean
 
-    cameraHelper: CameraHelper
+    readonly cameraHelper: CameraHelper
 
     private depthTarget: RenderTarget
     private depthTargetPrimitives: RenderTarget | null
     private depthTargetVolumes: RenderTarget | null
-    private depthTexturePrimitives: Texture
     private depthTextureVolumes: Texture
     private depthMerge: DepthMergeRenderable
 
