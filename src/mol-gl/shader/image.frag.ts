@@ -104,8 +104,7 @@ void main() {
         #elif defined(dRenderVariant_pickInstance)
             gl_FragColor = vec4(encodeFloatRGB(vInstance), 1.0);
         #elif defined(dRenderVariant_pickGroup)
-            float group = texture2D(tGroupTex, vUv).a;
-            gl_FragColor = vec4(encodeFloatRGB(group), 1.0);
+            gl_FragColor = vec4(texture2D(tGroupTex, vUv).rgb, 1.0);
         #endif
     #elif defined(dRenderVariant_depth)
         if (imageData.a < 0.05)
@@ -119,7 +118,7 @@ void main() {
         gl_FragColor = imageData;
         gl_FragColor.a *= uAlpha;
 
-        float group = texture2D(tGroupTex, vUv).a;
+        float group = decodeFloatRGB(texture2D(tGroupTex, vUv).rgb);
         float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
         #include apply_marker_color
         #include apply_fog

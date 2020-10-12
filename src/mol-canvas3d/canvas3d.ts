@@ -195,7 +195,7 @@ namespace Canvas3D {
         const drawPass = new DrawPass(webgl, renderer, scene, camera, debugHelper, handleHelper, {
             cameraHelper: p.camera.helper
         });
-        const pickPass = new PickPass(webgl, renderer, scene, camera, handleHelper, 0.5);
+        const pickPass = new PickPass(webgl, renderer, scene, camera, handleHelper, 0.25, drawPass);
         const postprocessing = new PostprocessingPass(webgl, camera, drawPass, p.postprocessing);
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample);
 

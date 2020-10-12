@@ -133,9 +133,9 @@ export namespace DirectVolume {
         return {} as DirectVolume; // TODO
     }
 
-    export function createRenderModeParam(volume?: Volume) {
-        const isoValueParam = volume
-            ? Volume.createIsoValueParam(Volume.IsoValue.relative(2), volume.grid.stats)
+    export function createRenderModeParam(stats?: Grid['stats']) {
+        const isoValueParam = stats
+            ? Volume.createIsoValueParam(Volume.IsoValue.relative(2), stats)
             : Volume.IsoValueParam;
 
         return PD.MappedStatic('volume', {

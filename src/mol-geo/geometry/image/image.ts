@@ -53,17 +53,17 @@ export { Image };
 interface Image {
     readonly kind: 'image',
 
-    readonly imageTexture: ValueCell<TextureImage<Float32Array>>,
+    readonly imageTexture: ValueCell<TextureImage<Uint8Array>>,
     readonly imageTextureDim: ValueCell<Vec2>,
     readonly cornerBuffer: ValueCell<Float32Array>,
-    readonly groupTexture: ValueCell<TextureImage<Float32Array>>,
+    readonly groupTexture: ValueCell<TextureImage<Uint8Array>>,
 
     /** Bounding sphere of the image */
     boundingSphere: Sphere3D
 }
 
 namespace Image {
-    export function create(imageTexture: TextureImage<Float32Array>, corners: Float32Array, groupTexture: TextureImage<Float32Array>, image?: Image): Image {
+    export function create(imageTexture: TextureImage<Uint8Array>, corners: Float32Array, groupTexture: TextureImage<Uint8Array>, image?: Image): Image {
         return image ?
             update(imageTexture, corners, groupTexture, image) :
             fromData(imageTexture, corners, groupTexture);
@@ -75,7 +75,7 @@ namespace Image {
         ]);
     }
 
-    function fromData(imageTexture: TextureImage<Float32Array>, corners: Float32Array, groupTexture: TextureImage<Float32Array>): Image {
+    function fromData(imageTexture: TextureImage<Uint8Array>, corners: Float32Array, groupTexture: TextureImage<Uint8Array>): Image {
         const boundingSphere = Sphere3D();
         let currentHash = -1;
 
@@ -101,7 +101,7 @@ namespace Image {
         return image;
     }
 
-    function update(imageTexture: TextureImage<Float32Array>, corners: Float32Array, groupTexture: TextureImage<Float32Array>, image: Image): Image {
+    function update(imageTexture: TextureImage<Uint8Array>, corners: Float32Array, groupTexture: TextureImage<Uint8Array>, image: Image): Image {
         const width = imageTexture.width;
         const height = imageTexture.height;
 

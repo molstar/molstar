@@ -12,6 +12,7 @@ import { PickingId } from '../../mol-geo/geometry/picking';
 import { decodeFloatRGB } from '../../mol-util/float-packing';
 import { Camera } from '../camera';
 import { HandleHelper } from '../helper/handle-helper';
+import { DrawPass } from './draw';
 
 const NullId = Math.pow(2, 24) - 2;
 
@@ -30,14 +31,14 @@ export class PickPass {
     private pickWidth: number
     private pickHeight: number
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private handleHelper: HandleHelper, private pickBaseScale: number) {
+    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private handleHelper: HandleHelper, private pickBaseScale: number, private drawPass: DrawPass) {
         const { gl } = webgl;
         const width = gl.drawingBufferWidth;
         const height = gl.drawingBufferHeight;
 
         this.pickScale = pickBaseScale / webgl.pixelRatio;
-        this.pickWidth = Math.round(width * this.pickScale);
-        this.pickHeight = Math.round(height * this.pickScale);
+        this.pickWidth = Math.ceil(width * this.pickScale);
+        this.pickHeight = Math.ceil(height * this.pickScale);
 
         this.objectPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
         this.instancePickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
@@ -57,8 +58,8 @@ export class PickPass {
 
     setSize(width: number, height: number) {
         this.pickScale = this.pickBaseScale / this.webgl.pixelRatio;
-        this.pickWidth = Math.round(width * this.pickScale);
-        this.pickHeight = Math.round(height * this.pickScale);
+        this.pickWidth = Math.ceil(width * this.pickScale);
+        this.pickHeight = Math.ceil(height * this.pickScale);
 
         this.objectPickTarget.setSize(this.pickWidth, this.pickHeight);
         this.instancePickTarget.setSize(this.pickWidth, this.pickHeight);
@@ -69,16 +70,22 @@ export class PickPass {
 
     render() {
         const { renderer, scene, camera, handleHelper: { scene: handleScene } } = this;
+        const depth = this.drawPass.depthTexturePrimitives;
         renderer.setViewport(0, 0, this.pickWidth, this.pickHeight);
 
         this.objectPickTarget.bind();
-        renderer.render(scene, camera, 'pickObject', true, false, null);
+        renderer.render(scene.primitives, camera, 'pickObject', true, false, null);
+        renderer.render(scene.volumes, camera, 'pickObject', false, false, depth);
         renderer.render(handleScene, camera, 'pickObject', false, false, null);
+
         this.instancePickTarget.bind();
-        renderer.render(scene, camera, 'pickInstance', true, false, null);
+        renderer.render(scene.primitives, camera, 'pickInstance', true, false, null);
+        renderer.render(scene.volumes, camera, 'pickInstance', false, false, depth);
         renderer.render(handleScene, camera, 'pickInstance', false, false, null);
+
         this.groupPickTarget.bind();
-        renderer.render(scene, camera, 'pickGroup', true, false, null);
+        renderer.render(scene.primitives, camera, 'pickGroup', true, false, null);
+        renderer.render(scene.volumes, camera, 'pickGroup', false, false, depth);
         renderer.render(handleScene, camera, 'pickGroup', false, false, null);
 
         this.pickDirty = false;
@@ -116,18 +123,21 @@ export class PickPass {
         y *= webgl.pixelRatio;
         y = gl.drawingBufferHeight - y; // flip y
 
-        const xp = Math.round(x * pickScale);
-        const yp = Math.round(y * pickScale);
+        const xp = Math.floor(x * pickScale);
+        const yp = Math.floor(y * pickScale);
 
         const objectId = this.getId(xp, yp, this.objectBuffer);
+        // console.log('objectId', objectId);
         if (objectId === -1 || objectId === NullId) return;
 
         const instanceId = this.getId(xp, yp, this.instanceBuffer);
+        // console.log('instanceId', instanceId);
         if (instanceId === -1 || instanceId === NullId) return;
 
         const groupId = this.getId(xp, yp, this.groupBuffer);
+        // console.log('groupId', groupId);
         if (groupId === -1 || groupId === NullId) return;
-
+        // console.log({ objectId, instanceId, groupId });
         return { objectId, instanceId, groupId };
     }
 }

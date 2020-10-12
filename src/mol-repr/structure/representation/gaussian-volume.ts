@@ -10,6 +10,7 @@ import { StructureRepresentation, StructureRepresentationProvider, ComplexRepres
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
+import { DirectVolume } from '../../../mol-geo/geometry/direct-volume/direct-volume';
 
 const GaussianVolumeVisuals = {
     'gaussian-volume': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianDensityVolumeParams>) => ComplexRepresentation('Gaussian volume', ctx, getParams, GaussianDensityVolumeVisual)
@@ -20,7 +21,12 @@ export const GaussianVolumeParams = {
 };
 export type GaussianVolumeParams = typeof GaussianVolumeParams
 export function getGaussianVolumeParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(GaussianVolumeParams);
+    const p = PD.clone(GaussianVolumeParams);
+    p.renderMode = DirectVolume.createRenderModeParam({
+        // TODO find a better way to set
+        min: 0, max: 1, mean: 0.04, sigma: 0.01
+    });
+    return p;
 }
 
 export type GaussianVolumeRepresentation = StructureRepresentation<GaussianVolumeParams>

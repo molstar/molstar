@@ -267,8 +267,7 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
                     #include apply_marker_color
                     #include apply_fog
 
-                    src.rgb = gl_FragColor.rgb;
-                    src.a =  gl_FragColor.a;
+                    src = gl_FragColor;
 
                     src.rgb *= src.a;
                     dst = (1.0 - dst.a) * src + dst; // standard blending
@@ -279,19 +278,14 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
                 #endif
             }
             prevValue = value;
-        #endif
-
-        #if defined(dRenderMode_volume)
+        #elif defined(dRenderMode_volume)
             isoPos = toUnit(pos);
             vec4 mvPosition = uModelView * uTransform * vec4(isoPos * uGridDim, 1.0);
             if (calcDepth(mvPosition.xyz) > getDepth(gl_FragCoord.xy / uViewport.zw))
                 break;
 
-            // bool flipped = value > uIsoValue.y; // negative isosurfaces
-            // interior = value < uIsoValue.x && flipped;
             vec3 vViewPosition = mvPosition.xyz;
             vec4 material = transferFunction(value);
-            src.a = material.a * uAlpha;
 
             if (material.a >= 0.01) {
                 #ifdef dPackedGroup
@@ -304,13 +298,15 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
                 #endif
                 mat3 normalMatrix = transpose3(inverse3(mat3(uModelView * uUnitToCartn)));
                 vec3 normal = -normalize(normalMatrix * normalize(gradient));
-                // normal = normal * (float(flipped) * 2.0 - 1.0);
-                // normal = normal * -(float(interior) * 2.0 - 1.0);
                 #include apply_light_color
-                src.rgb = gl_FragColor.rgb;
             } else {
-                src.rgb = material.rgb;
+                gl_FragColor.rgb = material.rgb;
             }
+
+            gl_FragColor.a = material.a * uAlpha;
+            #include apply_fog
+
+            src = gl_FragColor;
 
             src.rgb *= src.a;
             dst = (1.0 - dst.a) * src + dst; // standard blending
@@ -322,13 +318,20 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
 
         pos += step;
     }
+
+    #if defined(dRenderMode_isosurface) && defined(enabledFragDepth)
+        // ensure depth is written everywhere
+        if (!hit)
+            gl_FragDepthEXT = 1.0;
+    #endif
+
     return dst;
 }
 
 // TODO calculate normalMatrix on CPU
 // TODO fix near/far clipping
 // TODO support clip objects
-// TODO support float texture for higher precision values
+// TODO support float texture for higher precision values???
 
 void main () {
     // TODO handle on CPU in renderloop
@@ -349,7 +352,5 @@ void main () {
     vec3 step = rayDir * stepScale;
 
     gl_FragColor = raymarch(origPos, step);
-    if (length(gl_FragColor.rgb) < 0.00001)
-        discard;
 }
 `;

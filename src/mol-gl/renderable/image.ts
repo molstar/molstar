@@ -21,8 +21,8 @@ export const ImageSchema = {
     elements: ElementsSpec('uint32'),
 
     uImageTexDim: UniformSpec('v2'),
-    tImageTex: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
-    tGroupTex: TextureSpec('image-float32', 'alpha', 'float', 'nearest'),
+    tImageTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
+    tGroupTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
 
     dInterpolation: DefineSpec('string', InterpolationTypeNames),
 };
