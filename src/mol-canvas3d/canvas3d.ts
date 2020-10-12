@@ -248,9 +248,9 @@ namespace Canvas3D {
             controls.update(currentTime);
             Viewport.set(camera.viewport, 0, 0, width, height);
             const cameraChanged = camera.update();
-            multiSample.update(force || cameraChanged, currentTime);
+            const multiSampleChanged = multiSample.update(force || cameraChanged);
 
-            if (force || cameraChanged || multiSample.enabled) {
+            if (force || cameraChanged || multiSampleChanged) {
                 renderer.setViewport(0, 0, width, height);
                 if (multiSample.enabled) {
                     multiSample.render(true, p.transparentBackground);

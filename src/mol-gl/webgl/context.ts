@@ -15,6 +15,7 @@ import { WebGLResources, createResources } from './resources';
 import { RenderTarget, createRenderTarget } from './render-target';
 import { BehaviorSubject } from 'rxjs';
 import { now } from '../../mol-util/now';
+import { TextureFilter } from './texture';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -31,7 +32,7 @@ function getPixelRatio() {
     return (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
 }
 
-function getErrorDescription(gl: GLRenderingContext, error: number) {
+export function getErrorDescription(gl: GLRenderingContext, error: number) {
     switch (error) {
         case gl.NO_ERROR: return 'no error';
         case gl.INVALID_ENUM: return 'invalid enum';
@@ -194,7 +195,7 @@ export interface WebGLContext {
     setContextLost: () => void
     handleContextRestored: () => void
 
-    createRenderTarget: (width: number, height: number) => RenderTarget
+    createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32', filter?: TextureFilter) => RenderTarget
     unbindFramebuffer: () => void
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) => void
     readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
@@ -302,8 +303,8 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
             contextRestored.next(now());
         },
 
-        createRenderTarget: (width: number, height: number) => {
-            const renderTarget = createRenderTarget(gl, resources, width, height);
+        createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32', filter?: TextureFilter) => {
+            const renderTarget = createRenderTarget(gl, resources, width, height, depth, type, filter);
             renderTargets.add(renderTarget);
             return {
                 ...renderTarget,

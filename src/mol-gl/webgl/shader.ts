@@ -27,7 +27,7 @@ export interface Shader {
     destroy: () => void
 }
 
-function getShader(gl: GLRenderingContext, props: ShaderProps) {
+export function getShader(gl: GLRenderingContext, props: ShaderProps) {
     const { type, source } = props;
     const shader = gl.createShader(type === 'vert' ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER);
     if (shader === null) {

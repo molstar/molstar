@@ -1,8 +1,13 @@
+import { isDebugMode } from '../../mol-util/debug';
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
+
+import { getErrorDescription, getGLContext } from './context';
+import { getProgram } from './program';
+import { getShader } from './shader';
 
 export type GLRenderingContext = WebGLRenderingContext | WebGL2RenderingContext
 
@@ -139,7 +144,10 @@ export function getColorBufferFloat(gl: GLRenderingContext): COMPAT_color_buffer
         return { RGBA32F: gl.RGBA32F };
     } else {
         const ext = gl.getExtension('WEBGL_color_buffer_float');
-        if (ext === null) return null;
+        if (ext === null) {
+            // test as support may not be advertised by browsers
+            return testColorBufferFloat() ? { RGBA32F: 0x8814 } : null;
+        }
         gl.getExtension('EXT_float_blend');
         return { RGBA32F: ext.RGBA32F_EXT };
     }
@@ -267,4 +275,131 @@ export function getSRGB(gl: GLRenderingContext): COMPAT_sRGB | null {
             SRGB: ext.SRGB_EXT
         };
     }
+}
+
+//
+
+const TextureTestVertShader = `
+attribute vec4 aPosition;
+
+void main() {
+  gl_Position = aPosition;
+}`;
+
+const TextureTestFragShader = `
+precision mediump float;
+uniform vec4 uColor;
+uniform sampler2D uTexture;
+
+void main() {
+  gl_FragColor = texture2D(uTexture, vec2(0.5, 0.5)) * uColor;
+}`;
+
+const TextureTestTexCoords = new Float32Array([
+    -1.0, -1.0, 1.0, -1.0, -1.0,  1.0, -1.0,  1.0, 1.0, -1.0, 1.0,  1.0
+]);
+
+export function testColorBufferFloat() {
+    // adapted from https://stackoverflow.com/questions/28827511/
+
+    // Get A WebGL context
+    const canvas = document.createElement('canvas');
+    canvas.width = 16;
+    canvas.height = 16;
+    canvas.style.width = `${16}px`;
+    canvas.style.height = `${16}px`;
+    const gl = getGLContext(canvas);
+    if (gl === null) throw new Error('Unable to get WebGL context');
+
+    const type = gl.FLOAT;
+    gl.getExtension('OES_texture_float');
+
+    // setup shaders
+    const vertShader = getShader(gl, { type: 'vert', source: TextureTestVertShader });
+    const fragShader = getShader(gl, { type: 'frag', source: TextureTestFragShader });
+    if (!vertShader || !fragShader) return false;
+
+    // setup program
+    const program = getProgram(gl);
+    gl.attachShader(program, vertShader);
+    gl.attachShader(program, fragShader);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    // look up where the vertex data needs to go.
+    const positionLocation = gl.getAttribLocation(program, 'aPosition');
+    const colorLoc = gl.getUniformLocation(program, 'uColor');
+    if (!colorLoc) {
+        if (isDebugMode) {
+            console.log(`error getting 'uColor' uniform location`);
+        }
+        return false;
+    }
+
+    // provide texture coordinates for the rectangle.
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, TextureTestTexCoords, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+    const whiteTex = gl.createTexture();
+    const whiteData = new Uint8Array([255, 255, 255, 255]);
+    gl.bindTexture(gl.TEXTURE_2D, whiteTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, whiteData);
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, type, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status !== gl.FRAMEBUFFER_COMPLETE) {
+        if (isDebugMode) {
+            console.log(`error creating framebuffer for '${type}'`);
+        }
+        return false;
+    }
+
+    // Draw the rectangle.
+    gl.bindTexture(gl.TEXTURE_2D, whiteTex);
+    gl.uniform4fv(colorLoc, [0, 10, 20, 1]);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.clearColor(1, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.uniform4fv(colorLoc, [0, 1 / 10, 1 / 20, 1]);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    // Check if rendered correctly
+    const pixel = new Uint8Array(4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    if (pixel[0] !== 0 || pixel[1] < 248 || pixel[2] < 248 || pixel[3] < 254) {
+        if (isDebugMode) {
+            console.log(`not able to actually render to '${type}' texture`);
+        }
+        return false;
+    }
+
+    // Check reading from float texture
+    if (type === gl.FLOAT) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+        const floatPixel = new Float32Array(4);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.FLOAT, floatPixel);
+        const error = gl.getError();
+        if (error) {
+            if (isDebugMode) {
+                console.log(`error reading float pixels: '${getErrorDescription(gl, error)}'`);
+            }
+            return false;
+        }
+    }
+
+    return true;
 }
