@@ -208,13 +208,9 @@ export function g3dChromosomeQuery(chromosome: string) {
     });
 }
 
-export function g3dRegionQuery(region: string) {
-    // region looks like chr7:2000000-7000000, make sure input data looks like this format
-    const regionArr = region.split(/[:-]/);
-    const start = Number.parseInt(regionArr[1], 10);
-    const end = Number.parseInt(regionArr[2], 10);
+export function g3dRegionQuery(chr: string, start: number, end: number) {
     return MS.struct.generator.atomGroups({
-        'chain-test': MS.core.rel.eq([G3dSymbols.chromosome.symbol(), regionArr[0]]),
+        'chain-test': MS.core.rel.eq([G3dSymbols.chromosome.symbol(), chr]),
         'residue-test': MS.core.rel.inRange([G3dSymbols.region.symbol(), start, end])
     });
 }
