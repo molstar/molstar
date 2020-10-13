@@ -142,7 +142,7 @@ async function getTraj(ctx: RuntimeContext, data: G3dDataBlock) {
         entity: entityBuilder.getEntityTable(),
         ihm_model_list: Table.ofPartialColumns(BasicSchema.ihm_model_list, {
             model_id: Column.ofIntArray([1]),
-            model_name: Column.ofStringArray(['3DG Model']),
+            model_name: Column.ofStringArray(['G3D Model']),
         }, 1),
         ihm_sphere_obj_site
     });
@@ -174,6 +174,23 @@ export const G3dSymbols = {
             const seqId = ctx.element.unit.model.coarseHierarchy.spheres.seq_id_begin.value(ctx.element.element);
             return info.haplotype[seqId] || '';
         }
+    ),
+    chromosome: QuerySymbolRuntime.Dynamic(CustomPropSymbol('g3d', 'chromosome', Type.Str),
+        ctx => {
+            if (Unit.isAtomic(ctx.element.unit)) return '';
+            const {  asym_id } = ctx.element.unit.model.coarseHierarchy.spheres;
+            return asym_id.value(ctx.element.element) || '';
+        }
+    ),
+    region: QuerySymbolRuntime.Dynamic(CustomPropSymbol('g3d', 'region', Type.Str),
+        ctx => {
+            if (Unit.isAtomic(ctx.element.unit)) return '';
+            const info = (G3dInfoDataProperty as any).get(ctx.element.unit.model);
+            if (!info) return '';
+            const seqId = ctx.element.unit.model.coarseHierarchy.spheres.seq_id_begin.value(ctx.element.element);
+            const s = info.start[seqId];
+            return s || 0;
+        }
     )
 };
 
@@ -182,6 +199,23 @@ export const G3dInfoDataProperty = FormatPropertyProvider.create<G3dInfoData>({ 
 export function g3dHaplotypeQuery(haplotype: string) {
     return MS.struct.generator.atomGroups({
         'chain-test': MS.core.rel.eq([G3dSymbols.haplotype.symbol(), haplotype]),
+    });
+}
+
+export function g3dChromosomeQuery(chromosome: string) {
+    return MS.struct.generator.atomGroups({
+        'chain-test': MS.core.rel.eq([G3dSymbols.chromosome.symbol(), chromosome]),
+    });
+}
+
+export function g3dRegionQuery(region: string) {
+    // region looks like chr7:2000000-7000000, make sure input data looks like this format
+    const regionArr = region.split(/[:-]/);
+    const start = Number.parseInt(regionArr[1], 10);
+    const end = Number.parseInt(regionArr[2], 10);
+    return MS.struct.generator.atomGroups({
+        'chain-test': MS.core.rel.eq([G3dSymbols.chromosome.symbol(), regionArr[0]]),
+        'residue-test': MS.core.rel.inRange([G3dSymbols.region.symbol(), start, end])
     });
 }
 
