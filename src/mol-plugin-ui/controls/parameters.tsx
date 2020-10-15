@@ -1193,7 +1193,8 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
     }
 
     render() {
-        const value: PD.Mapped<any>['defaultValue'] = this.props.value;
+        const value: PD.Mapped<any>['defaultValue'] = this.props.value || this.props.param.defaultValue;
+
         const param = this.props.param.map(value.name);
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         const Mapped = controlFor(param);
