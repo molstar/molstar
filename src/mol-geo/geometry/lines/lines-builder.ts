@@ -89,10 +89,10 @@ export namespace LinesBuilder {
 function fillMappingAndIndices(n: number, mb: Float32Array, ib: Uint32Array) {
     for (let i = 0; i < n; ++i) {
         const mo = i * 8;
-        mb[mo] = -1; mb[mo + 1] = 1;
-        mb[mo + 2] = -1; mb[mo + 3] = -1;
-        mb[mo + 4] = 1; mb[mo + 5] = 1;
-        mb[mo + 6] = 1; mb[mo + 7] = -1;
+        mb[mo] = -1; mb[mo + 1] = -1;
+        mb[mo + 2] = 1; mb[mo + 3] = -1;
+        mb[mo + 4] = -1; mb[mo + 5] = 1;
+        mb[mo + 6] = 1; mb[mo + 7] = 1;
     }
 
     for (let i = 0; i < n; ++i) {
