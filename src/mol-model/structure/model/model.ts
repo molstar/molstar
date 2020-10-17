@@ -177,10 +177,10 @@ export namespace Model {
     export type TrajectoryInfo = { readonly index: number, readonly size: number }
     export const TrajectoryInfo = {
         get(model: Model): TrajectoryInfo {
-            return model._staticPropertyData[TrajectoryInfoProp] || { index: 0, size: 1 };
+            return model._dynamicPropertyData[TrajectoryInfoProp] || { index: 0, size: 1 };
         },
         set(model: Model, trajectoryInfo: TrajectoryInfo) {
-            return model._staticPropertyData[TrajectoryInfoProp] = trajectoryInfo;
+            return model._dynamicPropertyData[TrajectoryInfoProp] = trajectoryInfo;
         }
     };
 
@@ -188,9 +188,9 @@ export namespace Model {
     export type AsymIdCount = { readonly auth: number, readonly label: number }
     export const AsymIdCount = {
         get(model: Model): AsymIdCount {
-            if (model._staticPropertyData[AsymIdCountProp]) return model._staticPropertyData[AsymIdCountProp];
+            if (model._dynamicPropertyData[AsymIdCountProp]) return model._dynamicPropertyData[AsymIdCountProp];
             const asymIdCount = getAsymIdCount(model);
-            model._staticPropertyData[AsymIdCountProp] = asymIdCount;
+            model._dynamicPropertyData[AsymIdCountProp] = asymIdCount;
             return asymIdCount;
         },
     };

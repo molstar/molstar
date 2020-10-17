@@ -170,6 +170,10 @@ const TrajectoryFromBlob = PluginStateTransform.BuiltIn({
                 }
             }
 
+            for (let i = 0; i < models.length; i++) {
+                Model.TrajectoryInfo.set(models[i], { index: i, size: models.length });
+            }
+
             const props = { label: 'Trajectory', description: `${models.length} model${models.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(new ArrayTrajectory(models), props);
         });
