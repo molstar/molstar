@@ -202,6 +202,7 @@ export interface WebGLContext {
     waitForGpuCommandsComplete: () => Promise<void>
     waitForGpuCommandsCompleteSync: () => void
     getDrawingBufferPixelData: () => PixelData
+    clear: (red: number, green: number, blue: number, alpha: number) => void
     destroy: () => void
 }
 
@@ -322,6 +323,16 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),
         waitForGpuCommandsCompleteSync: () => waitForGpuCommandsCompleteSync(gl),
         getDrawingBufferPixelData: () => getDrawingBufferPixelData(gl),
+        clear: (red: number, green: number, blue: number, alpha: number) => {
+            unbindFramebuffer(gl);
+            state.enable(gl.SCISSOR_TEST);
+            state.depthMask(true);
+            state.colorMask(true, true, true, true);
+            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+            gl.scissor(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+            state.clearColor(red, green, blue, alpha);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        },
 
         destroy: () => {
             resources.destroy();

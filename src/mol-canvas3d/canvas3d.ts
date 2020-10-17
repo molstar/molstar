@@ -64,7 +64,9 @@ export const Canvas3DParams = {
 };
 export const DefaultCanvas3DParams = PD.getDefaultValues(Canvas3DParams);
 export type Canvas3DProps = PD.Values<typeof Canvas3DParams>
-export type PartialCanvas3DProps = { [K in keyof Canvas3DProps]?: Partial<Canvas3DProps[K]> }
+export type PartialCanvas3DProps = {
+    [K in keyof Canvas3DProps]?: Canvas3DProps[K] extends { name: string, params: any } ? Canvas3DProps[K] : Partial<Canvas3DProps[K]>
+}
 
 export { Canvas3D };
 
@@ -83,6 +85,7 @@ interface Canvas3D {
 
     requestDraw(force?: boolean): void
     animate(): void
+    pause(): void
     identify(x: number, y: number): PickingId | undefined
     mark(loci: Representation.Loci, action: MarkerAction): void
     getLoci(pickingId: PickingId | undefined): Representation.Loci
@@ -107,14 +110,19 @@ interface Canvas3D {
     dispose(): void
 }
 
-const requestAnimationFrame = typeof window !== 'undefined' ? window.requestAnimationFrame : (f: (time: number) => void) => setImmediate(()=>f(Date.now()));
+const requestAnimationFrame = typeof window !== 'undefined'
+    ? window.requestAnimationFrame
+    : (f: (time: number) => void) => setImmediate(()=>f(Date.now())) as unknown as number;
+const cancelAnimationFrame = typeof window !== 'undefined'
+    ? window.cancelAnimationFrame
+    : (handle: number) => clearImmediate(handle as unknown as NodeJS.Immediate);
 
 namespace Canvas3D {
     export interface HoverEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
 
-    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, attribs: Partial<{ antialias: boolean }> = {}) {
+    export function fromCanvas(canvas: HTMLCanvasElement, props: PartialCanvas3DProps = {}, attribs: Partial<{ antialias: boolean }> = {}) {
         const gl = getGLContext(canvas, {
             alpha: true,
             antialias: attribs.antialias ?? true,
@@ -162,7 +170,7 @@ namespace Canvas3D {
         return Canvas3D.create(webgl, input, props);
     }
 
-    export function create(webgl: WebGLContext, input: InputObserver, props: Partial<Canvas3DProps> = {}): Canvas3D {
+    export function create(webgl: WebGLContext, input: InputObserver, props: PartialCanvas3DProps = {}, attribs: Partial<{ pickScale: number }> = {}): Canvas3D {
         const p = { ...DefaultCanvas3DParams, ...props };
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
@@ -195,7 +203,7 @@ namespace Canvas3D {
         const drawPass = new DrawPass(webgl, renderer, scene, camera, debugHelper, handleHelper, {
             cameraHelper: p.camera.helper
         });
-        const pickPass = new PickPass(webgl, renderer, scene, camera, handleHelper, 0.25, drawPass);
+        const pickPass = new PickPass(webgl, renderer, scene, camera, handleHelper, attribs.pickScale || 0.25, drawPass);
         const postprocessing = new PostprocessingPass(webgl, camera, drawPass, p.postprocessing);
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample);
 
@@ -284,7 +292,9 @@ namespace Canvas3D {
             forceNextDraw = !!force;
         }
 
-        function animate() {
+        let animationFrameHandle = 0;
+
+        function _animate() {
             currentTime = now();
             commit();
             camera.transition.tick(currentTime);
@@ -293,7 +303,16 @@ namespace Canvas3D {
             if (!camera.transition.inTransition && !webgl.isContextLost) {
                 interactionHelper.tick(currentTime);
             }
-            requestAnimationFrame(animate);
+            animationFrameHandle = requestAnimationFrame(_animate);
+        }
+
+        function animate() {
+            if (animationFrameHandle === 0) _animate();
+        }
+
+        function pause() {
+            cancelAnimationFrame(animationFrameHandle);
+            animationFrameHandle = 0;
         }
 
         function identify(x: number, y: number): PickingId | undefined {
@@ -445,7 +464,7 @@ namespace Canvas3D {
                 camera: {
                     mode: camera.state.mode,
                     helper: { ...drawPass.props.cameraHelper },
-                    manualReset: p.camera.manualReset
+                    manualReset: !!p.camera.manualReset
                 },
                 cameraFog: camera.state.fog > 0
                     ? { name: 'on' as const, params: { intensity: camera.state.fog } }
@@ -506,9 +525,9 @@ namespace Canvas3D {
                 requestDraw(true);
             },
 
-            // draw,
             requestDraw,
             animate,
+            pause,
             identify,
             mark,
             getLoci,
