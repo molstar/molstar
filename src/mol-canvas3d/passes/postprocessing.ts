@@ -44,26 +44,7 @@ const PostprocessingSchema = {
     uOutlineScale: UniformSpec('f'),
     uOutlineThreshold: UniformSpec('f'),
 };
-
-export const PostprocessingParams = {
-    occlusion: PD.MappedStatic('off', {
-        on: PD.Group({
-            kernelSize: PD.Numeric(4, { min: 1, max: 32, step: 1 }),
-            bias: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
-            radius: PD.Numeric(64, { min: 0, max: 256, step: 1 }),
-        }),
-        off: PD.Group({})
-    }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
-    outline: PD.MappedStatic('off', {
-        on: PD.Group({
-            scale: PD.Numeric(1, { min: 0, max: 10, step: 1 }),
-            threshold: PD.Numeric(0.8, { min: 0, max: 5, step: 0.01 }),
-        }),
-        off: PD.Group({})
-    }, { cycle: true, description: 'Draw outline around 3D objects' })
-};
-export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
-
+const PostprocessingShaderCode = ShaderCode('postprocessing', quad_vert, postprocessing_frag);
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
 
 function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture, packedDepth: boolean, props: Partial<PostprocessingProps>): PostprocessingRenderable {
@@ -92,11 +73,29 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
     };
 
     const schema = { ...PostprocessingSchema };
-    const shaderCode = ShaderCode('postprocessing', quad_vert, postprocessing_frag);
-    const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
+    const renderItem = createComputeRenderItem(ctx, 'triangles', PostprocessingShaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);
 }
+
+export const PostprocessingParams = {
+    occlusion: PD.MappedStatic('off', {
+        on: PD.Group({
+            kernelSize: PD.Numeric(4, { min: 1, max: 32, step: 1 }),
+            bias: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
+            radius: PD.Numeric(64, { min: 0, max: 256, step: 1 }),
+        }),
+        off: PD.Group({})
+    }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
+    outline: PD.MappedStatic('off', {
+        on: PD.Group({
+            scale: PD.Numeric(1, { min: 0, max: 10, step: 1 }),
+            threshold: PD.Numeric(0.8, { min: 0, max: 5, step: 0.01 }),
+        }),
+        off: PD.Group({})
+    }, { cycle: true, description: 'Draw outline around 3D objects' })
+};
+export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 export class PostprocessingPass {
     target: RenderTarget
@@ -116,8 +115,11 @@ export class PostprocessingPass {
     }
 
     setSize(width: number, height: number) {
+        const [w, h] = this.renderable.values.uTexSize.ref.value;
+        if (width !== w || height !== h) {
         this.target.setSize(width, height);
         ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
+    }
     }
 
     setProps(props: Partial<PostprocessingProps>) {

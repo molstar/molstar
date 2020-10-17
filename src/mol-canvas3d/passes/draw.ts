@@ -32,7 +32,7 @@ const DepthMergeSchema = {
     uTexSize: UniformSpec('v2'),
     dPackedDepth: DefineSpec('boolean'),
 };
-
+const DepthMergeShaderCode = ShaderCode('depth-merge', quad_vert, depthMerge_frag);
 type DepthMergeRenderable = ComputeRenderable<Values<typeof DepthMergeSchema>>
 
 function getDepthMergeRenderable(ctx: WebGLContext, depthTexturePrimitives: Texture, depthTextureVolumes: Texture, packedDepth: boolean): DepthMergeRenderable {
@@ -45,8 +45,7 @@ function getDepthMergeRenderable(ctx: WebGLContext, depthTexturePrimitives: Text
     };
 
     const schema = { ...DepthMergeSchema };
-    const shaderCode = ShaderCode('depth-merge', quad_vert, depthMerge_frag);
-    const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
+    const renderItem = createComputeRenderItem(ctx, 'triangles', DepthMergeShaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);
 }

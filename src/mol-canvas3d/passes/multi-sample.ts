@@ -28,7 +28,7 @@ const ComposeSchema = {
     uTexSize: UniformSpec('v2'),
     uWeight: UniformSpec('f'),
 };
-
+const ComposeShaderCode = ShaderCode('compose', quad_vert, compose_frag);
 type ComposeRenderable = ComputeRenderable<Values<typeof ComposeSchema>>
 
 function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture): ComposeRenderable {
@@ -40,8 +40,7 @@ function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture): Compose
     };
 
     const schema = { ...ComposeSchema };
-    const shaderCode = ShaderCode('compose', quad_vert, compose_frag);
-    const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
+    const renderItem = createComputeRenderItem(ctx, 'triangles', ComposeShaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);
 }
@@ -81,10 +80,13 @@ export class MultiSamplePass {
     }
 
     setSize(width: number, height: number) {
+        const [w, h] = this.compose.values.uTexSize.ref.value;
+        if (width !== w || height !== h) {
         this.colorTarget.setSize(width, height);
         this.composeTarget.setSize(width, height);
         this.holdTarget.setSize(width, height);
         ValueCell.update(this.compose.values.uTexSize, Vec2.set(this.compose.values.uTexSize.ref.value, width, height));
+    }
     }
 
     setProps(props: Partial<MultiSampleProps>) {

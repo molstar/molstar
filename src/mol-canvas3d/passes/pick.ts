@@ -58,14 +58,19 @@ export class PickPass {
 
     setSize(width: number, height: number) {
         this.pickScale = this.pickBaseScale / this.webgl.pixelRatio;
-        this.pickWidth = Math.ceil(width * this.pickScale);
-        this.pickHeight = Math.ceil(height * this.pickScale);
+        const pickWidth = Math.ceil(width * this.pickScale);
+        const pickHeight = Math.ceil(height * this.pickScale);
+
+        if (pickWidth !== this.pickWidth || pickHeight !== this.pickHeight) {
+            this.pickWidth = pickWidth;
+            this.pickHeight = pickHeight;
 
         this.objectPickTarget.setSize(this.pickWidth, this.pickHeight);
         this.instancePickTarget.setSize(this.pickWidth, this.pickHeight);
         this.groupPickTarget.setSize(this.pickWidth, this.pickHeight);
 
         this.setupBuffers();
+    }
     }
 
     render() {

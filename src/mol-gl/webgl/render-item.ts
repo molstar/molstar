@@ -57,7 +57,9 @@ const ComputeRenderVariants = Object.keys(ComputeRenderVariant) as ComputeRender
 
 function createProgramVariant(ctx: WebGLContext, variant: string, defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) {
     defineValues = { ...defineValues, dRenderVariant: ValueCell.create(variant) };
-    schema = { ...schema, dRenderVariant: DefineSpec('string') };
+    if (schema.dRenderVariant === undefined) {
+        Object.defineProperty(schema, 'dRenderVariant', { value: DefineSpec('string') });
+    }
     return ctx.resources.program(defineValues, shaderCode, schema);
 }
 
