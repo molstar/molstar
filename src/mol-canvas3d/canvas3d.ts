@@ -637,8 +637,8 @@ namespace Canvas3D {
             if (p.viewport.name === 'canvas') {
                 x = 0;
                 y = 0;
-            width = gl.drawingBufferWidth;
-            height = gl.drawingBufferHeight;
+                width = gl.drawingBufferWidth;
+                height = gl.drawingBufferHeight;
             } else {
                 x = p.viewport.params.x * webgl.pixelRatio;
                 y = p.viewport.params.y * webgl.pixelRatio;
