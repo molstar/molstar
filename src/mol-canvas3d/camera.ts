@@ -18,6 +18,12 @@ class Camera {
     readonly projectionView: Mat4 = Mat4.identity();
     readonly inverseProjectionView: Mat4 = Mat4.identity();
 
+    private pixelScale: number
+    get pixelRatio () {
+        const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
+        return dpr * this.pixelScale;
+    }
+
     readonly viewport: Viewport;
     readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
     readonly viewOffset: Camera.ViewOffset = {
@@ -126,8 +132,9 @@ class Camera {
         return cameraUnproject(out, point, this.viewport, this.inverseProjectionView);
     }
 
-    constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(-1, -1, 1, 1)) {
+    constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(0, 0, 128, 128), props: Partial<{ pixelScale: number }> = {}) {
         this.viewport = viewport;
+        this.pixelScale = props.pixelScale || 1;
         Camera.copySnapshot(this.state, state);
     }
 }

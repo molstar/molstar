@@ -71,9 +71,9 @@ export class DrawPass {
     private depthMerge: DepthMergeRenderable
 
     constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private debugHelper: BoundingSphereHelper, private handleHelper: HandleHelper, props: Partial<DrawPassProps> = {}) {
-        const { gl, extensions, resources } = webgl;
-        const width = gl.drawingBufferWidth;
-        const height = gl.drawingBufferHeight;
+        const { extensions, resources } = webgl;
+        const { width, height } = camera.viewport;
+
         this.colorTarget = webgl.createRenderTarget(width, height);
         this.packedDepth = !extensions.depthTexture;
 
@@ -125,16 +125,18 @@ export class DrawPass {
     }
 
     render(toDrawingBuffer: boolean, transparentBackground: boolean) {
+        const { x, y, width, height } = this.camera.viewport;
         if (toDrawingBuffer) {
             this.webgl.unbindFramebuffer();
+            this.renderer.setViewport(x, y, width, height);
         } else {
             this.colorTarget.bind();
+            this.renderer.setViewport(0, 0, width, height);
             if (!this.packedDepth) {
                 this.depthTexturePrimitives.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
             }
         }
 
-        this.renderer.setViewport(0, 0, this.colorTarget.getWidth(), this.colorTarget.getHeight());
         this.renderer.render(this.scene.primitives, this.camera, 'color', true, transparentBackground, null);
 
         // do a depth pass if not rendering to drawing buffer and

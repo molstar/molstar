@@ -329,7 +329,7 @@ namespace Renderer {
 
             const { renderables } = group;
 
-            state.disable(gl.SCISSOR_TEST);
+            state.enable(gl.SCISSOR_TEST);
             state.disable(gl.BLEND);
             state.colorMask(true, true, true, true);
             state.enable(gl.DEPTH_TEST);
@@ -377,6 +377,7 @@ namespace Renderer {
 
         return {
             clear: (transparentBackground: boolean) => {
+                state.enable(gl.SCISSOR_TEST);
                 state.depthMask(true);
                 state.colorMask(true, true, true, true);
                 state.clearColor(bgColor[0], bgColor[1], bgColor[2], transparentBackground ? 0 : 1);
@@ -442,6 +443,7 @@ namespace Renderer {
             },
             setViewport: (x: number, y: number, width: number, height: number) => {
                 gl.viewport(x, y, width, height);
+                gl.scissor(x, y, width, height);
                 if (x !== viewport.x || y !== viewport.y || width !== viewport.width || height !== viewport.height) {
                     Viewport.set(viewport, x, y, width, height);
                     ValueCell.update(globalUniforms.uViewportHeight, height);

@@ -28,10 +28,6 @@ export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebG
     return getContext('webgl2') ||  getContext('webgl') || getContext('experimental-webgl');
 }
 
-function getPixelRatio() {
-    return (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
-}
-
 export function getErrorDescription(gl: GLRenderingContext, error: number) {
     switch (error) {
         case gl.NO_ERROR: return 'no error';
@@ -206,7 +202,7 @@ export interface WebGLContext {
     destroy: () => void
 }
 
-export function createContext(gl: GLRenderingContext): WebGLContext {
+export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScale: number }> = {}): WebGLContext {
     const extensions = createExtensions(gl);
     const state = createState(gl);
     const stats = createStats();
@@ -269,8 +265,8 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         gl,
         isWebGL2: isWebGL2(gl),
         get pixelRatio () {
-            // this can change during the lifetime of a rendering context, so need to re-obtain on access
-            return getPixelRatio();
+            const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
+            return dpr * (props.pixelScale || 1);
         },
 
         extensions,

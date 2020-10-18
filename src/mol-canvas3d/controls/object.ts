@@ -44,9 +44,8 @@ export namespace ObjectControls {
         const height = 2 * Math.tan(camera.state.fov / 2) * dist;
         const zoom = camera.viewport.height / height;
 
-        const dpr = window.devicePixelRatio;
-        panMouseChange[0] *= (1 / zoom) * camera.viewport.width * dpr;
-        panMouseChange[1] *= (1 / zoom) * camera.viewport.height * dpr;
+        panMouseChange[0] *= (1 / zoom) * camera.viewport.width * camera.pixelRatio;
+        panMouseChange[1] *= (1 / zoom) * camera.viewport.height * camera.pixelRatio;
 
         Vec3.cross(panOffset, Vec3.copy(panOffset, eye), camera.up);
         Vec3.setMagnitude(panOffset, panOffset, panMouseChange[0]);

@@ -10,6 +10,7 @@ import { PluginUIComponent } from '../base';
 import { resizeCanvas } from '../../mol-canvas3d/util';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/internal/operators/debounceTime';
+import { PluginConfig } from '../../mol-plugin/config';
 
 interface ViewportCanvasState {
     noWebGl: boolean
@@ -23,7 +24,7 @@ export interface ViewportCanvasParams {
     parentClassName?: string,
     parentStyle?: React.CSSProperties,
     hostClassName?: string,
-    hostStyle?: React.CSSProperties
+    hostStyle?: React.CSSProperties,
 }
 
 export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, ViewportCanvasState> {
@@ -43,7 +44,8 @@ export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, View
         const container = this.container.current;
         const canvas = this.canvas.current;
         if (container && canvas) {
-            resizeCanvas(canvas, container);
+            const pixelScale = this.plugin.config.get(PluginConfig.General.PixelScale) || 1;
+            resizeCanvas(canvas, container, pixelScale);
             this.plugin.canvas3d!.handleResize();
         }
     }

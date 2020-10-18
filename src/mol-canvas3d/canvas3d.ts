@@ -51,6 +51,15 @@ export const Canvas3DParams = {
         radius: PD.Numeric(100, { min: 0, max: 99, step: 1 }, { label: 'Clipping', description: 'How much of the scene to show.' }),
         far: PD.Boolean(true, { description: 'Hide scene in the distance' }),
     }, { pivot: 'radius' }),
+    viewport: PD.MappedStatic('canvas', {
+        canvas: PD.Group({}),
+        custom: PD.Group({
+            x: PD.Numeric(0),
+            y: PD.Numeric(0),
+            width: PD.Numeric(128),
+            height: PD.Numeric(128)
+        })
+    }),
 
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
     transparentBackground: PD.Boolean(false),
@@ -122,17 +131,19 @@ namespace Canvas3D {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
 
-    export function fromCanvas(canvas: HTMLCanvasElement, props: PartialCanvas3DProps = {}, attribs: Partial<{ antialias: boolean }> = {}) {
+    export function fromCanvas(canvas: HTMLCanvasElement, props: PartialCanvas3DProps = {}, attribs: Partial<{ antialias: boolean, pixelScale: number }> = {}) {
         const gl = getGLContext(canvas, {
             alpha: true,
             antialias: attribs.antialias ?? true,
             depth: true,
-            preserveDrawingBuffer: false,
+            preserveDrawingBuffer: true,
             premultipliedAlpha: false,
         });
         if (gl === null) throw new Error('Could not create a WebGL rendering context');
-        const input = InputObserver.fromElement(canvas);
-        const webgl = createContext(gl);
+
+        const { pixelScale } = attribs;
+        const input = InputObserver.fromElement(canvas, { pixelScale });
+        const webgl = createContext(gl, { pixelScale });
 
         if (isDebugMode) {
             const loseContextExt = gl.getExtension('WEBGL_lose_context');
@@ -167,10 +178,10 @@ namespace Canvas3D {
             if (isDebugMode) console.log('context restored');
         }, false);
 
-        return Canvas3D.create(webgl, input, props);
+        return create(webgl, input, props, { pixelScale });
     }
 
-    export function create(webgl: WebGLContext, input: InputObserver, props: PartialCanvas3DProps = {}, attribs: Partial<{ pickScale: number }> = {}): Canvas3D {
+    export function create(webgl: WebGLContext, input: InputObserver, props: PartialCanvas3DProps = {}, attribs: Partial<{ pickScale: number, pixelScale: number }> = {}): Canvas3D {
         const p = { ...DefaultCanvas3DParams, ...props };
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
@@ -182,8 +193,11 @@ namespace Canvas3D {
 
         const { gl, contextRestored } = webgl;
 
-        let width = gl.drawingBufferWidth;
-        let height = gl.drawingBufferHeight;
+        let x = 0;
+        let y = 0;
+        let width = 128;
+        let height = 128;
+        updateViewport();
 
         const scene = Scene.create(webgl);
 
@@ -192,7 +206,7 @@ namespace Canvas3D {
             mode: p.camera.mode,
             fog: p.cameraFog.name === 'on' ? p.cameraFog.params.intensity : 0,
             clipFar: p.cameraClipping.far
-        });
+        }, { x, y, width, height }, { pixelScale: attribs.pixelScale });
 
         const controls = TrackballControls.create(input, camera, p.trackball);
         const renderer = Renderer.create(webgl, p.renderer);
@@ -251,15 +265,18 @@ namespace Canvas3D {
 
         function render(force: boolean) {
             if (webgl.isContextLost) return false;
+            if (x > gl.drawingBufferWidth || x + width < 0 ||
+                y > gl.drawingBufferHeight || y + height < 0
+            ) return false;
 
             let didRender = false;
             controls.update(currentTime);
-            Viewport.set(camera.viewport, 0, 0, width, height);
+            Viewport.set(camera.viewport, x, y, width, height);
             const cameraChanged = camera.update();
             const multiSampleChanged = multiSample.update(force || cameraChanged);
 
             if (force || cameraChanged || multiSampleChanged) {
-                renderer.setViewport(0, 0, width, height);
+                renderer.setViewport(x, y, width, height);
                 if (multiSample.enabled) {
                     multiSample.render(true, p.transparentBackground);
                 } else {
@@ -472,6 +489,7 @@ namespace Canvas3D {
                 cameraClipping: { far: camera.state.clipFar, radius },
                 cameraResetDurationMs: p.cameraResetDurationMs,
                 transparentBackground: p.transparentBackground,
+                viewport: p.viewport,
 
                 postprocessing: { ...postprocessing.props },
                 multiSample: { ...multiSample.props },
@@ -573,6 +591,10 @@ namespace Canvas3D {
                 if (props.camera?.manualReset !== undefined) p.camera.manualReset = props.camera.manualReset;
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs;
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
+                if (props.viewport !== undefined) {
+                    p.viewport = props.viewport;
+                    handleResize();
+                }
 
                 if (props.postprocessing) postprocessing.setProps(props.postprocessing);
                 if (props.multiSample) multiSample.setProps(props.multiSample);
@@ -611,13 +633,26 @@ namespace Canvas3D {
             }
         };
 
-        function handleResize() {
+        function updateViewport() {
+            if (p.viewport.name === 'canvas') {
+                x = 0;
+                y = 0;
             width = gl.drawingBufferWidth;
             height = gl.drawingBufferHeight;
+            } else {
+                x = p.viewport.params.x * webgl.pixelRatio;
+                y = p.viewport.params.y * webgl.pixelRatio;
+                width = p.viewport.params.width * webgl.pixelRatio;
+                height = p.viewport.params.height * webgl.pixelRatio;
+            }
+        }
 
-            renderer.setViewport(0, 0, width, height);
-            Viewport.set(camera.viewport, 0, 0, width, height);
-            Viewport.set(controls.viewport, 0, 0, width, height);
+        function handleResize() {
+            updateViewport();
+
+            renderer.setViewport(x, y, width, height);
+            Viewport.set(camera.viewport, x, y, width, height);
+            Viewport.set(controls.viewport, x, y, width, height);
 
             drawPass.setSize(width, height);
             pickPass.setSize(width, height);

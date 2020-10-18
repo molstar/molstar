@@ -82,11 +82,11 @@ export class MultiSamplePass {
     setSize(width: number, height: number) {
         const [w, h] = this.compose.values.uTexSize.ref.value;
         if (width !== w || height !== h) {
-        this.colorTarget.setSize(width, height);
-        this.composeTarget.setSize(width, height);
-        this.holdTarget.setSize(width, height);
-        ValueCell.update(this.compose.values.uTexSize, Vec2.set(this.compose.values.uTexSize.ref.value, width, height));
-    }
+            this.colorTarget.setSize(width, height);
+            this.composeTarget.setSize(width, height);
+            this.holdTarget.setSize(width, height);
+            ValueCell.update(this.compose.values.uTexSize, Vec2.set(this.compose.values.uTexSize.ref.value, width, height));
+        }
     }
 
     setProps(props: Partial<MultiSampleProps>) {
@@ -100,6 +100,12 @@ export class MultiSamplePass {
         } else {
             this.renderMultiSample(toDrawingBuffer, transparentBackground);
         }
+    }
+
+    private setQuadShift(x: number, y: number) {
+        ValueCell.update(this.compose.values.uQuadShift, Vec2.set(
+            this.compose.values.uQuadShift.ref.value, x, y)
+        );
     }
 
     private renderMultiSample(toDrawingBuffer: boolean, transparentBackground: boolean) {
@@ -120,8 +126,7 @@ export class MultiSamplePass {
         ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawPass.colorTarget.texture);
         compose.update();
 
-        const width = drawPass.colorTarget.getWidth();
-        const height = drawPass.colorTarget.getHeight();
+        const { x, y, width, height } = camera.viewport;
 
         // render the scene multiple times, each slightly jitter offset
         // from the last and accumulate the results.
@@ -144,7 +149,6 @@ export class MultiSamplePass {
 
             // compose rendered scene with compose target
             composeTarget.bind();
-            gl.viewport(0, 0, width, height);
             state.enable(gl.BLEND);
             state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
             state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
@@ -155,6 +159,8 @@ export class MultiSamplePass {
                 state.clearColor(0, 0, 0, 0);
                 gl.clear(gl.COLOR_BUFFER_BIT);
             }
+            this.setQuadShift(0, 0);
+            gl.viewport(0, 0, width, height);
             compose.render();
         }
 
@@ -167,7 +173,8 @@ export class MultiSamplePass {
         } else {
             this.colorTarget.bind();
         }
-        gl.viewport(0, 0, width, height);
+        this.setQuadShift(x / width, y / height);
+        gl.viewport(x, y, width, height);
         state.disable(gl.BLEND);
         compose.render();
 
@@ -192,8 +199,7 @@ export class MultiSamplePass {
             return;
         }
 
-        const width = drawPass.colorTarget.getWidth();
-        const height = drawPass.colorTarget.getHeight();
+        const { x, y, width, height } = camera.viewport;
         const sampleWeight = 1.0 / offsetList.length;
 
         if (this.sampleIndex === -1) {
@@ -205,6 +211,11 @@ export class MultiSamplePass {
 
             holdTarget.bind();
             state.disable(gl.BLEND);
+            state.disable(gl.DEPTH_TEST);
+            state.disable(gl.SCISSOR_TEST);
+            state.depthMask(false);
+            this.setQuadShift(0, 0);
+            gl.viewport(0, 0, width, height);
             compose.render();
             this.sampleIndex += 1;
         } else {
@@ -238,6 +249,8 @@ export class MultiSamplePass {
                     state.clearColor(0, 0, 0, 0);
                     gl.clear(gl.COLOR_BUFFER_BIT);
                 }
+                this.setQuadShift(0, 0);
+                gl.viewport(0, 0, width, height);
                 compose.render();
 
                 this.sampleIndex += 1;
@@ -247,10 +260,13 @@ export class MultiSamplePass {
 
         if (toDrawingBuffer) {
             webgl.unbindFramebuffer();
+            this.setQuadShift(x / width, y / height);
+            gl.viewport(x, y, width, height);
         } else {
             this.colorTarget.bind();
+            this.setQuadShift(0, 0);
+            gl.viewport(0, 0, width, height);
         }
-        gl.viewport(0, 0, width, height);
 
         const accumulationWeight = this.sampleIndex * sampleWeight;
         if (accumulationWeight > 0) {

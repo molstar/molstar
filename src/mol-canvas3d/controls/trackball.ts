@@ -227,7 +227,7 @@ namespace TrackballControls {
             Vec2.sub(panMouseChange, Vec2.copy(panMouseChange, _panEnd), _panStart);
 
             if (Vec2.squaredMagnitude(panMouseChange)) {
-                const factor = window.devicePixelRatio * p.panSpeed;
+                const factor = input.pixelRatio * p.panSpeed;
                 panMouseChange[0] *= (1 / camera.zoom) * camera.viewport.width * factor;
                 panMouseChange[1] *= (1 / camera.zoom) * camera.viewport.height * factor;
 
@@ -271,6 +271,17 @@ namespace TrackballControls {
             }
         }
 
+        function outsideViewport(x: number, y: number) {
+            x *= input.pixelRatio;
+            y *= input.pixelRatio;
+            return (
+                x > viewport.x + viewport.width ||
+                input.height - y > viewport.y + viewport.height ||
+                x < viewport.x ||
+                input.height - y < viewport.y
+            );
+        }
+
         let lastUpdated = -1;
         /** Update the object's position, direction and up vectors */
         function update(t: number) {
@@ -307,7 +318,12 @@ namespace TrackballControls {
 
         // listeners
 
-        function onDrag({ pageX, pageY, buttons, modifiers, isStart }: DragInput) {
+        function onDrag({ x, y, pageX, pageY, buttons, modifiers, isStart }: DragInput) {
+            const isOutside = outsideViewport(x, y);
+
+            if (isStart && isOutside) return;
+            if (!isStart && !_isInteracting) return;
+
             _isInteracting = true;
 
             const dragRotate = Binding.match(p.bindings.dragRotate, buttons, modifiers);
@@ -358,7 +374,9 @@ namespace TrackballControls {
             _isInteracting = false;
         }
 
-        function onWheel({ dx, dy, dz, buttons, modifiers }: WheelInput) {
+        function onWheel({ x, y, dx, dy, dz, buttons, modifiers }: WheelInput) {
+            if (outsideViewport(x, y)) return;
+
             const delta = absMax(dx, dy, dz);
             if (Binding.match(p.bindings.scrollZoom, buttons, modifiers)) {
                 _zoomEnd[1] += delta * 0.0001;

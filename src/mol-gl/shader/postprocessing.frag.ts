@@ -3,6 +3,8 @@ precision highp float;
 precision highp int;
 precision highp sampler2D;
 
+uniform vec2 uQuadShift;
+
 uniform sampler2D tColor;
 uniform sampler2D tPackedDepth;
 uniform vec2 uTexSize;
@@ -94,7 +96,7 @@ vec2 calcEdgeDepth(const in vec2 coords) {
 }
 
 void main(void) {
-    vec2 coords = gl_FragCoord.xy / uTexSize;
+    vec2 coords = gl_FragCoord.xy / uTexSize - uQuadShift;
     vec4 color = texture2D(tColor, coords);
 
     #ifdef dOutlineEnable

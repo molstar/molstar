@@ -103,8 +103,7 @@ export class PostprocessingPass {
     renderable: PostprocessingRenderable
 
     constructor(private webgl: WebGLContext, private camera: Camera, drawPass: DrawPass, props: Partial<PostprocessingProps>) {
-        const { gl } = webgl;
-        this.target = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight, false);
+        this.target = webgl.createRenderTarget(camera.viewport.width, camera.viewport.height, false);
         this.props = { ...PD.getDefaultValues(PostprocessingParams), ...props };
         const { colorTarget, depthTexture, packedDepth } = drawPass;
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture, packedDepth, this.props);
@@ -117,9 +116,9 @@ export class PostprocessingPass {
     setSize(width: number, height: number) {
         const [w, h] = this.renderable.values.uTexSize.ref.value;
         if (width !== w || height !== h) {
-        this.target.setSize(width, height);
-        ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
-    }
+            this.target.setSize(width, height);
+            ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
+        }
     }
 
     setProps(props: Partial<PostprocessingProps>) {
@@ -149,6 +148,12 @@ export class PostprocessingPass {
         this.renderable.update();
     }
 
+    private setQuadShift(x: number, y: number) {
+        ValueCell.update(this.renderable.values.uQuadShift, Vec2.set(
+            this.renderable.values.uQuadShift.ref.value, x, y)
+        );
+    }
+
     render(toDrawingBuffer: boolean) {
         ValueCell.updateIfChanged(this.renderable.values.uFar, this.camera.far);
         ValueCell.updateIfChanged(this.renderable.values.uNear, this.camera.near);
@@ -161,12 +166,16 @@ export class PostprocessingPass {
             this.renderable.update();
         }
 
+        const { x, y, width, height } = this.camera.viewport;
         const { gl, state } = this.webgl;
         if (toDrawingBuffer) {
             this.webgl.unbindFramebuffer();
-            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+            this.setQuadShift(x / width, y / height);
+            gl.viewport(x, y, width, height);
         } else {
             this.target.bind();
+            this.setQuadShift(0, 0);
+            gl.viewport(0, 0, width, height);
         }
         state.disable(gl.SCISSOR_TEST);
         state.disable(gl.BLEND);

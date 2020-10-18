@@ -32,13 +32,9 @@ export class PickPass {
     private pickHeight: number
 
     constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private handleHelper: HandleHelper, private pickBaseScale: number, private drawPass: DrawPass) {
-        const { gl } = webgl;
-        const width = gl.drawingBufferWidth;
-        const height = gl.drawingBufferHeight;
-
         this.pickScale = pickBaseScale / webgl.pixelRatio;
-        this.pickWidth = Math.ceil(width * this.pickScale);
-        this.pickHeight = Math.ceil(height * this.pickScale);
+        this.pickWidth = Math.ceil(camera.viewport.width * this.pickScale);
+        this.pickHeight = Math.ceil(camera.viewport.height * this.pickScale);
 
         this.objectPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
         this.instancePickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
@@ -65,12 +61,12 @@ export class PickPass {
             this.pickWidth = pickWidth;
             this.pickHeight = pickHeight;
 
-        this.objectPickTarget.setSize(this.pickWidth, this.pickHeight);
-        this.instancePickTarget.setSize(this.pickWidth, this.pickHeight);
-        this.groupPickTarget.setSize(this.pickWidth, this.pickHeight);
+            this.objectPickTarget.setSize(this.pickWidth, this.pickHeight);
+            this.instancePickTarget.setSize(this.pickWidth, this.pickHeight);
+            this.groupPickTarget.setSize(this.pickWidth, this.pickHeight);
 
-        this.setupBuffers();
-    }
+            this.setupBuffers();
+        }
     }
 
     render() {
@@ -115,17 +111,27 @@ export class PickPass {
     }
 
     identify(x: number, y: number): PickingId | undefined {
-        const { webgl, pickScale } = this;
+        const { webgl, pickScale, camera: { viewport } } = this;
         if (webgl.isContextLost) return;
 
-        const { gl } = webgl;
+        const { gl, pixelRatio } = webgl;
+        x *= pixelRatio;
+        y *= pixelRatio;
+
+        // check if within viewport
+        if (x < viewport.x ||
+            gl.drawingBufferHeight - y < viewport.y ||
+            x > viewport.x + viewport.width ||
+            gl.drawingBufferHeight - y > viewport.y + viewport.height
+        ) return;
+
         if (this.pickDirty) {
             this.render();
             this.syncBuffers();
         }
 
-        x *= webgl.pixelRatio;
-        y *= webgl.pixelRatio;
+        x -= viewport.x * pixelRatio;
+        y += viewport.y * pixelRatio; // plus because of flipped y
         y = gl.drawingBufferHeight - y; // flip y
 
         const xp = Math.floor(x * pickScale);

@@ -5,14 +5,14 @@
  */
 
 /** Set canvas size taking `devicePixelRatio` into account */
-export function setCanvasSize(canvas: HTMLCanvasElement, width: number, height: number) {
-    canvas.width = Math.round(window.devicePixelRatio * width);
-    canvas.height = Math.round(window.devicePixelRatio * height);
+export function setCanvasSize(canvas: HTMLCanvasElement, width: number, height: number, scale = 1) {
+    canvas.width = Math.round(window.devicePixelRatio * scale * width);
+    canvas.height = Math.round(window.devicePixelRatio * scale * height);
     Object.assign(canvas.style, { width: `${width}px`, height: `${height}px` });
 }
 
 /** Resize canvas to container element taking `devicePixelRatio` into account */
-export function resizeCanvas (canvas: HTMLCanvasElement, container: Element) {
+export function resizeCanvas (canvas: HTMLCanvasElement, container: Element, scale = 1) {
     let width = window.innerWidth;
     let height = window.innerHeight;
     if (container !== document.body) {
@@ -20,7 +20,7 @@ export function resizeCanvas (canvas: HTMLCanvasElement, container: Element) {
         width = bounds.right - bounds.left;
         height = bounds.bottom - bounds.top;
     }
-    setCanvasSize(canvas, width, height);
+    setCanvasSize(canvas, width, height, scale);
 }
 
 function _canvasToBlob(canvas: HTMLCanvasElement, callback: BlobCallback, type?: string, quality?: any) {

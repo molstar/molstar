@@ -57,7 +57,11 @@ export const DefaultInputObserverProps = {
     noScroll: true,
     noMiddleClickScroll: true,
     noContextMenu: true,
-    noPinchZoom: true
+    noPinchZoom: true,
+    noTextSelect: true,
+    mask: (x: number, y: number) => true,
+
+    pixelScale: 1
 };
 export type InputObserverProps = Partial<typeof DefaultInputObserverProps>
 
@@ -133,6 +137,8 @@ export type DragInput = {
 } & BaseInput
 
 export type WheelInput = {
+    x: number,
+    y: number,
     dx: number,
     dy: number,
     dz: number,
@@ -180,11 +186,17 @@ type PointerEvent = {
     clientY: number
     pageX: number
     pageY: number
+
+    preventDefault?: () => void
 }
 
 interface InputObserver {
     noScroll: boolean
     noContextMenu: boolean
+
+    readonly width: number
+    readonly height: number
+    readonly pixelRatio: number
 
     readonly drag: Observable<DragInput>,
     // Equivalent to mouseUp and touchEnd
@@ -227,6 +239,10 @@ namespace InputObserver {
             noScroll,
             noContextMenu,
 
+            width: 0,
+            height: 0,
+            pixelRatio: 1,
+
             ...createEvents(),
 
             dispose: noop
@@ -234,7 +250,10 @@ namespace InputObserver {
     }
 
     export function fromElement(element: Element, props: InputObserverProps = {}): InputObserver {
-        let { noScroll, noMiddleClickScroll, noContextMenu, noPinchZoom } = { ...DefaultInputObserverProps, ...props };
+        let { noScroll, noMiddleClickScroll, noContextMenu, noPinchZoom, noTextSelect, mask, pixelScale } = { ...DefaultInputObserverProps, ...props };
+
+        let width = element.clientWidth * pixelRatio();
+        let height = element.clientHeight * pixelRatio();
 
         let lastTouchDistance = 0;
         const pointerDown = Vec2();
@@ -248,6 +267,10 @@ namespace InputObserver {
             control: false,
             meta: false
         };
+
+        function pixelRatio() {
+            return window.devicePixelRatio * pixelScale;
+        }
 
         function getModifierKeys(): ModifiersKeys {
             return { ...modifierKeys };
@@ -270,13 +293,17 @@ namespace InputObserver {
             get noContextMenu () { return noContextMenu; },
             set noContextMenu (value: boolean) { noContextMenu = value; },
 
+            get width () { return width; },
+            get height () { return height; },
+            get pixelRatio () { return pixelRatio(); },
+
             ...events,
 
             dispose
         };
 
         function attach() {
-            element.addEventListener('contextmenu', onContextMenu, false );
+            element.addEventListener('contextmenu', onContextMenu as any, false );
 
             element.addEventListener('wheel', onMouseWheel as any, false);
             element.addEventListener('mousedown', onMouseDown as any, false);
@@ -306,7 +333,7 @@ namespace InputObserver {
             if (disposed) return;
             disposed = true;
 
-            element.removeEventListener( 'contextmenu', onContextMenu, false );
+            element.removeEventListener( 'contextmenu', onContextMenu as any, false );
 
             element.removeEventListener('wheel', onMouseWheel as any, false);
             element.removeEventListener('mousedown', onMouseDown as any, false);
@@ -328,7 +355,9 @@ namespace InputObserver {
             window.removeEventListener('resize', onResize, false);
         }
 
-        function onContextMenu(event: Event) {
+        function onContextMenu(event: MouseEvent) {
+            if (!mask(event.clientX, event.clientY)) return;
+
             if (noContextMenu) {
                 event.preventDefault();
             }
@@ -498,6 +527,7 @@ namespace InputObserver {
         function onPointerDown(ev: PointerEvent) {
             eventOffset(pointerStart, ev);
             Vec2.copy(pointerDown, pointerStart);
+            if (!mask(ev.clientX, ev.clientY)) return;
 
             if (insideBounds(pointerStart)) {
                 dragging = DraggingState.Started;
@@ -525,10 +555,16 @@ namespace InputObserver {
 
             if (dragging === DraggingState.Stopped) return;
 
+            if (noTextSelect) {
+                ev.preventDefault?.();
+            }
+
             Vec2.div(pointerDelta, Vec2.sub(pointerDelta, pointerEnd, pointerStart), getClientSize(rectSize));
             if (Vec2.magnitude(pointerDelta) < EPSILON) return;
 
             const isStart = dragging === DraggingState.Started;
+            if (isStart && !mask(ev.clientX, ev.clientY)) return;
+
             const [ dx, dy ] = pointerDelta;
             drag.next({ x, y, dx, dy, pageX, pageY, buttons, button, modifiers: getModifierKeys(), isStart });
 
@@ -537,6 +573,10 @@ namespace InputObserver {
         }
 
         function onMouseWheel(ev: WheelEvent) {
+            eventOffset(pointerEnd, ev);
+            const [ x, y ] = pointerEnd;
+            if (!mask(ev.clientX, ev.clientY)) return;
+
             if (noScroll) {
                 ev.preventDefault();
             }
@@ -555,7 +595,7 @@ namespace InputObserver {
             buttons = button = ButtonsType.Flag.Auxilary;
 
             if (dx || dy || dz) {
-                wheel.next({ dx, dy, dz, buttons, button, modifiers: getModifierKeys() });
+                wheel.next({ x, y, dx, dy, dz, buttons, button, modifiers: getModifierKeys() });
             }
         }
 
@@ -589,6 +629,9 @@ namespace InputObserver {
         }
 
         function eventOffset(out: Vec2, ev: PointerEvent) {
+            width = element.clientWidth * pixelRatio();
+            height = element.clientHeight * pixelRatio();
+
             const cx = ev.clientX || 0;
             const cy = ev.clientY || 0;
             const rect = element.getBoundingClientRect();

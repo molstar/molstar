@@ -23,7 +23,8 @@ export const PluginConfig = {
     item,
     General: {
         IsBusyTimeoutMs: item('plugin-config.is-busy-timeout', 750),
-        DisableAntialiasing: item('plugin-config.disable-antialiasing', false)
+        DisableAntialiasing: item('plugin-config.disable-antialiasing', false),
+        PixelScale: item('plugin-config.pixel-scale', 1)
     },
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
