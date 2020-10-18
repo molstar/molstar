@@ -172,10 +172,12 @@ export class PostprocessingPass {
             this.webgl.unbindFramebuffer();
             this.setQuadShift(x / width, y / height);
             gl.viewport(x, y, width, height);
+            gl.scissor(x, y, width, height);
         } else {
             this.target.bind();
             this.setQuadShift(0, 0);
             gl.viewport(0, 0, width, height);
+            gl.scissor(0, 0, width, height);
         }
         state.disable(gl.SCISSOR_TEST);
         state.disable(gl.BLEND);

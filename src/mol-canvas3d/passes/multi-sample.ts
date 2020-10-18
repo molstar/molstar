@@ -161,6 +161,7 @@ export class MultiSamplePass {
             }
             this.setQuadShift(0, 0);
             gl.viewport(0, 0, width, height);
+            gl.scissor(0, 0, width, height);
             compose.render();
         }
 
@@ -175,6 +176,7 @@ export class MultiSamplePass {
         }
         this.setQuadShift(x / width, y / height);
         gl.viewport(x, y, width, height);
+        gl.scissor(x, y, width, height);
         state.disable(gl.BLEND);
         compose.render();
 
@@ -216,6 +218,7 @@ export class MultiSamplePass {
             state.depthMask(false);
             this.setQuadShift(0, 0);
             gl.viewport(0, 0, width, height);
+            gl.scissor(0, 0, width, height);
             compose.render();
             this.sampleIndex += 1;
         } else {
@@ -251,6 +254,7 @@ export class MultiSamplePass {
                 }
                 this.setQuadShift(0, 0);
                 gl.viewport(0, 0, width, height);
+                gl.scissor(0, 0, width, height);
                 compose.render();
 
                 this.sampleIndex += 1;
@@ -262,10 +266,12 @@ export class MultiSamplePass {
             webgl.unbindFramebuffer();
             this.setQuadShift(x / width, y / height);
             gl.viewport(x, y, width, height);
+            gl.scissor(x, y, width, height);
         } else {
             this.colorTarget.bind();
             this.setQuadShift(0, 0);
             gl.viewport(0, 0, width, height);
+            gl.scissor(0, 0, width, height);
         }
 
         const accumulationWeight = this.sampleIndex * sampleWeight;

@@ -11,6 +11,7 @@ import { resizeCanvas } from '../../mol-canvas3d/util';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/internal/operators/debounceTime';
 import { PluginConfig } from '../../mol-plugin/config';
+import { Color } from '../../mol-util/color';
 
 interface ViewportCanvasState {
     noWebGl: boolean
@@ -46,6 +47,9 @@ export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, View
         if (container && canvas) {
             const pixelScale = this.plugin.config.get(PluginConfig.General.PixelScale) || 1;
             resizeCanvas(canvas, container, pixelScale);
+            const [r, g, b] = Color.toRgbNormalized(this.plugin.canvas3d!.props.renderer.backgroundColor);
+            const a = this.plugin.canvas3d!.props.transparentBackground ? 0 : 1;
+            this.plugin.canvas3d!.webgl.clear(r, g, b, a);
             this.plugin.canvas3d!.handleResize();
         }
     }

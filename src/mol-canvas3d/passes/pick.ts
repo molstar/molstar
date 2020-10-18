@@ -130,8 +130,8 @@ export class PickPass {
             this.syncBuffers();
         }
 
-        x -= viewport.x * pixelRatio;
-        y += viewport.y * pixelRatio; // plus because of flipped y
+        x -= viewport.x;
+        y += viewport.y; // plus because of flipped y
         y = gl.drawingBufferHeight - y; // flip y
 
         const xp = Math.floor(x * pickScale);

@@ -137,7 +137,7 @@ namespace TrackballControls {
             const dy = _rotCurr[1] - _rotPrev[1];
             Vec3.set(rotMoveDir, dx, dy, 0);
 
-            const angle = Vec3.magnitude(rotMoveDir) * p.rotateSpeed;
+            const angle = Vec3.magnitude(rotMoveDir) * p.rotateSpeed * input.pixelRatio;
 
             if (angle) {
                 Vec3.sub(_eye, camera.position, camera.target);

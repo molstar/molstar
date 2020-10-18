@@ -218,10 +218,10 @@ namespace Camera {
 function updateOrtho(camera: Camera) {
     const { viewport, zoom, near, far, viewOffset } = camera;
 
-    const fullLeft = -(viewport.width - viewport.x) / 2;
-    const fullRight = (viewport.width - viewport.x) / 2;
-    const fullTop = (viewport.height - viewport.y) / 2;
-    const fullBottom = -(viewport.height - viewport.y) / 2;
+    const fullLeft = -viewport.width / 2;
+    const fullRight = viewport.width / 2;
+    const fullTop = viewport.height / 2;
+    const fullBottom = -viewport.height / 2;
 
     const dx = (fullRight - fullLeft) / (2 * zoom);
     const dy = (fullTop - fullBottom) / (2 * zoom);

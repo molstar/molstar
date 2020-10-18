@@ -212,7 +212,7 @@ namespace Canvas3D {
         const renderer = Renderer.create(webgl, p.renderer);
         const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
         const handleHelper = new HandleHelper(webgl, p.handle);
-        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
+        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera);
 
         const drawPass = new DrawPass(webgl, renderer, scene, camera, debugHelper, handleHelper, {
             cameraHelper: p.camera.helper

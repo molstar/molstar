@@ -377,6 +377,7 @@ namespace Renderer {
 
         return {
             clear: (transparentBackground: boolean) => {
+                ctx.unbindFramebuffer();
                 state.enable(gl.SCISSOR_TEST);
                 state.depthMask(true);
                 state.colorMask(true, true, true, true);

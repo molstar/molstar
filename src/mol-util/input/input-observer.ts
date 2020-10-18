@@ -525,9 +525,10 @@ namespace InputObserver {
         }
 
         function onPointerDown(ev: PointerEvent) {
+            if (!mask(ev.clientX, ev.clientY)) return;
+
             eventOffset(pointerStart, ev);
             Vec2.copy(pointerDown, pointerStart);
-            if (!mask(ev.clientX, ev.clientY)) return;
 
             if (insideBounds(pointerStart)) {
                 dragging = DraggingState.Started;
@@ -536,6 +537,7 @@ namespace InputObserver {
 
         function onPointerUp(ev: PointerEvent) {
             dragging = DraggingState.Stopped;
+            if (!mask(ev.clientX, ev.clientY)) return;
 
             eventOffset(pointerEnd, ev);
             if (Vec2.distance(pointerEnd, pointerDown) < 4) {
@@ -573,9 +575,10 @@ namespace InputObserver {
         }
 
         function onMouseWheel(ev: WheelEvent) {
+            if (!mask(ev.clientX, ev.clientY)) return;
+
             eventOffset(pointerEnd, ev);
             const [ x, y ] = pointerEnd;
-            if (!mask(ev.clientX, ev.clientY)) return;
 
             if (noScroll) {
                 ev.preventDefault();

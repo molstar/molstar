@@ -10,6 +10,7 @@ import { Representation } from '../../mol-repr/representation';
 import InputObserver, { ModifiersKeys, ButtonsType } from '../../mol-util/input/input-observer';
 import { RxEventHelper } from '../../mol-util/rx-event-helper';
 import { Vec2 } from '../../mol-math/linear-algebra';
+import { Camera } from '../camera';
 
 type Canvas3D = import('../canvas3d').Canvas3D
 type HoverEvent = import('../canvas3d').Canvas3D.HoverEvent
@@ -92,7 +93,7 @@ export class Canvas3dInteractionHelper {
         }
     }
 
-    leave() {
+    private leave() {
         this.inside = false;
         if (Representation.Loci.isEmpty(this.prevLoci)) {
             this.prevLoci = Representation.Loci.Empty;
@@ -100,7 +101,7 @@ export class Canvas3dInteractionHelper {
         }
     }
 
-    move(x: number, y: number, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
+    private move(x: number, y: number, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
         this.inside = true;
         this.buttons = buttons;
         this.button = button;
@@ -109,7 +110,7 @@ export class Canvas3dInteractionHelper {
         this.endY = y;
     }
 
-    click(x: number, y: number, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
+    private click(x: number, y: number, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
         this.endX = x;
         this.endY = y;
         this.buttons = buttons;
@@ -118,7 +119,7 @@ export class Canvas3dInteractionHelper {
         this.identify(InputEvent.Click, 0);
     }
 
-    drag(x: number, y: number, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
+    private drag(x: number, y: number, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
         this.endX = x;
         this.endY = y;
         this.buttons = buttons;
@@ -127,17 +128,29 @@ export class Canvas3dInteractionHelper {
         this.identify(InputEvent.Drag, 0);
     }
 
-    modify(modifiers: ModifiersKeys) {
+    private modify(modifiers: ModifiersKeys) {
         if (Representation.Loci.isEmpty(this.prevLoci) || ModifiersKeys.areEqual(modifiers, this.modifiers)) return;
         this.modifiers = modifiers;
         this.events.hover.next({ current: this.prevLoci, buttons: this.buttons, button: this.button, modifiers: this.modifiers });
+    }
+
+    private outsideViewport(x: number, y: number) {
+        const { input, camera: { viewport } } = this;
+        x *= input.pixelRatio;
+        y *= input.pixelRatio;
+        return (
+            x > viewport.x + viewport.width ||
+            input.height - y > viewport.y + viewport.height ||
+            x < viewport.x ||
+            input.height - y < viewport.y
+        );
     }
 
     dispose() {
         this.ev.dispose();
     }
 
-    constructor(private canvasIdentify: Canvas3D['identify'], private getLoci: Canvas3D['getLoci'], input: InputObserver, private maxFps: number = 30) {
+    constructor(private canvasIdentify: Canvas3D['identify'], private getLoci: Canvas3D['getLoci'], private input: InputObserver, private camera: Camera, private maxFps: number = 30) {
         input.drag.subscribe(({x, y, buttons, button, modifiers }) => {
             this.isInteracting = true;
             // console.log('drag');
@@ -156,6 +169,7 @@ export class Canvas3dInteractionHelper {
         });
 
         input.click.subscribe(({x, y, buttons, button, modifiers }) => {
+            if (this.outsideViewport(x, y)) return;
             // console.log('click');
             this.click(x, y, buttons, button, modifiers);
         });
