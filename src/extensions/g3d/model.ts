@@ -178,7 +178,7 @@ export const G3dSymbols = {
     chromosome: QuerySymbolRuntime.Dynamic(CustomPropSymbol('g3d', 'chromosome', Type.Str),
         ctx => {
             if (Unit.isAtomic(ctx.element.unit)) return '';
-            const {  asym_id } = ctx.element.unit.model.coarseHierarchy.spheres;
+            const { asym_id } = ctx.element.unit.model.coarseHierarchy.spheres;
             return asym_id.value(ctx.element.element) || '';
         }
     ),
@@ -202,15 +202,21 @@ export function g3dHaplotypeQuery(haplotype: string) {
     });
 }
 
-export function g3dChromosomeQuery(chromosome: string) {
+export function g3dChromosomeQuery(chr: string) {
     return MS.struct.generator.atomGroups({
-        'chain-test': MS.core.rel.eq([G3dSymbols.chromosome.symbol(), chromosome]),
+        'chain-test': MS.core.logic.and([
+            MS.core.rel.eq([MS.ammp('objectPrimitive'), 'sphere']),
+            MS.core.rel.eq([G3dSymbols.chromosome.symbol(), chr])
+        ])
     });
 }
 
 export function g3dRegionQuery(chr: string, start: number, end: number) {
     return MS.struct.generator.atomGroups({
-        'chain-test': MS.core.rel.eq([G3dSymbols.chromosome.symbol(), chr]),
+        'chain-test': MS.core.logic.and([
+            MS.core.rel.eq([MS.ammp('objectPrimitive'), 'sphere']),
+            MS.core.rel.eq([G3dSymbols.chromosome.symbol(), chr])
+        ]),
         'residue-test': MS.core.rel.inRange([G3dSymbols.region.symbol(), start, end])
     });
 }
