@@ -56,6 +56,7 @@ export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<G
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true;
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
+            if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
         }
     }, materialId);

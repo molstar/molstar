@@ -80,7 +80,9 @@ export namespace Geometry {
             case 'spheres': return geometry.sphereCount * 4;
             case 'text': return geometry.charCount * 4;
             case 'lines': return geometry.lineCount * 4;
-            case 'direct-volume': return 24;
+            case 'direct-volume':
+                const [x, y, z] = geometry.gridDimension.ref.value;
+                return x * y * z;
             case 'image': return 4;
             case 'texture-mesh': return geometry.vertexCount / 3;
         }

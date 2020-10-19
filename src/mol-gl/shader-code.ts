@@ -55,6 +55,7 @@ import matrix_scale from './shader/chunks/matrix-scale.glsl';
 import normal_frag_params from './shader/chunks/normal-frag-params.glsl';
 import read_from_texture from './shader/chunks/read-from-texture.glsl';
 import size_vert_params from './shader/chunks/size-vert-params.glsl';
+import texture3d_from_1d_trilinear from './shader/chunks/texture3d-from-1d-trilinear.glsl';
 import texture3d_from_2d_linear from './shader/chunks/texture3d-from-2d-linear.glsl';
 import texture3d_from_2d_nearest from './shader/chunks/texture3d-from-2d-nearest.glsl';
 
@@ -84,6 +85,7 @@ const ShaderChunks: { [k: string]: string } = {
     normal_frag_params,
     read_from_texture,
     size_vert_params,
+    texture3d_from_1d_trilinear,
     texture3d_from_2d_linear,
     texture3d_from_2d_nearest
 };

@@ -5,7 +5,7 @@
  */
 
 import { hashFnv32a } from '../../../mol-data/util';
-import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { LocationIterator, PositionLocation } from '../../../mol-geo/util/location-iterator';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { DirectVolumeValues } from '../../../mol-gl/renderable/direct-volume';
 import { calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
@@ -28,7 +28,6 @@ import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './
 import { createEmptyClipping } from '../clipping-data';
 import { Grid, Volume } from '../../../mol-model/volume';
 import { ColorNames } from '../../../mol-util/color/names';
-import { NullLocation } from '../../../mol-model/location';
 
 const VolumeBox = Box();
 
@@ -182,8 +181,30 @@ export namespace DirectVolume {
         updateBoundingSphere,
         createRenderableState,
         updateRenderableState,
-        createPositionIterator: () => LocationIterator(1, 1, 1, () => NullLocation)
+        createPositionIterator
     };
+
+    function createPositionIterator(directVolume: DirectVolume, transform: TransformData): LocationIterator {
+        const t = directVolume.transform.ref.value;
+        const [x, y, z] = directVolume.gridDimension.ref.value;
+        const groupCount = x * y * z;
+        const instanceCount = transform.instanceCount.ref.value;
+        const location = PositionLocation();
+        const p = location.position;
+        const m = transform.aTransform.ref.value;
+        const getLocation = (groupIndex: number, instanceIndex: number) => {
+            const k = Math.floor(groupIndex / z);
+            p[0] = Math.floor(k / y);
+            p[1] = k % y;
+            p[2] = groupIndex % z;
+            Vec3.transformMat4(p, p, t);
+            if (instanceIndex >= 0) {
+                Vec3.transformMat4Offset(p, p, m, 0, 0, instanceIndex * 16);
+            }
+            return location;
+        };
+        return LocationIterator(groupCount, instanceCount, 1, getLocation);
+    }
 
     function getNormalizedIsoValue(out: Vec2, isoValue: Volume.IsoValue, stats: Vec4) {
         const [min, max, mean, sigma] = stats;
@@ -205,7 +226,8 @@ export namespace DirectVolume {
         const transparency = createEmptyTransparency();
         const clipping = createEmptyClipping();
 
-        const counts = { drawCount: VolumeBox.indices.length, vertexCount: VolumeBox.vertices.length / 3, groupCount, instanceCount };
+        const [x, y, z] = gridDimension.ref.value;
+        const counts = { drawCount: VolumeBox.indices.length, vertexCount: x * y * z, groupCount, instanceCount };
 
         const invariantBoundingSphere = Sphere3D.clone(directVolume.boundingSphere);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);

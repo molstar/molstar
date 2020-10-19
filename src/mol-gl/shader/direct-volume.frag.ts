@@ -13,6 +13,7 @@ precision highp int;
 #include light_frag_params
 
 #include read_from_texture
+#include texture3d_from_1d_trilinear
 #include texture3d_from_2d_nearest
 #include texture3d_from_2d_linear
 
@@ -35,6 +36,7 @@ uniform sampler2D tTransferTex;
 uniform float uStepFactor;
 
 uniform int uObjectId;
+uniform int uVertexCount;
 uniform int uInstanceCount;
 uniform int uGroupCount;
 
@@ -212,14 +214,18 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
                         float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
                     #endif
 
-                    #if defined(dColorType_instance)
+                    #if defined(dColorType_uniform)
+                        color = uColor;
+                    #elif defined(dColorType_instance)
                         color = readFromTexture(tColor, instance, uColorTexDim).rgb;
                     #elif defined(dColorType_group)
                         color = readFromTexture(tColor, group, uColorTexDim).rgb;
                     #elif defined(dColorType_groupInstance)
                         color = readFromTexture(tColor, instance * float(uGroupCount) + group, uColorTexDim).rgb;
-                    #elif defined(dColorType_uniform)
-                        color = uColor;
+                    #elif defined(dColorType_vertex)
+                        color = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, 0.0).rgb;
+                    #elif defined(dColorType_vertexInstance)
+                        color = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, instance * float(uVertexCount)).rgb;
                     #endif
 
                     // handle flipping and negative isosurfaces
@@ -304,6 +310,16 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
             }
 
             gl_FragColor.a = material.a * uAlpha;
+
+            #ifdef dPackedGroup
+                float group = decodeFloatRGB(textureGroup(floor(isoPos * uGridDim + 0.5) / uGridDim).rgb);
+            #else
+                vec3 g = floor(isoPos * uGridDim + 0.5);
+                float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
+            #endif
+
+            float vMarker = readFromTexture(tMarker, instance * float(uGroupCount) + group, uMarkerTexDim).a;
+            #include apply_marker_color
             #include apply_fog
 
             src = gl_FragColor;
@@ -334,7 +350,7 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
 // TODO support float texture for higher precision values???
 
 void main () {
-    // TODO handle on CPU in renderloop
+    // TODO handle on CPU in renderloop?
     #if defined(dRenderVariant_pick)
         #if defined(dRenderMode_volume)
             discard;
@@ -344,13 +360,13 @@ void main () {
         #endif
     #endif
 
-    vec3 cameraPos = uInvView[3].xyz / uInvView[3].w;
     vec3 rayDir = mix(normalize(origPos - uCameraPosition), uCameraDir, uIsOrtho);;
 
     // TODO: set the scale as uniform?
     float stepScale = min(uCellDim.x, min(uCellDim.y, uCellDim.z)) * uStepFactor;
     vec3 step = rayDir * stepScale;
 
-    gl_FragColor = raymarch(origPos, step);
+    float d = uNear - distance(origPos, uCameraPosition);
+    gl_FragColor = raymarch(origPos + (d * rayDir), step);
 }
 `;

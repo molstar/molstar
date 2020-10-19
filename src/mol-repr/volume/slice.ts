@@ -16,13 +16,13 @@ import { RepresentationContext, RepresentationParamsGetter } from '../representa
 import { VisualContext } from '../visual';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
-import { Interval, OrderedSet, SortedArray } from '../../mol-data/int';
+import { Interval, SortedArray } from '../../mol-data/int';
 import { transformPositionArray } from '../../mol-geo/util';
-import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { RenderableState } from '../../mol-gl/renderable';
 import { Color } from '../../mol-util/color';
 import { ColorTheme } from '../../mol-theme/color';
 import { encodeFloatRGBtoArray } from '../../mol-util/float-packing';
+import { eachVolumeLoci } from './util';
 
 export async function createImage(ctx: VisualContext, volume: Volume, theme: Theme, props: PD.Values<SliceParams>, image?: Image) {
     const { dimension: { name: dim }, isoValue } = props;
@@ -156,32 +156,7 @@ function getSliceLoci(pickingId: PickingId, volume: Volume, props: PD.Values<Sli
 }
 
 function eachSlice(loci: Loci, volume: Volume, props: PD.Values<SliceParams>, apply: (interval: Interval) => boolean) {
-    let changed = false;
-    if (Volume.isLoci(loci)) {
-        if (!Volume.areEquivalent(loci.volume, volume)) return false;
-        if (apply(Interval.ofLength(volume.grid.cells.data.length))) changed = true;
-    } else if (Volume.Isosurface.isLoci(loci)) {
-        if (!Volume.areEquivalent(loci.volume, volume)) return false;
-        // TODO find a cheaper way?
-        const { stats, cells: { data } } = volume.grid;
-        const eps = stats.sigma;
-        const v = Volume.IsoValue.toAbsolute(loci.isoValue, stats).absoluteValue;
-        for (let i = 0, il = data.length; i < il; ++i) {
-            if (equalEps(v, data[i], eps)) {
-                if (apply(Interval.ofSingleton(i))) changed = true;
-            }
-        }
-    } else if (Volume.Cell.isLoci(loci)) {
-        if (!Volume.areEquivalent(loci.volume, volume)) return false;
-        if (Interval.is(loci.indices)) {
-            if (apply(loci.indices)) changed = true;
-        } else {
-            OrderedSet.forEach(loci.indices, v => {
-                if (apply(Interval.ofSingleton(v))) changed = true;
-            });
-        }
-    }
-    return changed;
+    return eachVolumeLoci(loci, volume, undefined, apply);
 }
 
 //
