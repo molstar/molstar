@@ -10,7 +10,7 @@ import Renderer from '../../mol-gl/renderer';
 import Scene from '../../mol-gl/scene';
 import { BoundingSphereHelper } from '../helper/bounding-sphere-helper';
 import { Texture } from '../../mol-gl/webgl/texture';
-import { Camera } from '../camera';
+import { ICamera } from '../camera';
 import { CameraHelper, CameraHelperParams } from '../helper/camera-helper';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { HandleHelper } from '../helper/handle-helper';
@@ -21,6 +21,7 @@ import { ShaderCode } from '../../mol-gl/shader-code';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
 import { ValueCell } from '../../mol-util';
 import { Vec2 } from '../../mol-math/linear-algebra';
+import { StereoCamera } from '../camera/stereo';
 
 import quad_vert from '../../mol-gl/shader/quad.vert';
 import depthMerge_frag from '../../mol-gl/shader/depth-merge.frag';
@@ -70,9 +71,11 @@ export class DrawPass {
     private depthTextureVolumes: Texture
     private depthMerge: DepthMergeRenderable
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private debugHelper: BoundingSphereHelper, private handleHelper: HandleHelper, props: Partial<DrawPassProps> = {}) {
+    isStereo = false
+
+    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: { standard: ICamera, stereo?: StereoCamera }, private debugHelper: BoundingSphereHelper, private handleHelper: HandleHelper, props: Partial<DrawPassProps> = {}) {
         const { extensions, resources } = webgl;
-        const { width, height } = camera.viewport;
+        const { width, height } = camera.standard.viewport;
 
         this.colorTarget = webgl.createRenderTarget(width, height);
         this.packedDepth = !extensions.depthTexture;
@@ -125,25 +128,35 @@ export class DrawPass {
     }
 
     render(toDrawingBuffer: boolean, transparentBackground: boolean) {
-        const { x, y, width, height } = this.camera.viewport;
+        if (this.isStereo && this.camera.stereo) {
+            this._render(this.camera.stereo.left, toDrawingBuffer, transparentBackground);
+            this._render(this.camera.stereo.right, toDrawingBuffer, transparentBackground);
+        } else {
+            this._render(this.camera.standard, toDrawingBuffer, transparentBackground);
+        }
+    }
+
+    private _render(camera: ICamera, toDrawingBuffer: boolean, transparentBackground: boolean) {
+        const { x, y, width, height } = camera.viewport;
         if (toDrawingBuffer) {
             this.webgl.unbindFramebuffer();
             this.renderer.setViewport(x, y, width, height);
         } else {
             this.colorTarget.bind();
-            this.renderer.setViewport(0, 0, width, height);
+            this.renderer.setViewport(x, y, width, height);
             if (!this.packedDepth) {
                 this.depthTexturePrimitives.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
             }
         }
 
-        this.renderer.render(this.scene.primitives, this.camera, 'color', true, transparentBackground, null);
+        this.renderer.render(this.scene.primitives, camera, 'color', true, transparentBackground, null);
 
         // do a depth pass if not rendering to drawing buffer and
         // extensions.depthTexture is unsupported (i.e. depthTarget is set)
         if (!toDrawingBuffer && this.depthTargetPrimitives) {
             this.depthTargetPrimitives.bind();
-            this.renderer.render(this.scene.primitives, this.camera, 'depth', true, transparentBackground, null);
+            this.renderer.setViewport(x, y, width, height);
+            this.renderer.render(this.scene.primitives, camera, 'depth', true, transparentBackground, null);
             this.colorTarget.bind();
         }
 
@@ -154,12 +167,12 @@ export class DrawPass {
                 this.webgl.state.depthMask(true);
                 this.webgl.gl.clear(this.webgl.gl.DEPTH_BUFFER_BIT);
             }
-            this.renderer.render(this.scene.volumes, this.camera, 'color', false, transparentBackground, this.depthTexturePrimitives);
+            this.renderer.render(this.scene.volumes, camera, 'color', false, transparentBackground, this.depthTexturePrimitives);
 
             // do volume depth pass if extensions.depthTexture is unsupported (i.e. depthTarget is set)
             if (this.depthTargetVolumes) {
                 this.depthTargetVolumes.bind();
-                this.renderer.render(this.scene.volumes, this.camera, 'depth', true, transparentBackground, this.depthTexturePrimitives);
+                this.renderer.render(this.scene.volumes, camera, 'depth', true, transparentBackground, this.depthTexturePrimitives);
                 this.colorTarget.bind();
             }
         }
@@ -168,6 +181,7 @@ export class DrawPass {
         if (!toDrawingBuffer) {
             this.depthMerge.update();
             this.depthTarget.bind();
+            this.renderer.setViewport(x, y, width, height);
             this.webgl.state.disable(this.webgl.gl.SCISSOR_TEST);
             this.webgl.state.disable(this.webgl.gl.BLEND);
             this.webgl.state.disable(this.webgl.gl.DEPTH_TEST);
@@ -176,17 +190,18 @@ export class DrawPass {
             this.webgl.gl.clear(this.webgl.gl.COLOR_BUFFER_BIT);
             this.depthMerge.render();
             this.colorTarget.bind();
+            this.renderer.setViewport(x, y, width, height);
         }
 
         if (this.debugHelper.isEnabled) {
             this.debugHelper.syncVisibility();
-            this.renderer.render(this.debugHelper.scene, this.camera, 'color', false, transparentBackground, null);
+            this.renderer.render(this.debugHelper.scene, camera, 'color', false, transparentBackground, null);
         }
         if (this.handleHelper.isEnabled) {
-            this.renderer.render(this.handleHelper.scene, this.camera, 'color', false, transparentBackground, null);
+            this.renderer.render(this.handleHelper.scene, camera, 'color', false, transparentBackground, null);
         }
         if (this.cameraHelper.isEnabled) {
-            this.cameraHelper.update(this.camera);
+            this.cameraHelper.update(camera);
             this.renderer.render(this.cameraHelper.scene, this.cameraHelper.camera, 'color', false, transparentBackground, null);
         }
     }

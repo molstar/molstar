@@ -34,6 +34,7 @@ import { isDebugMode } from '../mol-util/debug';
 import { CameraHelperParams } from './helper/camera-helper';
 import { produce } from 'immer';
 import { HandleHelper, HandleHelperParams } from './helper/handle-helper';
+import { StereoCamera, StereoCameraParams } from './camera/stereo';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -60,6 +61,10 @@ export const Canvas3DParams = {
             height: PD.Numeric(128)
         })
     }),
+    stereo: PD.MappedStatic('off', {
+        on: PD.Group(StereoCameraParams),
+        off: PD.Group({})
+    }, { cycle: true }),
 
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
     transparentBackground: PD.Boolean(false),
@@ -207,6 +212,7 @@ namespace Canvas3D {
             fog: p.cameraFog.name === 'on' ? p.cameraFog.params.intensity : 0,
             clipFar: p.cameraClipping.far
         }, { x, y, width, height }, { pixelScale: attribs.pixelScale });
+        const stereoCamera = new StereoCamera();
 
         const controls = TrackballControls.create(input, camera, p.trackball);
         const renderer = Renderer.create(webgl, p.renderer);
@@ -214,10 +220,13 @@ namespace Canvas3D {
         const handleHelper = new HandleHelper(webgl, p.handle);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera);
 
-        const drawPass = new DrawPass(webgl, renderer, scene, camera, debugHelper, handleHelper, {
+        const drawPass = new DrawPass(webgl, renderer, scene, { standard: camera, stereo: stereoCamera }, debugHelper, handleHelper, {
             cameraHelper: p.camera.helper
         });
-        const pickPass = new PickPass(webgl, renderer, scene, camera, handleHelper, attribs.pickScale || 0.25, drawPass);
+        drawPass.isStereo = p.stereo.name === 'on';
+        const pickPass = new PickPass(webgl, renderer, scene, camera, stereoCamera, handleHelper, attribs.pickScale || 0.25, drawPass);
+        pickPass.isStereo = p.stereo.name === 'on';
+
         const postprocessing = new PostprocessingPass(webgl, camera, drawPass, p.postprocessing);
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample);
 
@@ -275,9 +284,14 @@ namespace Canvas3D {
             const cameraChanged = camera.update();
             const multiSampleChanged = multiSample.update(force || cameraChanged);
 
+            const isStereo = p.stereo.name === 'on';
+
             if (force || cameraChanged || multiSampleChanged) {
+                if ((force || cameraChanged) && p.stereo.name === 'on') stereoCamera.update(camera, p.stereo.params);
+
                 renderer.setViewport(x, y, width, height);
-                if (multiSample.enabled) {
+                // TODO: support stereo rendering in multisampling
+                if (!isStereo && multiSample.enabled) {
                     multiSample.render(true, p.transparentBackground);
                 } else {
                     const toDrawingBuffer = !postprocessing.enabled && scene.volumes.renderables.length === 0;
@@ -490,6 +504,7 @@ namespace Canvas3D {
                 cameraResetDurationMs: p.cameraResetDurationMs,
                 transparentBackground: p.transparentBackground,
                 viewport: p.viewport,
+                stereo: p.stereo,
 
                 postprocessing: { ...postprocessing.props },
                 multiSample: { ...multiSample.props },
@@ -594,6 +609,11 @@ namespace Canvas3D {
                 if (props.viewport !== undefined) {
                     p.viewport = props.viewport;
                     handleResize();
+                }
+                if (props.stereo !== undefined) {
+                    p.stereo = props.stereo;
+                    pickPass.isStereo = p.stereo.name === 'on';
+                    drawPass.isStereo = p.stereo.name === 'on';
                 }
 
                 if (props.postprocessing) postprocessing.setProps(props.postprocessing);

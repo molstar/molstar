@@ -4,13 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { WebGLContext } from '../../mol-gl/webgl/context';
-import { RenderTarget } from '../../mol-gl/webgl/render-target';
+import { PickingId } from '../../mol-geo/geometry/picking';
 import Renderer from '../../mol-gl/renderer';
 import Scene from '../../mol-gl/scene';
-import { PickingId } from '../../mol-geo/geometry/picking';
+import { WebGLContext } from '../../mol-gl/webgl/context';
+import { GraphicsRenderVariant } from '../../mol-gl/webgl/render-item';
+import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { decodeFloatRGB } from '../../mol-util/float-packing';
-import { Camera } from '../camera';
+import { Camera, ICamera } from '../camera';
+import { StereoCamera } from '../camera/stereo';
 import { HandleHelper } from '../helper/handle-helper';
 import { DrawPass } from './draw';
 
@@ -23,6 +25,8 @@ export class PickPass {
     instancePickTarget: RenderTarget
     groupPickTarget: RenderTarget
 
+    isStereo = false
+
     private objectBuffer: Uint8Array
     private instanceBuffer: Uint8Array
     private groupBuffer: Uint8Array
@@ -31,7 +35,7 @@ export class PickPass {
     private pickWidth: number
     private pickHeight: number
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private handleHelper: HandleHelper, private pickBaseScale: number, private drawPass: DrawPass) {
+    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private stereoCamera: StereoCamera, private handleHelper: HandleHelper, private pickBaseScale: number, private drawPass: DrawPass) {
         this.pickScale = pickBaseScale / webgl.pixelRatio;
         this.pickWidth = Math.ceil(camera.viewport.width * this.pickScale);
         this.pickHeight = Math.ceil(camera.viewport.height * this.pickScale);
@@ -69,25 +73,39 @@ export class PickPass {
         }
     }
 
-    render() {
-        const { renderer, scene, camera, handleHelper: { scene: handleScene } } = this;
-        const depth = this.drawPass.depthTexturePrimitives;
-        renderer.setViewport(0, 0, this.pickWidth, this.pickHeight);
+    private renderVariant(variant: GraphicsRenderVariant) {
+        if (this.isStereo) {
+            const w = (this.pickWidth / 2) | 0;
 
+            this.renderer.setViewport(0, 0, w, this.pickHeight);
+            this._renderVariant(this.stereoCamera.left, variant);
+
+            this.renderer.setViewport(w, 0, this.pickWidth - w, this.pickHeight);
+            this._renderVariant(this.stereoCamera.right, variant);
+        } else {
+            this.renderer.setViewport(0, 0, this.pickWidth, this.pickHeight);
+            this._renderVariant(this.camera, variant);
+        }
+    }
+
+    private _renderVariant(camera: ICamera, variant: GraphicsRenderVariant) {
+        const { renderer, scene, handleHelper: { scene: handleScene } } = this;
+        const depth = this.drawPass.depthTexturePrimitives;
+
+        renderer.render(scene.primitives, camera, variant, true, false, null);
+        renderer.render(scene.volumes, camera, variant, false, false, depth);
+        renderer.render(handleScene, camera, variant, false, false, null);
+    }
+
+    render() {
         this.objectPickTarget.bind();
-        renderer.render(scene.primitives, camera, 'pickObject', true, false, null);
-        renderer.render(scene.volumes, camera, 'pickObject', false, false, depth);
-        renderer.render(handleScene, camera, 'pickObject', false, false, null);
+        this.renderVariant('pickObject');
 
         this.instancePickTarget.bind();
-        renderer.render(scene.primitives, camera, 'pickInstance', true, false, null);
-        renderer.render(scene.volumes, camera, 'pickInstance', false, false, depth);
-        renderer.render(handleScene, camera, 'pickInstance', false, false, null);
+        this.renderVariant('pickInstance');
 
         this.groupPickTarget.bind();
-        renderer.render(scene.primitives, camera, 'pickGroup', true, false, null);
-        renderer.render(scene.volumes, camera, 'pickGroup', false, false, depth);
-        renderer.render(handleScene, camera, 'pickGroup', false, false, null);
+        this.renderVariant('pickGroup');
 
         this.pickDirty = false;
     }
@@ -123,7 +141,9 @@ export class PickPass {
             gl.drawingBufferHeight - y < viewport.y ||
             x > viewport.x + viewport.width ||
             gl.drawingBufferHeight - y > viewport.y + viewport.height
-        ) return;
+        ) {
+            return;
+        }
 
         if (this.pickDirty) {
             this.render();

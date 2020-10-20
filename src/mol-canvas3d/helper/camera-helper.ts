@@ -6,7 +6,7 @@
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import Scene from '../../mol-gl/scene';
-import { Camera } from '../camera';
+import { Camera, ICamera } from '../camera';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
@@ -86,7 +86,7 @@ export class CameraHelper {
         return this.props.axes.name === 'on';
     }
 
-    update(camera: Camera) {
+    update(camera: ICamera) {
         if (!this.renderObject) return;
 
         updateCamera(this.camera, camera.viewport, camera.viewOffset);

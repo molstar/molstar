@@ -5,7 +5,7 @@
  */
 
 import { Viewport } from '../mol-canvas3d/camera/util';
-import { Camera } from '../mol-canvas3d/camera';
+import { ICamera } from '../mol-canvas3d/camera';
 
 import Scene from './scene';
 import { WebGLContext } from './webgl/context';
@@ -43,7 +43,7 @@ interface Renderer {
     readonly props: Readonly<RendererProps>
 
     clear: (transparentBackground: boolean) => void
-    render: (group: Scene.Group, camera: Camera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, depthTexture: Texture | null) => void
+    render: (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, depthTexture: Texture | null) => void
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
     dispose: () => void
@@ -300,7 +300,7 @@ namespace Renderer {
             r.render(variant);
         };
 
-        const render = (group: Scene.Group, camera: Camera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, depthTexture: Texture | null) => {
+        const render = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, depthTexture: Texture | null) => {
             ValueCell.update(globalUniforms.uModel, group.view);
             ValueCell.update(globalUniforms.uView, camera.view);
             ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view));

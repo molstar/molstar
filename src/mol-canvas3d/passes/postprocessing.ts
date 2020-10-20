@@ -167,6 +167,7 @@ export class PostprocessingPass {
         }
 
         const { x, y, width, height } = this.camera.viewport;
+
         const { gl, state } = this.webgl;
         if (toDrawingBuffer) {
             this.webgl.unbindFramebuffer();

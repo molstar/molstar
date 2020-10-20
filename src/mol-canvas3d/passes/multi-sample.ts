@@ -133,7 +133,8 @@ export class MultiSamplePass {
         for (let i = 0; i < offsetList.length; ++i) {
             const offset = offsetList[i];
             Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height);
-            camera.update();
+            // TODO: this should not be needed
+            // camera.update();
             this.drawPass.cameraHelper.update(camera);
 
             // the theory is that equal weights for each sample lead to an accumulation of rounding

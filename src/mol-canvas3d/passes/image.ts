@@ -47,7 +47,7 @@ export class ImagePass {
 
         this._transparentBackground = p.transparentBackground;
 
-        this.drawPass = new DrawPass(webgl, renderer, scene, this._camera, debugHelper, handleHelper, p.drawPass);
+        this.drawPass = new DrawPass(webgl, renderer, scene, { standard: this._camera }, debugHelper, handleHelper, p.drawPass);
         this.postprocessing = new PostprocessingPass(webgl, this._camera, this.drawPass, p.postprocessing);
         this.multiSample = new MultiSamplePass(webgl, this._camera, this.drawPass, this.postprocessing, p.multiSample);
 

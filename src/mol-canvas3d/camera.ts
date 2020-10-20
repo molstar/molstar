@@ -10,9 +10,21 @@ import { Viewport, cameraProject, cameraUnproject } from './camera/util';
 import { CameraTransitionManager } from './camera/transition';
 import { BehaviorSubject } from 'rxjs';
 
-export { Camera };
+export { ICamera, Camera };
 
-class Camera {
+interface ICamera {
+    readonly viewport: Viewport,
+    readonly view: Mat4,
+    readonly projection: Mat4,
+    readonly state: Readonly<Camera.Snapshot>,
+    readonly viewOffset: Camera.ViewOffset,
+    readonly far: number,
+    readonly near: number,
+    readonly fogFar: number,
+    readonly fogNear: number,
+}
+
+class Camera implements ICamera {
     readonly view: Mat4 = Mat4.identity();
     readonly projection: Mat4 = Mat4.identity();
     readonly projectionView: Mat4 = Mat4.identity();
@@ -26,12 +38,7 @@ class Camera {
 
     readonly viewport: Viewport;
     readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
-    readonly viewOffset: Camera.ViewOffset = {
-        enabled: false,
-        fullWidth: 1, fullHeight: 1,
-        offsetX: 0, offsetY: 0,
-        width: 1, height: 1
-    }
+    readonly viewOffset = Camera.ViewOffset();
 
     near = 1
     far = 10000
@@ -157,6 +164,15 @@ namespace Camera {
         height: number
     }
 
+    export function ViewOffset(): ViewOffset {
+        return {
+            enabled: false,
+            fullWidth: 1, fullHeight: 1,
+            offsetX: 0, offsetY: 0,
+            width: 1, height: 1
+        };
+    }
+
     export function setViewOffset(out: ViewOffset, fullWidth: number, fullHeight: number, offsetX: number, offsetY: number, width: number, height: number) {
         out.fullWidth = fullWidth;
         out.fullHeight = fullHeight;
@@ -164,6 +180,16 @@ namespace Camera {
         out.offsetY = offsetY;
         out.width = width;
         out.height = height;
+    }
+
+    export function copyViewOffset(out: ViewOffset, view: ViewOffset) {
+        out.enabled = view.enabled;
+        out.fullWidth = view.fullWidth;
+        out.fullHeight = view.fullHeight;
+        out.offsetX = view.offsetX;
+        out.offsetY = view.offsetY;
+        out.width = view.width;
+        out.height = view.height;
     }
 
     export function createDefaultSnapshot(): Snapshot {
