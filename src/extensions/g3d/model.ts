@@ -182,14 +182,13 @@ export const G3dSymbols = {
             return asym_id.value(ctx.element.element) || '';
         }
     ),
-    region: QuerySymbolRuntime.Dynamic(CustomPropSymbol('g3d', 'region', Type.Str),
+    region: QuerySymbolRuntime.Dynamic(CustomPropSymbol('g3d', 'region', Type.Num),
         ctx => {
             if (Unit.isAtomic(ctx.element.unit)) return '';
             const info = (G3dInfoDataProperty as any).get(ctx.element.unit.model);
-            if (!info) return '';
+            if (!info) return 0;
             const seqId = ctx.element.unit.model.coarseHierarchy.spheres.seq_id_begin.value(ctx.element.element);
-            const s = info.start[seqId];
-            return s || 0;
+            return info.start[seqId] || 0;
         }
     )
 };
