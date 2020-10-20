@@ -87,19 +87,19 @@ function checkAddingBondsFromPVCD(pvcd: DatabaseCollection<CCD_Schema>) {
 }
 
 function checkAddingAtomsFromPVCD(pvcd: DatabaseCollection<CCD_Schema>) {
-    const ccbSetByParent = DefaultMap<string, Set<string>>(() => new Set());
+    const ccaSetByParent = DefaultMap<string, Set<string>>(() => new Set());
 
     for (const k in pvcd) {
         const { chem_comp, chem_comp_atom } = pvcd[k];
         if (chem_comp_atom._rowCount) {
             const parentIds = chem_comp.mon_nstd_parent_comp_id.value(0);
             if (parentIds.length === 0) {
-                const set = ccbSetByParent.getDefault(chem_comp.id.value(0));
+                const set = ccaSetByParent.getDefault(chem_comp.id.value(0));
                 addChemCompAtomToSet(set, chem_comp_atom);
             } else {
                 for (let i = 0, il = parentIds.length; i < il; ++i) {
                     const parentId = parentIds[i];
-                    const set = ccbSetByParent.getDefault(parentId);
+                    const set = ccaSetByParent.getDefault(parentId);
                     addChemCompAtomToSet(set, chem_comp_atom);
                 }
             }
