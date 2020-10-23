@@ -153,7 +153,8 @@ async function getTraj(ctx: RuntimeContext, data: G3dDataBlock) {
         haplotypes: Object.keys(data.data),
         haplotype: normalized.haplotype,
         resolution: data.resolution,
-        start: normalized.start
+        start: normalized.start,
+        chroms: normalized.chromosome,
     });
 
     return models;
@@ -224,7 +225,8 @@ export interface G3dInfoData {
     haplotypes: string[],
     haplotype: string[],
     start: Int32Array,
-    resolution: number
+    resolution: number,
+    chroms: string[]
 };
 
 export const G3dLabelProvider: LociLabelProvider = {
