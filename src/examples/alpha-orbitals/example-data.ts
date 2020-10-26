@@ -175,7 +175,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987538,
@@ -196,7 +196,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294427,
@@ -226,7 +226,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987536,
@@ -247,7 +247,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -277,7 +277,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987536,
@@ -298,7 +298,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -328,7 +328,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987536,
@@ -349,7 +349,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -379,7 +379,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987536,
@@ -400,7 +400,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -430,7 +430,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987536,
@@ -451,7 +451,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -481,7 +481,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -502,7 +502,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -532,7 +532,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -553,7 +553,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -583,7 +583,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -604,7 +604,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -634,7 +634,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -655,7 +655,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -685,7 +685,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -706,7 +706,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -736,7 +736,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -757,7 +757,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -787,7 +787,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -808,7 +808,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -838,7 +838,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -859,7 +859,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -889,7 +889,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -910,7 +910,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -940,7 +940,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -961,7 +961,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -991,7 +991,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1012,7 +1012,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1042,7 +1042,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1063,7 +1063,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1093,7 +1093,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1114,7 +1114,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1144,7 +1144,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1165,7 +1165,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1195,7 +1195,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1216,7 +1216,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1246,7 +1246,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1267,7 +1267,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1297,7 +1297,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1318,7 +1318,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1348,7 +1348,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1369,7 +1369,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1399,7 +1399,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1420,7 +1420,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1450,7 +1450,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1471,7 +1471,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1501,7 +1501,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1522,7 +1522,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1552,7 +1552,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1573,7 +1573,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1603,7 +1603,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1624,7 +1624,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1654,7 +1654,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1675,7 +1675,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1705,7 +1705,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1726,7 +1726,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1756,7 +1756,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1777,7 +1777,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1807,7 +1807,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1828,7 +1828,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1858,7 +1858,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1879,7 +1879,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1909,7 +1909,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1930,7 +1930,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -1960,7 +1960,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -1981,7 +1981,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -2011,7 +2011,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -2032,7 +2032,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -2062,7 +2062,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -2083,7 +2083,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -2113,7 +2113,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -2134,7 +2134,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -2164,7 +2164,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -2185,7 +2185,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -2215,7 +2215,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.004151277818987537,
@@ -2236,7 +2236,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 1,
+                        'angularMomentum': [1],
                         'coefficients': [
                             [
                                 0.007924233646294425,
@@ -2266,7 +2266,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2287,7 +2287,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -2323,7 +2323,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2344,7 +2344,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -2380,7 +2380,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2401,7 +2401,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -2437,7 +2437,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2458,7 +2458,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -2494,7 +2494,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2515,7 +2515,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -2551,7 +2551,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2572,7 +2572,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -2608,7 +2608,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2629,7 +2629,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -2665,7 +2665,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2686,7 +2686,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -2722,7 +2722,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2743,7 +2743,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -2779,7 +2779,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2800,7 +2800,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -2836,7 +2836,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2857,7 +2857,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -2893,7 +2893,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2914,7 +2914,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -2950,7 +2950,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -2971,7 +2971,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3007,7 +3007,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3028,7 +3028,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3064,7 +3064,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3085,7 +3085,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3121,7 +3121,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3142,7 +3142,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3178,7 +3178,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3199,7 +3199,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3235,7 +3235,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3256,7 +3256,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3292,7 +3292,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3313,7 +3313,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3349,7 +3349,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3370,7 +3370,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3406,7 +3406,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3427,7 +3427,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3463,7 +3463,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3484,7 +3484,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3520,7 +3520,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3541,7 +3541,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3577,7 +3577,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3598,7 +3598,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3634,7 +3634,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3655,7 +3655,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3691,7 +3691,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3712,7 +3712,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3748,7 +3748,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3769,7 +3769,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3805,7 +3805,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3826,7 +3826,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3862,7 +3862,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3883,7 +3883,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3919,7 +3919,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3940,7 +3940,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -3976,7 +3976,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -3997,7 +3997,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -4033,7 +4033,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -4054,7 +4054,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -4090,7 +4090,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -4111,7 +4111,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -4147,7 +4147,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -4168,7 +4168,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,
@@ -4204,7 +4204,7 @@ export const DemoOrbitals = {
                 ],
                 'shells': [
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 0.009163596280542963,
@@ -4225,7 +4225,7 @@ export const DemoOrbitals = {
                         ]
                     },
                     {
-                        'angularMomentum': 0,
+                        'angularMomentum': [0],
                         'coefficients': [
                             [
                                 -0.32279868167000036,

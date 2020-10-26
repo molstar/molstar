@@ -1,13 +1,15 @@
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
+ * Inspired by https://github.com/dgasmith/gau2grid.
+ *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../mol-task';
 import { arrayMin } from '../../mol-util/array';
-import { Basis, CubeGridInfo, SphericalElectronShell } from './cubes';
+import { Basis, CubeGridInfo } from './cubes';
 import {
     normalizeBasicOrder,
     SphericalFunctions,
@@ -36,7 +38,14 @@ export async function sphericalCollocation(
 
     for (const atom of basis.atoms) {
         for (const shell of atom.shells) {
-            baseCount += 2 * shell.angularMomentum + 1;
+            for (const L of shell.angularMomentum) {
+                if (L > 4) {
+                    // TODO: will L > 4 be required? Would need to precompute more functions in that case.
+                    throw new Error('Angular momentum L > 4 not supported.');
+                }
+
+                baseCount += 2 * L + 1;
+            }
         }
     }
 
@@ -45,36 +54,34 @@ export async function sphericalCollocation(
     let baseIndex = 0;
     for (const atom of basis.atoms) {
         for (const shell of atom.shells) {
-            const L = shell.angularMomentum;
+            let amIndex = 0;
+            for (const L of shell.angularMomentum) {
+                const alpha = normalizeBasicOrder(
+                    L,
+                    alphaOrbitals.slice(baseIndex, baseIndex + 2 * L + 1),
+                    sphericalOrder
+                );
+                baseIndex += 2 * L + 1;
 
-            if (L > 4) {
-                // TODO: will L > 4 be required? Would need to precompute more functions in that case.
-                throw new Error('Angular momentum L > 4 not supported.');
-            }
+                collocationBasis(
+                    matrix,
+                    grid,
+                    L,
+                    shell.coefficients[amIndex++],
+                    shell.exponents,
+                    atom.center,
+                    cutoffThreshold,
+                    alpha
+                );
 
-            const alpha = normalizeBasicOrder(
-                L,
-                alphaOrbitals.slice(baseIndex, baseIndex + 2 * L + 1),
-                sphericalOrder
-            );
-            baseIndex += 2 * L + 1;
-
-            collocationBasis(
-                matrix,
-                grid,
-                atom.center,
-                cutoffThreshold,
-                alpha,
-                shell
-            );
-
-            if (taskCtx.shouldUpdate) {
-                await taskCtx.update({
-                    message: 'Computing...',
-                    current: baseIndex,
-                    max: baseCount,
-                    isIndeterminate: false,
-                });
+                if (taskCtx.shouldUpdate) {
+                    await taskCtx.update({
+                        message: 'Computing...',
+                        current: baseIndex,
+                        max: baseCount,
+                        isIndeterminate: false,
+                    });
+                }
             }
         }
     }
@@ -85,15 +92,14 @@ export async function sphericalCollocation(
 function collocationBasis(
     matrix: Float32Array,
     grid: CubeGridInfo,
+    L: number,
+    coefficients: number[],
+    exponents: number[],
     center: Vec3,
     cutoffThreshold: number,
-    alpha: number[],
-    shell: SphericalElectronShell
+    alpha: number[]
 ) {
-    const L = shell.angularMomentum;
-    const exponents = shell.exponents;
     const ncoeff = exponents.length;
-    const coefficients: number[] = sumCoefficients(shell.coefficients);
     const sphericalFunc = SphericalFunctions[L];
 
     const cx = center[0],
@@ -150,21 +156,6 @@ function collocationBasis(
             }
         }
     }
-}
-
-function sumCoefficients(coefficients: number[][]) {
-    if (coefficients.length === 1) return coefficients[0];
-
-    const ret: number[] = [];
-    const len = coefficients[0].length;
-    for (let i = 0; i < len; i++) ret[i] = 0;
-
-    for (let j = 0; j < coefficients.length; j++) {
-        const row = coefficients[j];
-        for (let i = 0; i < len; i++) ret[i] += row[i];
-    }
-
-    return ret;
 }
 
 function getRadiusBox(grid: CubeGridInfo, center: Vec3, radius: number) {

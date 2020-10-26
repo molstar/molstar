@@ -1,6 +1,8 @@
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
+ * Inspired by https://github.com/dgasmith/gau2grid.
+ *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 

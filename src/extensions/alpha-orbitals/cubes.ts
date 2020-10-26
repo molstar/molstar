@@ -1,6 +1,8 @@
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
+ * Inspired by https://github.com/dgasmith/gau2grid.
+ *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
@@ -34,9 +36,11 @@ export interface Basis {
     }[];
 }
 
+// Note: generally contracted gaussians are currently not supported.
 export interface SphericalElectronShell {
-    angularMomentum: number;
     exponents: number[];
+    angularMomentum: number[];
+    // number[] for each angular momentum
     coefficients: number[][];
 }
 
