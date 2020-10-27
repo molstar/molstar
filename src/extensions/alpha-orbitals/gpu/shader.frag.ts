@@ -118,12 +118,11 @@ float alpha(const in float offset, const in float f) {
 float intDiv(const in float a, const in float b) { return float(int(a) / int(b)); }
 float intMod(const in float a, const in float b) { return a - b * float(int(a) / int(b)); }
 
-void main(void) {
-    vec3 idx = vec3(gl_FragCoord.x - 0.5, intMod(gl_FragCoord.y - 0.5, uDimensions.y), intDiv((gl_FragCoord.y - 0.5), uDimensions.y));
-
-    float offset = idx.x + idx.y * uDimensions.x + idx.z * uDimensions.x * uDimensions.y;
-
-    // TODO: is there render target ordering that does not require the remapping of the coords?
+void main(void) { 
+    float offset = round(floor(gl_FragCoord.x) + floor(gl_FragCoord.y) * uDimensions.x);
+    
+    // axis order fast to slow Z, Y, X
+    // TODO: support arbitrary axis orders
     float k = intMod(offset, uDimensions.z), kk = intDiv(offset, uDimensions.z);
     float j = intMod(kk, uDimensions.y);
     float i = intDiv(kk, uDimensions.y);
