@@ -56,10 +56,10 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
                 sphericalOrder: a.data.order,
                 boxExpand: 4.5,
                 gridSpacing: [
-                    [55, 0.6],
-                    [40, 0.5],
+                    [55, 0.5],
+                    [40, 0.45],
                     [25, 0.4],
-                    [0, 0.33],
+                    [0, 0.35],
                 ],
             }, plugin.canvas3d?.webgl).runInContext(ctx);
             const volume: Volume = {

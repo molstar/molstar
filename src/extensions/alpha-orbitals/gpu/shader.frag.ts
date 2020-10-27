@@ -62,11 +62,11 @@ vec4 floatToRgba(float texelFloat) {
     );
 }
 
-float L1(vec3 p, float a0, float a1, float a2) {
+float L1(const in vec3 p, const in float a0, const in float a1, const in float a2) {
     return a0 * p.z + a1 * p.x + a2 * p.y;
 }
 
-float L2(vec3 p, float a0, float a1, float a2, float a3, float a4) {
+float L2(const in vec3 p, const in float a0, const in float a1, const in float a2, const in float a3, const in float a4) {
     float x = p.x, y = p.y, z = p.z;
     float xx = x * x, yy = y * y, zz = z * z;
     return (
@@ -78,7 +78,7 @@ float L2(vec3 p, float a0, float a1, float a2, float a3, float a4) {
     );
 }
 
-float L3(vec3 p, float a0, float a1, float a2, float a3, float a4, float a5, float a6) {
+float L3(const in vec3 p, const in float a0, const in float a1, const in float a2, const in float a3, const in float a4, const in float a5, const in float a6) {
     float x = p.x, y = p.y, z = p.z;
     float xx = x * x, yy = y * y, zz = z * z;
     float xxx = xx * x, yyy = yy * y, zzz = zz * z;
@@ -93,21 +93,46 @@ float L3(vec3 p, float a0, float a1, float a2, float a3, float a4, float a5, flo
     );
 }
 
+float L4(const in vec3 p, const in float a0, const in float a1, const in float a2, const in float a3, const in float a4, const in float a5, const in float a6, const in float a7, const in float a8) {
+    float x = p.x, y = p.y, z = p.z;
+    float xx = x * x, yy = y * y, zz = z * z;
+    float xxx = xx * x, yyy = yy * y, zzz = zz * z;
+    float xxxx = xxx * x, yyyy = yyy * y, zzzz = zzz * z;
+    return (
+        a0 * (0.375 * xxxx + 0.75 * xx * yy + 0.375 * yyyy - 3.0 * xx * zz - 3.0 * yy * zz + zzzz) +
+        a1 * (-2.3717082451262845 * xxx * z - 2.3717082451262845 * x * yy * z + 3.1622776601683795 * x * zzz) +
+        a2 * (-2.3717082451262845 * xx * y * z - 2.3717082451262845 * yyy * z + 3.1622776601683795 * y * zzz) +
+        a3 * (-0.5590169943749475 * xxxx + 0.5590169943749475 * yyyy + 3.3541019662496847 * xx * zz - 3.3541019662496847 * yy * zz) +
+        a4 * (-1.118033988749895 * xxx * y - 1.118033988749895 * x * yyy + 6.708203932499369 * x * y * zz) +
+        a5 * (2.091650066335189 * xxx * z + -6.274950199005566 * x * yy * z) +
+        a6 * (6.274950199005566 * xx * y * z + -2.091650066335189 * yyy * z) +
+        a7 * (0.739509972887452 * xxxx - 4.437059837324712 * xx * yy + 0.739509972887452 * yyyy) +
+        a8 * (2.958039891549808 * xxx * y + -2.958039891549808 * x * yyy)
+    );
+}
+
+float alpha(const in float offset, const in float f) {
+    return texture2D(tAlpha, vec2(offset * f, 0.5)).x;
+}
+
+float intDiv(const in float a, const in float b) { return float(int(a) / int(b)); }
+float intMod(const in float a, const in float b) { return a - b * float(int(a) / int(b)); }
+
 void main(void) {
-    // TODO: use "integer division" to avoid rounding errors for non power of 2 dimensions
-    vec3 idx = vec3(gl_FragCoord.x - 0.5, mod(gl_FragCoord.y - 0.5, uDimensions.z), floor((gl_FragCoord.y - 0.5) / uDimensions.y));
+    vec3 idx = vec3(gl_FragCoord.x - 0.5, intMod(gl_FragCoord.y - 0.5, uDimensions.y), intDiv((gl_FragCoord.y - 0.5), uDimensions.y));
+
     float offset = idx.x + idx.y * uDimensions.x + idx.z * uDimensions.x * uDimensions.y;
 
     // TODO: is there render target ordering that does not require the remapping of the coords?
-    float k = mod(offset, uDimensions.z), kk = floor(offset / uDimensions.z);
-    float j = mod(kk, uDimensions.y);
-    float i = floor(kk / uDimensions.y);
+    float k = intMod(offset, uDimensions.z), kk = intDiv(offset, uDimensions.z);
+    float j = intMod(kk, uDimensions.y);
+    float i = intDiv(kk, uDimensions.y);
     
     vec3 xyz = uMin + uDelta * vec3(i, j, k);
 
     float fCenter = 1.0 / float(uNCenters - 1);
     float fCoeff = 1.0 / float(uNCoeff - 1);
-    float fAlpha = 1.0 / float(uNAlpha - 1);
+    float fA = 1.0 / float(uNAlpha - 1);
 
     float v = 0.0;
 
@@ -126,10 +151,9 @@ void main(void) {
         vec4 info = texture2D(tInfo, cCoord);
 
         int L = int(info.x);
-        float alphaOffset = info.y;
+        float aO = info.y;
         int coeffStart = int(info.z);
         int coeffEnd = int(info.w);
-
 
         float gauss = 0.0;
         for (int j = coeffStart; j < coeffEnd; j++) {
@@ -139,36 +163,27 @@ void main(void) {
 
         float spherical = 0.0;
         if (L == 0) {
-            spherical = texture2D(tAlpha, vec2(alphaOffset * fAlpha, 0.5)).x;
+            spherical = alpha(aO, fA);
         } else if (L == 1) {
-            spherical = L1(
-                X,
-                texture2D(tAlpha, vec2(alphaOffset * fAlpha, 0.5)).x,
-                texture2D(tAlpha, vec2((alphaOffset + 1.0) * fAlpha, 0.5)).x,
-                texture2D(tAlpha, vec2((alphaOffset + 2.0) * fAlpha, 0.5)).x
+            spherical = L1(X,
+                alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA)
             );
         } else if (L == 2) {
-            spherical = L2(
-                X,
-                texture2D(tAlpha, vec2(alphaOffset * fAlpha, 0.5)).x,
-                texture2D(tAlpha, vec2((alphaOffset + 1.0) * fAlpha, 0.5)).x,
-                texture2D(tAlpha, vec2((alphaOffset + 2.0) * fAlpha, 0.5)).x,
-                texture2D(tAlpha, vec2((alphaOffset + 3.0) * fAlpha, 0.5)).x,
-                texture2D(tAlpha, vec2((alphaOffset + 4.0) * fAlpha, 0.5)).x
+            spherical = L2(X,
+                alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA)
             );
         } else if (L == 3) {
-            spherical = L3(
-                X,
-                texture2D(tAlpha, vec2(alphaOffset * fAlpha, 0.5)).x,
-                texture2D(tAlpha, vec2((alphaOffset + 1.0) * fAlpha, 0.5)).x,
-                texture2D(tAlpha, vec2((alphaOffset + 2.0) * fAlpha, 0.5)).x,
-                texture2D(tAlpha, vec2((alphaOffset + 3.0) * fAlpha, 0.5)).x,
-                texture2D(tAlpha, vec2((alphaOffset + 4.0) * fAlpha, 0.5)).x,
-                texture2D(tAlpha, vec2((alphaOffset + 5.0) * fAlpha, 0.5)).x,
-                texture2D(tAlpha, vec2((alphaOffset + 6.0) * fAlpha, 0.5)).x
+            spherical = L3(X,
+                alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA), 
+                alpha(aO + 5.0, fA), alpha(aO + 6.0, fA)
+            );
+        } else if (L == 4) {
+            spherical = L4(X,
+                alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA), 
+                alpha(aO + 5.0, fA), alpha(aO + 6.0, fA), alpha(aO + 7.0, fA), alpha(aO + 8.0, fA)
             );
         } 
-        // TODO: do we need L > 3?
+        // TODO: do we need L > 4?
 
         v += gauss * spherical;
     }

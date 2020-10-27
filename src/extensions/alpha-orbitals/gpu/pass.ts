@@ -148,12 +148,8 @@ export class AlphaOrbitalsPass {
         const [nx, ny, nz] = this.params.grid.dimensions;
         const width = nx;
         const height = ny * nz;
-
-        // const { x, y, width, height } = this.camera.viewport;
-
         const { gl, state } = this.webgl;
         this.target.bind();
-        // this.setQuadShift(0, 0);
         gl.viewport(0, 0, width, height);
         gl.scissor(0, 0, width, height);
         state.disable(gl.SCISSOR_TEST);

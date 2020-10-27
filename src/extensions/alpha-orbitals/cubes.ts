@@ -11,6 +11,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Box3D } from '../../mol-math/geometry';
 import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { Grid } from '../../mol-model/volume';
+import { getNonStandardResidueQueries } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { Task } from '../../mol-task';
 import { arrayMax, arrayMin, arrayRms } from '../../mol-util/array';
 import { CollocationParams, sphericalCollocation } from './collocation';
@@ -67,18 +68,8 @@ export function createSphericalCollocationGrid(
     return Task.create('Spherical Collocation Grid', async (ctx) => {
         const centers = params.basis.atoms.map(a => a.center);
 
-        const grid = initBox(centers, params.gridSpacing, params.boxExpand, true);
-
-        // const cParams: CollocationParams = {
-        //     grid,
-        //     basis: params.basis,
-        //     alphaOrbitals: params.alphaOrbitals,
-        //     cutoffThreshold: params.cutoffThreshold,
-        //     sphericalOrder: params.sphericalOrder
-        // };
-
         const cParams: CollocationParams = {
-            grid,
+            grid: initBox(centers, params.gridSpacing, params.boxExpand),
             basis: params.basis,
             alphaOrbitals: params.alphaOrbitals,
             cutoffThreshold: params.cutoffThreshold,
@@ -100,15 +91,9 @@ export function createSphericalCollocationGrid(
 
         // if (false && webgl) {
         // } else {
-        console.time('cpu');
-        const matrix = await sphericalCollocation({
-            grid: initBox(centers, params.gridSpacing, params.boxExpand, false),
-            basis: params.basis,
-            alphaOrbitals: params.alphaOrbitals,
-            cutoffThreshold: params.cutoffThreshold,
-            sphericalOrder: params.sphericalOrder
-        }, ctx);
-        console.timeEnd('cpu');
+        // console.time('cpu');
+        // const matrix = await sphericalCollocation(cParams, ctx);
+        // console.timeEnd('cpu');
         // // }
 
         console.log(matrixGL);
@@ -122,7 +107,7 @@ export function createSphericalCollocationGrid(
         //     }
         // }
 
-        return createCubeGrid(grid, matrixGL, [0, 1, 2]);
+        return createCubeGrid(cParams.grid, matrixGL, [0, 1, 2]);
     });
 }
 
@@ -174,8 +159,7 @@ function createCubeGrid(gridInfo: CubeGridInfo, values: Float32Array, axisOrder:
 function initBox(
     geometry: Vec3[],
     spacing: SphericalCollocationParams['gridSpacing'],
-    expand: number,
-    isGpu: boolean
+    expand: number
 ): CubeGridInfo {
     const count = geometry.length;
     const box = Box3D.expand(
@@ -197,14 +181,6 @@ function initBox(
 
     const dimensions = Vec3.ceil(Vec3(), Vec3.scale(Vec3(), size, 1 / s));
 
-    // dimensions need to be powers of 2 otherwise it leads to roudning error
-    // TODO: possible to avoid this having to be power of 2?
-    if (isGpu) {
-        dimensions[0] = reasonablePowerOf2(dimensions[0]);
-        dimensions[1] = reasonablePowerOf2(dimensions[1]);
-        dimensions[2] = reasonablePowerOf2(dimensions[2]);
-    }
-
     return {
         box,
         dimensions,
@@ -212,15 +188,6 @@ function initBox(
         npoints: dimensions[0] * dimensions[1] * dimensions[2],
         delta: Vec3.div(Vec3(), size, Vec3.subScalar(Vec3(), dimensions, 1)),
     };
-}
-
-function reasonablePowerOf2(x: number) {
-    const high = Math.pow(2, Math.ceil(Math.log2(x)));
-    if (high < 129) return high | 0;
-
-    const low = Math.pow(2, Math.floor(Math.log2(x)));
-    if ((x - low) / (high - low) < 0.33) return low | 0;
-    return high | 0;
 }
 
 export function computeIsocontourValues(
@@ -235,6 +202,12 @@ export function computeIsocontourValues(
     }
     const avgWeight = weightSum / input.length;
     let minWeight = 3 * avgWeight;
+
+    // do not try to identify isovalues for degenerate data
+    // e.g. all values are almost same
+    if (Math.abs(avgWeight - input[0] * input[0]) < 1e-5) {
+        return { negative: void 0, positive: void 0 };
+    }
 
     let size = 0;
     while (true) {
