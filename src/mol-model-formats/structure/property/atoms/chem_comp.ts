@@ -56,7 +56,11 @@ export namespace ComponentAtom {
         const entries: Map<string, Entry> = new Map();
 
         function addEntry(id: string) {
-            let e = new Entry(id);
+            // weird behavior when 'PRO' is requested - will report a single bond between N and H because a later operation would override real content
+            if (entries.has(id)) {
+                return entries.get(id)!;
+            }
+            const e = new Entry(id);
             entries.set(id, e);
             return e;
         }

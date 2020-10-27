@@ -27,6 +27,10 @@ function ccbKey(compId: string, atomId1: string, atomId2: string) {
     return atomId1 < atomId2 ? `${compId}:${atomId1}-${atomId2}` : `${compId}:${atomId2}-${atomId1}`;
 }
 
+function ccaKey(compId: string, atomId: string) {
+    return `${compId}:${atomId}`;
+}
+
 function addChemCompBondToSet(set: Set<string>, ccb: CCB) {
     for (let i = 0, il = ccb._rowCount; i < il; ++i) {
         set.add(ccbKey(ccb.comp_id.value(i), ccb.atom_id_1.value(i), ccb.atom_id_2.value(i)));
@@ -36,7 +40,7 @@ function addChemCompBondToSet(set: Set<string>, ccb: CCB) {
 
 function addChemCompAtomToSet(set: Set<string>, cca: CCA) {
     for (let i = 0, il = cca._rowCount; i < il; ++i) {
-        set.add(cca.atom_id.value(i));
+        set.add(ccaKey(cca.comp_id.value(i), cca.atom_id.value(i)));
     }
     return set;
 }
@@ -76,6 +80,27 @@ function checkAddingBondsFromPVCD(pvcd: DatabaseCollection<CCD_Schema>) {
                             console.error(`Adding all PVCD bonds would wrongly add bond ${bk} for ${k}`);
                         }
                     });
+                }
+            }
+        }
+    }
+}
+
+function checkAddingAtomsFromPVCD(pvcd: DatabaseCollection<CCD_Schema>) {
+    const ccaSetByParent = DefaultMap<string, Set<string>>(() => new Set());
+
+    for (const k in pvcd) {
+        const { chem_comp, chem_comp_atom } = pvcd[k];
+        if (chem_comp_atom._rowCount) {
+            const parentIds = chem_comp.mon_nstd_parent_comp_id.value(0);
+            if (parentIds.length === 0) {
+                const set = ccaSetByParent.getDefault(chem_comp.id.value(0));
+                addChemCompAtomToSet(set, chem_comp_atom);
+            } else {
+                for (let i = 0, il = parentIds.length; i < il; ++i) {
+                    const parentId = parentIds[i];
+                    const set = ccaSetByParent.getDefault(parentId);
+                    addChemCompAtomToSet(set, chem_comp_atom);
                 }
             }
         }
@@ -152,10 +177,12 @@ async function createBonds(
         { chem_comp_bond: bondTable }
     );
 
-    return { bonds: bondDatabase, atoms: atomsRequested ? createAtoms(ccd) : void 0 };
+    return { bonds: bondDatabase, atoms: atomsRequested ? createAtoms(ccd, pvcd) : void 0 };
 }
 
-function createAtoms(ccd: DatabaseCollection<CCD_Schema>) {
+function createAtoms(ccd: DatabaseCollection<CCD_Schema>, pvcd: DatabaseCollection<CCD_Schema>) {
+    const ccaSet = new Set<string>();
+
     const comp_id: string[] = [];
     const atom_id: string[] = [];
     const charge: number[] = [];
@@ -163,10 +190,33 @@ function createAtoms(ccd: DatabaseCollection<CCD_Schema>) {
 
     function addAtoms(compId: string, cca: CCA) {
         for (let i = 0, il = cca._rowCount; i < il; ++i) {
-            atom_id.push(cca.atom_id.value(i));
-            comp_id.push(compId);
-            charge.push(cca.charge.value(i));
-            pdbx_stereo_config.push(cca.pdbx_stereo_config.value(i));
+            const atomId = cca.atom_id.value(i);
+            const k = ccaKey(compId, atomId);
+            if (!ccaSet.has(k)) {
+                atom_id.push(atomId);
+                comp_id.push(compId);
+                charge.push(cca.charge.value(i));
+                pdbx_stereo_config.push(cca.pdbx_stereo_config.value(i));
+                ccaSet.add(k);
+            }
+        }
+    }
+
+    // check adding atoms from PVCD
+    checkAddingAtomsFromPVCD(pvcd);
+
+    // add atoms from PVCD
+    for (const k in pvcd) {
+        const { chem_comp, chem_comp_atom } = pvcd[k];
+        if (chem_comp_atom._rowCount) {
+            const parentIds = chem_comp.mon_nstd_parent_comp_id.value(0);
+            if (parentIds.length === 0) {
+                addAtoms(chem_comp.id.value(0), chem_comp_atom);
+            } else {
+                for (let i = 0, il = parentIds.length; i < il; ++i) {
+                    addAtoms(parentIds[i], chem_comp_atom);
+                }
+            }
         }
     }
 
