@@ -12,8 +12,8 @@ import { arrayMin } from '../../mol-util/array';
 import { Basis, CubeGridInfo } from './cubes';
 import {
     normalizeBasicOrder,
-    SphericalFunctions,
-    SphericalBasisOrder,
+
+    SphericalBasisOrder, SphericalFunctions
 } from './orbitals';
 
 export interface CollocationParams {
@@ -50,6 +50,8 @@ export async function sphericalCollocation(
     }
 
     const matrix = new Float32Array(grid.npoints);
+
+    let ii = 0;
 
     let baseIndex = 0;
     for (const atom of basis.atoms) {
@@ -135,7 +137,6 @@ function collocationBasis(
         for (let j = jMin; j <= jMax; j++) {
             const y = sy + gdy * j - cy;
             const oY = oX + j * nz;
-
             for (let k = kMin; k <= kMax; k++) {
                 const z = sz + gdz * k - cz;
                 const R2 = x * x + y * y + z * z;
@@ -150,8 +151,9 @@ function collocationBasis(
                         coefficients[c] * Math.exp(-exponents[c] * R2);
                 }
 
-                const sphericalSum =
-                    L === 0 ? alpha[0] : sphericalFunc(alpha, x, y, z);
+                const sphericalSum = L === 0 ? alpha[0] : sphericalFunc(alpha, x, y, z);
+
+
                 matrix[k + oY] += gaussianSum * sphericalSum;
             }
         }

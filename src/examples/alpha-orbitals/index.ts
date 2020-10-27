@@ -4,8 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Basis, computeIsocontourValues } from '../../extensions/alpha-orbitals/cubes';
+import { Basis, computeIsocontourValues, CubeGridInfo } from '../../extensions/alpha-orbitals/cubes';
+import { AlphaOrbitalsPass } from '../../extensions/alpha-orbitals/gpu/pass';
 import { SphericalBasisOrder } from '../../extensions/alpha-orbitals/orbitals';
+import { Box3D } from '../../mol-math/geometry';
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { createPluginAsync, DefaultPluginSpec } from '../../mol-plugin';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
@@ -13,6 +16,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { ColorNames } from '../../mol-util/color/names';
 import { DemoMoleculeSDF, DemoOrbitals } from './example-data';
 import './index.html';
+import { TestWaterParams } from './test-water';
 import { CreateOrbitalVolume, StaticBasisAndOrbitals } from './transforms';
 require('mol-plugin-ui/skin/light.scss');
 
@@ -73,7 +77,6 @@ class AlphaOrbitalsExample {
 
         const repr = this.plugin.build().to(volumeRef);
 
-
         if (positive !== void 0) {
             repr.apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.plugin, volumeRef.data!, {
                 type: 'isosurface',
@@ -93,7 +96,29 @@ class AlphaOrbitalsExample {
         }
 
         await repr.commit();
+
+        this.gpu();
     }
+
+    gpu() {
+        // const pass = new AlphaOrbitalsPass(this.plugin.canvas3d!.webgl, TestWaterParams);
+        // pass.getData();
+        // pass.getData();
+    }
+}
+
+function createCubeGrid(): CubeGridInfo {
+    const box = Box3D.create(Vec3.create(-1, -1, -1), Vec3.create(1, 1, 1));
+    const dimensions = Vec3.create(50, 50, 50);
+    const size = Box3D.size(Vec3(), box);
+
+    return {
+        box,
+        dimensions,
+        npoints: dimensions[0] * dimensions[1] * dimensions[2],
+        size,
+        delta: Vec3.div(Vec3(), size, Vec3.subScalar(Vec3(), dimensions, 1))
+    };
 }
 
 (window as any).AlphaOrbitalsExample = new AlphaOrbitalsExample();

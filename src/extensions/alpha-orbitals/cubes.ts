@@ -7,12 +7,14 @@
  */
 
 import { sortArray } from '../../mol-data/util';
+import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Box3D } from '../../mol-math/geometry';
 import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { Grid } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { arrayMax, arrayMin, arrayRms } from '../../mol-util/array';
-import { sphericalCollocation } from './collocation';
+import { CollocationParams, sphericalCollocation } from './collocation';
+import { AlphaOrbitalsPass } from './gpu/pass';
 import { SphericalBasisOrder } from './orbitals';
 
 export interface CubeGridInfo {
@@ -60,7 +62,7 @@ export interface SphericalCollocationParams {
 }
 
 export function createSphericalCollocationGrid(
-    params: SphericalCollocationParams
+    params: SphericalCollocationParams, webgl?: WebGLContext
 ): Task<CubeGrid> {
     return Task.create('Spherical Collocation Grid', async (ctx) => {
         const grid = initBox(
@@ -69,24 +71,52 @@ export function createSphericalCollocationGrid(
             params.boxExpand
         );
 
-        const matrix = await sphericalCollocation(
-            {
-                grid,
-                basis: params.basis,
-                alphaOrbitals: params.alphaOrbitals,
-                cutoffThreshold: params.cutoffThreshold,
-                sphericalOrder: 'cca-reverse', // renamed entos ordering
-            },
-            ctx
-        );
+        let matrix: Float32Array;
 
-        return createCubeGrid(grid, matrix);
+        const cParams: CollocationParams = {
+            grid,
+            basis: params.basis,
+            alphaOrbitals: params.alphaOrbitals,
+            cutoffThreshold: params.cutoffThreshold,
+            sphericalOrder: params.sphericalOrder
+        };
+
+
+        console.time('gpu');
+        const pass = new AlphaOrbitalsPass(webgl!, cParams);
+        const matrixGL = pass.getData();
+        console.timeEnd('gpu');
+
+        console.time('gpu');
+        const pass0 = new AlphaOrbitalsPass(webgl!, cParams);
+        pass0.getData();
+        console.timeEnd('gpu');
+
+        if (false && webgl) {
+        } else {
+            console.time('cpu');
+            matrix = await sphericalCollocation(cParams, ctx);
+            console.timeEnd('cpu');
+        }
+
+        // console.log(matrixGL);
+        // console.log(matrix);
+
+        // for (let i = 0; i < matrixGL.length; i++) {
+        //     if (Math.abs(matrixGL[i] - matrix[i]) > 1e-4) {
+        //         console.log('err', i, matrixGL[i], matrix[i]);
+        //         // console.log()
+        //         break;
+        //     }
+        // }
+
+        return createCubeGrid(grid, matrixGL, [0, 1, 2]);
     });
 }
 
 const BohrToAngstromFactor = 0.529177210859;
 
-function createCubeGrid(gridInfo: CubeGridInfo, values: Float32Array) {
+function createCubeGrid(gridInfo: CubeGridInfo, values: Float32Array, axisOrder: number[]) {
     const boxSize = Box3D.size(Vec3(), gridInfo.box);
     const boxOrigin = Vec3.clone(gridInfo.box.min);
 
@@ -107,7 +137,7 @@ function createCubeGrid(gridInfo: CubeGridInfo, values: Float32Array) {
     const grid: Grid = {
         transform: { kind: 'matrix', matrix },
         cells: Tensor.create(
-            Tensor.Space(gridInfo.dimensions, [0, 1, 2], Float32Array),
+            Tensor.Space(gridInfo.dimensions, axisOrder, Float32Array),
             (values as any) as Tensor.Data
         ),
         stats: {
@@ -118,7 +148,11 @@ function createCubeGrid(gridInfo: CubeGridInfo, values: Float32Array) {
         },
     };
 
+    // TODO: when using GPU rendering, the cumulative sum can be computed
+    // along the ray on the fly
     const isovalues = computeIsocontourValues(values, 0.85);
+
+    console.log(isovalues);
 
     return { grid, isovalues };
 }
@@ -146,7 +180,9 @@ function initBox(
         if (spacingThresholds[i][0] <= count) break;
     }
 
-    const dimensions = Vec3.ceil(Vec3(), Vec3.scale(Vec3(), size, 1 / s));
+    // dimensions need to be powers of 2 otherwise it leads to roudning error
+    // TODO: possible to avoid?
+    const dimensions = Vec3.create(64, 64, 64); //   Vec3.ceil(Vec3(), Vec3.scale(Vec3(), size, 1 / s));
     return {
         box,
         dimensions,

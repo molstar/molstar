@@ -11,6 +11,7 @@ import { Task } from '../../mol-task';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { SphericalBasisOrder } from '../../extensions/alpha-orbitals/orbitals';
 import { Volume } from '../../mol-model/volume';
+import { PluginContext } from '../../mol-plugin/context';
 
 export class BasisAndOrbitals extends PluginStateObject.Create<{ basis: Basis, order: SphericalBasisOrder, orbitals: { energy: number, alpha: number[] }[] }>({ name: 'Basis', typeClass: 'Object' }) { }
 
@@ -46,7 +47,7 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
         };
     }
 })({
-    apply({ a, params }) {
+    apply({ a, params }, plugin: PluginContext) {
         return Task.create('Orbital Volume', async ctx => {
             const data = await createSphericalCollocationGrid({
                 basis: a.data.basis,
@@ -60,7 +61,7 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
                     [25, 0.4],
                     [0, 0.33],
                 ],
-            }).runInContext(ctx);
+            }, plugin.canvas3d?.webgl).runInContext(ctx);
             const volume: Volume = {
                 grid: data.grid,
                 sourceData: { name: 'custom grid', kind: 'custom', data },
