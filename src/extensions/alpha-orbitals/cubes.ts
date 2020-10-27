@@ -11,10 +11,9 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Box3D } from '../../mol-math/geometry';
 import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { Grid } from '../../mol-model/volume';
-import { getNonStandardResidueQueries } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { Task } from '../../mol-task';
 import { arrayMax, arrayMin, arrayRms } from '../../mol-util/array';
-import { CollocationParams, sphericalCollocation } from './collocation';
+import { CollocationParams } from './collocation';
 import { AlphaOrbitalsPass } from './gpu/pass';
 import { SphericalBasisOrder } from './orbitals';
 
