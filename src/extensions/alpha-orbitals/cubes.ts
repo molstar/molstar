@@ -162,7 +162,9 @@ function createCubeGrid(gridInfo: CubeGridInfo, values: Float32Array, axisOrder:
 
     // TODO: when using GPU rendering, the cumulative sum can be computed
     // along the ray on the fly
+    console.time('iso');
     const isovalues = computeIsocontourValues(values, 0.85);
+    console.timeEnd('iso');
 
     console.log(isovalues);
 
@@ -222,20 +224,52 @@ function reasonablePowerOf2(x: number) {
 }
 
 export function computeIsocontourValues(
-    values: Float32Array,
+    input: Float32Array,
     cumulativeThreshold: number
 ) {
-    const size = values.length;
+    let weightSum = 0;
+    for (let i = 0, _i = input.length; i < _i; i++) {
+        const v = input[i];
+        const w = v * v;
+        weightSum += w;
+    }
+    const avgWeight = weightSum / input.length;
+    let minWeight = 3 * avgWeight;
+
+    let size = 0;
+    while (true) {
+        let csum = 0;
+        size = 0;
+        for (let i = 0, _i = input.length; i < _i; i++) {
+            const v = input[i];
+            const w = v * v;
+            if (w >= minWeight) {
+                csum += w;
+                size++;
+            }
+        }
+
+        if (csum / weightSum > cumulativeThreshold) {
+            break;
+        }
+
+        minWeight -= avgWeight;
+    }
+
+    const values = new Float32Array(size);
     const weights = new Float32Array(size);
     const indices = new Int32Array(size);
 
-    let weightSum = 0;
-    for (let i = 0; i < size; i++) {
-        const v = values[i];
+    let o = 0;
+    for (let i = 0, _i = input.length; i < _i; i++) {
+        const v = input[i];
         const w = v * v;
-        weights[i] = w;
-        indices[i] = i;
-        weightSum += w;
+        if (w >= minWeight) {
+            values[o] = v;
+            weights[o] = w;
+            indices[o] = o;
+            o++;
+        }
     }
 
     sortArray(
