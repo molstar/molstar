@@ -13,6 +13,7 @@ import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { createComputeRenderItem } from '../../../mol-gl/webgl/render-item';
 import { RenderTarget } from '../../../mol-gl/webgl/render-target';
 import { ValueCell } from '../../../mol-util';
+import { arrayMin } from '../../../mol-util/array';
 import { CollocationParams } from '../collocation';
 import { normalizeBasicOrder } from '../orbitals';
 import shader_frag from './shader.frag';
@@ -22,7 +23,7 @@ const AlphaOrbitalsSchema = {
     uDimensions: UniformSpec('v3'),
     uMin: UniformSpec('v3'),
     uDelta: UniformSpec('v3'),
-    tCenters: TextureSpec('image-float32', 'rgb', 'float', 'nearest'),
+    tCenters: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
     tInfo: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
     tCoeff: TextureSpec('image-float32', 'rgb', 'float', 'nearest'),
     tAlpha: TextureSpec('image-float32', 'alpha', 'float', 'nearest'),
@@ -38,6 +39,7 @@ function createTextureData({
     basis,
     sphericalOrder,
     alphaOrbitals,
+    cutoffThreshold
 }: CollocationParams) {
     let centerCount = 0;
     let baseCount = 0;
@@ -57,7 +59,7 @@ function createTextureData({
         }
     }
 
-    const centers = new Float32Array(3 * centerCount);
+    const centers = new Float32Array(4 * centerCount);
     // L, alpha_offset, coeff_offset_start, coeff_offset_end
     const info = new Float32Array(4 * centerCount);
     const alpha = new Float32Array(baseCount);
@@ -71,13 +73,14 @@ function createTextureData({
             for (const L of shell.angularMomentum) {
                 const a0 = normalizeBasicOrder(L, alphaOrbitals.slice(aO, aO + 2 * L + 1), sphericalOrder);
 
-                if (cO === 1) {
-                    console.log('y', atom.center[1]);
-                }
+                const cutoffRadius = cutoffThreshold > 0
+                    ? Math.sqrt(-Math.log(cutoffThreshold) / arrayMin(shell.exponents))
+                    : 10000;
 
-                centers[3 * cO + 0] = atom.center[0];
-                centers[3 * cO + 1] = atom.center[1];
-                centers[3 * cO + 2] = atom.center[2];
+                centers[4 * cO + 0] = atom.center[0];
+                centers[4 * cO + 1] = atom.center[1];
+                centers[4 * cO + 2] = atom.center[2];
+                centers[4 * cO + 3] = cutoffRadius * cutoffRadius;
 
                 info[4 * cO + 0] = L;
                 info[4 * cO + 1] = aO;
@@ -141,7 +144,7 @@ export class AlphaOrbitalsPass {
         this.renderable = getPostprocessingRenderable(webgl, params);
     }
 
-    render() {
+    private render() {
         const [nx, ny, nz] = this.params.grid.dimensions;
         const width = nx;
         const height = ny * nz;
@@ -174,6 +177,9 @@ export class AlphaOrbitalsPass {
 
         // console.log(array);
         // console.log(floats);
+
+        this.renderable.dispose();
+        this.target.destroy();
 
         return floats;
 

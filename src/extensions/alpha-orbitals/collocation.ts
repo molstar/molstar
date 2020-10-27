@@ -51,8 +51,6 @@ export async function sphericalCollocation(
 
     const matrix = new Float32Array(grid.npoints);
 
-    let ii = 0;
-
     let baseIndex = 0;
     for (const atom of basis.atoms) {
         for (const shell of atom.shells) {

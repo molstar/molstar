@@ -114,7 +114,15 @@ void main(void) {
     for (int i = 0; i < uNCenters; i++) {
         vec2 cCoord = vec2(float(i) * fCenter, 0.5);
 
-        vec3 X = xyz - texture2D(tCenters, cCoord).xyz;
+        vec4 center = texture2D(tCenters, cCoord);
+        vec3 X = xyz - center.xyz;
+        float R2 = dot(X, X);
+
+        // center.w is squared cutoff radius
+        if (R2 > center.w) {
+            continue;
+        }
+
         vec4 info = texture2D(tInfo, cCoord);
 
         int L = int(info.x);
@@ -122,7 +130,6 @@ void main(void) {
         int coeffStart = int(info.z);
         int coeffEnd = int(info.w);
 
-        float R2 = dot(X, X);
 
         float gauss = 0.0;
         for (int j = coeffStart; j < coeffEnd; j++) {

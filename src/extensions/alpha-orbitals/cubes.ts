@@ -65,13 +65,17 @@ export function createSphericalCollocationGrid(
     params: SphericalCollocationParams, webgl?: WebGLContext
 ): Task<CubeGrid> {
     return Task.create('Spherical Collocation Grid', async (ctx) => {
-        const grid = initBox(
-            params.basis.atoms.map((a) => a.center),
-            params.gridSpacing,
-            params.boxExpand
-        );
+        const centers = params.basis.atoms.map(a => a.center);
 
-        let matrix: Float32Array;
+        const grid = initBox(centers, params.gridSpacing, params.boxExpand, true);
+
+        // const cParams: CollocationParams = {
+        //     grid,
+        //     basis: params.basis,
+        //     alphaOrbitals: params.alphaOrbitals,
+        //     cutoffThreshold: params.cutoffThreshold,
+        //     sphericalOrder: params.sphericalOrder
+        // };
 
         const cParams: CollocationParams = {
             grid,
@@ -81,25 +85,33 @@ export function createSphericalCollocationGrid(
             sphericalOrder: params.sphericalOrder
         };
 
+        console.log(cParams);
 
         console.time('gpu');
         const pass = new AlphaOrbitalsPass(webgl!, cParams);
         const matrixGL = pass.getData();
         console.timeEnd('gpu');
 
+        // TODO: remove the 2nd run
         console.time('gpu');
         const pass0 = new AlphaOrbitalsPass(webgl!, cParams);
         pass0.getData();
         console.timeEnd('gpu');
 
-        if (false && webgl) {
-        } else {
-            console.time('cpu');
-            matrix = await sphericalCollocation(cParams, ctx);
-            console.timeEnd('cpu');
-        }
+        // if (false && webgl) {
+        // } else {
+        console.time('cpu');
+        const matrix = await sphericalCollocation({
+            grid: initBox(centers, params.gridSpacing, params.boxExpand, false),
+            basis: params.basis,
+            alphaOrbitals: params.alphaOrbitals,
+            cutoffThreshold: params.cutoffThreshold,
+            sphericalOrder: params.sphericalOrder
+        }, ctx);
+        console.timeEnd('cpu');
+        // // }
 
-        // console.log(matrixGL);
+        console.log(matrixGL);
         // console.log(matrix);
 
         // for (let i = 0; i < matrixGL.length; i++) {
@@ -160,7 +172,8 @@ function createCubeGrid(gridInfo: CubeGridInfo, values: Float32Array, axisOrder:
 function initBox(
     geometry: Vec3[],
     spacing: SphericalCollocationParams['gridSpacing'],
-    expand: number
+    expand: number,
+    isGpu: boolean
 ): CubeGridInfo {
     const count = geometry.length;
     const box = Box3D.expand(
@@ -180,9 +193,16 @@ function initBox(
         if (spacingThresholds[i][0] <= count) break;
     }
 
+    const dimensions = Vec3.ceil(Vec3(), Vec3.scale(Vec3(), size, 1 / s));
+
     // dimensions need to be powers of 2 otherwise it leads to roudning error
-    // TODO: possible to avoid?
-    const dimensions = Vec3.create(64, 64, 64); //   Vec3.ceil(Vec3(), Vec3.scale(Vec3(), size, 1 / s));
+    // TODO: possible to avoid this having to be power of 2?
+    if (isGpu) {
+        dimensions[0] = reasonablePowerOf2(dimensions[0]);
+        dimensions[1] = reasonablePowerOf2(dimensions[1]);
+        dimensions[2] = reasonablePowerOf2(dimensions[2]);
+    }
+
     return {
         box,
         dimensions,
@@ -190,6 +210,15 @@ function initBox(
         npoints: dimensions[0] * dimensions[1] * dimensions[2],
         delta: Vec3.div(Vec3(), size, Vec3.subScalar(Vec3(), dimensions, 1)),
     };
+}
+
+function reasonablePowerOf2(x: number) {
+    const high = Math.pow(2, Math.ceil(Math.log2(x)));
+    if (high < 129) return high | 0;
+
+    const low = Math.pow(2, Math.floor(Math.log2(x)));
+    if ((x - low) / (high - low) < 0.33) return low | 0;
+    return high | 0;
 }
 
 export function computeIsocontourValues(
