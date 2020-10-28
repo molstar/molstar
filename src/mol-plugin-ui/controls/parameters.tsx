@@ -368,7 +368,8 @@ export class NumberRangeControl extends SimpleParam<PD.Numeric> {
     renderControl() {
         const value = typeof this.props.value === 'undefined' ? this.props.param.defaultValue : this.props.value;
         return <Slider value={value} min={this.props.param.min!} max={this.props.param.max!}
-            step={this.props.param.step} onChange={this.onChange} disabled={this.props.isDisabled} onEnter={this.props.onEnter} />;
+            step={this.props.param.step} onChange={this.onChange} onChangeImmediate={this.props.param.immediateUpdate ? this.onChange : void 0}
+            disabled={this.props.isDisabled} onEnter={this.props.onEnter} />;
     }
 }
 

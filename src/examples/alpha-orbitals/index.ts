@@ -36,7 +36,8 @@ interface DemoInput {
 
 interface Params {
     orbitalIndex: number,
-    isoValue: number
+    isoValue: number,
+    staticIsovalues: boolean
 }
 
 export class AlphaOrbitalsExample {
@@ -71,7 +72,7 @@ export class AlphaOrbitalsExample {
     }
 
     readonly params = new BehaviorSubject<ParamDefinition.For<Params>>({ } as any);
-    readonly state = new BehaviorSubject<Params>({ orbitalIndex: 32, isoValue: 1 });
+    readonly state = new BehaviorSubject<Params>({ orbitalIndex: 32, isoValue: 1, staticIsovalues: true });
 
     private volume?: StateObjectSelector<PluginStateObject.Volume.Data, typeof CreateOrbitalVolume>;
     private positive?: StateObjectSelector<PluginStateObject.Volume.Representation3D, typeof StateTransforms.Representation.VolumeRepresentation3D>;
@@ -84,13 +85,19 @@ export class AlphaOrbitalsExample {
         const state = this.state.value;
         await this.plugin.build().to(this.volume).update(CreateOrbitalVolume, () => ({ index: state.orbitalIndex })).commit();
         this.currentParams.orbitalIndex = this.state.value.orbitalIndex;
-        this.isovalues = computeIsocontourValues(this.volume.data!.grid.cells.data as any, 0.85);
-        await this.setIsovalue();
+        this.currentParams.staticIsovalues = this.state.value.staticIsovalues;
+        this.currentParams.isoValue = this.state.value.isoValue;
+
+        if (!state.staticIsovalues) {
+            this.isovalues = computeIsocontourValues(this.volume.data!.grid.cells.data as any, 0.85);
+            await this.setIsovalue();
+        }
     }
 
     private setIsovalue() {
         const { positive, negative } = this.isovalues;
         this.currentParams.isoValue = this.state.value.isoValue;
+        this.currentParams.staticIsovalues = this.state.value.staticIsovalues;
         const update = this.plugin.build();
         update.to(this.positive!).update(this.volumeParams(positive, ColorNames.blue));
         update.to(this.negative!).update(this.volumeParams(negative, ColorNames.red));
@@ -100,14 +107,14 @@ export class AlphaOrbitalsExample {
     private volumeParams(value: number | undefined, color: Color) {
         return createVolumeRepresentationParams(this.plugin, this.volume!.data!, {
             // type: 'isosurface',
-            // typeParams: { isoValue: { kind: 'absolute', absoluteValue: positive } },
+            // typeParams: { isoValue: { kind: 'absolute', absoluteValue: (value ?? 1000) * this.state.value.isoValue } },
             // color: 'uniform',
             // colorParams: { value: ColorNames.blue }
             type: 'direct-volume',
             typeParams: {
                 renderMode: {
                     name: 'isosurface',
-                    params: { isoValue: { kind: 'absolute', absoluteValue: (value ?? 1000) * this.state.value.isoValue }, singleLayer: false }
+                    params: { isoValue: { kind: 'absolute', absoluteValue: (value ?? 1000) * this.state.value.isoValue }, singleLayer: true }
                 }
             },
             color: 'uniform',
@@ -151,12 +158,13 @@ export class AlphaOrbitalsExample {
         await repr.commit();
 
         this.params.next({
-            orbitalIndex: ParamDefinition.Numeric(this.currentParams.orbitalIndex, { min: 0, max: input.orbitals.length - 1 }),
-            isoValue: ParamDefinition.Numeric(1, { min: 0.5, max: 3, step: 0.1 })
+            orbitalIndex: ParamDefinition.Numeric(this.currentParams.orbitalIndex, { min: 0, max: input.orbitals.length - 1 }, { immediateUpdate: true, isEssential: true }),
+            isoValue: ParamDefinition.Numeric(this.currentParams.isoValue, { min: 0.5, max: 3, step: 0.1 }, { immediateUpdate: true, isEssential: false }),
+            staticIsovalues: ParamDefinition.Boolean(this.currentParams.staticIsovalues)
         });
 
-        this.state.pipe(skip(1), debounceTime(1000 / 30)).subscribe(async params => {
-            if (params.orbitalIndex !== this.currentParams.orbitalIndex) {
+        this.state.pipe(skip(1), debounceTime(1000 / 24)).subscribe(async params => {
+            if (params.orbitalIndex !== this.currentParams.orbitalIndex || params.staticIsovalues !== this.currentParams.staticIsovalues) {
                 this.setIndex();
             } else if (params.isoValue !== this.currentParams.isoValue) {
                 this.setIsovalue();

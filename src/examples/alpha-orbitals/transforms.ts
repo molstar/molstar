@@ -61,6 +61,7 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
                     [25, 0.4],
                     [0, 0.35],
                 ],
+                doNotComputeIsovalues: true
             }, plugin.canvas3d?.webgl).runInContext(ctx);
             const volume: Volume = {
                 grid: data.grid,

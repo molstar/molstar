@@ -199,10 +199,13 @@ export namespace ParamDefinition {
     }
 
     export interface Numeric extends Base<number>, Range {
-        type: 'number'
+        type: 'number',
+        immediateUpdate?: boolean
     }
-    export function Numeric(defaultValue: number, range?: { min?: number, max?: number, step?: number }, info?: Info): Numeric {
-        return setInfo<Numeric>(setRange({ type: 'number', defaultValue }, range), info);
+    export function Numeric(defaultValue: number, range?: { min?: number, max?: number, step?: number }, info?: Info & { immediateUpdate?: boolean }): Numeric {
+        const ret = setInfo<Numeric>(setRange({ type: 'number', defaultValue }, range), info);
+        if (info?.immediateUpdate) ret.immediateUpdate = true;
+        return ret;
     }
 
     export interface Interval extends Base<[number, number]>, Range {

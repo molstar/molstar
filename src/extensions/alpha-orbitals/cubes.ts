@@ -27,7 +27,7 @@ export interface CubeGridInfo {
 
 export interface CubeGrid {
     grid: Grid;
-    isovalues: { negative?: number; positive?: number };
+    isovalues?: { negative?: number; positive?: number };
 }
 
 export interface Basis {
@@ -59,6 +59,7 @@ export interface SphericalCollocationParams {
     boxExpand: number;
     gridSpacing: number | [atomCountThreshold: number, spacing: number][];
     alphaOrbitals: number[];
+    doNotComputeIsovalues?: boolean
 }
 
 export function createSphericalCollocationGrid(
@@ -106,13 +107,13 @@ export function createSphericalCollocationGrid(
         //     }
         // }
 
-        return createCubeGrid(cParams.grid, matrixGL, [0, 1, 2]);
+        return createCubeGrid(cParams.grid, matrixGL, [0, 1, 2], !params.doNotComputeIsovalues);
     });
 }
 
 const BohrToAngstromFactor = 0.529177210859;
 
-function createCubeGrid(gridInfo: CubeGridInfo, values: Float32Array, axisOrder: number[]) {
+function createCubeGrid(gridInfo: CubeGridInfo, values: Float32Array, axisOrder: number[], computeIsovalues: boolean) {
     const boxSize = Box3D.size(Vec3(), gridInfo.box);
     const boxOrigin = Vec3.clone(gridInfo.box.min);
 
@@ -146,11 +147,16 @@ function createCubeGrid(gridInfo: CubeGridInfo, values: Float32Array, axisOrder:
 
     // TODO: when using GPU rendering, the cumulative sum can be computed
     // along the ray on the fly
-    console.time('iso');
-    const isovalues = computeIsocontourValues(values, 0.85);
-    console.timeEnd('iso');
 
-    console.log(isovalues);
+    let isovalues: { negative?: number, positive?: number } | undefined;
+
+    if (computeIsovalues) {
+        console.time('iso');
+        const isovalues = computeIsocontourValues(values, 0.85);
+        console.timeEnd('iso');
+        console.log(isovalues);
+    }
+
 
     return { grid, isovalues };
 }

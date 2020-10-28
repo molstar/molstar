@@ -15,6 +15,7 @@ export class Slider extends React.Component<{
     value: number,
     step?: number,
     onChange: (v: number) => void,
+    onChangeImmediate?: (v: number) => void,
     disabled?: boolean,
     onEnter?: () => void
 }, { isChanging: boolean, current: number }> {
@@ -37,6 +38,7 @@ export class Slider extends React.Component<{
 
     updateCurrent = (current: number) => {
         this.setState({ current });
+        this.props.onChangeImmediate?.(current);
     }
 
     updateManually = (v: number) => {
