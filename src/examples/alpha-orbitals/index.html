@@ -12,19 +12,24 @@
             }
             #app {
                 position: absolute;
-                left: 160px;
-                top: 100px;
-                width: 800px;
-                height: 800px;
-                border: 1px solid #ccc;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                right: 0;
             }
+            #controls {
+                position: absolute;
+                left: 8px;
+                top: 8px;
+                width: 300px;
+            }            
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
         <script type="text/javascript" src="./index.js"></script>
     </head>
     <body>
-        <div id='controls'></div>
         <div id="app"></div>
+        <div id='controls'></div>
         <script>
             AlphaOrbitalsExample.init('app')
         </script>

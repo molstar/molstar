@@ -75,7 +75,7 @@ export function createSphericalCollocationGrid(
             sphericalOrder: params.sphericalOrder
         };
 
-        console.log(cParams);
+        // console.log(cParams);
 
         console.time('gpu');
         const pass = new AlphaOrbitalsPass(webgl!, cParams);
@@ -83,10 +83,10 @@ export function createSphericalCollocationGrid(
         console.timeEnd('gpu');
 
         // TODO: remove the 2nd run
-        console.time('gpu');
-        const pass0 = new AlphaOrbitalsPass(webgl!, cParams);
-        pass0.getData();
-        console.timeEnd('gpu');
+        // console.time('gpu');
+        // const pass0 = new AlphaOrbitalsPass(webgl!, cParams);
+        // pass0.getData();
+        // console.timeEnd('gpu');
 
         // if (false && webgl) {
         // } else {
@@ -95,7 +95,7 @@ export function createSphericalCollocationGrid(
         // console.timeEnd('cpu');
         // // }
 
-        console.log(matrixGL);
+        // console.log(matrixGL);
         // console.log(matrix);
 
         // for (let i = 0; i < matrixGL.length; i++) {

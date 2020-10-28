@@ -108,7 +108,7 @@ function createTextureData({
 function getPostprocessingRenderable(ctx: WebGLContext, params: CollocationParams): AlphaOrbitalsRenderable {
     const data = createTextureData(params);
 
-    console.log(data);
+    // console.log(data);
 
     const values: Values<typeof AlphaOrbitalsSchema> = {
         ...QuadValues,

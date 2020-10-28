@@ -51,7 +51,7 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
         return Task.create('Orbital Volume', async ctx => {
             const data = await createSphericalCollocationGrid({
                 basis: a.data.basis,
-                cutoffThreshold: 0.0075,
+                cutoffThreshold: 0.0015,
                 alphaOrbitals: a.data.orbitals[params.index].alpha,
                 sphericalOrder: a.data.order,
                 boxExpand: 4.5,
