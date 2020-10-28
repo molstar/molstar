@@ -142,7 +142,7 @@ async function getTraj(ctx: RuntimeContext, data: G3dDataBlock) {
         entity: entityBuilder.getEntityTable(),
         ihm_model_list: Table.ofPartialColumns(BasicSchema.ihm_model_list, {
             model_id: Column.ofIntArray([1]),
-            model_name: Column.ofStringArray(['3DG Model']),
+            model_name: Column.ofStringArray(['G3D Model']),
         }, 1),
         ihm_sphere_obj_site
     });
@@ -153,7 +153,8 @@ async function getTraj(ctx: RuntimeContext, data: G3dDataBlock) {
         haplotypes: Object.keys(data.data),
         haplotype: normalized.haplotype,
         resolution: data.resolution,
-        start: normalized.start
+        start: normalized.start,
+        chroms: normalized.chromosome,
     });
 
     return models;
@@ -174,6 +175,22 @@ export const G3dSymbols = {
             const seqId = ctx.element.unit.model.coarseHierarchy.spheres.seq_id_begin.value(ctx.element.element);
             return info.haplotype[seqId] || '';
         }
+    ),
+    chromosome: QuerySymbolRuntime.Dynamic(CustomPropSymbol('g3d', 'chromosome', Type.Str),
+        ctx => {
+            if (Unit.isAtomic(ctx.element.unit)) return '';
+            const { asym_id } = ctx.element.unit.model.coarseHierarchy.spheres;
+            return asym_id.value(ctx.element.element) || '';
+        }
+    ),
+    region: QuerySymbolRuntime.Dynamic(CustomPropSymbol('g3d', 'region', Type.Num),
+        ctx => {
+            if (Unit.isAtomic(ctx.element.unit)) return '';
+            const info = (G3dInfoDataProperty as any).get(ctx.element.unit.model);
+            if (!info) return 0;
+            const seqId = ctx.element.unit.model.coarseHierarchy.spheres.seq_id_begin.value(ctx.element.element);
+            return info.start[seqId] || 0;
+        }
     )
 };
 
@@ -185,11 +202,31 @@ export function g3dHaplotypeQuery(haplotype: string) {
     });
 }
 
+export function g3dChromosomeQuery(chr: string) {
+    return MS.struct.generator.atomGroups({
+        'chain-test': MS.core.logic.and([
+            MS.core.rel.eq([MS.ammp('objectPrimitive'), 'sphere']),
+            MS.core.rel.eq([G3dSymbols.chromosome.symbol(), chr])
+        ])
+    });
+}
+
+export function g3dRegionQuery(chr: string, start: number, end: number) {
+    return MS.struct.generator.atomGroups({
+        'chain-test': MS.core.logic.and([
+            MS.core.rel.eq([MS.ammp('objectPrimitive'), 'sphere']),
+            MS.core.rel.eq([G3dSymbols.chromosome.symbol(), chr])
+        ]),
+        'residue-test': MS.core.rel.inRange([G3dSymbols.region.symbol(), start, end])
+    });
+}
+
 export interface G3dInfoData {
     haplotypes: string[],
     haplotype: string[],
     start: Int32Array,
-    resolution: number
+    resolution: number,
+    chroms: string[]
 };
 
 export const G3dLabelProvider: LociLabelProvider = {
