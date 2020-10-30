@@ -28,6 +28,12 @@ import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
 import { DnatcoConfalPyramids } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
+import { BuildInVolumeFormat } from '../../mol-plugin-state/formats/volume';
+import { Color } from '../../mol-util/color';
+import { StateObjectSelector } from '../../mol-state';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 
 require('mol-plugin-ui/skin/light.scss');
 
@@ -220,4 +226,40 @@ export class Viewer {
             }
         }));
     }
+
+    async loadVolumeFromUrl(url: string, format: BuildInVolumeFormat, isBinary: boolean, isovalues: VolumeIsovalueInfo[], entryId?: string) {
+        const plugin = this.plugin;
+
+        if (!plugin.dataFormats.get(format)) {
+            throw new Error(`Unknown density format: ${format}`);
+        }
+
+        return plugin.dataTransaction(async () => {
+            const data = await plugin.builders.data.download({ url, isBinary, label: entryId }, { state: { isGhost: true } });
+
+            const parsed = await plugin.dataFormats.get(format)!.parse(plugin, data, { entryId });
+            const volume = (parsed.volume || parsed.volumes[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;
+            if (!volume?.isOk) throw new Error('Failed to parse any volume.');
+
+            const repr = plugin.build().to(volume);
+            for (const iso of isovalues) {
+                repr.apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.plugin, volume.data!, {
+                    type: 'isosurface',
+                    typeParams: { alpha: iso.alpha ?? 1, isoValue: iso.type === 'absolute' ?  { kind: 'absolute', absoluteValue: iso.value } : { kind: 'relative', relativeValue: iso.value } },
+                    color: 'uniform',
+                    colorParams: { value: iso.color }
+                }));
+            }
+
+            await repr.commit();
+        });
+    }
 }
+
+export interface VolumeIsovalueInfo {
+    type: 'absolute' | 'relative',
+    value: number,
+    color: Color,
+    alpha?: number
+}
+
