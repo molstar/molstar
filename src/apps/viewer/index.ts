@@ -68,6 +68,7 @@ const DefaultViewerOptions = {
     viewportShowAnimation: PluginConfig.Viewport.ShowAnimation.defaultValue,
     pluginStateServer: PluginConfig.State.DefaultServer.defaultValue,
     volumeStreamingServer: PluginConfig.VolumeStreaming.DefaultServer.defaultValue,
+    volumeStreamingDisabled: !PluginConfig.VolumeStreaming.Enabled.defaultValue,
     pdbProvider: PluginConfig.Download.DefaultPdbProvider.defaultValue,
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
 };
@@ -116,6 +117,7 @@ export class Viewer {
                 [PluginConfig.State.DefaultServer, o.pluginStateServer],
                 [PluginConfig.State.CurrentServer, o.pluginStateServer],
                 [PluginConfig.VolumeStreaming.DefaultServer, o.volumeStreamingServer],
+                [PluginConfig.VolumeStreaming.Enabled, !o.volumeStreamingDisabled],
                 [PluginConfig.Download.DefaultPdbProvider, o.pdbProvider],
                 [PluginConfig.Download.DefaultEmdbProvider, o.emdbProvider]
             ]

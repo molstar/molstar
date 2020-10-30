@@ -292,7 +292,7 @@ export class DefaultStructureTools extends PluginUIComponent {
             <StructureMeasurementsControls />
             <StructureSuperpositionControls />
             <StructureComponentControls />
-            <VolumeStreamingControls />
+            {this.plugin.config.get(PluginConfig.VolumeStreaming.Enabled) && <VolumeStreamingControls />}
             <VolumeSourceControls />
 
             <CustomStructureControls />
