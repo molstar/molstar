@@ -117,7 +117,14 @@ float L4(vec3 p, float a0, float a1, float a2, float a3, float a4, float a5, flo
 }
 
 float alpha(float offset, float f) {
+    #ifdef uMaxCoeffs
+    // in webgl1, the value is in the alpha channel!
+    return texture2D(tAlpha, vec2(offset * f, 0.5)).a;
+    #endif 
+
+    #ifndef uMaxCoeffs
     return texture2D(tAlpha, vec2(offset * f, 0.5)).x;
+    #endif 
 }
 
 float Y(int L, vec3 X, float aO, float fA) {
@@ -165,8 +172,8 @@ float Y(int L, vec3 X, float aO, float fA) {
             if (o >= end) break;
 
             vec2 c = texture2D(tCoeff, vec2(float(o) * fCoeff, 0.5)).xy;
-            o++;
             gauss += c.x * exp(-c.y * R2);
+            o++;
         }
         return gauss;
     }
@@ -176,7 +183,7 @@ float intDiv(float a, float b) { return float(int(a) / int(b)); }
 float intMod(float a, float b) { return a - b * float(int(a) / int(b)); }
 
 void main(void) { 
-    float offset = round(floor(gl_FragCoord.x) + floor(gl_FragCoord.y) * uWidth);
+    float offset = floor(gl_FragCoord.x) + floor(gl_FragCoord.y) * uWidth;
     
     // axis order fast to slow Z, Y, X
     // TODO: support arbitrary axis orders?
@@ -190,6 +197,9 @@ void main(void) {
     float fCoeff = 1.0 / float(uNCoeff - 1);
     float fA = 1.0 / float(uNAlpha - 1);
 
+    // gl_FragColor = floatToRgba(offset);
+    // return;
+
     float v = 0.0;
 
     for (int i = 0; i < uNCenters; i++) {
@@ -200,9 +210,9 @@ void main(void) {
         float R2 = dot(X, X);
 
         // center.w is squared cutoff radius
-        if (R2 > center.w) {
-            continue;
-        }
+        // if (R2 > center.w) {
+        //     continue;
+        // }
 
         vec4 info = texture2D(tInfo, cCoord);
 
@@ -210,7 +220,7 @@ void main(void) {
         float aO = info.y;
         int coeffStart = int(info.z);
         int coeffEnd = int(info.w);
-        
+
         v += R(R2, coeffStart, coeffEnd, fCoeff) * Y(L, X, aO, fA);
     }
 
