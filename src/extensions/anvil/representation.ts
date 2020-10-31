@@ -106,7 +106,7 @@ function getBilayerRims(ctx: RuntimeContext, data: Structure, props: BilayerRims
     const builder = LinesBuilder.create(128, 64, shape?.geometry);
     getLayerCircle(builder, p1, centroid, normal, scaledRadius, props);
     getLayerCircle(builder, p2, centroid, normal, scaledRadius, props);
-    return Shape.create(name, data, builder.getLines(), () => props.color, () => props.linesSize, () => membraneLabel(data));
+    return Shape.create('Bilayer rims', data, builder.getLines(), () => props.color, () => props.linesSize, () => membraneLabel(data));
 }
 
 function getLayerCircle(builder: LinesBuilder, p: Vec3, centroid: Vec3, normal: Vec3, radius: number, props: BilayerRimsProps, shape?: Shape<Lines>) {
@@ -142,7 +142,7 @@ function getBilayerPlanes(ctx: RuntimeContext, data: Structure, props: BilayerPl
     const scaledRadius = props.radiusFactor * radius;
     getLayerPlane(state, p1, centroid, normal, scaledRadius);
     getLayerPlane(state, p2, centroid, normal, scaledRadius);
-    return Shape.create(name, data, MeshBuilder.getMesh(state), () => props.color, () => 1, () => membraneLabel(data));
+    return Shape.create('Bilayer planes', data, MeshBuilder.getMesh(state), () => props.color, () => 1, () => membraneLabel(data));
 }
 
 function getLayerPlane(state: MeshBuilder.State, p: Vec3, centroid: Vec3, normal: Vec3, radius: number) {
@@ -160,7 +160,7 @@ function getBilayerSpheres(ctx: RuntimeContext, data: Structure, props: BilayerS
     const spheresBuilder = SpheresBuilder.create(256, 128, shape?.geometry);
     getLayerSpheres(spheresBuilder, planePoint1, normalVector, density, scaledRadius);
     getLayerSpheres(spheresBuilder, planePoint2, normalVector, density, scaledRadius);
-    return Shape.create(name, data, spheresBuilder.getSpheres(), () => props.color, () => props.sphereSize, () => membraneLabel(data));
+    return Shape.create('Bilayer spheres', data, spheresBuilder.getSpheres(), () => props.color, () => props.sphereSize, () => membraneLabel(data));
 }
 
 function getLayerSpheres(spheresBuilder: SpheresBuilder, point: Vec3, normalVector: Vec3, density: number, sqRadius: number) {

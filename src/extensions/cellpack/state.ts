@@ -125,7 +125,7 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
                     const s = await StructureSymmetry.buildAssembly(initial_structure, a.id).runInContext(ctx);
                     structures.push(s);
                 }
-                const builder = Structure.Builder({ label: name });
+                const builder = Structure.Builder();
                 let offsetInvariantId = 0;
                 for (const s of structures) {
                     let maxInvariantId = 0;

@@ -110,7 +110,7 @@ async function execute<T>(task: ExposedTask<T>, ctx: ObservableRuntimeContext) {
 
             // wait for all child computations to go thru the abort phase.
             if (ctx.node.children.length > 0) {
-                await new Promise(res => { ctx.onChildrenFinished = res; });
+                await new Promise<void>(res => { ctx.onChildrenFinished = res; });
             }
             if (task.onAbort) {
                 task.onAbort();
