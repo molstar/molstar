@@ -38,7 +38,8 @@ interface Params {
     orbitalIndex: number,
     isoValue: number,
     staticIsovalues: boolean,
-    gpuSurface: boolean
+    gpuSurface: boolean,
+    cpuCompute: boolean
 }
 
 export class AlphaOrbitalsExample {
@@ -73,7 +74,7 @@ export class AlphaOrbitalsExample {
     }
 
     readonly params = new BehaviorSubject<ParamDefinition.For<Params>>({} as any);
-    readonly state = new BehaviorSubject<Params>({ orbitalIndex: 32, isoValue: 1, staticIsovalues: false, gpuSurface: false });
+    readonly state = new BehaviorSubject<Params>({ orbitalIndex: 32, isoValue: 1, staticIsovalues: false, gpuSurface: false, cpuCompute: false });
 
     private volume?: StateObjectSelector<PluginStateObject.Volume.Data, typeof CreateOrbitalVolume>;
     private positive?: StateObjectSelector<PluginStateObject.Volume.Representation3D, typeof StateTransforms.Representation.VolumeRepresentation3D>;
@@ -84,7 +85,7 @@ export class AlphaOrbitalsExample {
     private async setIndex() {
         if (!this.volume?.isOk) return;
         const state = this.state.value;
-        await this.plugin.build().to(this.volume).update(CreateOrbitalVolume, () => ({ index: state.orbitalIndex })).commit();
+        await this.plugin.build().to(this.volume).update(CreateOrbitalVolume, () => ({ index: state.orbitalIndex, cpuCompute: state.cpuCompute })).commit();
         if (!state.staticIsovalues) {
             this.isovalues = computeIsocontourValues(this.volume.data!.grid.cells.data as any, 0.85);
         }
@@ -137,7 +138,7 @@ export class AlphaOrbitalsExample {
 
         this.volume = await this.plugin.build().toRoot()
             .apply(StaticBasisAndOrbitals, { basis: input.basis, order: input.order, orbitals: input.orbitals })
-            .apply(CreateOrbitalVolume, { index: state.orbitalIndex })
+            .apply(CreateOrbitalVolume, { index: state.orbitalIndex, cpuCompute: this.currentParams.cpuCompute })
             .commit();
 
         if (!this.volume.isOk) {
@@ -161,11 +162,14 @@ export class AlphaOrbitalsExample {
             orbitalIndex: ParamDefinition.Numeric(this.currentParams.orbitalIndex, { min: 0, max: input.orbitals.length - 1 }, { immediateUpdate: true, isEssential: true }),
             isoValue: ParamDefinition.Numeric(this.currentParams.isoValue, { min: 0.5, max: 3, step: 0.1 }, { immediateUpdate: true, isEssential: false }),
             staticIsovalues: ParamDefinition.Boolean(this.currentParams.staticIsovalues),
-            gpuSurface: ParamDefinition.Boolean(this.currentParams.gpuSurface)
+            gpuSurface: ParamDefinition.Boolean(this.currentParams.gpuSurface),
+            cpuCompute: ParamDefinition.Boolean(this.currentParams.gpuSurface)
         });
 
         this.state.pipe(skip(1), debounceTime(1000 / 24)).subscribe(async params => {
-            if (params.orbitalIndex !== this.currentParams.orbitalIndex || params.staticIsovalues !== this.currentParams.staticIsovalues) {
+            if (params.orbitalIndex !== this.currentParams.orbitalIndex
+                || params.staticIsovalues !== this.currentParams.staticIsovalues
+                || params.cpuCompute !== this.currentParams.cpuCompute) {
                 this.setIndex();
             } else if (params.isoValue !== this.currentParams.isoValue || params.gpuSurface !== this.currentParams.gpuSurface) {
                 this.setIsovalue();

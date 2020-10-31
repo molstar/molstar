@@ -39,11 +39,12 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
     to: PluginStateObject.Volume.Data,
     params: (a) => {
         if (!a) {
-            return { index: PD.Numeric(0) };
+            return { index: PD.Numeric(0), cpuCompute: PD.Boolean(false) };
         }
 
         return {
-            index: PD.Select(0, a.data.orbitals.map((o, i) => [i, `[${i + 1}] ${o.energy.toFixed(4)}`]))
+            index: PD.Select(0, a.data.orbitals.map((o, i) => [i, `[${i + 1}] ${o.energy.toFixed(4)}`])),
+            cpuCompute: PD.Boolean(false)
         };
     }
 })({
@@ -62,7 +63,7 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
                     [0, 0.35],
                 ],
                 doNotComputeIsovalues: true
-            }, plugin.canvas3d?.webgl).runInContext(ctx);
+            }, params.cpuCompute ? void 0 : plugin.canvas3d?.webgl).runInContext(ctx);
             const volume: Volume = {
                 grid: data.grid,
                 sourceData: { name: 'custom grid', kind: 'custom', data },
