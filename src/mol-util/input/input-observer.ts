@@ -139,6 +139,8 @@ export type DragInput = {
 export type WheelInput = {
     x: number,
     y: number,
+    pageX: number,
+    pageY: number,
     dx: number,
     dy: number,
     dz: number,
@@ -578,6 +580,7 @@ namespace InputObserver {
             if (!mask(ev.clientX, ev.clientY)) return;
 
             eventOffset(pointerEnd, ev);
+            const { pageX, pageY } = ev;
             const [ x, y ] = pointerEnd;
 
             if (noScroll) {
@@ -598,7 +601,7 @@ namespace InputObserver {
             buttons = button = ButtonsType.Flag.Auxilary;
 
             if (dx || dy || dz) {
-                wheel.next({ x, y, dx, dy, dz, buttons, button, modifiers: getModifierKeys() });
+                wheel.next({ x, y, pageX, pageY, dx, dy, dz, buttons, button, modifiers: getModifierKeys() });
             }
         }
 
