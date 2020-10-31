@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -28,7 +28,9 @@ export function guessElementSymbolTokens(tokens: Tokens, str: string, start: num
             ((c === 78 || c === 110) && (c2 === 65 || c2 ===  97)) || // NA na Na nA
             ((c === 67 || c ===  99) && (c2 === 76 || c2 === 108)) || // CL
             ((c === 70 || c === 102) && (c2 === 69 || c2 === 101)) || // FE
-            ((c === 83 || c === 115) && (c2 === 73 || c2 === 105))    // SI
+            ((c === 83 || c === 115) && (c2 === 73 || c2 === 105)) || // SI
+            ((c === 66 || c === 98) && (c2 === 82 || c2 === 114)) ||  // BR
+            ((c === 65 || c === 97) && (c2 === 83 || c2 === 115))     // AS
         ) return TokenBuilder.add(tokens, s, s + 2);
     }
 
@@ -54,7 +56,9 @@ export function guessElementSymbolString(str: string) {
     if (l === 1) return str; // one char
 
     if (l === 2) { // two chars
-        if (str === 'NA' || str === 'CL' || str === 'FE' || str === 'SI') return str;
+        if (str === 'NA' || str === 'CL' || str === 'FE' || str === 'SI' ||
+            str === 'BR' || str === 'AS'
+        ) return str;
     }
 
     const c = str[0];
