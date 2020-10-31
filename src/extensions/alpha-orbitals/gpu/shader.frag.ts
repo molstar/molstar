@@ -210,9 +210,9 @@ void main(void) {
         float R2 = dot(X, X);
 
         // center.w is squared cutoff radius
-        // if (R2 > center.w) {
-        //     continue;
-        // }
+        if (R2 > center.w) {
+            continue;
+        }
 
         vec4 info = texture2D(tInfo, cCoord);
 
