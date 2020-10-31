@@ -32,6 +32,7 @@ export const PluginConfig = {
         HistoryCapacity: item('history-capacity.server', 5)
     },
     VolumeStreaming: {
+        Enabled: item('volume-streaming.enabled', true),
         DefaultServer: item('volume-streaming.server', 'https://ds.litemol.org'),
         CanStream: item('volume-streaming.can-stream', (s: Structure, plugin: PluginContext) => {
             return s.models.length === 1 && Model.probablyHasDensityMap(s.models[0]);

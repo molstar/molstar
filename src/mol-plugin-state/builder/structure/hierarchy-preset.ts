@@ -73,6 +73,11 @@ const defaultPreset = TrajectoryHierarchyPresetProvider({
     }
 });
 
+const AllModelsParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
+    useDefaultIfSingleModel: PD.Optional(PD.Boolean(false)),
+    ...CommonParams(a, plugin)
+});
+
 const allModels = TrajectoryHierarchyPresetProvider({
     id: 'preset-trajectory-all-models',
     display: {
@@ -82,10 +87,14 @@ const allModels = TrajectoryHierarchyPresetProvider({
     isApplicable: o => {
         return o.data.frameCount > 1;
     },
-    params: CommonParams,
+    params: AllModelsParams,
     async apply(trajectory, params, plugin) {
         const tr = StateObjectRef.resolveAndCheck(plugin.state.data, trajectory)?.obj?.data;
         if (!tr) return { };
+
+        if (tr.frameCount === 1 && params.useDefaultIfSingleModel) {
+            return defaultPreset.apply(trajectory, params as any, plugin);
+        }
 
         const builder = plugin.builders.structure;
 
