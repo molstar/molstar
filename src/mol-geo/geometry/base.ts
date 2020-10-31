@@ -78,6 +78,7 @@ export namespace BaseGeometry {
             visible: true,
             alphaFactor: 1,
             pickable: true,
+            colorOnly: false,
             opaque,
             writeDepth: opaque,
         };

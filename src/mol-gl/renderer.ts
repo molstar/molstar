@@ -368,7 +368,9 @@ namespace Renderer {
                 }
             } else { // picking & depth
                 for (let i = 0, il = renderables.length; i < il; ++i) {
-                    renderObject(renderables[i], variant, depthTexture);
+                    if (!renderables[i].state.colorOnly) {
+                        renderObject(renderables[i], variant, depthTexture);
+                    }
                 }
             }
 

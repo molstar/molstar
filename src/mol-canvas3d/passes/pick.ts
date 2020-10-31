@@ -10,13 +10,17 @@ import Scene from '../../mol-gl/scene';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { GraphicsRenderVariant } from '../../mol-gl/webgl/render-item';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
-import { decodeFloatRGB } from '../../mol-util/float-packing';
+import { Vec3 } from '../../mol-math/linear-algebra';
+import { decodeFloatRGB, unpackRGBAToDepth } from '../../mol-util/float-packing';
 import { Camera, ICamera } from '../camera';
 import { StereoCamera } from '../camera/stereo';
+import { cameraUnproject } from '../camera/util';
 import { HandleHelper } from '../helper/handle-helper';
 import { DrawPass } from './draw';
 
 const NullId = Math.pow(2, 24) - 2;
+
+export type PickData = { id: PickingId, position: Vec3 }
 
 export class PickPass {
     pickDirty = true
@@ -24,12 +28,14 @@ export class PickPass {
     objectPickTarget: RenderTarget
     instancePickTarget: RenderTarget
     groupPickTarget: RenderTarget
+    depthPickTarget: RenderTarget
 
     isStereo = false
 
     private objectBuffer: Uint8Array
     private instanceBuffer: Uint8Array
     private groupBuffer: Uint8Array
+    private depthBuffer: Uint8Array
 
     private pickScale: number
     private pickWidth: number
@@ -43,6 +49,7 @@ export class PickPass {
         this.objectPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
         this.instancePickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
         this.groupPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
+        this.depthPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
 
         this.setupBuffers();
     }
@@ -53,6 +60,7 @@ export class PickPass {
             this.objectBuffer = new Uint8Array(bufferSize);
             this.instanceBuffer = new Uint8Array(bufferSize);
             this.groupBuffer = new Uint8Array(bufferSize);
+            this.depthBuffer = new Uint8Array(bufferSize);
         }
     }
 
@@ -68,6 +76,7 @@ export class PickPass {
             this.objectPickTarget.setSize(this.pickWidth, this.pickHeight);
             this.instancePickTarget.setSize(this.pickWidth, this.pickHeight);
             this.groupPickTarget.setSize(this.pickWidth, this.pickHeight);
+            this.depthPickTarget.setSize(this.pickWidth, this.pickHeight);
 
             this.setupBuffers();
         }
@@ -107,6 +116,9 @@ export class PickPass {
         this.groupPickTarget.bind();
         this.renderVariant('pickGroup');
 
+        this.depthPickTarget.bind();
+        this.renderVariant('depth');
+
         this.pickDirty = false;
     }
 
@@ -121,14 +133,27 @@ export class PickPass {
 
         this.groupPickTarget.bind();
         webgl.readPixels(0, 0, this.pickWidth, this.pickHeight, this.groupBuffer);
+
+        this.depthPickTarget.bind();
+        webgl.readPixels(0, 0, this.pickWidth, this.pickHeight, this.depthBuffer);
+    }
+
+    private getBufferIdx(x: number, y: number): number {
+        return (y * this.pickWidth + x) * 4;
+    }
+
+    private getDepth(x: number, y: number): number {
+        const idx = this.getBufferIdx(x, y);
+        const b = this.depthBuffer;
+        return unpackRGBAToDepth(b[idx], b[idx + 1], b[idx + 2], b[idx + 3]);
     }
 
     private getId(x: number, y: number, buffer: Uint8Array) {
-        const idx = (y * this.pickWidth + x) * 4;
+        const idx = this.getBufferIdx(x, y);
         return decodeFloatRGB(buffer[idx], buffer[idx + 1], buffer[idx + 2]);
     }
 
-    identify(x: number, y: number): PickingId | undefined {
+    identify(x: number, y: number): PickData | undefined {
         const { webgl, pickScale, camera: { viewport } } = this;
         if (webgl.isContextLost) return;
 
@@ -168,7 +193,12 @@ export class PickPass {
         const groupId = this.getId(xp, yp, this.groupBuffer);
         // console.log('groupId', groupId);
         if (groupId === -1 || groupId === NullId) return;
-        // console.log({ objectId, instanceId, groupId });
-        return { objectId, instanceId, groupId };
+
+        const z = this.getDepth(xp, yp);
+        const position = Vec3.create(x, gl.drawingBufferHeight - y, z);
+        cameraUnproject(position, position, viewport, this.camera.inverseProjectionView);
+
+        // console.log({ { objectId, instanceId, groupId }, position} );
+        return { id: { objectId, instanceId, groupId }, position };
     }
 }

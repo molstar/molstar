@@ -203,6 +203,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                 if (state.visible !== undefined) Visual.setVisibility(_renderObject, state.visible);
                 if (state.alphaFactor !== undefined) Visual.setAlphaFactor(_renderObject, state.alphaFactor);
                 if (state.pickable !== undefined) Visual.setPickable(_renderObject, state.pickable);
+                if (state.colorOnly !== undefined) Visual.setColorOnly(_renderObject, state.colorOnly);
                 if (state.overpaint !== undefined) {
                     Visual.setOverpaint(_renderObject, state.overpaint, lociApply, true);
                 }

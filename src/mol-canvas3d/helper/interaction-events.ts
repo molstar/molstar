@@ -9,7 +9,7 @@ import { PickingId } from '../../mol-geo/geometry/picking';
 import { Representation } from '../../mol-repr/representation';
 import InputObserver, { ModifiersKeys, ButtonsType } from '../../mol-util/input/input-observer';
 import { RxEventHelper } from '../../mol-util/rx-event-helper';
-import { Vec2 } from '../../mol-math/linear-algebra';
+import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { Camera } from '../camera';
 
 type Canvas3D = import('../canvas3d').Canvas3D
@@ -34,6 +34,7 @@ export class Canvas3dInteractionHelper {
     private endY = -1;
 
     private id: PickingId | undefined = void 0;
+    private position: Vec3 | undefined = void 0;
 
     private currentIdentifyT = 0;
     private isInteracting = false;
@@ -61,14 +62,16 @@ export class Canvas3dInteractionHelper {
         }
 
         if (xyChanged) {
-            this.id = this.canvasIdentify(this.endX, this.endY);
+            const pickData = this.canvasIdentify(this.endX, this.endY);
+            this.id = pickData?.id;
+            this.position = pickData?.position;
             this.startX = this.endX;
             this.startY = this.endY;
         }
 
         if (e === InputEvent.Click) {
             const loci = this.getLoci(this.id);
-            this.events.click.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers });
+            this.events.click.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers, position: this.position });
             this.prevLoci = loci;
             return;
         }
@@ -78,11 +81,8 @@ export class Canvas3dInteractionHelper {
         }
 
         const loci = this.getLoci(this.id);
-        // only broadcast the latest hover
-        if (!Representation.Loci.areEqual(this.prevLoci, loci)) {
-            this.events.hover.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers });
-            this.prevLoci = loci;
-        }
+        this.events.hover.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers, page: Vec2.create(this.endX, this.endY), position: this.position });
+        this.prevLoci = loci;
     }
 
     tick(t: number) {
@@ -129,9 +129,9 @@ export class Canvas3dInteractionHelper {
     }
 
     private modify(modifiers: ModifiersKeys) {
-        if (Representation.Loci.isEmpty(this.prevLoci) || ModifiersKeys.areEqual(modifiers, this.modifiers)) return;
+        if (ModifiersKeys.areEqual(modifiers, this.modifiers)) return;
         this.modifiers = modifiers;
-        this.events.hover.next({ current: this.prevLoci, buttons: this.buttons, button: this.button, modifiers: this.modifiers });
+        this.events.hover.next({ current: this.prevLoci, buttons: this.buttons, button: this.button, modifiers: this.modifiers, page: Vec2.create(this.endX, this.endY), position: this.position });
     }
 
     private outsideViewport(x: number, y: number) {

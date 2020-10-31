@@ -41,6 +41,7 @@ interface Visual<D, P extends PD.Params> {
     setVisibility: (visible: boolean) => void
     setAlphaFactor: (alphaFactor: number) => void
     setPickable: (pickable: boolean) => void
+    setColorOnly: (colorOnly: boolean) => void
     setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void
     setOverpaint: (overpaint: Overpaint) => void
     setTransparency: (transparency: Transparency) => void
@@ -60,6 +61,10 @@ namespace Visual {
 
     export function setPickable(renderObject: GraphicsRenderObject | undefined, pickable: boolean) {
         if (renderObject) renderObject.state.pickable = pickable;
+    }
+
+    export function setColorOnly(renderObject: GraphicsRenderObject | undefined, colorOnly: boolean) {
+        if (renderObject) renderObject.state.colorOnly = colorOnly;
     }
 
     export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply) {
