@@ -220,7 +220,7 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
                 order: Column.ofIntArray(order),
                 distance: Column.ofFloatArray(dist),
                 flag: Column.ofIntArray(flag)
-            }, count: indexA.length }));
+            }, count: atomCount }));
         }
     }
 

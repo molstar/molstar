@@ -67,7 +67,7 @@ async function getModels(mol: MolFile, ctx: RuntimeContext) {
         const indexA = Column.ofIntArray(Column.mapToArray(bonds.atomIdxA, x => x - 1, Int32Array));
         const indexB = Column.ofIntArray(Column.mapToArray(bonds.atomIdxB, x => x - 1, Int32Array));
         const order = Column.asArrayColumn(bonds.order, Int32Array);
-        const pairBonds = IndexPairBonds.fromData({ pairs: { indexA, indexB, order }, count: bonds.count });
+        const pairBonds = IndexPairBonds.fromData({ pairs: { indexA, indexB, order }, count: atoms.count });
         IndexPairBonds.Provider.set(models.representative, pairBonds);
     }
 
