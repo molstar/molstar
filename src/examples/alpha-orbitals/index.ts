@@ -1,27 +1,25 @@
-import { BehaviorSubject } from 'rxjs';
-import { debounceTime, skip } from 'rxjs/operators';
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Basis, computeIsocontourValues } from '../../extensions/alpha-orbitals/cubes';
+import { Basis } from '../../extensions/alpha-orbitals/cubes';
 import { SphericalBasisOrder } from '../../extensions/alpha-orbitals/orbitals';
+import { CreateOrbitalRepresentation3D, CreateOrbitalVolume, StaticBasisAndOrbitals } from '../../extensions/alpha-orbitals/transforms';
 import { createPluginAsync, DefaultPluginSpec } from '../../mol-plugin';
-import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { PluginConfig } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectSelector } from '../../mol-state';
+import { StateObjectSelector, StateTransformer } from '../../mol-state';
 import { Color } from '../../mol-util/color';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { mountControls } from './controls';
 import { DemoMoleculeSDF, DemoOrbitals } from './example-data';
+import { BehaviorSubject } from 'rxjs';
+import { debounceTime, skip } from 'rxjs/operators';
 import './index.html';
-import { CreateOrbitalVolume, StaticBasisAndOrbitals } from './transforms';
 require('mol-plugin-ui/skin/light.scss');
 
 interface DemoInput {
@@ -37,7 +35,6 @@ interface DemoInput {
 interface Params {
     orbitalIndex: number,
     isoValue: number,
-    staticIsovalues: boolean,
     gpuSurface: boolean,
     cpuCompute: boolean
 }
@@ -74,53 +71,39 @@ export class AlphaOrbitalsExample {
     }
 
     readonly params = new BehaviorSubject<ParamDefinition.For<Params>>({} as any);
-    readonly state = new BehaviorSubject<Params>({ orbitalIndex: 32, isoValue: 1, staticIsovalues: false, gpuSurface: false, cpuCompute: false });
+    readonly state = new BehaviorSubject<Params>({ orbitalIndex: 32, isoValue: 1, gpuSurface: false, cpuCompute: false });
 
     private volume?: StateObjectSelector<PluginStateObject.Volume.Data, typeof CreateOrbitalVolume>;
-    private positive?: StateObjectSelector<PluginStateObject.Volume.Representation3D, typeof StateTransforms.Representation.VolumeRepresentation3D>;
-    private negative?: StateObjectSelector<PluginStateObject.Volume.Representation3D, typeof StateTransforms.Representation.VolumeRepresentation3D>;
-    private isovalues: { negative?: number, positive?: number } = { negative: void 0, positive: void 0 }
+    private positive?: StateObjectSelector<PluginStateObject.Volume.Representation3D, typeof CreateOrbitalRepresentation3D>;
+    private negative?: StateObjectSelector<PluginStateObject.Volume.Representation3D, typeof CreateOrbitalRepresentation3D>;
     private currentParams: Params = { ...this.state.value };
 
     private async setIndex() {
         if (!this.volume?.isOk) return;
         const state = this.state.value;
         await this.plugin.build().to(this.volume).update(CreateOrbitalVolume, () => ({ index: state.orbitalIndex, cpuCompute: state.cpuCompute })).commit();
-        if (!state.staticIsovalues) {
-            this.isovalues = computeIsocontourValues(this.volume.data!.grid.cells.data as any, 0.85);
-        }
-        if (!state.staticIsovalues || this.currentParams.gpuSurface !== this.state.value.gpuSurface) {
+        if (this.currentParams.gpuSurface !== this.state.value.gpuSurface) {
             await this.setIsovalue();
         }
         this.currentParams = this.state.value;
     }
 
     private setIsovalue() {
-        const { positive, negative } = this.isovalues;
         this.currentParams = this.state.value;
         const update = this.plugin.build();
-        update.to(this.positive!).update(this.volumeParams(positive, ColorNames.blue));
-        update.to(this.negative!).update(this.volumeParams(negative, ColorNames.red));
+        update.to(this.positive!).update(this.volumeParams('positive', ColorNames.blue));
+        update.to(this.negative!).update(this.volumeParams('negative', ColorNames.red));
         return update.commit();
     }
 
-    private volumeParams(value: number | undefined, color: Color) {
-        return createVolumeRepresentationParams(this.plugin, this.volume!.data!, this.currentParams.gpuSurface ? {
-            type: 'direct-volume',
-            typeParams: {
-                renderMode: {
-                    name: 'isosurface',
-                    params: { isoValue: { kind: 'absolute', absoluteValue: (value ?? 1000) * this.state.value.isoValue }, singleLayer: true }
-                }
-            },
-            color: 'uniform',
-            colorParams: { value: color }
-        } : {
-            type: 'isosurface',
-            typeParams: { isoValue: { kind: 'absolute', absoluteValue: (value ?? 1000) * this.state.value.isoValue } },
-            color: 'uniform',
-            colorParams: { value: color }
-        });
+    private volumeParams(kind: 'positive' | 'negative', color: Color): StateTransformer.Params<typeof CreateOrbitalRepresentation3D> {
+        return {
+            alpha: 1.0,
+            color,
+            directVolume: this.state.value.gpuSurface,
+            kind,
+            relativeIsovalue: this.state.value.isoValue
+        };
     }
 
     async load(input: DemoInput) {
@@ -138,7 +121,7 @@ export class AlphaOrbitalsExample {
 
         this.volume = await this.plugin.build().toRoot()
             .apply(StaticBasisAndOrbitals, { basis: input.basis, order: input.order, orbitals: input.orbitals })
-            .apply(CreateOrbitalVolume, { index: state.orbitalIndex, cpuCompute: this.currentParams.cpuCompute })
+            .apply(CreateOrbitalVolume, { index: state.orbitalIndex, forceCpuCompute: this.currentParams.cpuCompute })
             .commit();
 
         if (!this.volume.isOk) {
@@ -146,29 +129,22 @@ export class AlphaOrbitalsExample {
             return;
         }
 
-        // TODO: the isovalues are being computed twice. Need to add more flexible support to Volume object
-        //       for controlling them
-        this.isovalues = computeIsocontourValues(this.volume.data!.grid.cells.data as any, 0.85);
-        const { positive, negative } = this.isovalues;
-
         const repr = this.plugin.build().to(this.volume);
 
-        this.positive = repr.apply(StateTransforms.Representation.VolumeRepresentation3D, this.volumeParams(positive, ColorNames.blue)).selector;
-        this.negative = repr.apply(StateTransforms.Representation.VolumeRepresentation3D, this.volumeParams(negative, ColorNames.red)).selector;
+        this.positive = repr.apply(CreateOrbitalRepresentation3D, this.volumeParams('positive', ColorNames.blue)).selector;
+        this.negative = repr.apply(CreateOrbitalRepresentation3D, this.volumeParams('negative', ColorNames.red)).selector;
 
         await repr.commit();
 
         this.params.next({
             orbitalIndex: ParamDefinition.Numeric(this.currentParams.orbitalIndex, { min: 0, max: input.orbitals.length - 1 }, { immediateUpdate: true, isEssential: true }),
             isoValue: ParamDefinition.Numeric(this.currentParams.isoValue, { min: 0.5, max: 3, step: 0.1 }, { immediateUpdate: true, isEssential: false }),
-            staticIsovalues: ParamDefinition.Boolean(this.currentParams.staticIsovalues),
             gpuSurface: ParamDefinition.Boolean(this.currentParams.gpuSurface),
-            cpuCompute: ParamDefinition.Boolean(this.currentParams.gpuSurface)
+            cpuCompute: ParamDefinition.Boolean(this.currentParams.cpuCompute, { label: 'CPU Compute' })
         });
 
         this.state.pipe(skip(1), debounceTime(1000 / 24)).subscribe(async params => {
             if (params.orbitalIndex !== this.currentParams.orbitalIndex
-                || params.staticIsovalues !== this.currentParams.staticIsovalues
                 || params.cpuCompute !== this.currentParams.cpuCompute) {
                 this.setIndex();
             } else if (params.isoValue !== this.currentParams.isoValue || params.gpuSurface !== this.currentParams.gpuSurface) {

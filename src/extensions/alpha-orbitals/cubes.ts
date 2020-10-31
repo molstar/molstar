@@ -78,13 +78,13 @@ export function createSphericalCollocationGrid(
 
         let matrix: Float32Array;
         if (canComputeAlphaOrbitalsOnGPU(webgl)) {
-            console.time('gpu');
+            // console.time('gpu');
             matrix = gpuComputeAlphaOrbitalsGridValues(webgl!, cParams);
-            console.timeEnd('gpu');
+            // console.timeEnd('gpu');
         } else {
-            console.time('cpu');
+            // console.time('cpu');
             matrix = await sphericalCollocation(cParams, ctx);
-            console.timeEnd('cpu');
+            // console.timeEnd('cpu');
         }
 
         return createCubeGrid(cParams.grid, matrix, [0, 1, 2], !params.doNotComputeIsovalues);
