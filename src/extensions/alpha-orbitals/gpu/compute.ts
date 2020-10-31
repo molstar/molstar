@@ -32,7 +32,7 @@ const AlphaOrbitalsSchema = {
     uNAlpha: UniformSpec('i'),
     uNCoeff: UniformSpec('i'),
     uMaxCoeffs: UniformSpec('i'),
-    uLittleEndian: UniformSpec('i') // TODO: boolean uniforms
+    uLittleEndian: UniformSpec('b')
 };
 const AlphaOrbitalsShaderCode = ShaderCode('postprocessing', quad_vert, shader_frag);
 type AlphaOrbitalsRenderable = ComputeRenderable<Values<typeof AlphaOrbitalsSchema>>

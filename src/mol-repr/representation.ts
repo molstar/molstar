@@ -174,6 +174,8 @@ namespace Representation {
         alphaFactor: number
         /** Controls if the representation's renderobjects are pickable or not */
         pickable: boolean
+        /** Controls if the representation's renderobjects is rendered in color pass (i.e., not pick and depth) or not */
+        colorOnly: boolean
         /** Overpaint applied to the representation's renderobjects */
         overpaint: Overpaint
         /** Per group transparency applied to the representation's renderobjects */
@@ -188,12 +190,13 @@ namespace Representation {
         markerActions: MarkerActions
     }
     export function createState(): State {
-        return { visible: true, alphaFactor: 1, pickable: true, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty, transparency: Transparency.Empty, clipping: Clipping.Empty, markerActions: MarkerActions.All };
+        return { visible: true, alphaFactor: 1, pickable: true, colorOnly: false, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty, transparency: Transparency.Empty, clipping: Clipping.Empty, markerActions: MarkerActions.All };
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible;
         if (update.alphaFactor !== undefined) state.alphaFactor = update.alphaFactor;
         if (update.pickable !== undefined) state.pickable = update.pickable;
+        if (update.colorOnly !== undefined) state.colorOnly = update.colorOnly;
         if (update.overpaint !== undefined) state.overpaint = update.overpaint;
         if (update.transparency !== undefined) state.transparency = update.transparency;
         if (update.clipping !== undefined) state.clipping = update.clipping;
@@ -363,6 +366,7 @@ namespace Representation {
                 if (state.visible !== undefined) Visual.setVisibility(renderObject, state.visible);
                 if (state.alphaFactor !== undefined) Visual.setAlphaFactor(renderObject, state.alphaFactor);
                 if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable);
+                if (state.colorOnly !== undefined) Visual.setColorOnly(renderObject, state.colorOnly);
                 if (state.overpaint !== undefined) {
                     // TODO
                 }

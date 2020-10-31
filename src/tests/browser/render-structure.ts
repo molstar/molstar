@@ -51,7 +51,7 @@ parent.appendChild(info);
 
 let prevReprLoci = Representation.Loci.Empty;
 canvas3d.input.move.pipe(throttleTime(100)).subscribe(({x, y}) => {
-    const pickingId = canvas3d.identify(x, y);
+    const pickingId = canvas3d.identify(x, y)?.id;
     let label = '';
     if (pickingId) {
         const reprLoci = canvas3d.getLoci(pickingId);

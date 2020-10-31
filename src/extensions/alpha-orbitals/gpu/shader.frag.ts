@@ -28,7 +28,7 @@ uniform float uWidth;
 uniform int uNCoeff;
 uniform int uNAlpha;
 
-uniform int uLittleEndian;
+uniform bool uLittleEndian;
 
 float shiftRight (float v, float amt) {
   v = floor(v) + 0.5;
@@ -61,9 +61,9 @@ vec4 floatToRgba(float texelFloat) {
     float byte2 = (last_bit_of_biased_exponent * 128.0 + extractBits(fraction, 16.0, 23.0)) / 255.0;
     float byte1 = (sign * 128.0 + remaining_bits_of_biased_exponent) / 255.0;
     return (
-      uLittleEndian > 0
-      ? vec4(byte4, byte3, byte2, byte1)
-      : vec4(byte1, byte2, byte3, byte4)
+        uLittleEndian
+            ? vec4(byte4, byte3, byte2, byte1)
+            : vec4(byte1, byte2, byte3, byte4)
     );
 }
 
@@ -118,13 +118,13 @@ float L4(vec3 p, float a0, float a1, float a2, float a3, float a4, float a5, flo
 
 float alpha(float offset, float f) {
     #ifdef uMaxCoeffs
-    // in webgl1, the value is in the alpha channel!
-    return texture2D(tAlpha, vec2(offset * f, 0.5)).a;
-    #endif 
+        // in webgl1, the value is in the alpha channel!
+        return texture2D(tAlpha, vec2(offset * f, 0.5)).a;
+    #endif
 
     #ifndef uMaxCoeffs
-    return texture2D(tAlpha, vec2(offset * f, 0.5)).x;
-    #endif 
+        return texture2D(tAlpha, vec2(offset * f, 0.5)).x;
+    #endif
 }
 
 float Y(int L, vec3 X, float aO, float fA) {
@@ -140,12 +140,12 @@ float Y(int L, vec3 X, float aO, float fA) {
         );
     } else if (L == 3) {
         return L3(X,
-            alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA), 
+            alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA),
             alpha(aO + 5.0, fA), alpha(aO + 6.0, fA)
         );
     } else if (L == 4) {
         return L4(X,
-            alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA), 
+            alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA),
             alpha(aO + 5.0, fA), alpha(aO + 6.0, fA), alpha(aO + 7.0, fA), alpha(aO + 8.0, fA)
         );
     }
@@ -182,15 +182,15 @@ float Y(int L, vec3 X, float aO, float fA) {
 float intDiv(float a, float b) { return float(int(a) / int(b)); }
 float intMod(float a, float b) { return a - b * float(int(a) / int(b)); }
 
-void main(void) { 
+void main(void) {
     float offset = floor(gl_FragCoord.x) + floor(gl_FragCoord.y) * uWidth;
-    
+
     // axis order fast to slow Z, Y, X
     // TODO: support arbitrary axis orders?
     float k = intMod(offset, uDimensions.z), kk = intDiv(offset, uDimensions.z);
     float j = intMod(kk, uDimensions.y);
     float i = intDiv(kk, uDimensions.y);
-    
+
     vec3 xyz = uMin + uDelta * vec3(i, j, k);
 
     float fCenter = 1.0 / float(uNCenters - 1);

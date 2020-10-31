@@ -41,7 +41,7 @@ let prevReprLoci = Representation.Loci.Empty;
 const canvas3d = Canvas3D.fromCanvas(canvas);
 canvas3d.animate();
 canvas3d.input.move.subscribe(({x, y}) => {
-    const pickingId = canvas3d.identify(x, y);
+    const pickingId = canvas3d.identify(x, y)?.id;
     let label = '';
     if (pickingId) {
         const reprLoci = canvas3d.getLoci(pickingId);

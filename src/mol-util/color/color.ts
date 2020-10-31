@@ -146,7 +146,7 @@ export namespace Color {
     }
 }
 
-export type ColorListEntry = Color | [color: Color, offset: number /** normalized value from 0 to 1 */]
+export type ColorListEntry = Color | [Color, number /** normalized value from 0 to 1 */]
 
 export interface ColorList {
     label: string

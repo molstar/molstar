@@ -10,6 +10,5 @@ export function isLittleEndian() {
     const uint16array = new Uint16Array(arrayBuffer);
     uint8Array[0] = 0xAA;
     uint8Array[1] = 0xBB;
-    if (uint16array[0] === 0xBBAA) return 1;
-    return 0;
+    return uint16array[0] === 0xBBAA;
 }

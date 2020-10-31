@@ -92,6 +92,7 @@ function createPoints() {
         visible: true,
         alphaFactor: 1,
         pickable: true,
+        colorOnly: false,
         opaque: true,
         writeDepth: true
     };

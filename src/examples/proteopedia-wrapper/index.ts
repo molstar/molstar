@@ -403,7 +403,7 @@ class MolStarProteopediaWrapper {
         },
         download: async (type: 'molj' | 'molx' = 'molj', params?: PluginState.SnapshotParams) => {
             const data = await this.plugin.managers.snapshot.serialize({ type, params });
-            download(data, `mol-star_state_${(name || getFormattedTime())}.${type}`);
+            download(data, `mol-star_state_${getFormattedTime()}.${type}`);
         },
         fetch: async (url: string, type: 'molj' | 'molx' = 'molj') => {
             try {

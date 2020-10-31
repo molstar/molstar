@@ -15,8 +15,3 @@ export namespace PickingId {
         return a.objectId === b.objectId && a.instanceId === b.instanceId && a.groupId === b.groupId;
     }
 }
-
-export interface PickingInfo {
-    label: string
-    data?: any
-}

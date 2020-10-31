@@ -17,6 +17,7 @@ export type RenderableState = {
     visible: boolean
     alphaFactor: number
     pickable: boolean
+    colorOnly: boolean
     opaque: boolean
     writeDepth: boolean,
 }

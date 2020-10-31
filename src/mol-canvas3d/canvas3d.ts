@@ -27,7 +27,7 @@ import { Canvas3dInteractionHelper } from './helper/interaction-events';
 import { PostprocessingParams, PostprocessingPass } from './passes/postprocessing';
 import { MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
 import { DrawPass } from './passes/draw';
-import { PickPass } from './passes/pick';
+import { PickData, PickPass } from './passes/pick';
 import { ImagePass, ImageProps } from './passes/image';
 import { Sphere3D } from '../mol-math/geometry';
 import { isDebugMode } from '../mol-util/debug';
@@ -100,7 +100,7 @@ interface Canvas3D {
     requestDraw(force?: boolean): void
     animate(): void
     pause(): void
-    identify(x: number, y: number): PickingId | undefined
+    identify(x: number, y: number): PickData | undefined
     mark(loci: Representation.Loci, action: MarkerAction): void
     getLoci(pickingId: PickingId | undefined): Representation.Loci
 
@@ -132,9 +132,9 @@ const cancelAnimationFrame = typeof window !== 'undefined'
     : (handle: number) => clearImmediate(handle as unknown as NodeJS.Immediate);
 
 namespace Canvas3D {
-    export interface HoverEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
+    export interface HoverEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
-    export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
+    export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, position?: Vec3 }
 
     export function fromCanvas(canvas: HTMLCanvasElement, props: PartialCanvas3DProps = {}, attribs: Partial<{ antialias: boolean, pixelScale: number }> = {}) {
         const gl = getGLContext(canvas, {
@@ -346,7 +346,7 @@ namespace Canvas3D {
             animationFrameHandle = 0;
         }
 
-        function identify(x: number, y: number): PickingId | undefined {
+        function identify(x: number, y: number): PickData | undefined {
             return webgl.isContextLost ? undefined : pickPass.identify(x, y);
         }
 

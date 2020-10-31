@@ -190,6 +190,9 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         setPickable(pickable: boolean) {
             Visual.setPickable(renderObject, pickable);
         },
+        setColorOnly(colorOnly: boolean) {
+            Visual.setColorOnly(renderObject, colorOnly);
+        },
         setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices);
         },

@@ -129,7 +129,7 @@ export const GlobalUniformSchema = {
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),
 
-    uTransparentBackground: UniformSpec('i'),
+    uTransparentBackground: UniformSpec('b'),
 
     uClipObjectType: UniformSpec('i[]'),
     uClipObjectPosition: UniformSpec('v3[]'),
@@ -149,7 +149,7 @@ export const GlobalUniformSchema = {
     uPickingAlphaThreshold: UniformSpec('f'),
 
     uInteriorDarkening: UniformSpec('f'),
-    uInteriorColorFlag: UniformSpec('i'),
+    uInteriorColorFlag: UniformSpec('b'),
     uInteriorColor: UniformSpec('v3'),
 
     uHighlightColor: UniformSpec('v3'),

@@ -37,10 +37,10 @@ uniform vec3 uFogColor;
 
 uniform float uAlpha;
 uniform float uPickingAlphaThreshold;
-uniform int uTransparentBackground;
+uniform bool uTransparentBackground;
 
 uniform float uInteriorDarkening;
-uniform int uInteriorColorFlag;
+uniform bool uInteriorColorFlag;
 uniform vec3 uInteriorColor;
 bool interior;
 `;
