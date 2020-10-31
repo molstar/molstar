@@ -11,6 +11,7 @@ import { RenderableSchema } from '../../mol-gl/renderable/schema';
 import { ValueOf } from '../../mol-util/type-helpers';
 
 export type UniformKindValue = {
+    'b': boolean; 'b[]': boolean[]
     'f': number; 'f[]': number[]
     'i': number; 'i[]': number[]
     'v2': Vec2; 'v2[]': number[]
@@ -28,6 +29,7 @@ export type UniformsList = [string, ValueCell<UniformType>][]
 
 export function getUniformType(gl: GLRenderingContext, kind: UniformKind) {
     switch (kind) {
+        case 'b': case 'b[]': return gl.BOOL;
         case 'f': case 'f[]': return gl.FLOAT;
         case 'i': case 'i[]': return gl.INT;
         case 'v2': case 'v2[]': return gl.FLOAT_VEC2;
@@ -56,8 +58,8 @@ function getUniformSetter(kind: UniformKind): UniformSetter {
     switch (kind) {
         case 'f': return uniform1f;
         case 'f[]': return uniform1fv;
-        case 'i': case 't': return uniform1i;
-        case 'i[]': case 't[]': return uniform1iv;
+        case 'i': case 't': case 'b': return uniform1i;
+        case 'i[]': case 't[]': case 'b[]': return uniform1iv;
         case 'v2': case 'v2[]': return uniform2fv;
         case 'v3': case 'v3[]': return uniform3fv;
         case 'v4': case 'v4[]': return uniform4fv;

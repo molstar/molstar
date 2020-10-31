@@ -203,7 +203,7 @@ namespace Renderer {
             uFogNear: ValueCell.create(1),
             uFogFar: ValueCell.create(10000),
             uFogColor: ValueCell.create(bgColor),
-            uTransparentBackground: ValueCell.create(0),
+            uTransparentBackground: ValueCell.create(false),
 
             uClipObjectType: ValueCell.create(clip.objects.type),
             uClipObjectPosition: ValueCell.create(clip.objects.position),
@@ -221,7 +221,7 @@ namespace Renderer {
             uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
 
             uInteriorDarkening: ValueCell.create(p.interiorDarkening),
-            uInteriorColorFlag: ValueCell.create(p.interiorColorFlag ? 1 : 0),
+            uInteriorColorFlag: ValueCell.create(p.interiorColorFlag),
             uInteriorColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.interiorColor)),
 
             uHighlightColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.highlightColor)),
@@ -322,7 +322,7 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uFogFar, camera.fogFar);
             ValueCell.update(globalUniforms.uFogNear, camera.fogNear);
 
-            ValueCell.update(globalUniforms.uTransparentBackground, transparentBackground ? 1 : 0);
+            ValueCell.update(globalUniforms.uTransparentBackground, transparentBackground);
 
             globalUniformsNeedUpdate = true;
             state.currentRenderItemId = -1;
@@ -409,7 +409,7 @@ namespace Renderer {
                 }
                 if (props.interiorColorFlag !== undefined && props.interiorColorFlag !== p.interiorColorFlag) {
                     p.interiorColorFlag = props.interiorColorFlag;
-                    ValueCell.update(globalUniforms.uInteriorColorFlag, p.interiorColorFlag ? 1 : 0);
+                    ValueCell.update(globalUniforms.uInteriorColorFlag, p.interiorColorFlag);
                 }
                 if (props.interiorColor !== undefined && props.interiorColor !== p.interiorColor) {
                     p.interiorColor = props.interiorColor;
