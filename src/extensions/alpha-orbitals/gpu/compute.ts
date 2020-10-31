@@ -27,6 +27,7 @@ const AlphaOrbitalsSchema = {
     tInfo: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
     tCoeff: TextureSpec('image-float32', 'rgb', 'float', 'nearest'),
     tAlpha: TextureSpec('image-float32', 'alpha', 'float', 'nearest'),
+    uWidth: UniformSpec('f'),
     uNCenters: UniformSpec('i'),
     uNAlpha: UniformSpec('i'),
     uNCoeff: UniformSpec('i'),
@@ -114,11 +115,15 @@ function createTextureData({
 function getPostprocessingRenderable(ctx: WebGLContext, params: CollocationParams): AlphaOrbitalsRenderable {
     const data = createTextureData(params);
 
+    const [nx, ny, nz] = params.grid.dimensions;
+    const width = Math.ceil(Math.sqrt(nx * ny * nz));
+
     const values: Values<typeof AlphaOrbitalsSchema> = {
         ...QuadValues,
         uDimensions: ValueCell.create(params.grid.dimensions),
         uMin: ValueCell.create(params.grid.box.min),
         uDelta: ValueCell.create(params.grid.delta),
+        uWidth: ValueCell.create(width),
         uNCenters: ValueCell.create(data.nCenters),
         uNAlpha: ValueCell.create(data.nAlpha),
         uNCoeff: ValueCell.create(data.nCoeff),
@@ -146,34 +151,32 @@ function normalizeParams(webgl: WebGLContext) {
 
 export function gpuComputeAlphaOrbitalsGridValues(webgl: WebGLContext, params: CollocationParams) {
     const [nx, ny, nz] = params.grid.dimensions;
-
     normalizeParams(webgl);
 
+    const renderable = getPostprocessingRenderable(webgl, params);
+    const width = renderable.values.uWidth.ref.value;
+
     if (!webgl.computeTargets['alpha-oribtals']) {
-        webgl.computeTargets['alpha-oribtals'] = webgl.createRenderTarget(nx, ny * nz, false, 'uint8', 'nearest');
+        webgl.computeTargets['alpha-oribtals'] = webgl.createRenderTarget(width, width, false, 'uint8', 'nearest');
     } else {
-        webgl.computeTargets['alpha-oribtals'].setSize(nx, ny * nz);
+        webgl.computeTargets['alpha-oribtals'].setSize(width, width);
     }
 
     const target = webgl.computeTargets['alpha-oribtals'];
-    const renderable = getPostprocessingRenderable(webgl, params);
-
-    const width = nx;
-    const height = ny * nz;
 
     const { gl, state } = webgl;
     target.bind();
-    gl.viewport(0, 0, width, height);
-    gl.scissor(0, 0, width, height);
+    gl.viewport(0, 0, width, width);
+    gl.scissor(0, 0, width, width);
     state.disable(gl.SCISSOR_TEST);
     state.disable(gl.BLEND);
     state.disable(gl.DEPTH_TEST);
     state.depthMask(false);
     renderable.render();
 
-    const array = new Uint8Array(width * height * 4);
-    webgl.readPixels(0, 0, width, height, array);
-    const floats = new Float32Array(array.buffer, array.byteOffset, width * height);
+    const array = new Uint8Array(width * width * 4);
+    webgl.readPixels(0, 0, width, width, array);
+    const floats = new Float32Array(array.buffer, array.byteOffset, nx * ny * nz);
     renderable.dispose();
 
     return floats;

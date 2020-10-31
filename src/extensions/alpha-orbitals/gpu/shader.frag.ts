@@ -19,6 +19,8 @@ uniform sampler2D tInfo;
 uniform sampler2D tCoeff;
 uniform sampler2D tAlpha;
 
+uniform float uWidth;
+
 #ifndef uNCenters
     uniform int uNCenters;
 #endif
@@ -65,11 +67,11 @@ vec4 floatToRgba(float texelFloat) {
     );
 }
 
-float L1(const in vec3 p, const in float a0, const in float a1, const in float a2) {
+float L1(vec3 p, float a0, float a1, float a2) {
     return a0 * p.z + a1 * p.x + a2 * p.y;
 }
 
-float L2(const in vec3 p, const in float a0, const in float a1, const in float a2, const in float a3, const in float a4) {
+float L2(vec3 p, float a0, float a1, float a2, float a3, float a4) {
     float x = p.x, y = p.y, z = p.z;
     float xx = x * x, yy = y * y, zz = z * z;
     return (
@@ -81,7 +83,7 @@ float L2(const in vec3 p, const in float a0, const in float a1, const in float a
     );
 }
 
-float L3(const in vec3 p, const in float a0, const in float a1, const in float a2, const in float a3, const in float a4, const in float a5, const in float a6) {
+float L3(vec3 p, float a0, float a1, float a2, float a3, float a4, float a5, float a6) {
     float x = p.x, y = p.y, z = p.z;
     float xx = x * x, yy = y * y, zz = z * z;
     float xxx = xx * x, yyy = yy * y, zzz = zz * z;
@@ -96,7 +98,7 @@ float L3(const in vec3 p, const in float a0, const in float a1, const in float a
     );
 }
 
-float L4(const in vec3 p, const in float a0, const in float a1, const in float a2, const in float a3, const in float a4, const in float a5, const in float a6, const in float a7, const in float a8) {
+float L4(vec3 p, float a0, float a1, float a2, float a3, float a4, float a5, float a6, float a7, float a8) {
     float x = p.x, y = p.y, z = p.z;
     float xx = x * x, yy = y * y, zz = z * z;
     float xxx = xx * x, yyy = yy * y, zzz = zz * z;
@@ -114,11 +116,11 @@ float L4(const in vec3 p, const in float a0, const in float a1, const in float a
     );
 }
 
-float alpha(const in float offset, const in float f) {
+float alpha(float offset, float f) {
     return texture2D(tAlpha, vec2(offset * f, 0.5)).x;
 }
 
-float Y(const in int L, const in vec3 X, const in float aO, const in float fA) {
+float Y(int L, vec3 X, float aO, float fA) {
     if (L == 0) {
         return alpha(aO, fA);
     } else if (L == 1) {
@@ -145,7 +147,7 @@ float Y(const in int L, const in vec3 X, const in float aO, const in float fA) {
 }
 
 #ifndef uMaxCoeffs
-    float R(const in float R2, const in int start, const in int end, const in float fCoeff) {
+    float R(float R2, int start, int end, float fCoeff) {
         float gauss = 0.0;
         for (int i = start; i < end; i++) {
             vec2 c = texture2D(tCoeff, vec2(float(i) * fCoeff, 0.5)).xy;
@@ -156,7 +158,7 @@ float Y(const in int L, const in vec3 X, const in float aO, const in float fA) {
 #endif
 
 #ifdef uMaxCoeffs
-    float R(const in float R2, const in int start, const in int end, const in float fCoeff) {
+    float R(float R2, int start, int end, float fCoeff) {
         float gauss = 0.0;
         int o = start;
         for (int i = 0; i < uMaxCoeffs; i++) {
@@ -170,11 +172,11 @@ float Y(const in int L, const in vec3 X, const in float aO, const in float fA) {
     }
 #endif
 
-float intDiv(const in float a, const in float b) { return float(int(a) / int(b)); }
-float intMod(const in float a, const in float b) { return a - b * float(int(a) / int(b)); }
+float intDiv(float a, float b) { return float(int(a) / int(b)); }
+float intMod(float a, float b) { return a - b * float(int(a) / int(b)); }
 
 void main(void) { 
-    float offset = round(floor(gl_FragCoord.x) + floor(gl_FragCoord.y) * uDimensions.x);
+    float offset = round(floor(gl_FragCoord.x) + floor(gl_FragCoord.y) * uWidth);
     
     // axis order fast to slow Z, Y, X
     // TODO: support arbitrary axis orders?
