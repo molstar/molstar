@@ -16,8 +16,12 @@ import { createComputeRenderable, ComputeRenderable } from '../../mol-gl/rendera
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Camera } from '../../mol-canvas3d/camera';
-import { PostprocessingPass } from './postprocessing';
+import { PostprocessingPass, PostprocessingProps } from './postprocessing';
 import { DrawPass } from './draw';
+import Renderer from '../../mol-gl/renderer';
+import Scene from '../../mol-gl/scene';
+import { Helper } from '../helper/helper';
+import { StereoCamera } from '../camera/stereo';
 
 import quad_vert from '../../mol-gl/shader/quad.vert';
 import compose_frag from '../../mol-gl/shader/compose.frag';
@@ -51,8 +55,13 @@ export const MultiSampleParams = {
 };
 export type MultiSampleProps = PD.Values<typeof MultiSampleParams>
 
+type Props = { multiSample: MultiSampleProps, postprocessing: PostprocessingProps }
+
 export class MultiSamplePass {
-    props: MultiSampleProps
+    static isEnabled(props: MultiSampleProps) {
+        return props.mode !== 'off';
+    }
+
     colorTarget: RenderTarget
 
     private composeTarget: RenderTarget
@@ -61,25 +70,25 @@ export class MultiSamplePass {
 
     private sampleIndex = -2
 
-    constructor(private webgl: WebGLContext, private camera: Camera, private drawPass: DrawPass, private postprocessing: PostprocessingPass, props: Partial<MultiSampleProps>) {
-        const { gl, extensions } = webgl;
-        this.colorTarget = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight, false);
-        this.composeTarget = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight, false, extensions.colorBufferFloat ? 'float32' : 'uint8');
-        this.holdTarget = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight, false);
+    constructor(private webgl: WebGLContext, private drawPass: DrawPass, private postprocessing: PostprocessingPass) {
+        const { extensions } = webgl;
+        const width = drawPass.colorTarget.getWidth();
+        const height = drawPass.colorTarget.getHeight();
+        this.colorTarget = webgl.createRenderTarget(width, height, false);
+        this.composeTarget = webgl.createRenderTarget(width, height, false, extensions.colorBufferFloat ? 'float32' : 'uint8');
+        this.holdTarget = webgl.createRenderTarget(width, height, false);
         this.compose = getComposeRenderable(webgl, drawPass.colorTarget.texture);
-        this.props = { ...PD.getDefaultValues(MultiSampleParams), ...props };
     }
 
-    get enabled() {
-        return this.props.mode !== 'off';
-    }
-
-    update(changed: boolean) {
+    update(changed: boolean, props: MultiSampleProps) {
         if (changed) this.sampleIndex = -1;
-        return this.props.mode === 'temporal' ? this.sampleIndex !== -2 : false;
+        return props.mode === 'temporal' ? this.sampleIndex !== -2 : false;
     }
 
-    setSize(width: number, height: number) {
+    syncSize() {
+        const width = this.drawPass.colorTarget.getWidth();
+        const height = this.drawPass.colorTarget.getHeight();
+
         const [w, h] = this.compose.values.uTexSize.ref.value;
         if (width !== w || height !== h) {
             this.colorTarget.setSize(width, height);
@@ -89,27 +98,16 @@ export class MultiSamplePass {
         }
     }
 
-    setProps(props: Partial<MultiSampleProps>) {
-        if (props.mode !== undefined) this.props.mode = props.mode;
-        if (props.sampleLevel !== undefined) this.props.sampleLevel = props.sampleLevel;
-    }
-
-    render(toDrawingBuffer: boolean, transparentBackground: boolean) {
-        if (this.props.mode === 'temporal') {
-            this.renderTemporalMultiSample(toDrawingBuffer, transparentBackground);
+    render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
+        if (props.multiSample.mode === 'temporal') {
+            this.renderTemporalMultiSample(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props);
         } else {
-            this.renderMultiSample(toDrawingBuffer, transparentBackground);
+            this.renderMultiSample(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props);
         }
     }
 
-    private setQuadShift(x: number, y: number) {
-        ValueCell.update(this.compose.values.uQuadShift, Vec2.set(
-            this.compose.values.uQuadShift.ref.value, x, y)
-        );
-    }
-
-    private renderMultiSample(toDrawingBuffer: boolean, transparentBackground: boolean) {
-        const { camera, compose, composeTarget, drawPass, postprocessing, webgl } = this;
+    private renderMultiSample(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
+        const { compose, composeTarget, drawPass, postprocessing, webgl } = this;
         const { gl, state } = webgl;
 
         // based on the Multisample Anti-Aliasing Render Pass
@@ -117,16 +115,17 @@ export class MultiSamplePass {
         //
         // This manual approach to MSAA re-renders the scene once for
         // each sample with camera jitter and accumulates the results.
-        const offsetList = JitterVectors[ Math.max(0, Math.min(this.props.sampleLevel, 5)) ];
+        const offsetList = JitterVectors[ Math.max(0, Math.min(props.multiSample.sampleLevel, 5)) ];
 
+        const { x, y, width, height } = camera.viewport;
         const baseSampleWeight = 1.0 / offsetList.length;
         const roundingRange = 1 / 32;
 
-        camera.viewOffset.enabled = true;
-        ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawPass.colorTarget.texture);
-        compose.update();
+        const postprocessingEnabled = PostprocessingPass.isEnabled(props.postprocessing);
 
-        const { x, y, width, height } = camera.viewport;
+        camera.viewOffset.enabled = true;
+        ValueCell.update(compose.values.tColor, postprocessingEnabled ? postprocessing.target.texture : drawPass.colorTarget.texture);
+        compose.update();
 
         // render the scene multiple times, each slightly jitter offset
         // from the last and accumulate the results.
@@ -134,7 +133,6 @@ export class MultiSamplePass {
             const offset = offsetList[i];
             Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height);
             camera.update();
-            this.drawPass.cameraHelper.update(camera);
 
             // the theory is that equal weights for each sample lead to an accumulation of rounding
             // errors. The following equation varies the sampleWeight per sample so that it is uniformly
@@ -144,8 +142,8 @@ export class MultiSamplePass {
             ValueCell.update(compose.values.uWeight, sampleWeight);
 
             // render scene and optionally postprocess
-            drawPass.render(false, transparentBackground);
-            if (postprocessing.enabled) postprocessing.render(false);
+            drawPass.render(renderer, camera, scene, helper, false, transparentBackground);
+            if (postprocessingEnabled) postprocessing.render(camera, false, props.postprocessing);
 
             // compose rendered scene with compose target
             composeTarget.bind();
@@ -153,15 +151,13 @@ export class MultiSamplePass {
             state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
             state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
             state.disable(gl.DEPTH_TEST);
-            state.disable(gl.SCISSOR_TEST);
             state.depthMask(false);
+            gl.viewport(x, y, width, height);
+            gl.scissor(x, y, width, height);
             if (i === 0) {
                 state.clearColor(0, 0, 0, 0);
                 gl.clear(gl.COLOR_BUFFER_BIT);
             }
-            this.setQuadShift(0, 0);
-            gl.viewport(0, 0, width, height);
-            gl.scissor(0, 0, width, height);
             compose.render();
         }
 
@@ -174,9 +170,10 @@ export class MultiSamplePass {
         } else {
             this.colorTarget.bind();
         }
-        this.setQuadShift(x / width, y / height);
+
         gl.viewport(x, y, width, height);
         gl.scissor(x, y, width, height);
+
         state.disable(gl.BLEND);
         compose.render();
 
@@ -184,8 +181,8 @@ export class MultiSamplePass {
         camera.update();
     }
 
-    private renderTemporalMultiSample(toDrawingBuffer: boolean, transparentBackground: boolean) {
-        const { camera, compose, composeTarget, holdTarget, postprocessing, drawPass, webgl } = this;
+    private renderTemporalMultiSample(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
+        const { compose, composeTarget, holdTarget, postprocessing, drawPass, webgl } = this;
         const { gl, state } = webgl;
 
         // based on the Multisample Anti-Aliasing Render Pass
@@ -193,7 +190,7 @@ export class MultiSamplePass {
         //
         // This manual approach to MSAA re-renders the scene once for
         // each sample with camera jitter and accumulates the results.
-        const offsetList = JitterVectors[ Math.max(0, Math.min(this.props.sampleLevel, 5)) ];
+        const offsetList = JitterVectors[ Math.max(0, Math.min(props.multiSample.sampleLevel, 5)) ];
 
         if (this.sampleIndex === -2) return;
         if (this.sampleIndex >= offsetList.length) {
@@ -203,42 +200,40 @@ export class MultiSamplePass {
 
         const { x, y, width, height } = camera.viewport;
         const sampleWeight = 1.0 / offsetList.length;
+        const postprocessingEnabled = PostprocessingPass.isEnabled(props.postprocessing);
 
         if (this.sampleIndex === -1) {
-            drawPass.render(false, transparentBackground);
-            if (postprocessing.enabled) postprocessing.render(false);
+            drawPass.render(renderer, camera, scene, helper, false, transparentBackground);
+            if (postprocessingEnabled) postprocessing.render(camera, false, props.postprocessing);
             ValueCell.update(compose.values.uWeight, 1.0);
-            ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawPass.colorTarget.texture);
+            ValueCell.update(compose.values.tColor, postprocessingEnabled ? postprocessing.target.texture : drawPass.colorTarget.texture);
             compose.update();
 
             holdTarget.bind();
             state.disable(gl.BLEND);
             state.disable(gl.DEPTH_TEST);
-            state.disable(gl.SCISSOR_TEST);
             state.depthMask(false);
-            this.setQuadShift(0, 0);
-            gl.viewport(0, 0, width, height);
-            gl.scissor(0, 0, width, height);
+            gl.viewport(x, y, width, height);
+            gl.scissor(x, y, width, height);
             compose.render();
             this.sampleIndex += 1;
         } else {
             camera.viewOffset.enabled = true;
-            ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawPass.colorTarget.texture);
+            ValueCell.update(compose.values.tColor, postprocessingEnabled ? postprocessing.target.texture : drawPass.colorTarget.texture);
             ValueCell.update(compose.values.uWeight, sampleWeight);
             compose.update();
 
             // render the scene multiple times, each slightly jitter offset
             // from the last and accumulate the results.
-            const numSamplesPerFrame = Math.pow(2, Math.max(0, this.props.sampleLevel - 2));
+            const numSamplesPerFrame = Math.pow(2, Math.max(0, props.multiSample.sampleLevel - 2));
             for (let i = 0; i < numSamplesPerFrame; ++i) {
                 const offset = offsetList[this.sampleIndex];
                 Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height);
                 camera.update();
-                this.drawPass.cameraHelper.update(camera);
 
                 // render scene and optionally postprocess
-                drawPass.render(false, transparentBackground);
-                if (postprocessing.enabled) postprocessing.render(false);
+                drawPass.render(renderer, camera, scene, helper, false, transparentBackground);
+                if (postprocessingEnabled) postprocessing.render(camera, false, props.postprocessing);
 
                 // compose rendered scene with compose target
                 composeTarget.bind();
@@ -246,15 +241,13 @@ export class MultiSamplePass {
                 state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
                 state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
                 state.disable(gl.DEPTH_TEST);
-                state.disable(gl.SCISSOR_TEST);
                 state.depthMask(false);
+                gl.viewport(x, y, width, height);
+                gl.scissor(x, y, width, height);
                 if (this.sampleIndex === 0) {
                     state.clearColor(0, 0, 0, 0);
                     gl.clear(gl.COLOR_BUFFER_BIT);
                 }
-                this.setQuadShift(0, 0);
-                gl.viewport(0, 0, width, height);
-                gl.scissor(0, 0, width, height);
                 compose.render();
 
                 this.sampleIndex += 1;
@@ -264,15 +257,12 @@ export class MultiSamplePass {
 
         if (toDrawingBuffer) {
             webgl.unbindFramebuffer();
-            this.setQuadShift(x / width, y / height);
-            gl.viewport(x, y, width, height);
-            gl.scissor(x, y, width, height);
         } else {
             this.colorTarget.bind();
-            this.setQuadShift(0, 0);
-            gl.viewport(0, 0, width, height);
-            gl.scissor(0, 0, width, height);
         }
+
+        gl.viewport(x, y, width, height);
+        gl.scissor(x, y, width, height);
 
         const accumulationWeight = this.sampleIndex * sampleWeight;
         if (accumulationWeight > 0) {

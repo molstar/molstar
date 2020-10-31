@@ -331,9 +331,9 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             state.enable(gl.SCISSOR_TEST);
             state.depthMask(true);
             state.colorMask(true, true, true, true);
+            state.clearColor(red, green, blue, alpha);
             gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
             gl.scissor(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-            state.clearColor(red, green, blue, alpha);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         },
 

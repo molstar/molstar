@@ -21,7 +21,7 @@ uniform mat4 uProjection, uTransform, uModelView, uView;
 uniform vec3 uCameraDir;
 
 uniform sampler2D tDepth;
-uniform vec4 uViewport;
+uniform vec2 uDrawingBufferSize;
 uniform float uNear;
 uniform float uFar;
 
@@ -179,7 +179,7 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
 
                 vec4 mvPosition = uModelView * uTransform * vec4(isoPos * uGridDim, 1.0);
                 float depth = calcDepth(mvPosition.xyz);
-                if (depth > getDepth(gl_FragCoord.xy / uViewport.zw))
+                if (depth > getDepth(gl_FragCoord.xy / uDrawingBufferSize))
                     break;
 
                 #ifdef enabledFragDepth
@@ -287,7 +287,7 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
         #elif defined(dRenderMode_volume)
             isoPos = toUnit(pos);
             vec4 mvPosition = uModelView * uTransform * vec4(isoPos * uGridDim, 1.0);
-            if (calcDepth(mvPosition.xyz) > getDepth(gl_FragCoord.xy / uViewport.zw))
+            if (calcDepth(mvPosition.xyz) > getDepth(gl_FragCoord.xy / uDrawingBufferSize))
                 break;
 
             vec3 vViewPosition = mvPosition.xyz;

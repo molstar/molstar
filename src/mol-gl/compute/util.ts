@@ -22,7 +22,6 @@ export const QuadSchema = {
     instanceCount: ValueSpec('number'),
     aPosition: AttributeSpec('float32', 2, 0),
     uQuadScale: UniformSpec('v2'),
-    uQuadShift: UniformSpec('v2'),
 };
 
 export const QuadValues: Values<typeof QuadSchema> = {
@@ -30,7 +29,6 @@ export const QuadValues: Values<typeof QuadSchema> = {
     instanceCount: ValueCell.create(1),
     aPosition: ValueCell.create(QuadPositions),
     uQuadScale: ValueCell.create(Vec2.create(1, 1)),
-    uQuadShift: ValueCell.create(Vec2.create(0, 0)),
 };
 
 //

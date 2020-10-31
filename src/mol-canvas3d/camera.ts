@@ -16,6 +16,8 @@ interface ICamera {
     readonly viewport: Viewport,
     readonly view: Mat4,
     readonly projection: Mat4,
+    readonly projectionView: Mat4,
+    readonly inverseProjectionView: Mat4,
     readonly state: Readonly<Camera.Snapshot>,
     readonly viewOffset: Camera.ViewOffset,
     readonly far: number,

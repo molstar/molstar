@@ -254,6 +254,10 @@ export class Viewer {
             await repr.commit();
         });
     }
+
+    handleResize() {
+        this.plugin.layout.events.updated.next();
+    }
 }
 
 export interface VolumeIsovalueInfo {

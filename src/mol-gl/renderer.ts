@@ -6,7 +6,6 @@
 
 import { Viewport } from '../mol-canvas3d/camera/util';
 import { ICamera } from '../mol-canvas3d/camera';
-
 import Scene from './scene';
 import { WebGLContext } from './webgl/context';
 import { Mat4, Vec3, Vec4, Vec2, Quat } from '../mol-math/linear-algebra';
@@ -43,7 +42,7 @@ interface Renderer {
     readonly props: Readonly<RendererProps>
 
     clear: (transparentBackground: boolean) => void
-    render: (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, depthTexture: Texture | null) => void
+    render: (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, drawingBufferScale: number, depthTexture: Texture | null) => void
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
     dispose: () => void
@@ -165,6 +164,7 @@ namespace Renderer {
         const clip = getClip(p.clip);
 
         const viewport = Viewport();
+        const drawingBufferSize = Vec2.create(gl.drawingBufferWidth, gl.drawingBufferHeight);
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor);
 
         const view = Mat4();
@@ -195,6 +195,7 @@ namespace Renderer {
             uPixelRatio: ValueCell.create(ctx.pixelRatio),
             uViewportHeight: ValueCell.create(viewport.height),
             uViewport: ValueCell.create(Viewport.toVec4(Vec4(), viewport)),
+            uDrawingBufferSize: ValueCell.create(drawingBufferSize),
 
             uCameraPosition: ValueCell.create(Vec3()),
             uCameraDir: ValueCell.create(cameraDir),
@@ -300,7 +301,7 @@ namespace Renderer {
             r.render(variant);
         };
 
-        const render = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, depthTexture: Texture | null) => {
+        const render = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, drawingBufferScale: number, depthTexture: Texture | null) => {
             ValueCell.update(globalUniforms.uModel, group.view);
             ValueCell.update(globalUniforms.uView, camera.view);
             ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view));
@@ -311,18 +312,26 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection));
             ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection));
 
-            ValueCell.update(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
+            ValueCell.updateIfChanged(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
             ValueCell.update(globalUniforms.uViewOffset, camera.viewOffset.enabled ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2.set(viewOffset, 0, 0));
 
             ValueCell.update(globalUniforms.uCameraPosition, camera.state.position);
             ValueCell.update(globalUniforms.uCameraDir, Vec3.normalize(cameraDir, Vec3.sub(cameraDir, camera.state.target, camera.state.position)));
 
-            ValueCell.update(globalUniforms.uFar, camera.far);
-            ValueCell.update(globalUniforms.uNear, camera.near);
-            ValueCell.update(globalUniforms.uFogFar, camera.fogFar);
-            ValueCell.update(globalUniforms.uFogNear, camera.fogNear);
+            ValueCell.updateIfChanged(globalUniforms.uFar, camera.far);
+            ValueCell.updateIfChanged(globalUniforms.uNear, camera.near);
+            ValueCell.updateIfChanged(globalUniforms.uFogFar, camera.fogFar);
+            ValueCell.updateIfChanged(globalUniforms.uFogNear, camera.fogNear);
+            ValueCell.updateIfChanged(globalUniforms.uTransparentBackground, transparentBackground);
 
-            ValueCell.update(globalUniforms.uTransparentBackground, transparentBackground);
+            if (gl.drawingBufferWidth * drawingBufferScale !== drawingBufferSize[0] ||
+                gl.drawingBufferHeight * drawingBufferScale !== drawingBufferSize[1]
+            ) {
+                ValueCell.update(globalUniforms.uDrawingBufferSize, Vec2.set(drawingBufferSize,
+                    gl.drawingBufferWidth * drawingBufferScale,
+                    gl.drawingBufferHeight * drawingBufferScale
+                ));
+            }
 
             globalUniformsNeedUpdate = true;
             state.currentRenderItemId = -1;
@@ -333,6 +342,10 @@ namespace Renderer {
             state.disable(gl.BLEND);
             state.colorMask(true, true, true, true);
             state.enable(gl.DEPTH_TEST);
+
+            const { x, y, width, height } = viewport;
+            gl.viewport(x, y, width, height);
+            gl.scissor(x, y, width, height);
 
             if (clear) {
                 state.depthMask(true);

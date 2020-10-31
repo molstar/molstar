@@ -120,6 +120,7 @@ export const GlobalUniformSchema = {
     uViewportHeight: UniformSpec('f'),
     uViewport: UniformSpec('v4'),
     uViewOffset: UniformSpec('v2'),
+    uDrawingBufferSize: UniformSpec('v2'),
 
     uCameraPosition: UniformSpec('v3'),
     uCameraDir: UniformSpec('v3'),

@@ -21,25 +21,31 @@ import { MarkerAction } from '../mol-util/marker-action';
 import { Loci, EmptyLoci, isEmptyLoci } from '../mol-model/loci';
 import { Camera } from './camera';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
-import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-sphere-helper';
+import { DebugHelperParams } from './helper/bounding-sphere-helper';
 import { SetUtils } from '../mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
 import { PostprocessingParams, PostprocessingPass } from './passes/postprocessing';
 import { MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
-import { DrawPass } from './passes/draw';
-import { PickData, PickPass } from './passes/pick';
+import { PickData } from './passes/pick';
+import { PickHelper } from './passes/pick';
 import { ImagePass, ImageProps } from './passes/image';
 import { Sphere3D } from '../mol-math/geometry';
 import { isDebugMode } from '../mol-util/debug';
 import { CameraHelperParams } from './helper/camera-helper';
 import { produce } from 'immer';
-import { HandleHelper, HandleHelperParams } from './helper/handle-helper';
+import { HandleHelperParams } from './helper/handle-helper';
 import { StereoCamera, StereoCameraParams } from './camera/stereo';
+import { Helper } from './helper/helper';
+import { Passes } from './passes/passes';
 
 export const Canvas3DParams = {
     camera: PD.Group({
-        mode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']] as const, { label: 'Camera' }),
+        mode: PD.Select('perspective', PD.arrayToOptions(['perspective', 'orthographic'] as const), { label: 'Camera' }),
         helper: PD.Group(CameraHelperParams, { isFlat: true }),
+        stereo: PD.MappedStatic('off', {
+            on: PD.Group(StereoCameraParams),
+            off: PD.Group({})
+        }, { cycle: true, hideIf: p => p?.mode !== 'perspective' }),
         manualReset: PD.Boolean(false, { isHidden: true })
     }, { pivot: 'mode' }),
     cameraFog: PD.MappedStatic('on', {
@@ -61,10 +67,6 @@ export const Canvas3DParams = {
             height: PD.Numeric(128)
         })
     }),
-    stereo: PD.MappedStatic('off', {
-        on: PD.Group(StereoCameraParams),
-        off: PD.Group({})
-    }, { cycle: true }),
 
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
     transparentBackground: PD.Boolean(false),
@@ -136,7 +138,7 @@ namespace Canvas3D {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, position?: Vec3 }
 
-    export function fromCanvas(canvas: HTMLCanvasElement, props: PartialCanvas3DProps = {}, attribs: Partial<{ antialias: boolean, pixelScale: number }> = {}) {
+    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, attribs: Partial<{ antialias: boolean, pixelScale: number, pickScale: number }> = {}) {
         const gl = getGLContext(canvas, {
             alpha: true,
             antialias: attribs.antialias ?? true,
@@ -149,6 +151,7 @@ namespace Canvas3D {
         const { pixelScale } = attribs;
         const input = InputObserver.fromElement(canvas, { pixelScale });
         const webgl = createContext(gl, { pixelScale });
+        const passes = new Passes(webgl, attribs);
 
         if (isDebugMode) {
             const loseContextExt = gl.getExtension('WEBGL_lose_context');
@@ -183,11 +186,11 @@ namespace Canvas3D {
             if (isDebugMode) console.log('context restored');
         }, false);
 
-        return create(webgl, input, props, { pixelScale });
+        return create(webgl, input, passes, props, { pixelScale });
     }
 
-    export function create(webgl: WebGLContext, input: InputObserver, props: PartialCanvas3DProps = {}, attribs: Partial<{ pickScale: number, pixelScale: number }> = {}): Canvas3D {
-        const p = { ...DefaultCanvas3DParams, ...props };
+    export function create(webgl: WebGLContext, input: InputObserver, passes: Passes, props: Partial<Canvas3DProps> = {}, attribs: Partial<{ pixelScale: number }>): Canvas3D {
+        const p: Canvas3DProps = { ...DefaultCanvas3DParams, ...props };
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
@@ -212,23 +215,14 @@ namespace Canvas3D {
             fog: p.cameraFog.name === 'on' ? p.cameraFog.params.intensity : 0,
             clipFar: p.cameraClipping.far
         }, { x, y, width, height }, { pixelScale: attribs.pixelScale });
-        const stereoCamera = new StereoCamera();
+        const stereoCamera = new StereoCamera(camera, p.camera.stereo.params);
 
         const controls = TrackballControls.create(input, camera, p.trackball);
         const renderer = Renderer.create(webgl, p.renderer);
-        const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
-        const handleHelper = new HandleHelper(webgl, p.handle);
+        const helper = new Helper(webgl, scene, p);
+
+        const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height });
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera);
-
-        const drawPass = new DrawPass(webgl, renderer, scene, { standard: camera, stereo: stereoCamera }, debugHelper, handleHelper, {
-            cameraHelper: p.camera.helper
-        });
-        drawPass.isStereo = p.stereo.name === 'on';
-        const pickPass = new PickPass(webgl, renderer, scene, camera, stereoCamera, handleHelper, attribs.pickScale || 0.25, drawPass);
-        pickPass.isStereo = p.stereo.name === 'on';
-
-        const postprocessing = new PostprocessingPass(webgl, camera, drawPass, p.postprocessing);
-        const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample);
 
         let drawPending = false;
         let cameraResetRequested = false;
@@ -239,7 +233,7 @@ namespace Canvas3D {
             let loci: Loci = EmptyLoci;
             let repr: Representation.Any = Representation.Empty;
             if (pickingId) {
-                loci = handleHelper.getLoci(pickingId);
+                loci = helper.handle.getLoci(pickingId);
                 reprRenderObjects.forEach((_, _repr) => {
                     const _loci = _repr.getLoci(pickingId);
                     if (!isEmptyLoci(_loci)) {
@@ -260,15 +254,15 @@ namespace Canvas3D {
             if (repr) {
                 changed = repr.mark(loci, action);
             } else {
-                changed = handleHelper.mark(loci, action);
+                changed = helper.handle.mark(loci, action);
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed; });
             }
             if (changed) {
                 scene.update(void 0, true);
-                handleHelper.scene.update(void 0, true);
-                const prevPickDirty = pickPass.pickDirty;
+                helper.handle.scene.update(void 0, true);
+                const prevPickDirty = pickHelper.dirty;
                 draw(true);
-                pickPass.pickDirty = prevPickDirty; // marking does not change picking buffers
+                pickHelper.dirty = prevPickDirty; // marking does not change picking buffers
             }
         }
 
@@ -280,25 +274,24 @@ namespace Canvas3D {
 
             let didRender = false;
             controls.update(currentTime);
-            Viewport.set(camera.viewport, x, y, width, height);
             const cameraChanged = camera.update();
-            const multiSampleChanged = multiSample.update(force || cameraChanged);
-
-            const isStereo = p.stereo.name === 'on';
+            const multiSampleChanged = passes.multiSample.update(force || cameraChanged, p.multiSample);
 
             if (force || cameraChanged || multiSampleChanged) {
-                if ((force || cameraChanged) && p.stereo.name === 'on') stereoCamera.update(camera, p.stereo.params);
-
-                renderer.setViewport(x, y, width, height);
-                // TODO: support stereo rendering in multisampling
-                if (!isStereo && multiSample.enabled) {
-                    multiSample.render(true, p.transparentBackground);
-                } else {
-                    const toDrawingBuffer = !postprocessing.enabled && scene.volumes.renderables.length === 0;
-                    drawPass.render(toDrawingBuffer, p.transparentBackground);
-                    if (!toDrawingBuffer) postprocessing.render(true);
+                let cam: Camera | StereoCamera = camera;
+                if (p.camera.stereo.name === 'on') {
+                    stereoCamera.update();
+                    cam = stereoCamera;
                 }
-                pickPass.pickDirty = true;
+
+                if (MultiSamplePass.isEnabled(p.multiSample)) {
+                    passes.multiSample.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
+                } else {
+                    const toDrawingBuffer = !PostprocessingPass.isEnabled(p.postprocessing) && scene.volumes.renderables.length === 0;
+                    passes.draw.render(renderer, cam, scene, helper, toDrawingBuffer, p.transparentBackground);
+                    if (!toDrawingBuffer) passes.postprocessing.render(cam, true, p.postprocessing);
+                }
+                pickHelper.dirty = true;
                 didRender = true;
             }
 
@@ -347,7 +340,8 @@ namespace Canvas3D {
         }
 
         function identify(x: number, y: number): PickData | undefined {
-            return webgl.isContextLost ? undefined : pickPass.identify(x, y);
+            const cam = p.camera.stereo.name === 'on' ? stereoCamera : camera;
+            return webgl.isContextLost ? undefined : pickHelper.identify(x, y, cam);
         }
 
         function commit(isSynchronous: boolean = false) {
@@ -356,7 +350,7 @@ namespace Canvas3D {
             if (allCommited) {
                 resolveCameraReset();
                 if (forceDrawAfterAllCommited) {
-                    if (debugHelper.isEnabled) debugHelper.update();
+                    if (helper.debug.isEnabled) helper.debug.update();
                     draw(true);
                     forceDrawAfterAllCommited = false;
                 }
@@ -414,7 +408,7 @@ namespace Canvas3D {
 
             if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) return false;
 
-            if (debugHelper.isEnabled) debugHelper.update();
+            if (helper.debug.isEnabled) helper.debug.update();
             if (!p.camera.manualReset && (reprCount.value === 0 || shouldResetCamera())) {
                 cameraResetRequested = true;
             }
@@ -494,7 +488,8 @@ namespace Canvas3D {
             return {
                 camera: {
                     mode: camera.state.mode,
-                    helper: { ...drawPass.props.cameraHelper },
+                    helper: { ...helper.camera.props },
+                    stereo: { ...p.camera.stereo },
                     manualReset: !!p.camera.manualReset
                 },
                 cameraFog: camera.state.fog > 0
@@ -504,21 +499,18 @@ namespace Canvas3D {
                 cameraResetDurationMs: p.cameraResetDurationMs,
                 transparentBackground: p.transparentBackground,
                 viewport: p.viewport,
-                stereo: p.stereo,
 
-                postprocessing: { ...postprocessing.props },
-                multiSample: { ...multiSample.props },
+                postprocessing: { ...p.postprocessing },
+                multiSample: { ...p.multiSample },
                 renderer: { ...renderer.props },
                 trackball: { ...controls.props },
-                debug: { ...debugHelper.props },
-                handle: { ...handleHelper.props },
+                debug: { ...helper.debug.props },
+                handle: { ...helper.handle.props },
             };
         }
 
-        handleResize();
-
         const contextRestoredSub = contextRestored.subscribe(() => {
-            pickPass.pickDirty = true;
+            pickHelper.dirty = true;
             draw(true);
         });
 
@@ -542,7 +534,7 @@ namespace Canvas3D {
                 reprUpdatedSubscriptions.clear();
                 reprRenderObjects.clear();
                 scene.clear();
-                debugHelper.clear();
+                helper.debug.clear();
                 requestDraw(true);
                 reprCount.next(reprRenderObjects.size);
             },
@@ -553,7 +545,7 @@ namespace Canvas3D {
                 }
 
                 if (scene.syncVisibility()) {
-                    if (debugHelper.isEnabled) debugHelper.update();
+                    if (helper.debug.isEnabled) helper.debug.update();
                 }
                 requestDraw(true);
             },
@@ -565,7 +557,12 @@ namespace Canvas3D {
             mark,
             getLoci,
 
-            handleResize,
+            handleResize: () => {
+                passes.updateSize();
+                updateViewport();
+                syncViewport();
+                requestDraw(true);
+            },
             requestCameraReset: options => {
                 nextCameraResetDuration = options?.durationMs;
                 nextCameraResetSnapshot = options?.snapshot;
@@ -602,31 +599,35 @@ namespace Canvas3D {
                 }
                 if (Object.keys(cameraState).length > 0) camera.setState(cameraState);
 
-                if (props.camera?.helper) drawPass.setProps({ cameraHelper: props.camera.helper });
+                if (props.camera?.helper) helper.camera.setProps(props.camera.helper);
                 if (props.camera?.manualReset !== undefined) p.camera.manualReset = props.camera.manualReset;
+                if (props.camera?.stereo !== undefined) Object.assign(p.camera.stereo, props.camera.stereo);
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs;
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
                 if (props.viewport !== undefined) {
+                    // clear old viewport
+                    renderer.setViewport(x, y, width, height);
+                    renderer.clear(p.transparentBackground);
                     p.viewport = props.viewport;
-                    handleResize();
-                }
-                if (props.stereo !== undefined) {
-                    p.stereo = props.stereo;
-                    pickPass.isStereo = p.stereo.name === 'on';
-                    drawPass.isStereo = p.stereo.name === 'on';
+                    updateViewport();
+                    syncViewport();
                 }
 
-                if (props.postprocessing) postprocessing.setProps(props.postprocessing);
-                if (props.multiSample) multiSample.setProps(props.multiSample);
+                if (props.postprocessing) Object.assign(p.postprocessing, props.postprocessing);
+                if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
                 if (props.renderer) renderer.setProps(props.renderer);
                 if (props.trackball) controls.setProps(props.trackball);
-                if (props.debug) debugHelper.setProps(props.debug);
-                if (props.handle) handleHelper.setProps(props.handle);
+                if (props.debug) helper.debug.setProps(props.debug);
+                if (props.handle) helper.handle.setProps(props.handle);
+
+                if (cameraState.mode === 'orthographic') {
+                    p.camera.stereo.name = 'off';
+                }
 
                 requestDraw(true);
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
-                return new ImagePass(webgl, renderer, scene, camera, debugHelper, handleHelper, props);
+                return new ImagePass(webgl, renderer, scene, camera, helper, props);
             },
 
             get props() {
@@ -645,7 +646,7 @@ namespace Canvas3D {
                 contextRestoredSub.unsubscribe();
 
                 scene.clear();
-                debugHelper.clear();
+                helper.debug.clear();
                 input.dispose();
                 controls.dispose();
                 renderer.dispose();
@@ -667,19 +668,11 @@ namespace Canvas3D {
             }
         }
 
-        function handleResize() {
-            updateViewport();
-
+        function syncViewport() {
+            pickHelper.setViewport(x, y, width, height);
             renderer.setViewport(x, y, width, height);
             Viewport.set(camera.viewport, x, y, width, height);
             Viewport.set(controls.viewport, x, y, width, height);
-
-            drawPass.setSize(width, height);
-            pickPass.setSize(width, height);
-            postprocessing.setSize(width, height);
-            multiSample.setSize(width, height);
-
-            requestDraw(true);
         }
     }
 }

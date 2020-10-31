@@ -62,7 +62,6 @@ const SimpleSettingsParams = {
         outline: Canvas3DParams.postprocessing.params.outline,
         fog: Canvas3DParams.cameraFog,
     }, { pivot: 'renderStyle' }),
-    stereo: Canvas3DParams.stereo,
     clipping: PD.Group<any>({
         ...Canvas3DParams.cameraClipping.params,
         ...(Canvas3DParams.renderer.params.clip as any).params as any
@@ -112,7 +111,6 @@ const SimpleSettingsMapping = ParamMapping({
                 outline: canvas.postprocessing.outline,
                 fog: canvas.cameraFog
             },
-            stereo: canvas.stereo,
             clipping: {
                 ...canvas.cameraClipping,
                 ...canvas.renderer.clip
@@ -138,7 +136,6 @@ const SimpleSettingsMapping = ParamMapping({
             variant: s.clipping.variant,
             objects: s.clipping.objects,
         };
-        canvas.stereo = s.stereo;
 
         props.layout = s.layout;
     },

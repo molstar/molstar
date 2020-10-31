@@ -92,7 +92,7 @@ class ViewportScreenshotHelper {
 
         this._imagePass = this.plugin.canvas3d!.getImagePass({
             transparentBackground: this.transparent,
-            drawPass: { cameraHelper: { axes: this.axes } },
+            cameraHelper: { axes: this.axes },
             multiSample: { mode: 'on', sampleLevel: 2 },
             postprocessing: this.plugin.canvas3d!.props.postprocessing
         });
@@ -140,7 +140,7 @@ class ViewportScreenshotHelper {
 
         await ctx.update('Rendering image...');
         this.imagePass.setProps({
-            drawPass: { cameraHelper: { axes: this.axes } },
+            cameraHelper: { axes: this.axes },
             transparentBackground: this.transparent,
             postprocessing: this.plugin.canvas3d!.props.postprocessing // TODO this line should not be required, updating should work by listening to this.plugin.events.canvas3d.settingsUpdated
         });
