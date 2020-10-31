@@ -19,7 +19,10 @@ uniform sampler2D tInfo;
 uniform sampler2D tCoeff;
 uniform sampler2D tAlpha;
 
-uniform int uNCenters;
+#ifndef uNCenters
+    uniform int uNCenters;
+#endif
+
 uniform int uNCoeff;
 uniform int uNAlpha;
 
@@ -115,6 +118,58 @@ float alpha(const in float offset, const in float f) {
     return texture2D(tAlpha, vec2(offset * f, 0.5)).x;
 }
 
+float Y(const in int L, const in vec3 X, const in float aO, const in float fA) {
+    if (L == 0) {
+        return alpha(aO, fA);
+    } else if (L == 1) {
+        return L1(X,
+            alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA)
+        );
+    } else if (L == 2) {
+        return L2(X,
+            alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA)
+        );
+    } else if (L == 3) {
+        return L3(X,
+            alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA), 
+            alpha(aO + 5.0, fA), alpha(aO + 6.0, fA)
+        );
+    } else if (L == 4) {
+        return L4(X,
+            alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA), 
+            alpha(aO + 5.0, fA), alpha(aO + 6.0, fA), alpha(aO + 7.0, fA), alpha(aO + 8.0, fA)
+        );
+    }
+    // TODO: do we need L > 4?
+    return 0.0;
+}
+
+#ifndef uMaxCoeffs
+    float R(const in float R2, const in int start, const in int end, const in float fCoeff) {
+        float gauss = 0.0;
+        for (int i = start; i < end; i++) {
+            vec2 c = texture2D(tCoeff, vec2(float(i) * fCoeff, 0.5)).xy;
+            gauss += c.x * exp(-c.y * R2);
+        }
+        return gauss;
+    }
+#endif
+
+#ifdef uMaxCoeffs
+    float R(const in float R2, const in int start, const in int end, const in float fCoeff) {
+        float gauss = 0.0;
+        int o = start;
+        for (int i = 0; i < uMaxCoeffs; i++) {
+            if (o >= end) break;
+
+            vec2 c = texture2D(tCoeff, vec2(float(o) * fCoeff, 0.5)).xy;
+            o++;
+            gauss += c.x * exp(-c.y * R2);
+        }
+        return gauss;
+    }
+#endif
+
 float intDiv(const in float a, const in float b) { return float(int(a) / int(b)); }
 float intMod(const in float a, const in float b) { return a - b * float(int(a) / int(b)); }
 
@@ -122,7 +177,7 @@ void main(void) {
     float offset = round(floor(gl_FragCoord.x) + floor(gl_FragCoord.y) * uDimensions.x);
     
     // axis order fast to slow Z, Y, X
-    // TODO: support arbitrary axis orders
+    // TODO: support arbitrary axis orders?
     float k = intMod(offset, uDimensions.z), kk = intDiv(offset, uDimensions.z);
     float j = intMod(kk, uDimensions.y);
     float i = intDiv(kk, uDimensions.y);
@@ -153,38 +208,8 @@ void main(void) {
         float aO = info.y;
         int coeffStart = int(info.z);
         int coeffEnd = int(info.w);
-
-        float gauss = 0.0;
-        for (int j = coeffStart; j < coeffEnd; j++) {
-            vec2 c = texture2D(tCoeff, vec2(float(j) * fCoeff, 0.5)).xy;
-            gauss += c.x * exp(-c.y * R2);
-        }
-
-        float spherical = 0.0;
-        if (L == 0) {
-            spherical = alpha(aO, fA);
-        } else if (L == 1) {
-            spherical = L1(X,
-                alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA)
-            );
-        } else if (L == 2) {
-            spherical = L2(X,
-                alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA)
-            );
-        } else if (L == 3) {
-            spherical = L3(X,
-                alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA), 
-                alpha(aO + 5.0, fA), alpha(aO + 6.0, fA)
-            );
-        } else if (L == 4) {
-            spherical = L4(X,
-                alpha(aO, fA), alpha(aO + 1.0, fA), alpha(aO + 2.0, fA), alpha(aO + 3.0, fA), alpha(aO + 4.0, fA), 
-                alpha(aO + 5.0, fA), alpha(aO + 6.0, fA), alpha(aO + 7.0, fA), alpha(aO + 8.0, fA)
-            );
-        } 
-        // TODO: do we need L > 4?
-
-        v += gauss * spherical;
+        
+        v += R(R2, coeffStart, coeffEnd, fCoeff) * Y(L, X, aO, fA);
     }
 
     // TODO: render to single component float32 texture in WebGL2

@@ -13,8 +13,8 @@ import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { Grid } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { arrayMax, arrayMin, arrayRms } from '../../mol-util/array';
-import { CollocationParams } from './collocation';
-import { AlphaOrbitalsPass } from './gpu/pass';
+import { CollocationParams, sphericalCollocation } from './collocation';
+import { canComputeAlphaOrbitalsOnGPU, gpuComputeAlphaOrbitalsGridValues } from './gpu/compute';
 import { SphericalBasisOrder } from './orbitals';
 
 export interface CubeGridInfo {
@@ -76,38 +76,18 @@ export function createSphericalCollocationGrid(
             sphericalOrder: params.sphericalOrder
         };
 
-        // console.log(cParams);
+        let matrix: Float32Array;
+        if (canComputeAlphaOrbitalsOnGPU(webgl)) {
+            console.time('gpu');
+            matrix = gpuComputeAlphaOrbitalsGridValues(webgl!, cParams);
+            console.timeEnd('gpu');
+        } else {
+            console.time('cpu');
+            matrix = await sphericalCollocation(cParams, ctx);
+            console.timeEnd('cpu');
+        }
 
-        console.time('gpu');
-        const pass = new AlphaOrbitalsPass(webgl!, cParams);
-        const matrixGL = pass.getData();
-        console.timeEnd('gpu');
-
-        // TODO: remove the 2nd run
-        // console.time('gpu');
-        // const pass0 = new AlphaOrbitalsPass(webgl!, cParams);
-        // pass0.getData();
-        // console.timeEnd('gpu');
-
-        // if (false && webgl) {
-        // } else {
-        // console.time('cpu');
-        // const matrix = await sphericalCollocation(cParams, ctx);
-        // console.timeEnd('cpu');
-        // // }
-
-        // console.log(matrixGL);
-        // console.log(matrix);
-
-        // for (let i = 0; i < matrixGL.length; i++) {
-        //     if (Math.abs(matrixGL[i] - matrix[i]) > 1e-4) {
-        //         console.log('err', i, matrixGL[i], matrix[i]);
-        //         // console.log()
-        //         break;
-        //     }
-        // }
-
-        return createCubeGrid(cParams.grid, matrixGL, [0, 1, 2], !params.doNotComputeIsovalues);
+        return createCubeGrid(cParams.grid, matrix, [0, 1, 2], !params.doNotComputeIsovalues);
     });
 }
 
@@ -146,17 +126,12 @@ function createCubeGrid(gridInfo: CubeGridInfo, values: Float32Array, axisOrder:
     };
 
     // TODO: when using GPU rendering, the cumulative sum can be computed
-    // along the ray on the fly
-
+    //       along the ray on the fly?
     let isovalues: { negative?: number, positive?: number } | undefined;
 
     if (computeIsovalues) {
-        console.time('iso');
-        const isovalues = computeIsocontourValues(values, 0.85);
-        console.timeEnd('iso');
-        console.log(isovalues);
+        isovalues = computeIsocontourValues(values, 0.85);
     }
-
 
     return { grid, isovalues };
 }

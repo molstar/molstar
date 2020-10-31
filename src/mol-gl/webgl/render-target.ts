@@ -58,6 +58,10 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
             gl.viewport(0, 0, _width, _height);
         },
         setSize: (width: number, height: number) => {
+            if (_width === width && _height === height) {
+                return;
+            }
+
             _width = width;
             _height = height;
             targetTexture.define(_width, _height);

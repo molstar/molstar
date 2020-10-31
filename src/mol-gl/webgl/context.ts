@@ -191,6 +191,9 @@ export interface WebGLContext {
     setContextLost: () => void
     handleContextRestored: () => void
 
+    // A cache for compute targets, managed by the code that uses it
+    readonly computeTargets: { [name: string]: RenderTarget }
+
     createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32', filter?: TextureFilter) => RenderTarget
     unbindFramebuffer: () => void
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) => void
@@ -261,6 +264,8 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
 
     const renderTargets = new Set<RenderTarget>();
 
+    const computeTargets = Object.create(null);
+
     return {
         gl,
         isWebGL2: isWebGL2(gl),
@@ -277,6 +282,8 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         get maxTextureSize () { return parameters.maxTextureSize; },
         get maxRenderbufferSize () { return parameters.maxRenderbufferSize; },
         get maxDrawBuffers () { return parameters.maxDrawBuffers; },
+
+        computeTargets,
 
         get isContextLost () {
             return isContextLost || gl.isContextLost();
