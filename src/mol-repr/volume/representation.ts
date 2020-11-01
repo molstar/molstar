@@ -15,7 +15,7 @@ import { createRenderObject, getNextMaterialId, GraphicsRenderObject } from '../
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
-import { VisualUpdateState } from '../util';
+import { getQualityProps, VisualUpdateState } from '../util';
 import { ColorTheme } from '../../mol-theme/color';
 import { ValueCell } from '../../mol-util';
 import { createSizes } from '../../mol-geo/geometry/size-data';
@@ -243,7 +243,8 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
             _volume = volume;
             if (!_props) _props = PD.getDefaultValues(_params);
         }
-        _props = Object.assign({}, _props, props);
+        const qualityProps = getQualityProps(Object.assign({}, _props, props), _volume);
+        Object.assign(_props, props, qualityProps);
 
         return Task.create('Creating or updating VolumeRepresentation', async runtime => {
             if (!visual) visual = visualCtor(materialId);

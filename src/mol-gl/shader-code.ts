@@ -15,11 +15,12 @@ export type DefineValues = { [k: string]: ValueCell<DefineType> }
 
 const shaderCodeId = idFactory();
 
+type ShaderExtensionsValue = 'required' | 'optional'
 export interface ShaderExtensions {
-    readonly standardDerivatives?: boolean
-    readonly fragDepth?: boolean
-    readonly drawBuffers?: boolean
-    readonly shaderTextureLod?: boolean
+    readonly standardDerivatives?: ShaderExtensionsValue
+    readonly fragDepth?: ShaderExtensionsValue
+    readonly drawBuffers?: ShaderExtensionsValue
+    readonly shaderTextureLod?: ShaderExtensionsValue
 }
 
 export interface ShaderCode {
@@ -118,11 +119,11 @@ export const PointsShaderCode = ShaderCode('points', points_vert, points_frag);
 
 import spheres_vert from './shader/spheres.vert';
 import spheres_frag from './shader/spheres.frag';
-export const SpheresShaderCode = ShaderCode('spheres', spheres_vert, spheres_frag, { fragDepth: true });
+export const SpheresShaderCode = ShaderCode('spheres', spheres_vert, spheres_frag, { fragDepth: 'required' });
 
 import text_vert from './shader/text.vert';
 import text_frag from './shader/text.frag';
-export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { standardDerivatives: true });
+export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { standardDerivatives: 'required' });
 
 import lines_vert from './shader/lines.vert';
 import lines_frag from './shader/lines.frag';
@@ -130,11 +131,11 @@ export const LinesShaderCode = ShaderCode('lines', lines_vert, lines_frag);
 
 import mesh_vert from './shader/mesh.vert';
 import mesh_frag from './shader/mesh.frag';
-export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { standardDerivatives: true });
+export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { standardDerivatives: 'optional' });
 
 import direct_volume_vert from './shader/direct-volume.vert';
 import direct_volume_frag from './shader/direct-volume.frag';
-export const DirectVolumeShaderCode = ShaderCode('direct-volume', direct_volume_vert, direct_volume_frag, { fragDepth: true });
+export const DirectVolumeShaderCode = ShaderCode('direct-volume', direct_volume_vert, direct_volume_frag, { fragDepth: 'optional' });
 
 import image_vert from './shader/image.vert';
 import image_frag from './shader/image.frag';
@@ -177,24 +178,24 @@ function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
         if (extensions.fragDepth) {
             prefix.push('#extension GL_EXT_frag_depth : enable');
             prefix.push('#define enabledFragDepth');
-        } else {
-            throw new Error(`requested 'GL_EXT_frag_depth' extension is unavailable`);
+        } else if (shaderExtensions.fragDepth === 'required') {
+            throw new Error(`required 'GL_EXT_frag_depth' extension not available`);
         }
     }
     if (shaderExtensions.drawBuffers) {
         if (extensions.drawBuffers) {
             prefix.push('#extension GL_EXT_draw_buffers : require');
             prefix.push('#define requiredDrawBuffers');
-        } else {
-            throw new Error(`requested 'GL_EXT_draw_buffers' extension is unavailable`);
+        } else if (shaderExtensions.drawBuffers === 'required') {
+            throw new Error(`required 'GL_EXT_draw_buffers' extension not available`);
         }
     }
     if (shaderExtensions.shaderTextureLod) {
         if (extensions.shaderTextureLod) {
             prefix.push('#extension GL_EXT_shader_texture_lod : enable');
             prefix.push('#define enabledShaderTextureLod');
-        } else {
-            throw new Error(`requested 'GL_EXT_shader_texture_lod' extension is unavailable`);
+        } else if (shaderExtensions.shaderTextureLod === 'required') {
+            throw new Error(`required 'GL_EXT_shader_texture_lod' extension not available`);
         }
     }
     return prefix.join('\n') + '\n';

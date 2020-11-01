@@ -49,9 +49,8 @@ export const GaussianDensitySchema = {
 type GaussianDensityValues = Values<typeof GaussianDensitySchema>
 type GaussianDensityRenderable = ComputeRenderable<GaussianDensityValues>
 
-export const GaussianDensityShaderCode = ShaderCode(
-    'gaussian-density', gaussian_density_vert, gaussian_density_frag,
-    { standardDerivatives: false, fragDepth: false }
+const GaussianDensityShaderCode = ShaderCode(
+    'gaussian-density', gaussian_density_vert, gaussian_density_frag
 );
 
 let _tmpTexture: Texture | undefined = undefined;
@@ -299,22 +298,22 @@ function getGaussianDensityRenderable(webgl: WebGLContext, drawCount: number, po
         ValueCell.updateIfChanged(v.drawCount, drawCount);
         ValueCell.updateIfChanged(v.instanceCount, 1);
 
-        ValueCell.updateIfChanged(v.aRadius, radii);
-        ValueCell.updateIfChanged(v.aPosition, positions);
-        ValueCell.updateIfChanged(v.aGroup, groups);
+        ValueCell.update(v.aRadius, radii);
+        ValueCell.update(v.aPosition, positions);
+        ValueCell.update(v.aGroup, groups);
 
         ValueCell.updateIfChanged(v.uCurrentSlice, 0);
         ValueCell.updateIfChanged(v.uCurrentX, 0);
         ValueCell.updateIfChanged(v.uCurrentY, 0);
-        ValueCell.updateIfChanged(v.uBboxMin, box.min);
-        ValueCell.updateIfChanged(v.uBboxSize, extent);
-        ValueCell.updateIfChanged(v.uGridDim, gridDim);
-        ValueCell.updateIfChanged(v.uGridTexDim, gridTexDim);
-        ValueCell.updateIfChanged(v.uGridTexScale, gridTexScale);
+        ValueCell.update(v.uBboxMin, box.min);
+        ValueCell.update(v.uBboxSize, extent);
+        ValueCell.update(v.uGridDim, gridDim);
+        ValueCell.update(v.uGridTexDim, gridTexDim);
+        ValueCell.update(v.uGridTexScale, gridTexScale);
         ValueCell.updateIfChanged(v.uAlpha, smoothness);
         ValueCell.updateIfChanged(v.uResolution, resolution);
         ValueCell.updateIfChanged(v.uRadiusFactor, radiusFactor);
-        ValueCell.updateIfChanged(v.tMinDistanceTex, minDistanceTexture);
+        ValueCell.update(v.tMinDistanceTex, minDistanceTexture);
 
         ValueCell.updateIfChanged(v.dGridTexType, minDistanceTexture.getDepth() > 0 ? '3d' : '2d');
         ValueCell.updateIfChanged(v.dCalcType, 'density');
@@ -355,8 +354,7 @@ function _getGaussianDensityRenderable(webgl: WebGLContext, drawCount: number, p
     };
 
     const schema = { ...GaussianDensitySchema };
-    const shaderCode = GaussianDensityShaderCode;
-    const renderItem =  createComputeRenderItem(webgl, 'points', shaderCode, schema, values);
+    const renderItem =  createComputeRenderItem(webgl, 'points', GaussianDensityShaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);
 }

@@ -154,6 +154,7 @@ export class DrawPass {
             // this.webgl.state.disable(this.webgl.gl.SCISSOR_TEST);
             this.webgl.state.disable(this.webgl.gl.BLEND);
             this.webgl.state.disable(this.webgl.gl.DEPTH_TEST);
+            this.webgl.state.disable(this.webgl.gl.CULL_FACE);
             this.webgl.state.depthMask(false);
             this.webgl.state.clearColor(1, 1, 1, 1);
             this.webgl.gl.viewport(x, y, width, height);

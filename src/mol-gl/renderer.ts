@@ -158,7 +158,7 @@ function getClip(props: RendererProps['clip'], clip?: Clip): Clip {
 
 namespace Renderer {
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
-        const { gl, state, stats } = ctx;
+        const { gl, state, stats, extensions: { fragDepth } } = ctx;
         const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
         const style = getStyle(p.style);
         const clip = getClip(p.clip);
@@ -267,34 +267,49 @@ namespace Renderer {
 
             if (depthTexture) program.bindTextures([['tDepth', depthTexture]]);
 
-            if (r.values.dDoubleSided) {
-                if ((r.values.dDoubleSided.ref.value || r.values.hasReflection.ref.value) &&
-                    !r.values.uStepFactor // indicates direct-volume, always cull
-                ) {
-                    state.disable(gl.CULL_FACE);
+            if (r.values.uStepFactor) { // indicates direct-volume
+                // always cull front
+                state.enable(gl.CULL_FACE);
+                state.frontFace(gl.CW);
+                state.cullFace(gl.BACK);
+
+                // depth test done manually in shader against `depthTexture`
+                // still need to enable when fragDepth can be used to write depth
+                // (unclear why depthMask is insufficient)
+                if (r.values.dRenderMode.ref.value === 'volume' || !fragDepth) {
+                    state.disable(gl.DEPTH_TEST);
+                    state.depthMask(false);
                 } else {
-                    state.enable(gl.CULL_FACE);
+                    state.enable(gl.DEPTH_TEST);
+                    state.depthMask(r.state.writeDepth);
                 }
             } else {
-                // webgl default
-                state.disable(gl.CULL_FACE);
-            }
-
-            if (r.values.dFlipSided) {
-                if (r.values.dFlipSided.ref.value) {
-                    state.frontFace(gl.CW);
-                    state.cullFace(gl.FRONT);
+                state.enable(gl.DEPTH_TEST);
+                if (r.values.dDoubleSided) {
+                    if (r.values.dDoubleSided.ref.value || r.values.hasReflection.ref.value) {
+                        state.disable(gl.CULL_FACE);
+                    } else {
+                        state.enable(gl.CULL_FACE);
+                    }
                 } else {
+                    // webgl default
+                    state.disable(gl.CULL_FACE);
+                }
+
+                if (r.values.dFlipSided) {
+                    if (r.values.dFlipSided.ref.value) {
+                        state.frontFace(gl.CW);
+                        state.cullFace(gl.FRONT);
+                    } else {
+                        state.frontFace(gl.CCW);
+                        state.cullFace(gl.BACK);
+                    }
+                } else {
+                    // webgl default
                     state.frontFace(gl.CCW);
                     state.cullFace(gl.BACK);
                 }
-            } else {
-                // webgl default
-                state.frontFace(gl.CCW);
-                state.cullFace(gl.BACK);
-            }
 
-            if (variant === 'color') {
                 state.depthMask(r.state.writeDepth);
             }
 

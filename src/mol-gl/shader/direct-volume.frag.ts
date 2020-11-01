@@ -12,12 +12,20 @@ precision highp int;
 #include common
 #include light_frag_params
 
+#if dClipObjectCount != 0
+    uniform int uClipObjectType[dClipObjectCount];
+    uniform vec3 uClipObjectPosition[dClipObjectCount];
+    uniform vec4 uClipObjectRotation[dClipObjectCount];
+    uniform vec3 uClipObjectScale[dClipObjectCount];
+#endif
+#include common_clip
+
 #include read_from_texture
 #include texture3d_from_1d_trilinear
 #include texture3d_from_2d_nearest
 #include texture3d_from_2d_linear
 
-uniform mat4 uProjection, uTransform, uModelView, uView;
+uniform mat4 uProjection, uTransform, uModelView, uModel, uView;
 uniform vec3 uCameraDir;
 
 uniform sampler2D tDepth;
@@ -25,13 +33,14 @@ uniform vec2 uDrawingBufferSize;
 uniform float uNear;
 uniform float uFar;
 
-varying vec3 unitCoord;
-varying vec3 origPos;
-varying float instance;
+varying vec3 vOrigPos;
+varying float vInstance;
+varying vec4 vBoundingSphere;
 
 uniform mat4 uInvView;
 uniform vec2 uIsoValue;
 uniform vec3 uGridDim;
+uniform vec3 uBboxSize;
 uniform sampler2D tTransferTex;
 uniform float uStepFactor;
 
@@ -178,6 +187,17 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
                 isoPos = toUnit(mix(pos - step, pos, ((prevValue - uIsoValue.x) / ((prevValue - uIsoValue.x) - (value - uIsoValue.x)))));
 
                 vec4 mvPosition = uModelView * uTransform * vec4(isoPos * uGridDim, 1.0);
+
+                #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+                    vec3 vModelPosition = (uModel * uTransform * vec4(isoPos * uGridDim, 1.0)).xyz;
+                    if (clipTest(vec4(vModelPosition, 0.0), 0)) {
+                        prevValue = value;
+                        prevCell = cell;
+                        pos += step;
+                        continue;
+                    }
+                #endif
+
                 float depth = calcDepth(mvPosition.xyz);
                 if (depth > getDepth(gl_FragCoord.xy / uDrawingBufferSize))
                     break;
@@ -192,7 +212,7 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
                 #if defined(dRenderVariant_pickObject)
                     return vec4(encodeFloatRGB(float(uObjectId)), 1.0);
                 #elif defined(dRenderVariant_pickInstance)
-                    return vec4(encodeFloatRGB(instance), 1.0);
+                    return vec4(encodeFloatRGB(vInstance), 1.0);
                 #elif defined(dRenderVariant_pickGroup)
                     #ifdef dPackedGroup
                         return vec4(textureGroup(floor(isoPos * uGridDim + 0.5) / uGridDim).rgb, 1.0);
@@ -217,15 +237,15 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
                     #if defined(dColorType_uniform)
                         color = uColor;
                     #elif defined(dColorType_instance)
-                        color = readFromTexture(tColor, instance, uColorTexDim).rgb;
+                        color = readFromTexture(tColor, vInstance, uColorTexDim).rgb;
                     #elif defined(dColorType_group)
                         color = readFromTexture(tColor, group, uColorTexDim).rgb;
                     #elif defined(dColorType_groupInstance)
-                        color = readFromTexture(tColor, instance * float(uGroupCount) + group, uColorTexDim).rgb;
+                        color = readFromTexture(tColor, vInstance * float(uGroupCount) + group, uColorTexDim).rgb;
                     #elif defined(dColorType_vertex)
                         color = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, 0.0).rgb;
                     #elif defined(dColorType_vertexInstance)
-                        color = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, instance * float(uVertexCount)).rgb;
+                        color = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
                     #endif
 
                     // handle flipping and negative isosurfaces
@@ -268,7 +288,7 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
                         #include apply_light_color
                     #endif
 
-                    float vMarker = readFromTexture(tMarker, instance * float(uGroupCount) + group, uMarkerTexDim).a;
+                    float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
                     #include apply_interior_color
                     #include apply_marker_color
                     #include apply_fog
@@ -289,6 +309,16 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
             vec4 mvPosition = uModelView * uTransform * vec4(isoPos * uGridDim, 1.0);
             if (calcDepth(mvPosition.xyz) > getDepth(gl_FragCoord.xy / uDrawingBufferSize))
                 break;
+
+            #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+                vec3 vModelPosition = (uModel * uTransform * vec4(isoPos * uGridDim, 1.0)).xyz;
+                if (clipTest(vec4(vModelPosition, 0.0), 0)) {
+                    prevValue = value;
+                    prevCell = cell;
+                    pos += step;
+                    continue;
+                }
+            #endif
 
             vec3 vViewPosition = mvPosition.xyz;
             vec4 material = transferFunction(value);
@@ -318,7 +348,7 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
                 float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
             #endif
 
-            float vMarker = readFromTexture(tMarker, instance * float(uGroupCount) + group, uMarkerTexDim).a;
+            float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
             #include apply_marker_color
             #include apply_fog
 
@@ -344,15 +374,15 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
     return dst;
 }
 
-// TODO calculate normalMatrix on CPU
-// TODO fix near/far clipping
-// TODO support clip objects
-// TODO support float texture for higher precision values???
+// TODO: calculate normalMatrix on CPU
+// TODO: support float texture for higher precision values???
+// TODO: support clipping exclusion texture support
+// TODO: support instance transforms
 
 void main () {
-    // TODO handle on CPU in renderloop?
-    #if defined(dRenderVariant_pick)
+    #if defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
         #if defined(dRenderMode_volume)
+            // always ignore pick & depth for volume
             discard;
         #elif defined(dRenderMode_isosurface)
             if (uAlpha < uPickingAlphaThreshold)
@@ -360,13 +390,20 @@ void main () {
         #endif
     #endif
 
-    vec3 rayDir = mix(normalize(origPos - uCameraPosition), uCameraDir, uIsOrtho);;
+    vec3 rayDir = mix(normalize(vOrigPos - uCameraPosition), uCameraDir, uIsOrtho);;
 
     // TODO: set the scale as uniform?
     float stepScale = min(uCellDim.x, min(uCellDim.y, uCellDim.z)) * uStepFactor;
     vec3 step = rayDir * stepScale;
 
-    float d = uNear - distance(origPos, uCameraPosition);
-    gl_FragColor = raymarch(origPos + (d * rayDir), step);
+    float boundingSphereNear = distance(vBoundingSphere.xyz, uCameraPosition) - vBoundingSphere.w;
+    float d = max(uNear, boundingSphereNear) - distance(vOrigPos, uCameraPosition);
+    gl_FragColor = raymarch(vOrigPos + (d * rayDir), step);
+
+    #if defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
+        // discard when nothing was hit
+        if (gl_FragColor == vec4(0.0))
+            discard;
+    #endif
 }
 `;

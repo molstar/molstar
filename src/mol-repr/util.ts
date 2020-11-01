@@ -9,6 +9,7 @@ import { Structure } from '../mol-model/structure';
 import { VisualQuality } from '../mol-geo/geometry/base';
 import { Box3D, SpacegroupCell } from '../mol-math/geometry';
 import { ModelSymmetry } from '../mol-model-formats/structure/property/symmetry';
+import { Volume } from '../mol-model/volume';
 
 export interface VisualUpdateState {
     updateTransform: boolean
@@ -111,9 +112,15 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     let doubleSided = defaults(props.doubleSided, true);
 
     let volume = 0;
-    if (quality === 'auto' && data instanceof Structure) {
-        quality = getStructureQuality(data.root);
-        volume = getRootVolume(data);
+    if (quality === 'auto') {
+        if (data instanceof Structure) {
+            quality = getStructureQuality(data.root);
+            volume = getRootVolume(data);
+        } else if (Volume.is(data)) {
+            const [x, y, z] = data.grid.cells.space.dimensions;
+            volume = x * y * z;
+            quality = volume < 10_000_000 ? 'medium' : 'low';
+        }
     }
 
     switch (quality) {

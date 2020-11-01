@@ -36,6 +36,16 @@ export interface Volume {
 }
 
 export namespace Volume {
+    export function is(x: any): x is Volume {
+        // TODO: improve
+        return (
+            x?.grid?.cells?.space?.dimensions?.length &&
+            x?.sourceData &&
+            x?.customProperties &&
+            x?._propertyData
+        );
+    }
+
     export type CellIndex = { readonly '@type': 'cell-index' } & number
 
     export type IsoValue = IsoValue.Absolute | IsoValue.Relative
