@@ -129,7 +129,7 @@ interface Canvas3D {
 
 const requestAnimationFrame = typeof window !== 'undefined'
     ? window.requestAnimationFrame
-    : (f: (time: number) => void) => setImmediate(()=>f(Date.now())) as unknown as number;
+    : (f: (time: number) => void) => setImmediate(() => f(Date.now())) as unknown as number;
 const cancelAnimationFrame = typeof window !== 'undefined'
     ? window.cancelAnimationFrame
     : (handle: number) => clearImmediate(handle as unknown as NodeJS.Immediate);
@@ -607,12 +607,9 @@ namespace Canvas3D {
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
                 if (props.viewport !== undefined) {
                     const doNotUpdate = p.viewport === props.viewport ||
-                        (p.viewport.name && p.viewport.name && shallowEqual(p.viewport.params, p.viewport.params));
+                        (p.viewport.name === props.viewport.name && shallowEqual(p.viewport.params, props.viewport.params));
 
                     if (!doNotUpdate) {
-                        // clear old viewport
-                        renderer.setViewport(x, y, width, height);
-                        renderer.clear(p.transparentBackground);
                         p.viewport = props.viewport;
                         updateViewport();
                         syncViewport();
