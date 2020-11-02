@@ -37,6 +37,7 @@ import { HandleHelperParams } from './helper/handle-helper';
 import { StereoCamera, StereoCameraParams } from './camera/stereo';
 import { Helper } from './helper/helper';
 import { Passes } from './passes/passes';
+import { shallowEqual } from '../mol-util';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -114,7 +115,7 @@ interface Canvas3D {
     requestCameraReset(options?: { durationMs?: number, snapshot?: Partial<Camera.Snapshot> }): void
     readonly camera: Camera
     readonly boundingSphere: Readonly<Sphere3D>
-    setProps(props: PartialCanvas3DProps | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void)): void
+    setProps(props: PartialCanvas3DProps | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void), doNotRequestDraw?: boolean /* = false */): void
     getImagePass(props: Partial<ImageProps>): ImagePass
 
     /** Returns a copy of the current Canvas3D instance props */
@@ -572,7 +573,7 @@ namespace Canvas3D {
             boundingSphere: scene.boundingSphere,
             didDraw,
             reprCount,
-            setProps: (properties) => {
+            setProps: (properties, doNotRequestDraw = false) => {
                 const props: PartialCanvas3DProps = typeof properties === 'function'
                     ? produce(getProps(), properties)
                     : properties;
@@ -605,12 +606,17 @@ namespace Canvas3D {
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs;
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
                 if (props.viewport !== undefined) {
-                    // clear old viewport
-                    renderer.setViewport(x, y, width, height);
-                    renderer.clear(p.transparentBackground);
-                    p.viewport = props.viewport;
-                    updateViewport();
-                    syncViewport();
+                    const doNotUpdate = p.viewport === props.viewport ||
+                        (p.viewport.name && p.viewport.name && shallowEqual(p.viewport.params, p.viewport.params));
+
+                    if (!doNotUpdate) {
+                        // clear old viewport
+                        renderer.setViewport(x, y, width, height);
+                        renderer.clear(p.transparentBackground);
+                        p.viewport = props.viewport;
+                        updateViewport();
+                        syncViewport();
+                    }
                 }
 
                 if (props.postprocessing) Object.assign(p.postprocessing, props.postprocessing);
@@ -624,7 +630,9 @@ namespace Canvas3D {
                     p.camera.stereo.name = 'off';
                 }
 
-                requestDraw(true);
+                if (!doNotRequestDraw) {
+                    requestDraw(true);
+                }
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
                 return new ImagePass(webgl, renderer, scene, camera, helper, props);
