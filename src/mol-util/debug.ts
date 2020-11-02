@@ -8,13 +8,13 @@
  * on node `process.env.NODE_ENV` is available, in webpack build it is automatically set
  * by the DefinePlugin to the webpack `mode` value
  */
-let isProductionMode = process.env.NODE_ENV === 'production';
+let isProductionMode = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
 
 /**
  * set to true to enable more comprehensive checks and assertions,
  * mostly used in `mol-gl` and in valence-model calculation
  */
-let isDebugMode = process.env.DEBUG === '*' || process.env.DEBUG === 'molstar';
+let isDebugMode = typeof process !== 'undefined' && (process.env?.DEBUG === '*' || process.env?.DEBUG === 'molstar');
 
 export { isProductionMode, isDebugMode };
 
