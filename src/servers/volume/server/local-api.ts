@@ -38,7 +38,8 @@ export interface JobEntry {
         forcedSamplingLevel?: number,
         asBinary: boolean,
     },
-    outputFolder: string
+    outputFolder: string,
+    outputFilename?: string
 }
 
 export async function run(jobs: JobEntry[]) {
@@ -93,7 +94,7 @@ async function query(job: JobEntry) {
         makeDir(job.outputFolder);
     }
 
-    const filename = path.join(job.outputFolder, Api.getOutputFilename(job.source.name, job.source.id, params));
+    const filename = path.join(job.outputFolder, job.outputFilename ?? Api.getOutputFilename(job.source.name, job.source.id, params));
     const res = () => wrapFile(filename);
     await Api.queryBox(params, res);
 }

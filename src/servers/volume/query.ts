@@ -45,7 +45,8 @@ if (config.jobsTemplate !== null) {
             detail: 4,
             asBinary: true
         },
-        outputFolder: 'g:/test/local-test'
+        outputFolder: 'g:/test/local-test',
+        outputFilename: '8116_cell.bcif'
     }];
     console.log(JSON.stringify(exampleJobs, null, 2));
     process.exit();
