@@ -5,7 +5,7 @@
  */
 
 import { GLRenderingContext, isWebGL2 } from './compat';
-import { checkFramebufferStatus } from './framebuffer';
+import { checkFramebufferStatus, Framebuffer } from './framebuffer';
 import { Scheduler } from '../../mol-task';
 import { isDebugMode } from '../../mol-util/debug';
 import { createExtensions, WebGLExtensions } from './extensions';
@@ -15,7 +15,8 @@ import { WebGLResources, createResources } from './resources';
 import { RenderTarget, createRenderTarget } from './render-target';
 import { BehaviorSubject } from 'rxjs';
 import { now } from '../../mol-util/now';
-import { TextureFilter } from './texture';
+import { Texture, TextureFilter } from './texture';
+import { ComputeRenderable } from '../renderable';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -191,8 +192,12 @@ export interface WebGLContext {
     setContextLost: () => void
     handleContextRestored: () => void
 
-    // A cache for compute targets, managed by the code that uses it
-    readonly computeTargets: { [name: string]: RenderTarget }
+    /** Cache for compute renderables, managed by consumers */
+    readonly namedComputeRenderables: { [name: string]: ComputeRenderable<any> }
+    /** Cache for frambuffers, managed by consumers */
+    readonly namedFramebuffers: { [name: string]: Framebuffer }
+    /** Cache for textures, managed by consumers */
+    readonly namedTextures: { [name: string]: Texture }
 
     createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32', filter?: TextureFilter) => RenderTarget
     unbindFramebuffer: () => void
@@ -264,8 +269,6 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
 
     const renderTargets = new Set<RenderTarget>();
 
-    const computeTargets = Object.create(null);
-
     return {
         gl,
         isWebGL2: isWebGL2(gl),
@@ -283,7 +286,9 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         get maxRenderbufferSize () { return parameters.maxRenderbufferSize; },
         get maxDrawBuffers () { return parameters.maxDrawBuffers; },
 
-        computeTargets,
+        namedComputeRenderables: Object.create(null),
+        namedFramebuffers: Object.create(null),
+        namedTextures: Object.create(null),
 
         get isContextLost () {
             return isContextLost || gl.isContextLost();

@@ -197,6 +197,8 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
     let destroyed = false;
 
     function define(_width: number, _height: number, _depth?: number) {
+        if (width === _width && height === _height && depth === (_depth || 0)) return;
+
         width = _width, height = _height, depth = _depth || 0;
         gl.bindTexture(target, texture);
         if (target === gl.TEXTURE_2D) {
