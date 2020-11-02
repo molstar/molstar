@@ -62,6 +62,8 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     const l = StructureElement.Location.create(structure);
     l.unit = unit;
 
+    let maxSize = 0;
+
     for (let i = 0; i < elementCount; i++) {
         if (ignore && ignore(unit, elements[i])) continue;
 
@@ -69,18 +71,22 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
         pos(elements[i], v);
 
         builderState.currentGroup = i;
-        addSphere(builderState, v, theme.size.size(l) * sizeFactor, detail);
+        const size = theme.size.size(l);
+        if (size > maxSize) maxSize = size;
+
+        addSphere(builderState, v, size * sizeFactor, detail);
     }
 
     const m = MeshBuilder.getMesh(builderState);
-
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * sizeFactor);
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxSize * sizeFactor + 0.05);
     m.setBoundingSphere(sphere);
 
     return m;
 }
 
-export type ElementSphereImpostorProps = ElementProps
+export type ElementSphereImpostorProps = {
+    sizeFactor: number,
+} & ElementProps
 
 export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereImpostorProps, spheres?: Spheres): Spheres {
     const { elements } = unit;
@@ -91,21 +97,22 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     const pos = unit.conformation.invariantPosition;
     const ignore = makeElementIgnoreTest(unit, props);
 
-    if (ignore) {
-        for (let i = 0; i < elementCount; i++) {
-            if (ignore(unit, elements[i])) continue;
-            pos(elements[i], v);
-            builder.add(v[0], v[1], v[2], i);
-        }
-    } else {
-        for (let i = 0; i < elementCount; i++) {
-            pos(elements[i], v);
-            builder.add(v[0], v[1], v[2], i);
-        }
+    const l = StructureElement.Location.create(structure, unit);
+    let maxSize = 0;
+
+    for (let i = 0; i < elementCount; i++) {
+        if (ignore?.(unit, elements[i])) continue;
+
+        pos(elements[i], v);
+        builder.add(v[0], v[1], v[2], i);
+
+        l.element = elements[i];
+        const size = theme.size.size(l);
+        if (size > maxSize) maxSize = size;
     }
 
     const s = builder.getSpheres();
-    s.setBoundingSphere(unit.boundary.sphere);
+    s.setBoundingSphere(Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxSize * props.sizeFactor + 0.05));
 
     return s;
 }
