@@ -46,7 +46,7 @@ export class BoundaryHelper {
     }
 
     includeSphere(s: Sphere3D) {
-        if (Sphere3D.hasExtrema(s)) {
+        if (Sphere3D.hasExtrema(s) && s.extrema.length > 1) {
             for (const e of s.extrema) {
                 this.includePosition(e);
             }
@@ -75,7 +75,7 @@ export class BoundaryHelper {
     }
 
     radiusSphere(s: Sphere3D) {
-        if (Sphere3D.hasExtrema(s)) {
+        if (Sphere3D.hasExtrema(s) && s.extrema.length > 1) {
             for (const e of s.extrema) {
                 this.radiusPosition(e);
             }

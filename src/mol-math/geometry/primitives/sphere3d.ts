@@ -197,6 +197,10 @@ namespace Sphere3D {
     export function expand(out: Sphere3D, sphere: Sphere3D, delta: number): Sphere3D {
         Vec3.copy(out.center, sphere.center);
         out.radius = sphere.radius + delta;
+        if (sphere.radius < 1e-12 || (sphere.extrema?.length ?? 0) <= 1) {
+            out.extrema = void 0;
+            return out;
+        }
         if (hasExtrema(sphere)) {
             setExtrema(out, sphere.extrema.map(e => {
                 Vec3.sub(tmpDir, e, sphere.center);
