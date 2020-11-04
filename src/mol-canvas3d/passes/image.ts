@@ -28,8 +28,8 @@ export const ImageParams = {
 export type ImageProps = PD.Values<typeof ImageParams>
 
 export class ImagePass {
-    private _width = 1024
-    private _height = 768
+    private _width = 0
+    private _height = 0
     private _camera = new Camera()
 
     readonly props: ImageProps
@@ -59,7 +59,7 @@ export class ImagePass {
             handle: helper.handle,
         };
 
-        this.setSize(this._width, this._height);
+        this.setSize(1024, 768);
     }
 
     setSize(width: number, height: number) {
