@@ -320,7 +320,7 @@ function updateClip(camera: Camera) {
 
     if (mode === 'perspective') {
         // set at least to 5 to avoid slow sphere impostor rendering
-        near = Math.max(5, near);
+        near = Math.max(Math.min(radius, 5), near);
         far = Math.max(5, far);
     } else {
         near = Math.max(0, near);
