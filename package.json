@@ -135,6 +135,7 @@
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "express": "^4.17.1",
+    "h264-mp4-encoder": "^1.0.12",
     "immer": "^7.0.9",
     "immutable": "^3.8.2",
     "node-fetch": "^2.6.0",
