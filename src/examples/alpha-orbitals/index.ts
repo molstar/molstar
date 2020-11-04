@@ -102,7 +102,8 @@ export class AlphaOrbitalsExample {
             color,
             directVolume: this.state.value.gpuSurface,
             kind,
-            relativeIsovalue: this.state.value.isoValue
+            relativeIsovalue: this.state.value.isoValue,
+            pickable: false
         };
     }
 
