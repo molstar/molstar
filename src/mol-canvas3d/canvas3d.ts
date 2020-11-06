@@ -103,6 +103,7 @@ interface Canvas3D {
     requestDraw(force?: boolean): void
     animate(): void
     pause(): void
+    setCurrentTime(t: number): void
     identify(x: number, y: number): PickData | undefined
     mark(loci: Representation.Loci, action: MarkerAction): void
     getLoci(pickingId: PickingId | undefined): Representation.Loci
@@ -554,6 +555,7 @@ namespace Canvas3D {
             requestDraw,
             animate,
             pause,
+            setCurrentTime: t => currentTime = t,
             identify,
             mark,
             getLoci,
