@@ -288,7 +288,7 @@ namespace Canvas3D {
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
                     passes.multiSample.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
                 } else {
-                    const toDrawingBuffer = !PostprocessingPass.isEnabled(p.postprocessing) && scene.volumes.renderables.length === 0;
+                    const toDrawingBuffer = false; //!PostprocessingPass.isEnabled(p.postprocessing) && scene.volumes.renderables.length === 0;
                     passes.draw.render(renderer, cam, scene, helper, toDrawingBuffer, p.transparentBackground);
                     if (!toDrawingBuffer) passes.postprocessing.render(cam, true, p.postprocessing);
                 }

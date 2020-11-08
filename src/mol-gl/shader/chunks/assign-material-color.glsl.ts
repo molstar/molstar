@@ -45,8 +45,10 @@ export default `
             at = fract(dot(vec3(coord, vGroup + 0.5), vec3(2.0, 7.0, 23.0) / 17.0f));
         #endif
 
-        if (ta < 0.99 && (ta < 0.01 || ta < at))
-            discard;
+        if (ta < 0.99 && (ta < 0.01 || ta < at)) {
+            //discard;
+        }
+        material.a = ta;
     #endif
 #endif
 `;

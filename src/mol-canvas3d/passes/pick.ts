@@ -63,26 +63,26 @@ export class PickPass {
         }
     }
 
-    private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: GraphicsRenderVariant) {
+    private renderVariant(renderTarget: RenderTarget, renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: GraphicsRenderVariant) {
         const pickScale = this.pickBaseScale / this.webgl.pixelRatio;
         const depth = this.drawPass.depthTexturePrimitives;
-        renderer.render(scene.primitives, camera, variant, true, false, pickScale, null);
-        renderer.render(scene.volumes, camera, variant, false, false, pickScale, depth);
-        renderer.render(helper.handle.scene, camera, variant, false, false, pickScale, null);
+        renderer.render(renderTarget, scene.primitives, camera, variant, true, false, pickScale, null, false);
+        renderer.render(renderTarget, scene.volumes, camera, variant, false, false, pickScale, depth, false);
+        renderer.render(renderTarget, helper.handle.scene, camera, variant, false, false, pickScale, null, false);
     }
 
     render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper) {
         this.objectPickTarget.bind();
-        this.renderVariant(renderer, camera, scene, helper, 'pickObject');
+        this.renderVariant(this.objectPickTarget, renderer, camera, scene, helper, 'pickObject');
 
         this.instancePickTarget.bind();
-        this.renderVariant(renderer, camera, scene, helper, 'pickInstance');
+        this.renderVariant(this.instancePickTarget, renderer, camera, scene, helper, 'pickInstance');
 
         this.groupPickTarget.bind();
-        this.renderVariant(renderer, camera, scene, helper, 'pickGroup');
+        this.renderVariant(this.groupPickTarget, renderer, camera, scene, helper, 'pickGroup');
 
         this.depthPickTarget.bind();
-        this.renderVariant(renderer, camera, scene, helper, 'depth');
+        this.renderVariant(this.depthPickTarget, renderer, camera, scene, helper, 'depth');
     }
 }
 

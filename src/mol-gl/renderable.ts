@@ -10,6 +10,7 @@ import { GraphicsRenderItem, ComputeRenderItem, GraphicsRenderVariant } from './
 import { ValueCell } from '../mol-util';
 import { idFactory } from '../mol-util/id-factory';
 import { clamp } from '../mol-math/interpolate';
+import { Textures } from './webgl/texture';
 
 const getNextRenderableId = idFactory();
 
@@ -28,7 +29,7 @@ export interface Renderable<T extends RenderableValues> {
     readonly values: T
     readonly state: RenderableState
 
-    render: (variant: GraphicsRenderVariant) => void
+    render: (variant: GraphicsRenderVariant, sharedTexturesList?: Textures) => void
     getProgram: (variant: GraphicsRenderVariant) => Program
     update: () => void
     dispose: () => void
@@ -41,11 +42,11 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
         values,
         state,
 
-        render: (variant: GraphicsRenderVariant) => {
+        render: (variant: GraphicsRenderVariant, sharedTexturesList?: Textures) => {
             if (values.uAlpha && values.alpha) {
                 ValueCell.updateIfChanged(values.uAlpha, clamp(values.alpha.ref.value * state.alphaFactor, 0, 1));
             }
-            renderItem.render(variant);
+            renderItem.render(variant, sharedTexturesList);
         },
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
         update: () => renderItem.update(),

@@ -119,14 +119,10 @@ uniform mat4 uUnitToCartn;
     }
 #endif
 
+#include wboit_params
+
 vec4 transferFunction(float value) {
     return texture2D(tTransferTex, vec2(value, 0.0));
-}
-
-// Calculate depth based on the given camera position.
-float calcDepth(const in vec3 cameraPos){
-    vec2 clipZW = cameraPos.z * uProjection[2].zw + uProjection[3].zw;
-    return 0.5 + 0.5 * clipZW.x / clipZW.y;
 }
 
 float getDepth(const in vec2 coords) {
@@ -404,6 +400,12 @@ void main () {
         // discard when nothing was hit
         if (gl_FragColor == vec4(0.0))
             discard;
+    #endif
+
+    #if defined(dRenderVariant_color)
+        vec3 vViewPosition = vOrigPos;
+        float absFragDepth = abs(calcDepth(vViewPosition));
+        #include wboit_write
     #endif
 }
 `;

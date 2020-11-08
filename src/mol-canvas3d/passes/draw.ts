@@ -52,10 +52,12 @@ export class DrawPass {
     readonly colorTarget: RenderTarget
     readonly depthTexture: Texture
     readonly depthTexturePrimitives: Texture
+    readonly depthTexturePrimitivesTransparent: Texture
 
     private readonly packedDepth: boolean
     private depthTarget: RenderTarget
     private depthTargetPrimitives: RenderTarget | null
+    private depthTargetPrimitivesTransparent: RenderTarget | null
     private depthTargetVolumes: RenderTarget | null
     private depthTextureVolumes: Texture
     private depthMerge: DepthMergeRenderable
@@ -70,9 +72,11 @@ export class DrawPass {
         this.depthTexture = this.depthTarget.texture;
 
         this.depthTargetPrimitives = this.packedDepth ? webgl.createRenderTarget(width, height) : null;
+        this.depthTargetPrimitivesTransparent = this.packedDepth ? webgl.createRenderTarget(width, height) : null;
         this.depthTargetVolumes = this.packedDepth ? webgl.createRenderTarget(width, height) : null;
 
         this.depthTexturePrimitives = this.depthTargetPrimitives ? this.depthTargetPrimitives.texture : resources.texture('image-depth', 'depth', 'ushort', 'nearest');
+        this.depthTexturePrimitivesTransparent = this.depthTargetPrimitivesTransparent ? this.depthTargetPrimitivesTransparent.texture : resources.texture('image-depth', 'depth', 'ushort', 'nearest');
         this.depthTextureVolumes = this.depthTargetVolumes ? this.depthTargetVolumes.texture : resources.texture('image-depth', 'depth', 'ushort', 'nearest');
         if (!this.packedDepth) {
             this.depthTexturePrimitives.define(width, height);
@@ -94,6 +98,11 @@ export class DrawPass {
             } else {
                 this.depthTexturePrimitives.define(width, height);
             }
+            if (this.depthTargetPrimitivesTransparent) {
+                this.depthTargetPrimitivesTransparent.setSize(width, height);
+            } else {
+                this.depthTexturePrimitivesTransparent.define(width, height);
+            }
 
             if (this.depthTargetVolumes) {
                 this.depthTargetVolumes.setSize(width, height);
@@ -109,23 +118,58 @@ export class DrawPass {
         const { x, y, width, height } = camera.viewport;
         renderer.setViewport(x, y, width, height);
 
+        let renderTarget;
         if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
+            renderTarget = null;
         } else {
-            this.colorTarget.bind();
             if (!this.packedDepth) {
                 this.depthTexturePrimitives.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
             }
+            renderTarget = this.colorTarget;
         }
-
-        renderer.render(scene.primitives, camera, 'color', true, transparentBackground, 1, null);
 
         // do a depth pass if not rendering to drawing buffer and
         // extensions.depthTexture is unsupported (i.e. depthTarget is set)
         if (!toDrawingBuffer && this.depthTargetPrimitives) {
-            this.depthTargetPrimitives.bind();
-            renderer.render(scene.primitives, camera, 'depth', true, transparentBackground, 1, null);
-            this.colorTarget.bind();
+            renderer.render(this.depthTargetPrimitives, scene.primitives, camera, 'depth', true, transparentBackground, 1, null, false);
+        }
+
+        this.depthTexturePrimitives.attachFramebuffer(renderTarget!.framebuffer, 'depth');
+        renderer.setViewport(0, 0, this.colorTarget.getWidth(), this.colorTarget.getHeight());
+        renderer.render(renderTarget, scene.primitives, camera, 'color', true, transparentBackground, 1, null, false);
+
+        if (helper.debug.isEnabled) {
+            helper.debug.syncVisibility();
+            renderer.render(renderTarget, helper.debug.scene, camera, 'color', false, transparentBackground, 1, null, false);
+        }
+        if (helper.handle.isEnabled) {
+            renderer.render(renderTarget, helper.handle.scene, camera, 'color', false, transparentBackground, 1, null, false);
+        }
+        if (helper.camera.isEnabled) {
+            helper.camera.update(camera);
+            renderer.render(renderTarget, helper.camera.scene, helper.camera.camera, 'color', false, transparentBackground, 1, null, false);
+        }
+
+        if (!toDrawingBuffer && this.depthTargetPrimitivesTransparent) {
+            renderer.render(this.depthTargetPrimitivesTransparent, scene.primitives, camera, 'depth', true, transparentBackground, 1, null, true);
+        }
+
+        if (renderTarget !== null) {
+            // this.depthTexturePrimitivesTransparent.attachFramebuffer(renderTarget.framebuffer, 'depth');
+            renderer.setViewport(0, 0, this.colorTarget.getWidth(), this.colorTarget.getHeight());
+            renderer.render(renderTarget, scene.primitives, camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives, true);
+        }
+
+        if (helper.debug.isEnabled) {
+            helper.debug.syncVisibility();
+            renderer.render(renderTarget, helper.debug.scene, camera, 'color', false, transparentBackground, 1, null, true);
+        }
+        if (helper.handle.isEnabled) {
+            renderer.render(renderTarget, helper.handle.scene, camera, 'color', false, transparentBackground, 1, null, true);
+        }
+        if (helper.camera.isEnabled) {
+            helper.camera.update(camera);
+            renderer.render(renderTarget, helper.camera.scene, helper.camera.camera, 'color', false, transparentBackground, 1, null, true);
         }
 
         // do direct-volume rendering
@@ -137,13 +181,11 @@ export class DrawPass {
                 this.webgl.gl.scissor(x, y, width, height);
                 this.webgl.gl.clear(this.webgl.gl.DEPTH_BUFFER_BIT);
             }
-            renderer.render(scene.volumes, camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives);
+            renderer.render(renderTarget, scene.volumes, camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives, true);
 
             // do volume depth pass if extensions.depthTexture is unsupported (i.e. depthTarget is set)
             if (this.depthTargetVolumes) {
-                this.depthTargetVolumes.bind();
-                renderer.render(scene.volumes, camera, 'depth', true, transparentBackground, 1, this.depthTexturePrimitives);
-                this.colorTarget.bind();
+                renderer.render(this.depthTargetVolumes, scene.volumes, camera, 'depth', true, transparentBackground, 1, this.depthTexturePrimitives, false);
             }
         }
 
@@ -162,18 +204,6 @@ export class DrawPass {
             this.webgl.gl.clear(this.webgl.gl.COLOR_BUFFER_BIT);
             this.depthMerge.render();
             this.colorTarget.bind();
-        }
-
-        if (helper.debug.isEnabled) {
-            helper.debug.syncVisibility();
-            renderer.render(helper.debug.scene, camera, 'color', false, transparentBackground, 1, null);
-        }
-        if (helper.handle.isEnabled) {
-            renderer.render(helper.handle.scene, camera, 'color', false, transparentBackground, 1, null);
-        }
-        if (helper.camera.isEnabled) {
-            helper.camera.update(camera);
-            renderer.render(helper.camera.scene, helper.camera.camera, 'color', false, transparentBackground, 1, null);
         }
     }
 

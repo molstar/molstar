@@ -286,6 +286,8 @@ export namespace DirectVolume {
             dFlatShaded: ValueCell.create(props.flatShaded),
             dFlipSided: ValueCell.create(props.flipSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
+
+            uRenderWboit: ValueCell.create(1),
         };
     }
 

@@ -5,7 +5,7 @@
  */
 
 import { createAttributeBuffers, ElementsBuffer, AttributeKind } from './buffer';
-import { createTextures, Texture } from './texture';
+import { createTextures, Texture, Textures } from './texture';
 import { WebGLContext, checkError } from './context';
 import { ShaderCode, DefineValues } from '../shader-code';
 import { Program } from './program';
@@ -40,7 +40,7 @@ export interface RenderItem<T extends string> {
     readonly materialId: number
     getProgram: (variant: T) => Program
 
-    render: (variant: T) => void
+    render: (variant: T, sharedTexturesList?: Textures) => void
     update: () => Readonly<ValueChanges>
     destroy: () => void
 }
@@ -164,12 +164,17 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         materialId,
         getProgram: (variant: T) => programs[variant],
 
-        render: (variant: T) => {
+        render: (variant: T, sharedTexturesList?: Textures) => {
             if (drawCount === 0 || instanceCount === 0 || ctx.isContextLost) return;
             const program = programs[variant];
             if (program.id === currentProgramId && state.currentRenderItemId === id) {
                 program.setUniforms(uniformValueEntries);
-                program.bindTextures(textures);
+                if (sharedTexturesList && sharedTexturesList.length > 0) {
+                    program.bindTextures(sharedTexturesList, 0);
+                    program.bindTextures(textures, sharedTexturesList.length);
+                } else {
+                    program.bindTextures(textures);
+                }
             } else {
                 const vertexArray = vertexArrays[variant];
                 if (program.id !== state.currentProgramId || program.id !== currentProgramId ||
@@ -182,7 +187,12 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     currentProgramId = program.id;
                 }
                 program.setUniforms(uniformValueEntries);
-                program.bindTextures(textures);
+                if (sharedTexturesList && sharedTexturesList.length > 0) {
+                    program.bindTextures(sharedTexturesList, 0);
+                    program.bindTextures(textures, sharedTexturesList.length);
+                } else {
+                    program.bindTextures(textures);
+                }
                 if (vertexArray) {
                     vertexArray.bind();
                     // need to bind elements buffer explicitly since it is not always recorded in the VAO
