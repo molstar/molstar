@@ -174,7 +174,7 @@ namespace Renderer {
         const viewport = Viewport();
         const drawingBufferSize = Vec2.create(gl.drawingBufferWidth, gl.drawingBufferHeight);
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor);
-        
+
         const sharedTexturesList: Textures = [];
 
         let enableWboit = textureFloat !== null && colorBufferFloat !== null && depthTexture !== null;
@@ -196,12 +196,12 @@ namespace Renderer {
                 drawBuffers.COLOR_ATTACHMENT1,
             ]);
 
-            wboitATexture?.attachFramebuffer(wboitFramebuffers[0], 'color0')
+            wboitATexture?.attachFramebuffer(wboitFramebuffers[0], 'color0');
             wboitBTexture?.attachFramebuffer(wboitFramebuffers[0], 'color1');
         } else {
             wboitFramebuffers.push(resources.framebuffer(), resources.framebuffer());
 
-            wboitATexture?.attachFramebuffer(wboitFramebuffers[0], 'color0')
+            wboitATexture?.attachFramebuffer(wboitFramebuffers[0], 'color0');
             wboitBTexture?.attachFramebuffer(wboitFramebuffers[1], 'color0');
         }
 
@@ -413,7 +413,7 @@ namespace Renderer {
             const { x, y, width, height } = viewport;
             gl.viewport(x, y, width, height);
             gl.scissor(x, y, width, height);
-            
+
             if (clear) {
                 state.depthMask(true);
                 if (variant === 'color') {
@@ -457,7 +457,7 @@ namespace Renderer {
                         state.disable(gl.DEPTH_TEST);
                         state.enable(gl.BLEND);
                         state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ZERO, gl.ONE_MINUS_SRC_ALPHA);
-                        
+
                         for (let i = 0, il = renderables.length; i < il; ++i) {
                             const r = renderables[i];
                             if (r.state.opaque) {
@@ -485,7 +485,7 @@ namespace Renderer {
                         state.blendFuncSeparate(gl.ONE_MINUS_SRC_ALPHA, gl.SRC_ALPHA, gl.ZERO, gl.ONE);
                         state.enable(gl.BLEND);
                         state.disable(gl.DEPTH_TEST);
-                        
+
                         evaluateWboitRenderable?.update();
                         evaluateWboitRenderable?.render();
                     }
@@ -496,7 +496,7 @@ namespace Renderer {
                             renderObject(r, variant, localSharedTexturesList);
                         }
                     }
-    
+
                     state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
                     state.enable(gl.BLEND);
                     for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -607,22 +607,22 @@ namespace Renderer {
                         wboitFramebuffers[0].destroy();
                         wboitFramebuffers = [];
                         wboitFramebuffers.push(resources.framebuffer());
-            
+
                         wboitFramebuffers[0].bind();
                         drawBuffers?.drawBuffers([
                             drawBuffers.COLOR_ATTACHMENT0,
                             drawBuffers.COLOR_ATTACHMENT1,
                         ]);
-            
-                        wboitATexture?.attachFramebuffer(wboitFramebuffers[0], 'color0')
+
+                        wboitATexture?.attachFramebuffer(wboitFramebuffers[0], 'color0');
                         wboitBTexture?.attachFramebuffer(wboitFramebuffers[0], 'color1');
                     } else {
                         wboitFramebuffers[0].destroy();
                         wboitFramebuffers[1].destroy();
                         wboitFramebuffers = [];
                         wboitFramebuffers.push(resources.framebuffer(), resources.framebuffer());
-            
-                        wboitATexture?.attachFramebuffer(wboitFramebuffers[0], 'color0')
+
+                        wboitATexture?.attachFramebuffer(wboitFramebuffers[0], 'color0');
                         wboitBTexture?.attachFramebuffer(wboitFramebuffers[1], 'color0');
                     }
                 }
