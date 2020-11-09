@@ -106,9 +106,11 @@ interface Canvas3D {
     syncVisibility(): void
 
     requestDraw(force?: boolean): void
+
+    /** Reset the timers, used by "animate" */
+    resetTime(t: number): void
     animate(): void
     pause(): void
-    setCurrentTime(t: number): void
     identify(x: number, y: number): PickData | undefined
     mark(loci: Representation.Loci, action: MarkerAction): void
     getLoci(pickingId: PickingId | undefined): Representation.Loci
@@ -204,7 +206,7 @@ namespace Canvas3D {
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
         const reprCount = new BehaviorSubject(0);
 
-        const startTime = now();
+        let startTime = now();
         const didDraw = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
 
         const { gl, contextRestored } = webgl;
@@ -344,7 +346,13 @@ namespace Canvas3D {
             animationFrameHandle = requestAnimationFrame(_animate);
         }
 
+        function resetTime(t: now.Timestamp) {
+            startTime = t;
+            controls.start(t);
+        }
+
         function animate() {
+            controls.start(now());
             if (animationFrameHandle === 0) _animate();
         }
 
@@ -567,8 +575,8 @@ namespace Canvas3D {
             requestDraw,
             tick,
             animate,
+            resetTime,
             pause,
-            setCurrentTime: t => currentTime = t,
             identify,
             mark,
             getLoci,

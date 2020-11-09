@@ -23,8 +23,13 @@ export class PluginAnimationLoop {
         }
     }
 
+    resetTime() {
+        this.plugin.canvas3d?.resetTime(now());
+    }
+
     start() {
         this._isAnimating = true;
+        this.resetTime();
         this.currentFrame = requestAnimationFrame(this.frame);
     }
 
