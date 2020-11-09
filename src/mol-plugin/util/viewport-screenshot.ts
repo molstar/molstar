@@ -90,11 +90,15 @@ class ViewportScreenshotHelper {
     get imagePass() {
         if (this._imagePass) return this._imagePass;
 
-        this._imagePass = this.plugin.canvas3d!.getImagePass({
+        const c = this.plugin.canvas3d!;
+        this._imagePass = c.getImagePass({
             transparentBackground: this.transparent,
             cameraHelper: { axes: this.axes },
-            multiSample: { mode: 'on', sampleLevel: 2 },
-            postprocessing: this.plugin.canvas3d!.props.postprocessing
+            multiSample: {
+                mode: 'on',
+                sampleLevel: c.webgl.extensions.colorBufferFloat ? 4 : 2
+            },
+            postprocessing: c.props.postprocessing
         });
         return this._imagePass;
     }

@@ -169,6 +169,7 @@ export namespace DirectVolume {
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         renderMode: createRenderModeParam(),
         stepsPerCell: PD.Numeric(5, { min: 1, max: 20, step: 1 }),
+        jumpLength: PD.Numeric(0, { min: 0, max: 20, step: 0.1 }),
     };
     export type Params = typeof Params
 
@@ -213,6 +214,18 @@ export namespace DirectVolume {
         return out;
     }
 
+    function getMaxSteps(gridDim: Vec3, stepsPerCell: number) {
+        return Math.ceil(Vec3.magnitude(gridDim) * stepsPerCell);
+    }
+
+    function getStepScale(cellDim: Vec3, stepsPerCell: number) {
+        return Math.min(...cellDim) * (1 / stepsPerCell);
+    }
+
+    function getTransferScale(stepsPerCell: number) {
+        return (1 / stepsPerCell);
+    }
+
     function createValues(directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): DirectVolumeValues {
         const { gridTexture, gridTextureDim, gridStats } = directVolume;
         const { bboxSize, bboxMin, bboxMax, gridDimension, transform: gridTransform } = directVolume;
@@ -243,8 +256,6 @@ export namespace DirectVolume {
             ? props.renderMode.params.singleLayer
             : false;
 
-        const maxSteps = Math.ceil(Vec3.magnitude(gridDimension.ref.value) * props.stepsPerCell);
-
         return {
             ...color,
             ...marker,
@@ -264,12 +275,14 @@ export namespace DirectVolume {
             uBboxMin: bboxMin,
             uBboxMax: bboxMax,
             uBboxSize: bboxSize,
-            uMaxSteps: ValueCell.create(maxSteps),
-            uStepFactor: ValueCell.create(1 / props.stepsPerCell),
+            uMaxSteps: ValueCell.create(getMaxSteps(gridDimension.ref.value, props.stepsPerCell)),
+            uStepScale: ValueCell.create(getStepScale(directVolume.cellDim.ref.value, props.stepsPerCell)),
+            uJumpLength: ValueCell.create(props.jumpLength),
             uTransform: gridTransform,
             uGridDim: gridDimension,
             dRenderMode: ValueCell.create(props.renderMode.name),
             tTransferTex: transferTex,
+            uTransferScale: ValueCell.create(getTransferScale(props.stepsPerCell)),
 
             dGridTexType: ValueCell.create(gridTexture.ref.value.getDepth() > 0 ? '3d' : '2d'),
             uGridTexDim: gridTextureDim,
@@ -314,9 +327,10 @@ export namespace DirectVolume {
             createTransferFunctionTexture(controlPoints, props.renderMode.params.list.colors, values.tTransferTex);
         }
 
-        const maxSteps = Math.ceil(Vec3.magnitude(values.uGridDim.ref.value) * props.stepsPerCell);
-        ValueCell.updateIfChanged(values.uMaxSteps, maxSteps);
-        ValueCell.updateIfChanged(values.uStepFactor, 1 / props.stepsPerCell);
+        ValueCell.updateIfChanged(values.uMaxSteps, getMaxSteps(values.uGridDim.ref.value, props.stepsPerCell));
+        ValueCell.updateIfChanged(values.uStepScale, getStepScale(values.uCellDim.ref.value, props.stepsPerCell));
+        ValueCell.updateIfChanged(values.uTransferScale, getTransferScale(props.stepsPerCell));
+        ValueCell.updateIfChanged(values.uJumpLength, props.jumpLength);
     }
 
     function updateBoundingSphere(values: DirectVolumeValues, directVolume: DirectVolume) {

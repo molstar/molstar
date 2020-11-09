@@ -25,7 +25,7 @@ import { DebugHelperParams } from './helper/bounding-sphere-helper';
 import { SetUtils } from '../mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
 import { PostprocessingParams, PostprocessingPass } from './passes/postprocessing';
-import { MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
+import { MultiSampleHelper, MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
 import { PickData } from './passes/pick';
 import { PickHelper } from './passes/pick';
 import { ImagePass, ImageProps } from './passes/image';
@@ -224,6 +224,7 @@ namespace Canvas3D {
 
         const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height });
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera);
+        const multiSampleHelper = new MultiSampleHelper(passes.multiSample);
 
         let drawPending = false;
         let cameraResetRequested = false;
@@ -276,7 +277,7 @@ namespace Canvas3D {
             let didRender = false;
             controls.update(currentTime);
             const cameraChanged = camera.update();
-            const multiSampleChanged = passes.multiSample.update(force || cameraChanged, p.multiSample);
+            const multiSampleChanged = multiSampleHelper.update(force || cameraChanged, p.multiSample);
 
             if (force || cameraChanged || multiSampleChanged) {
                 let cam: Camera | StereoCamera = camera;
@@ -286,7 +287,7 @@ namespace Canvas3D {
                 }
 
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
-                    passes.multiSample.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
+                    multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
                 } else {
                     const toDrawingBuffer = false; //!PostprocessingPass.isEnabled(p.postprocessing) && scene.volumes.renderables.length === 0;
                     passes.draw.render(renderer, cam, scene, helper, toDrawingBuffer, p.transparentBackground);

@@ -306,7 +306,7 @@ namespace Renderer {
                 globalUniformsNeedUpdate = false;
             }
 
-            if (r.values.uStepFactor) { // indicates direct-volume
+            if (r.values.dRenderMode) { // indicates direct-volume
                 // always cull front
                 state.enable(gl.CULL_FACE);
                 state.frontFace(gl.CW);
@@ -522,7 +522,7 @@ namespace Renderer {
                 }
             }
 
-            gl.finish();
+            gl.flush();
         };
 
         return {
