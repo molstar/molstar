@@ -405,6 +405,8 @@ namespace TrackballControls {
 
         const _spinSpeed = Vec2.create(0.005, 0);
         function spin(deltaT: number) {
+            if (p.spinSpeed === 0) return;
+
             const frameSpeed = (p.spinSpeed || 0) / 1000;
             _spinSpeed[0] = 60 * Math.min(Math.abs(deltaT), 1000 / 8) / 1000 * frameSpeed;
             if (!_isInteracting) Vec2.add(_rotCurr, _rotPrev, _spinSpeed);

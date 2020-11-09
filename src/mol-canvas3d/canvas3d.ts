@@ -96,6 +96,11 @@ interface Canvas3D {
      * This function must be called if animate() is not set up so that add/remove actions take place.
      */
     commit(isSynchronous?: boolean): void
+    /**
+     * Funcion for external "animation" control
+     * Calls commit.
+     */
+    tick(t: now.Timestamp, isSynchronous?: boolean): void
     update(repr?: Representation.Any, keepBoundingSphere?: boolean): void
     clear(): void
     syncVisibility(): void
@@ -108,6 +113,7 @@ interface Canvas3D {
     mark(loci: Representation.Loci, action: MarkerAction): void
     getLoci(pickingId: PickingId | undefined): Representation.Loci
 
+    notifyDidDraw: boolean,
     readonly didDraw: BehaviorSubject<now.Timestamp>
     readonly reprCount: BehaviorSubject<number>
 
@@ -231,6 +237,8 @@ namespace Canvas3D {
         let nextCameraResetDuration: number | undefined = void 0;
         let nextCameraResetSnapshot: Partial<Camera.Snapshot> | undefined = void 0;
 
+        let notifyDidDraw = true;
+
         function getLoci(pickingId: PickingId | undefined) {
             let loci: Loci = EmptyLoci;
             let repr: Representation.Any = Representation.Empty;
@@ -305,7 +313,7 @@ namespace Canvas3D {
         let currentTime = 0;
 
         function draw(force?: boolean) {
-            if (render(!!force || forceNextDraw)) {
+            if (render(!!force || forceNextDraw) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
             forceNextDraw = false;
@@ -320,15 +328,19 @@ namespace Canvas3D {
 
         let animationFrameHandle = 0;
 
-        function _animate() {
-            currentTime = now();
-            commit();
+        function tick(t: now.Timestamp, isSynchronous?: boolean) {
+            currentTime = t;
+            commit(isSynchronous);
             camera.transition.tick(currentTime);
 
             draw(false);
             if (!camera.transition.inTransition && !webgl.isContextLost) {
                 interactionHelper.tick(currentTime);
             }
+        }
+
+        function _animate() {
+            tick(now());
             animationFrameHandle = requestAnimationFrame(_animate);
         }
 
@@ -553,6 +565,7 @@ namespace Canvas3D {
             },
 
             requestDraw,
+            tick,
             animate,
             pause,
             setCurrentTime: t => currentTime = t,
@@ -573,6 +586,8 @@ namespace Canvas3D {
             },
             camera,
             boundingSphere: scene.boundingSphere,
+            get notifyDidDraw() { return notifyDidDraw; },
+            set notifyDidDraw(v: boolean) { notifyDidDraw = v; },
             didDraw,
             reprCount,
             setProps: (properties, doNotRequestDraw = false) => {
