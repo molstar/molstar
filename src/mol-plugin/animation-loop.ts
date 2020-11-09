@@ -23,8 +23,8 @@ export class PluginAnimationLoop {
         }
     }
 
-    resetTime() {
-        this.plugin.canvas3d?.resetTime(now());
+    resetTime(t: number = now()) {
+        this.plugin.canvas3d?.resetTime(t);
     }
 
     start() {

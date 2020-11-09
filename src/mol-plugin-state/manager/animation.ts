@@ -87,14 +87,14 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         }
     }
 
-    play<P>(animation: PluginStateAnimation<P>, params: P) {
-        this.stop();
+    async play<P>(animation: PluginStateAnimation<P>, params: P) {
+        await this.stop();
         if (!this.map.has(animation.name)) {
             this.register(animation);
         }
         this.updateParams({ current: animation.name });
         this.updateCurrentParams(params);
-        this.start();
+        await this.start();
     }
 
     async tick(t: number, isSynchronous?: boolean) {
