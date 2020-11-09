@@ -18,6 +18,8 @@ export { PluginAnimationManager };
 class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationManager.State> {
     private map = new Map<string, PluginStateAnimation>();
     private animations: PluginStateAnimation[] = [];
+    private currentTime: number = 0;
+
     private _current: PluginAnimationManager.Current;
     private _params?: PD.For<PluginAnimationManager.State['params']> = void 0;
 
@@ -95,6 +97,20 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         this.start();
     }
 
+    async tick(t: number, isSynchronous?: boolean) {
+        this.currentTime = t;
+        if (this.isStopped) return;
+
+        if (isSynchronous) {
+            await this.applyFrame();
+        } else {
+            this.applyAsync();
+        }
+    }
+
+    private isStopped = true;
+    private isApplying = false;
+
     async start() {
         this.updateState({ animationState: 'playing' });
         if (!this.context.behaviors.state.isAnimating.value) {
@@ -110,13 +126,11 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         this._current.lastTime = 0;
         this._current.startedTime = -1;
         this._current.state = this._current.anim.initialState(anim, this.context);
-
-        requestAnimationFrame(this.animate);
+        this.isStopped = false;
     }
 
     async stop() {
-        if (typeof this._frame !== 'undefined') cancelAnimationFrame(this._frame);
-
+        this.isStopped = true;
         if (this.state.animationState !== 'stopped') {
             const anim = this._current.anim;
             if (anim.teardown) {
@@ -136,10 +150,19 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         return this.state.animationState === 'playing';
     }
 
-    private _frame: number | undefined = void 0;
-    private animate = async (t: number) => {
-        this._frame = void 0;
+    private async applyAsync() {
+        if (this.isApplying) return;
 
+        this.isApplying = true;
+        try {
+            await this.applyFrame();
+        } finally {
+            this.isApplying = false;
+        }
+    }
+
+    private async applyFrame() {
+        const t = this.currentTime;
         if (this._current.startedTime < 0) this._current.startedTime = t;
         const newState = await this._current.anim.apply(
             this._current.state,
@@ -151,9 +174,6 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         } else if (newState.kind === 'next') {
             this._current.state = newState.state;
             this._current.lastTime = t - this._current.startedTime;
-            if (this.state.animationState === 'playing') this._frame = requestAnimationFrame(this.animate);
-        } else if (newState.kind === 'skip') {
-            if (this.state.animationState === 'playing') this._frame = requestAnimationFrame(this.animate);
         }
         this.triggerApply();
     }
@@ -195,7 +215,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         if (anim.setup) {
             await anim.setup(this._current.paramValues, this.context);
         }
-        requestAnimationFrame(this.animate);
+        this.isStopped = false;
     }
 
     constructor(private context: PluginContext) {

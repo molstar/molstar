@@ -13,6 +13,7 @@ export class PluginAnimationLoop {
 
     tick(t: number, isSynchronous?: boolean) {
         this.plugin.canvas3d?.tick(t as now.Timestamp, isSynchronous);
+        return this.plugin.managers.animation.tick(t, isSynchronous);
     }
 
     private frame = () => {
