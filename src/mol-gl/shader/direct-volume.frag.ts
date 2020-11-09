@@ -403,8 +403,7 @@ void main () {
     #endif
 
     #if defined(dRenderVariant_color)
-        vec3 vViewPosition = vOrigPos;
-        float absFragDepth = abs(calcDepth(vViewPosition));
+        float absFragDepth = abs(calcDepth(vBoundingSphere.xyz));
         #include wboit_write
     #endif
 }

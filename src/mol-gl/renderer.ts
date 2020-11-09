@@ -493,7 +493,7 @@ namespace Renderer {
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         const r = renderables[i];
                         if (r.state.opaque) {
-                            renderObject(r, variant, sharedTexturesList);
+                            renderObject(r, variant, localSharedTexturesList);
                         }
                     }
     
@@ -502,13 +502,13 @@ namespace Renderer {
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         const r = renderables[i];
                         if (!r.state.opaque && r.state.writeDepth) {
-                            renderObject(r, variant, sharedTexturesList);
+                            renderObject(r, variant, localSharedTexturesList);
                         }
                     }
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         const r = renderables[i];
                         if (!r.state.opaque && !r.state.writeDepth) {
-                            renderObject(r, variant, sharedTexturesList);
+                            renderObject(r, variant, localSharedTexturesList);
                         }
                     }
                 }
@@ -516,7 +516,7 @@ namespace Renderer {
                 if (!renderTransparent) {
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         if (!renderables[i].state.colorOnly) {
-                            renderObject(renderables[i], variant, sharedTexturesList);
+                            renderObject(renderables[i], variant, localSharedTexturesList);
                         }
                     }
                 }

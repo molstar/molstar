@@ -151,7 +151,7 @@ export class DrawPass {
         }
 
         if (!toDrawingBuffer && this.depthTargetPrimitivesTransparent) {
-            renderer.render(this.depthTargetPrimitivesTransparent, scene.primitives, camera, 'depth', true, transparentBackground, 1, null, true);
+            renderer.render(this.depthTargetPrimitivesTransparent, scene.primitives, camera, 'depth', true, transparentBackground, 1, null, false);
         }
 
         if (renderTarget !== null) {
@@ -162,20 +162,20 @@ export class DrawPass {
 
         if (helper.debug.isEnabled) {
             helper.debug.syncVisibility();
-            renderer.render(renderTarget, helper.debug.scene, camera, 'color', false, transparentBackground, 1, null, true);
+            renderer.render(renderTarget, helper.debug.scene, camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives, true);
         }
         if (helper.handle.isEnabled) {
-            renderer.render(renderTarget, helper.handle.scene, camera, 'color', false, transparentBackground, 1, null, true);
+            renderer.render(renderTarget, helper.handle.scene, camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives, true);
         }
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
-            renderer.render(renderTarget, helper.camera.scene, helper.camera.camera, 'color', false, transparentBackground, 1, null, true);
+            renderer.render(renderTarget, helper.camera.scene, helper.camera.camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives, true);
         }
 
         // do direct-volume rendering
         if (!toDrawingBuffer) {
             if (!this.packedDepth) {
-                this.depthTextureVolumes.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
+                this.depthTextureVolumes.attachFramebuffer(renderTarget!.framebuffer, 'depth');
                 this.webgl.state.depthMask(true);
                 this.webgl.gl.viewport(x, y, width, height);
                 this.webgl.gl.scissor(x, y, width, height);

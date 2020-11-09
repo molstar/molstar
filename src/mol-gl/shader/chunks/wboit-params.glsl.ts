@@ -1,6 +1,6 @@
 export default `
 #if defined(dRenderVariant_color)
-#if !defined(dRenderMode_volume)
+#if !defined(dRenderMode_volume) && !defined(dRenderMode_isosurface)
     uniform sampler2D tDepth;
     
     float getDepth(const in vec2 coords) {
