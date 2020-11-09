@@ -68,8 +68,6 @@ export class MultiSamplePass {
     private holdTarget: RenderTarget
     private compose: ComposeRenderable
 
-    private sampleIndex = -2
-
     constructor(private webgl: WebGLContext, private drawPass: DrawPass, private postprocessing: PostprocessingPass) {
         const { extensions } = webgl;
         const width = drawPass.colorTarget.getWidth();
@@ -78,11 +76,6 @@ export class MultiSamplePass {
         this.composeTarget = webgl.createRenderTarget(width, height, false, extensions.colorBufferFloat ? 'float32' : 'uint8');
         this.holdTarget = webgl.createRenderTarget(width, height, false);
         this.compose = getComposeRenderable(webgl, drawPass.colorTarget.texture);
-    }
-
-    update(changed: boolean, props: MultiSampleProps) {
-        if (changed) this.sampleIndex = -1;
-        return props.mode === 'temporal' ? this.sampleIndex !== -2 : false;
     }
 
     syncSize() {
@@ -98,11 +91,12 @@ export class MultiSamplePass {
         }
     }
 
-    render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
+    render(sampleIndex: number, renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
         if (props.multiSample.mode === 'temporal') {
-            this.renderTemporalMultiSample(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props);
+            return this.renderTemporalMultiSample(sampleIndex, renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props);
         } else {
             this.renderMultiSample(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props);
+            return sampleIndex;
         }
     }
 
@@ -181,7 +175,7 @@ export class MultiSamplePass {
         camera.update();
     }
 
-    private renderTemporalMultiSample(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
+    private renderTemporalMultiSample(sampleIndex: number, renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
         const { compose, composeTarget, holdTarget, postprocessing, drawPass, webgl } = this;
         const { gl, state } = webgl;
 
@@ -192,17 +186,13 @@ export class MultiSamplePass {
         // each sample with camera jitter and accumulates the results.
         const offsetList = JitterVectors[ Math.max(0, Math.min(props.multiSample.sampleLevel, 5)) ];
 
-        if (this.sampleIndex === -2) return;
-        if (this.sampleIndex >= offsetList.length) {
-            this.sampleIndex = -2;
-            return;
-        }
+        if (sampleIndex === -2 || sampleIndex >= offsetList.length) return -2;
 
         const { x, y, width, height } = camera.viewport;
         const sampleWeight = 1.0 / offsetList.length;
         const postprocessingEnabled = PostprocessingPass.isEnabled(props.postprocessing);
 
-        if (this.sampleIndex === -1) {
+        if (sampleIndex === -1) {
             drawPass.render(renderer, camera, scene, helper, false, transparentBackground);
             if (postprocessingEnabled) postprocessing.render(camera, false, props.postprocessing);
             ValueCell.update(compose.values.uWeight, 1.0);
@@ -216,7 +206,7 @@ export class MultiSamplePass {
             gl.viewport(x, y, width, height);
             gl.scissor(x, y, width, height);
             compose.render();
-            this.sampleIndex += 1;
+            sampleIndex += 1;
         } else {
             camera.viewOffset.enabled = true;
             ValueCell.update(compose.values.tColor, postprocessingEnabled ? postprocessing.target.texture : drawPass.colorTarget.texture);
@@ -227,7 +217,7 @@ export class MultiSamplePass {
             // from the last and accumulate the results.
             const numSamplesPerFrame = Math.pow(2, Math.max(0, props.multiSample.sampleLevel - 2));
             for (let i = 0; i < numSamplesPerFrame; ++i) {
-                const offset = offsetList[this.sampleIndex];
+                const offset = offsetList[sampleIndex];
                 Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height);
                 camera.update();
 
@@ -244,14 +234,14 @@ export class MultiSamplePass {
                 state.depthMask(false);
                 gl.viewport(x, y, width, height);
                 gl.scissor(x, y, width, height);
-                if (this.sampleIndex === 0) {
+                if (sampleIndex === 0) {
                     state.clearColor(0, 0, 0, 0);
                     gl.clear(gl.COLOR_BUFFER_BIT);
                 }
                 compose.render();
 
-                this.sampleIndex += 1;
-                if (this.sampleIndex >= offsetList.length ) break;
+                sampleIndex += 1;
+                if (sampleIndex >= offsetList.length ) break;
             }
         }
 
@@ -264,7 +254,7 @@ export class MultiSamplePass {
         gl.viewport(x, y, width, height);
         gl.scissor(x, y, width, height);
 
-        const accumulationWeight = this.sampleIndex * sampleWeight;
+        const accumulationWeight = sampleIndex * sampleWeight;
         if (accumulationWeight > 0) {
             ValueCell.update(compose.values.uWeight, 1.0);
             ValueCell.update(compose.values.tColor, composeTarget.texture);
@@ -283,7 +273,8 @@ export class MultiSamplePass {
 
         camera.viewOffset.enabled = false;
         camera.update();
-        if (this.sampleIndex >= offsetList.length) this.sampleIndex = -2;
+
+        return sampleIndex >= offsetList.length ? -2 : sampleIndex;
     }
 }
 
@@ -326,3 +317,20 @@ JitterVectors.forEach(offsetList => {
         offset[1] *= 0.0625;
     });
 });
+
+export class MultiSampleHelper {
+    private sampleIndex = -2
+
+    update(changed: boolean, props: MultiSampleProps) {
+        if (changed) this.sampleIndex = -1;
+        return props.mode === 'temporal' ? this.sampleIndex !== -2 : false;
+    }
+
+    render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
+        this.sampleIndex = this.multiSamplePass.render(this.sampleIndex, renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props);
+    }
+
+    constructor(private multiSamplePass: MultiSamplePass) {
+
+    }
+}

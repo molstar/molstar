@@ -68,7 +68,7 @@ namespace TrackballControls {
     export function create(input: InputObserver, camera: Camera, props: Partial<TrackballControlsProps> = {}): TrackballControls {
         const p = { ...PD.getDefaultValues(TrackballControlsParams), ...props };
 
-        const viewport = Viewport();
+        const viewport = Viewport.clone(camera.viewport);
 
         let disposed = false;
 
