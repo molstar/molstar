@@ -169,12 +169,12 @@ function createVolumeTexture3d(volume: Volume) {
 
 function getUnitToCartn(grid: Grid) {
     if (grid.transform.kind === 'matrix') {
-        // TODO:
         return {
             unitToCartn: Mat4.mul(Mat4(),
-                Grid.getGridToCartesianTransform(grid),
-                Mat4.fromScaling(Mat4(), grid.cells.space.dimensions as Vec3)),
-            cellDim: Vec3.create(1, 1, 1)
+                grid.transform.matrix,
+                Mat4.fromScaling(Mat4(), grid.cells.space.dimensions as Vec3)
+            ),
+            cellDim: Mat4.getScaling(Vec3(), grid.transform.matrix)
         };
     }
     const box = grid.transform.fractionalBox;
@@ -183,7 +183,8 @@ function getUnitToCartn(grid: Grid) {
         unitToCartn: Mat4.mul3(Mat4(),
             grid.transform.cell.fromFractional,
             Mat4.fromTranslation(Mat4(), box.min),
-            Mat4.fromScaling(Mat4(), size)),
+            Mat4.fromScaling(Mat4(), size)
+        ),
         cellDim: Vec3.div(Vec3(), grid.transform.cell.size, grid.cells.space.dimensions as Vec3)
     };
 }

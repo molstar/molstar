@@ -86,13 +86,17 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
         VisualUpdateState.reset(updateState);
 
-        if (!renderObject || !currentStructure || !Structure.areEquivalent(newStructure, currentStructure)) {
+        if (!renderObject || !currentStructure) {
             updateState.createNew = true;
             updateState.createGeometry = true;
             return;
         }
 
         setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
+
+        if (!Structure.areEquivalent(newStructure, currentStructure)) {
+            updateState.createGeometry = true;
+        }
 
         if (!Structure.areHierarchiesEqual(newStructure, currentStructure)) {
             updateState.updateTransform = true;

@@ -36,13 +36,16 @@ uniform float uFar;
 varying vec3 vOrigPos;
 varying float vInstance;
 varying vec4 vBoundingSphere;
+varying mat4 vTransform;
 
 uniform mat4 uInvView;
 uniform vec2 uIsoValue;
 uniform vec3 uGridDim;
 uniform vec3 uBboxSize;
 uniform sampler2D tTransferTex;
-uniform float uStepFactor;
+uniform float uTransferScale;
+uniform float uStepScale;
+uniform float uJumpLength;
 
 uniform int uObjectId;
 uniform int uVertexCount;
@@ -72,7 +75,6 @@ uniform float uIsOrtho;
 uniform vec3 uCellDim;
 uniform vec3 uCameraPosition;
 uniform mat4 uCartnToUnit;
-uniform mat4 uUnitToCartn;
 
 #if __VERSION__ == 300
     // for webgl1 this is given as a 'define'
@@ -139,15 +141,23 @@ float getDepth(const in vec2 coords) {
 
 const float gradOffset = 0.5;
 
-vec3 toUnit(vec3 p) {
-    return (uCartnToUnit * vec4(p, 1.0)).xyz;
+vec3 v3m4(vec3 p, mat4 m) {
+    return (m * vec4(p, 1.0)).xyz;
 }
 
-vec4 raymarch(vec3 startLoc, vec3 step) {
+vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
+    #if defined(dRenderVariant_color) && !defined(dIgnoreLight)
+        mat3 normalMatrix = transpose3(inverse3(mat3(uModelView * vTransform)));
+    #endif
+    mat4 cartnToUnit = uCartnToUnit * inverse4(vTransform);
+    #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+        mat4 modelTransform = uModel * vTransform * uTransform;
+    #endif
+    mat4 modelViewTransform = uModelView * vTransform * uTransform;
+
     vec3 scaleVol = vec3(1.0) / uGridDim;
     vec3 pos = startLoc;
     vec4 cell;
-    vec4 prevCell = vec4(-1);
     float prevValue = -1.0;
     float value = 0.0;
     vec4 src = vec4(0.0);
@@ -160,18 +170,31 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
     vec3 unitPos;
     vec3 isoPos;
 
+    vec3 nextPos;
+    float nextValue;
+
     vec3 color = vec3(0.45, 0.55, 0.8);
     vec3 gradient = vec3(1.0);
     vec3 dx = vec3(gradOffset * scaleVol.x, 0.0, 0.0);
     vec3 dy = vec3(0.0, gradOffset * scaleVol.y, 0.0);
     vec3 dz = vec3(0.0, 0.0, gradOffset * scaleVol.z);
 
-    for(int i = 0; i < uMaxSteps; ++i){
-        unitPos = toUnit(pos);
-        if(unitPos.x > posMax.x || unitPos.y > posMax.y || unitPos.z > posMax.z || unitPos.x < posMin.x || unitPos.y < posMin.y || unitPos.z < posMin.z) {
+    float maxDist = min(vBoundingSphere.w * 2.0, uFar - uNear);
+    float maxDistSq = maxDist * maxDist;
+
+    for (int i = 0; i < uMaxSteps; ++i) {
+        // break when beyond bounding-sphere or far-plane
+        vec3 distVec = startLoc - pos;
+        if (dot(distVec, distVec) > maxDistSq) break;
+
+        unitPos = v3m4(pos, cartnToUnit);
+
+        // continue when outside of grid
+        if (unitPos.x > posMax.x || unitPos.y > posMax.y || unitPos.z > posMax.z ||
+            unitPos.x < posMin.x || unitPos.y < posMin.y || unitPos.z < posMin.z
+        ) {
             if (hit) break;
             prevValue = value;
-            prevCell = cell;
             pos += step;
             continue;
         }
@@ -179,20 +202,29 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
         cell = textureVal(unitPos);
         value = cell.a; // current voxel value
 
+        if (uJumpLength > 0.0 && value < 0.01) {
+            nextPos = pos + rayDir * uJumpLength;
+            nextValue = textureVal(v3m4(nextPos, cartnToUnit)).a;
+            if (nextValue < 0.01) {
+                prevValue = nextValue;
+                pos = nextPos;
+                continue;
+            }
+        }
+
         #if defined(dRenderMode_isosurface)
-            if(prevValue > 0.0 && ( // there was a prev Value
+            if (prevValue > 0.0 && ( // there was a prev Value
                 (prevValue < uIsoValue.x && value > uIsoValue.x) || // entering isosurface
                 (prevValue > uIsoValue.x && value < uIsoValue.x) // leaving isosurface
             )) {
-                isoPos = toUnit(mix(pos - step, pos, ((prevValue - uIsoValue.x) / ((prevValue - uIsoValue.x) - (value - uIsoValue.x)))));
+                isoPos = v3m4(mix(pos - step, pos, ((prevValue - uIsoValue.x) / ((prevValue - uIsoValue.x) - (value - uIsoValue.x)))), cartnToUnit);
 
-                vec4 mvPosition = uModelView * uTransform * vec4(isoPos * uGridDim, 1.0);
+                vec4 mvPosition = modelViewTransform * vec4(isoPos * uGridDim, 1.0);
 
                 #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-                    vec3 vModelPosition = (uModel * uTransform * vec4(isoPos * uGridDim, 1.0)).xyz;
+                    vec3 vModelPosition = v3m4(isoPos * uGridDim, modelTransform);
                     if (clipTest(vec4(vModelPosition, 0.0), 0)) {
                         prevValue = value;
-                        prevCell = cell;
                         pos += step;
                         continue;
                     }
@@ -258,7 +290,6 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
                     #ifndef dDoubleSided
                         if (interior) {
                             prevValue = value;
-                            prevCell = cell;
                             pos += step;
                             continue;
                         }
@@ -281,7 +312,6 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
                         #else
                             gradient = textureVal(isoPos).xyz * 2.0 - 1.0;
                         #endif
-                        mat3 normalMatrix = transpose3(inverse3(mat3(uModelView)));
                         vec3 normal = -normalize(normalMatrix * normalize(gradient));
                         normal = normal * (float(flipped) * 2.0 - 1.0);
                         normal = normal * -(float(interior) * 2.0 - 1.0);
@@ -305,57 +335,60 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
             }
             prevValue = value;
         #elif defined(dRenderMode_volume)
-            isoPos = toUnit(pos);
-            vec4 mvPosition = uModelView * uTransform * vec4(isoPos * uGridDim, 1.0);
+            vec4 mvPosition = modelViewTransform * vec4(unitPos * uGridDim, 1.0);
             if (calcDepth(mvPosition.xyz) > getDepth(gl_FragCoord.xy / uDrawingBufferSize))
                 break;
 
             #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-                vec3 vModelPosition = (uModel * uTransform * vec4(isoPos * uGridDim, 1.0)).xyz;
+                vec3 vModelPosition = v3m4(unitPos * uGridDim, modelTransform);
                 if (clipTest(vec4(vModelPosition, 0.0), 0)) {
                     prevValue = value;
-                    prevCell = cell;
                     pos += step;
                     continue;
                 }
             #endif
 
-            vec3 vViewPosition = mvPosition.xyz;
-            vec4 material = transferFunction(value);
+            #if defined(dRenderVariant_color)
+                vec3 vViewPosition = mvPosition.xyz;
+                vec4 material = transferFunction(value);
 
-            if (material.a >= 0.01) {
-                #ifdef dPackedGroup
-                    // compute gradient by central differences
-                    gradient.x = textureVal(isoPos - dx).a - textureVal(isoPos + dx).a;
-                    gradient.y = textureVal(isoPos - dy).a - textureVal(isoPos + dy).a;
-                    gradient.z = textureVal(isoPos - dz).a - textureVal(isoPos + dz).a;
+                #ifdef dIgnoreLight
+                    gl_FragColor.rgb = material.rgb;
                 #else
-                    gradient = cell.xyz * 2.0 - 1.0;
+                    if (material.a >= 0.01) {
+                        #ifdef dPackedGroup
+                            // compute gradient by central differences
+                            gradient.x = textureVal(unitPos - dx).a - textureVal(unitPos + dx).a;
+                            gradient.y = textureVal(unitPos - dy).a - textureVal(unitPos + dy).a;
+                            gradient.z = textureVal(unitPos - dz).a - textureVal(unitPos + dz).a;
+                        #else
+                            gradient = cell.xyz * 2.0 - 1.0;
+                        #endif
+                        vec3 normal = -normalize(normalMatrix * normalize(gradient));
+                        #include apply_light_color
+                    } else {
+                        gl_FragColor.rgb = material.rgb;
+                    }
                 #endif
-                mat3 normalMatrix = transpose3(inverse3(mat3(uModelView * uUnitToCartn)));
-                vec3 normal = -normalize(normalMatrix * normalize(gradient));
-                #include apply_light_color
-            } else {
-                gl_FragColor.rgb = material.rgb;
-            }
 
-            gl_FragColor.a = material.a * uAlpha;
+                gl_FragColor.a = material.a * uAlpha * uTransferScale;
 
-            #ifdef dPackedGroup
-                float group = decodeFloatRGB(textureGroup(floor(isoPos * uGridDim + 0.5) / uGridDim).rgb);
-            #else
-                vec3 g = floor(isoPos * uGridDim + 0.5);
-                float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
+                #ifdef dPackedGroup
+                    float group = decodeFloatRGB(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
+                #else
+                    vec3 g = floor(unitPos * uGridDim + 0.5);
+                    float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
+                #endif
+
+                float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+                #include apply_marker_color
+                #include apply_fog
+
+                src = gl_FragColor;
+
+                src.rgb *= src.a;
+                dst = (1.0 - dst.a) * src + dst; // standard blending
             #endif
-
-            float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
-            #include apply_marker_color
-            #include apply_fog
-
-            src = gl_FragColor;
-
-            src.rgb *= src.a;
-            dst = (1.0 - dst.a) * src + dst; // standard blending
         #endif
 
         // break if the color is opaque enough
@@ -374,10 +407,8 @@ vec4 raymarch(vec3 startLoc, vec3 step) {
     return dst;
 }
 
-// TODO: calculate normalMatrix on CPU
 // TODO: support float texture for higher precision values???
 // TODO: support clipping exclusion texture support
-// TODO: support instance transforms
 
 void main () {
     #if defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
@@ -390,15 +421,12 @@ void main () {
         #endif
     #endif
 
-    vec3 rayDir = mix(normalize(vOrigPos - uCameraPosition), uCameraDir, uIsOrtho);;
-
-    // TODO: set the scale as uniform?
-    float stepScale = min(uCellDim.x, min(uCellDim.y, uCellDim.z)) * uStepFactor;
-    vec3 step = rayDir * stepScale;
+    vec3 rayDir = mix(normalize(vOrigPos - uCameraPosition), uCameraDir, uIsOrtho);
+    vec3 step = rayDir * uStepScale;
 
     float boundingSphereNear = distance(vBoundingSphere.xyz, uCameraPosition) - vBoundingSphere.w;
-    float d = max(uNear, boundingSphereNear) - distance(vOrigPos, uCameraPosition);
-    gl_FragColor = raymarch(vOrigPos + (d * rayDir), step);
+    float d = max(uNear, boundingSphereNear);
+    gl_FragColor = raymarch(uCameraPosition + (d * rayDir), step, rayDir);
 
     #if defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
         // discard when nothing was hit

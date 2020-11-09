@@ -1,23 +1,25 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { GaussianDensityVolumeParams, GaussianDensityVolumeVisual } from '../visual/gaussian-density-volume';
-import { StructureRepresentation, StructureRepresentationProvider, ComplexRepresentation, StructureRepresentationStateBuilder } from '../representation';
+import { GaussianDensityVolumeParams, GaussianDensityVolumeVisual, UnitsGaussianDensityVolumeParams, UnitsGaussianDensityVolumeVisual } from '../visual/gaussian-density-volume';
+import { StructureRepresentation, StructureRepresentationProvider, ComplexRepresentation, StructureRepresentationStateBuilder, UnitsRepresentation } from '../representation';
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
 import { DirectVolume } from '../../../mol-geo/geometry/direct-volume/direct-volume';
 
 const GaussianVolumeVisuals = {
-    'gaussian-volume': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianDensityVolumeParams>) => ComplexRepresentation('Gaussian volume', ctx, getParams, GaussianDensityVolumeVisual)
+    'gaussian-volume': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianDensityVolumeParams>) => ComplexRepresentation('Gaussian volume', ctx, getParams, GaussianDensityVolumeVisual),
+    'units-gaussian-volume': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, UnitsGaussianDensityVolumeParams>) => UnitsRepresentation('Units-Gaussian volume', ctx, getParams, UnitsGaussianDensityVolumeVisual)
 };
 
 export const GaussianVolumeParams = {
     ...GaussianDensityVolumeParams,
+    visuals: PD.MultiSelect(['gaussian-volume'], PD.objectToOptions(GaussianVolumeVisuals)),
 };
 export type GaussianVolumeParams = typeof GaussianVolumeParams
 export function getGaussianVolumeParams(ctx: ThemeRegistryContext, structure: Structure) {
@@ -26,6 +28,7 @@ export function getGaussianVolumeParams(ctx: ThemeRegistryContext, structure: St
         // TODO find a better way to set
         min: 0, max: 1, mean: 0.04, sigma: 0.01
     });
+    p.jumpLength = PD.Numeric(4, { min: 0, max: 20, step: 0.1 });
     return p;
 }
 

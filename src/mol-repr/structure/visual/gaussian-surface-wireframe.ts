@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,12 +9,13 @@ import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
-import { computeUnitGaussianDensity, GaussianDensityParams, GaussianDensityProps, getUnitExtraRadius } from './util/gaussian';
+import { computeUnitGaussianDensity, GaussianDensityParams, GaussianDensityProps } from './util/gaussian';
 import { computeMarchingCubesLines } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { UnitsLinesParams, UnitsVisual, UnitsLinesVisual } from '../units-visual';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { getUnitExtraRadius } from './util/common';
 
 async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props;
