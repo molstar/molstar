@@ -15,7 +15,7 @@ import { computeUnitMolecularSurface, MolecularSurfaceProps } from './util/molec
 import { computeMarchingCubesLines } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
-import { CommonSurfaceParams } from './util/common';
+import { CommonSurfaceParams, getUnitExtraRadius } from './util/common';
 import { Sphere3D } from '../../../mol-math/geometry';
 
 export const MolecularSurfaceWireframeParams = {
@@ -39,7 +39,7 @@ async function createMolecularSurfaceWireframe(ctx: VisualContext, unit: Unit, s
 
     Lines.transform(wireframe, transform);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.probeRadius);
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.probeRadius + getUnitExtraRadius(unit));
     wireframe.setBoundingSphere(sphere);
 
     return wireframe;

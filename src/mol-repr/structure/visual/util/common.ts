@@ -281,3 +281,25 @@ export function isTrace(unit: Unit, element: ElementIndex) {
     if (atomId === 'CA' || atomId === 'P') return true;
     return false;
 }
+
+export function getUnitExtraRadius(unit: Unit) {
+    if (Unit.isAtomic(unit)) return 4;
+
+    let max = 0;
+    const { elements } = unit;
+    const { r } = unit.conformation;
+    for (let i = 0, _i = elements.length; i < _i; i++) {
+        const _r = r(elements[i]);
+        if (_r > max) max = _r;
+    }
+    return max + 1;
+}
+
+export function getStructureExtraRadius(structure: Structure) {
+    let max = 0;
+    for (const ug of structure.unitSymmetryGroups) {
+        const r = getUnitExtraRadius(ug.units[0]);
+        if (r > max) max = r;
+    }
+    return max;
+}

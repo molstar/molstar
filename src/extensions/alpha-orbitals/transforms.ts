@@ -99,7 +99,8 @@ export const CreateOrbitalRepresentation3D = PluginStateTransform.BuiltIn({
         relativeIsovalue: PD.Numeric(1, { min: 0.01, max: 5, step: 0.01 }),
         kind: PD.Select<'positive' | 'negative'>('positive', [['positive', 'Positive'], ['negative', 'Negative']]),
         color: PD.Color(ColorNames.blue),
-        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 })
+        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+        pickable: PD.Boolean(true)
     }
 })({
     canAutoUpdate() {
@@ -116,6 +117,7 @@ export const CreateOrbitalRepresentation3D = PluginStateTransform.BuiltIn({
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams);
             repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, params));
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
+            repr.setState({ pickable: srcParams.pickable });
             return new PluginStateObject.Volume.Representation3D({ repr, source: a }, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
         });
     },
@@ -126,6 +128,7 @@ export const CreateOrbitalRepresentation3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams.type.params };
             b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
+            b.data.repr.setState({ pickable: srcParams.pickable });
             b.description = VolumeRepresentation3DHelpers.getDescription(props);
             return StateTransformer.UpdateResult.Updated;
         });

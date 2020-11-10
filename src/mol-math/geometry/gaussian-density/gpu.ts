@@ -119,6 +119,7 @@ type GaussianDensityTextureData = {
 
 function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, texture?: Texture): GaussianDensityTextureData {
     // console.log('2d');
+    const { gl, resources, state, extensions } = webgl;
     const { smoothness, resolution } = props;
 
     const { drawCount, positions, radii, groups, scale, expandedBox, dim, maxRadius } = prepareGaussianDensityData(position, box, radius, props);
@@ -136,7 +137,6 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
 
     //
 
-    const { gl, resources, state, extensions } = webgl;
     const { uCurrentSlice, uCurrentX, uCurrentY } = renderable.values;
 
     const framebuffer = getFramebuffer(webgl);
@@ -172,7 +172,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
             ++currCol;
             currX += dx;
         }
-        gl.finish();
+        gl.flush();
     }
 
     setupDensityRendering(webgl, renderable);
@@ -227,7 +227,7 @@ function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionDat
             if (clear) gl.clear(gl.COLOR_BUFFER_BIT);
             renderable.render();
         }
-        gl.finish();
+        gl.flush();
     }
 
     setupDensityRendering(webgl, renderable);

@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsMeshParams, UnitsTextureMeshParams, UnitsVisual, UnitsMeshVisual, UnitsTextureMeshVisual } from '../units-visual';
-import { GaussianDensityParams, computeUnitGaussianDensity, GaussianDensityTextureProps, computeUnitGaussianDensityTexture2d, GaussianDensityProps, computeStructureGaussianDensity, getUnitExtraRadius } from './util/gaussian';
+import { GaussianDensityParams, computeUnitGaussianDensity, GaussianDensityTextureProps, computeUnitGaussianDensityTexture2d, GaussianDensityProps, computeStructureGaussianDensity } from './util/gaussian';
 import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
@@ -20,6 +20,7 @@ import { createHistogramPyramid } from '../../../mol-gl/compute/histogram-pyrami
 import { createIsosurfaceBuffers } from '../../../mol-gl/compute/marching-cubes/isosurface';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { ComplexVisual, ComplexMeshParams, ComplexMeshVisual } from '../complex-visual';
+import { getUnitExtraRadius, getStructureExtraRadius } from './util/common';
 
 export const GaussianSurfaceMeshParams = {
     ...UnitsMeshParams,
@@ -92,7 +93,7 @@ async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure:
     Mesh.transform(surface, transform);
     if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
 
-    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset);
+    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
     surface.setBoundingSphere(sphere);
 
     return surface;
