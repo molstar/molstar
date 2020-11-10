@@ -67,6 +67,10 @@ class Camera implements ICamera {
 
     update() {
         const snapshot = this.state as Camera.Snapshot;
+        if (snapshot.radiusMax === 0) {
+            return false;
+        }
+
         const height = 2 * Math.tan(snapshot.fov / 2) * Vec3.distance(snapshot.position, snapshot.target);
         this.zoom = this.viewport.height / height;
 
