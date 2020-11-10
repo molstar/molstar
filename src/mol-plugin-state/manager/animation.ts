@@ -134,7 +134,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         if (this.state.animationState !== 'stopped') {
             const anim = this._current.anim;
             if (anim.teardown) {
-                await anim.teardown(this._current.paramValues, this.context);
+                await anim.teardown(this._current.paramValues, this._current.state, this.context);
             }
 
             this.updateState({ animationState: 'stopped' });

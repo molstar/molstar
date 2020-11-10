@@ -5,7 +5,7 @@ import { download } from '../../mol-util/download';
 import { Mp4Encoder } from './encoder';
 
 interface State {
-    data?: { movie: Uint8Array, image: Blob };
+    data?: { movie: Uint8Array };
 }
 
 export class Mp4EncoderTestUI extends CollapsableControls<{}, State> {

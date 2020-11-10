@@ -37,7 +37,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
 
         return update.commit({ doNotUpdateCurrent: true });
     },
-    teardown(_, plugin) {
+    teardown(_, __, plugin) {
         const state = plugin.state.data;
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3DState)
             .withTag('animate-units-explode'));

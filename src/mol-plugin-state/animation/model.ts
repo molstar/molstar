@@ -22,7 +22,7 @@ interface PluginStateAnimation<P = any, S = any> {
 
     // TODO: support state in setup/teardown?
     setup?(params: P, ctx: PluginContext): void | Promise<void>,
-    teardown?(params: P, ctx: PluginContext): void | Promise<void>,
+    teardown?(params: P, state: S, ctx: PluginContext): void | Promise<void>,
 
     /**
      * Apply the current frame and modify the state.
