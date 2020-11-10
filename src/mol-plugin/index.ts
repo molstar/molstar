@@ -8,7 +8,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { StateActions } from '../mol-plugin-state/actions';
-import { AnimateAssemblyUnwind, AnimateModelIndex, AnimateStateInterpolation, AnimateUnitsExplode } from '../mol-plugin-state/animation/built-in';
 import { StateTransforms } from '../mol-plugin-state/transforms';
 import { VolumeStreamingCustomControls } from '../mol-plugin-ui/custom/volume';
 import { Plugin } from '../mol-plugin-ui/plugin';
@@ -18,6 +17,9 @@ import { BoxifyVolumeStreaming, CreateVolumeStreamingBehavior, InitVolumeStreami
 import { PluginContext } from './context';
 import { PluginSpec } from './spec';
 import { AssignColorVolume } from '../mol-plugin-state/actions/volume';
+import { AnimateModelIndex } from '../mol-plugin-state/animation/built-in/model-index';
+import { AnimateAssemblyUnwind } from '../mol-plugin-state/animation/built-in/assembly-unwind';
+import { AnimateCameraSpin } from '../mol-plugin-state/animation/built-in/camera-spin';
 
 export const DefaultPluginSpec: PluginSpec = {
     actions: [
@@ -87,8 +89,7 @@ export const DefaultPluginSpec: PluginSpec = {
     animations: [
         AnimateModelIndex,
         AnimateAssemblyUnwind,
-        AnimateUnitsExplode,
-        AnimateStateInterpolation
+        AnimateCameraSpin
     ]
 };
 

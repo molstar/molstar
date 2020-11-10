@@ -1,6 +1,6 @@
 import * as HME from 'h264-mp4-encoder';
 import { canvasToBlob } from '../../mol-canvas3d/util';
-import { AnimateAssemblyUnwind } from '../../mol-plugin-state/animation/built-in';
+import { AnimateAssemblyUnwind } from '../../mol-plugin-state/animation/built-in/assembly-unwind';
 import { PluginContext } from '../../mol-plugin/context';
 
 export class Mp4Encoder {
