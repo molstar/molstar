@@ -100,13 +100,16 @@ export class ImagePass {
         }
     }
 
-    getImageData(width: number, height: number) {
+    getImageData(width: number, height: number, viewport?: Viewport) {
         this.setSize(width, height);
         this.render();
         this.colorTarget.bind();
-        const array = new Uint8Array(width * height * 4);
-        this.webgl.readPixels(0, 0, width, height, array);
-        PixelData.flipY({ array, width, height });
-        return new ImageData(new Uint8ClampedArray(array), width, height);
+
+        const w = viewport?.width ?? width, h = viewport?.height ?? height;
+
+        const array = new Uint8Array(w * h * 4);
+        this.webgl.readPixels(viewport?.x ?? 0, viewport?.y ?? 0, w, h, array);
+        PixelData.flipY({ array, width: w, height: h });
+        return new ImageData(new Uint8ClampedArray(array), w, h);
     }
 }
