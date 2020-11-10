@@ -54,7 +54,7 @@ export class Mp4Encoder {
         for (let i = 0; i < N; i++) {
 
             const t = i * dt;
-            await loop.tick(t, true);
+            await loop.tick(t, { isSynchronous: true, manualDraw: true });
 
             const image = pass.getImageData(w, h);
             if (i === 0) canvasCtx.putImageData(image, 0, 0);

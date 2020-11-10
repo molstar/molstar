@@ -11,13 +11,13 @@ export class PluginAnimationLoop {
     private currentFrame: any = void 0;
     private _isAnimating = false;
 
-    tick(t: number, isSynchronous?: boolean) {
-        this.plugin.canvas3d?.tick(t as now.Timestamp, isSynchronous);
-        return this.plugin.managers.animation.tick(t, isSynchronous);
+    tick(t: number, options?: { isSynchronous?: boolean, manualDraw?: boolean }) {
+        this.plugin.canvas3d?.tick(t as now.Timestamp, options);
+        return this.plugin.managers.animation.tick(t, options?.isSynchronous);
     }
 
     private frame = () => {
-        this.tick(now(), false);
+        this.tick(now());
         if (this._isAnimating) {
             this.currentFrame = requestAnimationFrame(this.frame);
         }

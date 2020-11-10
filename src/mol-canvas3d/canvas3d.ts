@@ -100,7 +100,7 @@ interface Canvas3D {
      * Funcion for external "animation" control
      * Calls commit.
      */
-    tick(t: now.Timestamp, isSynchronous?: boolean): void
+    tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean }): void
     update(repr?: Representation.Any, keepBoundingSphere?: boolean): void
     clear(): void
     syncVisibility(): void
@@ -330,10 +330,14 @@ namespace Canvas3D {
 
         let animationFrameHandle = 0;
 
-        function tick(t: now.Timestamp, isSynchronous?: boolean) {
+        function tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean }) {
             currentTime = t;
-            commit(isSynchronous);
+            commit(options?.isSynchronous);
             camera.transition.tick(currentTime);
+
+            if (options?.manualDraw) {
+                return;
+            }
 
             draw(false);
             if (!camera.transition.inTransition && !webgl.isContextLost) {
