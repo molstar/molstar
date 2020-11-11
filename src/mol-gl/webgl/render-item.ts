@@ -204,7 +204,11 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 state.currentRenderItemId = id;
             }
             if (isDebugMode) {
-                checkFramebufferStatus(ctx.gl);
+                try {
+                    checkFramebufferStatus(ctx.gl);
+                } catch (e) {
+                    throw new Error(`Framebuffer error rendering item id ${id}: '${e}'`);
+                }
             }
             if (elementsBuffer) {
                 instancedArrays.drawElementsInstanced(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
@@ -215,7 +219,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 try {
                     checkError(ctx.gl);
                 } catch (e) {
-                    throw new Error(`Error rendering item id ${id}: '${e}'`);
+                    throw new Error(`Draw error rendering item id ${id}: '${e}'`);
                 }
             }
         },

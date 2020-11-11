@@ -177,32 +177,34 @@ namespace Renderer {
 
         const sharedTexturesList: Textures = [];
 
-        let enableWboit = textureFloat !== null && colorBufferFloat !== null && depthTexture !== null;
+        const enableWboit = textureFloat !== null && colorBufferFloat !== null && depthTexture !== null;
 
-        let wboitATexture = enableWboit ? resources.texture('image-float32', 'rgba', 'float', 'nearest') : null;
+        const wboitATexture = enableWboit ? resources.texture('image-float32', 'rgba', 'float', 'nearest') : null;
         wboitATexture?.define(viewport.width, viewport.height);
-        let wboitBTexture = enableWboit ? resources.texture('image-float32', 'rgba', 'float', 'nearest') : null;
+        const wboitBTexture = enableWboit ? resources.texture('image-float32', 'rgba', 'float', 'nearest') : null;
         wboitBTexture?.define(viewport.width, viewport.height);
 
-        let evaluateWboitRenderable = enableWboit ? getEvaluateWboitRenderable(ctx, wboitATexture!, wboitBTexture!) : null;
+        const evaluateWboitRenderable = enableWboit ? getEvaluateWboitRenderable(ctx, wboitATexture!, wboitBTexture!) : null;
 
-        let wboitFramebuffers = [resources.framebuffer()];
-        if (drawBuffers) {
-            wboitFramebuffers.push(resources.framebuffer());
+        const wboitFramebuffers = [resources.framebuffer()];
+        if (enableWboit) {
+            if (drawBuffers) {
+                wboitFramebuffers.push(resources.framebuffer());
 
-            wboitFramebuffers[0].bind();
-            drawBuffers?.drawBuffers([
-                drawBuffers.COLOR_ATTACHMENT0,
-                drawBuffers.COLOR_ATTACHMENT1,
-            ]);
+                wboitFramebuffers[0].bind();
+                drawBuffers.drawBuffers([
+                    drawBuffers.COLOR_ATTACHMENT0,
+                    drawBuffers.COLOR_ATTACHMENT1,
+                ]);
 
-            wboitATexture?.attachFramebuffer(wboitFramebuffers[0], 'color0');
-            wboitBTexture?.attachFramebuffer(wboitFramebuffers[0], 'color1');
-        } else {
-            wboitFramebuffers.push(resources.framebuffer(), resources.framebuffer());
+                wboitATexture!.attachFramebuffer(wboitFramebuffers[0], 'color0');
+                wboitBTexture!.attachFramebuffer(wboitFramebuffers[0], 'color1');
+            } else {
+                wboitFramebuffers.push(resources.framebuffer(), resources.framebuffer());
 
-            wboitATexture?.attachFramebuffer(wboitFramebuffers[0], 'color0');
-            wboitBTexture?.attachFramebuffer(wboitFramebuffers[1], 'color0');
+                wboitATexture!.attachFramebuffer(wboitFramebuffers[0], 'color0');
+                wboitBTexture!.attachFramebuffer(wboitFramebuffers[1], 'color0');
+            }
         }
 
         const view = Mat4();
@@ -322,6 +324,14 @@ namespace Renderer {
                     state.enable(gl.DEPTH_TEST);
                     state.depthMask(r.state.writeDepth);
                 }
+
+                // TODO: wboit needs the following state (but that is not acceptable for
+                // the volume rendering to work in all cases)
+                state.frontFace(gl.CCW);
+
+                // this is probably not needed
+                // state.enable(gl.DEPTH_TEST);
+                // state.depthMask(r.state.writeDepth);
             } else {
                 state.enable(gl.DEPTH_TEST);
                 if (r.values.dDoubleSided) {
@@ -360,6 +370,7 @@ namespace Renderer {
             if (depthTexture) {
                 localSharedTexturesList = [...localSharedTexturesList, ['tDepth', depthTexture]];
             }
+            // console.log('depthTexture', depthTexture);
 
             ValueCell.update(globalUniforms.uModel, group.view);
             ValueCell.update(globalUniforms.uView, camera.view);
@@ -399,16 +410,16 @@ namespace Renderer {
 
             const { renderables } = group;
 
-            state.enable(gl.SCISSOR_TEST);
-            state.disable(gl.BLEND);
-            state.colorMask(true, true, true, true);
-            state.enable(gl.DEPTH_TEST);
-
             if (renderTarget) {
                 renderTarget.bind();
             } else {
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             }
+
+            state.enable(gl.SCISSOR_TEST);
+            state.disable(gl.BLEND);
+            state.colorMask(true, true, true, true);
+            state.enable(gl.DEPTH_TEST);
 
             const { x, y, width, height } = viewport;
             gl.viewport(x, y, width, height);
@@ -476,6 +487,7 @@ namespace Renderer {
                                 renderObject(r, variant, localSharedTexturesList);
                             }
                         }
+
                         if (renderTarget) {
                             renderTarget.bind();
                         } else {
@@ -486,8 +498,13 @@ namespace Renderer {
                         state.enable(gl.BLEND);
                         state.disable(gl.DEPTH_TEST);
 
-                        evaluateWboitRenderable?.update();
-                        evaluateWboitRenderable?.render();
+                        // unclear why needed but otherwise there is a
+                        // "Draw framebuffer is incomplete" error for the very first render call
+                        // before there are any renderables...
+                        if (renderables.length > 0) {
+                            evaluateWboitRenderable!.update();
+                            evaluateWboitRenderable!.render();
+                        }
                     }
                 } else {
                     for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -603,9 +620,11 @@ namespace Renderer {
                     wboitATexture?.define(viewport.width, viewport.height);
                     wboitBTexture?.define(viewport.width, viewport.height);
 
+                    // TODO there should not be any need to re-create the framebuffers,
+                    // re-sizing the textures should do it
                     if (drawBuffers) {
                         wboitFramebuffers[0].destroy();
-                        wboitFramebuffers = [];
+                        wboitFramebuffers.length = 0;
                         wboitFramebuffers.push(resources.framebuffer());
 
                         wboitFramebuffers[0].bind();
@@ -619,7 +638,7 @@ namespace Renderer {
                     } else {
                         wboitFramebuffers[0].destroy();
                         wboitFramebuffers[1].destroy();
-                        wboitFramebuffers = [];
+                        wboitFramebuffers.length = 0;
                         wboitFramebuffers.push(resources.framebuffer(), resources.framebuffer());
 
                         wboitATexture?.attachFramebuffer(wboitFramebuffers[0], 'color0');
@@ -671,7 +690,7 @@ function getEvaluateWboitRenderable(ctx: WebGLContext, wboitATexture: Texture, w
     };
 
     const schema = { ...EvaluateWboitSchema };
-    const shaderCode = ShaderCode('ssao', quad_vert, evaluate_wboit_frag);
+    const shaderCode = ShaderCode('wboit', quad_vert, evaluate_wboit_frag);
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);

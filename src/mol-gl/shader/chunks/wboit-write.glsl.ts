@@ -4,6 +4,7 @@ if (uRenderWboit == 0) {
         discard;
     }
 } else if (uRenderWboit == 1) {
+    // TODO: volumes not rendering has something to do with the depth test
     if (gl_FragColor.a != 1.0 && absFragDepth < getDepth(gl_FragCoord.xy / uViewport.zw)) {
         float alpha = gl_FragColor.a;
         float wboitWeight = alpha * clamp(pow(1.0 - absFragDepth, 2.0), 0.01, 1.0);
