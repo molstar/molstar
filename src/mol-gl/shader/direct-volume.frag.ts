@@ -431,7 +431,7 @@ void main () {
     #endif
 
     #if defined(dRenderVariant_color)
-        float absFragDepth = abs(calcDepth((uView * vec4(vBoundingSphere.xyz, 1.0)).xyz));
+        float absFragDepth = abs(calcDepth((uView * vec4(uCameraPosition + (d * rayDir), 1.0)).xyz));
         #include wboit_write
     #endif
 }
