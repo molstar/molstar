@@ -19,6 +19,7 @@ interface PluginStateAnimation<P = any, S = any> {
     params(ctx: PluginContext): PD.For<P>,
     canApply?(ctx: PluginContext): { canApply: true } | { canApply: false, reason?: string },
     initialState(params: P, ctx: PluginContext): S,
+    getDuration?(params: P, ctx: PluginContext): PluginStateAnimation.Duration,
 
     // TODO: support state in setup/teardown?
     setup?(params: P, ctx: PluginContext): void | Promise<void>,
@@ -38,6 +39,14 @@ interface PluginStateAnimation<P = any, S = any> {
 }
 
 namespace PluginStateAnimation {
+    export type Duration = { kind: 'unknown' } | { kind: 'infinite' } | { kind: 'fixed', durationMs: number  }
+
+    export interface Instance<A extends PluginStateAnimation> {
+        definition: PluginStateAnimation,
+        params: Params<A>,
+        customDurationMs?: number
+    }
+
     export interface Time {
         lastApplied: number,
         current: number
@@ -49,7 +58,15 @@ namespace PluginStateAnimation {
         plugin: PluginContext
     }
 
+    export type Params<A extends PluginStateAnimation> = A extends PluginStateAnimation<infer P> ? P : never
+
     export function create<P, S>(params: PluginStateAnimation<P, S>) {
         return params;
+    }
+
+    export function getDuration<A extends PluginStateAnimation>(ctx: PluginContext, instance: Instance<A>) {
+        if (instance.customDurationMs) return instance.customDurationMs;
+        const d = instance.definition.getDuration?.(instance.params, ctx);
+        if (d?.kind === 'fixed') return d.durationMs;
     }
 }

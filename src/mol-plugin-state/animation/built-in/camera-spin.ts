@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -19,9 +19,11 @@ export const AnimateCameraSpin = PluginStateAnimation.create({
     display: { name: 'Camera Spin' },
     params: () => ({
         durationInMs: PD.Numeric(4000, { min: 100, max: 20000, step: 100 }),
+        speed: PD.Numeric(1, { min: 1, max: 10, step: 1 }, { description: 'How many times to spin in the specified dutation.' }),
         direction: PD.Select<'cw' | 'ccw'>('cw', [['cw', 'Clockwise'], ['ccw', 'Counter Clockwise']], { cycle: true })
     }),
     initialState: (_, ctx) => ({ snapshot: ctx.canvas3d?.camera.getSnapshot()! }) as State,
+    getDuration: p => ({ kind: 'fixed', durationMs: p.durationInMs }),
     teardown: (_, state: State, ctx) => {
         ctx.canvas3d?.requestCameraReset({ snapshot: state.snapshot, durationMs: 0 });
     },
@@ -42,7 +44,7 @@ export const AnimateCameraSpin = PluginStateAnimation.create({
             return { kind: 'finished' };
         }
 
-        const angle = 2 * Math.PI * phase * (ctx.params.direction === 'ccw' ? -1 : 1);
+        const angle = 2 * Math.PI * phase * ctx.params.speed * (ctx.params.direction === 'ccw' ? -1 : 1);
 
         Vec3.sub(_dir, snapshot.position, snapshot.target);
         Vec3.normalize(_axis, snapshot.up);

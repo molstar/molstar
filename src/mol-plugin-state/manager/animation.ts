@@ -125,7 +125,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
 
         this._current.lastTime = 0;
         this._current.startedTime = -1;
-        this._current.state = this._current.anim.initialState(anim, this.context);
+        this._current.state = this._current.anim.initialState(this._current.paramValues, this.context);
         this.isStopped = false;
     }
 
