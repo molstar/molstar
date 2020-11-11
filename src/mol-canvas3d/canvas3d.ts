@@ -118,6 +118,7 @@ interface Canvas3D {
     notifyDidDraw: boolean,
     readonly didDraw: BehaviorSubject<now.Timestamp>
     readonly reprCount: BehaviorSubject<number>
+    readonly resized: BehaviorSubject<any>
 
     handleResize(): void
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
@@ -541,6 +542,8 @@ namespace Canvas3D {
             draw(true);
         });
 
+        const resized = new BehaviorSubject<any>(0);
+
         return {
             webgl,
 
@@ -591,6 +594,7 @@ namespace Canvas3D {
                 updateViewport();
                 syncViewport();
                 requestDraw(true);
+                resized.next(+new Date());
             },
             requestCameraReset: options => {
                 nextCameraResetDuration = options?.durationMs;
@@ -603,6 +607,7 @@ namespace Canvas3D {
             set notifyDidDraw(v: boolean) { notifyDidDraw = v; },
             didDraw,
             reprCount,
+            resized,
             setProps: (properties, doNotRequestDraw = false) => {
                 const props: PartialCanvas3DProps = typeof properties === 'function'
                     ? produce(getProps(), properties)

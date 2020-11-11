@@ -1,3 +1,4 @@
+import { Viewport } from '../../mol-canvas3d/camera/util';
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -63,11 +64,16 @@ class ViewportScreenshotHelper extends PluginComponent {
             transparent: this.params.transparent.defaultValue,
             axes: { name: 'off', params: {} },
             resolution: this.params.resolution.defaultValue
-        })
+        }),
+        relativeCrop: this.ev.behavior<Viewport>({ x: 0.33, y: 0.33, width: 0.45, height: 0.45 })
     };
 
     get values() {
         return this.behaviors.values.value;
+    }
+
+    get relativeCrop() {
+        return this.behaviors.relativeCrop.value;
     }
 
     private getCanvasSize() {
@@ -160,8 +166,22 @@ class ViewportScreenshotHelper extends PluginComponent {
         return { canvas, width: w, height: h };
     }
 
-    private async draw(ctx: RuntimeContext) {
+    getSizeAndViewport() {
         const { width, height } = this.getSize();
+        const crop = this.relativeCrop;
+        const viewport: Viewport = {
+            x: Math.floor(crop.x * width),
+            y: Math.floor(crop.y * height),
+            width: Math.ceil(crop.width * width),
+            height: Math.ceil(crop.height * height)
+        };
+        if (viewport.width + viewport.x > width) viewport.width = width - viewport.x;
+        if (viewport.height + viewport.y > height) viewport.height = height - viewport.y;
+        return { width, height, viewport };
+    }
+
+    private async draw(ctx: RuntimeContext) {
+        const { width, height, viewport } = this.getSizeAndViewport();
         if (width <= 0 || height <= 0) return;
 
         await ctx.update('Rendering image...');
@@ -171,7 +191,8 @@ class ViewportScreenshotHelper extends PluginComponent {
             // TODO: optimize because this creates a copy of a large object!
             postprocessing: this.plugin.canvas3d!.props.postprocessing
         });
-        const imageData = this.imagePass.getImageData(width, height);
+
+        const imageData = this.imagePass.getImageData(width, height, viewport);
 
         await ctx.update('Encoding image...');
         const canvas = this.canvas;
