@@ -160,6 +160,21 @@ class ViewportScreenshotHelper {
         return;
     }
 
+    async copyToClipboard() {
+        const cb = navigator.clipboard as any;
+
+        if (!cb.write) {
+            this.plugin.log.error('clipboard.write not supported!');
+            return;
+        }
+
+        const blob = await canvasToBlob(this.canvas, 'png');
+        const item = new ClipboardItem({ 'image/png': blob });
+        cb.write([item]);
+
+        this.plugin.log.message('Image copied to clipboard.');
+    }
+
     private downloadTask() {
         return Task.create('Download Image', async ctx => {
             this.draw(ctx);
@@ -190,3 +205,5 @@ class ViewportScreenshotHelper {
 
     }
 }
+
+declare const ClipboardItem: any;

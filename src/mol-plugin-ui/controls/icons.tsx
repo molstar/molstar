@@ -97,6 +97,8 @@ const _CloudUpload = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d
 export function CloudUploadSvg() { return _CloudUpload; }
 const _Code = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z' /></svg>;
 export function CodeSvg() { return _Code; }
+const _Copy = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm-1 4H8c-1.1 0-1.99.9-1.99 2L6 21c0 1.1.89 2 1.99 2H19c1.1 0 2-.9 2-2V11l-6-6zM8 21V7h6v5h5v9H8z' /></svg>;
+export function CopySvg() { return _Copy; }
 const _DeleteOutlined = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z' /></svg>;
 export function DeleteOutlinedSvg() { return _DeleteOutlined; }
 const _Delete = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z' /></svg>;

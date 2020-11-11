@@ -7,7 +7,6 @@ import { PluginContext } from '../../mol-plugin/context';
 import { RuntimeContext } from '../../mol-task';
 import { Color } from '../../mol-util/color';
 
-
 export interface Mp4EncoderParams<A extends PluginStateAnimation = PluginStateAnimation> {
     pass: ImagePass,
     customBackground?: Color,
@@ -34,7 +33,6 @@ export async function encodeMp4Animation<A extends PluginStateAnimation>(plugin:
 
     const { width, height } = params;
     const vw = params.viewport?.width ?? width, vh = params.viewport?.height ?? height;
-
 
     encoder.width = vw;
     encoder.height = vh;

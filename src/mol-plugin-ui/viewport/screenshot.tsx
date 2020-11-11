@@ -16,7 +16,7 @@ import { Button, ExpandGroup } from '../controls/common';
 import { CameraHelperProps } from '../../mol-canvas3d/helper/camera-helper';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateExportImportControls, LocalStateSnapshotParams } from '../state/snapshots';
-import { GetAppSvg, LaunchSvg } from '../controls/icons';
+import { CopySvg, GetAppSvg, LaunchSvg } from '../controls/icons';
 
 interface ImageControlsState {
     showPreview: boolean
@@ -49,26 +49,14 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
         this.props.close();
     }
 
-    private openTab = () => {
-        // modified from https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript/16245768#16245768
-
-        const base64 = this.imgRef.current!.src;
-        const byteCharacters = atob(base64.substr(`data:image/png;base64,`.length));
-        const byteArrays = [];
-
-        const sliceSize = Math.min(byteCharacters.length, 1024 * 1024);
-        for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-            const byteNumbers = new Uint8Array(Math.min(sliceSize, byteCharacters.length - offset));
-            for (let i = 0, _i = byteNumbers.length; i < _i; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(offset + i);
-            }
-            byteArrays.push(byteNumbers);
-        }
-        const blob = new Blob(byteArrays, { type: 'image/png' });
-        const blobUrl = URL.createObjectURL(blob);
-
-        window.open(blobUrl, '_blank');
+    private copy = async () => {
+        await this.plugin.helpers.viewportScreenshot?.copyToClipboard();
         this.props.close();
+        PluginCommands.Toast.Show(this.plugin, {
+            message: 'Copied to clipboard.',
+            title: 'Screenshot',
+            timeoutMs: 1500
+        });
     }
 
     private handlePreview() {
@@ -140,8 +128,8 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                 <span>Right-click the image to Copy.</span>
             </div>
             <div className='msp-flex-row'>
+                {!(navigator.clipboard as any).write && <Button icon={CopySvg} onClick={this.copy} disabled={this.state.isDisabled}>Copy</Button>}
                 <Button icon={GetAppSvg} onClick={this.download} disabled={this.state.isDisabled}>Download</Button>
-                <Button icon={LaunchSvg} onClick={this.openTab} disabled={this.state.isDisabled}>Open in new Tab</Button>
             </div>
             <ParameterControls params={this.plugin.helpers.viewportScreenshot!.params} values={this.plugin.helpers.viewportScreenshot!.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
             <ExpandGroup header='State'>
