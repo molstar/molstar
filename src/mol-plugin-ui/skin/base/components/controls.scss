@@ -391,16 +391,20 @@
     text-align: center;
     padding: $control-spacing;
 
-    img {
+    canvas {
+        @include user-select(none);
+
         max-height: 180px;
         max-width: 100%;
         display: 'block';
+    }
 
+    canvas.msp-transparent-screenshot {
         background-color: $default-background;
-    background-image: linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey),
-    linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey);
-    background-size: 30px 30px;
-    background-position: 0 0, 15px 15px;
+        background-image: linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey),
+        linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey);
+        background-size: 30px 30px;
+        background-position: 0 0, 15px 15px;
     }
 
     > span {
