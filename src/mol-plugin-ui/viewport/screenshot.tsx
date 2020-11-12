@@ -17,8 +17,9 @@ import { useBehavior } from '../hooks/use-behavior';
 import { LocalStateSnapshotParams, StateExportImportControls } from '../state/snapshots';
 
 interface ImageControlsState {
-    showPreview: boolean
-    isDisabled: boolean
+    showPreview: boolean,
+    isDisabled: boolean,
+    imageData?: string
 }
 
 export class DownloadScreenshotControls extends PluginUIComponent<{ close: () => void }, ImageControlsState> {
@@ -41,10 +42,19 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
         });
     }
 
+    private copyImg = async () => {
+        const src = await this.plugin.helpers.viewportScreenshot?.getImageDataUri();
+        this.setState({ imageData: src });
+    }
+
     componentDidMount() {
         this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
             this.setState({ isDisabled: v });
         });
+    }
+
+    componentWillUnmount() {
+        this.setState({ imageData: void 0 });
     }
 
     open = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,6 +63,8 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
     }
 
     render() {
+        const hasClipboardApi = !!(navigator.clipboard as any).write;
+
         return <div>
             {this.state.showPreview && <div className='msp-image-preview'>
                 <div style={{ height: '180px', width: '100%', position: 'relative' }}>
@@ -61,10 +73,15 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                 <CropControls plugin={this.plugin} />
             </div>}
             <div className='msp-flex-row'>
-                {/* TODO: figure out how to do copy/paste in Firefox */}
-                {!!(navigator.clipboard as any).write && <Button icon={CopySvg} onClick={this.copy} disabled={this.state.isDisabled}>Copy</Button>}
+                {hasClipboardApi && <Button icon={CopySvg} onClick={this.copy} disabled={this.state.isDisabled}>Copy</Button>}
+                {!hasClipboardApi && !this.state.imageData && <Button icon={CopySvg} onClick={this.copyImg} disabled={this.state.isDisabled}>Copy</Button>}
+                {this.state.imageData && <Button onClick={() => this.setState({ imageData: void 0 })} disabled={this.state.isDisabled}>Clear</Button>}
                 <Button icon={GetAppSvg} onClick={this.download} disabled={this.state.isDisabled}>Download</Button>
             </div>
+            {this.state.imageData && <div className='msp-row msp-copy-image-wrapper'>
+                <div>Right click below + Copy Image</div>
+                <img src={this.state.imageData} style={{ width: '100%', height: 32, display: 'block' }} />
+            </div>}
             <ScreenshotParams plugin={this.plugin} isDisabled={this.state.isDisabled} />
             <ExpandGroup header='State'>
                 <StateExportImportControls onAction={this.props.close} />

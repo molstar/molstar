@@ -54,9 +54,20 @@ export function ScreenshotPreview({ plugin, suspend, frameColor = 'rgba(255, 87,
         subscribe(helper.behaviors.values, () => updateQueue.next());
         subscribe(helper.behaviors.cropParams, () => updateQueue.next());
 
+        let resizeObserver: any = void 0;
+        if (typeof ResizeObserver !== 'undefined') {
+            resizeObserver = new ResizeObserver(() => updateQueue.next());
+        }
+
+        const canvas = canvasRef.current;
+        resizeObserver?.observe(canvas);
+
         preview();
 
-        return () => subs.forEach(s => s.unsubscribe());
+        return () => {
+            subs.forEach(s => s.unsubscribe());
+            resizeObserver?.unobserve(canvas);
+        };
     }, [helper]);
 
     return <>
@@ -66,6 +77,8 @@ export function ScreenshotPreview({ plugin, suspend, frameColor = 'rgba(255, 87,
         </div>
     </>;
 }
+
+declare const ResizeObserver: any;
 
 function drawPreview(helper: ViewportScreenshotHelper, target: HTMLCanvasElement) {
     const { canvas, width, height } = helper.getPreview()!;

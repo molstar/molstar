@@ -402,3 +402,20 @@
         line-height: 15px;
     }
 }
+
+.msp-copy-image-wrapper {
+    position: relative;
+
+    div {
+        font-weight: bold;
+        padding: 3px;
+        margin: 1px 0;
+        width: 100%;
+        background: $msp-form-control-background;
+        text-align: center;
+    }
+
+    img {
+        margin-top: 1px;
+    }
+}

@@ -309,12 +309,20 @@ class ViewportScreenshotHelper extends PluginComponent {
 
         return Task.create('Copy Image', async ctx => {
             await this.draw(ctx);
-            await ctx.update('Downloading image...');
+            await ctx.update('Converting image...');
             const blob = await canvasToBlob(this.canvas, 'png');
             const item = new ClipboardItem({ 'image/png': blob });
             cb.write([item]);
             this.plugin.log.message('Image copied to clipboard.');
         });
+    }
+
+    getImageDataUri() {
+        return this.plugin.runTask(Task.create('Generate Image', async ctx => {
+            await this.draw(ctx);
+            await ctx.update('Converting image...');
+            return this.canvas.toDataURL('png');
+        }));
     }
 
     copyToClipboard() {
