@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
 import * as HME from 'h264-mp4-encoder';
 import { Viewport } from '../../mol-canvas3d/camera/util';
 import { ImagePass } from '../../mol-canvas3d/passes/image';
@@ -13,7 +19,7 @@ export interface Mp4EncoderParams<A extends PluginStateAnimation = PluginStateAn
     animation: PluginStateAnimation.Instance<A>,
     width: number,
     height: number,
-    viewport?: Viewport,
+    viewport: Viewport,
     /** default is 30 */
     fps?: number,
     /** Number from 10 (best quality, slowest) to 51 (worst, fastest) */
@@ -32,7 +38,11 @@ export async function encodeMp4Animation<A extends PluginStateAnimation>(plugin:
     const encoder = await HME.createH264MP4Encoder();
 
     const { width, height } = params;
-    const vw = params.viewport?.width ?? width, vh = params.viewport?.height ?? height;
+    let vw = params.viewport.width, vh = params.viewport.height;
+
+    // dimensions must be a multiple of 2
+    if (vw % 2 !== 0) vw -= 1;
+    if (vh % 2 !== 0) vh -= 1;
 
     encoder.width = vw;
     encoder.height = vh;

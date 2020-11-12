@@ -1,7 +1,14 @@
+/**
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
 import React from 'react';
 import { AnimateCameraSpin } from '../../mol-plugin-state/animation/built-in/camera-spin';
 import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base';
 import { Button } from '../../mol-plugin-ui/controls/common';
+import { SubscriptionsOutlinedSvg } from '../../mol-plugin-ui/controls/icons';
 import { Task } from '../../mol-task';
 import { download } from '../../mol-util/download';
 import { encodeMp4Animation, Mp4Encoder } from './encoder';
@@ -10,12 +17,12 @@ interface State {
     data?: { movie: Uint8Array };
 }
 
-export class Mp4EncoderTestUI extends CollapsableControls<{}, State> {
+export class Mp4EncoderUI extends CollapsableControls<{}, State> {
     protected defaultState(): State & CollapsableState  {
         return {
-            header: 'Export MP4',
-            isCollapsed: false,
-            brand: { accent: 'cyan' }
+            header: 'Export Animation',
+            isCollapsed: true,
+            brand: { accent: 'cyan', svg: SubscriptionsOutlinedSvg }
         };
     }
     protected renderControls(): JSX.Element | null {
@@ -27,18 +34,17 @@ export class Mp4EncoderTestUI extends CollapsableControls<{}, State> {
 
     save() {
         download(new Blob([this.state.data!.movie]), 'test.mp4');
-        // download(this.state.data!.image, 'test.png');
     }
 
     gen() {
         const task = Task.create('Export Animation', async ctx => {
+            const resolution = this.plugin.helpers.viewportScreenshot?.getSizeAndViewport()!;
             const movie = await encodeMp4Animation(this.plugin, ctx, {
                 animation: {
                     definition: AnimateCameraSpin,
                     params: { durationInMs: 2000, speed: 1, direction: 'cw' }
                 },
-                width: 1280,
-                height: 720,
+                ...resolution,
                 quantizationParameter: 18,
                 pass: this.plugin.helpers.viewportScreenshot?.imagePass!,
             });
