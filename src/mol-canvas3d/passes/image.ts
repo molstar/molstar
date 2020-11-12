@@ -108,7 +108,11 @@ export class ImagePass {
         const w = viewport?.width ?? width, h = viewport?.height ?? height;
 
         const array = new Uint8Array(w * h * 4);
-        this.webgl.readPixels(viewport?.x ?? 0, viewport?.y ?? 0, w, h, array);
+        if (!viewport) {
+            this.webgl.readPixels(0, 0, w, h, array);
+        } else {
+            this.webgl.readPixels(viewport.x, height - viewport.y - viewport.height, w, h, array);
+        }
         PixelData.flipY({ array, width: w, height: h });
         return new ImageData(new Uint8ClampedArray(array), w, h);
     }

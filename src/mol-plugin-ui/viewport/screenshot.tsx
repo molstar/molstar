@@ -67,9 +67,7 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
 
         return <div>
             {this.state.showPreview && <div className='msp-image-preview'>
-                <div style={{ height: '180px', width: '100%', position: 'relative' }}>
-                    <ScreenshotPreview plugin={this.plugin} />
-                </div>
+                <ScreenshotPreview plugin={this.plugin} borderColor='red' borderWidth={2} />
                 <CropControls plugin={this.plugin} />
             </div>}
             <div className='msp-flex-row'>

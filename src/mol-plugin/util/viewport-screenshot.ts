@@ -331,17 +331,17 @@ class ViewportScreenshotHelper extends PluginComponent {
         return this.plugin.runTask(task);
     }
 
-    private downloadTask() {
+    private downloadTask(filename?: string) {
         return Task.create('Download Image', async ctx => {
             await this.draw(ctx);
             await ctx.update('Downloading image...');
             const blob = await canvasToBlob(this.canvas, 'png');
-            download(blob, this.getFilename());
+            download(blob, filename ?? this.getFilename());
         });
     }
 
-    download() {
-        this.plugin.runTask(this.downloadTask());
+    download(filename?: string) {
+        this.plugin.runTask(this.downloadTask(filename));
     }
 
     constructor(private plugin: PluginContext) {

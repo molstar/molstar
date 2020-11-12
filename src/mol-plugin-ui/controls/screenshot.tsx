@@ -11,16 +11,35 @@ import { debounceTime } from 'rxjs/operators';
 import { Viewport } from '../../mol-canvas3d/camera/util';
 import { PluginContext } from '../../mol-plugin/context';
 import { ViewportScreenshotHelper } from '../../mol-plugin/util/viewport-screenshot';
+import { shallowEqual } from '../../mol-util/object';
 import { useBehavior } from '../hooks/use-behavior';
 
-export function ScreenshotPreview({ plugin, suspend, frameColor = 'rgba(255, 87, 45, 0.75)' }: { plugin: PluginContext, suspend?: boolean, frameColor?: string }) {
+export interface ScreenshotPreviewProps {
+    plugin: PluginContext,
+    suspend?: boolean,
+    cropFrameColor?: string,
+    borderColor?: string,
+    borderWidth?: number,
+    customBackground?: string
+}
+
+const _ScreenshotPreview = (props: ScreenshotPreviewProps) => {
+    const { plugin, cropFrameColor } = props;
+
     const helper = plugin.helpers.viewportScreenshot!;
+    const [currentCanvas, setCurrentCanvas] = useState<HTMLCanvasElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const suspendRef = useRef(suspend);
+    const propsRef = useRef(props);
 
     useEffect(() => {
-        suspendRef.current = suspend;
-    }, [suspend]);
+        propsRef.current = props;
+    }, Object.values(props));
+
+    useEffect(() => {
+        if (currentCanvas !== canvasRef.current) {
+            setCurrentCanvas(canvasRef.current);
+        }
+    });
 
     useEffect(() => {
         let paused = false;
@@ -33,9 +52,12 @@ export function ScreenshotPreview({ plugin, suspend, frameColor = 'rgba(255, 87,
         }
 
         function preview() {
-            if (!suspendRef.current && !paused && canvasRef.current) {
-                drawPreview(helper, canvasRef.current);
+            const p = propsRef.current;
+            if (!p.suspend && !paused && canvasRef.current) {
+                drawPreview(helper, canvasRef.current, p.customBackground, p.borderColor, p.borderWidth);
             }
+
+            if (!canvasRef.current) updateQueue.next();
         }
 
         subscribe(updateQueue.pipe(debounceTime(33)), preview);
@@ -73,14 +95,16 @@ export function ScreenshotPreview({ plugin, suspend, frameColor = 'rgba(255, 87,
     return <>
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             <canvas ref={canvasRef} onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} style={{ display: 'block', width: '100%', height: '100%' }}></canvas>
-            <ViewportFrame plugin={plugin} canvasRef={canvasRef} color={frameColor} />
+            <ViewportFrame plugin={plugin} canvas={currentCanvas} color={cropFrameColor} />
         </div>
     </>;
-}
+};
+
+export const ScreenshotPreview = React.memo(_ScreenshotPreview, (prev, next) => shallowEqual(prev, next));
 
 declare const ResizeObserver: any;
 
-function drawPreview(helper: ViewportScreenshotHelper, target: HTMLCanvasElement) {
+function drawPreview(helper: ViewportScreenshotHelper, target: HTMLCanvasElement, customBackground?: string, borderColor?: string, borderWidth?: number) {
     const { canvas, width, height } = helper.getPreview()!;
     const ctx = target.getContext('2d');
     if (!ctx) return;
@@ -92,7 +116,11 @@ function drawPreview(helper: ViewportScreenshotHelper, target: HTMLCanvasElement
 
     ctx.clearRect(0, 0, w, h);
     const frame = getViewportFrame(width, height, w, h);
-    if (helper.values.transparent) {
+
+    if (customBackground) {
+        ctx.fillStyle = customBackground;
+        ctx.fillRect(frame.x, frame.y, frame.width, frame.height);
+    } else if (helper.values.transparent) {
         // must be an odd number
         const s = 13;
         for (let i = 0; i < frame.width; i += s) {
@@ -107,9 +135,17 @@ function drawPreview(helper: ViewportScreenshotHelper, target: HTMLCanvasElement
         }
     }
     ctx.drawImage(canvas, frame.x, frame.y, frame.width, frame.height);
+
+    if (borderColor && borderWidth) {
+        const w = borderWidth;
+        ctx.rect(frame.x, frame.y, frame.width, frame.height);
+        ctx.rect(frame.x + w, frame.y + w, frame.width - 2 * w, frame.height - 2 * w);
+        ctx.fillStyle = borderColor;
+        ctx.fill('evenodd');
+    }
 }
 
-function ViewportFrame({ plugin, canvasRef, color = 'rgba(255, 87, 45, 0.75)' }: { plugin: PluginContext, canvasRef: React.RefObject<HTMLCanvasElement>, color?: string }) {
+function ViewportFrame({ plugin, canvas, color = 'rgba(255, 87, 45, 0.75)' }: { plugin: PluginContext, canvas: HTMLCanvasElement | null, color?: string }) {
     const helper = plugin.helpers.viewportScreenshot;
     const params = useBehavior(helper?.behaviors.values!);
     const cropParams = useBehavior(helper?.behaviors.cropParams!);
@@ -121,10 +157,9 @@ function ViewportFrame({ plugin, canvasRef, color = 'rgba(255, 87, 45, 0.75)' }:
     const [start, setStart] = useState([0, 0]);
     const [current, setCurrent] = useState([0, 0]);
 
-    if (!helper || !canvasRef.current) return null;
+    if (!helper || !canvas) return null;
 
     const { width, height } = helper.getSizeAndViewport();
-    const canvas = canvasRef.current;
 
     const frame = getViewportFrame(width, height, canvas.clientWidth, canvas.clientHeight);
 
