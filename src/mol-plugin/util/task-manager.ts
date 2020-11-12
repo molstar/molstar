@@ -17,6 +17,7 @@ class TaskManager {
     private id = 0;
     private runningTasks = new Set<number>();
     private abortRequests = new Map<number, string | undefined>();
+    private options = new Map<number, { useOverlay: boolean }>();
     private currentContext: { ctx: RuntimeContext, refCount: number }[] = [];
 
     readonly events = {
@@ -42,18 +43,19 @@ class TaskManager {
             const elapsed = now() - progress.root.progress.startedTime;
             this.events.progress.next({
                 id: internalId,
-                level: elapsed < 250 ? 'none' : elapsed < 1500 ? 'background' : 'overlay',
+                useOverlay: this.options.get(taskId)?.useOverlay,
+                level: elapsed < 250 ? 'none' : 'background',
                 progress
             });
         };
     }
 
-    async run<T>(task: Task<T>, createNewContext = false): Promise<T> {
+    async run<T>(task: Task<T>, params?: { createNewContext?: boolean, useOverlay?: boolean }): Promise<T> {
         const id = this.id++;
 
         let ctx: TaskManager['currentContext'][0];
 
-        if (createNewContext || this.currentContext.length === 0) {
+        if (params?.createNewContext || this.currentContext.length === 0) {
             ctx = { ctx: CreateObservableCtx(task, this.track(id, task.id), 100), refCount: 1 };
         } else {
             ctx = this.currentContext[this.currentContext.length - 1];
@@ -61,10 +63,12 @@ class TaskManager {
         }
 
         try {
+            this.options.set(task.id, { useOverlay: !!params?.useOverlay });
             this.runningTasks.add(task.id);
             const ret = await ExecuteInContext(ctx.ctx, task);
             return ret;
         } finally {
+            this.options.delete(task.id);
             this.runningTasks.delete(task.id);
             this.events.finished.next({ id });
             this.abortRequests.delete(task.id);
@@ -90,10 +94,11 @@ class TaskManager {
 }
 
 namespace TaskManager {
-    export type ReportLevel = 'none' | 'background' | 'overlay'
+    export type ReportLevel = 'none' | 'background'
 
     export interface ProgressEvent {
         id: number,
+        useOverlay?: boolean,
         level: ReportLevel,
         progress: Progress
     }

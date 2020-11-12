@@ -63,7 +63,7 @@ import { Vec2 } from '../mol-math/linear-algebra';
 import { PluginAnimationLoop } from './animation-loop';
 
 export class PluginContext {
-    runTask = <T>(task: Task<T>) => this.managers.task.run(task);
+    runTask = <T>(task: Task<T>, params?: { useOverlay?: boolean }) => this.managers.task.run(task, params);
     resolveTask = <T>(object: Task<T> | T | undefined) => {
         if (!object) return void 0;
         if (Task.is(object)) return this.runTask(object);

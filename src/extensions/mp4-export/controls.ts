@@ -78,7 +78,7 @@ export class Mp4Controls extends PluginComponent {
             }
         });
 
-        return this.plugin.runTask(task);
+        return this.plugin.runTask(task, { useOverlay: true });
     }
 
     private get manager() {

@@ -15,7 +15,8 @@ import { CancelSvg } from './controls/icons';
 
 export class BackgroundTaskProgress extends PluginUIComponent<{ }, { tracked: OrderedMap<number, TaskManager.ProgressEvent> }> {
     componentDidMount() {
-        this.subscribe(this.plugin.events.task.progress.pipe(filter(e => e.level !== 'none')), e => {
+        const hideOverlay = !!this.plugin.spec.components?.hideTaskOverlay;
+        this.subscribe(this.plugin.events.task.progress.pipe(filter(e => e.level === 'background' && (hideOverlay || !e.useOverlay))), e => {
             this.setState({ tracked: this.state.tracked.set(e.id, e) });
         });
         this.subscribe(this.plugin.events.task.finished, ({ id }) => {
@@ -63,4 +64,25 @@ function countSubtasks(progress: Progress.Node) {
     let sum = 0;
     for (const c of progress.children) sum += countSubtasks(c);
     return sum;
+}
+
+export class OverlayTaskProgress extends PluginUIComponent<{ }, { tracked: OrderedMap<number, TaskManager.ProgressEvent> }> {
+    componentDidMount() {
+        this.subscribe(this.plugin.events.task.progress.pipe(filter(e => !!e.useOverlay)), e => {
+            this.setState({ tracked: this.state.tracked.set(e.id, e) });
+        });
+        this.subscribe(this.plugin.events.task.finished, ({ id }) => {
+            this.setState({ tracked: this.state.tracked.delete(id) });
+        });
+    }
+
+    state = { tracked: OrderedMap<number, TaskManager.ProgressEvent>() };
+
+    render() {
+        if (this.state.tracked.size === 0) return null;
+
+        return <div className='msp-overlay-tasks'>
+            {this.state.tracked.valueSeq().map(e => <ProgressEntry key={e!.id} event={e!} />)}
+        </div>;
+    }
 }
