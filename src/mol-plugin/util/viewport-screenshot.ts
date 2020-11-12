@@ -9,6 +9,7 @@ import { Viewport } from '../../mol-canvas3d/camera/util';
 import { CameraHelperParams } from '../../mol-canvas3d/helper/camera-helper';
 import { ImagePass } from '../../mol-canvas3d/passes/image';
 import { canvasToBlob } from '../../mol-canvas3d/util';
+import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { PluginComponent } from '../../mol-plugin-state/component';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateSelection } from '../../mol-state';
@@ -52,7 +53,6 @@ class ViewportScreenshotHelper extends PluginComponent {
             }),
             transparent: PD.Boolean(false),
             axes: CameraHelperParams.axes,
-            autoCrop: PD.Boolean(true, { isHidden: true })
         };
     }
     private _params: ReturnType<ViewportScreenshotHelper['createParams']> = void 0 as any;
@@ -65,14 +65,18 @@ class ViewportScreenshotHelper extends PluginComponent {
         values: this.ev.behavior<ViewportScreenshotHelperParams>({
             transparent: this.params.transparent.defaultValue,
             axes: { name: 'off', params: {} },
-            resolution: this.params.resolution.defaultValue,
-            autoCrop: this.params.autoCrop.defaultValue
+            resolution: this.params.resolution.defaultValue
         }),
+        cropParams: this.ev.behavior<{ auto: boolean, relativePadding: number }>({ auto: true, relativePadding: 0.1 }),
         relativeCrop: this.ev.behavior<Viewport>({ x: 0, y: 0, width: 1, height: 1 })
     };
 
     get values() {
         return this.behaviors.values.value;
+    }
+
+    get cropParams() {
+        return this.behaviors.cropParams.value;
     }
 
     get relativeCrop() {
@@ -148,7 +152,21 @@ class ViewportScreenshotHelper extends PluginComponent {
         this.behaviors.relativeCrop.next({ x: 0, y: 0, width: 1, height: 1 });
     }
 
-    autocrop(relativePadding = 0.1) {
+    toggleAutocrop() {
+        if (this.cropParams.auto) {
+            this.behaviors.cropParams.next({ ...this.cropParams, auto: false });
+            this.resetCrop();
+        } else {
+            this.behaviors.cropParams.next({ ...this.cropParams, auto: true });
+        }
+    }
+
+    get isFullFrame() {
+        const crop = this.relativeCrop;
+        return equalEps(crop.x, 0, 1e-5) && equalEps(crop.y, 0, 1e-5) && equalEps(crop.width, 1, 1e-5) && equalEps(crop.height, 1, 1e-5);
+    }
+
+    autocrop(relativePadding = this.cropParams.relativePadding) {
         const { data, width, height } = this.previewData.image;
         const bgColor = this.previewData.transparent ? this.previewData.background : 0xff000000 | this.previewData.background;
 
@@ -231,7 +249,7 @@ class ViewportScreenshotHelper extends PluginComponent {
         const canvasCtx = canvas.getContext('2d');
         if (!canvasCtx) throw new Error('Could not create canvas 2d context');
         canvasCtx.putImageData(imageData, 0, 0);
-        if (this.values.autoCrop) this.autocrop();
+        if (this.cropParams.auto) this.autocrop();
         return { canvas, width: w, height: h };
     }
 

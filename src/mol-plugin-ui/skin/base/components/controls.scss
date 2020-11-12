@@ -388,15 +388,10 @@
     position: relative;
     background: $default-background;
     margin-top: 1px;
-    text-align: center;
     padding: $control-spacing;
 
     canvas {
         @include user-select(none);
-
-        max-height: 180px;
-        max-width: 100%;
-        display: 'block';
     }
 
     > span {
