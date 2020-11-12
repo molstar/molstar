@@ -13,6 +13,7 @@ import { PluginComponent } from '../../mol-plugin-state/component';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateSelection } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
+import { Color } from '../../mol-util/color';
 import { download } from '../../mol-util/download';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { SetUtils } from '../../mol-util/set';
@@ -51,6 +52,7 @@ class ViewportScreenshotHelper extends PluginComponent {
             }),
             transparent: PD.Boolean(false),
             axes: CameraHelperParams.axes,
+            autoCrop: PD.Boolean(true, { isHidden: true })
         };
     }
     private _params: ReturnType<ViewportScreenshotHelper['createParams']> = void 0 as any;
@@ -63,9 +65,10 @@ class ViewportScreenshotHelper extends PluginComponent {
         values: this.ev.behavior<ViewportScreenshotHelperParams>({
             transparent: this.params.transparent.defaultValue,
             axes: { name: 'off', params: {} },
-            resolution: this.params.resolution.defaultValue
+            resolution: this.params.resolution.defaultValue,
+            autoCrop: this.params.autoCrop.defaultValue
         }),
-        relativeCrop: this.ev.behavior<Viewport>({ x: 0.33, y: 0.33, width: 0.45, height: 0.45 })
+        relativeCrop: this.ev.behavior<Viewport>({ x: 0, y: 0, width: 1, height: 1 })
     };
 
     get values() {
@@ -135,7 +138,66 @@ class ViewportScreenshotHelper extends PluginComponent {
         return canvas;
     }();
 
-    getPreview(maxDim = 640) {
+    private previewData = {
+        image: { data: new Uint8ClampedArray(1), width: 1, height: 0 } as ImageData,
+        background: Color(0),
+        transparent: false
+    };
+
+    resetCrop() {
+        this.behaviors.relativeCrop.next({ x: 0, y: 0, width: 1, height: 1 });
+    }
+
+    autocrop(relativePadding = 0.1) {
+        const { data, width, height } = this.previewData.image;
+        const bgColor = this.previewData.transparent ? this.previewData.background : 0xff000000 | this.previewData.background;
+
+        let l = width, r = 0, t = height, b = 0;
+
+        for (let j = 0; j < height; j++) {
+            const jj = j * width;
+            for (let i = 0; i < width; i++) {
+                const o = 4 * (jj + i);
+                const c = (data[o] << 16) | (data[o + 1] << 8) | (data[o + 2]) | (data[o + 3] << 24);
+
+                if (c === bgColor) continue;
+
+                if (i < l) l = i;
+                if (i > r) r = i;
+                if (j < t) t = j;
+                if (j > b) b = j;
+            }
+        }
+
+        if (l > r) {
+            const x = l;
+            l = r;
+            r = x;
+        }
+
+        if (t > b) {
+            const x = t;
+            t = b;
+            b = x;
+        }
+
+        const tw = r - l + 1, th = b - t + 1;
+        l -= relativePadding * tw;
+        r += relativePadding * tw;
+        t -= relativePadding * th;
+        b += relativePadding * th;
+
+        const crop: Viewport = {
+            x: Math.max(0, l / width),
+            y: Math.max(0, t / height),
+            width: Math.min(1, (r - l + 1) / width),
+            height: Math.min(1, (b - t + 1) / height)
+        };
+
+        this.behaviors.relativeCrop.next(crop);
+    }
+
+    getPreview(maxDim = 320) {
         const { width, height } = this.getSize();
         if (width <= 0 || height <= 0) return;
 
@@ -150,19 +212,26 @@ class ViewportScreenshotHelper extends PluginComponent {
             w = Math.round(maxDim * f);
         }
 
+        const canvasProps = this.plugin.canvas3d!.props;
         this.previewPass.setProps({
             cameraHelper: { axes: this.values.axes },
             transparentBackground: this.values.transparent,
             // TODO: optimize because this creates a copy of a large object!
-            postprocessing: this.plugin.canvas3d!.props.postprocessing
+            postprocessing: canvasProps.postprocessing
         });
         const imageData = this.previewPass.getImageData(w, h);
         const canvas = this.previewCanvas;
         canvas.width = imageData.width;
         canvas.height = imageData.height;
+
+        this.previewData.image = imageData;
+        this.previewData.background = canvasProps.renderer.backgroundColor;
+        this.previewData.transparent = this.values.transparent;
+
         const canvasCtx = canvas.getContext('2d');
         if (!canvasCtx) throw new Error('Could not create canvas 2d context');
         canvasCtx.putImageData(imageData, 0, 0);
+        if (this.values.autoCrop) this.autocrop();
         return { canvas, width: w, height: h };
     }
 

@@ -99,6 +99,12 @@ const _Code = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M9.4 
 export function CodeSvg() { return _Code; }
 const _Copy = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm-1 4H8c-1.1 0-1.99.9-1.99 2L6 21c0 1.1.89 2 1.99 2H19c1.1 0 2-.9 2-2V11l-6-6zM8 21V7h6v5h5v9H8z' /></svg>;
 export function CopySvg() { return _Copy; }
+const _Crop = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M17 15h2V7c0-1.1-.9-2-2-2H9v2h8v8zM7 17V1H5v4H1v2h4v10c0 1.1.9 2 2 2h10v4h2v-4h4v-2H7z' /></svg>;
+export function CropSvg() { return _Crop; }
+const _CropFree = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M3 5v4h2V5h4V3H5c-1.1 0-2 .9-2 2zm2 10H3v4c0 1.1.9 2 2 2h4v-2H5v-4zm14 4h-4v2h4c1.1 0 2-.9 2-2v-4h-2v4zm0-16h-4v2h4v4h2V5c0-1.1-.9-2-2-2z' /></svg>;
+export function CropFreeSvg() { return _CropFree; }
+const _CropOriginal = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L6.5 17h11l-3.54-4.71z' /></svg>;
+export function CropOrginalSvg() { return _CropOriginal; }
 const _DeleteOutlined = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z' /></svg>;
 export function DeleteOutlinedSvg() { return _DeleteOutlined; }
 const _Delete = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z' /></svg>;
