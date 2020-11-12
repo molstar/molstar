@@ -52,7 +52,7 @@ export class Mol2Encoder extends LigandEncoder {
                 });
             }
 
-            const sybyl = bondMap ? this.mapToSybyl(label_atom_id1, atom1.type_symbol, bondMap) : atom1.type_symbol;
+            const sybyl = bondMap?.map ? this.mapToSybyl(label_atom_id1, atom1.type_symbol, bondMap) : atom1.type_symbol;
             StringBuilder.writeSafe(a, `${i1 + 1} ${label_atom_id1} ${atom1.Cartn_x.toFixed(3)} ${atom1.Cartn_y.toFixed(3)} ${atom1.Cartn_z.toFixed(3)} ${sybyl} 1 ${name} 0.000\n`);
         });
 
