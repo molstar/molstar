@@ -222,6 +222,23 @@ function ViewportFrame({ plugin, canvas, color = 'rgba(255, 87, 45, 0.75)' }: { 
         setCurrent([e.pageX, e.pageY]);
     };
 
+    const onTouchMove = (e: TouchEvent) => {
+        e.preventDefault();
+        const t = e.touches[0];
+        setCurrent([t.pageX, t.pageY]);
+    };
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        e.preventDefault();
+        setDrag(e.currentTarget.getAttribute('data-drag')! as any);
+        const t = e.touches[0];
+        const p = [t.pageX, t.pageY];
+        setStart(p);
+        setCurrent(p);
+        window.addEventListener('touchend', onTouchEnd);
+        window.addEventListener('touchmove', onTouchMove);
+    };
+
     const onStart = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         setDrag(e.currentTarget.getAttribute('data-drag')! as any);
@@ -235,10 +252,19 @@ function ViewportFrame({ plugin, canvas, color = 'rgba(255, 87, 45, 0.75)' }: { 
     const onEnd = () => {
         window.removeEventListener('mouseup', onEnd);
         window.removeEventListener('mousemove', onMove);
+        finish();
+    };
 
+    const onTouchEnd = () => {
+        window.removeEventListener('touchend', onTouchEnd);
+        window.removeEventListener('touchmove', onTouchMove);
+        finish();
+    };
+
+    function finish() {
         const cropFrame = cropFrameRef.current;
         if (cropParams.auto) {
-            helper.behaviors.cropParams.next({ ...cropParams, auto: false });
+            helper?.behaviors.cropParams.next({ ...cropParams, auto: false });
         }
         helper?.behaviors.relativeCrop.next({
             x: (cropFrame.x - frame.x) / frame.width,
@@ -250,7 +276,7 @@ function ViewportFrame({ plugin, canvas, color = 'rgba(255, 87, 45, 0.75)' }: { 
         const p = [0, 0];
         setStart(p);
         setCurrent(p);
-    };
+    }
 
     const contextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -262,17 +288,17 @@ function ViewportFrame({ plugin, canvas, color = 'rgba(255, 87, 45, 0.75)' }: { 
     const transparent = 'transparent';
 
     return <>
-        <div data-drag='move' style={{ position: 'absolute', left: cropFrame.x, top: cropFrame.y, width: cropFrame.width, height: cropFrame.height, border, cursor: 'move' }} onMouseDown={onStart} draggable={false} onContextMenu={contextMenu} />
+        <div data-drag='move' style={{ position: 'absolute', left: cropFrame.x, top: cropFrame.y, width: cropFrame.width, height: cropFrame.height, border, cursor: 'move' }} onMouseDown={onStart} onTouchStart={onTouchStart} draggable={false} onContextMenu={contextMenu} />
 
-        <div data-drag='left' style={{ position: 'absolute', left: cropFrame.x - d, top: cropFrame.y + d, width: 4 * d, height: cropFrame.height - d, background: transparent, cursor: 'w-resize' }} onMouseDown={onStart} draggable={false} onContextMenu={contextMenu} />
-        <div data-drag='right' style={{ position: 'absolute', left: rectCrop.r - 2 * d, top: cropFrame.y, width: 4 * d, height: cropFrame.height - d, background: transparent, cursor: 'w-resize' }} onMouseDown={onStart} draggable={false} onContextMenu={contextMenu} />
-        <div data-drag='top' style={{ position: 'absolute', left: cropFrame.x - d, top: cropFrame.y - d, width: cropFrame.width + 2 * d, height: 4 * d, background: transparent, cursor: 'n-resize' }} onMouseDown={onStart} draggable={false} onContextMenu={contextMenu} />
-        <div data-drag='bottom' style={{ position: 'absolute', left: cropFrame.x - d, top: rectCrop.b - 2 * d, width: cropFrame.width + 2 * d, height: 4 * d, background: transparent, cursor: 'n-resize' }} onMouseDown={onStart} draggable={false} onContextMenu={contextMenu} />
+        <div data-drag='left' style={{ position: 'absolute', left: cropFrame.x - d, top: cropFrame.y + d, width: 4 * d, height: cropFrame.height - d, background: transparent, cursor: 'w-resize' }} onMouseDown={onStart} onTouchStart={onTouchStart} draggable={false} onContextMenu={contextMenu} />
+        <div data-drag='right' style={{ position: 'absolute', left: rectCrop.r - 2 * d, top: cropFrame.y, width: 4 * d, height: cropFrame.height - d, background: transparent, cursor: 'w-resize' }} onMouseDown={onStart} onTouchStart={onTouchStart} draggable={false} onContextMenu={contextMenu} />
+        <div data-drag='top' style={{ position: 'absolute', left: cropFrame.x - d, top: cropFrame.y - d, width: cropFrame.width + 2 * d, height: 4 * d, background: transparent, cursor: 'n-resize' }} onMouseDown={onStart} onTouchStart={onTouchStart} draggable={false} onContextMenu={contextMenu} />
+        <div data-drag='bottom' style={{ position: 'absolute', left: cropFrame.x - d, top: rectCrop.b - 2 * d, width: cropFrame.width + 2 * d, height: 4 * d, background: transparent, cursor: 'n-resize' }} onMouseDown={onStart} onTouchStart={onTouchStart} draggable={false} onContextMenu={contextMenu} />
 
-        <div data-drag='top, left' style={{ position: 'absolute', left: rectCrop.l - d, top: rectCrop.t - d, width: 4 * d, height: 4 * d, background: transparent, cursor: 'nw-resize' }} onMouseDown={onStart} draggable={false} onContextMenu={contextMenu} />
-        <div data-drag='bottom, right' style={{ position: 'absolute', left: rectCrop.r - 2 * d, top: rectCrop.b - 2 * d, width: 4 * d, height: 4 * d, background: transparent, cursor: 'nw-resize' }} onMouseDown={onStart} draggable={false} onContextMenu={contextMenu} />
-        <div data-drag='top, right' style={{ position: 'absolute', left: rectCrop.r - 2 * d, top: rectCrop.t - d, width: 4 * d, height: 4 * d, background: transparent, cursor: 'ne-resize' }} onMouseDown={onStart} draggable={false} onContextMenu={contextMenu} />
-        <div data-drag='bottom, left' style={{ position: 'absolute', left: rectCrop.l - d, top: rectCrop.b - 2 * d, width: 4 * d, height: 4 * d, background: transparent, cursor: 'ne-resize' }} onMouseDown={onStart} draggable={false} onContextMenu={contextMenu} />
+        <div data-drag='top, left' style={{ position: 'absolute', left: rectCrop.l - d, top: rectCrop.t - d, width: 4 * d, height: 4 * d, background: transparent, cursor: 'nw-resize' }} onMouseDown={onStart} onTouchStart={onTouchStart} draggable={false} onContextMenu={contextMenu} />
+        <div data-drag='bottom, right' style={{ position: 'absolute', left: rectCrop.r - 2 * d, top: rectCrop.b - 2 * d, width: 4 * d, height: 4 * d, background: transparent, cursor: 'nw-resize' }} onMouseDown={onStart} onTouchStart={onTouchStart} draggable={false} onContextMenu={contextMenu} />
+        <div data-drag='top, right' style={{ position: 'absolute', left: rectCrop.r - 2 * d, top: rectCrop.t - d, width: 4 * d, height: 4 * d, background: transparent, cursor: 'ne-resize' }} onMouseDown={onStart} onTouchStart={onTouchStart} draggable={false} onContextMenu={contextMenu} />
+        <div data-drag='bottom, left' style={{ position: 'absolute', left: rectCrop.l - d, top: rectCrop.b - 2 * d, width: 4 * d, height: 4 * d, background: transparent, cursor: 'ne-resize' }} onMouseDown={onStart} onTouchStart={onTouchStart} draggable={false} onContextMenu={contextMenu} />
     </>;
 }
 
