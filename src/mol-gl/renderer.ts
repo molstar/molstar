@@ -164,7 +164,7 @@ function getClip(props: RendererProps['clip'], clip?: Clip): Clip {
 
 namespace Renderer {
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
-        const { gl, state, resources, stats, extensions: { fragDepth } } = ctx;
+        const { gl, state, resources, stats } = ctx;
         const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
         const style = getStyle(p.style);
         const clip = getClip(p.clip);
@@ -309,31 +309,10 @@ namespace Renderer {
             }
 
             if (r.values.dRenderMode) { // indicates direct-volume
-                // always cull front
-                state.enable(gl.CULL_FACE);
-                state.frontFace(gl.CW);
-                state.cullFace(gl.BACK);
-
-                // depth test done manually in shader against `depthTexture`
-                // still need to enable when fragDepth can be used to write depth
-                // (unclear why depthMask is insufficient)
-                if (r.values.dRenderMode.ref.value === 'volume' || !fragDepth) {
-                    state.disable(gl.DEPTH_TEST);
-                    state.depthMask(false);
-                } else {
-                    state.enable(gl.DEPTH_TEST);
-                    state.depthMask(r.state.writeDepth);
-                }
-
-                // TODO: wboit needs the following state (but that is not acceptable for
-                // the volume rendering to work in all cases)
+                // culling done in fragment shader
+                state.disable(gl.CULL_FACE);
                 state.frontFace(gl.CCW);
-
-                // this is probably not needed
-                // state.enable(gl.DEPTH_TEST);
-                // state.depthMask(r.state.writeDepth);
             } else {
-                state.enable(gl.DEPTH_TEST);
                 if (r.values.dDoubleSided) {
                     if (r.values.dDoubleSided.ref.value || r.values.hasReflection.ref.value) {
                         state.disable(gl.CULL_FACE);
@@ -358,8 +337,6 @@ namespace Renderer {
                     state.frontFace(gl.CCW);
                     state.cullFace(gl.BACK);
                 }
-
-                state.depthMask(r.state.writeDepth);
             }
 
             r.render(variant, sharedTexturesList);
@@ -394,7 +371,7 @@ namespace Renderer {
             ValueCell.updateIfChanged(globalUniforms.uFogNear, camera.fogNear);
             ValueCell.updateIfChanged(globalUniforms.uTransparentBackground, transparentBackground);
 
-            ValueCell.update(globalUniforms.uRenderWboit, 0);
+            ValueCell.updateIfChanged(globalUniforms.uRenderWboit, 0);
 
             if (gl.drawingBufferWidth * drawingBufferScale !== drawingBufferSize[0] ||
                 gl.drawingBufferHeight * drawingBufferScale !== drawingBufferSize[1]
@@ -420,6 +397,7 @@ namespace Renderer {
             state.disable(gl.BLEND);
             state.colorMask(true, true, true, true);
             state.enable(gl.DEPTH_TEST);
+            state.depthMask(true);
 
             const { x, y, width, height } = viewport;
             gl.viewport(x, y, width, height);
@@ -438,23 +416,13 @@ namespace Renderer {
             if (variant === 'color') {
                 if (enableWboit) {
                     if (!renderTransparent) {
+                        state.enable(gl.DEPTH_TEST);
+                        state.depthMask(true);
+
                         for (let i = 0, il = renderables.length; i < il; ++i) {
+                            // TODO: when available in r.state check if fullyOpaque
                             const r = renderables[i];
-                            if (r.state.opaque) {
-                                renderObject(r, variant, localSharedTexturesList);
-                            }
-                        }
-                        for (let i = 0, il = renderables.length; i < il; ++i) {
-                            const r = renderables[i];
-                            if (!r.state.opaque && r.state.writeDepth) {
-                                renderObject(r, variant, localSharedTexturesList);
-                            }
-                        }
-                        for (let i = 0, il = renderables.length; i < il; ++i) {
-                            const r = renderables[i];
-                            if (!r.state.opaque && !r.state.writeDepth) {
-                                renderObject(r, variant, localSharedTexturesList);
-                            }
+                            renderObject(r, variant, localSharedTexturesList);
                         }
                     } else {
                         wboitFramebuffers[0].bind();
@@ -462,30 +430,18 @@ namespace Renderer {
                         state.clearColor(0, 0, 0, 1);
                         gl.clear(gl.COLOR_BUFFER_BIT);
 
-                        ValueCell.update(globalUniforms.uRenderWboit, 1);
+                        ValueCell.updateIfChanged(globalUniforms.uRenderWboit, 1);
                         globalUniformsNeedUpdate = true;
 
                         state.disable(gl.DEPTH_TEST);
-                        state.enable(gl.BLEND);
+
                         state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ZERO, gl.ONE_MINUS_SRC_ALPHA);
+                        state.enable(gl.BLEND);
 
                         for (let i = 0, il = renderables.length; i < il; ++i) {
+                            // TODO: when available in r.state check if not fullyOpaque
                             const r = renderables[i];
-                            if (r.state.opaque) {
-                                renderObject(r, variant, localSharedTexturesList);
-                            }
-                        }
-                        for (let i = 0, il = renderables.length; i < il; ++i) {
-                            const r = renderables[i];
-                            if (!r.state.opaque && r.state.writeDepth) {
-                                renderObject(r, variant, localSharedTexturesList);
-                            }
-                        }
-                        for (let i = 0, il = renderables.length; i < il; ++i) {
-                            const r = renderables[i];
-                            if (!r.state.opaque && !r.state.writeDepth) {
-                                renderObject(r, variant, localSharedTexturesList);
-                            }
+                            renderObject(r, variant, localSharedTexturesList);
                         }
 
                         if (renderTarget) {
@@ -496,7 +452,6 @@ namespace Renderer {
 
                         state.blendFuncSeparate(gl.ONE_MINUS_SRC_ALPHA, gl.SRC_ALPHA, gl.ZERO, gl.ONE);
                         state.enable(gl.BLEND);
-                        state.disable(gl.DEPTH_TEST);
 
                         // unclear why needed but otherwise there is a
                         // "Draw framebuffer is incomplete" error for the very first render call

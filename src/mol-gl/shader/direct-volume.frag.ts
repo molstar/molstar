@@ -407,6 +407,9 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 // TODO: support clipping exclusion texture support
 
 void main () {
+    if (gl_FrontFacing)
+        discard;
+
     #if defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
         #if defined(dRenderMode_volume)
             // always ignore pick & depth for volume
@@ -431,7 +434,11 @@ void main () {
     #endif
 
     #if defined(dRenderVariant_color)
-        float absFragDepth = abs(calcDepth((uView * vec4(uCameraPosition + (d * rayDir), 1.0)).xyz));
+        #if defined(dRenderMode_isosurface) && defined(enabledFragDepth)
+            float absFragDepth = abs(gl_FragDepthEXT);
+        #else
+            float absFragDepth = abs(calcDepth((uView * vec4(uCameraPosition + (d * rayDir), 1.0)).xyz));
+        #endif
         #include wboit_write
     #endif
 }

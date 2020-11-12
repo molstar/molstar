@@ -82,6 +82,7 @@ export class DrawPass {
         this.depthTextureVolumes = this.depthTargetVolumes ? this.depthTargetVolumes.texture : resources.texture('image-depth', 'depth', 'ushort', 'nearest');
         if (!this.packedDepth) {
             this.depthTexturePrimitives.define(width, height);
+            this.depthTexturePrimitivesTransparent.define(width, height);
             this.depthTextureVolumes.define(width, height);
         }
         this.depthMerge = getDepthMergeRenderable(webgl, this.depthTexturePrimitives, this.depthTextureVolumes, this.packedDepth);
@@ -143,20 +144,19 @@ export class DrawPass {
         }
 
         // render opaque color
-        // this.depthTexturePrimitives.attachFramebuffer(renderTarget!.framebuffer, 'depth');
         renderer.render(renderTarget, scene.primitives, camera, 'color', true, transparentBackground, 1, this.dummyDepthTexture, false);
 
-        // if (helper.debug.isEnabled) {
-        //     helper.debug.syncVisibility();
-        //     renderer.render(renderTarget, helper.debug.scene, camera, 'color', false, transparentBackground, 1, null, false);
-        // }
-        // if (helper.handle.isEnabled) {
-        //     renderer.render(renderTarget, helper.handle.scene, camera, 'color', false, transparentBackground, 1, null, false);
-        // }
-        // if (helper.camera.isEnabled) {
-        //     helper.camera.update(camera);
-        //     renderer.render(renderTarget, helper.camera.scene, helper.camera.camera, 'color', false, transparentBackground, 1, null, false);
-        // }
+        if (helper.debug.isEnabled) {
+            helper.debug.syncVisibility();
+            renderer.render(renderTarget, helper.debug.scene, camera, 'color', false, transparentBackground, 1, null, false);
+        }
+        if (helper.handle.isEnabled) {
+            renderer.render(renderTarget, helper.handle.scene, camera, 'color', false, transparentBackground, 1, null, false);
+        }
+        if (helper.camera.isEnabled) {
+            helper.camera.update(camera);
+            renderer.render(renderTarget, helper.camera.scene, helper.camera.camera, 'color', false, transparentBackground, 1, null, false);
+        }
 
         if (!toDrawingBuffer && this.depthTargetPrimitivesTransparent) {
             console.log('packed depth transparent primitives');
@@ -169,22 +169,24 @@ export class DrawPass {
             renderer.render(renderTarget, scene.primitives, camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives, true);
         }
 
-        // if (helper.debug.isEnabled) {
-        //     helper.debug.syncVisibility();
-        //     renderer.render(renderTarget, helper.debug.scene, camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives, true);
-        // }
-        // if (helper.handle.isEnabled) {
-        //     renderer.render(renderTarget, helper.handle.scene, camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives, true);
-        // }
-        // if (helper.camera.isEnabled) {
-        //     helper.camera.update(camera);
-        //     renderer.render(renderTarget, helper.camera.scene, helper.camera.camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives, true);
-        // }
+        if (helper.debug.isEnabled) {
+            helper.debug.syncVisibility();
+            renderer.render(renderTarget, helper.debug.scene, camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives, true);
+        }
+        if (helper.handle.isEnabled) {
+            renderer.render(renderTarget, helper.handle.scene, camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives, true);
+        }
+        if (helper.camera.isEnabled) {
+            helper.camera.update(camera);
+            renderer.render(renderTarget, helper.camera.scene, helper.camera.camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives, true);
+        }
 
         // do direct-volume rendering
         if (!toDrawingBuffer) {
             if (!this.packedDepth) {
                 this.depthTextureVolumes.attachFramebuffer(renderTarget!.framebuffer, 'depth');
+                renderTarget!.bind();
+                this.webgl.state.enable(this.webgl.gl.DEPTH_TEST);
                 this.webgl.state.depthMask(true);
                 this.webgl.gl.viewport(x, y, width, height);
                 this.webgl.gl.scissor(x, y, width, height);
