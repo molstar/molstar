@@ -17,6 +17,7 @@ type State = { snapshot: Camera.Snapshot };
 export const AnimateCameraSpin = PluginStateAnimation.create({
     name: 'built-in.animate-camera-spin',
     display: { name: 'Camera Spin' },
+    isExportable: true,
     params: () => ({
         durationInMs: PD.Numeric(4000, { min: 100, max: 20000, step: 100 }),
         speed: PD.Numeric(1, { min: 1, max: 10, step: 1 }, { description: 'How many times to spin in the specified dutation.' }),

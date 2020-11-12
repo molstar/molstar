@@ -17,7 +17,7 @@ export { PluginAnimationManager };
 
 class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationManager.State> {
     private map = new Map<string, PluginStateAnimation>();
-    private animations: PluginStateAnimation[] = [];
+    private _animations: PluginStateAnimation[] = [];
     private currentTime: number = 0;
 
     private _current: PluginAnimationManager.Current;
@@ -28,8 +28,10 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         applied: this.ev(),
     };
 
-    get isEmpty() { return this.animations.length === 0; }
+    get isEmpty() { return this._animations.length === 0; }
     get current() { return this._current!; }
+
+    get animations() { return this._animations; }
 
     private triggerUpdate() {
         this.events.updated.next();
@@ -42,8 +44,8 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     getParams(): PD.Params {
         if (!this._params) {
             this._params = {
-                current: PD.Select(this.animations[0] && this.animations[0].name,
-                    this.animations.map(a => [a.name, a.display.name] as [string, string]),
+                current: PD.Select(this._animations[0] && this._animations[0].name,
+                    this._animations.map(a => [a.name, a.display.name] as [string, string]),
                     { label: 'Animation' })
             };
         }
@@ -79,8 +81,8 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         }
         this._params = void 0;
         this.map.set(animation.name, animation);
-        this.animations.push(animation);
-        if (this.animations.length === 1) {
+        this._animations.push(animation);
+        if (this._animations.length === 1) {
             this.updateParams({ current: animation.name });
         } else {
             this.triggerUpdate();

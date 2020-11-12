@@ -15,9 +15,10 @@ export { PluginStateAnimation };
 interface PluginStateAnimation<P = any, S = any> {
     name: string,
     readonly display: { readonly name: string, readonly description?: string },
+    readonly isExportable?: boolean,
 
     params(ctx: PluginContext): PD.For<P>,
-    canApply?(ctx: PluginContext): { canApply: true } | { canApply: false, reason?: string },
+    canApply?(ctx: PluginContext): PluginStateAnimation.CanApply,
     initialState(params: P, ctx: PluginContext): S,
     getDuration?(params: P, ctx: PluginContext): PluginStateAnimation.Duration,
 
@@ -39,6 +40,7 @@ interface PluginStateAnimation<P = any, S = any> {
 }
 
 namespace PluginStateAnimation {
+    export type CanApply = { canApply: true } | { canApply: false, reason?: string }
     export type Duration = { kind: 'unknown' } | { kind: 'infinite' } | { kind: 'fixed', durationMs: number  }
 
     export interface Instance<A extends PluginStateAnimation> {

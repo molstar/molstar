@@ -68,7 +68,11 @@ class ViewportScreenshotHelper extends PluginComponent {
             resolution: this.params.resolution.defaultValue
         }),
         cropParams: this.ev.behavior<{ auto: boolean, relativePadding: number }>({ auto: true, relativePadding: 0.1 }),
-        relativeCrop: this.ev.behavior<Viewport>({ x: 0, y: 0, width: 1, height: 1 })
+        relativeCrop: this.ev.behavior<Viewport>({ x: 0, y: 0, width: 1, height: 1 }),
+    };
+
+    readonly events = {
+        previewed: this.ev<any>()
     };
 
     get values() {
@@ -121,15 +125,24 @@ class ViewportScreenshotHelper extends PluginComponent {
 
     private _imagePass: ImagePass;
     get imagePass() {
-        return this._imagePass || (this._imagePass = this.createPass(true));
+        if (this._imagePass) {
+            this._imagePass.setProps({
+                cameraHelper: { axes: this.values.axes },
+                transparentBackground: this.values.transparent,
+                // TODO: optimize because this creates a copy of a large object!
+                postprocessing: this.plugin.canvas3d!.props.postprocessing
+            });
+            return this._imagePass;
+        }
+        return this._imagePass = this.createPass(true);
     }
 
-    getFilename() {
+    getFilename(extension = '.png') {
         const models = this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model)).map(s => s.obj!.data);
         const uniqueIds = new Set<string>();
         models.forEach(m => uniqueIds.add(m.entryId.toUpperCase()));
         const idString = SetUtils.toArray(uniqueIds).join('-');
-        return `${idString || 'molstar-image'}.png`;
+        return `${idString || 'molstar-image'}${extension}`;
     }
 
     private canvas = function () {
@@ -250,6 +263,8 @@ class ViewportScreenshotHelper extends PluginComponent {
         if (!canvasCtx) throw new Error('Could not create canvas 2d context');
         canvasCtx.putImageData(imageData, 0, 0);
         if (this.cropParams.auto) this.autocrop();
+
+        this.events.previewed.next();
         return { canvas, width: w, height: h };
     }
 
@@ -272,13 +287,6 @@ class ViewportScreenshotHelper extends PluginComponent {
         if (width <= 0 || height <= 0) return;
 
         await ctx.update('Rendering image...');
-        this.imagePass.setProps({
-            cameraHelper: { axes: this.values.axes },
-            transparentBackground: this.values.transparent,
-            // TODO: optimize because this creates a copy of a large object!
-            postprocessing: this.plugin.canvas3d!.props.postprocessing
-        });
-
         const imageData = this.imagePass.getImageData(width, height, viewport);
 
         await ctx.update('Encoding image...');

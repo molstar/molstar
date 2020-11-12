@@ -15,6 +15,7 @@ import { PluginContext } from '../../../mol-plugin/context';
 export const AnimateAssemblyUnwind = PluginStateAnimation.create({
     name: 'built-in.animate-assembly-unwind',
     display: { name: 'Unwind Assembly' },
+    isExportable: true,
     params: (plugin: PluginContext) => {
         const targets: [string, string][] = [['all', 'All']];
         const structures = plugin.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure));

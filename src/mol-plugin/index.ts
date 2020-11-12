@@ -88,8 +88,8 @@ export const DefaultPluginSpec: PluginSpec = {
     ],
     animations: [
         AnimateModelIndex,
-        AnimateAssemblyUnwind,
-        AnimateCameraSpin
+        AnimateCameraSpin,
+        AnimateAssemblyUnwind
     ]
 };
 
