@@ -126,7 +126,7 @@ export class DrawPass {
 
         // console.log('toDrawingBuffer', toDrawingBuffer);
 
-        for (let i = 0; i < this.webgl.gl.getParameter(this.webgl.gl.MAX_TEXTURE_IMAGE_UNITS); i++) {
+        for (let i = 0; i < this.webgl.maxTextureImageUnits; i++) {
             this.webgl.gl.activeTexture(this.webgl.gl.TEXTURE0 + i);
             this.webgl.gl.bindTexture(this.webgl.gl.TEXTURE_2D, null);
         }

@@ -119,31 +119,31 @@ export function ShaderCode(name: string, vert: string, frag: string, extensions:
 
 import points_vert from './shader/points.vert';
 import points_frag from './shader/points.frag';
-export const PointsShaderCode = ShaderCode('points', points_vert, points_frag);
+export const PointsShaderCode = ShaderCode('points', points_vert, points_frag, { drawBuffers: 'optional' });
 
 import spheres_vert from './shader/spheres.vert';
 import spheres_frag from './shader/spheres.frag';
-export const SpheresShaderCode = ShaderCode('spheres', spheres_vert, spheres_frag, { fragDepth: 'required' });
+export const SpheresShaderCode = ShaderCode('spheres', spheres_vert, spheres_frag, { fragDepth: 'required', drawBuffers: 'optional' });
 
 import text_vert from './shader/text.vert';
 import text_frag from './shader/text.frag';
-export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { standardDerivatives: 'required' });
+export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { standardDerivatives: 'required', drawBuffers: 'optional' });
 
 import lines_vert from './shader/lines.vert';
 import lines_frag from './shader/lines.frag';
-export const LinesShaderCode = ShaderCode('lines', lines_vert, lines_frag);
+export const LinesShaderCode = ShaderCode('lines', lines_vert, lines_frag, { drawBuffers: 'optional' });
 
 import mesh_vert from './shader/mesh.vert';
 import mesh_frag from './shader/mesh.frag';
-export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { standardDerivatives: 'optional' });
+export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { standardDerivatives: 'optional', drawBuffers: 'optional' });
 
 import direct_volume_vert from './shader/direct-volume.vert';
 import direct_volume_frag from './shader/direct-volume.frag';
-export const DirectVolumeShaderCode = ShaderCode('direct-volume', direct_volume_vert, direct_volume_frag, { fragDepth: 'optional' });
+export const DirectVolumeShaderCode = ShaderCode('direct-volume', direct_volume_vert, direct_volume_frag, { fragDepth: 'optional', drawBuffers: 'optional' });
 
 import image_vert from './shader/image.vert';
 import image_frag from './shader/image.frag';
-export const ImageShaderCode = ShaderCode('image', image_vert, image_frag);
+export const ImageShaderCode = ShaderCode('image', image_vert, image_frag, { drawBuffers: 'optional' });
 
 //
 

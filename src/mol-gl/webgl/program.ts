@@ -166,8 +166,8 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
         uniformSetters = getUniformSetters(schema);
 
         if (isDebugMode) {
-            // checkActiveAttributes(gl, program, schema);
-            // checkActiveUniforms(gl, program, schema);
+            checkActiveAttributes(gl, program, schema);
+            checkActiveUniforms(gl, program, schema);
         }
     }
     init();

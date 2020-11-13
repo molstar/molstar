@@ -186,6 +186,7 @@ export interface WebGLContext {
     readonly maxTextureSize: number
     readonly maxRenderbufferSize: number
     readonly maxDrawBuffers: number
+    readonly maxTextureImageUnits: number
 
     readonly isContextLost: boolean
     readonly contextRestored: BehaviorSubject<now.Timestamp>
@@ -220,6 +221,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
         maxRenderbufferSize: gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) as number,
         maxDrawBuffers: isWebGL2(gl) ? gl.getParameter(gl.MAX_DRAW_BUFFERS) as number : 0,
+        maxTextureImageUnits: gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS) as number,
         maxVertexTextureImageUnits: gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) as number,
     };
 
@@ -285,6 +287,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         get maxTextureSize () { return parameters.maxTextureSize; },
         get maxRenderbufferSize () { return parameters.maxRenderbufferSize; },
         get maxDrawBuffers () { return parameters.maxDrawBuffers; },
+        get maxTextureImageUnits () { return parameters.maxTextureImageUnits; },
 
         namedComputeRenderables: Object.create(null),
         namedFramebuffers: Object.create(null),

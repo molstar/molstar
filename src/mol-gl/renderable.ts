@@ -20,7 +20,7 @@ export type RenderableState = {
     pickable: boolean
     colorOnly: boolean
     opaque: boolean
-    writeDepth: boolean,
+    writeDepth: boolean
 }
 
 export interface Renderable<T extends RenderableValues> {
