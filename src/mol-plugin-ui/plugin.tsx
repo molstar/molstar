@@ -14,7 +14,7 @@ import { PluginReactContext, PluginUIComponent } from './base';
 import { AnimationViewportControls, DefaultStructureTools, LociLabels, StateSnapshotViewportControls, TrajectoryViewportControls, SelectionViewportControls } from './controls';
 import { LeftPanelControls } from './left-panel';
 import { SequenceView } from './sequence';
-import { BackgroundTaskProgress } from './task';
+import { BackgroundTaskProgress, OverlayTaskProgress } from './task';
 import { Toasts } from './toast';
 import { Viewport, ViewportControls } from './viewport';
 import { PluginCommands } from '../mol-plugin/commands';
@@ -139,6 +139,7 @@ class Layout extends PluginUIComponent {
                     {layout.showControls && controls.right !== 'none' && this.region('right', controls.right || ControlsWrapper)}
                     {layout.showControls && controls.bottom !== 'none' && this.region('bottom', controls.bottom || Log)}
                 </div>
+                {!this.plugin.spec.components?.hideTaskOverlay && <OverlayTaskProgress />}
             </div>
         </div>;
     }

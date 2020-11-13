@@ -32,7 +32,8 @@ interface PluginSpec {
             view?: React.ComponentClass,
             controls?: React.ComponentClass,
             canvas3d?: PartialCanvas3DProps
-        }
+        },
+        hideTaskOverlay?: boolean
     },
     config?: [PluginConfigItem, unknown][]
 }
