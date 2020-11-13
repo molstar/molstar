@@ -52,7 +52,7 @@ export async function encodeMp4Animation<A extends PluginStateAnimation>(plugin:
     encoder.initialize();
 
     const loop = plugin.animationLoop;
-    const originalBackground = params.customBackground ? plugin.canvas3d?.props.renderer.backgroundColor : void 0;
+    const originalBackground = params.customBackground !== void 0 ? plugin.canvas3d?.props.renderer.backgroundColor : void 0;
     let stoppedAnimation = true, finalized = false;
 
     try {
@@ -86,8 +86,8 @@ export async function encodeMp4Animation<A extends PluginStateAnimation>(plugin:
         return encoder.FS.readFile(encoder.outputFilename);
     } finally {
         if (finalized) encoder.delete();
-        if (originalBackground) {
-            plugin.canvas3d?.setProps({ renderer: { backgroundColor: originalBackground } }, true);
+        if (originalBackground !== void 0) {
+            plugin.canvas3d?.setProps({ renderer: { backgroundColor: originalBackground } });
         }
         if (!stoppedAnimation) await plugin.managers.animation.stop();
         loop.start();
