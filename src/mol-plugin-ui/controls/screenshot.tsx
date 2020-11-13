@@ -6,8 +6,7 @@
 
 import * as React from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Observable, Subject, Subscription } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
+import { Observable, Subscription } from 'rxjs';
 import { Viewport } from '../../mol-canvas3d/camera/util';
 import { PluginContext } from '../../mol-plugin/context';
 import { ViewportScreenshotHelper } from '../../mol-plugin/util/viewport-screenshot';
@@ -42,9 +41,7 @@ const _ScreenshotPreview = (props: ScreenshotPreviewProps) => {
     });
 
     useEffect(() => {
-        let paused = false;
-
-        const updateQueue = new Subject();
+        let isDirty = false;
         const subs: Subscription[] = [];
 
         function subscribe<T>(xs: Observable<T> | undefined, f: (v: T) => any) {
@@ -54,32 +51,31 @@ const _ScreenshotPreview = (props: ScreenshotPreviewProps) => {
 
         function preview() {
             const p = propsRef.current;
-            if (!p.suspend && !paused && canvasRef.current) {
+            if (!p.suspend && canvasRef.current) {
                 drawPreview(helper, canvasRef.current, p.customBackground, p.borderColor, p.borderWidth);
             }
 
-            if (!canvasRef.current) updateQueue.next();
+            if (!canvasRef.current) isDirty = true;
         }
 
-        subscribe(updateQueue.pipe(debounceTime(33)), preview);
-        subscribe(plugin.events.canvas3d.settingsUpdated, () => updateQueue.next());
+        const interval = setInterval(() => {
+            if (isDirty) {
+                isDirty = false;
+                preview();
+            }
+        }, 1000 / 8);
 
-        subscribe(plugin.canvas3d?.didDraw.pipe(debounceTime(150)), () => {
-            if (paused) return;
-            updateQueue.next();
-        });
-
+        subscribe(plugin.events.canvas3d.settingsUpdated, () => isDirty = true);
+        subscribe(plugin.canvas3d?.didDraw, () => isDirty = true);
         subscribe(plugin.state.data.behaviors.isUpdating, v => {
-            paused = v;
-            if (!v) updateQueue.next();
+            if (!v) isDirty = true;
         });
-
-        subscribe(helper.behaviors.values, () => updateQueue.next());
-        subscribe(helper.behaviors.cropParams, () => updateQueue.next());
+        subscribe(helper.behaviors.values, () => isDirty = true);
+        subscribe(helper.behaviors.cropParams, () => isDirty = true);
 
         let resizeObserver: any = void 0;
         if (typeof ResizeObserver !== 'undefined') {
-            resizeObserver = new ResizeObserver(() => updateQueue.next());
+            resizeObserver = new ResizeObserver(() => isDirty = true);
         }
 
         const canvas = canvasRef.current;
@@ -88,6 +84,7 @@ const _ScreenshotPreview = (props: ScreenshotPreviewProps) => {
         preview();
 
         return () => {
+            clearInterval(interval);
             subs.forEach(s => s.unsubscribe());
             resizeObserver?.unobserve(canvas);
         };
