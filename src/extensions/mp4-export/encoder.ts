@@ -95,9 +95,7 @@ export async function encodeMp4Animation<A extends PluginStateAnimation>(plugin:
 }
 
 function validateViewport(params: Mp4EncoderParams) {
-    if (!params.viewport) return;
-
-    if (params.viewport.x + params.viewport.width > params.width || params.viewport.x + params.viewport.width >= params.width) {
+    if (params.viewport.x + params.viewport.width > params.width || params.viewport.y + params.viewport.height > params.height) {
         throw new Error('Viewport exceeds the canvas dimensions.');
     }
 }
