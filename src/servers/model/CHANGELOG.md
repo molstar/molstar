@@ -1,3 +1,6 @@
+# 0.9.4
+* bug fix for /ligand queries on metal ions
+
 # 0.9.3
 * optional transform parameter
 
