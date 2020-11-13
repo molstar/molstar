@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { Viewport } from '../../mol-canvas3d/camera/util';
@@ -43,6 +43,7 @@ const _ScreenshotPreview = (props: ScreenshotPreviewProps) => {
 
     useEffect(() => {
         let paused = false;
+
         const updateQueue = new Subject();
         const subs: Subscription[] = [];
 
@@ -91,6 +92,12 @@ const _ScreenshotPreview = (props: ScreenshotPreviewProps) => {
             resizeObserver?.unobserve(canvas);
         };
     }, [helper]);
+
+    useLayoutEffect(() => {
+        if (canvasRef.current) {
+            drawPreview(helper, canvasRef.current, props.customBackground, props.borderColor, props.borderWidth);
+        }
+    }, [...Object.values(props)]);
 
     return <>
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
