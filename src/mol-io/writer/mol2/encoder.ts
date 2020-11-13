@@ -37,20 +37,22 @@ export class Mol2Encoder extends LigandEncoder {
         StringBuilder.writeSafe(b, '@<TRIPOS>BOND\n');
         atoms.forEach((atom1, label_atom_id1) => {
             const { index: i1 } = atom1;
-            bondMap.map.get(label_atom_id1)!.forEach((bond, label_atom_id2) => {
-                const atom2 = atoms.get(label_atom_id2);
-                if (!atom2) return;
+            if (bondMap?.map) {
+                bondMap.map.get(label_atom_id1)!.forEach((bond, label_atom_id2) => {
+                    const atom2 = atoms.get(label_atom_id2);
+                    if (!atom2) return;
 
-                const { index: i2, type_symbol: type_symbol2 } = atom2;
-                if (i1 < i2 && !this.skipHydrogen(type_symbol2)) {
-                    const { order, flags } = bond;
-                    const ar = BondType.is(BondType.Flag.Aromatic, flags);
-                    StringBuilder.writeSafe(b, `${++bondCount} ${i1 + 1} ${i2 + 1} ${ar ? 'ar' : order}`);
-                    StringBuilder.newline(b);
-                }
-            });
+                    const { index: i2, type_symbol: type_symbol2 } = atom2;
+                    if (i1 < i2 && !this.skipHydrogen(type_symbol2)) {
+                        const { order, flags } = bond;
+                        const ar = BondType.is(BondType.Flag.Aromatic, flags);
+                        StringBuilder.writeSafe(b, `${++bondCount} ${i1 + 1} ${i2 + 1} ${ar ? 'ar' : order}`);
+                        StringBuilder.newline(b);
+                    }
+                });
+            }
 
-            const sybyl = this.mapToSybyl(label_atom_id1, atom1.type_symbol, bondMap);
+            const sybyl = bondMap?.map ? this.mapToSybyl(label_atom_id1, atom1.type_symbol, bondMap) : atom1.type_symbol;
             StringBuilder.writeSafe(a, `${i1 + 1} ${label_atom_id1} ${atom1.Cartn_x.toFixed(3)} ${atom1.Cartn_y.toFixed(3)} ${atom1.Cartn_z.toFixed(3)} ${sybyl} 1 ${name} 0.000\n`);
         });
 
