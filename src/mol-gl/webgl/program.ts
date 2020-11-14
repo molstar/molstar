@@ -205,8 +205,6 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
                 const [k, texture] = textures[i];
                 const l = locations[k];
                 if (l !== null && l !== undefined) {
-                    // TODO if the order and count of textures in a material can be made invariant
-                    //      bind needs to be called only when the material changes
                     texture.bind((i + startingTargetUnit) as TextureId);
                     uniformSetters[k](gl, l, (i + startingTargetUnit) as TextureId);
                 }

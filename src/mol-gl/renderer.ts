@@ -19,13 +19,14 @@ import { Clipping } from '../mol-theme/clipping';
 import { stringToWords } from '../mol-util/string';
 import { Transparency } from '../mol-theme/transparency';
 import { degToRad } from '../mol-math/misc';
-import { Texture, Textures } from './webgl/texture';
+import { createNullTexture, Texture, Textures } from './webgl/texture';
 import { RenderTarget } from './webgl/render-target';
 import { QuadSchema, QuadValues } from './compute/util';
 
 import quad_vert from '../mol-gl/shader/quad.vert';
 import evaluate_wboit_frag from '../mol-gl/shader/evaluate-wboit.frag';
 import { ShaderCode } from './shader-code';
+import { arrayMapUpsert } from '../mol-util/array';
 
 export interface RendererStats {
     programCount: number
@@ -175,7 +176,10 @@ namespace Renderer {
         const drawingBufferSize = Vec2.create(gl.drawingBufferWidth, gl.drawingBufferHeight);
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor);
 
-        const sharedTexturesList: Textures = [];
+        const nullDepthTexture = createNullTexture(gl, 'image-depth');
+        const sharedTexturesList: Textures = [
+            ['tDepth', nullDepthTexture]
+        ];
 
         const enableWboit = textureFloat && colorBufferFloat && depthTexture && drawBuffers;
 
@@ -266,7 +270,7 @@ namespace Renderer {
 
         let globalUniformsNeedUpdate = true;
 
-        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: GraphicsRenderVariant, sharedTexturesList?: Textures) => {
+        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: GraphicsRenderVariant) => {
             if (!r.state.visible || (!r.state.pickable && variant[0] === 'p')) {
                 return;
             }
@@ -348,10 +352,7 @@ namespace Renderer {
         };
 
         const render = (renderTarget: RenderTarget | null, group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, drawingBufferScale: number, depthTexture: Texture | null, renderTransparent: boolean) => {
-            let localSharedTexturesList = sharedTexturesList;
-            if (depthTexture) {
-                localSharedTexturesList = [...localSharedTexturesList, ['tDepth', depthTexture]];
-            }
+            arrayMapUpsert(sharedTexturesList, 'tDepth', depthTexture || nullDepthTexture);
 
             ValueCell.update(globalUniforms.uModel, group.view);
             ValueCell.update(globalUniforms.uView, camera.view);
@@ -425,7 +426,7 @@ namespace Renderer {
                         for (let i = 0, il = renderables.length; i < il; ++i) {
                             const r = renderables[i];
                             if (r.values.uAlpha.ref.value === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values?.dRenderMode?.ref.value !== 'volume') {
-                                renderObject(r, variant, localSharedTexturesList);
+                                renderObject(r, variant);
                             }
                         }
                     } else {
@@ -445,7 +446,7 @@ namespace Renderer {
                         for (let i = 0, il = renderables.length; i < il; ++i) {
                             const r = renderables[i];
                             if (r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value !== 0) {
-                                renderObject(r, variant, localSharedTexturesList);
+                                renderObject(r, variant);
                             }
                         }
 
@@ -470,7 +471,7 @@ namespace Renderer {
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         const r = renderables[i];
                         if (r.state.opaque) {
-                            renderObject(r, variant, localSharedTexturesList);
+                            renderObject(r, variant);
                         }
                     }
 
@@ -479,13 +480,13 @@ namespace Renderer {
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         const r = renderables[i];
                         if (!r.state.opaque && r.state.writeDepth) {
-                            renderObject(r, variant, localSharedTexturesList);
+                            renderObject(r, variant);
                         }
                     }
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         const r = renderables[i];
                         if (!r.state.opaque && !r.state.writeDepth) {
-                            renderObject(r, variant, localSharedTexturesList);
+                            renderObject(r, variant);
                         }
                     }
                 }
@@ -493,7 +494,7 @@ namespace Renderer {
                 if (!renderTransparent) {
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         if (!renderables[i].state.colorOnly) {
-                            renderObject(renderables[i], variant, localSharedTexturesList);
+                            renderObject(renderables[i], variant);
                         }
                     }
                 }

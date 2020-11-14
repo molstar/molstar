@@ -62,8 +62,6 @@ export class DrawPass {
     private depthTextureVolumes: Texture
     private depthMerge: DepthMergeRenderable
 
-    private readonly dummyDepthTexture: Texture
-
     constructor(private webgl: WebGLContext, width: number, height: number) {
         const { extensions, resources } = webgl;
 
@@ -86,9 +84,6 @@ export class DrawPass {
             this.depthTextureVolumes.define(width, height);
         }
         this.depthMerge = getDepthMergeRenderable(webgl, this.depthTexturePrimitives, this.depthTextureVolumes, this.packedDepth);
-
-        this.dummyDepthTexture = resources.texture('image-depth', 'depth', 'ushort', 'nearest');
-        this.dummyDepthTexture.define(2, 2);
     }
 
     setSize(width: number, height: number) {
@@ -126,11 +121,6 @@ export class DrawPass {
 
         // console.log('toDrawingBuffer', toDrawingBuffer);
 
-        for (let i = 0; i < this.webgl.maxTextureImageUnits; i++) {
-            this.webgl.gl.activeTexture(this.webgl.gl.TEXTURE0 + i);
-            this.webgl.gl.bindTexture(this.webgl.gl.TEXTURE_2D, null);
-        }
-
         let renderTarget;
         if (toDrawingBuffer) {
             renderTarget = null;
@@ -149,7 +139,7 @@ export class DrawPass {
         }
 
         // render opaque color
-        renderer.render(renderTarget, scene.primitives, camera, 'color', true, transparentBackground, 1, this.dummyDepthTexture, false);
+        renderer.render(renderTarget, scene.primitives, camera, 'color', true, transparentBackground, 1, null, false);
 
         if (helper.debug.isEnabled) {
             helper.debug.syncVisibility();
