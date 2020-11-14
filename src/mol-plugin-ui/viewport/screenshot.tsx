@@ -63,7 +63,7 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
     }
 
     render() {
-        const hasClipboardApi = !!(navigator.clipboard as any).write;
+        const hasClipboardApi = !!(navigator.clipboard as any)?.write;
 
         return <div>
             {this.state.showPreview && <div className='msp-image-preview'>

@@ -302,7 +302,7 @@ class ViewportScreenshotHelper extends PluginComponent {
     private copyToClipboardTask() {
         const cb = navigator.clipboard as any;
 
-        if (!cb.write) {
+        if (!cb?.write) {
             this.plugin.log.error('clipboard.write not supported!');
             return;
         }
