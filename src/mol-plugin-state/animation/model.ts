@@ -22,8 +22,8 @@ interface PluginStateAnimation<P = any, S = any> {
     initialState(params: P, ctx: PluginContext): S,
     getDuration?(params: P, ctx: PluginContext): PluginStateAnimation.Duration,
 
-    // TODO: support state in setup/teardown?
-    setup?(params: P, ctx: PluginContext): void | Promise<void>,
+    // Optionally returns new state
+    setup?(params: P, state: S, ctx: PluginContext): void | Promise<S> | Promise<void>,
     teardown?(params: P, state: S, ctx: PluginContext): void | Promise<void>,
 
     /**

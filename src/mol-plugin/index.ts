@@ -20,6 +20,7 @@ import { AssignColorVolume } from '../mol-plugin-state/actions/volume';
 import { AnimateModelIndex } from '../mol-plugin-state/animation/built-in/model-index';
 import { AnimateAssemblyUnwind } from '../mol-plugin-state/animation/built-in/assembly-unwind';
 import { AnimateCameraSpin } from '../mol-plugin-state/animation/built-in/camera-spin';
+import { AnimateStateSnapshots } from '../mol-plugin-state/animation/built-in/state-snapshots';
 
 export const DefaultPluginSpec: PluginSpec = {
     actions: [
@@ -89,6 +90,7 @@ export const DefaultPluginSpec: PluginSpec = {
     animations: [
         AnimateModelIndex,
         AnimateCameraSpin,
+        AnimateStateSnapshots,
         AnimateAssemblyUnwind
     ]
 };

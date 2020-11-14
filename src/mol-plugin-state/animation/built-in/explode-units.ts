@@ -18,7 +18,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
         durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100})
     }),
     initialState: () => ({ t: 0 }),
-    async setup(_, plugin) {
+    async setup(_, __, plugin) {
         const state = plugin.state.data;
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D));
 

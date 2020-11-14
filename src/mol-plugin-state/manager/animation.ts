@@ -121,13 +121,15 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         this.triggerUpdate();
 
         const anim = this._current.anim;
+        let initialState = this._current.anim.initialState(this._current.paramValues, this.context);
         if (anim.setup) {
-            await anim.setup(this._current.paramValues, this.context);
+            const state = await anim.setup(this._current.paramValues, initialState, this.context);
+            if (state) initialState = state;
         }
 
         this._current.lastTime = 0;
         this._current.startedTime = -1;
-        this._current.state = this._current.anim.initialState(this._current.paramValues, this.context);
+        this._current.state = initialState;
         this.isStopped = false;
     }
 
@@ -215,7 +217,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
             this.context.behaviors.state.isAnimating.next(true);
         }
         if (anim.setup) {
-            await anim.setup(this._current.paramValues, this.context);
+            await anim.setup(this._current.paramValues, this._current.state, this.context);
         }
         this.isStopped = false;
     }

@@ -36,8 +36,14 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D, root));
         return { canApply: reprs.length > 0 };
     },
+    getDuration: (params) => {
+        return {
+            kind: 'fixed',
+            durationMs: params.durationInMs
+        };
+    },
     initialState: () => ({ t: 0 }),
-    setup(params, plugin) {
+    setup(params, _, plugin) {
         const state = plugin.state.data;
         const root = !params.target || params.target === 'all' ? StateTransform.RootRef : params.target;
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D, root));
