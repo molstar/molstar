@@ -45,7 +45,7 @@
                 return decodeURIComponent(((window.location.search || '').match(r) || [])[1] || '');
             }
 
-            var debugMode = true; // getParam('debug-mode', '[^&]+').trim() === '1';
+            var debugMode = getParam('debug-mode', '[^&]+').trim() === '1';
             if (debugMode) molstar.setDebugMode(debugMode, debugMode);
 
             var disableAntialiasing = getParam('disable-antialiasing', '[^&]+').trim() === '1';
