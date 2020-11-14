@@ -388,19 +388,10 @@
     position: relative;
     background: $default-background;
     margin-top: 1px;
-    text-align: center;
     padding: $control-spacing;
 
-    img {
-        max-height: 180px;
-        max-width: 100%;
-        display: 'block';
-
-        background-color: $default-background;
-    background-image: linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey),
-    linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey);
-    background-size: 30px 30px;
-    background-position: 0 0, 15px 15px;
+    canvas {
+        @include user-select(none);
     }
 
     > span {
@@ -408,5 +399,23 @@
         display: block;
         text-align: center;
         font-size: 80%;
+        line-height: 15px;
+    }
+}
+
+.msp-copy-image-wrapper {
+    position: relative;
+
+    div {
+        font-weight: bold;
+        padding: 3px;
+        margin: 1px 0;
+        width: 100%;
+        background: $msp-form-control-background;
+        text-align: center;
+    }
+
+    img {
+        margin-top: 1px;
     }
 }

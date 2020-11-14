@@ -203,7 +203,8 @@ export function _bundleLabel(bundle: Loci.Bundle<any>, options: LabelOptions) {
 export function elementLabel(location: StructureElement.Location, options: Partial<LabelOptions> = {}): string {
     const o = { ...DefaultLabelOptions, ...options };
     const _label = _elementLabel(location, o.granularity, o.hidePrefix, o.reverse || o.condensed);
-    const label = o.condensed ? _label[0].replace(/\[.*\]/g, '').trim() : _label.filter(l => !!l).join(' | ');
+    // TODO: condensed label for single atom structure returns empty label.. handle this case here?
+    const label = o.condensed ? _label[0]?.replace(/\[.*\]/g, '').trim() ?? '' : _label.filter(l => !!l).join(' | ');
     return o.htmlStyling ? label : stripTags(label);
 }
 

@@ -44,6 +44,8 @@ export class MolEncoder extends LigandEncoder {
             StringBuilder.writeSafe(ctab, '  0  0  0  0  0  0  0  0  0  0\n');
             if (stereo_config !== 'N') chiral = true;
 
+            // no data for metal ions
+            if (!bondMap?.map) return;
             bondMap.map.get(label_atom_id1)!.forEach((bond, label_atom_id2) => {
                 const atom2 = atoms.get(label_atom_id2);
                 if (!atom2) return;

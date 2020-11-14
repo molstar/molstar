@@ -28,8 +28,8 @@ export const ImageParams = {
 export type ImageProps = PD.Values<typeof ImageParams>
 
 export class ImagePass {
-    private _width = 1024
-    private _height = 768
+    private _width = 0
+    private _height = 0
     private _camera = new Camera()
 
     readonly props: ImageProps
@@ -60,7 +60,7 @@ export class ImagePass {
             handle: helper.handle,
         };
 
-        this.setSize(this._width, this._height);
+        this.setSize(1024, 768);
     }
 
     setSize(width: number, height: number) {
@@ -100,13 +100,20 @@ export class ImagePass {
         }
     }
 
-    getImageData(width: number, height: number) {
+    getImageData(width: number, height: number, viewport?: Viewport) {
         this.setSize(width, height);
         this.render();
         this.colorTarget.bind();
-        const array = new Uint8Array(width * height * 4);
-        this.webgl.readPixels(0, 0, width, height, array);
-        PixelData.flipY({ array, width, height });
-        return new ImageData(new Uint8ClampedArray(array), width, height);
+
+        const w = viewport?.width ?? width, h = viewport?.height ?? height;
+
+        const array = new Uint8Array(w * h * 4);
+        if (!viewport) {
+            this.webgl.readPixels(0, 0, w, h, array);
+        } else {
+            this.webgl.readPixels(viewport.x, height - viewport.y - viewport.height, w, h, array);
+        }
+        PixelData.flipY({ array, width: w, height: h });
+        return new ImageData(new Uint8ClampedArray(array), w, h);
     }
 }

@@ -60,6 +60,7 @@ interface TrackballControls {
     readonly props: Readonly<TrackballControlsProps>
     setProps: (props: Partial<TrackballControlsProps>) => void
 
+    start: (t: number) => void
     update: (t: number) => void
     reset: () => void
     dispose: () => void
@@ -286,7 +287,7 @@ namespace TrackballControls {
         /** Update the object's position, direction and up vectors */
         function update(t: number) {
             if (lastUpdated === t) return;
-            if (p.spin) spin(t - lastUpdated);
+            if (p.spin && lastUpdated > 0) spin(t - lastUpdated);
 
             Vec3.sub(_eye, camera.position, camera.target);
 
@@ -405,13 +406,17 @@ namespace TrackballControls {
 
         const _spinSpeed = Vec2.create(0.005, 0);
         function spin(deltaT: number) {
+            if (p.spinSpeed === 0) return;
+
             const frameSpeed = (p.spinSpeed || 0) / 1000;
             _spinSpeed[0] = 60 * Math.min(Math.abs(deltaT), 1000 / 8) / 1000 * frameSpeed;
             if (!_isInteracting) Vec2.add(_rotCurr, _rotPrev, _spinSpeed);
         }
 
-        // force an update at start
-        update(0);
+        function start(t: number) {
+            lastUpdated = -1;
+            update(t);
+        }
 
         return {
             viewport,
@@ -421,6 +426,7 @@ namespace TrackballControls {
                 Object.assign(p, props);
             },
 
+            start,
             update,
             reset,
             dispose

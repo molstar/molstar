@@ -96,19 +96,29 @@ interface Canvas3D {
      * This function must be called if animate() is not set up so that add/remove actions take place.
      */
     commit(isSynchronous?: boolean): void
+    /**
+     * Funcion for external "animation" control
+     * Calls commit.
+     */
+    tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean }): void
     update(repr?: Representation.Any, keepBoundingSphere?: boolean): void
     clear(): void
     syncVisibility(): void
 
     requestDraw(force?: boolean): void
+
+    /** Reset the timers, used by "animate" */
+    resetTime(t: number): void
     animate(): void
     pause(): void
     identify(x: number, y: number): PickData | undefined
     mark(loci: Representation.Loci, action: MarkerAction): void
     getLoci(pickingId: PickingId | undefined): Representation.Loci
 
+    notifyDidDraw: boolean,
     readonly didDraw: BehaviorSubject<now.Timestamp>
     readonly reprCount: BehaviorSubject<number>
+    readonly resized: BehaviorSubject<any>
 
     handleResize(): void
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
@@ -197,7 +207,7 @@ namespace Canvas3D {
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
         const reprCount = new BehaviorSubject(0);
 
-        const startTime = now();
+        let startTime = now();
         const didDraw = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
 
         const { gl, contextRestored } = webgl;
@@ -230,6 +240,8 @@ namespace Canvas3D {
         let cameraResetRequested = false;
         let nextCameraResetDuration: number | undefined = void 0;
         let nextCameraResetSnapshot: Partial<Camera.Snapshot> | undefined = void 0;
+
+        let notifyDidDraw = true;
 
         function getLoci(pickingId: PickingId | undefined) {
             let loci: Loci = EmptyLoci;
@@ -305,7 +317,7 @@ namespace Canvas3D {
         let currentTime = 0;
 
         function draw(force?: boolean) {
-            if (render(!!force || forceNextDraw)) {
+            if (render(!!force || forceNextDraw) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
             forceNextDraw = false;
@@ -320,19 +332,33 @@ namespace Canvas3D {
 
         let animationFrameHandle = 0;
 
-        function _animate() {
-            currentTime = now();
-            commit();
+        function tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean }) {
+            currentTime = t;
+            commit(options?.isSynchronous);
             camera.transition.tick(currentTime);
+
+            if (options?.manualDraw) {
+                return;
+            }
 
             draw(false);
             if (!camera.transition.inTransition && !webgl.isContextLost) {
                 interactionHelper.tick(currentTime);
             }
+        }
+
+        function _animate() {
+            tick(now());
             animationFrameHandle = requestAnimationFrame(_animate);
         }
 
+        function resetTime(t: now.Timestamp) {
+            startTime = t;
+            controls.start(t);
+        }
+
         function animate() {
+            controls.start(now());
             if (animationFrameHandle === 0) _animate();
         }
 
@@ -516,6 +542,8 @@ namespace Canvas3D {
             draw(true);
         });
 
+        const resized = new BehaviorSubject<any>(0);
+
         return {
             webgl,
 
@@ -553,7 +581,9 @@ namespace Canvas3D {
             },
 
             requestDraw,
+            tick,
             animate,
+            resetTime,
             pause,
             identify,
             mark,
@@ -564,6 +594,7 @@ namespace Canvas3D {
                 updateViewport();
                 syncViewport();
                 requestDraw(true);
+                resized.next(+new Date());
             },
             requestCameraReset: options => {
                 nextCameraResetDuration = options?.durationMs;
@@ -572,8 +603,11 @@ namespace Canvas3D {
             },
             camera,
             boundingSphere: scene.boundingSphere,
+            get notifyDidDraw() { return notifyDidDraw; },
+            set notifyDidDraw(v: boolean) { notifyDidDraw = v; },
             didDraw,
             reprCount,
+            resized,
             setProps: (properties, doNotRequestDraw = false) => {
                 const props: PartialCanvas3DProps = typeof properties === 'function'
                     ? produce(getProps(), properties)

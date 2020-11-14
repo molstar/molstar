@@ -7,7 +7,7 @@
 import * as ReactDOM from 'react-dom';
 import { Canvas3DProps, DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
-import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in';
+import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in/model-index';
 import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { PluginStateObject, PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';

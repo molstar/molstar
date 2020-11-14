@@ -7,7 +7,7 @@
 import { EmptyLoci } from '../../mol-model/loci';
 import { StructureSelection } from '../../mol-model/structure';
 import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
-import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in';
+import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in/model-index';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';

@@ -9,23 +9,20 @@ import { ICamera } from '../mol-canvas3d/camera';
 import Scene from './scene';
 import { WebGLContext } from './webgl/context';
 import { Mat4, Vec3, Vec4, Vec2, Quat } from '../mol-math/linear-algebra';
-import { ComputeRenderable, createComputeRenderable, Renderable } from './renderable';
+import { Renderable } from './renderable';
 import { Color } from '../mol-util/color';
 import { ValueCell, deepEqual } from '../mol-util';
-import { RenderableValues, GlobalUniformValues, BaseValues, TextureSpec, Values } from './renderable/schema';
-import { createComputeRenderItem, GraphicsRenderVariant } from './webgl/render-item';
+import { RenderableValues, GlobalUniformValues, BaseValues } from './renderable/schema';
+import { GraphicsRenderVariant } from './webgl/render-item';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { Clipping } from '../mol-theme/clipping';
 import { stringToWords } from '../mol-util/string';
 import { Transparency } from '../mol-theme/transparency';
 import { degToRad } from '../mol-math/misc';
-import { Texture, Textures } from './webgl/texture';
+import { createNullTexture, Texture, Textures } from './webgl/texture';
 import { RenderTarget } from './webgl/render-target';
-import { QuadSchema, QuadValues } from './compute/util';
-
-import quad_vert from '../mol-gl/shader/quad.vert';
-import evaluate_wboit_frag from '../mol-gl/shader/evaluate-wboit.frag';
-import { ShaderCode } from './shader-code';
+import { arrayMapUpsert } from '../mol-util/array';
+import { WboitPass } from '../mol-canvas3d/passes/wboit';
 
 export interface RendererStats {
     programCount: number
@@ -48,7 +45,7 @@ interface Renderer {
     readonly props: Readonly<RendererProps>
 
     clear: (transparentBackground: boolean) => void
-    render: (renderTarget: RenderTarget | null, group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, drawingBufferScale: number, depthTexture: Texture | null, renderTransparent: boolean) => void
+    render: (renderTarget: RenderTarget | null, group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, drawingBufferScale: number, depthTexture: Texture | null, renderTransparent: boolean, wboit: WboitPass | null) => void
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
     dispose: () => void
@@ -164,39 +161,19 @@ function getClip(props: RendererProps['clip'], clip?: Clip): Clip {
 
 namespace Renderer {
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
-        const { gl, state, resources, stats } = ctx;
+        const { gl, state, stats, extensions: { fragDepth } } = ctx;
         const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
         const style = getStyle(p.style);
         const clip = getClip(p.clip);
-
-        const { drawBuffers, textureFloat, colorBufferFloat, depthTexture, fragDepth } = ctx.extensions;
 
         const viewport = Viewport();
         const drawingBufferSize = Vec2.create(gl.drawingBufferWidth, gl.drawingBufferHeight);
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor);
 
-        const sharedTexturesList: Textures = [];
-
-        const enableWboit = textureFloat && colorBufferFloat && depthTexture && drawBuffers;
-
-        const wboitATexture = enableWboit ? resources.texture('image-float32', 'rgba', 'float', 'nearest') : null;
-        wboitATexture?.define(viewport.width, viewport.height);
-        const wboitBTexture = enableWboit ? resources.texture('image-float32', 'rgba', 'float', 'nearest') : null;
-        wboitBTexture?.define(viewport.width, viewport.height);
-
-        const evaluateWboitRenderable = enableWboit ? getEvaluateWboitRenderable(ctx, wboitATexture!, wboitBTexture!) : null;
-
-        const wboitFramebuffer = resources.framebuffer();
-        if (enableWboit) {
-            wboitFramebuffer.bind();
-            drawBuffers!.drawBuffers([
-                drawBuffers!.COLOR_ATTACHMENT0,
-                drawBuffers!.COLOR_ATTACHMENT1,
-            ]);
-
-            wboitATexture!.attachFramebuffer(wboitFramebuffer, 'color0');
-            wboitBTexture!.attachFramebuffer(wboitFramebuffer, 'color1');
-        }
+        const nullDepthTexture = createNullTexture(gl, 'image-depth');
+        const sharedTexturesList: Textures = [
+            ['tDepth', nullDepthTexture]
+        ];
 
         const view = Mat4();
         const invView = Mat4();
@@ -266,7 +243,7 @@ namespace Renderer {
 
         let globalUniformsNeedUpdate = true;
 
-        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: GraphicsRenderVariant, sharedTexturesList?: Textures) => {
+        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: GraphicsRenderVariant, wboit: WboitPass | null) => {
             if (!r.state.visible || (!r.state.pickable && variant[0] === 'p')) {
                 return;
             }
@@ -304,7 +281,7 @@ namespace Renderer {
                 state.disable(gl.CULL_FACE);
                 state.frontFace(gl.CCW);
 
-                if (!enableWboit) {
+                if (!wboit?.enabled) {
                     // depth test done manually in shader against `depthTexture`
                     // still need to enable when fragDepth can be used to write depth
                     if (r.values.dRenderMode.ref.value === 'volume' || !fragDepth) {
@@ -341,17 +318,14 @@ namespace Renderer {
                     state.cullFace(gl.BACK);
                 }
 
-                if (!enableWboit) state.depthMask(r.state.writeDepth);
+                if (!wboit?.enabled) state.depthMask(r.state.writeDepth);
             }
 
             r.render(variant, sharedTexturesList);
         };
 
-        const render = (renderTarget: RenderTarget | null, group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, drawingBufferScale: number, depthTexture: Texture | null, renderTransparent: boolean) => {
-            let localSharedTexturesList = sharedTexturesList;
-            if (depthTexture) {
-                localSharedTexturesList = [...localSharedTexturesList, ['tDepth', depthTexture]];
-            }
+        const render = (renderTarget: RenderTarget | null, group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean, drawingBufferScale: number, depthTexture: Texture | null, renderTransparent: boolean, wboit: WboitPass | null) => {
+            arrayMapUpsert(sharedTexturesList, 'tDepth', depthTexture || nullDepthTexture);
 
             ValueCell.update(globalUniforms.uModel, group.view);
             ValueCell.update(globalUniforms.uView, camera.view);
@@ -417,7 +391,7 @@ namespace Renderer {
             }
 
             if (variant === 'color') {
-                if (enableWboit) {
+                if (wboit?.enabled) {
                     if (!renderTransparent) {
                         state.enable(gl.DEPTH_TEST);
                         state.depthMask(true);
@@ -425,27 +399,19 @@ namespace Renderer {
                         for (let i = 0, il = renderables.length; i < il; ++i) {
                             const r = renderables[i];
                             if (r.values.uAlpha.ref.value === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values?.dRenderMode?.ref.value !== 'volume') {
-                                renderObject(r, variant, localSharedTexturesList);
+                                renderObject(r, variant, wboit);
                             }
                         }
                     } else {
-                        wboitFramebuffer.bind();
-
-                        state.clearColor(0, 0, 0, 1);
-                        gl.clear(gl.COLOR_BUFFER_BIT);
+                        wboit.bind();
 
                         ValueCell.updateIfChanged(globalUniforms.uRenderWboit, 1);
                         globalUniformsNeedUpdate = true;
 
-                        state.disable(gl.DEPTH_TEST);
-
-                        state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ZERO, gl.ONE_MINUS_SRC_ALPHA);
-                        state.enable(gl.BLEND);
-
                         for (let i = 0, il = renderables.length; i < il; ++i) {
                             const r = renderables[i];
                             if (r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value !== 0) {
-                                renderObject(r, variant, localSharedTexturesList);
+                                renderObject(r, variant, wboit);
                             }
                         }
 
@@ -455,22 +421,13 @@ namespace Renderer {
                             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
                         }
 
-                        state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
-                        state.enable(gl.BLEND);
-
-                        // unclear why needed but otherwise there is a
-                        // "Draw framebuffer is incomplete" error for the very first render call
-                        // before there are any renderables...
-                        if (renderables.length > 0) {
-                            evaluateWboitRenderable!.update();
-                            evaluateWboitRenderable!.render();
-                        }
+                        wboit.render();
                     }
                 } else {
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         const r = renderables[i];
                         if (r.state.opaque) {
-                            renderObject(r, variant, localSharedTexturesList);
+                            renderObject(r, variant, wboit);
                         }
                     }
 
@@ -479,13 +436,13 @@ namespace Renderer {
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         const r = renderables[i];
                         if (!r.state.opaque && r.state.writeDepth) {
-                            renderObject(r, variant, localSharedTexturesList);
+                            renderObject(r, variant, wboit);
                         }
                     }
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         const r = renderables[i];
                         if (!r.state.opaque && !r.state.writeDepth) {
-                            renderObject(r, variant, localSharedTexturesList);
+                            renderObject(r, variant, wboit);
                         }
                     }
                 }
@@ -493,7 +450,7 @@ namespace Renderer {
                 if (!renderTransparent) {
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         if (!renderables[i].state.colorOnly) {
-                            renderObject(renderables[i], variant, localSharedTexturesList);
+                            renderObject(renderables[i], variant, wboit);
                         }
                     }
                 }
@@ -576,13 +533,6 @@ namespace Renderer {
                     Viewport.set(viewport, x, y, width, height);
                     ValueCell.update(globalUniforms.uViewportHeight, height);
                     ValueCell.update(globalUniforms.uViewport, Vec4.set(globalUniforms.uViewport.ref.value, x, y, width, height));
-
-                    // TODO: this gets called every frame... in any case, we will need to move
-                    //       the wboit resources (framebuffer, textures, renderable) eventually
-                    //       to the draw pass to be more efficient when having >100 viewports
-                    //       rendered to a single canvas every frame.
-                    wboitATexture?.define(viewport.width, viewport.height);
-                    wboitBTexture?.define(viewport.width, viewport.height);
                 }
             },
 
@@ -611,28 +561,6 @@ namespace Renderer {
             }
         };
     }
-}
-
-const EvaluateWboitSchema = {
-    ...QuadSchema,
-    tWboitA: TextureSpec('texture', 'rgba', 'float', 'nearest'),
-    tWboitB: TextureSpec('texture', 'rgba', 'float', 'nearest'),
-};
-
-type EvaluateWboitRenderable = ComputeRenderable<Values<typeof EvaluateWboitSchema>>
-
-function getEvaluateWboitRenderable(ctx: WebGLContext, wboitATexture: Texture, wboitBTexture: Texture): EvaluateWboitRenderable {
-    const values: Values<typeof EvaluateWboitSchema> = {
-        ...QuadValues,
-        tWboitA: ValueCell.create(wboitATexture),
-        tWboitB: ValueCell.create(wboitBTexture),
-    };
-
-    const schema = { ...EvaluateWboitSchema };
-    const shaderCode = ShaderCode('wboit', quad_vert, evaluate_wboit_frag);
-    const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
-
-    return createComputeRenderable(renderItem, values);
 }
 
 export default Renderer;
