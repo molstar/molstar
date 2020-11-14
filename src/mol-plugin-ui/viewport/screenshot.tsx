@@ -6,126 +6,55 @@
  */
 
 import * as React from 'react';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { ParameterControls } from '../controls/parameters';
-import { PluginUIComponent } from '../base';
-import { debounceTime } from 'rxjs/operators';
-import { Subject } from 'rxjs';
-import { ViewportScreenshotHelper } from '../../mol-plugin/util/viewport-screenshot';
-import { Button, ExpandGroup } from '../controls/common';
-import { CameraHelperProps } from '../../mol-canvas3d/helper/camera-helper';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { StateExportImportControls, LocalStateSnapshotParams } from '../state/snapshots';
-import { GetAppSvg, LaunchSvg } from '../controls/icons';
+import { PluginContext } from '../../mol-plugin/context';
+import { PluginUIComponent } from '../base';
+import { Button, ExpandGroup, ToggleButton } from '../controls/common';
+import { CopySvg, CropFreeSvg, CropOrginalSvg, CropSvg, GetAppSvg } from '../controls/icons';
+import { ParameterControls } from '../controls/parameters';
+import { ScreenshotPreview } from '../controls/screenshot';
+import { useBehavior } from '../hooks/use-behavior';
+import { LocalStateSnapshotParams, StateExportImportControls } from '../state/snapshots';
 
 interface ImageControlsState {
-    showPreview: boolean
-    isDisabled: boolean
-
-    resolution?: ViewportScreenshotHelper.ResolutionSettings,
-    transparent?: boolean,
-    axes?: CameraHelperProps['axes']
+    showPreview: boolean,
+    isDisabled: boolean,
+    imageData?: string
 }
 
 export class DownloadScreenshotControls extends PluginUIComponent<{ close: () => void }, ImageControlsState> {
     state: ImageControlsState = {
         showPreview: true,
-        isDisabled: false,
-        resolution: this.plugin.helpers.viewportScreenshot?.currentResolution,
-        transparent: this.plugin.helpers.viewportScreenshot?.transparent,
-        axes: this.plugin.helpers.viewportScreenshot?.axes
+        isDisabled: false
     } as ImageControlsState
-
-    private imgRef = React.createRef<HTMLImageElement>()
-    private updateQueue = new Subject();
-
-    private preview = async () => {
-        if (!this.imgRef.current) return;
-        this.imgRef.current!.src = await this.plugin.helpers.viewportScreenshot!.imageData();
-    }
 
     private download = () => {
         this.plugin.helpers.viewportScreenshot?.download();
         this.props.close();
     }
 
-    private openTab = () => {
-        // modified from https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript/16245768#16245768
-
-        const base64 = this.imgRef.current!.src;
-        const byteCharacters = atob(base64.substr(`data:image/png;base64,`.length));
-        const byteArrays = [];
-
-        const sliceSize = Math.min(byteCharacters.length, 1024 * 1024);
-        for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-            const byteNumbers = new Uint8Array(Math.min(sliceSize, byteCharacters.length - offset));
-            for (let i = 0, _i = byteNumbers.length; i < _i; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(offset + i);
-            }
-            byteArrays.push(byteNumbers);
-        }
-        const blob = new Blob(byteArrays, { type: 'image/png' });
-        const blobUrl = URL.createObjectURL(blob);
-
-        window.open(blobUrl, '_blank');
-        this.props.close();
+    private copy = async () => {
+        await this.plugin.helpers.viewportScreenshot?.copyToClipboard();
+        PluginCommands.Toast.Show(this.plugin, {
+            message: 'Copied to clipboard.',
+            title: 'Screenshot',
+            timeoutMs: 1500
+        });
     }
 
-    private handlePreview() {
-        if (this.state.showPreview) {
-            this.preview();
-        }
-    }
-
-    componentDidUpdate() {
-        this.updateQueue.next();
+    private copyImg = async () => {
+        const src = await this.plugin.helpers.viewportScreenshot?.getImageDataUri();
+        this.setState({ imageData: src });
     }
 
     componentDidMount() {
-        if (!this.plugin.canvas3d) return;
-
-        this.subscribe(debounceTime(250)(this.updateQueue), () => this.handlePreview());
-
-        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => {
-            this.plugin.helpers.viewportScreenshot!.imagePass.setProps({
-                multiSample: { mode: 'on', sampleLevel: 2 },
-                postprocessing: this.plugin.canvas3d?.props.postprocessing
-            });
-            this.updateQueue.next();
-        });
-
-        this.subscribe(debounceTime(250)(this.plugin.canvas3d.didDraw), () => {
-            if (this.state.isDisabled) return;
-            this.updateQueue.next();
-        });
-
         this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
             this.setState({ isDisabled: v });
-            if (!v) this.updateQueue.next();
         });
-
-        this.handlePreview();
     }
 
-    private setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
-        if (p.name === 'resolution') {
-            this.plugin.helpers.viewportScreenshot!.currentResolution = p.value;
-            this.setState({ resolution: p.value });
-        } else if (p.name === 'transparent') {
-            this.plugin.helpers.viewportScreenshot!.transparent = p.value;
-            this.setState({ transparent: p.value });
-        } else if (p.name === 'axes') {
-            this.plugin.helpers.viewportScreenshot!.axes = p.value;
-            this.setState({ axes: p.value });
-        }
-    }
-
-    downloadToFileJson = () => {
-        PluginCommands.State.Snapshots.DownloadToFile(this.plugin, { type: 'json' });
-    }
-
-    downloadToFileZip = () => {
-        PluginCommands.State.Snapshots.DownloadToFile(this.plugin, { type: 'zip' });
+    componentWillUnmount() {
+        this.setState({ imageData: void 0 });
     }
 
     open = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,16 +63,24 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
     }
 
     render() {
+        const hasClipboardApi = !!(navigator.clipboard as any).write;
+
         return <div>
-            <div className='msp-image-preview'>
-                <img ref={this.imgRef} /><br />
-                <span>Right-click the image to Copy.</span>
-            </div>
+            {this.state.showPreview && <div className='msp-image-preview'>
+                <ScreenshotPreview plugin={this.plugin} />
+                <CropControls plugin={this.plugin} />
+            </div>}
             <div className='msp-flex-row'>
+                {hasClipboardApi && <Button icon={CopySvg} onClick={this.copy} disabled={this.state.isDisabled}>Copy</Button>}
+                {!hasClipboardApi && !this.state.imageData && <Button icon={CopySvg} onClick={this.copyImg} disabled={this.state.isDisabled}>Copy</Button>}
+                {this.state.imageData && <Button onClick={() => this.setState({ imageData: void 0 })} disabled={this.state.isDisabled}>Clear</Button>}
                 <Button icon={GetAppSvg} onClick={this.download} disabled={this.state.isDisabled}>Download</Button>
-                <Button icon={LaunchSvg} onClick={this.openTab} disabled={this.state.isDisabled}>Open in new Tab</Button>
             </div>
-            <ParameterControls params={this.plugin.helpers.viewportScreenshot!.params} values={this.plugin.helpers.viewportScreenshot!.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
+            {this.state.imageData && <div className='msp-row msp-copy-image-wrapper'>
+                <div>Right click below + Copy Image</div>
+                <img src={this.state.imageData} style={{ width: '100%', height: 32, display: 'block' }} />
+            </div>}
+            <ScreenshotParams plugin={this.plugin} isDisabled={this.state.isDisabled} />
             <ExpandGroup header='State'>
                 <StateExportImportControls onAction={this.props.close} />
                 <ExpandGroup header='Save Options' initiallyExpanded={false} noOffset>
@@ -152,4 +89,32 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
             </ExpandGroup>
         </div>;
     }
+}
+
+function ScreenshotParams({ plugin, isDisabled }: { plugin: PluginContext, isDisabled: boolean }) {
+    const helper = plugin.helpers.viewportScreenshot!;
+    const values = useBehavior(helper.behaviors.values);
+
+    return <ParameterControls params={helper.params} values={values} onChangeValues={v => helper.behaviors.values.next(v)} isDisabled={isDisabled} />;
+}
+
+function CropControls({ plugin }: { plugin: PluginContext }) {
+    const helper = plugin.helpers.viewportScreenshot;
+    const cropParams = useBehavior(helper?.behaviors.cropParams!);
+    useBehavior(helper?.behaviors.relativeCrop);
+
+    if (!helper) return null;
+
+    return <div style={{ width: '100%', height: '24px', marginTop: '8px' }}>
+        <ToggleButton icon={CropOrginalSvg} title='Auto-crop' inline isSelected={cropParams.auto}
+            style={{ background: 'transparent', float: 'left', width: 'auto', height: '24px', lineHeight: '24px' }}
+            toggle={() => helper.toggleAutocrop()} label={'Auto-crop ' + (cropParams.auto ? 'On' : 'Off')} />
+
+        {!cropParams.auto && <Button icon={CropSvg} title='Crop'
+            style={{ background: 'transparent', float: 'right', height: '24px', lineHeight: '24px', width: '24px', padding: '0' }}
+            onClick={() => helper.autocrop()} />}
+        {!cropParams.auto && !helper.isFullFrame && <Button icon={CropFreeSvg} title='Reset Crop'
+            style={{ background: 'transparent', float: 'right', height: '24px', lineHeight: '24px', width: '24px', padding: '0' }}
+            onClick={() => helper.resetCrop()} />}
+    </div>;
 }

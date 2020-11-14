@@ -34,6 +34,7 @@ import { StateObjectSelector } from '../../mol-state';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
+import { Mp4Export } from '../../extensions/mp4-export';
 
 require('mol-plugin-ui/skin/light.scss');
 
@@ -51,7 +52,8 @@ const Extensions = {
     'rcsb-assembly-symmetry': PluginSpec.Behavior(RCSBAssemblySymmetry),
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
     'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
-    'g3d': PluginSpec.Behavior(G3DFormat)
+    'g3d': PluginSpec.Behavior(G3DFormat),
+    'mp4-export': PluginSpec.Behavior(Mp4Export)
 };
 
 const DefaultViewerOptions = {

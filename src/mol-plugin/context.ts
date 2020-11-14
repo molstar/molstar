@@ -60,9 +60,10 @@ import { objectForEach } from '../mol-util/object';
 import { VolumeHierarchyManager } from '../mol-plugin-state/manager/volume/hierarchy';
 import { filter, take } from 'rxjs/operators';
 import { Vec2 } from '../mol-math/linear-algebra';
+import { PluginAnimationLoop } from './animation-loop';
 
 export class PluginContext {
-    runTask = <T>(task: Task<T>) => this.managers.task.run(task);
+    runTask = <T>(task: Task<T>, params?: { useOverlay?: boolean }) => this.managers.task.run(task, params);
     resolveTask = <T>(object: Task<T> | T | undefined) => {
         if (!object) return void 0;
         if (Task.is(object)) return this.runTask(object);
@@ -104,6 +105,7 @@ export class PluginContext {
     } as const;
 
     readonly canvas3d: Canvas3D | undefined;
+    readonly animationLoop = new PluginAnimationLoop(this);
     readonly layout = new PluginLayout(this);
 
     readonly representation = {
@@ -204,7 +206,7 @@ export class PluginContext {
                 }
                 this.canvas3d?.setProps(props);
             }
-            this.canvas3d!.animate();
+            this.animationLoop.start();
             (this.helpers.viewportScreenshot as ViewportScreenshotHelper) = new ViewportScreenshotHelper(this);
             return true;
         } catch (e) {

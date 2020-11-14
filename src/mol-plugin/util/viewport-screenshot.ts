@@ -1,3 +1,4 @@
+import { Viewport } from '../../mol-canvas3d/camera/util';
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -5,26 +6,30 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginContext } from '../context';
+import { CameraHelperParams } from '../../mol-canvas3d/helper/camera-helper';
 import { ImagePass } from '../../mol-canvas3d/passes/image';
-import { StateSelection } from '../../mol-state';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { Task, RuntimeContext } from '../../mol-task';
 import { canvasToBlob } from '../../mol-canvas3d/util';
+import { equalEps } from '../../mol-math/linear-algebra/3d/common';
+import { PluginComponent } from '../../mol-plugin-state/component';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { StateSelection } from '../../mol-state';
+import { RuntimeContext, Task } from '../../mol-task';
+import { Color } from '../../mol-util/color';
 import { download } from '../../mol-util/download';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
-import { CameraHelperParams, CameraHelperProps } from '../../mol-canvas3d/helper/camera-helper';
 import { SetUtils } from '../../mol-util/set';
+import { PluginContext } from '../context';
 
-export { ViewportScreenshotHelper };
+export { ViewportScreenshotHelper, ViewportScreenshotHelperParams };
 
 namespace ViewportScreenshotHelper {
     export type ResolutionSettings = PD.Values<ReturnType<ViewportScreenshotHelper['createParams']>>['resolution']
     export type ResolutionTypes = ResolutionSettings['name']
 }
 
-class ViewportScreenshotHelper {
+type ViewportScreenshotHelperParams = PD.Values<ReturnType<ViewportScreenshotHelper['createParams']>>
+
+class ViewportScreenshotHelper extends PluginComponent {
     private createParams() {
         const max = Math.min(this.plugin.canvas3d ? this.plugin.canvas3d.webgl.maxRenderbufferSize : 4096, 4096);
         return {
@@ -56,12 +61,30 @@ class ViewportScreenshotHelper {
         return this._params = this.createParams();
     }
 
+    readonly behaviors = {
+        values: this.ev.behavior<ViewportScreenshotHelperParams>({
+            transparent: this.params.transparent.defaultValue,
+            axes: { name: 'off', params: {} },
+            resolution: this.params.resolution.defaultValue
+        }),
+        cropParams: this.ev.behavior<{ auto: boolean, relativePadding: number }>({ auto: true, relativePadding: 0.1 }),
+        relativeCrop: this.ev.behavior<Viewport>({ x: 0, y: 0, width: 1, height: 1 }),
+    };
+
+    readonly events = {
+        previewed: this.ev<any>()
+    };
+
     get values() {
-        return {
-            transparent: this.transparent,
-            axes: this.axes,
-            resolution: this.currentResolution
-        };
+        return this.behaviors.values.value;
+    }
+
+    get cropParams() {
+        return this.behaviors.cropParams.value;
+    }
+
+    get relativeCrop() {
+        return this.behaviors.relativeCrop.value;
     }
 
     private getCanvasSize() {
@@ -71,44 +94,55 @@ class ViewportScreenshotHelper {
         };
     }
 
-    transparent = this.params.transparent.defaultValue
-    axes: CameraHelperProps['axes'] = { name: 'off', params: {} }
-    currentResolution = this.params.resolution.defaultValue
-
     private getSize() {
-        switch (this.currentResolution.name ) {
+        const values = this.values;
+        switch (values.resolution.name ) {
             case 'viewport': return this.getCanvasSize();
             case 'hd': return { width: 1280, height: 720 };
             case 'full-hd': return { width: 1920, height: 1080 };
             case 'ultra-hd': return { width: 3840, height: 2160 };
-            default: return { width: this.currentResolution.params.width, height: this.currentResolution.params.height };
+            default: return { width: values.resolution.params.width, height: values.resolution.params.height };
         }
     }
 
-    private _imagePass: ImagePass;
-
-    get imagePass() {
-        if (this._imagePass) return this._imagePass;
-
+    private createPass(mutlisample: boolean) {
         const c = this.plugin.canvas3d!;
-        this._imagePass = c.getImagePass({
-            transparentBackground: this.transparent,
-            cameraHelper: { axes: this.axes },
+        return this.plugin.canvas3d!.getImagePass({
+            transparentBackground: this.values.transparent,
+            cameraHelper: { axes: this.values.axes },
             multiSample: {
-                mode: 'on',
+                mode: mutlisample ? 'on' : 'off',
                 sampleLevel: c.webgl.extensions.colorBufferFloat ? 4 : 2
             },
             postprocessing: c.props.postprocessing
         });
-        return this._imagePass;
     }
 
-    getFilename() {
+    private _previewPass: ImagePass;
+    private get previewPass() {
+        return this._previewPass || (this._previewPass = this.createPass(false));
+    }
+
+    private _imagePass: ImagePass;
+    get imagePass() {
+        if (this._imagePass) {
+            this._imagePass.setProps({
+                cameraHelper: { axes: this.values.axes },
+                transparentBackground: this.values.transparent,
+                // TODO: optimize because this creates a copy of a large object!
+                postprocessing: this.plugin.canvas3d!.props.postprocessing
+            });
+            return this._imagePass;
+        }
+        return this._imagePass = this.createPass(true);
+    }
+
+    getFilename(extension = '.png') {
         const models = this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model)).map(s => s.obj!.data);
         const uniqueIds = new Set<string>();
         models.forEach(m => uniqueIds.add(m.entryId.toUpperCase()));
         const idString = SetUtils.toArray(uniqueIds).join('-');
-        return `${idString || 'molstar-image'}.png`;
+        return `${idString || 'molstar-image'}${extension}`;
     }
 
     private canvas = function () {
@@ -116,39 +150,144 @@ class ViewportScreenshotHelper {
         return canvas;
     }();
 
-    // private preview = () => {
-    //     const { width, height } = this.getSize()
-    //     if (width <= 0 || height <= 0) return
+    private previewCanvas = function () {
+        const canvas = document.createElement('canvas');
+        return canvas;
+    }();
 
-    //     let w: number, h: number
-    //     const aH = maxHeightUi / height
-    //     const aW = maxWidthUi / width
-    //     if (aH < aW) {
-    //         h = Math.round(Math.min(maxHeightUi, height))
-    //         w = Math.round(width * (h / height))
-    //     } else {
-    //         w = Math.round(Math.min(maxWidthUi, width))
-    //         h = Math.round(height * (w / width))
-    //     }
-    //     setCanvasSize(this.canvas, w, h)
-    //     const pixelRatio = this.plugin.canvas3d?.webgl.pixelRatio || 1
-    //     const pw = Math.round(w * pixelRatio)
-    //     const ph = Math.round(h * pixelRatio)
-    //     const imageData = this.imagePass.getImageData(pw, ph)
-    //     this.canvasContext.putImageData(imageData, 0, 0)
-    // }
+    private previewData = {
+        image: { data: new Uint8ClampedArray(1), width: 1, height: 0 } as ImageData,
+        background: Color(0),
+        transparent: false
+    };
 
-    private async draw(ctx: RuntimeContext) {
+    resetCrop() {
+        this.behaviors.relativeCrop.next({ x: 0, y: 0, width: 1, height: 1 });
+    }
+
+    toggleAutocrop() {
+        if (this.cropParams.auto) {
+            this.behaviors.cropParams.next({ ...this.cropParams, auto: false });
+            this.resetCrop();
+        } else {
+            this.behaviors.cropParams.next({ ...this.cropParams, auto: true });
+        }
+    }
+
+    get isFullFrame() {
+        const crop = this.relativeCrop;
+        return equalEps(crop.x, 0, 1e-5) && equalEps(crop.y, 0, 1e-5) && equalEps(crop.width, 1, 1e-5) && equalEps(crop.height, 1, 1e-5);
+    }
+
+    autocrop(relativePadding = this.cropParams.relativePadding) {
+        const { data, width, height } = this.previewData.image;
+        const bgColor = this.previewData.transparent ? this.previewData.background : 0xff000000 | this.previewData.background;
+
+        let l = width, r = 0, t = height, b = 0;
+
+        for (let j = 0; j < height; j++) {
+            const jj = j * width;
+            for (let i = 0; i < width; i++) {
+                const o = 4 * (jj + i);
+                const c = (data[o] << 16) | (data[o + 1] << 8) | (data[o + 2]) | (data[o + 3] << 24);
+
+                if (c === bgColor) continue;
+
+                if (i < l) l = i;
+                if (i > r) r = i;
+                if (j < t) t = j;
+                if (j > b) b = j;
+            }
+        }
+
+        if (l > r) {
+            const x = l;
+            l = r;
+            r = x;
+        }
+
+        if (t > b) {
+            const x = t;
+            t = b;
+            b = x;
+        }
+
+        const tw = r - l + 1, th = b - t + 1;
+        l -= relativePadding * tw;
+        r += relativePadding * tw;
+        t -= relativePadding * th;
+        b += relativePadding * th;
+
+        const crop: Viewport = {
+            x: Math.max(0, l / width),
+            y: Math.max(0, t / height),
+            width: Math.min(1, (r - l + 1) / width),
+            height: Math.min(1, (b - t + 1) / height)
+        };
+
+        this.behaviors.relativeCrop.next(crop);
+    }
+
+    getPreview(maxDim = 320) {
         const { width, height } = this.getSize();
         if (width <= 0 || height <= 0) return;
 
-        await ctx.update('Rendering image...');
-        this.imagePass.setProps({
-            cameraHelper: { axes: this.axes },
-            transparentBackground: this.transparent,
-            postprocessing: this.plugin.canvas3d!.props.postprocessing // TODO this line should not be required, updating should work by listening to this.plugin.events.canvas3d.settingsUpdated
+        const f = width / height;
+
+        let w = 0, h = 0;
+        if (f > 1) {
+            w = maxDim;
+            h = Math.round(maxDim / f);
+        } else {
+            h = maxDim;
+            w = Math.round(maxDim * f);
+        }
+
+        const canvasProps = this.plugin.canvas3d!.props;
+        this.previewPass.setProps({
+            cameraHelper: { axes: this.values.axes },
+            transparentBackground: this.values.transparent,
+            // TODO: optimize because this creates a copy of a large object!
+            postprocessing: canvasProps.postprocessing
         });
-        const imageData = this.imagePass.getImageData(width, height);
+        const imageData = this.previewPass.getImageData(w, h);
+        const canvas = this.previewCanvas;
+        canvas.width = imageData.width;
+        canvas.height = imageData.height;
+
+        this.previewData.image = imageData;
+        this.previewData.background = canvasProps.renderer.backgroundColor;
+        this.previewData.transparent = this.values.transparent;
+
+        const canvasCtx = canvas.getContext('2d');
+        if (!canvasCtx) throw new Error('Could not create canvas 2d context');
+        canvasCtx.putImageData(imageData, 0, 0);
+        if (this.cropParams.auto) this.autocrop();
+
+        this.events.previewed.next();
+        return { canvas, width: w, height: h };
+    }
+
+    getSizeAndViewport() {
+        const { width, height } = this.getSize();
+        const crop = this.relativeCrop;
+        const viewport: Viewport = {
+            x: Math.floor(crop.x * width),
+            y: Math.floor(crop.y * height),
+            width: Math.ceil(crop.width * width),
+            height: Math.ceil(crop.height * height)
+        };
+        if (viewport.width + viewport.x > width) viewport.width = width - viewport.x;
+        if (viewport.height + viewport.y > height) viewport.height = height - viewport.y;
+        return { width, height, viewport };
+    }
+
+    private async draw(ctx: RuntimeContext) {
+        const { width, height, viewport } = this.getSizeAndViewport();
+        if (width <= 0 || height <= 0) return;
+
+        await ctx.update('Rendering image...');
+        const imageData = this.imagePass.getImageData(width, height, viewport);
 
         await ctx.update('Encoding image...');
         const canvas = this.canvas;
@@ -160,33 +299,54 @@ class ViewportScreenshotHelper {
         return;
     }
 
-    private downloadTask() {
-        return Task.create('Download Image', async ctx => {
-            this.draw(ctx);
-            await ctx.update('Downloading image...');
+    private copyToClipboardTask() {
+        const cb = navigator.clipboard as any;
+
+        if (!cb.write) {
+            this.plugin.log.error('clipboard.write not supported!');
+            return;
+        }
+
+        return Task.create('Copy Image', async ctx => {
+            await this.draw(ctx);
+            await ctx.update('Converting image...');
             const blob = await canvasToBlob(this.canvas, 'png');
-            download(blob, this.getFilename());
+            const item = new ClipboardItem({ 'image/png': blob });
+            cb.write([item]);
+            this.plugin.log.message('Image copied to clipboard.');
         });
     }
 
-    downloadCurrent() {
-        return this.plugin.runTask(Task.create('Download Image', async ctx => {
-            await ctx.update('Downloading image...');
-            const blob = await canvasToBlob(this.canvas, 'png');
-            download(blob, this.getFilename());
+    getImageDataUri() {
+        return this.plugin.runTask(Task.create('Generate Image', async ctx => {
+            await this.draw(ctx);
+            await ctx.update('Converting image...');
+            return this.canvas.toDataURL('png');
         }));
     }
 
-    async imageData() {
-        await this.draw(SyncRuntimeContext);
-        return this.canvas.toDataURL();
+    copyToClipboard() {
+        const task = this.copyToClipboardTask();
+        if (!task) return;
+        return this.plugin.runTask(task);
     }
 
-    download() {
-        this.plugin.runTask(this.downloadTask());
+    private downloadTask(filename?: string) {
+        return Task.create('Download Image', async ctx => {
+            await this.draw(ctx);
+            await ctx.update('Downloading image...');
+            const blob = await canvasToBlob(this.canvas, 'png');
+            download(blob, filename ?? this.getFilename());
+        });
+    }
+
+    download(filename?: string) {
+        this.plugin.runTask(this.downloadTask(filename));
     }
 
     constructor(private plugin: PluginContext) {
-
+        super();
     }
 }
+
+declare const ClipboardItem: any;

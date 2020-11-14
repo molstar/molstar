@@ -308,6 +308,7 @@ export function IconButton(props: {
 
 export type ToggleButtonProps = {
     style?: React.CSSProperties,
+    inline?: boolean,
     className?: string,
     disabled?: boolean,
     label?: string | JSX.Element,
@@ -327,7 +328,7 @@ export class ToggleButton extends React.PureComponent<ToggleButtonProps> {
         const props = this.props;
         const label = props.label;
         const className = props.isSelected ? `${props.className || ''} msp-control-current` : props.className;
-        return <Button icon={this.props.icon} onClick={this.onClick} title={this.props.title}
+        return <Button icon={this.props.icon} onClick={this.onClick} title={this.props.title} inline={this.props.inline}
             disabled={props.disabled} style={props.style} className={className}>
             {label && this.props.isSelected ? <b>{label}</b> : label}
         </Button>;
