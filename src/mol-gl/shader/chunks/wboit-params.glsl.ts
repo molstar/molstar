@@ -2,6 +2,7 @@ export default `
 #if defined(dRenderVariant_color)
     #if !defined(dRenderMode_volume) && !defined(dRenderMode_isosurface)
         uniform sampler2D tDepth;
+        uniform vec2 uDrawingBufferSize;
 
         float getDepth(const in vec2 coords) {
             #ifdef dPackedDepth
@@ -12,7 +13,6 @@ export default `
         }
     #endif
     uniform int uRenderWboit;
-    uniform vec4 uViewport;
 #endif
 
 float calcDepth(const in vec3 pos) {

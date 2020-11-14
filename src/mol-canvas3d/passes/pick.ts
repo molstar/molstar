@@ -66,9 +66,9 @@ export class PickPass {
     private renderVariant(renderTarget: RenderTarget, renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: GraphicsRenderVariant) {
         const pickScale = this.pickBaseScale / this.webgl.pixelRatio;
         const depth = this.drawPass.depthTexturePrimitives;
-        renderer.render(renderTarget, scene.primitives, camera, variant, true, false, pickScale, null, false);
-        renderer.render(renderTarget, scene.volumes, camera, variant, false, false, pickScale, depth, false);
-        renderer.render(renderTarget, helper.handle.scene, camera, variant, false, false, pickScale, null, false);
+        renderer.render(renderTarget, scene.primitives, camera, variant, true, false, pickScale, null, false, null);
+        renderer.render(renderTarget, scene.volumes, camera, variant, false, false, pickScale, depth, false, null);
+        renderer.render(renderTarget, helper.handle.scene, camera, variant, false, false, pickScale, null, false, null);
     }
 
     render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper) {
