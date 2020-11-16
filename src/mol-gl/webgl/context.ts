@@ -18,15 +18,17 @@ import { now } from '../../mol-util/now';
 import { Texture, TextureFilter } from './texture';
 import { ComputeRenderable } from '../renderable';
 
-export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
-    function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
+export function getGLContext(canvas: HTMLCanvasElement, attribs?: WebGLContextAttributes): GLRenderingContext | null {
+    function get(id: 'webgl' | 'experimental-webgl' | 'webgl2') {
         try {
-            return canvas.getContext(contextId, contextAttributes) as GLRenderingContext | null;
+            return canvas.getContext(id, attribs) as GLRenderingContext | null;
         } catch (e) {
             return null;
         }
     }
-    return getContext('webgl2') ||  getContext('webgl') || getContext('experimental-webgl');
+    const gl = get('webgl2') || get('webgl') || get('experimental-webgl');
+    if (isDebugMode) console.log(`isWebgl2: ${isWebGL2(gl)}`);
+    return gl;
 }
 
 export function getErrorDescription(gl: GLRenderingContext, error: number) {

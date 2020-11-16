@@ -119,7 +119,7 @@ type GaussianDensityTextureData = {
 
 function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, texture?: Texture): GaussianDensityTextureData {
     // console.log('2d');
-    const { gl, resources, state, extensions } = webgl;
+    const { gl, resources, state, extensions: { colorBufferFloat, textureFloat } } = webgl;
     const { smoothness, resolution } = props;
 
     const { drawCount, positions, radii, groups, scale, expandedBox, dim, maxRadius } = prepareGaussianDensityData(position, box, radius, props);
@@ -143,7 +143,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
     framebuffer.bind();
     setRenderingDefaults(webgl);
 
-    if (!texture) texture = extensions.colorBufferFloat
+    if (!texture) texture = colorBufferFloat && textureFloat
         ? resources.texture('image-float32', 'rgba', 'float', 'linear')
         : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     texture.define(texDimX, texDimY);
@@ -191,7 +191,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
 
 function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, texture?: Texture): GaussianDensityTextureData {
     // console.log('3d');
-    const { gl, resources, state, extensions } = webgl;
+    const { gl, resources, state, extensions: { colorBufferFloat, textureFloat } } = webgl;
     const { smoothness, resolution } = props;
 
     const { drawCount, positions, radii, groups, scale, expandedBox, dim, maxRadius } = prepareGaussianDensityData(position, box, radius, props);
@@ -214,7 +214,7 @@ function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionDat
     setRenderingDefaults(webgl);
     gl.viewport(0, 0, dx, dy);
 
-    if (!texture) texture = extensions.colorBufferFloat
+    if (!texture) texture = colorBufferFloat && textureFloat
         ? resources.texture('volume-float32', 'rgba', 'float', 'linear')
         : resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear');
     texture.define(dx, dy, dz);

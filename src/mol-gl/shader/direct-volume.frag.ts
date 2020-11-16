@@ -128,10 +128,15 @@ vec4 transferFunction(float value) {
 }
 
 float getDepth(const in vec2 coords) {
-    #ifdef dPackedDepth
-        return unpackRGBAToDepth(texture2D(tDepth, coords));
+    #ifdef depthTextureSupport
+        if (uRenderWboit == 0) {
+            // in case of opaque volumes (and depth texture support)
+            return texture2D(tDepth, coords).r;
+        } else {
+            return unpackRGBAToDepth(texture2D(tDepth, coords));
+        }
     #else
-        return texture2D(tDepth, coords).r;
+        return unpackRGBAToDepth(texture2D(tDepth, coords));
     #endif
 }
 

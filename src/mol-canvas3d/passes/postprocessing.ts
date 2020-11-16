@@ -110,6 +110,14 @@ export class PostprocessingPass {
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture);
     }
 
+    private bindTarget(toDrawingBuffer: boolean) {
+        if (toDrawingBuffer) {
+            this.webgl.unbindFramebuffer();
+        } else {
+            this.target.bind();
+        }
+    }
+
     syncSize() {
         const width = this.drawPass.colorTarget.getWidth();
         const height = this.drawPass.colorTarget.getHeight();
@@ -159,11 +167,8 @@ export class PostprocessingPass {
         }
 
         const { gl, state } = this.webgl;
-        if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
-        } else {
-            this.target.bind();
-        }
+        this.bindTarget(toDrawingBuffer);
+
         state.disable(gl.SCISSOR_TEST);
         state.disable(gl.BLEND);
         state.disable(gl.DEPTH_TEST);

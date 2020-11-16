@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Program } from './webgl/program';
-import { RenderableValues, Values, RenderableSchema } from './renderable/schema';
+import { RenderableValues, Values, RenderableSchema, BaseValues } from './renderable/schema';
 import { GraphicsRenderItem, ComputeRenderItem, GraphicsRenderVariant } from './webgl/render-item';
 import { ValueCell } from '../mol-util';
 import { idFactory } from '../mol-util/id-factory';
@@ -53,6 +53,8 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
         dispose: () => renderItem.destroy()
     };
 }
+
+export type GraphicsRenderable = Renderable<RenderableValues & BaseValues>
 
 //
 

@@ -7,7 +7,7 @@
 
 import { QuadSchema, QuadValues } from '../../mol-gl/compute/util';
 import { ComputeRenderable, createComputeRenderable } from '../../mol-gl/renderable';
-import { TextureSpec, Values } from '../../mol-gl/renderable/schema';
+import { TextureSpec, UniformSpec, Values } from '../../mol-gl/renderable/schema';
 import { ShaderCode } from '../../mol-gl/shader-code';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
@@ -16,11 +16,14 @@ import { ValueCell } from '../../mol-util';
 import quad_vert from '../../mol-gl/shader/quad.vert';
 import evaluate_wboit_frag from '../../mol-gl/shader/evaluate-wboit.frag';
 import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
+import { Vec2 } from '../../mol-math/linear-algebra';
+import { isDebugMode } from '../../mol-util/debug';
 
 const EvaluateWboitSchema = {
     ...QuadSchema,
     tWboitA: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     tWboitB: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+    uTexSize: UniformSpec('v2'),
 };
 const EvaluateWboitShaderCode = ShaderCode('evaluate-wboit', quad_vert, evaluate_wboit_frag);
 type EvaluateWboitRenderable = ComputeRenderable<Values<typeof EvaluateWboitSchema>>
@@ -30,6 +33,7 @@ function getEvaluateWboitRenderable(ctx: WebGLContext, wboitATexture: Texture, w
         ...QuadValues,
         tWboitA: ValueCell.create(wboitATexture),
         tWboitB: ValueCell.create(wboitBTexture),
+        uTexSize: ValueCell.create(Vec2.create(wboitATexture.getWidth(), wboitATexture.getHeight())),
     };
 
     const schema = { ...EvaluateWboitSchema };
@@ -77,14 +81,21 @@ export class WboitPass {
     }
 
     setSize(width: number, height: number) {
-        this.textureA.define(width, height);
-        this.textureB.define(width, height);
+        const [w, h] = this.renderable.values.uTexSize.ref.value;
+        if (width !== w || height !== h) {
+            this.textureA.define(width, height);
+            this.textureB.define(width, height);
+            ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
+        }
     }
 
     constructor(private webgl: WebGLContext, width: number, height: number) {
         const { resources, extensions } = webgl;
         const { drawBuffers, textureFloat, colorBufferFloat, depthTexture } = extensions;
-        if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers) return;
+        if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers) {
+            if (isDebugMode) console.log('Missing extensions required for "wboit"');
+            return;
+        }
 
         this.textureA = resources.texture('image-float32', 'rgba', 'float', 'nearest');
         this.textureA.define(width, height);

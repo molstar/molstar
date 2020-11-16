@@ -190,6 +190,7 @@ function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
         if (extensions.drawBuffers) {
             prefix.push('#extension GL_EXT_draw_buffers : require');
             prefix.push('#define requiredDrawBuffers');
+            prefix.push('#define gl_FragColor gl_FragData[0]');
         } else if (shaderExtensions.drawBuffers === 'required') {
             throw new Error(`required 'GL_EXT_draw_buffers' extension not available`);
         }
@@ -202,6 +203,9 @@ function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             throw new Error(`required 'GL_EXT_shader_texture_lod' extension not available`);
         }
     }
+    if (extensions.depthTexture) {
+        prefix.push('#define depthTextureSupport');
+    }
     return prefix.join('\n') + '\n';
 }
 
@@ -212,6 +216,8 @@ const glsl300VertPrefix = `#version 300 es
 `;
 
 const glsl300FragPrefixCommon = `
+layout(location = 0) out highp vec4 out_FragData0;
+
 #define varying in
 #define texture2D texture
 #define texture2DLodEXT textureLod
@@ -219,7 +225,7 @@ const glsl300FragPrefixCommon = `
 #define gl_FragColor out_FragData0
 #define gl_FragDepthEXT gl_FragDepth
 
-#define requiredDrawBuffers
+#define depthTextureSupport
 `;
 
 function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
@@ -230,11 +236,15 @@ function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExten
     if (shaderExtensions.fragDepth) {
         prefix.push('#define enabledFragDepth');
     }
-    if (extensions.drawBuffers) {
+    if (shaderExtensions.drawBuffers) {
+        prefix.push('#define requiredDrawBuffers');
         const maxDrawBuffers = gl.getParameter(gl.MAX_DRAW_BUFFERS) as number;
-        for (let i = 0, il = maxDrawBuffers; i < il; ++i) {
+        for (let i = 1, il = maxDrawBuffers; i < il; ++i) {
             prefix.push(`layout(location = ${i}) out highp vec4 out_FragData${i};`);
         }
+    }
+    if (shaderExtensions.shaderTextureLod) {
+        prefix.push('#define enabledShaderTextureLod');
     }
     prefix.push(glsl300FragPrefixCommon);
     return prefix.join('\n') + '\n';

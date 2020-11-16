@@ -5,9 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Renderable } from './renderable';
 import { WebGLContext } from './webgl/context';
-import { RenderableValues, BaseValues } from './renderable/schema';
 import { GraphicsRenderObject, createRenderable } from './render-object';
 import { Object3D } from './object3d';
 import { Sphere3D } from '../mol-math/geometry';
@@ -16,10 +14,11 @@ import { now } from '../mol-util/now';
 import { arraySetRemove } from '../mol-util/array';
 import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 import { hash1 } from '../mol-data/util';
+import { GraphicsRenderable } from './renderable';
 
 const boundaryHelper = new BoundaryHelper('98');
 
-function calculateBoundingSphere(renderables: Renderable<RenderableValues & BaseValues>[], boundingSphere: Sphere3D, onlyVisible: boolean): Sphere3D {
+function calculateBoundingSphere(renderables: GraphicsRenderable[], boundingSphere: Sphere3D, onlyVisible: boolean): Sphere3D {
     boundaryHelper.reset();
 
     for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -43,9 +42,9 @@ function calculateBoundingSphere(renderables: Renderable<RenderableValues & Base
     return boundaryHelper.getSphere(boundingSphere);
 }
 
-function renderableSort(a: Renderable<RenderableValues & BaseValues>, b: Renderable<RenderableValues & BaseValues>) {
-    const drawProgramIdA = a.getProgram('color').id;
-    const drawProgramIdB = b.getProgram('color').id;
+function renderableSort(a: GraphicsRenderable, b: GraphicsRenderable) {
+    const drawProgramIdA = a.getProgram('colorBlended').id;
+    const drawProgramIdB = b.getProgram('colorBlended').id;
     const materialIdA = a.materialId;
     const materialIdB = b.materialId;
 
@@ -62,7 +61,7 @@ function renderableSort(a: Renderable<RenderableValues & BaseValues>, b: Rendera
 
 interface Scene extends Object3D {
     readonly count: number
-    readonly renderables: ReadonlyArray<Renderable<RenderableValues & BaseValues>>
+    readonly renderables: ReadonlyArray<GraphicsRenderable>
     readonly boundingSphere: Sphere3D
     readonly boundingSphereVisible: Sphere3D
 
@@ -72,28 +71,28 @@ interface Scene extends Object3D {
     /** Returns `true` if some visibility has changed, `false` otherwise. */
     syncVisibility: () => boolean
     update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean) => void
-    add: (o: GraphicsRenderObject) => void // Renderable<any>
+    add: (o: GraphicsRenderObject) => void // GraphicsRenderable
     remove: (o: GraphicsRenderObject) => void
     commit: (maxTimeMs?: number) => boolean
     readonly needsCommit: boolean
     has: (o: GraphicsRenderObject) => boolean
     clear: () => void
-    forEach: (callbackFn: (value: Renderable<RenderableValues & BaseValues>, key: GraphicsRenderObject) => void) => void
+    forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => void
 }
 
 namespace Scene {
     export interface Group extends Object3D {
-        readonly renderables: ReadonlyArray<Renderable<RenderableValues & BaseValues>>
+        readonly renderables: ReadonlyArray<GraphicsRenderable>
     }
 
     export function create(ctx: WebGLContext): Scene {
-        const renderableMap = new Map<GraphicsRenderObject, Renderable<RenderableValues & BaseValues>>();
-        const renderables: Renderable<RenderableValues & BaseValues>[] = [];
+        const renderableMap = new Map<GraphicsRenderObject, GraphicsRenderable>();
+        const renderables: GraphicsRenderable[] = [];
         const boundingSphere = Sphere3D();
         const boundingSphereVisible = Sphere3D();
 
-        const primitives: Renderable<RenderableValues & BaseValues>[] = [];
-        const volumes: Renderable<RenderableValues & BaseValues>[] = [];
+        const primitives: GraphicsRenderable[] = [];
+        const volumes: GraphicsRenderable[] = [];
 
         let boundingSphereDirty = true;
         let boundingSphereVisibleDirty = true;
@@ -223,7 +222,7 @@ namespace Scene {
                 boundingSphereDirty = true;
                 boundingSphereVisibleDirty = true;
             },
-            forEach: (callbackFn: (value: Renderable<any>, key: GraphicsRenderObject) => void) => {
+            forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => {
                 renderableMap.forEach(callbackFn);
             },
             get count() {
