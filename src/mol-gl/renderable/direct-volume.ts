@@ -62,8 +62,6 @@ export const DirectVolumeSchema = {
 
     uAlpha: UniformSpec('f'),
 
-    uRenderWboit: UniformSpec('i'),
-
     uIsoValue: UniformSpec('v2'),
     uBboxMin: UniformSpec('v3'),
     uBboxMax: UniformSpec('v3'),

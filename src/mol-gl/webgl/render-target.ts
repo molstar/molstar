@@ -5,8 +5,8 @@
  */
 
 import { idFactory } from '../../mol-util/id-factory';
-import { Texture, TextureFilter } from './texture';
-import { Framebuffer } from './framebuffer';
+import { createNullTexture, Texture, TextureFilter } from './texture';
+import { createNullFramebuffer, Framebuffer } from './framebuffer';
 import { WebGLResources } from './resources';
 import { GLRenderingContext } from './compat';
 
@@ -76,5 +76,24 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
             if (depthRenderbuffer) depthRenderbuffer.destroy();
             destroyed = true;
         }
+    };
+}
+
+//
+
+export function createNullRenderTarget(gl: GLRenderingContext): RenderTarget {
+    return {
+        id: getNextRenderTargetId(),
+        texture: createNullTexture(gl, 'image-uint8'),
+        framebuffer: createNullFramebuffer(),
+
+        getWidth: () => 0,
+        getHeight: () => 0,
+        bind: () => {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        },
+        setSize: () => {},
+        reset: () => {},
+        destroy: () => {}
     };
 }
