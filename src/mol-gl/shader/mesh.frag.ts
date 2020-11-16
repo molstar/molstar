@@ -61,7 +61,7 @@ void main() {
         #include apply_marker_color
         #include apply_fog
 
-        float absFragDepth = abs(gl_FragCoord.z);
+        float fragmentDepth = gl_FragCoord.z;
         #include wboit_write
     #endif
 }

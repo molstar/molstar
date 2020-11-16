@@ -476,7 +476,7 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if (r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value > 0 || r.values?.dRenderMode?.ref.value === 'volume') {
+                if (camera.fogNear < camera.fogFar || r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value > 0 || r.values?.dRenderMode?.ref.value === 'volume') {
                     renderObject(r, 'colorWboit');
                 }
             }

@@ -108,7 +108,7 @@ void main(void){
         #include apply_marker_color
         #include apply_fog
 
-        float absFragDepth = abs(gl_FragDepthEXT);
+        float fragmentDepth = gl_FragDepthEXT;
         #include wboit_write
     #endif
 }

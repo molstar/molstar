@@ -124,7 +124,8 @@ void main() {
         #include apply_marker_color
         #include apply_fog
 
-        float absFragDepth = abs(gl_FragCoord.z);
+        float fragmentDepth = gl_FragCoord.z;
+        bool interior = false;
         #include wboit_write
     #endif
 }

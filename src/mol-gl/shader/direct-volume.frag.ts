@@ -440,10 +440,11 @@ void main () {
 
     #if defined(dRenderVariant_color)
         #if defined(dRenderMode_isosurface) && defined(enabledFragDepth)
-            float absFragDepth = abs(gl_FragDepthEXT);
+            float fragmentDepth = gl_FragDepthEXT;
         #else
-            float absFragDepth = abs(calcDepth((uView * vec4(uCameraPosition + (d * rayDir), 1.0)).xyz));
+            float fragmentDepth = calcDepth((uView * vec4(uCameraPosition + (d * rayDir), 1.0)).xyz);
         #endif
+        interior = false;
         #include wboit_write
     #endif
 }
