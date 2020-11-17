@@ -146,6 +146,8 @@ vec3 v3m4(vec3 p, mat4 m) {
     return (m * vec4(p, 1.0)).xyz;
 }
 
+float preFogAlphaBlended = 0.0;
+
 vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     #if defined(dRenderVariant_color) && !defined(dIgnoreLight)
         mat3 normalMatrix = transpose3(inverse3(mat3(uModelView * vTransform)));
@@ -322,6 +324,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                     float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
                     #include apply_interior_color
                     #include apply_marker_color
+
+                    preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;
                     #include apply_fog
 
                     src = gl_FragColor;
@@ -383,6 +387,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
                 float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
                 #include apply_marker_color
+
+                preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;
                 #include apply_fog
 
                 src = gl_FragColor;
@@ -444,6 +450,7 @@ void main () {
         #else
             float fragmentDepth = calcDepth((uView * vec4(uCameraPosition + (d * rayDir), 1.0)).xyz);
         #endif
+        float preFogAlpha = clamp(preFogAlphaBlended, 0.0, 1.0);
         interior = false;
         #include wboit_write
     #endif

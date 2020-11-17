@@ -468,15 +468,10 @@ namespace Renderer {
         const renderWboitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
             updateInternal(group, camera, depthTexture, true);
 
-            // arrayMapUpsert(sharedTexturesList, 'tDepth', depthTexture || nullDepthTexture);
-            // wboit.bind();
-            // ValueCell.updateIfChanged(globalUniforms.uRenderWboit, 1);
-            // globalUniformsNeedUpdate = true;
-
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if (camera.fogNear < camera.fogFar || r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value > 0 || r.values?.dRenderMode?.ref.value === 'volume') {
+                if (r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value > 0 || r.values?.dRenderMode?.ref.value === 'volume') {
                     renderObject(r, 'colorWboit');
                 }
             }
@@ -489,8 +484,10 @@ namespace Renderer {
                 state.colorMask(true, true, true, true);
                 state.depthMask(true);
 
-                if (toBackgroundColor) {
-                    state.clearColor(bgColor[0], bgColor[1], bgColor[2], transparentBackground ? 0 : 1);
+                if (transparentBackground) {
+                    state.clearColor(1, 1, 1, 0);
+                } else if (toBackgroundColor) {
+                    state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1);
                 } else {
                     state.clearColor(1, 1, 1, 1);
                 }
