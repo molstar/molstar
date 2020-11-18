@@ -42,7 +42,6 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     }
     const textureFloat = getTextureFloat(gl);
     if (isDebugMode && textureFloat === null) {
-        // TODO make sure non-support is handled downstream
         console.log('Could not find support for "texture_float"');
     }
     const textureFloatLinear = getTextureFloatLinear(gl);

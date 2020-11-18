@@ -313,3 +313,36 @@ export function createTextures(ctx: WebGLContext, schema: RenderableSchema, valu
     });
     return textures;
 }
+
+//
+
+export function createNullTexture(gl: GLRenderingContext, kind: TextureKind): Texture {
+    const target = getTarget(gl, kind);
+    return {
+        id: getNextTextureId(),
+        target,
+        format: 0,
+        internalFormat: 0,
+        type: 0,
+
+        getWidth: () => 0,
+        getHeight: () => 0,
+        getDepth: () => 0,
+
+        define: () => {},
+        load: () => {},
+        bind: (id: TextureId) => {
+            gl.activeTexture(gl.TEXTURE0 + id);
+            gl.bindTexture(target, null);
+        },
+        unbind: (id: TextureId) => {
+            gl.activeTexture(gl.TEXTURE0 + id);
+            gl.bindTexture(target, null);
+        },
+        attachFramebuffer: () => {},
+        detachFramebuffer: () => {},
+
+        reset: () => {},
+        destroy: () => {},
+    };
+}

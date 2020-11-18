@@ -1,15 +1,16 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Program } from './webgl/program';
-import { RenderableValues, Values, RenderableSchema } from './renderable/schema';
+import { RenderableValues, Values, RenderableSchema, BaseValues } from './renderable/schema';
 import { GraphicsRenderItem, ComputeRenderItem, GraphicsRenderVariant } from './webgl/render-item';
 import { ValueCell } from '../mol-util';
 import { idFactory } from '../mol-util/id-factory';
 import { clamp } from '../mol-math/interpolate';
+import { Textures } from './webgl/texture';
 
 const getNextRenderableId = idFactory();
 
@@ -19,7 +20,7 @@ export type RenderableState = {
     pickable: boolean
     colorOnly: boolean
     opaque: boolean
-    writeDepth: boolean,
+    writeDepth: boolean
 }
 
 export interface Renderable<T extends RenderableValues> {
@@ -28,7 +29,7 @@ export interface Renderable<T extends RenderableValues> {
     readonly values: T
     readonly state: RenderableState
 
-    render: (variant: GraphicsRenderVariant) => void
+    render: (variant: GraphicsRenderVariant, sharedTexturesList?: Textures) => void
     getProgram: (variant: GraphicsRenderVariant) => Program
     update: () => void
     dispose: () => void
@@ -41,17 +42,19 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
         values,
         state,
 
-        render: (variant: GraphicsRenderVariant) => {
+        render: (variant: GraphicsRenderVariant, sharedTexturesList?: Textures) => {
             if (values.uAlpha && values.alpha) {
                 ValueCell.updateIfChanged(values.uAlpha, clamp(values.alpha.ref.value * state.alphaFactor, 0, 1));
             }
-            renderItem.render(variant);
+            renderItem.render(variant, sharedTexturesList);
         },
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
         update: () => renderItem.update(),
         dispose: () => renderItem.destroy()
     };
 }
+
+export type GraphicsRenderable = Renderable<RenderableValues & BaseValues>
 
 //
 

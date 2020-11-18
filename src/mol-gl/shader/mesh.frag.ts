@@ -14,6 +14,7 @@ precision highp int;
 #include light_frag_params
 #include normal_frag_params
 #include common_clip
+#include wboit_params
 
 void main() {
     #include clip_pixel
@@ -59,6 +60,9 @@ void main() {
         #include apply_interior_color
         #include apply_marker_color
         #include apply_fog
+
+        float fragmentDepth = gl_FragCoord.z;
+        #include wboit_write
     #endif
 }
 `;

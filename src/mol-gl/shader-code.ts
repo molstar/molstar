@@ -59,6 +59,8 @@ import size_vert_params from './shader/chunks/size-vert-params.glsl';
 import texture3d_from_1d_trilinear from './shader/chunks/texture3d-from-1d-trilinear.glsl';
 import texture3d_from_2d_linear from './shader/chunks/texture3d-from-2d-linear.glsl';
 import texture3d_from_2d_nearest from './shader/chunks/texture3d-from-2d-nearest.glsl';
+import wboit_params from './shader/chunks/wboit-params.glsl';
+import wboit_write from './shader/chunks/wboit-write.glsl';
 
 const ShaderChunks: { [k: string]: string } = {
     apply_fog,
@@ -88,7 +90,9 @@ const ShaderChunks: { [k: string]: string } = {
     size_vert_params,
     texture3d_from_1d_trilinear,
     texture3d_from_2d_linear,
-    texture3d_from_2d_nearest
+    texture3d_from_2d_nearest,
+    wboit_params,
+    wboit_write
 };
 
 const reInclude = /^(?!\/\/)\s*#include\s+(\S+)/gmi;
@@ -115,31 +119,31 @@ export function ShaderCode(name: string, vert: string, frag: string, extensions:
 
 import points_vert from './shader/points.vert';
 import points_frag from './shader/points.frag';
-export const PointsShaderCode = ShaderCode('points', points_vert, points_frag);
+export const PointsShaderCode = ShaderCode('points', points_vert, points_frag, { drawBuffers: 'optional' });
 
 import spheres_vert from './shader/spheres.vert';
 import spheres_frag from './shader/spheres.frag';
-export const SpheresShaderCode = ShaderCode('spheres', spheres_vert, spheres_frag, { fragDepth: 'required' });
+export const SpheresShaderCode = ShaderCode('spheres', spheres_vert, spheres_frag, { fragDepth: 'required', drawBuffers: 'optional' });
 
 import text_vert from './shader/text.vert';
 import text_frag from './shader/text.frag';
-export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { standardDerivatives: 'required' });
+export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { standardDerivatives: 'required', drawBuffers: 'optional' });
 
 import lines_vert from './shader/lines.vert';
 import lines_frag from './shader/lines.frag';
-export const LinesShaderCode = ShaderCode('lines', lines_vert, lines_frag);
+export const LinesShaderCode = ShaderCode('lines', lines_vert, lines_frag, { drawBuffers: 'optional' });
 
 import mesh_vert from './shader/mesh.vert';
 import mesh_frag from './shader/mesh.frag';
-export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { standardDerivatives: 'optional' });
+export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { standardDerivatives: 'optional', drawBuffers: 'optional' });
 
 import direct_volume_vert from './shader/direct-volume.vert';
 import direct_volume_frag from './shader/direct-volume.frag';
-export const DirectVolumeShaderCode = ShaderCode('direct-volume', direct_volume_vert, direct_volume_frag, { fragDepth: 'optional' });
+export const DirectVolumeShaderCode = ShaderCode('direct-volume', direct_volume_vert, direct_volume_frag, { fragDepth: 'optional', drawBuffers: 'optional' });
 
 import image_vert from './shader/image.vert';
 import image_frag from './shader/image.frag';
-export const ImageShaderCode = ShaderCode('image', image_vert, image_frag);
+export const ImageShaderCode = ShaderCode('image', image_vert, image_frag, { drawBuffers: 'optional' });
 
 //
 
@@ -186,6 +190,7 @@ function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
         if (extensions.drawBuffers) {
             prefix.push('#extension GL_EXT_draw_buffers : require');
             prefix.push('#define requiredDrawBuffers');
+            prefix.push('#define gl_FragColor gl_FragData[0]');
         } else if (shaderExtensions.drawBuffers === 'required') {
             throw new Error(`required 'GL_EXT_draw_buffers' extension not available`);
         }
@@ -198,6 +203,9 @@ function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             throw new Error(`required 'GL_EXT_shader_texture_lod' extension not available`);
         }
     }
+    if (extensions.depthTexture) {
+        prefix.push('#define depthTextureSupport');
+    }
     return prefix.join('\n') + '\n';
 }
 
@@ -208,6 +216,8 @@ const glsl300VertPrefix = `#version 300 es
 `;
 
 const glsl300FragPrefixCommon = `
+layout(location = 0) out highp vec4 out_FragData0;
+
 #define varying in
 #define texture2D texture
 #define texture2DLodEXT textureLod
@@ -215,7 +225,7 @@ const glsl300FragPrefixCommon = `
 #define gl_FragColor out_FragData0
 #define gl_FragDepthEXT gl_FragDepth
 
-#define requiredDrawBuffers
+#define depthTextureSupport
 `;
 
 function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
@@ -226,11 +236,15 @@ function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExten
     if (shaderExtensions.fragDepth) {
         prefix.push('#define enabledFragDepth');
     }
-    if (extensions.drawBuffers) {
+    if (shaderExtensions.drawBuffers) {
+        prefix.push('#define requiredDrawBuffers');
         const maxDrawBuffers = gl.getParameter(gl.MAX_DRAW_BUFFERS) as number;
-        for (let i = 0, il = maxDrawBuffers; i < il; ++i) {
+        for (let i = 1, il = maxDrawBuffers; i < il; ++i) {
             prefix.push(`layout(location = ${i}) out highp vec4 out_FragData${i};`);
         }
+    }
+    if (shaderExtensions.shaderTextureLod) {
+        prefix.push('#define enabledShaderTextureLod');
     }
     prefix.push(glsl300FragPrefixCommon);
     return prefix.join('\n') + '\n';

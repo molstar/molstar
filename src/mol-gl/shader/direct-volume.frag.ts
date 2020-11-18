@@ -121,21 +121,22 @@ uniform mat4 uCartnToUnit;
     }
 #endif
 
+#include wboit_params
+
 vec4 transferFunction(float value) {
     return texture2D(tTransferTex, vec2(value, 0.0));
 }
 
-// Calculate depth based on the given camera position.
-float calcDepth(const in vec3 cameraPos){
-    vec2 clipZW = cameraPos.z * uProjection[2].zw + uProjection[3].zw;
-    return 0.5 + 0.5 * clipZW.x / clipZW.y;
-}
-
 float getDepth(const in vec2 coords) {
-    #ifdef dPackedDepth
-        return unpackRGBAToDepth(texture2D(tDepth, coords));
+    #ifdef depthTextureSupport
+        if (uRenderWboit == 0) {
+            // in case of opaque volumes (and depth texture support)
+            return texture2D(tDepth, coords).r;
+        } else {
+            return unpackRGBAToDepth(texture2D(tDepth, coords));
+        }
     #else
-        return texture2D(tDepth, coords).r;
+        return unpackRGBAToDepth(texture2D(tDepth, coords));
     #endif
 }
 
@@ -144,6 +145,8 @@ const float gradOffset = 0.5;
 vec3 v3m4(vec3 p, mat4 m) {
     return (m * vec4(p, 1.0)).xyz;
 }
+
+float preFogAlphaBlended = 0.0;
 
 vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     #if defined(dRenderVariant_color) && !defined(dIgnoreLight)
@@ -321,6 +324,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                     float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
                     #include apply_interior_color
                     #include apply_marker_color
+
+                    preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;
                     #include apply_fog
 
                     src = gl_FragColor;
@@ -382,6 +387,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
                 float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
                 #include apply_marker_color
+
+                preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;
                 #include apply_fog
 
                 src = gl_FragColor;
@@ -411,6 +418,9 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 // TODO: support clipping exclusion texture support
 
 void main () {
+    if (gl_FrontFacing)
+        discard;
+
     #if defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
         #if defined(dRenderMode_volume)
             // always ignore pick & depth for volume
@@ -432,6 +442,17 @@ void main () {
         // discard when nothing was hit
         if (gl_FragColor == vec4(0.0))
             discard;
+    #endif
+
+    #if defined(dRenderVariant_color)
+        #if defined(dRenderMode_isosurface) && defined(enabledFragDepth)
+            float fragmentDepth = gl_FragDepthEXT;
+        #else
+            float fragmentDepth = calcDepth((uView * vec4(uCameraPosition + (d * rayDir), 1.0)).xyz);
+        #endif
+        float preFogAlpha = clamp(preFogAlphaBlended, 0.0, 1.0);
+        interior = false;
+        #include wboit_write
     #endif
 }
 `;

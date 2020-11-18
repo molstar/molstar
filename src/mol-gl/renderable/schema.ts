@@ -155,6 +155,8 @@ export const GlobalUniformSchema = {
 
     uHighlightColor: UniformSpec('v3'),
     uSelectColor: UniformSpec('v3'),
+
+    uRenderWboit: UniformSpec('i'),
 } as const;
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = Values<GlobalUniformSchema>
@@ -212,6 +214,7 @@ export const TransparencySchema = {
     tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dTransparency: DefineSpec('boolean'),
     dTransparencyVariant: DefineSpec('string', ['single', 'multi']),
+    transparencyAverage: ValueSpec('number'),
 } as const;
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>

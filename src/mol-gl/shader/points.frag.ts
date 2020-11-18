@@ -12,6 +12,7 @@ precision highp int;
 #include common_frag_params
 #include color_frag_params
 #include common_clip
+#include wboit_params
 
 #ifdef dPointFilledCircle
     uniform float uPointEdgeBleach;
@@ -41,6 +42,10 @@ void main(){
 
         #include apply_marker_color
         #include apply_fog
+
+        float fragmentDepth = gl_FragCoord.z;
+        bool interior = false;
+        #include wboit_write
     #endif
 }
 `;

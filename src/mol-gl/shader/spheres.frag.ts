@@ -13,8 +13,7 @@ precision highp int;
 #include color_frag_params
 #include light_frag_params
 #include common_clip
-
-uniform mat4 uProjection;
+#include wboit_params
 
 uniform float uClipNear;
 uniform float uIsOrtho;
@@ -26,12 +25,6 @@ varying vec3 vPointViewPosition;
 
 vec3 cameraPos;
 vec3 cameraNormal;
-
-// Calculate depth based on the given camera position.
-float calcDepth(const in vec3 cameraPos){
-    vec2 clipZW = cameraPos.z * uProjection[2].zw + uProjection[3].zw;
-    return 0.5 + 0.5 * clipZW.x / clipZW.y;
-}
 
 float calcClip(const in vec3 cameraPos) {
     return dot(vec4(cameraPos, 1.0), vec4(0.0, 0.0, 1.0, uClipNear - 0.5));
@@ -114,6 +107,9 @@ void main(void){
         #include apply_interior_color
         #include apply_marker_color
         #include apply_fog
+
+        float fragmentDepth = gl_FragDepthEXT;
+        #include wboit_write
     #endif
 }
 `;

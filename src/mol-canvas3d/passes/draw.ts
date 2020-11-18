@@ -2,10 +2,11 @@
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  */
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
-import { RenderTarget } from '../../mol-gl/webgl/render-target';
+import { createNullRenderTarget, RenderTarget } from '../../mol-gl/webgl/render-target';
 import Renderer from '../../mol-gl/renderer';
 import Scene from '../../mol-gl/scene';
 import { Texture } from '../../mol-gl/webgl/texture';
@@ -22,6 +23,7 @@ import { Helper } from '../helper/helper';
 import quad_vert from '../../mol-gl/shader/quad.vert';
 import depthMerge_frag from '../../mol-gl/shader/depth-merge.frag';
 import { StereoCamera } from '../camera/stereo';
+import { WboitPass } from './wboit';
 
 const DepthMergeSchema = {
     ...QuadSchema,
@@ -49,6 +51,8 @@ function getDepthMergeRenderable(ctx: WebGLContext, depthTexturePrimitives: Text
 }
 
 export class DrawPass {
+    private readonly drawTarget: RenderTarget
+
     readonly colorTarget: RenderTarget
     readonly depthTexture: Texture
     readonly depthTexturePrimitives: Texture
@@ -60,8 +64,16 @@ export class DrawPass {
     private depthTextureVolumes: Texture
     private depthMerge: DepthMergeRenderable
 
-    constructor(private webgl: WebGLContext, width: number, height: number) {
+    private wboit: WboitPass | undefined
+
+    get wboitEnabled() {
+        return !!this.wboit?.enabled;
+    }
+
+    constructor(private webgl: WebGLContext, width: number, height: number, enableWboit: boolean) {
         const { extensions, resources } = webgl;
+
+        this.drawTarget = createNullRenderTarget(webgl.gl);
 
         this.colorTarget = webgl.createRenderTarget(width, height);
         this.packedDepth = !extensions.depthTexture;
@@ -79,6 +91,8 @@ export class DrawPass {
             this.depthTextureVolumes.define(width, height);
         }
         this.depthMerge = getDepthMergeRenderable(webgl, this.depthTexturePrimitives, this.depthTextureVolumes, this.packedDepth);
+
+        this.wboit = enableWboit ? new WboitPass(webgl, width, height) : undefined;
     }
 
     setSize(width: number, height: number) {
@@ -102,13 +116,60 @@ export class DrawPass {
             }
 
             ValueCell.update(this.depthMerge.values.uTexSize, Vec2.set(this.depthMerge.values.uTexSize.ref.value, width, height));
+
+            if (this.wboit?.enabled) {
+                this.wboit.setSize(width, height);
+            }
         }
     }
 
-    _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean) {
-        const { x, y, width, height } = camera.viewport;
-        renderer.setViewport(x, y, width, height);
+    private _depthMerge() {
+        const { state, gl } = this.webgl;
 
+        this.depthMerge.update();
+        this.depthTarget.bind();
+        state.disable(gl.BLEND);
+        state.disable(gl.DEPTH_TEST);
+        state.disable(gl.CULL_FACE);
+        state.depthMask(false);
+        state.clearColor(1, 1, 1, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        this.depthMerge.render();
+    }
+
+    private _renderWboit(renderer: Renderer, camera: ICamera, scene: Scene, toDrawingBuffer: boolean) {
+        if (!this.wboit?.enabled) throw new Error('expected wboit to be enabled');
+
+        const renderTarget = toDrawingBuffer ? this.drawTarget : this.colorTarget;
+        renderTarget.bind();
+        renderer.clear(true);
+
+        // render opaque primitives
+        this.depthTexturePrimitives.attachFramebuffer(renderTarget.framebuffer, 'depth');
+        renderTarget.bind();
+        renderer.renderWboitOpaque(scene.primitives, camera, null);
+
+        // render opaque volumes
+        this.depthTextureVolumes.attachFramebuffer(renderTarget.framebuffer, 'depth');
+        renderTarget.bind();
+        renderer.clearDepth();
+        renderer.renderWboitOpaque(scene.volumes, camera, this.depthTexturePrimitives);
+
+        // merge depth of opaque primitives and volumes
+        this._depthMerge();
+
+        // render transparent primitives and volumes
+        this.wboit.bind();
+        renderer.renderWboitTransparent(scene.primitives, camera, this.depthTexture);
+        renderer.renderWboitTransparent(scene.volumes, camera, this.depthTexture);
+
+        // evaluate wboit
+        this.depthTexturePrimitives.attachFramebuffer(renderTarget.framebuffer, 'depth');
+        renderTarget.bind();
+        this.wboit.render();
+    }
+
+    private _renderBlended(renderer: Renderer, camera: ICamera, scene: Scene, toDrawingBuffer: boolean) {
         if (toDrawingBuffer) {
             this.webgl.unbindFramebuffer();
         } else {
@@ -118,13 +179,16 @@ export class DrawPass {
             }
         }
 
-        renderer.render(scene.primitives, camera, 'color', true, transparentBackground, 1, null);
+        renderer.clear(true);
+        // TODO: split into opaque and transparent pass to handle opaque volume isosurfaces
+        renderer.renderBlended(scene.primitives, camera, null);
 
         // do a depth pass if not rendering to drawing buffer and
         // extensions.depthTexture is unsupported (i.e. depthTarget is set)
         if (!toDrawingBuffer && this.depthTargetPrimitives) {
             this.depthTargetPrimitives.bind();
-            renderer.render(scene.primitives, camera, 'depth', true, transparentBackground, 1, null);
+            renderer.clear(false);
+            renderer.renderDepth(scene.primitives, camera, null);
             this.colorTarget.bind();
         }
 
@@ -132,49 +196,53 @@ export class DrawPass {
         if (!toDrawingBuffer) {
             if (!this.packedDepth) {
                 this.depthTextureVolumes.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
-                this.webgl.state.depthMask(true);
-                this.webgl.gl.viewport(x, y, width, height);
-                this.webgl.gl.scissor(x, y, width, height);
-                this.webgl.gl.clear(this.webgl.gl.DEPTH_BUFFER_BIT);
+                renderer.clearDepth();
             }
-            renderer.render(scene.volumes, camera, 'color', false, transparentBackground, 1, this.depthTexturePrimitives);
+            renderer.renderBlended(scene.volumes, camera, this.depthTexturePrimitives);
 
             // do volume depth pass if extensions.depthTexture is unsupported (i.e. depthTarget is set)
             if (this.depthTargetVolumes) {
                 this.depthTargetVolumes.bind();
-                renderer.render(scene.volumes, camera, 'depth', true, transparentBackground, 1, this.depthTexturePrimitives);
+                renderer.clear(false);
+                renderer.renderDepth(scene.volumes, camera, this.depthTexturePrimitives);
                 this.colorTarget.bind();
             }
         }
 
         // merge depths from primitive and volume rendering
         if (!toDrawingBuffer) {
-            this.depthMerge.update();
-            this.depthTarget.bind();
-            // this.webgl.state.disable(this.webgl.gl.SCISSOR_TEST);
-            this.webgl.state.disable(this.webgl.gl.BLEND);
-            this.webgl.state.disable(this.webgl.gl.DEPTH_TEST);
-            this.webgl.state.disable(this.webgl.gl.CULL_FACE);
-            this.webgl.state.depthMask(false);
-            this.webgl.state.clearColor(1, 1, 1, 1);
-            this.webgl.gl.viewport(x, y, width, height);
-            this.webgl.gl.scissor(x, y, width, height);
-            this.webgl.gl.clear(this.webgl.gl.COLOR_BUFFER_BIT);
-            this.depthMerge.render();
+            this._depthMerge();
             this.colorTarget.bind();
+        }
+    }
+
+    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean) {
+        const { x, y, width, height } = camera.viewport;
+        renderer.setViewport(x, y, width, height);
+        renderer.setTransparentBackground(transparentBackground);
+        renderer.setDrawingBufferScale(1);
+        renderer.update(camera);
+
+        if (this.wboitEnabled) {
+            this._renderWboit(renderer, camera, scene, toDrawingBuffer);
+        } else {
+            this._renderBlended(renderer, camera, scene, toDrawingBuffer);
         }
 
         if (helper.debug.isEnabled) {
             helper.debug.syncVisibility();
-            renderer.render(helper.debug.scene, camera, 'color', false, transparentBackground, 1, null);
+            renderer.renderBlended(helper.debug.scene, camera, null);
         }
         if (helper.handle.isEnabled) {
-            renderer.render(helper.handle.scene, camera, 'color', false, transparentBackground, 1, null);
+            renderer.renderBlended(helper.handle.scene, camera, null);
         }
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
-            renderer.render(helper.camera.scene, helper.camera.camera, 'color', false, transparentBackground, 1, null);
+            renderer.update(helper.camera.camera);
+            renderer.renderBlended(helper.camera.scene, helper.camera.camera, null);
         }
+
+        this.webgl.gl.flush();
     }
 
     render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean) {
