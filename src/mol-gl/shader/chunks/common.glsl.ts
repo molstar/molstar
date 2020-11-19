@@ -1,10 +1,6 @@
 export default `
 // TODO find a better place for these convenience defines
 
-#if defined(dRenderVariant_colorBlended) || defined(dRenderVariant_colorWboit)
-    #define dRenderVariant_color
-#endif
-
 #if defined(dRenderVariant_pickObject) || defined(dRenderVariant_pickInstance) || defined(dRenderVariant_pickGroup)
     #define dRenderVariant_pick
 #endif

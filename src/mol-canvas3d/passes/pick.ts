@@ -64,16 +64,14 @@ export class PickPass {
     }
 
     private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: GraphicsRenderVariant) {
+        const pickScale = this.pickBaseScale / this.webgl.pixelRatio;
         const depth = this.drawPass.depthTexturePrimitives;
-        renderer.clear(false);
-        renderer.renderPick(scene.primitives, camera, variant, null);
-        renderer.renderPick(scene.volumes, camera, variant, depth);
-        renderer.renderPick(helper.handle.scene, camera, variant, null);
+        renderer.render(scene.primitives, camera, variant, true, false, pickScale, null);
+        renderer.render(scene.volumes, camera, variant, false, false, pickScale, depth);
+        renderer.render(helper.handle.scene, camera, variant, false, false, pickScale, null);
     }
 
     render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper) {
-        renderer.update(camera);
-
         this.objectPickTarget.bind();
         this.renderVariant(renderer, camera, scene, helper, 'pickObject');
 
@@ -167,19 +165,17 @@ export class PickHelper {
 
     private render(camera: Camera | StereoCamera) {
         const { pickX, pickY, pickWidth, pickHeight, halfPickWidth } = this;
+
         const { renderer, scene, helper } = this;
 
-        renderer.setTransparentBackground(false);
-        renderer.setDrawingBufferScale(this.pickScale);
-
         if (StereoCamera.is(camera)) {
-            renderer.setViewport(pickX, pickY, halfPickWidth, pickHeight);
+            this.renderer.setViewport(pickX, pickY, halfPickWidth, pickHeight);
             this.pickPass.render(renderer, camera.left, scene, helper);
 
-            renderer.setViewport(pickX + halfPickWidth, pickY, pickWidth - halfPickWidth, pickHeight);
+            this.renderer.setViewport(pickX + halfPickWidth, pickY, pickWidth - halfPickWidth, pickHeight);
             this.pickPass.render(renderer, camera.right, scene, helper);
         } else {
-            renderer.setViewport(pickX, pickY, pickWidth, pickHeight);
+            this.renderer.setViewport(pickX, pickY, pickWidth, pickHeight);
             this.pickPass.render(renderer, camera, scene, helper);
         }
 

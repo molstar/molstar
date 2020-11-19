@@ -132,17 +132,17 @@ describe('renderer', () => {
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 4 : 5);
         expect(ctx.stats.resourceCounts.texture).toBe(6);
-        expect(ctx.stats.resourceCounts.vertexArray).toBe(6);
-        expect(ctx.stats.resourceCounts.program).toBe(6);
-        expect(ctx.stats.resourceCounts.shader).toBe(12);
+        expect(ctx.stats.resourceCounts.vertexArray).toBe(5);
+        expect(ctx.stats.resourceCounts.program).toBe(5);
+        expect(ctx.stats.resourceCounts.shader).toBe(10);
 
         scene.remove(points);
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(0);
         expect(ctx.stats.resourceCounts.texture).toBe(0);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(0);
-        expect(ctx.stats.resourceCounts.program).toBe(6);
-        expect(ctx.stats.resourceCounts.shader).toBe(12);
+        expect(ctx.stats.resourceCounts.program).toBe(5);
+        expect(ctx.stats.resourceCounts.shader).toBe(10);
 
         ctx.resources.destroy();
         expect(ctx.stats.resourceCounts.program).toBe(0);

@@ -123,13 +123,3 @@ export function arrayIsIdentity(xs: ArrayLike<number>) {
     }
     return true;
 }
-
-export function arrayMapUpsert<T>(xs: [string, T][], key: string, value: T) {
-    for (let i = 0, il = xs.length; i < il; ++i) {
-        if (xs[i][0] === key) {
-            xs[i][1] = value;
-            return;
-        }
-    }
-    xs.push([key, value]);
-}

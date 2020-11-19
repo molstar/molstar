@@ -18,17 +18,15 @@ import { now } from '../../mol-util/now';
 import { Texture, TextureFilter } from './texture';
 import { ComputeRenderable } from '../renderable';
 
-export function getGLContext(canvas: HTMLCanvasElement, attribs?: WebGLContextAttributes): GLRenderingContext | null {
-    function get(id: 'webgl' | 'experimental-webgl' | 'webgl2') {
+export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
+    function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
         try {
-            return canvas.getContext(id, attribs) as GLRenderingContext | null;
+            return canvas.getContext(contextId, contextAttributes) as GLRenderingContext | null;
         } catch (e) {
             return null;
         }
     }
-    const gl = get('webgl2') || get('webgl') || get('experimental-webgl');
-    if (isDebugMode) console.log(`isWebgl2: ${isWebGL2(gl)}`);
-    return gl;
+    return getContext('webgl2') ||  getContext('webgl') || getContext('experimental-webgl');
 }
 
 export function getErrorDescription(gl: GLRenderingContext, error: number) {
@@ -188,7 +186,6 @@ export interface WebGLContext {
     readonly maxTextureSize: number
     readonly maxRenderbufferSize: number
     readonly maxDrawBuffers: number
-    readonly maxTextureImageUnits: number
 
     readonly isContextLost: boolean
     readonly contextRestored: BehaviorSubject<now.Timestamp>
@@ -223,7 +220,6 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
         maxRenderbufferSize: gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) as number,
         maxDrawBuffers: isWebGL2(gl) ? gl.getParameter(gl.MAX_DRAW_BUFFERS) as number : 0,
-        maxTextureImageUnits: gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS) as number,
         maxVertexTextureImageUnits: gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) as number,
     };
 
@@ -289,7 +285,6 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         get maxTextureSize () { return parameters.maxTextureSize; },
         get maxRenderbufferSize () { return parameters.maxRenderbufferSize; },
         get maxDrawBuffers () { return parameters.maxDrawBuffers; },
-        get maxTextureImageUnits () { return parameters.maxTextureImageUnits; },
 
         namedComputeRenderables: Object.create(null),
         namedFramebuffers: Object.create(null),

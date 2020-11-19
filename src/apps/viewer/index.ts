@@ -68,7 +68,6 @@ const DefaultViewerOptions = {
     layoutShowLeftPanel: true,
     disableAntialiasing: false,
     pixelScale: 1,
-    enableWboit: false,
 
     viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
     viewportShowControls: PluginConfig.Viewport.ShowControls.defaultValue,
@@ -118,7 +117,6 @@ export class Viewer {
             config: [
                 [PluginConfig.General.DisableAntialiasing, o.disableAntialiasing],
                 [PluginConfig.General.PixelScale, o.pixelScale],
-                [PluginConfig.General.EnableWboit, o.enableWboit],
                 [PluginConfig.Viewport.ShowExpand, o.viewportShowExpand],
                 [PluginConfig.Viewport.ShowControls, o.viewportShowControls],
                 [PluginConfig.Viewport.ShowSettings, o.viewportShowSettings],

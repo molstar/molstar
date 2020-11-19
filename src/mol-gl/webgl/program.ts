@@ -24,7 +24,7 @@ export interface Program {
     use: () => void
     setUniforms: (uniformValues: UniformsList) => void
     bindAttributes: (attribueBuffers: AttributeBuffers) => void
-    bindTextures: (textures: Textures, startingTargetUnit?: number) => void
+    bindTextures: (textures: Textures) => void
 
     reset: () => void
     destroy: () => void
@@ -198,15 +198,21 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
                 if (l !== -1) buffer.bind(l);
             }
         },
-        bindTextures: (textures: Textures, startingTargetUnit?: number) => {
-            startingTargetUnit = startingTargetUnit ?? 0;
-
+        bindTextures: (textures: Textures) => {
             for (let i = 0, il = textures.length; i < il; ++i) {
                 const [k, texture] = textures[i];
                 const l = locations[k];
                 if (l !== null && l !== undefined) {
-                    texture.bind((i + startingTargetUnit) as TextureId);
-                    uniformSetters[k](gl, l, (i + startingTargetUnit) as TextureId);
+                    if (k === 'tDepth') {
+                        // TODO find more explicit way?
+                        texture.bind(15 as TextureId);
+                        uniformSetters[k](gl, l, 15 as TextureId);
+                    } else {
+                        // TODO if the order and count of textures in a material can be made invariant
+                        //      bind needs to be called only when the material changes
+                        texture.bind(i as TextureId);
+                        uniformSetters[k](gl, l, i as TextureId);
+                    }
                 }
             }
         },

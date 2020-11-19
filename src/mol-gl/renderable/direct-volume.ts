@@ -28,7 +28,6 @@ export const DirectVolumeSchema = {
     tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dTransparency: DefineSpec('boolean'),
     dTransparencyVariant: DefineSpec('string', ['single', 'multi']),
-    transparencyAverage: ValueSpec('number'),
 
     dClipObjectCount: DefineSpec('number'),
     dClipVariant: DefineSpec('string', ['instance', 'pixel']),

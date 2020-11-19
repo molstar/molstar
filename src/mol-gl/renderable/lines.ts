@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, SizeSchema, ElementsSpec, InternalValues, GlobalTextureSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, SizeSchema, ElementsSpec, InternalValues } from './schema';
 import { ValueCell } from '../../mol-util';
 import { LinesShaderCode } from '../shader-code';
 
@@ -26,7 +26,7 @@ export type LinesSchema = typeof LinesSchema
 export type LinesValues = Values<LinesSchema>
 
 export function LinesRenderable(ctx: WebGLContext, id: number, values: LinesValues, state: RenderableState, materialId: number): Renderable<LinesValues> {
-    const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...InternalSchema, ...LinesSchema };
+    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...LinesSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
     };

@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, Values, InternalSchema, SizeSchema, InternalValues, TextureSpec, ElementsSpec, ValueSpec, GlobalTextureSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, Values, InternalSchema, SizeSchema, InternalValues, TextureSpec, ElementsSpec, ValueSpec } from './schema';
 import { TextShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
 
@@ -35,7 +35,7 @@ export type TextSchema = typeof TextSchema
 export type TextValues = Values<TextSchema>
 
 export function TextRenderable(ctx: WebGLContext, id: number, values: TextValues, state: RenderableState, materialId: number): Renderable<TextValues> {
-    const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...InternalSchema, ...TextSchema };
+    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...TextSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
     };

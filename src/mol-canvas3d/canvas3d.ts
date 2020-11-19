@@ -149,7 +149,7 @@ namespace Canvas3D {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, position?: Vec3 }
 
-    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, attribs: Partial<{ antialias: boolean, pixelScale: number, pickScale: number, enableWboit: boolean }> = {}) {
+    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, attribs: Partial<{ antialias: boolean, pixelScale: number, pickScale: number }> = {}) {
         const gl = getGLContext(canvas, {
             alpha: true,
             antialias: attribs.antialias ?? true,
@@ -301,7 +301,7 @@ namespace Canvas3D {
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
                     multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
                 } else {
-                    const toDrawingBuffer = !PostprocessingPass.isEnabled(p.postprocessing) && scene.volumes.renderables.length === 0 && !passes.draw.wboitEnabled;
+                    const toDrawingBuffer = !PostprocessingPass.isEnabled(p.postprocessing) && scene.volumes.renderables.length === 0;
                     passes.draw.render(renderer, cam, scene, helper, toDrawingBuffer, p.transparentBackground);
                     if (!toDrawingBuffer) passes.postprocessing.render(cam, true, p.postprocessing);
                 }
@@ -667,7 +667,7 @@ namespace Canvas3D {
                 }
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
-                return new ImagePass(webgl, renderer, scene, camera, helper, passes.draw.wboitEnabled, props);
+                return new ImagePass(webgl, renderer, scene, camera, helper, props);
             },
 
             get props() {

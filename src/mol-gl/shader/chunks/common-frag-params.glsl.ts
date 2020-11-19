@@ -43,6 +43,4 @@ uniform float uInteriorDarkening;
 uniform bool uInteriorColorFlag;
 uniform vec3 uInteriorColor;
 bool interior;
-
-uniform mat4 uProjection;
 `;

@@ -5,7 +5,7 @@
  */
 
 import { createAttributeBuffers, ElementsBuffer, AttributeKind } from './buffer';
-import { createTextures, Texture, Textures } from './texture';
+import { createTextures, Texture } from './texture';
 import { WebGLContext, checkError } from './context';
 import { ShaderCode, DefineValues } from '../shader-code';
 import { Program } from './program';
@@ -40,14 +40,14 @@ export interface RenderItem<T extends string> {
     readonly materialId: number
     getProgram: (variant: T) => Program
 
-    render: (variant: T, sharedTexturesList?: Textures) => void
+    render: (variant: T) => void
     update: () => Readonly<ValueChanges>
     destroy: () => void
 }
 
 //
 
-const GraphicsRenderVariant = { 'colorBlended': '', 'colorWboit': '', 'pickObject': '', 'pickInstance': '', 'pickGroup': '', 'depth': '' };
+const GraphicsRenderVariant = { 'color': '', 'pickObject': '', 'pickInstance': '', 'pickGroup': '', 'depth': '' };
 export type GraphicsRenderVariant = keyof typeof GraphicsRenderVariant
 const GraphicsRenderVariants = Object.keys(GraphicsRenderVariant) as GraphicsRenderVariant[];
 
@@ -164,17 +164,12 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         materialId,
         getProgram: (variant: T) => programs[variant],
 
-        render: (variant: T, sharedTexturesList?: Textures) => {
+        render: (variant: T) => {
             if (drawCount === 0 || instanceCount === 0 || ctx.isContextLost) return;
             const program = programs[variant];
             if (program.id === currentProgramId && state.currentRenderItemId === id) {
                 program.setUniforms(uniformValueEntries);
-                if (sharedTexturesList && sharedTexturesList.length > 0) {
-                    program.bindTextures(sharedTexturesList, 0);
-                    program.bindTextures(textures, sharedTexturesList.length);
-                } else {
-                    program.bindTextures(textures);
-                }
+                program.bindTextures(textures);
             } else {
                 const vertexArray = vertexArrays[variant];
                 if (program.id !== state.currentProgramId || program.id !== currentProgramId ||
@@ -187,12 +182,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     currentProgramId = program.id;
                 }
                 program.setUniforms(uniformValueEntries);
-                if (sharedTexturesList && sharedTexturesList.length > 0) {
-                    program.bindTextures(sharedTexturesList, 0);
-                    program.bindTextures(textures, sharedTexturesList.length);
-                } else {
-                    program.bindTextures(textures);
-                }
+                program.bindTextures(textures);
                 if (vertexArray) {
                     vertexArray.bind();
                     // need to bind elements buffer explicitly since it is not always recorded in the VAO
@@ -204,11 +194,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 state.currentRenderItemId = id;
             }
             if (isDebugMode) {
-                try {
-                    checkFramebufferStatus(ctx.gl);
-                } catch (e) {
-                    throw new Error(`Framebuffer error rendering item id ${id}: '${e}'`);
-                }
+                checkFramebufferStatus(ctx.gl);
             }
             if (elementsBuffer) {
                 instancedArrays.drawElementsInstanced(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
@@ -219,7 +205,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 try {
                     checkError(ctx.gl);
                 } catch (e) {
-                    throw new Error(`Draw error rendering item id ${id}: '${e}'`);
+                    throw new Error(`Error rendering item id ${id}: '${e}'`);
                 }
             }
         },

@@ -10,7 +10,6 @@ precision highp int;
 #include common
 #include read_from_texture
 #include common_frag_params
-#include wboit_params
 
 uniform vec2 uImageTexDim;
 uniform sampler2D tImageTex;
@@ -123,10 +122,6 @@ void main() {
         float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
         #include apply_marker_color
         #include apply_fog
-
-        float fragmentDepth = gl_FragCoord.z;
-        bool interior = false;
-        #include wboit_write
     #endif
 }
 `;

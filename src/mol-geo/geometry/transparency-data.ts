@@ -13,7 +13,6 @@ export type TransparencyData = {
     uTransparencyTexDim: ValueCell<Vec2>
     dTransparency: ValueCell<boolean>,
     dTransparencyVariant: ValueCell<string>,
-    transparencyAverage: ValueCell<number>,
 }
 
 export function applyTransparencyValue(array: Uint8Array, start: number, end: number, value: number) {
@@ -21,14 +20,6 @@ export function applyTransparencyValue(array: Uint8Array, start: number, end: nu
         array[i] = value * 255;
     }
     return true;
-}
-
-export function getTransparencyAverage(array: Uint8Array, count: number): number {
-    let sum = 0;
-    for (let i = 0; i < count; ++i) {
-        sum += array[i];
-    }
-    return sum / (255 * count);
 }
 
 export function clearTransparency(array: Uint8Array, start: number, end: number) {
@@ -41,7 +32,6 @@ export function createTransparency(count: number, transparencyData?: Transparenc
         ValueCell.update(transparencyData.tTransparency, transparency);
         ValueCell.update(transparencyData.uTransparencyTexDim, Vec2.create(transparency.width, transparency.height));
         ValueCell.updateIfChanged(transparencyData.dTransparency, count > 0);
-        ValueCell.updateIfChanged(transparencyData.transparencyAverage, getTransparencyAverage(transparency.array, count));
         return transparencyData;
     } else {
         return {
@@ -49,7 +39,6 @@ export function createTransparency(count: number, transparencyData?: Transparenc
             uTransparencyTexDim: ValueCell.create(Vec2.create(transparency.width, transparency.height)),
             dTransparency: ValueCell.create(count > 0),
             dTransparencyVariant: ValueCell.create('single'),
-            transparencyAverage: ValueCell.create(0),
         };
     }
 }
@@ -66,7 +55,6 @@ export function createEmptyTransparency(transparencyData?: TransparencyData): Tr
             uTransparencyTexDim: ValueCell.create(Vec2.create(1, 1)),
             dTransparency: ValueCell.create(false),
             dTransparencyVariant: ValueCell.create('single'),
-            transparencyAverage: ValueCell.create(0),
         };
     }
 }

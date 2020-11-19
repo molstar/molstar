@@ -20,7 +20,7 @@ import { Overpaint } from '../mol-theme/overpaint';
 import { createOverpaint, clearOverpaint, applyOverpaintColor } from '../mol-geo/geometry/overpaint-data';
 import { Interval } from '../mol-data/int';
 import { Transparency } from '../mol-theme/transparency';
-import { createTransparency, clearTransparency, applyTransparencyValue, getTransparencyAverage } from '../mol-geo/geometry/transparency-data';
+import { createTransparency, clearTransparency, applyTransparencyValue } from '../mol-geo/geometry/transparency-data';
 import { Clipping } from '../mol-theme/clipping';
 import { createClipping, applyClippingGroups, clearClipping } from '../mol-geo/geometry/clipping-data';
 
@@ -114,7 +114,7 @@ namespace Visual {
     export function setTransparency(renderObject: GraphicsRenderObject | undefined, transparency: Transparency, lociApply: LociApply, clear: boolean) {
         if (!renderObject) return;
 
-        const { tTransparency, transparencyAverage, uGroupCount, instanceCount } = renderObject.values;
+        const { tTransparency, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
 
         // ensure texture has right size and variant
@@ -134,7 +134,6 @@ namespace Visual {
             lociApply(loci, apply, false);
         }
         ValueCell.update(tTransparency, tTransparency.ref.value);
-        ValueCell.updateIfChanged(transparencyAverage, getTransparencyAverage(array, count));
     }
 
     export function setClipping(renderObject: GraphicsRenderObject | undefined, clipping: Clipping, lociApply: LociApply, clear: boolean) {

@@ -69,11 +69,11 @@ export class MultiSamplePass {
     private compose: ComposeRenderable
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass, private postprocessing: PostprocessingPass) {
-        const { colorBufferFloat, textureFloat } = webgl.extensions;
+        const { extensions } = webgl;
         const width = drawPass.colorTarget.getWidth();
         const height = drawPass.colorTarget.getHeight();
         this.colorTarget = webgl.createRenderTarget(width, height, false);
-        this.composeTarget = webgl.createRenderTarget(width, height, false, colorBufferFloat && textureFloat ? 'float32' : 'uint8');
+        this.composeTarget = webgl.createRenderTarget(width, height, false, extensions.colorBufferFloat ? 'float32' : 'uint8');
         this.holdTarget = webgl.createRenderTarget(width, height, false);
         this.compose = getComposeRenderable(webgl, drawPass.colorTarget.texture);
     }
@@ -97,14 +97,6 @@ export class MultiSamplePass {
         } else {
             this.renderMultiSample(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props);
             return sampleIndex;
-        }
-    }
-
-    private bindOutputTarget(toDrawingBuffer: boolean) {
-        if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
-        } else {
-            this.colorTarget.bind();
         }
     }
 
@@ -167,7 +159,12 @@ export class MultiSamplePass {
         ValueCell.update(compose.values.tColor, composeTarget.texture);
         compose.update();
 
-        this.bindOutputTarget(toDrawingBuffer);
+        if (toDrawingBuffer) {
+            webgl.unbindFramebuffer();
+        } else {
+            this.colorTarget.bind();
+        }
+
         gl.viewport(x, y, width, height);
         gl.scissor(x, y, width, height);
 
@@ -248,7 +245,12 @@ export class MultiSamplePass {
             }
         }
 
-        this.bindOutputTarget(toDrawingBuffer);
+        if (toDrawingBuffer) {
+            webgl.unbindFramebuffer();
+        } else {
+            this.colorTarget.bind();
+        }
+
         gl.viewport(x, y, width, height);
         gl.scissor(x, y, width, height);
 

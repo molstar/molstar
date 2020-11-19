@@ -46,10 +46,10 @@ export class ImagePass {
     get width() { return this._width; }
     get height() { return this._height; }
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, helper: Helper, enableWboit: boolean, props: Partial<ImageProps>) {
+    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, helper: Helper, props: Partial<ImageProps>) {
         this.props = { ...PD.getDefaultValues(ImageParams), ...props };
 
-        this.drawPass = new DrawPass(webgl, 128, 128, enableWboit);
+        this.drawPass = new DrawPass(webgl, 128, 128);
         this.postprocessingPass = new PostprocessingPass(webgl, this.drawPass);
         this.multiSamplePass = new MultiSamplePass(webgl, this.drawPass, this.postprocessingPass);
         this.multiSampleHelper = new MultiSampleHelper(this.multiSamplePass);

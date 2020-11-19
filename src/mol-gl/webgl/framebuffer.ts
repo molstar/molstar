@@ -50,15 +50,15 @@ function getFramebuffer(gl: GLRenderingContext) {
     return framebuffer;
 }
 
-export function createFramebuffer(gl: GLRenderingContext): Framebuffer {
+export function createFramebuffer (gl: GLRenderingContext): Framebuffer {
     let _framebuffer = getFramebuffer(gl);
 
     let destroyed = false;
 
     return {
         id: getNextFramebufferId(),
-
         bind: () => gl.bindFramebuffer(gl.FRAMEBUFFER, _framebuffer),
+
         reset: () => {
             _framebuffer = getFramebuffer(gl);
         },
@@ -67,17 +67,5 @@ export function createFramebuffer(gl: GLRenderingContext): Framebuffer {
             gl.deleteFramebuffer(_framebuffer);
             destroyed = true;
         }
-    };
-}
-
-//
-
-export function createNullFramebuffer(): Framebuffer {
-    return {
-        id: getNextFramebufferId(),
-
-        bind: () => {},
-        reset: () => {},
-        destroy: () => {}
     };
 }

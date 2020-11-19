@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, DefineSpec, Values, InternalSchema, InternalValues, UniformSpec, TextureSpec, GlobalTextureSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, DefineSpec, Values, InternalSchema, InternalValues, UniformSpec, TextureSpec } from './schema';
 import { MeshShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
 
@@ -28,7 +28,7 @@ export type TextureMeshSchema = typeof TextureMeshSchema
 export type TextureMeshValues = Values<TextureMeshSchema>
 
 export function TextureMeshRenderable(ctx: WebGLContext, id: number, values: TextureMeshValues, state: RenderableState, materialId: number): Renderable<TextureMeshValues> {
-    const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...InternalSchema, ...TextureMeshSchema };
+    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...TextureMeshSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
     };
