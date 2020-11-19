@@ -35,6 +35,7 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { Mp4Export } from '../../extensions/mp4-export';
+import { StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
 
 require('mol-plugin-ui/skin/light.scss');
 
@@ -147,7 +148,7 @@ export class Viewer {
         return PluginCommands.State.Snapshots.OpenUrl(this.plugin, { url, type });
     }
 
-    loadStructureFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false) {
+    loadStructureFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: LoadStructureOptions) {
         const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
             source: {
@@ -156,7 +157,7 @@ export class Viewer {
                     url: Asset.Url(url),
                     format: format as any,
                     isBinary,
-                    options: params.source.params.options,
+                    options: { ...params.source.params.options, representationParams: options?.representationParams as any },
                 }
             }
         }));
@@ -177,7 +178,7 @@ export class Viewer {
         await this.plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
     }
 
-    loadPdb(pdb: string) {
+    loadPdb(pdb: string, options?: LoadStructureOptions) {
         const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         const provider = this.plugin.config.get(PluginConfig.Download.DefaultPdbProvider)!;
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
@@ -191,7 +192,7 @@ export class Viewer {
                             params: PdbDownloadProvider[provider].defaultValue as any
                         }
                     },
-                    options: params.source.params.options,
+                    options: { ...params.source.params.options, representationParams: options?.representationParams as any },
                 }
             }
         }));
@@ -262,10 +263,13 @@ export class Viewer {
     }
 }
 
+export interface LoadStructureOptions {
+    representationParams?: StructureRepresentationPresetProvider.CommonParams
+}
+
 export interface VolumeIsovalueInfo {
     type: 'absolute' | 'relative',
     value: number,
     color: Color,
     alpha?: number
 }
-

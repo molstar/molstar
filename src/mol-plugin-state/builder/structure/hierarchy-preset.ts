@@ -11,7 +11,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StateObjectRef, StateTransformer } from '../../../mol-state';
 import { StateTransforms } from '../../transforms';
 import { RootStructureDefinition } from '../../helpers/root-structure';
-import { PresetStructureRepresentations } from './representation-preset';
+import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from './representation-preset';
 import { PluginContext } from '../../../mol-plugin/context';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Model } from '../../../mol-model/structure';
@@ -27,7 +27,7 @@ export namespace TrajectoryHierarchyPresetProvider {
     export const CommonParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
         modelProperties: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.CustomModelProperties, void 0, plugin))),
         structureProperties: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.CustomStructureProperties, void 0, plugin))),
-        representationPreset: PD.Optional(PD.Text<keyof PresetStructureRepresentations>('auto' as const)),
+        representationPreset: PD.Optional(PD.Text<keyof PresetStructureRepresentations>('auto' as const))
     });
 }
 
@@ -37,6 +37,7 @@ const DefaultParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plu
     model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin))),
     showUnitcell: PD.Optional(PD.Boolean(false)),
     structure: PD.Optional(RootStructureDefinition.getParams(void 0, 'assembly').type),
+    representationPresetParams: PD.Optional(PD.Group(StructureRepresentationPresetProvider.CommonParams)),
     ...CommonParams(a, plugin)
 });
 
@@ -60,7 +61,7 @@ const defaultPreset = TrajectoryHierarchyPresetProvider({
         const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
         const unitcell = params.showUnitcell === void 0 || !!params.showUnitcell ? await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: true }) : void 0;
-        const representation = await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto');
+        const representation = await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto', params.representationPresetParams);
 
         return {
             model,
