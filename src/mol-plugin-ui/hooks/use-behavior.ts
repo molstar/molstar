@@ -19,7 +19,10 @@ export function useBehavior<T>(s: Behavior<T> | undefined): T | undefined {
     const [value, setValue] = useState(s?.value);
 
     useEffect(() => {
-        if (!s) return;
+        if (!s) {
+            if (value !== void 0) setValue(void 0);
+            return;
+        }
         let fst = true;
         const sub = s.subscribe((v) => {
             if (fst) {
