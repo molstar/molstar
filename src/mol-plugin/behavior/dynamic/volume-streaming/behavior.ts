@@ -255,7 +255,7 @@ export namespace VolumeStreaming {
         }
 
         private getStructureRoot() {
-            return this.plugin.state.data.select(StateSelection.Generators.byRef(this.ref).rootOfType([PluginStateObject.Molecule.Structure]))[0];
+            return this.plugin.state.data.select(StateSelection.Generators.byRef(this.ref).rootOfType(PluginStateObject.Molecule.Structure))[0];
         }
 
         register(ref: string): void {

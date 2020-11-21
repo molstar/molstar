@@ -190,7 +190,7 @@ export const UpdateTrajectory = StateAction.build({
         }
     } else {
         for (const m of models) {
-            const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
+            const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, PluginStateObject.Molecule.Trajectory);
             if (!parent || !parent.obj) continue;
             const traj = parent.obj;
             update.to(m).update(old => {
