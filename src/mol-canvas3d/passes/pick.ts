@@ -170,7 +170,7 @@ export class PickHelper {
         const { renderer, scene, helper } = this;
 
         renderer.setTransparentBackground(false);
-        renderer.setDrawingBufferScale(this.pickScale);
+        renderer.setDrawingBufferSize(this.pickPass.objectPickTarget.getWidth(), this.pickPass.objectPickTarget.getHeight());
 
         if (StereoCamera.is(camera)) {
             renderer.setViewport(pickX, pickY, halfPickWidth, pickHeight);

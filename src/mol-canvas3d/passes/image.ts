@@ -84,8 +84,6 @@ export class ImagePass {
         Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);
         this._camera.update();
 
-        this.renderer.setViewport(0, 0, this._width, this._height);
-
         if (MultiSamplePass.isEnabled(this.props.multiSample)) {
             this.multiSampleHelper.render(this.renderer, this._camera, this.scene, this.helper, false, this.props.transparentBackground, this.props);
             this._colorTarget = this.multiSamplePass.colorTarget;

@@ -55,7 +55,7 @@ interface Renderer {
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
     setTransparentBackground: (value: boolean) => void
-    setDrawingBufferScale: (value: number) => void
+    setDrawingBufferSize: (width: number, height: number) => void
 
     dispose: () => void
 }
@@ -180,7 +180,6 @@ namespace Renderer {
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor);
 
         let transparentBackground = false;
-        let drawingBufferScale = 1;
 
         const nullDepthTexture = createNullTexture(gl, 'image-depth');
         const sharedTexturesList: Textures = [
@@ -353,15 +352,6 @@ namespace Renderer {
             ValueCell.updateIfChanged(globalUniforms.uFogFar, camera.fogFar);
             ValueCell.updateIfChanged(globalUniforms.uFogNear, camera.fogNear);
             ValueCell.updateIfChanged(globalUniforms.uTransparentBackground, transparentBackground);
-
-            if (gl.drawingBufferWidth * drawingBufferScale !== drawingBufferSize[0] ||
-                gl.drawingBufferHeight * drawingBufferScale !== drawingBufferSize[1]
-            ) {
-                ValueCell.update(globalUniforms.uDrawingBufferSize, Vec2.set(drawingBufferSize,
-                    gl.drawingBufferWidth * drawingBufferScale,
-                    gl.drawingBufferHeight * drawingBufferScale
-                ));
-            }
         };
 
         const updateInternal = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, renderWboit: boolean) => {
@@ -575,8 +565,10 @@ namespace Renderer {
             setTransparentBackground: (value: boolean) => {
                 transparentBackground = value;
             },
-            setDrawingBufferScale: (value: number) => {
-                drawingBufferScale = value;
+            setDrawingBufferSize: (width: number, height: number) => {
+                if (width !== drawingBufferSize[0] || height !== drawingBufferSize[1]) {
+                    ValueCell.update(globalUniforms.uDrawingBufferSize, Vec2.set(drawingBufferSize, width, height));
+                }
             },
 
             get props() {

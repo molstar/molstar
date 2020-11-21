@@ -216,11 +216,9 @@ export class DrawPass {
         }
     }
 
-    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean) {
+    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean) {
         const { x, y, width, height } = camera.viewport;
         renderer.setViewport(x, y, width, height);
-        renderer.setTransparentBackground(transparentBackground);
-        renderer.setDrawingBufferScale(1);
         renderer.update(camera);
 
         if (this.wboitEnabled) {
@@ -246,11 +244,14 @@ export class DrawPass {
     }
 
     render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean) {
+        renderer.setTransparentBackground(transparentBackground);
+        renderer.setDrawingBufferSize(this.colorTarget.getWidth(), this.colorTarget.getHeight());
+
         if (StereoCamera.is(camera)) {
-            this._render(renderer, camera.left, scene, helper, toDrawingBuffer, transparentBackground);
-            this._render(renderer, camera.right, scene, helper, toDrawingBuffer, transparentBackground);
+            this._render(renderer, camera.left, scene, helper, toDrawingBuffer);
+            this._render(renderer, camera.right, scene, helper, toDrawingBuffer);
         } else {
-            this._render(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground);
+            this._render(renderer, camera, scene, helper, toDrawingBuffer);
         }
     }
 }
