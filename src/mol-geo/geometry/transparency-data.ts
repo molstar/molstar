@@ -12,7 +12,6 @@ export type TransparencyData = {
     tTransparency: ValueCell<TextureImage<Uint8Array>>
     uTransparencyTexDim: ValueCell<Vec2>
     dTransparency: ValueCell<boolean>,
-    dTransparencyVariant: ValueCell<string>,
     transparencyAverage: ValueCell<number>,
 }
 
@@ -48,7 +47,6 @@ export function createTransparency(count: number, transparencyData?: Transparenc
             tTransparency: ValueCell.create(transparency),
             uTransparencyTexDim: ValueCell.create(Vec2.create(transparency.width, transparency.height)),
             dTransparency: ValueCell.create(count > 0),
-            dTransparencyVariant: ValueCell.create('single'),
             transparencyAverage: ValueCell.create(0),
         };
     }
@@ -65,7 +63,6 @@ export function createEmptyTransparency(transparencyData?: TransparencyData): Tr
             tTransparency: ValueCell.create(emptyTransparencyTexture),
             uTransparencyTexDim: ValueCell.create(Vec2.create(1, 1)),
             dTransparency: ValueCell.create(false),
-            dTransparencyVariant: ValueCell.create('single'),
             transparencyAverage: ValueCell.create(0),
         };
     }

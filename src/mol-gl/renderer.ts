@@ -17,7 +17,6 @@ import { GraphicsRenderVariant } from './webgl/render-item';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { Clipping } from '../mol-theme/clipping';
 import { stringToWords } from '../mol-util/string';
-import { Transparency } from '../mol-theme/transparency';
 import { degToRad } from '../mol-math/misc';
 import { createNullTexture, Texture, Textures } from './webgl/texture';
 import { arrayMapUpsert } from '../mol-util/array';
@@ -68,7 +67,6 @@ export const RendererParams = {
 
     // the following are general 'material' parameters
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
-    transparencyVariant: PD.Select('single', PD.arrayToOptions<Transparency.Variant>(['single', 'multi'])),
 
     interiorDarkening: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
     interiorColorFlag: PD.Boolean(true, { label: 'Use Interior Color' }),
@@ -269,10 +267,6 @@ namespace Renderer {
             }
             if (r.values.dClipVariant.ref.value !== clip.variant) {
                 ValueCell.update(r.values.dClipVariant, clip.variant);
-                definesNeedUpdate = true;
-            }
-            if (r.values.dTransparencyVariant.ref.value !== p.transparencyVariant) {
-                ValueCell.update(r.values.dTransparencyVariant, p.transparencyVariant);
                 definesNeedUpdate = true;
             }
             if (definesNeedUpdate) r.update();
@@ -544,9 +538,6 @@ namespace Renderer {
                 if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== p.pickingAlphaThreshold) {
                     p.pickingAlphaThreshold = props.pickingAlphaThreshold;
                     ValueCell.update(globalUniforms.uPickingAlphaThreshold, p.pickingAlphaThreshold);
-                }
-                if (props.transparencyVariant !== undefined && props.transparencyVariant !== p.transparencyVariant) {
-                    p.transparencyVariant = props.transparencyVariant;
                 }
 
                 if (props.interiorDarkening !== undefined && props.interiorDarkening !== p.interiorDarkening) {

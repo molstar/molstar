@@ -27,7 +27,6 @@ export const DirectVolumeSchema = {
     uTransparencyTexDim: UniformSpec('v2'),
     tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dTransparency: DefineSpec('boolean'),
-    dTransparencyVariant: DefineSpec('string', ['single', 'multi']),
     transparencyAverage: ValueSpec('number'),
 
     dClipObjectCount: DefineSpec('number'),

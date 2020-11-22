@@ -213,7 +213,6 @@ export const TransparencySchema = {
     uTransparencyTexDim: UniformSpec('v2'),
     tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dTransparency: DefineSpec('boolean'),
-    dTransparencyVariant: DefineSpec('string', ['single', 'multi']),
     transparencyAverage: ValueSpec('number'),
 } as const;
 export type TransparencySchema = typeof TransparencySchema
