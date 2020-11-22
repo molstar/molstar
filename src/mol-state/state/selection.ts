@@ -55,8 +55,13 @@ namespace StateSelection {
         subtree(): Builder;
         children(): Builder;
         ofType<T extends StateObject.Ctor>(t: T): Builder<StateObjectCell<StateObject.From<T>>>;
-        ancestorOfType<T extends StateObject.Ctor>(t: T[]): Builder<StateObjectCell<StateObject.From<T>>>;
-        rootOfType(t: StateObject.Ctor[]): Builder;
+
+        ancestor<T extends StateObject.Ctor>(test: (c: StateObjectCell) => (boolean | void | undefined)): Builder<StateObjectCell<StateObject.From<T>>>;
+        ancestorOfType<T extends StateObject.Ctor>(t: T | T[]): Builder<StateObjectCell<StateObject.From<T>>>;
+        ancestorWithTransformer<T extends StateTransformer>(transfomers: T | T[]): Builder<StateObjectCell<StateTransformer.To<T>>>;
+
+        root<T extends StateObject.Ctor>(test: (c: StateObjectCell) => (boolean | void | undefined)): Builder<StateObjectCell<StateObject.From<T>>>;
+        rootOfType<T extends StateObject.Ctor>(t: T | T[]): Builder<StateObjectCell<StateObject.From<T>>>;
 
         select(state: State): CellSeq<C>
     }
@@ -241,50 +246,79 @@ namespace StateSelection {
     registerModifier('ofType', ofType);
     export function ofType(b: Selector, t: StateObject.Ctor) { return filter(b, n => n.obj ? n.obj.type === t.type : false); }
 
+    registerModifier('ancestor', ancestor);
+    export function ancestor(b: Selector, test: (c: StateObjectCell) => (boolean | void | undefined)) { return unique(mapObject(b, (n, s) => findAncestor(s.tree, s.cells, n.transform.ref, test))); }
+
     registerModifier('ancestorOfType', ancestorOfType);
     export function ancestorOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapObject(b, (n, s) => findAncestorOfType(s.tree, s.cells, n.transform.ref, types))); }
+
+    registerModifier('ancestorWithTransformer', ancestorWithTransformer);
+    export function ancestorWithTransformer(b: Selector, transfomers: StateTransformer[]) { return unique(mapObject(b, (n, s) => findAncestorWithTransformer(s.tree, s.cells, n.transform.ref, transfomers))); }
 
     registerModifier('withTransformer', withTransformer);
     export function withTransformer(b: Selector, t: StateTransformer) { return filter(b, o => o.transform.transformer === t); }
 
+    registerModifier('root', root);
+    export function root(b: Selector, test: (c: StateObjectCell) => (boolean | void | undefined)) { return unique(mapObject(b, (n, s) => findRoot(s.tree, s.cells, n.transform.ref, test))); }
+
     registerModifier('rootOfType', rootOfType);
-    export function rootOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapObject(b, (n, s) => findRootOfType(s.tree, s.cells, n.transform.ref, types))); }
+    export function rootOfType(b: Selector, types: StateObject.Ctor | StateObject.Ctor[]) { return unique(mapObject(b, (n, s) => findRootOfType(s.tree, s.cells, n.transform.ref, types))); }
 
     registerModifier('parent', parent);
     export function parent(b: Selector) { return unique(mapObject(b, (n, s) => s.cells.get(s.tree.transforms.get(n.transform.ref)!.parent))); }
 
-    export function findAncestorOfType<T extends StateObject.Ctor>(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, types: T[]): StateObjectCell<StateObject.From<T>> | undefined {
-        let current = tree.transforms.get(root)!, len = types.length;
+    function _findAncestor<T extends StateObject.Ctor>(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, test: (c: StateObjectCell) => (boolean | void | undefined), findClosest: boolean) {
+        let current = tree.transforms.get(root)!;
+        let ret: StateObjectCell<StateObject.From<T>> | undefined = void 0;
         while (true) {
             current = tree.transforms.get(current.parent)!;
             const cell = cells.get(current.ref)!;
-            if (!cell.obj) return void 0;
-            const obj = cell.obj;
-            for (let i = 0; i < len; i++) {
-                if (obj.type === types[i].type) return cell as StateObjectCell<StateObject.From<T>>;
+            if (cell.obj && test(cell)) {
+                ret = cell as any;
+                if (findClosest) return ret;
             }
             if (current.ref === StateTransform.RootRef) {
-                return void 0;
+                return ret;
             }
         }
     }
 
-    export function findRootOfType(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, types: StateObject.Ctor[]): StateObjectCell | undefined {
-        let parent: StateObjectCell | undefined, _root = root;
-        while (true) {
-            const _parent = StateSelection.findAncestorOfType(tree, cells, _root, types);
-            if (_parent) {
-                parent = _parent;
-                _root = _parent.transform.ref;
-            } else {
-                break;
-            }
-        }
-        return parent;
+    // Return first ancestor that satisfies the given test
+    export function findAncestor<T extends StateObject.Ctor>(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, test: (c: StateObjectCell) => (boolean | void | undefined)) {
+        return _findAncestor<T>(tree, cells, root, test, true);
+    }
+
+    // Return last (with lowest depth) ancestor that satisfies the given test
+    export function findRoot<T extends StateObject.Ctor>(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, test: (c: StateObjectCell) => (boolean | void | undefined)) {
+        return _findAncestor<T>(tree, cells, root, test, false);
+    }
+
+    export function findAncestorWithTransformer<T extends StateTransformer>(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, transfomers: T | T[]): StateObjectCell<StateTransformer.To<T>> | undefined {
+        return findAncestor<StateObject.Ctor<StateTransformer.To<T>>>(tree, cells, root, Array.isArray(transfomers)
+            ? cell => transfomers.indexOf(cell.transform.transformer as any) >= 0
+            : cell => cell.transform.transformer === transfomers
+        );
+    }
+
+    export function findAncestorOfType<T extends StateObject.Ctor>(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, types: T | T[]): StateObjectCell<StateObject.From<T>> | undefined {
+        return findAncestor<StateObject.Ctor<StateObject.From<T>>>(tree, cells, root, _testTypes(types));
+    }
+
+    export function findRootOfType<T extends StateObject.Ctor>(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, types: T | T[]): StateObjectCell<StateObject.From<T>> | undefined {
+        return findRoot<T>(tree, cells, root, _testTypes(types));
+    }
+
+    function _testTypes<T extends StateObject.Ctor>(types: T | T[]) {
+        return Array.isArray(types)
+            ? (cell: StateObjectCell) => {
+                for (const t of types) {
+                    if (t.type === cell.obj!.type) return true;
+                }
+            } : (cell: StateObjectCell) => cell.obj!.type === types.type;
     }
 
     export function findUniqueTagsInSubtree<K extends string = string>(tree: StateTree, root: StateTransform.Ref, tags: Set<K>): { [name in K]?: StateTransform.Ref } {
-        return StateTree.doPreOrder(tree, tree.transforms.get(root), { refs: { }, tags }, _findUniqueTagsInSubtree).refs;
+        return StateTree.doPreOrder(tree, tree.transforms.get(root), { refs: {}, tags }, _findUniqueTagsInSubtree).refs;
     }
 
     function _findUniqueTagsInSubtree(n: StateTransform, _: any, s: { refs: { [name: string]: StateTransform.Ref }, tags: Set<string> }) {

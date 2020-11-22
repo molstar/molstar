@@ -9,7 +9,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { StateAction, StateSelection, StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { PresetStructureRepresentations } from '../builder/structure/representation-preset';
+import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../builder/structure/representation-preset';
 import { BuiltInTrajectoryFormat, BuiltInTrajectoryFormats } from '../formats/trajectory';
 import { RootStructureDefinition } from '../helpers/root-structure';
 import { PluginStateObject } from '../objects';
@@ -24,6 +24,7 @@ const DownloadModelRepresentationOptions = (plugin: PluginContext) => PD.Group({
     representation: PD.Select(PresetStructureRepresentations.auto.id,
         plugin.builders.structure.representation.getPresets().map(p => [p.id, p.display.name, p.display.group] as any),
         { description: 'Which representation preset to use.' }),
+    representationParams: PD.Group(StructureRepresentationPresetProvider.CommonParams, { isHidden: true }),
     asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
 }, { isExpanded: false });
 
@@ -144,7 +145,8 @@ const DownloadStructure = StateAction.build({
             await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
                 structure,
                 showUnitcell,
-                representationPreset
+                representationPreset,
+                representationPresetParams: params.source.params.options.representationParams
             });
         } else {
             for (const download of downloadParams) {
@@ -154,7 +156,8 @@ const DownloadStructure = StateAction.build({
                 await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
                     structure,
                     showUnitcell,
-                    representationPreset
+                    representationPreset,
+                    representationPresetParams: params.source.params.options.representationParams
                 });
             }
         }
@@ -187,7 +190,7 @@ export const UpdateTrajectory = StateAction.build({
         }
     } else {
         for (const m of models) {
-            const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
+            const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, PluginStateObject.Molecule.Trajectory);
             if (!parent || !parent.obj) continue;
             const traj = parent.obj;
             update.to(m).update(old => {

@@ -90,6 +90,11 @@ export function getEntities(data: BasicData, properties: Model['properties']): E
         assignSubtype = true;
     }
 
+    if (entityIds.size < subtypes.length) {
+        // still unassigned subtypes, need to derive from component id/type
+        assignSubtype = true;
+    }
+
     if (assignSubtype) {
         const chemCompType = new Map<string, string>();
         if (data.chem_comp) {

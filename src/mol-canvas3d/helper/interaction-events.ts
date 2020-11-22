@@ -71,14 +71,12 @@ export class Canvas3dInteractionHelper {
 
         if (e === InputEvent.Click) {
             const loci = this.getLoci(this.id);
-            this.events.click.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers, position: this.position });
+            this.events.click.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers, page: Vec2.create(this.endX, this.endY), position: this.position });
             this.prevLoci = loci;
             return;
         }
 
-        if (!this.inside || this.currentIdentifyT !== t || !xyChanged) {
-            return;
-        }
+        if (!this.inside || this.currentIdentifyT !== t || !xyChanged || this.outsideViewport(this.endX, this.endY)) return;
 
         const loci = this.getLoci(this.id);
         this.events.hover.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers, page: Vec2.create(this.endX, this.endY), position: this.position });
