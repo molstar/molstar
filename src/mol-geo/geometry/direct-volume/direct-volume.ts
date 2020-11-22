@@ -167,6 +167,7 @@ export namespace DirectVolume {
         flipSided: PD.Boolean(false, BaseGeometry.ShadingCategory),
         flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         renderMode: createRenderModeParam(),
         stepsPerCell: PD.Numeric(5, { min: 1, max: 20, step: 1 }),
         jumpLength: PD.Numeric(0, { min: 0, max: 20, step: 0.1 }),
@@ -299,6 +300,7 @@ export namespace DirectVolume {
             dFlatShaded: ValueCell.create(props.flatShaded),
             dFlipSided: ValueCell.create(props.flipSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
+            dXrayShaded: ValueCell.create(props.xrayShaded),
         };
     }
 
@@ -315,6 +317,7 @@ export namespace DirectVolume {
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded);
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
+        ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
         ValueCell.updateIfChanged(values.dRenderMode, props.renderMode.name);
 
         if (props.renderMode.name === 'isosurface') {

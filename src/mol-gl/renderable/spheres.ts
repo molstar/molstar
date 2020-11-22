@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,6 +21,7 @@ export const SpheresSchema = {
     padding: ValueSpec('number'),
     dDoubleSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
+    dXrayShaded: DefineSpec('boolean'),
 };
 export type SpheresSchema = typeof SpheresSchema
 export type SpheresValues = Values<SpheresSchema>

@@ -54,6 +54,7 @@ export interface QualityProps {
     linearSegments: number
     resolution: number
     doubleSided: boolean
+    xrayShaded: boolean
     alpha: number
 }
 
@@ -180,7 +181,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
 
     resolution = Math.min(resolution, 20);
 
-    if (props.alpha !== undefined && props.alpha < 1) {
+    if ((props.alpha !== undefined && props.alpha < 1) || !!props.xrayShaded) {
         doubleSided = false;
     }
 

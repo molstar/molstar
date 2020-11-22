@@ -24,6 +24,7 @@ import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { createEmptyClipping } from '../clipping-data';
+import { RenderableState } from '../../../mol-gl/renderable';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -332,6 +333,7 @@ export namespace Mesh {
         flipSided: PD.Boolean(false, BaseGeometry.ShadingCategory),
         flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
     };
     export type Params = typeof Params
 
@@ -342,8 +344,8 @@ export namespace Mesh {
         createValuesSimple,
         updateValues,
         updateBoundingSphere,
-        createRenderableState: BaseGeometry.createRenderableState,
-        updateRenderableState: BaseGeometry.updateRenderableState,
+        createRenderableState,
+        updateRenderableState,
         createPositionIterator
     };
 
@@ -403,6 +405,7 @@ export namespace Mesh {
             dFlatShaded: ValueCell.create(props.flatShaded),
             dFlipSided: ValueCell.create(props.flipSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
+            dXrayShaded: ValueCell.create(props.xrayShaded),
         };
     }
 
@@ -418,6 +421,7 @@ export namespace Mesh {
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded);
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
+        ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
     }
 
     function updateBoundingSphere(values: MeshValues, mesh: Mesh) {
@@ -431,5 +435,17 @@ export namespace Mesh {
             ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere);
             ValueCell.update(values.uInvariantBoundingSphere, Vec4.fromSphere(values.uInvariantBoundingSphere.ref.value, invariantBoundingSphere));
         }
+    }
+
+    function createRenderableState(props: PD.Values<Params>): RenderableState {
+        const state = BaseGeometry.createRenderableState(props);
+        updateRenderableState(state, props);
+        return state;
+    }
+
+    function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
+        BaseGeometry.updateRenderableState(state, props);
+        state.opaque = state.opaque && !props.xrayShaded;
+        state.writeDepth = state.opaque;
     }
 }

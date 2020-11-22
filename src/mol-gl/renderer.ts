@@ -476,7 +476,7 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 // TODO: simplify, handle on renderable.state???
-                if (r.values.uAlpha.ref.value === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dRenderMode?.ref.value !== 'volume' && !r.values.dPointFilledCircle?.ref.value) {
+                if (r.values.uAlpha.ref.value === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dRenderMode?.ref.value !== 'volume' && !r.values.dPointFilledCircle?.ref.value && !r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'colorWboit');
                 }
             }
@@ -489,7 +489,7 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 // TODO: simplify, handle on renderable.state???
-                if (r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dRenderMode?.ref.value === 'volume' || r.values.dPointFilledCircle?.ref.value || !!r.values.uBackgroundColor) {
+                if (r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dRenderMode?.ref.value === 'volume' || r.values.dPointFilledCircle?.ref.value || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'colorWboit');
                 }
             }

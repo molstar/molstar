@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -20,6 +20,7 @@ export const MeshSchema = {
     dDoubleSided: DefineSpec('boolean'),
     dFlipSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
+    dXrayShaded: DefineSpec('boolean'),
 } as const;
 export type MeshSchema = typeof MeshSchema
 export type MeshValues = Values<MeshSchema>

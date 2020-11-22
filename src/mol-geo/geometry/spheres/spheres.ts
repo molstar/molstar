@@ -24,6 +24,7 @@ import { hashFnv32a } from '../../../mol-data/util';
 import { GroupMapping, createGroupMapping } from '../../util';
 import { createEmptyClipping } from '../clipping-data';
 import { Vec3, Vec4 } from '../../../mol-math/linear-algebra';
+import { RenderableState } from '../../../mol-gl/renderable';
 
 export interface Spheres {
     readonly kind: 'spheres',
@@ -126,6 +127,7 @@ export namespace Spheres {
         sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
         doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
     };
     export type Params = typeof Params
 
@@ -136,8 +138,8 @@ export namespace Spheres {
         createValuesSimple,
         updateValues,
         updateBoundingSphere,
-        createRenderableState: BaseGeometry.createRenderableState,
-        updateRenderableState: BaseGeometry.updateRenderableState,
+        createRenderableState,
+        updateRenderableState,
         createPositionIterator
     };
 
@@ -201,6 +203,7 @@ export namespace Spheres {
             uSizeFactor: ValueCell.create(props.sizeFactor),
             dDoubleSided: ValueCell.create(props.doubleSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
+            dXrayShaded: ValueCell.create(props.xrayShaded),
         };
     }
 
@@ -215,6 +218,7 @@ export namespace Spheres {
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor);
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
+        ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
     }
 
     function updateBoundingSphere(values: SpheresValues, spheres: Spheres) {
@@ -230,5 +234,17 @@ export namespace Spheres {
             ValueCell.update(values.uInvariantBoundingSphere, Vec4.fromSphere(values.uInvariantBoundingSphere.ref.value, invariantBoundingSphere));
         }
         ValueCell.update(values.padding, padding);
+    }
+
+    function createRenderableState(props: PD.Values<Params>): RenderableState {
+        const state = BaseGeometry.createRenderableState(props);
+        updateRenderableState(state, props);
+        return state;
+    }
+
+    function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
+        BaseGeometry.updateRenderableState(state, props);
+        state.opaque = state.opaque && !props.xrayShaded;
+        state.writeDepth = state.opaque;
     }
 }
