@@ -12,6 +12,7 @@ void main() {
     float r = 1.0 - accum.a;
 
     accum.a = texture2D(tWboitB, coords).r;
-    gl_FragColor = vec4(accum.rgb / clamp(accum.a, 0.0001, 50000.0), r);
+    // divisor needs to allow very small values for nice fading
+    gl_FragColor = vec4(accum.rgb / clamp(accum.a, 0.00000001, 50000.0), r);
 }
 `;

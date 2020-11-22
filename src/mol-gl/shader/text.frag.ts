@@ -35,7 +35,7 @@ void main(){
     #include assign_material_color
 
     if (vTexCoord.x > 1.0) {
-        gl_FragColor = vec4(uBackgroundColor, uBackgroundOpacity);
+        gl_FragColor = vec4(uBackgroundColor, uBackgroundOpacity * material.a);
     } else {
         // retrieve signed distance
         float sdf = texture2D(tFont, vTexCoord).a + uBorderWidth;

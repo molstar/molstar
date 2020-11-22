@@ -156,7 +156,7 @@ export const GlobalUniformSchema = {
     uHighlightColor: UniformSpec('v3'),
     uSelectColor: UniformSpec('v3'),
 
-    uRenderWboit: UniformSpec('i'),
+    uRenderWboit: UniformSpec('b'),
 } as const;
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = Values<GlobalUniformSchema>

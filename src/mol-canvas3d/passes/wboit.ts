@@ -73,7 +73,7 @@ export class WboitPass {
     render() {
         const { state, gl } = this.webgl;
 
-        state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
+        state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         state.enable(gl.BLEND);
 
         this.renderable.update();

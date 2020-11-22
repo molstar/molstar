@@ -180,8 +180,7 @@ export class DrawPass {
         }
 
         renderer.clear(true);
-        // TODO: split into opaque and transparent pass to handle opaque volume isosurfaces
-        renderer.renderBlended(scene.primitives, camera, null);
+        renderer.renderBlendedOpaque(scene.primitives, camera, null);
 
         // do a depth pass if not rendering to drawing buffer and
         // extensions.depthTexture is unsupported (i.e. depthTarget is set)
@@ -198,7 +197,7 @@ export class DrawPass {
                 this.depthTextureVolumes.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
                 renderer.clearDepth();
             }
-            renderer.renderBlended(scene.volumes, camera, this.depthTexturePrimitives);
+            renderer.renderBlendedVolume(scene.volumes, camera, this.depthTexturePrimitives);
 
             // do volume depth pass if extensions.depthTexture is unsupported (i.e. depthTarget is set)
             if (this.depthTargetVolumes) {
@@ -208,6 +207,8 @@ export class DrawPass {
                 this.colorTarget.bind();
             }
         }
+
+        renderer.renderBlendedTransparent(scene.primitives, camera, null);
 
         // merge depths from primitive and volume rendering
         if (!toDrawingBuffer) {

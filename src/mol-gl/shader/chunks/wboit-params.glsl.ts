@@ -11,7 +11,7 @@ export default `
     #endif
 #endif
 
-uniform int uRenderWboit;
+uniform bool uRenderWboit;
 
 float calcDepth(const in vec3 pos) {
     vec2 clipZW = pos.z * uProjection[2].zw + uProjection[3].zw;

@@ -129,7 +129,7 @@ vec4 transferFunction(float value) {
 
 float getDepth(const in vec2 coords) {
     #ifdef depthTextureSupport
-        if (uRenderWboit == 0) {
+        if (!uRenderWboit) {
             // in case of opaque volumes (and depth texture support)
             return texture2D(tDepth, coords).r;
         } else {
@@ -240,7 +240,6 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                 #ifdef enabledFragDepth
                     if (!hit) {
                         gl_FragDepthEXT = depth;
-                        hit = true;
                     }
                 #endif
 
@@ -330,13 +329,18 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
                     src = gl_FragColor;
 
-                    src.rgb *= src.a;
+                    if (!uTransparentBackground) {
+                        // done in 'apply_fog' otherwise
+                        src.rgb *= src.a;
+                    }
                     dst = (1.0 - dst.a) * src + dst; // standard blending
                 #endif
 
                 #ifdef dSingleLayer
                     break;
                 #endif
+
+                hit = true;
             }
             prevValue = value;
         #elif defined(dRenderMode_volume)
@@ -393,7 +397,10 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
                 src = gl_FragColor;
 
-                src.rgb *= src.a;
+                if (!uTransparentBackground) {
+                    // done in 'apply_fog' otherwise
+                    src.rgb *= src.a;
+                }
                 dst = (1.0 - dst.a) * src + dst; // standard blending
             #endif
         #endif

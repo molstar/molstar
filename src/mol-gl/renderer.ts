@@ -49,6 +49,9 @@ interface Renderer {
     renderPick: (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null) => void
     renderDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlended: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderBlendedOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderBlendedTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderBlendedVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderWboitOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderWboitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
 
@@ -224,7 +227,7 @@ namespace Renderer {
             uFogFar: ValueCell.create(10000),
             uFogColor: ValueCell.create(bgColor),
 
-            uRenderWboit: ValueCell.create(0),
+            uRenderWboit: ValueCell.create(false),
 
             uTransparentBackground: ValueCell.create(false),
 
@@ -300,7 +303,7 @@ namespace Renderer {
                         state.depthMask(false);
                     } else {
                         state.enable(gl.DEPTH_TEST);
-                        state.depthMask(r.state.writeDepth);
+                        state.depthMask(r.values.uAlpha.ref.value === 1.0);
                     }
                 }
             } else {
@@ -328,8 +331,6 @@ namespace Renderer {
                     state.frontFace(gl.CCW);
                     state.cullFace(gl.BACK);
                 }
-
-                if (variant === 'colorBlended') state.depthMask(r.state.writeDepth);
             }
 
             r.render(variant, sharedTexturesList);
@@ -363,7 +364,7 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection));
             ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection));
 
-            ValueCell.updateIfChanged(globalUniforms.uRenderWboit, renderWboit ? 1 : 0);
+            ValueCell.updateIfChanged(globalUniforms.uRenderWboit, renderWboit);
 
             state.enable(gl.SCISSOR_TEST);
             state.colorMask(true, true, true, true);
@@ -405,6 +406,11 @@ namespace Renderer {
         };
 
         const renderBlended = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            renderBlendedOpaque(group, camera, depthTexture);
+            renderBlendedTransparent(group, camera, depthTexture);
+        };
+
+        const renderBlendedOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
@@ -418,8 +424,21 @@ namespace Renderer {
                     renderObject(r, 'colorBlended');
                 }
             }
+        };
 
-            state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
+        const renderBlendedTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            state.enable(gl.DEPTH_TEST);
+            state.depthMask(true);
+
+            updateInternal(group, camera, depthTexture, false);
+
+            const { renderables } = group;
+
+            if (transparentBackground) {
+                state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            } else {
+                state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            }
             state.enable(gl.BLEND);
 
             state.depthMask(true);
@@ -439,6 +458,19 @@ namespace Renderer {
             }
         };
 
+        const renderBlendedVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            state.enable(gl.BLEND);
+
+            updateInternal(group, camera, depthTexture, false);
+
+            const { renderables } = group;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+                renderObject(r, 'colorBlended');
+            }
+        };
+
         const renderWboitOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
@@ -449,7 +481,8 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if (r.values.uAlpha.ref.value === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values?.dRenderMode?.ref.value !== 'volume') {
+                // TODO: simplify, handle on renderable.state???
+                if (r.values.uAlpha.ref.value === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dRenderMode?.ref.value !== 'volume' && !r.values.dPointFilledCircle?.ref.value) {
                     renderObject(r, 'colorWboit');
                 }
             }
@@ -461,7 +494,8 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if (r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value > 0 || r.values?.dRenderMode?.ref.value === 'volume') {
+                // TODO: simplify, handle on renderable.state???
+                if (r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dRenderMode?.ref.value === 'volume' || r.values.dPointFilledCircle?.ref.value || !!r.values.uBackgroundColor) {
                     renderObject(r, 'colorWboit');
                 }
             }
@@ -475,7 +509,7 @@ namespace Renderer {
                 state.depthMask(true);
 
                 if (transparentBackground) {
-                    state.clearColor(1, 1, 1, 0);
+                    state.clearColor(0, 0, 0, 0);
                 } else if (toBackgroundColor) {
                     state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1);
                 } else {
@@ -494,6 +528,9 @@ namespace Renderer {
             renderPick,
             renderDepth,
             renderBlended,
+            renderBlendedOpaque,
+            renderBlendedTransparent,
+            renderBlendedVolume,
             renderWboitOpaque,
             renderWboitTransparent,
 

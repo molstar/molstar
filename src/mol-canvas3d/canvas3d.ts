@@ -155,7 +155,7 @@ namespace Canvas3D {
             antialias: attribs.antialias ?? true,
             depth: true,
             preserveDrawingBuffer: true,
-            premultipliedAlpha: false,
+            premultipliedAlpha: true,
         });
         if (gl === null) throw new Error('Could not create a WebGL rendering context');
 
