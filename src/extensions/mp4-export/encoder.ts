@@ -52,13 +52,17 @@ export async function encodeMp4Animation<A extends PluginStateAnimation>(plugin:
     encoder.initialize();
 
     const loop = plugin.animationLoop;
-    const originalBackground = params.customBackground !== void 0 ? plugin.canvas3d?.props.renderer.backgroundColor : void 0;
+    const canvasProps = plugin.canvas3d?.props;
+    const wasAnimating = loop.isAnimating;
     let stoppedAnimation = true, finalized = false;
 
     try {
         loop.stop();
         loop.resetTime(0);
-        plugin.canvas3d?.setProps({ renderer: { backgroundColor: params.customBackground } }, true);
+
+        if (params.customBackground !== void 0) {
+            plugin.canvas3d?.setProps({ renderer: { backgroundColor: params.customBackground }, transparentBackground: false }, true);
+        }
 
         const fps = encoder.frameRate;
         const N = Math.ceil(durationMs / 1000 * fps);
@@ -86,11 +90,11 @@ export async function encodeMp4Animation<A extends PluginStateAnimation>(plugin:
         return encoder.FS.readFile(encoder.outputFilename);
     } finally {
         if (finalized) encoder.delete();
-        if (originalBackground !== void 0) {
-            plugin.canvas3d?.setProps({ renderer: { backgroundColor: originalBackground } });
+        if (params.customBackground !== void 0) {
+            plugin.canvas3d?.setProps({ renderer: { backgroundColor: canvasProps?.renderer!.backgroundColor }, transparentBackground: canvasProps?.transparentBackground });
         }
         if (!stoppedAnimation) await plugin.managers.animation.stop();
-        loop.start();
+        if (wasAnimating) loop.start();
     }
 }
 

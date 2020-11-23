@@ -115,7 +115,6 @@ export class Mp4EncoderUI extends CollapsableControls<{}, State> {
         try {
             this.setState({ busy: true });
             const data = await this.controls.render();
-            console.log(data);
             this.setState({ busy: false, data });
         } catch {
             this.setState({ busy: false });
