@@ -421,7 +421,7 @@ namespace Canvas3D {
                 if (!b.radius) continue;
 
                 const cameraDist = Vec3.distance(cameraSphere.center, b.center);
-                if (cameraDist > cameraSphere.radius && cameraDist > b.radius && !Sphere3D.includes(oldBoundingSphereVisible, b)) return true;
+                if ((cameraDist > cameraSphere.radius || cameraDist > b.radius) && !Sphere3D.includes(oldBoundingSphereVisible, b)) return true;
                 if (Sphere3D.overlaps(cameraSphere, b)) cameraSphereOverlapsNone = false;
             }
 
