@@ -182,7 +182,8 @@ class ViewportScreenshotHelper extends PluginComponent {
 
     autocrop(relativePadding = this.cropParams.relativePadding) {
         const { data, width, height } = this.previewData.image;
-        const bgColor = this.previewData.transparent ? this.previewData.background : 0xff000000 | this.previewData.background;
+        const isTransparent = this.previewData.transparent;
+        const bgColor = isTransparent ? this.previewData.background : 0xff000000 | this.previewData.background;
 
         let l = width, r = 0, t = height, b = 0;
 
@@ -190,9 +191,13 @@ class ViewportScreenshotHelper extends PluginComponent {
             const jj = j * width;
             for (let i = 0; i < width; i++) {
                 const o = 4 * (jj + i);
-                const c = (data[o] << 16) | (data[o + 1] << 8) | (data[o + 2]) | (data[o + 3] << 24);
 
-                if (c === bgColor) continue;
+                if (isTransparent) {
+                    if (data[o + 3] === 0) continue;
+                } else {
+                    const c = (data[o] << 16) | (data[o + 1] << 8) | (data[o + 2]) | (data[o + 3] << 24);
+                    if (c === bgColor) continue;
+                }
 
                 if (i < l) l = i;
                 if (i > r) r = i;
