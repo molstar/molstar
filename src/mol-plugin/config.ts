@@ -24,7 +24,7 @@ export const PluginConfig = {
     General: {
         IsBusyTimeoutMs: item('plugin-config.is-busy-timeout', 750),
         DisableAntialiasing: item('plugin-config.disable-antialiasing', false),
-        PixelScale: item('plugin-config.pixel-scale', 1),
+        PixelScale: item<number | undefined>('plugin-config.pixel-scale', void 0),
         EnableWboit: item('plugin-config.enable-wboit', false)
     },
     State: {
