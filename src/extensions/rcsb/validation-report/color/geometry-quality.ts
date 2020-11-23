@@ -32,7 +32,7 @@ const ColorLegend = TableLegend([
 ]);
 
 export function getGeometricQualityColorThemeParams(ctx: ThemeDataContext) {
-    const validationReport = ctx.structure && ValidationReportProvider.get(ctx.structure.models[0]).value;
+    const validationReport = !!ctx.structure && ctx.structure.models.length > 0 && ValidationReportProvider.get(ctx.structure.models[0]).value;
     const options: [string, string][] = [];
     if (validationReport) {
         const kinds = new Set<string>();
@@ -48,7 +48,7 @@ export type GeometricQualityColorThemeParams = ReturnType<typeof getGeometricQua
 export function GeometryQualityColorTheme(ctx: ThemeDataContext, props: PD.Values<GeometricQualityColorThemeParams>): ColorTheme<GeometricQualityColorThemeParams> {
     let color: LocationColor = () => DefaultColor;
 
-    const validationReport = ctx.structure && ValidationReportProvider.get(ctx.structure.models[0]);
+    const validationReport = !!ctx.structure && ctx.structure.models.length > 0 ? ValidationReportProvider.get(ctx.structure.models[0]) : void 0;
     const contextHash = validationReport?.version;
 
     const value = validationReport?.value;
