@@ -192,10 +192,10 @@ export class DrawPass {
         }
 
         // do direct-volume rendering
-        if (!toDrawingBuffer) {
+        if (!toDrawingBuffer && scene.volumes.renderables.length > 0) {
             if (!this.packedDepth) {
                 this.depthTextureVolumes.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
-                renderer.clearDepth();
+                renderer.clearDepth(); // from previous frame
             }
             renderer.renderBlendedVolume(scene.volumes, camera, this.depthTexturePrimitives);
 
@@ -205,6 +205,10 @@ export class DrawPass {
                 renderer.clear(false);
                 renderer.renderDepth(scene.volumes, camera, this.depthTexturePrimitives);
                 this.colorTarget.bind();
+            }
+
+            if (!this.packedDepth) {
+                this.depthTexturePrimitives.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
             }
         }
 

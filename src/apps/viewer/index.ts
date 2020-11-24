@@ -68,7 +68,7 @@ const DefaultViewerOptions = {
     layoutShowLog: true,
     layoutShowLeftPanel: true,
     disableAntialiasing: false,
-    pixelScale: void 0 as number | undefined,
+    pixelScale: 1,
     enableWboit: false,
 
     viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
@@ -115,16 +115,11 @@ export class Viewer {
             components: {
                 ...DefaultPluginSpec.components,
                 remoteState: o.layoutShowRemoteState ? 'default' : 'none',
-                viewport: {
-                    canvas3d: {
-                        multiSample: { mode: 'on', sampleLevel: 2  }
-                    }
-                }
             },
             config: [
                 [PluginConfig.General.DisableAntialiasing, o.disableAntialiasing],
                 [PluginConfig.General.PixelScale, o.pixelScale],
-                [PluginConfig.General.EnableWboit, true || o.enableWboit],
+                [PluginConfig.General.EnableWboit, o.enableWboit],
                 [PluginConfig.Viewport.ShowExpand, o.viewportShowExpand],
                 [PluginConfig.Viewport.ShowControls, o.viewportShowControls],
                 [PluginConfig.Viewport.ShowSettings, o.viewportShowSettings],

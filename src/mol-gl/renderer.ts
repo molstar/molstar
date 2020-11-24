@@ -422,7 +422,6 @@ namespace Renderer {
 
         const renderBlendedTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
             state.enable(gl.DEPTH_TEST);
-            state.depthMask(true);
 
             updateInternal(group, camera, depthTexture, false);
 
