@@ -14,7 +14,7 @@ import { Grid } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { arrayMax, arrayMin, arrayRms } from '../../mol-util/array';
 import { CollocationParams, sphericalCollocation } from './collocation';
-import { canComputeAlphaOrbitalsOnGPU, gpuComputeAlphaOrbitalsGridValues } from './gpu/compute';
+import { canComputeAlphaOrbitalsOnGPU, gpuComputeAlphaOrbitalsDensityGridValues, gpuComputeAlphaOrbitalsGridValues } from './gpu/compute';
 import { SphericalBasisOrder } from './orbitals';
 
 export interface CubeGridInfo {
@@ -63,7 +63,7 @@ export interface SphericalCollocationParams {
 }
 
 export function createSphericalCollocationGrid(
-    params: SphericalCollocationParams, webgl?: WebGLContext
+    params: SphericalCollocationParams, webgl?: WebGLContext, orbitals?: number[][]
 ): Task<CubeGrid> {
     return Task.create('Spherical Collocation Grid', async (ctx) => {
         const centers = params.basis.atoms.map(a => a.center);
@@ -78,9 +78,11 @@ export function createSphericalCollocationGrid(
 
         let matrix: Float32Array;
         if (canComputeAlphaOrbitalsOnGPU(webgl)) {
-            // console.time('gpu');
-            matrix = gpuComputeAlphaOrbitalsGridValues(webgl!, cParams);
-            // console.timeEnd('gpu');
+            console.time('gpu');
+            // matrix = gpuComputeAlphaOrbitalsGridValues(webgl!, cParams);
+            matrix = gpuComputeAlphaOrbitalsDensityGridValues(webgl!, cParams, orbitals!);
+            console.log(matrix);
+            console.timeEnd('gpu');
         } else {
             // console.time('cpu');
             matrix = await sphericalCollocation(cParams, ctx);

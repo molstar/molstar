@@ -98,13 +98,13 @@ export class AlphaOrbitalsExample {
 
     private volumeParams(kind: 'positive' | 'negative', color: Color): StateTransformer.Params<typeof CreateOrbitalRepresentation3D> {
         return {
-            alpha: 1.0,
+            alpha: 0.85,
             color,
             directVolume: this.state.value.gpuSurface,
             kind,
             relativeIsovalue: this.state.value.isoValue,
             pickable: false,
-            xrayShaded: false
+            xrayShaded: true
         };
     }
 

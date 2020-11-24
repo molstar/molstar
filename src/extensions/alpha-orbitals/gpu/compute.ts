@@ -15,7 +15,8 @@ import { ValueCell } from '../../../mol-util';
 import { arrayMin } from '../../../mol-util/array';
 import { isLittleEndian } from '../../../mol-util/is-little-endian';
 import { CollocationParams } from '../collocation';
-import { normalizeBasicOrder } from '../orbitals';
+import { Basis } from '../cubes';
+import { normalizeBasicOrder, SphericalBasisOrder } from '../orbitals';
 import shader_frag from './shader.frag';
 
 const AlphaOrbitalsSchema = {
@@ -32,11 +33,32 @@ const AlphaOrbitalsSchema = {
     uNAlpha: UniformSpec('i'),
     uNCoeff: UniformSpec('i'),
     uMaxCoeffs: UniformSpec('i'),
-    uLittleEndian: UniformSpec('b')
+    uLittleEndian: UniformSpec('b'),
+
+    uOccupancy: UniformSpec('f'),
+    tCumulativeSum: TextureSpec('texture', 'rgba', 'ubyte', 'nearest')
 };
+type AlphaOrbitalsSchema = Values<typeof AlphaOrbitalsSchema>
 const AlphaOrbitalsName = 'alpha-orbitals';
 const AlphaOrbitalsShaderCode = ShaderCode(AlphaOrbitalsName, quad_vert, shader_frag);
-type AlphaOrbitalsRenderable = ComputeRenderable<Values<typeof AlphaOrbitalsSchema>>
+type AlphaOrbitalsRenderable = ComputeRenderable<AlphaOrbitalsSchema>
+
+function getNormalizedAlpha(basis: Basis, alphaOrbitals: number[], sphericalOrder: SphericalBasisOrder) {
+    const alpha = new Float32Array(alphaOrbitals.length);
+
+    let aO = 0;
+    for (const atom of basis.atoms) {
+        for (const shell of atom.shells) {
+            for (const L of shell.angularMomentum) {
+                const a0 = normalizeBasicOrder(L, alphaOrbitals.slice(aO, aO + 2 * L + 1), sphericalOrder);
+                for (let i = 0; i < a0.length; i++) alpha[aO + i] = a0[i];
+                aO += 2 * L + 1;
+            }
+        }
+    }
+
+    return alpha;
+}
 
 function createTextureData({
     basis,
@@ -119,7 +141,11 @@ function createAlphaOrbitalsRenderable(ctx: WebGLContext, params: CollocationPar
     const [nx, ny, nz] = params.grid.dimensions;
     const width = Math.ceil(Math.sqrt(nx * ny * nz));
 
-    const values: Values<typeof AlphaOrbitalsSchema> = {
+    if (!ctx.namedTextures[AlphaOrbitalsName]) {
+        ctx.namedTextures[AlphaOrbitalsName] = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+    }
+
+    const values: AlphaOrbitalsSchema = {
         ...QuadValues,
         uDimensions: ValueCell.create(params.grid.dimensions),
         uMin: ValueCell.create(params.grid.box.min),
@@ -134,6 +160,9 @@ function createAlphaOrbitalsRenderable(ctx: WebGLContext, params: CollocationPar
         tCoeff: ValueCell.create({ width: data.nCoeff, height: 1, array: data.coeff }),
         tAlpha: ValueCell.create({ width: data.nAlpha, height: 1, array: data.alpha }),
         uLittleEndian: ValueCell.create(isLittleEndian()),
+
+        uOccupancy: ValueCell.create(0),
+        tCumulativeSum: ValueCell.create(ctx.namedTextures[AlphaOrbitalsName])
     };
 
     const schema = { ...AlphaOrbitalsSchema };
@@ -150,7 +179,7 @@ function createAlphaOrbitalsRenderable(ctx: WebGLContext, params: CollocationPar
 
 function getAlphaOrbitalsRenderable(ctx: WebGLContext, params: CollocationParams): AlphaOrbitalsRenderable {
     if (ctx.namedComputeRenderables[AlphaOrbitalsName]) {
-        const v = ctx.namedComputeRenderables[AlphaOrbitalsName].values;
+        const v = ctx.namedComputeRenderables[AlphaOrbitalsName].values as AlphaOrbitalsSchema;
 
         const data = createTextureData(params);
 
@@ -170,6 +199,7 @@ function getAlphaOrbitalsRenderable(ctx: WebGLContext, params: CollocationParams
         ValueCell.update(v.tCoeff, { width: data.nCoeff, height: 1, array: data.coeff });
         ValueCell.update(v.tAlpha, { width: data.nAlpha, height: 1, array: data.alpha });
         ValueCell.updateIfChanged(v.uLittleEndian, isLittleEndian());
+        ValueCell.updateIfChanged(v.uOccupancy, 0);
 
         ctx.namedComputeRenderables[AlphaOrbitalsName].update();
     } else {
@@ -211,4 +241,68 @@ export function gpuComputeAlphaOrbitalsGridValues(webgl: WebGLContext, params: C
 
 export function canComputeAlphaOrbitalsOnGPU(webgl?: WebGLContext) {
     return !!webgl?.extensions.textureFloat;
+}
+
+const AlphaOrbitalsDensity0 = AlphaOrbitalsName;
+const AlphaOrbitalsDensity1 = AlphaOrbitalsName + '1';
+
+export function gpuComputeAlphaOrbitalsDensityGridValues(webgl: WebGLContext, params: CollocationParams, orbitals: number[][]) {
+    const [nx, ny, nz] = params.grid.dimensions;
+    const renderable = getAlphaOrbitalsRenderable(webgl, params);
+    const width = renderable.values.uWidth.ref.value;
+
+    if (!webgl.namedFramebuffers[AlphaOrbitalsDensity0]) {
+        webgl.namedFramebuffers[AlphaOrbitalsDensity0] = webgl.resources.framebuffer();
+    }
+    const framebuffer = webgl.namedFramebuffers[AlphaOrbitalsDensity0];
+
+    if (!webgl.namedTextures[AlphaOrbitalsDensity0]) {
+        webgl.namedTextures[AlphaOrbitalsDensity0] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+    }
+    if (!webgl.namedTextures[AlphaOrbitalsDensity1]) {
+        webgl.namedTextures[AlphaOrbitalsDensity1] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+    }
+
+
+    const tex = [webgl.namedTextures[AlphaOrbitalsDensity0], webgl.namedTextures[AlphaOrbitalsDensity1]];
+
+    tex[0].define(width, width);
+    tex[1].define(width, width);
+
+    const values = renderable.values as AlphaOrbitalsSchema;
+    const { gl, state } = webgl;
+
+    gl.viewport(0, 0, width, width);
+    gl.scissor(0, 0, width, width);
+    state.disable(gl.SCISSOR_TEST);
+    state.disable(gl.BLEND);
+    state.disable(gl.DEPTH_TEST);
+    state.depthMask(false);
+
+    gl.clearColor(0, 0, 0, 0);
+
+    tex[0].attachFramebuffer(framebuffer, 'color0');
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    tex[1].attachFramebuffer(framebuffer, 'color0');
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    for (let i = 0; i < 108; i++) {
+        const alpha = getNormalizedAlpha(params.basis, orbitals[i], params.sphericalOrder);
+
+        ValueCell.update(values.uOccupancy, 2);
+        ValueCell.update(values.tCumulativeSum, tex[(i + 1) % 2]);
+        ValueCell.update(values.tAlpha, { width: alpha.length, height: 1, array: alpha });
+        renderable.update();
+        tex[i % 2].attachFramebuffer(framebuffer, 'color0');
+        renderable.render();
+    }
+
+    const array = new Uint8Array(width * width * 4);
+    webgl.readPixels(0, 0, width, width, array);
+
+    tex[0].define(1, 1);
+    tex[1].define(1, 1);
+
+    return new Float32Array(array.buffer, array.byteOffset, nx * ny * nz);
 }

@@ -76,7 +76,7 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
                 sphericalOrder: a.data.order,
                 boxExpand: params.boxExpand,
                 gridSpacing: params.gridSpacing.map(e => [e.atomCount, e.spacing] as [number, number])
-            }, params.forceCpuCompute ? void 0 : plugin.canvas3d?.webgl).runInContext(ctx);
+            }, params.forceCpuCompute ? void 0 : plugin.canvas3d?.webgl, a.data.orbitals.map(o => o.alpha)).runInContext(ctx);
             const volume: Volume = {
                 grid: data.grid,
                 sourceData: { name: 'custom grid', kind: 'alpha-orbitals', data },

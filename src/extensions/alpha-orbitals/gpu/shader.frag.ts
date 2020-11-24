@@ -28,6 +28,9 @@ uniform float uWidth;
 uniform int uNCoeff;
 uniform int uNAlpha;
 
+uniform float uOccupancy;
+uniform sampler2D tCumulativeSum;
+
 uniform bool uLittleEndian;
 
 float shiftRight (float v, float amt) {
@@ -66,6 +69,78 @@ vec4 floatToRgba(float texelFloat) {
             : vec4(byte1, byte2, byte3, byte4)
     );
 }
+
+///////////////////////////////////////////////////////
+
+ivec4 floatsToBytes(vec4 inputFloats) {
+  ivec4 bytes = ivec4(inputFloats * 255.0);
+  return (
+    uLittleEndian
+    ? bytes.abgr
+    : bytes
+  );
+}
+
+// Break the four bytes down into an array of 32 bits.
+void bytesToBits(const in ivec4 bytes, out bool bits[32]) {
+  for (int channelIndex = 0; channelIndex < 4; ++channelIndex) {
+    float acc = float(bytes[channelIndex]);
+    for (int indexInByte = 7; indexInByte >= 0; --indexInByte) {
+      float powerOfTwo = exp2(float(indexInByte));
+      bool bit = acc >= powerOfTwo;
+      bits[channelIndex * 8 + (7 - indexInByte)] = bit;
+      acc = mod(acc, powerOfTwo);
+    }
+  }
+}
+
+// Compute the exponent of the 32-bit float.
+float getExponent(bool bits[32]) {
+  const int startIndex = 1;
+  const int bitStringLength = 8;
+  const int endBeforeIndex = startIndex + bitStringLength;
+  float acc = 0.0;
+  int pow2 = bitStringLength - 1;
+  for (int bitIndex = startIndex; bitIndex < endBeforeIndex; ++bitIndex) {
+    acc += float(bits[bitIndex]) * exp2(float(pow2--));
+  }
+  return acc;
+}
+
+// Compute the mantissa of the 32-bit float.
+float getMantissa(bool bits[32], bool subnormal) {
+  const int startIndex = 9;
+  const int bitStringLength = 23;
+  const int endBeforeIndex = startIndex + bitStringLength;
+  // Leading/implicit/hidden bit convention:
+  // If the number is not subnormal (with exponent 0), we add a leading 1 digit.
+  float acc = float(!subnormal) * exp2(float(bitStringLength));
+  int pow2 = bitStringLength - 1;
+  for (int bitIndex = startIndex; bitIndex < endBeforeIndex; ++bitIndex) {
+    acc += float(bits[bitIndex]) * exp2(float(pow2--));
+  }
+  return acc;
+}
+
+// Parse the float from its 32 bits.
+float bitsToFloat(bool bits[32]) {
+  float signBit = float(bits[0]) * -2.0 + 1.0;
+  float exponent = getExponent(bits);
+  bool subnormal = abs(exponent - 0.0) < 0.01;
+  float mantissa = getMantissa(bits, subnormal);
+  float exponentBias = 127.0;
+  return signBit * mantissa * exp2(exponent - exponentBias - 23.0);
+}
+
+// Decode a 32-bit float from the RGBA color channels of a texel.
+float rgbaToFloat(vec4 texelRGBA) {
+  ivec4 rgbaBytes = floatsToBytes(texelRGBA);
+  bool bits[32];
+  bytesToBits(rgbaBytes, bits);
+  return bitsToFloat(bits);
+}
+
+///////////////////////////////////////////////////////
 
 float L1(vec3 p, float a0, float a1, float a2) {
     return a0 * p.z + a1 * p.x + a2 * p.y;
@@ -224,7 +299,12 @@ void main(void) {
         v += R(R2, coeffStart, coeffEnd, fCoeff) * Y(L, X, aO, fA);
     }
 
-    // TODO: render to single component float32 texture in WebGL2
-    gl_FragColor = floatToRgba(v);
+    
+    if (uOccupancy > 0.0) {
+        float current = rgbaToFloat(texture2D(tCumulativeSum, gl_FragCoord.xy / vec2(uWidth, uWidth)));
+        gl_FragColor = floatToRgba(current + uOccupancy * v * v);
+    } else {
+        gl_FragColor = floatToRgba(v);
+    }
 }
 `;
