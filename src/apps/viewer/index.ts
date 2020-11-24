@@ -165,13 +165,13 @@ export class Viewer {
         }));
     }
 
-    async loadAllModelsOrAssemblyFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false) {
+    async loadAllModelsOrAssemblyFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: LoadStructureOptions) {
         const plugin = this.plugin;
 
         const data = await plugin.builders.data.download({ url, isBinary }, { state: { isGhost: true } });
         const trajectory = await plugin.builders.structure.parseTrajectory(data, format);
 
-        await this.plugin.builders.structure.hierarchy.applyPreset(trajectory, 'all-models', { useDefaultIfSingleModel: true });
+        await this.plugin.builders.structure.hierarchy.applyPreset(trajectory, 'all-models', { useDefaultIfSingleModel: true, representationPresetParams: options?.representationParams });
     }
 
     async loadStructureFromData(data: string | number[], format: BuiltInTrajectoryFormat, options?: { dataLabel?: string }) {

@@ -76,6 +76,7 @@ const defaultPreset = TrajectoryHierarchyPresetProvider({
 
 const AllModelsParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
     useDefaultIfSingleModel: PD.Optional(PD.Boolean(false)),
+    representationPresetParams: PD.Optional(PD.Group(StructureRepresentationPresetProvider.CommonParams)),
     ...CommonParams(a, plugin)
 });
 
