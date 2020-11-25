@@ -28,6 +28,7 @@ uniform float uWidth;
 uniform int uNCoeff;
 uniform int uNAlpha;
 
+uniform bool uDensity;
 uniform float uOccupancy;
 uniform sampler2D tCumulativeSum;
 
@@ -300,11 +301,11 @@ void main(void) {
     }
 
     
-    if (uOccupancy > 0.0) {
+    if (uDensity) {
         float current = rgbaToFloat(texture2D(tCumulativeSum, gl_FragCoord.xy / vec2(uWidth, uWidth)));
         gl_FragColor = floatToRgba(current + uOccupancy * v * v);
     } else {
-        gl_FragColor = floatToRgba(v);
+         gl_FragColor = floatToRgba(v);
     }
 }
 `;

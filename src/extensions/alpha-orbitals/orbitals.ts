@@ -6,88 +6,126 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// gaussian:
-//     R_0, R^+_1, R^-_1, ..., R^+_l, R^-_l
-// cca:
-//     R^-_(l), R^-_(l-1), ..., R_0, ..., R^+_(l-1), R^+_l
-// cca-reverse:
-//     R^+_(l), R^+_(l-1), ..., R_0, ..., R^-_(l-1), R^-_l
-export type SphericalBasisOrder = 'gaussian' | 'cca' | 'cca-reverse';
+import { sortArray } from '../../mol-data/util';
+import { WebGLContext } from '../../mol-gl/webgl/context';
+import { Task } from '../../mol-task';
+import { sphericalCollocation } from './collocation';
+import { AlphaOrbital, createGrid, CubeGrid, CubeGridComputationParams, initCubeGrid } from './data-model';
+import { canComputeAlphaOrbitalsOnGPU, gpuComputeAlphaOrbitalsGridValues } from './gpu/compute';
 
-export function normalizeBasicOrder(
-    L: number,
-    alpha: number[],
-    order: SphericalBasisOrder
+export function createSphericalCollocationGrid(
+    params: CubeGridComputationParams, orbital: AlphaOrbital, webgl?: WebGLContext
+): Task<CubeGrid> {
+    return Task.create('Spherical Collocation Grid', async (ctx) => {
+        const cubeGrid = initCubeGrid(params);
+
+        let matrix: Float32Array;
+        if (canComputeAlphaOrbitalsOnGPU(webgl)) {
+            // console.time('gpu');
+            matrix = gpuComputeAlphaOrbitalsGridValues(webgl!, cubeGrid, orbital);
+            // console.timeEnd('gpu');
+        } else {
+            // console.time('cpu');
+            matrix = await sphericalCollocation(cubeGrid, orbital, ctx);
+            // console.timeEnd('cpu');
+        }
+
+        const grid = createGrid(cubeGrid, matrix, [0, 1, 2]);
+        let isovalues: { negative?: number, positive?: number } | undefined;
+
+        if (!params.doNotComputeIsovalues) {
+            isovalues = computeOrbitalIsocontourValues(matrix, 0.85);
+        }
+
+        return { grid, isovalues };
+    });
+}
+
+export function computeOrbitalIsocontourValues(
+    input: Float32Array,
+    cumulativeThreshold: number
 ) {
-    if (order === 'gaussian' || L === 0) return alpha;
-
-    const ret: number[] = [alpha[L]];
-    for (let l = 0; l < L; l++) {
-        const a = alpha[L - l - 1],
-            b = alpha[L + l + 1];
-        if (order === 'cca') ret.push(b, a);
-        else ret.push(a, b);
+    let weightSum = 0;
+    for (let i = 0, _i = input.length; i < _i; i++) {
+        const v = input[i];
+        const w = v * v;
+        weightSum += w;
     }
-    return ret;
-}
+    const avgWeight = weightSum / input.length;
+    let minWeight = 3 * avgWeight;
 
-export type SphericalFunc = (
-    alpha: number[],
-    x: number,
-    y: number,
-    z: number
-) => number;
+    // do not try to identify isovalues for degenerate data
+    // e.g. all values are almost same
+    if (Math.abs(avgWeight - input[0] * input[0]) < 1e-5) {
+        return { negative: void 0, positive: void 0 };
+    }
 
-export const SphericalFunctions: SphericalFunc[] = [L0, L1, L2, L3, L4];
+    let size = 0;
+    while (true) {
+        let csum = 0;
+        size = 0;
+        for (let i = 0, _i = input.length; i < _i; i++) {
+            const v = input[i];
+            const w = v * v;
+            if (w >= minWeight) {
+                csum += w;
+                size++;
+            }
+        }
 
-// L_i functions were auto-generated.
+        if (csum / weightSum > cumulativeThreshold) {
+            break;
+        }
 
-function L0(alpha: number[], x: number, y: number, z: number) {
-    return alpha[0];
-}
+        minWeight -= avgWeight;
+    }
 
-function L1(alpha: number[], x: number, y: number, z: number) {
-    return alpha[0] * z + alpha[1] * x + alpha[2] * y;
-}
+    const values = new Float32Array(size);
+    const weights = new Float32Array(size);
+    const indices = new Int32Array(size);
 
-function L2(alpha: number[], x: number, y: number, z: number) {
-    const xx = x * x, yy = y * y, zz = z * z;
-    return (
-        alpha[0] * (-0.5 * xx - 0.5 * yy + zz) +
-        alpha[1] * (1.7320508075688772 * x * z) +
-        alpha[2] * (1.7320508075688772 * y * z) +
-        alpha[3] * (0.8660254037844386 * xx - 0.8660254037844386 * yy) +
-        alpha[4] * (1.7320508075688772 * x * y)
+    let o = 0;
+    for (let i = 0, _i = input.length; i < _i; i++) {
+        const v = input[i];
+        const w = v * v;
+        if (w >= minWeight) {
+            values[o] = v;
+            weights[o] = w;
+            indices[o] = o;
+            o++;
+        }
+    }
+
+    sortArray(
+        indices,
+        (indices, i, j) => weights[indices[j]] - weights[indices[i]]
     );
-}
 
-function L3(alpha: number[], x: number, y: number, z: number) {
-    const xx = x * x, yy = y * y, zz = z * z;
-    const xxx = xx * x, yyy = yy * y, zzz = zz * z;
-    return (
-        alpha[0] * (-1.5 * xx * z - 1.5 * yy * z + zzz) +
-        alpha[1] * (-0.6123724356957945 * xxx - 0.6123724356957945 * x * yy + 2.449489742783178 * x * zz) +
-        alpha[2] * (-0.6123724356957945 * xx * y - 0.6123724356957945 * yyy + 2.449489742783178 * y * zz) +
-        alpha[3] * (1.9364916731037085 * xx * z - 1.9364916731037085 * yy * z) +
-        alpha[4] * (3.872983346207417 * x * y * z) +
-        alpha[5] * (0.7905694150420949 * xxx - 2.3717082451262845 * x * yy) +
-        alpha[6] * (2.3717082451262845 * xx * y - 0.7905694150420949 * yyy)
-    );
-}
+    let cweight = 0,
+        cutoffIndex = 0;
+    for (let i = 0; i < size; i++) {
+        cweight += weights[indices[i]];
 
-function L4(alpha: number[], x: number, y: number, z: number) {
-    const xx = x * x, yy = y * y, zz = z * z;
-    const xxx = xx * x, yyy = yy * y, zzz = zz * z;
-    const xxxx = xxx * x, yyyy = yyy * y, zzzz = zzz * z;
-    return (
-        alpha[0] * (0.375 * xxxx + 0.75 * xx * yy + 0.375 * yyyy - 3.0 * xx * zz - 3.0 * yy * zz + zzzz) +
-        alpha[1] * (-2.3717082451262845 * xxx * z - 2.3717082451262845 * x * yy * z + 3.1622776601683795 * x * zzz) +
-        alpha[2] * (-2.3717082451262845 * xx * y * z - 2.3717082451262845 * yyy * z + 3.1622776601683795 * y * zzz) +
-        alpha[3] * (-0.5590169943749475 * xxxx + 0.5590169943749475 * yyyy + 3.3541019662496847 * xx * zz - 3.3541019662496847 * yy * zz) +
-        alpha[4] * (-1.118033988749895 * xxx * y - 1.118033988749895 * x * yyy + 6.708203932499369 * x * y * zz) +
-        alpha[5] * (2.091650066335189 * xxx * z + -6.274950199005566 * x * yy * z) +
-        alpha[6] * (6.274950199005566 * xx * y * z + -2.091650066335189 * yyy * z) +
-        alpha[7] * (0.739509972887452 * xxxx - 4.437059837324712 * xx * yy + 0.739509972887452 * yyyy) +
-        alpha[8] * (2.958039891549808 * xxx * y + -2.958039891549808 * x * yyy)
-    );
+        if (cweight / weightSum >= cumulativeThreshold) {
+            cutoffIndex = i;
+            break;
+        }
+    }
+
+    let positive = Number.POSITIVE_INFINITY,
+        negative = Number.NEGATIVE_INFINITY;
+
+    for (let i = 0; i < cutoffIndex; i++) {
+        const v = values[indices[i]];
+        if (v > 0) {
+            if (v < positive) positive = v;
+        } else if (v < 0) {
+            if (v > negative) negative = v;
+        }
+    }
+
+    return {
+        negative: negative !== Number.NEGATIVE_INFINITY ? negative : void 0,
+        positive: positive !== Number.POSITIVE_INFINITY ? positive : void 0,
+    };
 }

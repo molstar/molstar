@@ -14,9 +14,8 @@ import { createComputeRenderItem } from '../../../mol-gl/webgl/render-item';
 import { ValueCell } from '../../../mol-util';
 import { arrayMin } from '../../../mol-util/array';
 import { isLittleEndian } from '../../../mol-util/is-little-endian';
-import { CollocationParams } from '../collocation';
-import { Basis } from '../cubes';
-import { normalizeBasicOrder, SphericalBasisOrder } from '../orbitals';
+import { AlphaOrbital, Basis, CubeGridInfo } from '../data-model';
+import { normalizeBasicOrder, SphericalBasisOrder } from '../spherical-functions';
 import shader_frag from './shader.frag';
 
 const AlphaOrbitalsSchema = {
@@ -34,12 +33,14 @@ const AlphaOrbitalsSchema = {
     uNCoeff: UniformSpec('i'),
     uMaxCoeffs: UniformSpec('i'),
     uLittleEndian: UniformSpec('b'),
-
+    uDensity: UniformSpec('b'),
     uOccupancy: UniformSpec('f'),
     tCumulativeSum: TextureSpec('texture', 'rgba', 'ubyte', 'nearest')
 };
 type AlphaOrbitalsSchema = Values<typeof AlphaOrbitalsSchema>
 const AlphaOrbitalsName = 'alpha-orbitals';
+const AlphaOrbitalsTex0 = 'alpha-orbitals-0';
+const AlphaOrbitalsTex1 = 'alpha-orbitals-1';
 const AlphaOrbitalsShaderCode = ShaderCode(AlphaOrbitalsName, quad_vert, shader_frag);
 type AlphaOrbitalsRenderable = ComputeRenderable<AlphaOrbitalsSchema>
 
@@ -60,12 +61,9 @@ function getNormalizedAlpha(basis: Basis, alphaOrbitals: number[], sphericalOrde
     return alpha;
 }
 
-function createTextureData({
-    basis,
-    sphericalOrder,
-    alphaOrbitals,
-    cutoffThreshold
-}: CollocationParams) {
+function createTextureData(grid: CubeGridInfo, orbital: AlphaOrbital) {
+    const { basis, sphericalOrder, cutoffThreshold } = grid.params;
+
     let centerCount = 0;
     let baseCount = 0;
     let coeffCount = 0;
@@ -97,7 +95,7 @@ function createTextureData({
 
             let amIndex = 0;
             for (const L of shell.angularMomentum) {
-                const a0 = normalizeBasicOrder(L, alphaOrbitals.slice(aO, aO + 2 * L + 1), sphericalOrder);
+                const a0 = normalizeBasicOrder(L, orbital.alpha.slice(aO, aO + 2 * L + 1), sphericalOrder);
 
                 const cutoffRadius = cutoffThreshold > 0
                     ? Math.sqrt(-Math.log(cutoffThreshold) / arrayMin(shell.exponents))
@@ -135,21 +133,27 @@ function createTextureData({
     return { nCenters: centerCount, nAlpha: baseCount, nCoeff: coeffCount, maxCoeffs, centers, info, alpha, coeff };
 }
 
-function createAlphaOrbitalsRenderable(ctx: WebGLContext, params: CollocationParams): AlphaOrbitalsRenderable {
-    const data = createTextureData(params);
+function createAlphaOrbitalsRenderable(ctx: WebGLContext, grid: CubeGridInfo, orbital: AlphaOrbital): AlphaOrbitalsRenderable {
+    const data = createTextureData(grid, orbital);
 
-    const [nx, ny, nz] = params.grid.dimensions;
+    const [nx, ny, nz] = grid.dimensions;
     const width = Math.ceil(Math.sqrt(nx * ny * nz));
 
-    if (!ctx.namedTextures[AlphaOrbitalsName]) {
-        ctx.namedTextures[AlphaOrbitalsName] = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+    if (!ctx.namedFramebuffers[AlphaOrbitalsName]) {
+        ctx.namedFramebuffers[AlphaOrbitalsName] = ctx.resources.framebuffer();
+    }
+    if (!ctx.namedTextures[AlphaOrbitalsTex0]) {
+        ctx.namedTextures[AlphaOrbitalsTex0] = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+    }
+    if (!ctx.namedTextures[AlphaOrbitalsTex1]) {
+        ctx.namedTextures[AlphaOrbitalsTex1] = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
     }
 
     const values: AlphaOrbitalsSchema = {
         ...QuadValues,
-        uDimensions: ValueCell.create(params.grid.dimensions),
-        uMin: ValueCell.create(params.grid.box.min),
-        uDelta: ValueCell.create(params.grid.delta),
+        uDimensions: ValueCell.create(grid.dimensions),
+        uMin: ValueCell.create(grid.box.min),
+        uDelta: ValueCell.create(grid.delta),
         uWidth: ValueCell.create(width),
         uNCenters: ValueCell.create(data.nCenters),
         uNAlpha: ValueCell.create(data.nAlpha),
@@ -160,9 +164,9 @@ function createAlphaOrbitalsRenderable(ctx: WebGLContext, params: CollocationPar
         tCoeff: ValueCell.create({ width: data.nCoeff, height: 1, array: data.coeff }),
         tAlpha: ValueCell.create({ width: data.nAlpha, height: 1, array: data.alpha }),
         uLittleEndian: ValueCell.create(isLittleEndian()),
-
+        uDensity: ValueCell.create(false),
         uOccupancy: ValueCell.create(0),
-        tCumulativeSum: ValueCell.create(ctx.namedTextures[AlphaOrbitalsName])
+        tCumulativeSum: ValueCell.create(ctx.namedTextures[AlphaOrbitalsTex1])
     };
 
     const schema = { ...AlphaOrbitalsSchema };
@@ -177,18 +181,18 @@ function createAlphaOrbitalsRenderable(ctx: WebGLContext, params: CollocationPar
     return createComputeRenderable(renderItem, values);
 }
 
-function getAlphaOrbitalsRenderable(ctx: WebGLContext, params: CollocationParams): AlphaOrbitalsRenderable {
+function getAlphaOrbitalsRenderable(ctx: WebGLContext, grid: CubeGridInfo, orbital: AlphaOrbital): AlphaOrbitalsRenderable {
     if (ctx.namedComputeRenderables[AlphaOrbitalsName]) {
         const v = ctx.namedComputeRenderables[AlphaOrbitalsName].values as AlphaOrbitalsSchema;
 
-        const data = createTextureData(params);
+        const data = createTextureData(grid, orbital);
 
-        const [nx, ny, nz] = params.grid.dimensions;
+        const [nx, ny, nz] = grid.dimensions;
         const width = Math.ceil(Math.sqrt(nx * ny * nz));
 
-        ValueCell.update(v.uDimensions, params.grid.dimensions);
-        ValueCell.update(v.uMin, params.grid.box.min);
-        ValueCell.update(v.uDelta, params.grid.delta);
+        ValueCell.update(v.uDimensions, grid.dimensions);
+        ValueCell.update(v.uMin, grid.box.min);
+        ValueCell.update(v.uDelta, grid.delta);
         ValueCell.updateIfChanged(v.uWidth, width);
         ValueCell.updateIfChanged(v.uNCenters, data.nCenters);
         ValueCell.updateIfChanged(v.uNAlpha, data.nAlpha);
@@ -199,30 +203,25 @@ function getAlphaOrbitalsRenderable(ctx: WebGLContext, params: CollocationParams
         ValueCell.update(v.tCoeff, { width: data.nCoeff, height: 1, array: data.coeff });
         ValueCell.update(v.tAlpha, { width: data.nAlpha, height: 1, array: data.alpha });
         ValueCell.updateIfChanged(v.uLittleEndian, isLittleEndian());
+        ValueCell.updateIfChanged(v.uDensity, false);
         ValueCell.updateIfChanged(v.uOccupancy, 0);
+        ValueCell.updateIfChanged(v.tCumulativeSum, ctx.namedTextures[AlphaOrbitalsTex1]);
 
         ctx.namedComputeRenderables[AlphaOrbitalsName].update();
     } else {
-        ctx.namedComputeRenderables[AlphaOrbitalsName] = createAlphaOrbitalsRenderable(ctx, params);
+        ctx.namedComputeRenderables[AlphaOrbitalsName] = createAlphaOrbitalsRenderable(ctx, grid, orbital);
     }
     return ctx.namedComputeRenderables[AlphaOrbitalsName];
 }
 
-export function gpuComputeAlphaOrbitalsGridValues(webgl: WebGLContext, params: CollocationParams) {
-    const [nx, ny, nz] = params.grid.dimensions;
-    const renderable = getAlphaOrbitalsRenderable(webgl, params);
+export function gpuComputeAlphaOrbitalsGridValues(webgl: WebGLContext, grid: CubeGridInfo, orbital: AlphaOrbital) {
+    const [nx, ny, nz] = grid.dimensions;
+    const renderable = getAlphaOrbitalsRenderable(webgl, grid, orbital);
     const width = renderable.values.uWidth.ref.value;
 
-    if (!webgl.namedFramebuffers[AlphaOrbitalsName]) {
-        webgl.namedFramebuffers[AlphaOrbitalsName] = webgl.resources.framebuffer();
-    }
     const framebuffer = webgl.namedFramebuffers[AlphaOrbitalsName];
-
-    if (!webgl.namedTextures[AlphaOrbitalsName]) {
-        webgl.namedTextures[AlphaOrbitalsName] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
-    }
-    webgl.namedTextures[AlphaOrbitalsName].define(width, width);
-    webgl.namedTextures[AlphaOrbitalsName].attachFramebuffer(framebuffer, 'color0');
+    webgl.namedTextures[AlphaOrbitalsTex0].define(width, width);
+    webgl.namedTextures[AlphaOrbitalsTex0].attachFramebuffer(framebuffer, 'color0');
 
     const { gl, state } = webgl;
     framebuffer.bind();
@@ -243,28 +242,20 @@ export function canComputeAlphaOrbitalsOnGPU(webgl?: WebGLContext) {
     return !!webgl?.extensions.textureFloat;
 }
 
-const AlphaOrbitalsDensity0 = AlphaOrbitalsName;
-const AlphaOrbitalsDensity1 = AlphaOrbitalsName + '1';
+export function gpuComputeAlphaOrbitalsDensityGridValues(webgl: WebGLContext, grid: CubeGridInfo, orbitals: AlphaOrbital[]) {
+    return _gpuComputeAlphaOrbitalsDensityGridValues(webgl, grid, orbitals);
+}
 
-export function gpuComputeAlphaOrbitalsDensityGridValues(webgl: WebGLContext, params: CollocationParams, orbitals: number[][]) {
-    const [nx, ny, nz] = params.grid.dimensions;
-    const renderable = getAlphaOrbitalsRenderable(webgl, params);
+function _gpuComputeAlphaOrbitalsDensityGridValues(webgl: WebGLContext, grid: CubeGridInfo, orbitals: AlphaOrbital[]) {
+    const [nx, ny, nz] = grid.dimensions;
+    const renderable = getAlphaOrbitalsRenderable(webgl, grid, orbitals[0]);
     const width = renderable.values.uWidth.ref.value;
 
-    if (!webgl.namedFramebuffers[AlphaOrbitalsDensity0]) {
-        webgl.namedFramebuffers[AlphaOrbitalsDensity0] = webgl.resources.framebuffer();
+    if (!webgl.namedFramebuffers[AlphaOrbitalsName]) {
+        webgl.namedFramebuffers[AlphaOrbitalsName] = webgl.resources.framebuffer();
     }
-    const framebuffer = webgl.namedFramebuffers[AlphaOrbitalsDensity0];
-
-    if (!webgl.namedTextures[AlphaOrbitalsDensity0]) {
-        webgl.namedTextures[AlphaOrbitalsDensity0] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
-    }
-    if (!webgl.namedTextures[AlphaOrbitalsDensity1]) {
-        webgl.namedTextures[AlphaOrbitalsDensity1] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
-    }
-
-
-    const tex = [webgl.namedTextures[AlphaOrbitalsDensity0], webgl.namedTextures[AlphaOrbitalsDensity1]];
+    const framebuffer = webgl.namedFramebuffers[AlphaOrbitalsName];
+    const tex = [webgl.namedTextures[AlphaOrbitalsTex0], webgl.namedTextures[AlphaOrbitalsTex1]];
 
     tex[0].define(width, width);
     tex[1].define(width, width);
@@ -287,10 +278,14 @@ export function gpuComputeAlphaOrbitalsDensityGridValues(webgl: WebGLContext, pa
     tex[1].attachFramebuffer(framebuffer, 'color0');
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    for (let i = 0; i < 108; i++) {
-        const alpha = getNormalizedAlpha(params.basis, orbitals[i], params.sphericalOrder);
+    ValueCell.update(values.uDensity, true);
 
-        ValueCell.update(values.uOccupancy, 2);
+    for (let i = 0; i < orbitals.length; i++) {
+        if (orbitals[i].occupancy === 0) continue;
+
+        const alpha = getNormalizedAlpha(grid.params.basis, orbitals[i].alpha, grid.params.sphericalOrder);
+
+        ValueCell.update(values.uOccupancy, orbitals[i].occupancy);
         ValueCell.update(values.tCumulativeSum, tex[(i + 1) % 2]);
         ValueCell.update(values.tAlpha, { width: alpha.length, height: 1, array: alpha });
         renderable.update();
@@ -300,9 +295,6 @@ export function gpuComputeAlphaOrbitalsDensityGridValues(webgl: WebGLContext, pa
 
     const array = new Uint8Array(width * width * 4);
     webgl.readPixels(0, 0, width, width, array);
-
-    tex[0].define(1, 1);
-    tex[1].define(1, 1);
 
     return new Float32Array(array.buffer, array.byteOffset, nx * ny * nz);
 }

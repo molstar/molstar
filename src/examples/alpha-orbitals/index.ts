@@ -4,8 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Basis } from '../../extensions/alpha-orbitals/cubes';
-import { SphericalBasisOrder } from '../../extensions/alpha-orbitals/orbitals';
+import { SphericalBasisOrder } from '../../extensions/alpha-orbitals/spherical-functions';
 import { CreateOrbitalRepresentation3D, CreateOrbitalVolume, StaticBasisAndOrbitals } from '../../extensions/alpha-orbitals/transforms';
 import { createPluginAsync, DefaultPluginSpec } from '../../mol-plugin';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
@@ -20,23 +19,22 @@ import { DemoMoleculeSDF, DemoOrbitals } from './example-data';
 import { BehaviorSubject } from 'rxjs';
 import { debounceTime, skip } from 'rxjs/operators';
 import './index.html';
+import { Basis, AlphaOrbital } from '../../extensions/alpha-orbitals/data-model';
+import { canComputeAlphaOrbitalsOnGPU } from '../../extensions/alpha-orbitals/gpu/compute';
+import { PluginCommands } from '../../mol-plugin/commands';
 require('mol-plugin-ui/skin/light.scss');
 
 interface DemoInput {
     moleculeSdf: string,
     basis: Basis,
     order: SphericalBasisOrder,
-    orbitals: {
-        energy: number,
-        alpha: number[]
-    }[]
+    orbitals: AlphaOrbital[]
 }
 
 interface Params {
     orbitalIndex: number,
     isoValue: number,
-    gpuSurface: boolean,
-    cpuCompute: boolean
+    gpuSurface: boolean
 }
 
 export class AlphaOrbitalsExample {
@@ -62,6 +60,14 @@ export class AlphaOrbitalsExample {
 
         this.plugin.managers.interactivity.setProps({ granularity: 'element' });
 
+        if (!canComputeAlphaOrbitalsOnGPU(this.plugin.canvas3d?.webgl)) {
+            PluginCommands.Toast.Show(this.plugin, {
+                title: 'Error',
+                message: `Browser/device does not support required WebGL extension (OES_texture_float).`
+            });
+            return;
+        }
+
         this.load({
             moleculeSdf: DemoMoleculeSDF,
             ...DemoOrbitals
@@ -71,7 +77,7 @@ export class AlphaOrbitalsExample {
     }
 
     readonly params = new BehaviorSubject<ParamDefinition.For<Params>>({} as any);
-    readonly state = new BehaviorSubject<Params>({ orbitalIndex: 32, isoValue: 1, gpuSurface: false, cpuCompute: false });
+    readonly state = new BehaviorSubject<Params>({ orbitalIndex: 32, isoValue: 1, gpuSurface: false });
 
     private volume?: StateObjectSelector<PluginStateObject.Volume.Data, typeof CreateOrbitalVolume>;
     private positive?: StateObjectSelector<PluginStateObject.Volume.Representation3D, typeof CreateOrbitalRepresentation3D>;
@@ -81,7 +87,7 @@ export class AlphaOrbitalsExample {
     private async setIndex() {
         if (!this.volume?.isOk) return;
         const state = this.state.value;
-        await this.plugin.build().to(this.volume).update(CreateOrbitalVolume, () => ({ index: state.orbitalIndex, cpuCompute: state.cpuCompute })).commit();
+        await this.plugin.build().to(this.volume).update(CreateOrbitalVolume, () => ({ index: state.orbitalIndex })).commit();
         if (this.currentParams.gpuSurface !== this.state.value.gpuSurface) {
             await this.setIsovalue();
         }
@@ -123,7 +129,7 @@ export class AlphaOrbitalsExample {
 
         this.volume = await this.plugin.build().toRoot()
             .apply(StaticBasisAndOrbitals, { basis: input.basis, order: input.order, orbitals: input.orbitals })
-            .apply(CreateOrbitalVolume, { index: state.orbitalIndex, forceCpuCompute: this.currentParams.cpuCompute })
+            .apply(CreateOrbitalVolume, { index: state.orbitalIndex })
             .commit();
 
         if (!this.volume.isOk) {
@@ -141,13 +147,11 @@ export class AlphaOrbitalsExample {
         this.params.next({
             orbitalIndex: ParamDefinition.Numeric(this.currentParams.orbitalIndex, { min: 0, max: input.orbitals.length - 1 }, { immediateUpdate: true, isEssential: true }),
             isoValue: ParamDefinition.Numeric(this.currentParams.isoValue, { min: 0.5, max: 3, step: 0.1 }, { immediateUpdate: true, isEssential: false }),
-            gpuSurface: ParamDefinition.Boolean(this.currentParams.gpuSurface),
-            cpuCompute: ParamDefinition.Boolean(this.currentParams.cpuCompute, { label: 'CPU Compute' })
+            gpuSurface: ParamDefinition.Boolean(this.currentParams.gpuSurface)
         });
 
         this.state.pipe(skip(1), debounceTime(1000 / 24)).subscribe(async params => {
-            if (params.orbitalIndex !== this.currentParams.orbitalIndex
-                || params.cpuCompute !== this.currentParams.cpuCompute) {
+            if (params.orbitalIndex !== this.currentParams.orbitalIndex) {
                 this.setIndex();
             } else if (params.isoValue !== this.currentParams.isoValue || params.gpuSurface !== this.currentParams.gpuSurface) {
                 this.setIsovalue();
