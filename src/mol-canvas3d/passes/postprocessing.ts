@@ -17,9 +17,9 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { DrawPass } from './draw';
 import { Camera, ICamera } from '../../mol-canvas3d/camera';
-
 import quad_vert from '../../mol-gl/shader/quad.vert';
 import postprocessing_frag from '../../mol-gl/shader/postprocessing.frag';
+import fxaa_frag from '../../mol-gl/shader/fxaa.frag';
 import { StereoCamera } from '../camera/stereo';
 
 const PostprocessingSchema = {
@@ -92,7 +92,8 @@ export const PostprocessingParams = {
             threshold: PD.Numeric(0.8, { min: 0, max: 5, step: 0.01 }),
         }),
         off: PD.Group({})
-    }, { cycle: true, description: 'Draw outline around 3D objects' })
+    }, { cycle: true, description: 'Draw outline around 3D objects' }),
+    antialiasing: PD.Boolean(true, { description: 'Fast Approximate Anti-Aliasing (FXAA)' })
 };
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
@@ -101,21 +102,21 @@ export class PostprocessingPass {
         return props.occlusion.name === 'on' || props.outline.name === 'on';
     }
 
-    target: RenderTarget
-    renderable: PostprocessingRenderable
+    readonly target: RenderTarget
+
+    private readonly tmpTarget: RenderTarget
+    private readonly renderable: PostprocessingRenderable
+    private readonly fxaa: FxaaRenderable
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
-        this.target = webgl.createRenderTarget(drawPass.colorTarget.getWidth(), drawPass.colorTarget.getHeight(), false);
         const { colorTarget, depthTexture } = drawPass;
-        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture);
-    }
+        const width = colorTarget.getWidth();
+        const height = colorTarget.getHeight();
 
-    private bindTarget(toDrawingBuffer: boolean) {
-        if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
-        } else {
-            this.target.bind();
-        }
+        this.target = webgl.createRenderTarget(width, height, false);
+        this.tmpTarget = webgl.createRenderTarget(width, height, false);
+        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture);
+        this.fxaa = getFxaaRenderable(webgl, this.tmpTarget.texture);
     }
 
     syncSize() {
@@ -125,11 +126,29 @@ export class PostprocessingPass {
         const [w, h] = this.renderable.values.uTexSize.ref.value;
         if (width !== w || height !== h) {
             this.target.setSize(width, height);
+            this.tmpTarget.setSize(width, height);
             ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
+            ValueCell.update(this.fxaa.values.uTexSize, Vec2.set(this.fxaa.values.uTexSize.ref.value, width, height));
         }
     }
 
-    _render(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
+    private updateState(camera: ICamera) {
+        const { gl, state } = this.webgl;
+
+        state.disable(gl.SCISSOR_TEST);
+        state.disable(gl.BLEND);
+        state.disable(gl.DEPTH_TEST);
+        state.depthMask(false);
+
+        const { x, y, width, height } = camera.viewport;
+        gl.viewport(x, y, width, height);
+        gl.scissor(x, y, width, height);
+
+        state.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+    }
+
+    private _renderPostprocessing(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
         const { values } = this.renderable;
 
         ValueCell.updateIfChanged(values.uFar, camera.far);
@@ -166,19 +185,44 @@ export class PostprocessingPass {
             this.renderable.update();
         }
 
-        const { gl, state } = this.webgl;
-        this.bindTarget(toDrawingBuffer);
+        if (props.antialiasing) {
+            this.tmpTarget.bind();
+        } else if (toDrawingBuffer) {
+            this.webgl.unbindFramebuffer();
+        } else {
+            this.target.bind();
+        }
 
-        state.disable(gl.SCISSOR_TEST);
-        state.disable(gl.BLEND);
-        state.disable(gl.DEPTH_TEST);
-        state.depthMask(false);
-
-        const { x, y, width, height } = camera.viewport;
-        gl.viewport(x, y, width, height);
-        gl.scissor(x, y, width, height);
-
+        this.updateState(camera);
         this.renderable.render();
+    }
+
+    private _renderFxaa(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
+        const input = (props.occlusion.name === 'on' || props.outline.name === 'on')
+            ? this.tmpTarget.texture : this.drawPass.colorTarget.texture;
+        if (this.fxaa.values.tColor.ref.value !== input) {
+            ValueCell.update(this.fxaa.values.tColor, input);
+            this.fxaa.update();
+        }
+
+        if (toDrawingBuffer) {
+            this.webgl.unbindFramebuffer();
+        } else {
+            this.target.bind();
+        }
+
+        this.updateState(camera);
+        this.fxaa.render();
+    }
+
+    private _render(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
+        if (props.occlusion.name === 'on' || props.outline.name === 'on' || !props.antialiasing) {
+            this._renderPostprocessing(camera, toDrawingBuffer, props);
+        }
+
+        if (props.antialiasing) {
+            this._renderFxaa(camera, toDrawingBuffer, props);
+        }
     }
 
     render(camera: Camera | StereoCamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
@@ -189,4 +233,27 @@ export class PostprocessingPass {
             this._render(camera, toDrawingBuffer, props);
         }
     }
+}
+
+//
+
+const FxaaSchema = {
+    ...QuadSchema,
+    tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    uTexSize: UniformSpec('v2'),
+};
+const FxaaShaderCode = ShaderCode('fxaa', quad_vert, fxaa_frag);
+type FxaaRenderable = ComputeRenderable<Values<typeof FxaaSchema>>
+
+function getFxaaRenderable(ctx: WebGLContext, colorTexture: Texture): FxaaRenderable {
+    const values: Values<typeof FxaaSchema> = {
+        ...QuadValues,
+        tColor: ValueCell.create(colorTexture),
+        uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
+    };
+
+    const schema = { ...FxaaSchema };
+    const renderItem = createComputeRenderItem(ctx, 'triangles', FxaaShaderCode, schema, values);
+
+    return createComputeRenderable(renderItem, values);
 }

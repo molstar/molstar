@@ -115,7 +115,10 @@ class ViewportScreenshotHelper extends PluginComponent {
                 mode: mutlisample ? 'on' : 'off',
                 sampleLevel: colorBufferFloat && textureFloat ? 4 : 2
             },
-            postprocessing: c.props.postprocessing
+            postprocessing: {
+                ...c.props.postprocessing,
+                antialiasing: false
+            }
         });
     }
 
@@ -131,7 +134,10 @@ class ViewportScreenshotHelper extends PluginComponent {
                 cameraHelper: { axes: this.values.axes },
                 transparentBackground: this.values.transparent,
                 // TODO: optimize because this creates a copy of a large object!
-                postprocessing: this.plugin.canvas3d!.props.postprocessing
+                postprocessing: {
+                    ...this.plugin.canvas3d!.props.postprocessing,
+                    antialiasing: false
+                }
             });
             return this._imagePass;
         }
