@@ -192,7 +192,7 @@ export class DrawPass {
         }
 
         // do direct-volume rendering
-        if (!toDrawingBuffer && scene.volumes.renderables.length > 0) {
+        if (!toDrawingBuffer) {
             if (!this.packedDepth) {
                 this.depthTextureVolumes.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
                 renderer.clearDepth(); // from previous frame
