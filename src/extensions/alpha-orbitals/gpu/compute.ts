@@ -15,6 +15,7 @@ import { RuntimeContext } from '../../../mol-task';
 import { ValueCell } from '../../../mol-util';
 import { arrayMin } from '../../../mol-util/array';
 import { isLittleEndian } from '../../../mol-util/is-little-endian';
+import { now } from '../../../mol-util/now';
 import { AlphaOrbital, Basis, CubeGridInfo } from '../data-model';
 import { normalizeBasicOrder, SphericalBasisOrder } from '../spherical-functions';
 import shader_frag from './shader.frag';
@@ -280,23 +281,27 @@ export async function gpuComputeAlphaOrbitalsDensityGridValues(webgl: WebGLConte
     ValueCell.update(values.uDensity, true);
 
     const nonZero = orbitals.filter(o => o.occupancy !== 0);
-    await ctx.update({ message: 'Computing...', isIndeterminate: false, current: 0, max: nonZero.length });
+    await ctx.update({ message: 'Computing...', isIndeterminate: false, current: 0, max: nonZero.length });    let lastTime = now();
     for (let i = 0; i < nonZero.length; i++) {
         const alpha = getNormalizedAlpha(grid.params.basis, nonZero[i].alpha, grid.params.sphericalOrder);
 
         ValueCell.update(values.uOccupancy, nonZero[i].occupancy);
         ValueCell.update(values.tCumulativeSum, tex[(i + 1) % 2]);
         ValueCell.update(values.tAlpha, { width: alpha.length, height: 1, array: alpha });
-        renderable.update();
         tex[i % 2].attachFramebuffer(framebuffer, 'color0');
+        gl.viewport(0, 0, width, width);
+        gl.scissor(0, 0, width, width);
+        state.disable(gl.SCISSOR_TEST);
+        state.disable(gl.BLEND);
+        state.disable(gl.DEPTH_TEST);
+        state.depthMask(false);
+        renderable.update();
         renderable.render();
 
-        if (ctx.shouldUpdate) {
+        if (i !== nonZero.length - 1 && ctx.shouldUpdate) {
             await ctx.update({ current: i + 1 });
         }
     }
-
-    await ctx.update({ message: 'Finalizing...', isIndeterminate: true });
 
     const array = new Uint8Array(width * width * 4);
     webgl.readPixels(0, 0, width, width, array);

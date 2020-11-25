@@ -190,7 +190,7 @@ export class AlphaOrbitalsExample {
         this.params.next({
             show: ParamDefinition.MappedStatic('orbital', {
                 'orbital': ParamDefinition.Group({
-                    index: ParamDefinition.Numeric(0, { min: 0, max: input.orbitals.length - 1 }, { immediateUpdate: true, isEssential: true }),
+                    index: ParamDefinition.Numeric(32, { min: 0, max: input.orbitals.length - 1 }, { immediateUpdate: true, isEssential: true }),
                 }),
                 'density': ParamDefinition.EmptyGroup()
             }, { cycle: true }),
