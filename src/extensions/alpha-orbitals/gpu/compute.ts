@@ -281,7 +281,7 @@ export async function gpuComputeAlphaOrbitalsDensityGridValues(webgl: WebGLConte
     ValueCell.update(values.uDensity, true);
 
     const nonZero = orbitals.filter(o => o.occupancy !== 0);
-    await ctx.update({ message: 'Computing...', isIndeterminate: false, current: 0, max: nonZero.length });    let lastTime = now();
+    await ctx.update({ message: 'Computing...', isIndeterminate: false, current: 0, max: nonZero.length });
     for (let i = 0; i < nonZero.length; i++) {
         const alpha = getNormalizedAlpha(grid.params.basis, nonZero[i].alpha, grid.params.sphericalOrder);
 
