@@ -15,7 +15,6 @@ import { RuntimeContext } from '../../../mol-task';
 import { ValueCell } from '../../../mol-util';
 import { arrayMin } from '../../../mol-util/array';
 import { isLittleEndian } from '../../../mol-util/is-little-endian';
-import { now } from '../../../mol-util/now';
 import { AlphaOrbital, Basis, CubeGridInfo } from '../data-model';
 import { normalizeBasicOrder, SphericalBasisOrder } from '../spherical-functions';
 import shader_frag from './shader.frag';
