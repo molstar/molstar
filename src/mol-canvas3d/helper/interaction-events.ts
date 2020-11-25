@@ -93,7 +93,7 @@ export class Canvas3dInteractionHelper {
 
     private leave() {
         this.inside = false;
-        if (Representation.Loci.isEmpty(this.prevLoci)) {
+        if (!Representation.Loci.isEmpty(this.prevLoci)) {
             this.prevLoci = Representation.Loci.Empty;
             this.events.hover.next({ current: this.prevLoci, buttons: this.buttons, button: this.button, modifiers: this.modifiers });
         }
