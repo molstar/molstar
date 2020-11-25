@@ -11,6 +11,7 @@ import { ShaderCode } from '../../../mol-gl/shader-code';
 import quad_vert from '../../../mol-gl/shader/quad.vert';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { createComputeRenderItem } from '../../../mol-gl/webgl/render-item';
+import { RuntimeContext } from '../../../mol-task';
 import { ValueCell } from '../../../mol-util';
 import { arrayMin } from '../../../mol-util/array';
 import { isLittleEndian } from '../../../mol-util/is-little-endian';
@@ -242,11 +243,9 @@ export function canComputeAlphaOrbitalsOnGPU(webgl?: WebGLContext) {
     return !!webgl?.extensions.textureFloat;
 }
 
-export function gpuComputeAlphaOrbitalsDensityGridValues(webgl: WebGLContext, grid: CubeGridInfo, orbitals: AlphaOrbital[]) {
-    return _gpuComputeAlphaOrbitalsDensityGridValues(webgl, grid, orbitals);
-}
+export async function gpuComputeAlphaOrbitalsDensityGridValues(webgl: WebGLContext, grid: CubeGridInfo, orbitals: AlphaOrbital[], ctx: RuntimeContext) {
+    await ctx.update({ message: 'Initializing...', isIndeterminate: true });
 
-function _gpuComputeAlphaOrbitalsDensityGridValues(webgl: WebGLContext, grid: CubeGridInfo, orbitals: AlphaOrbital[]) {
     const [nx, ny, nz] = grid.dimensions;
     const renderable = getAlphaOrbitalsRenderable(webgl, grid, orbitals[0]);
     const width = renderable.values.uWidth.ref.value;
@@ -280,18 +279,24 @@ function _gpuComputeAlphaOrbitalsDensityGridValues(webgl: WebGLContext, grid: Cu
 
     ValueCell.update(values.uDensity, true);
 
-    for (let i = 0; i < orbitals.length; i++) {
-        if (orbitals[i].occupancy === 0) continue;
+    const nonZero = orbitals.filter(o => o.occupancy !== 0);
+    await ctx.update({ message: 'Computing...', isIndeterminate: false, current: 0, max: nonZero.length });
+    for (let i = 0; i < nonZero.length; i++) {
+        const alpha = getNormalizedAlpha(grid.params.basis, nonZero[i].alpha, grid.params.sphericalOrder);
 
-        const alpha = getNormalizedAlpha(grid.params.basis, orbitals[i].alpha, grid.params.sphericalOrder);
-
-        ValueCell.update(values.uOccupancy, orbitals[i].occupancy);
+        ValueCell.update(values.uOccupancy, nonZero[i].occupancy);
         ValueCell.update(values.tCumulativeSum, tex[(i + 1) % 2]);
         ValueCell.update(values.tAlpha, { width: alpha.length, height: 1, array: alpha });
         renderable.update();
         tex[i % 2].attachFramebuffer(framebuffer, 'color0');
         renderable.render();
+
+        if (ctx.shouldUpdate) {
+            await ctx.update({ current: i + 1 });
+        }
     }
+
+    await ctx.update({ message: 'Finalizing...', isIndeterminate: true });
 
     const array = new Uint8Array(width * width * 4);
     webgl.readPixels(0, 0, width, width, array);

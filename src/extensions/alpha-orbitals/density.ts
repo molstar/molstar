@@ -1,20 +1,17 @@
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Inspired by https://github.com/dgasmith/gau2grid.
- *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { sortArray } from '../../mol-data/util';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Task } from '../../mol-task';
-import { sphericalCollocation } from './collocation';
 import { AlphaOrbital, createGrid, CubeGrid, CubeGridComputationParams, initCubeGrid } from './data-model';
-import { canComputeAlphaOrbitalsOnGPU, gpuComputeAlphaOrbitalsGridValues } from './gpu/compute';
+import { canComputeAlphaOrbitalsOnGPU, gpuComputeAlphaOrbitalsDensityGridValues } from './gpu/compute';
 
-export function createSphericalCollocationGrid(
-    params: CubeGridComputationParams, orbital: AlphaOrbital, webgl?: WebGLContext
+export function createSphericalCollocationDensityGrid(
+    params: CubeGridComputationParams, orbitals: AlphaOrbital[], webgl?: WebGLContext
 ): Task<CubeGrid> {
     return Task.create('Spherical Collocation Grid', async (ctx) => {
         const cubeGrid = initCubeGrid(params);
@@ -22,30 +19,28 @@ export function createSphericalCollocationGrid(
         let matrix: Float32Array;
         if (canComputeAlphaOrbitalsOnGPU(webgl)) {
             // console.time('gpu');
-            matrix = gpuComputeAlphaOrbitalsGridValues(webgl!, cubeGrid, orbital);
+            matrix = await gpuComputeAlphaOrbitalsDensityGridValues(webgl!, cubeGrid, orbitals, ctx);
             // console.timeEnd('gpu');
         } else {
-            // console.time('cpu');
-            matrix = await sphericalCollocation(cubeGrid, orbital, ctx);
-            // console.timeEnd('cpu');
+            throw new Error('Missing OES_texture_float WebGL extension.');
         }
 
         const grid = createGrid(cubeGrid, matrix, [0, 1, 2]);
         let isovalues: { negative?: number, positive?: number } | undefined;
 
         if (!params.doNotComputeIsovalues) {
-            isovalues = computeOrbitalIsocontourValues(matrix, 0.85);
+            isovalues = computeDensityIsocontourValues(matrix, 0.85);
         }
 
         return { grid, isovalues };
     });
 }
 
-export function computeOrbitalIsocontourValues(input: Float32Array, cumulativeThreshold: number) {
+export function computeDensityIsocontourValues(input: Float32Array, cumulativeThreshold: number) {
     let weightSum = 0;
     for (let i = 0, _i = input.length; i < _i; i++) {
         const v = input[i];
-        const w = v * v;
+        const w = Math.abs(v);
         weightSum += w;
     }
     const avgWeight = weightSum / input.length;
@@ -63,7 +58,7 @@ export function computeOrbitalIsocontourValues(input: Float32Array, cumulativeTh
         size = 0;
         for (let i = 0, _i = input.length; i < _i; i++) {
             const v = input[i];
-            const w = v * v;
+            const w = Math.abs(v);
             if (w >= minWeight) {
                 csum += w;
                 size++;
@@ -84,7 +79,7 @@ export function computeOrbitalIsocontourValues(input: Float32Array, cumulativeTh
     let o = 0;
     for (let i = 0, _i = input.length; i < _i; i++) {
         const v = input[i];
-        const w = v * v;
+        const w = Math.abs(v);
         if (w >= minWeight) {
             values[o] = v;
             weights[o] = w;
