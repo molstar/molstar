@@ -5,11 +5,11 @@
  */
 
 import { PluginStateObject, PluginStateTransform } from '../../mol-plugin-state/objects';
-import { Basis, createSphericalCollocationGrid, CubeGrid } from './cubes';
+import { createSphericalCollocationGrid } from './orbitals';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Task } from '../../mol-task';
 import { CustomProperties } from '../../mol-model/custom-property';
-import { SphericalBasisOrder } from './orbitals';
+import { SphericalBasisOrder } from './spherical-functions';
 import { Volume } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
 import { ColorNames } from '../../mol-util/color/names';
@@ -17,8 +17,10 @@ import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers
 import { StateTransformer } from '../../mol-state';
 import { Theme } from '../../mol-theme/theme';
 import { VolumeRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
+import { AlphaOrbital, Basis, CubeGrid } from './data-model';
+import { createSphericalCollocationDensityGrid } from './density';
 
-export class BasisAndOrbitals extends PluginStateObject.Create<{ basis: Basis, order: SphericalBasisOrder, orbitals: { energy: number, alpha: number[] }[] }>({ name: 'Basis', typeClass: 'Object' }) { }
+export class BasisAndOrbitals extends PluginStateObject.Create<{ basis: Basis, order: SphericalBasisOrder, orbitals: AlphaOrbital[] }>({ name: 'Basis', typeClass: 'Object' }) { }
 
 export const StaticBasisAndOrbitals = PluginStateTransform.BuiltIn({
     name: 'static-basis-and-orbitals',
@@ -29,7 +31,7 @@ export const StaticBasisAndOrbitals = PluginStateTransform.BuiltIn({
         label: PD.Text('Orbital Data', { isHidden: true }),
         basis: PD.Value<Basis>(void 0 as any, { isHidden: true }),
         order: PD.Text<SphericalBasisOrder>('gaussian' as SphericalBasisOrder, { isHidden: true }),
-        orbitals: PD.Value<{ energy: number, alpha: number[] }[]>([], { isHidden: true })
+        orbitals: PD.Value<AlphaOrbital[]>([], { isHidden: true })
     },
 })({
     apply({ params }) {
@@ -38,7 +40,6 @@ export const StaticBasisAndOrbitals = PluginStateTransform.BuiltIn({
 });
 
 const CreateOrbitalVolumeParamBase = {
-    forceCpuCompute: PD.Boolean(false),
     cutoffThreshold: PD.Numeric(0.0015, { min: 0, max: 0.1, step: 0.0001 }),
     boxExpand: PD.Numeric(4.5, { min: 0, max: 7, step: 0.1 }),
     gridSpacing: PD.ObjectList({ atomCount: PD.Numeric(0), spacing: PD.Numeric(0.35, { min: 0.1, max: 2, step: 0.01 }) }, e => `Atoms ${e.atomCount}: ${e.spacing}`, {
@@ -72,11 +73,38 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
             const data = await createSphericalCollocationGrid({
                 basis: a.data.basis,
                 cutoffThreshold: params.cutoffThreshold,
-                alphaOrbitals: a.data.orbitals[params.index].alpha,
                 sphericalOrder: a.data.order,
                 boxExpand: params.boxExpand,
                 gridSpacing: params.gridSpacing.map(e => [e.atomCount, e.spacing] as [number, number])
-            }, params.forceCpuCompute ? void 0 : plugin.canvas3d?.webgl).runInContext(ctx);
+            }, a.data.orbitals[params.index], plugin.canvas3d?.webgl).runInContext(ctx);
+            const volume: Volume = {
+                grid: data.grid,
+                sourceData: { name: 'custom grid', kind: 'alpha-orbitals', data },
+                customProperties: new CustomProperties(),
+                _propertyData: Object.create(null),
+            };
+
+            return new PluginStateObject.Volume.Data(volume, { label: 'Orbital Volume' });
+        });
+    }
+});
+
+export const CreateOrbitalDensityVolume = PluginStateTransform.BuiltIn({
+    name: 'create-orbital-density-volume',
+    display: 'Orbital Density Volume',
+    from: BasisAndOrbitals,
+    to: PluginStateObject.Volume.Data,
+    params: CreateOrbitalVolumeParamBase
+})({
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Orbital Volume', async ctx => {
+            const data = await createSphericalCollocationDensityGrid({
+                basis: a.data.basis,
+                cutoffThreshold: params.cutoffThreshold,
+                sphericalOrder: a.data.order,
+                boxExpand: params.boxExpand,
+                gridSpacing: params.gridSpacing.map(e => [e.atomCount, e.spacing] as [number, number])
+            }, a.data.orbitals, plugin.canvas3d?.webgl).runInContext(ctx);
             const volume: Volume = {
                 grid: data.grid,
                 sourceData: { name: 'custom grid', kind: 'alpha-orbitals', data },

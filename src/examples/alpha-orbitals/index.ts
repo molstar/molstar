@@ -4,9 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Basis } from '../../extensions/alpha-orbitals/cubes';
-import { SphericalBasisOrder } from '../../extensions/alpha-orbitals/orbitals';
-import { CreateOrbitalRepresentation3D, CreateOrbitalVolume, StaticBasisAndOrbitals } from '../../extensions/alpha-orbitals/transforms';
+import { SphericalBasisOrder } from '../../extensions/alpha-orbitals/spherical-functions';
+import { BasisAndOrbitals, CreateOrbitalDensityVolume, CreateOrbitalRepresentation3D, CreateOrbitalVolume, StaticBasisAndOrbitals } from '../../extensions/alpha-orbitals/transforms';
 import { createPluginAsync, DefaultPluginSpec } from '../../mol-plugin';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginConfig } from '../../mol-plugin/config';
@@ -20,23 +19,33 @@ import { DemoMoleculeSDF, DemoOrbitals } from './example-data';
 import { BehaviorSubject } from 'rxjs';
 import { debounceTime, skip } from 'rxjs/operators';
 import './index.html';
+import { Basis, AlphaOrbital } from '../../extensions/alpha-orbitals/data-model';
+import { canComputeAlphaOrbitalsOnGPU } from '../../extensions/alpha-orbitals/gpu/compute';
+import { PluginCommands } from '../../mol-plugin/commands';
 require('mol-plugin-ui/skin/light.scss');
 
 interface DemoInput {
     moleculeSdf: string,
     basis: Basis,
     order: SphericalBasisOrder,
-    orbitals: {
-        energy: number,
-        alpha: number[]
-    }[]
+    orbitals: AlphaOrbital[]
 }
 
 interface Params {
-    orbitalIndex: number,
+    show: { name: 'orbital', params: { index: number } } | { name: 'density', params: {} },
     isoValue: number,
-    gpuSurface: boolean,
-    cpuCompute: boolean
+    gpuSurface: boolean
+}
+
+type Selectors = {
+    type: 'orbital',
+    volume: StateObjectSelector<PluginStateObject.Volume.Data, typeof CreateOrbitalVolume>,
+    positive: StateObjectSelector<PluginStateObject.Volume.Representation3D, typeof CreateOrbitalRepresentation3D>
+    negative: StateObjectSelector<PluginStateObject.Volume.Representation3D, typeof CreateOrbitalRepresentation3D>
+} | {
+    type: 'density',
+    volume: StateObjectSelector<PluginStateObject.Volume.Data, typeof CreateOrbitalDensityVolume>,
+    positive: StateObjectSelector<PluginStateObject.Volume.Representation3D, typeof CreateOrbitalRepresentation3D>
 }
 
 export class AlphaOrbitalsExample {
@@ -62,6 +71,14 @@ export class AlphaOrbitalsExample {
 
         this.plugin.managers.interactivity.setProps({ granularity: 'element' });
 
+        if (!canComputeAlphaOrbitalsOnGPU(this.plugin.canvas3d?.webgl)) {
+            PluginCommands.Toast.Show(this.plugin, {
+                title: 'Error',
+                message: `Browser/device does not support required WebGL extension (OES_texture_float).`
+            });
+            return;
+        }
+
         this.load({
             moleculeSdf: DemoMoleculeSDF,
             ...DemoOrbitals
@@ -71,40 +88,84 @@ export class AlphaOrbitalsExample {
     }
 
     readonly params = new BehaviorSubject<ParamDefinition.For<Params>>({} as any);
-    readonly state = new BehaviorSubject<Params>({ orbitalIndex: 32, isoValue: 1, gpuSurface: false, cpuCompute: false });
+    readonly state = new BehaviorSubject<Params>({ show: { name: 'orbital', params: { index: 32 } }, isoValue: 1, gpuSurface: false });
 
-    private volume?: StateObjectSelector<PluginStateObject.Volume.Data, typeof CreateOrbitalVolume>;
-    private positive?: StateObjectSelector<PluginStateObject.Volume.Representation3D, typeof CreateOrbitalRepresentation3D>;
-    private negative?: StateObjectSelector<PluginStateObject.Volume.Representation3D, typeof CreateOrbitalRepresentation3D>;
+    private selectors?: Selectors = void 0;
+    private basis?: StateObjectSelector<BasisAndOrbitals> = void 0;
+
     private currentParams: Params = { ...this.state.value };
 
-    private async setIndex() {
-        if (!this.volume?.isOk) return;
+    private clearVolume() {
+        if (!this.selectors) return;
+        const v = this.selectors.volume;
+        this.selectors = void 0;
+        return this.plugin.build().delete(v).commit();
+    }
+
+    private async syncVolume() {
+        if (!this.basis?.isOk) return;
+
         const state = this.state.value;
-        await this.plugin.build().to(this.volume).update(CreateOrbitalVolume, () => ({ index: state.orbitalIndex, cpuCompute: state.cpuCompute })).commit();
+
+        if (state.show.name !== this.selectors?.type) {
+            await this.clearVolume();
+        }
+
+        const update = this.plugin.build();
+        if (state.show.name === 'orbital') {
+            if (!this.selectors) {
+                const volume = update
+                    .to(this.basis)
+                    .apply(CreateOrbitalVolume, { index: state.show.params.index });
+
+                const positive = volume.apply(CreateOrbitalRepresentation3D, this.volumeParams('positive', ColorNames.blue)).selector;
+                const negative = volume.apply(CreateOrbitalRepresentation3D, this.volumeParams('negative', ColorNames.red)).selector;
+
+                this.selectors = { type: 'orbital', volume: volume.selector, positive, negative };
+            } else {
+                const index = state.show.params.index;
+                update.to(this.selectors.volume).update(CreateOrbitalVolume, () => ({ index }));
+            }
+        } else {
+            if (!this.selectors) {
+                const volume = update
+                    .to(this.basis)
+                    .apply(CreateOrbitalDensityVolume);
+                const positive = volume.apply(CreateOrbitalRepresentation3D, this.volumeParams('positive', ColorNames.blue)).selector;
+                this.selectors = { type: 'density', volume: volume.selector, positive };
+            }
+        }
+
+        await update.commit();
+
         if (this.currentParams.gpuSurface !== this.state.value.gpuSurface) {
             await this.setIsovalue();
         }
+
         this.currentParams = this.state.value;
     }
 
     private setIsovalue() {
+        if (!this.selectors) return;
+
         this.currentParams = this.state.value;
         const update = this.plugin.build();
-        update.to(this.positive!).update(this.volumeParams('positive', ColorNames.blue));
-        update.to(this.negative!).update(this.volumeParams('negative', ColorNames.red));
+        update.to(this.selectors.positive).update(this.volumeParams('positive', ColorNames.blue));
+        if (this.selectors?.type === 'orbital') {
+            update.to(this.selectors.negative).update(this.volumeParams('negative', ColorNames.red));
+        }
         return update.commit();
     }
 
     private volumeParams(kind: 'positive' | 'negative', color: Color): StateTransformer.Params<typeof CreateOrbitalRepresentation3D> {
         return {
-            alpha: 1.0,
+            alpha: 0.85,
             color,
             directVolume: this.state.value.gpuSurface,
             kind,
             relativeIsovalue: this.state.value.isoValue,
             pickable: false,
-            xrayShaded: false
+            xrayShaded: true
         };
     }
 
@@ -119,36 +180,28 @@ export class AlphaOrbitalsExample {
         const all = await this.plugin.builders.structure.tryCreateComponentStatic(structure, 'all');
         if (all) await this.plugin.builders.structure.representation.addRepresentation(all, { type: 'ball-and-stick', color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } });
 
-        const state = this.state.value;
 
-        this.volume = await this.plugin.build().toRoot()
+        this.basis = await this.plugin.build().toRoot()
             .apply(StaticBasisAndOrbitals, { basis: input.basis, order: input.order, orbitals: input.orbitals })
-            .apply(CreateOrbitalVolume, { index: state.orbitalIndex, forceCpuCompute: this.currentParams.cpuCompute })
             .commit();
 
-        if (!this.volume.isOk) {
-            this.volume = void 0;
-            return;
-        }
-
-        const repr = this.plugin.build().to(this.volume);
-
-        this.positive = repr.apply(CreateOrbitalRepresentation3D, this.volumeParams('positive', ColorNames.blue)).selector;
-        this.negative = repr.apply(CreateOrbitalRepresentation3D, this.volumeParams('negative', ColorNames.red)).selector;
-
-        await repr.commit();
+        await this.syncVolume();
 
         this.params.next({
-            orbitalIndex: ParamDefinition.Numeric(this.currentParams.orbitalIndex, { min: 0, max: input.orbitals.length - 1 }, { immediateUpdate: true, isEssential: true }),
+            show: ParamDefinition.MappedStatic('orbital', {
+                'orbital': ParamDefinition.Group({
+                    index: ParamDefinition.Numeric(32, { min: 0, max: input.orbitals.length - 1 }, { immediateUpdate: true, isEssential: true }),
+                }),
+                'density': ParamDefinition.EmptyGroup()
+            }, { cycle: true }),
             isoValue: ParamDefinition.Numeric(this.currentParams.isoValue, { min: 0.5, max: 3, step: 0.1 }, { immediateUpdate: true, isEssential: false }),
-            gpuSurface: ParamDefinition.Boolean(this.currentParams.gpuSurface),
-            cpuCompute: ParamDefinition.Boolean(this.currentParams.cpuCompute, { label: 'CPU Compute' })
+            gpuSurface: ParamDefinition.Boolean(this.currentParams.gpuSurface, { isHidden: true })
         });
 
         this.state.pipe(skip(1), debounceTime(1000 / 24)).subscribe(async params => {
-            if (params.orbitalIndex !== this.currentParams.orbitalIndex
-                || params.cpuCompute !== this.currentParams.cpuCompute) {
-                this.setIndex();
+            if (params.show.name !== this.currentParams.show.name
+                || (params.show.name === 'orbital' && this.currentParams.show.name === 'orbital' && params.show.params.index !== this.currentParams.show.params.index)) {
+                this.syncVolume();
             } else if (params.isoValue !== this.currentParams.isoValue || params.gpuSurface !== this.currentParams.gpuSurface) {
                 this.setIsovalue();
             }

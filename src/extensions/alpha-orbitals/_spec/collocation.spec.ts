@@ -8,11 +8,18 @@ import { Box3D } from '../../../mol-math/geometry';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../../mol-task';
 import { sphericalCollocation } from '../collocation';
-import { Basis } from '../cubes';
+import { Basis, CubeGridInfo } from '../data-model';
 
 describe('alpha-orbitals-cubes', () => {
     it('water', async () => {
-        const grid = {
+        const grid: CubeGridInfo = {
+            params: {
+                basis: _testBasis,
+                cutoffThreshold: 0,
+                sphericalOrder: 'cca-reverse',
+                boxExpand: 0,
+                gridSpacing: []
+            },
             box: Box3D.create(Vec3.create(-1, -1, -1), Vec3.create(1, 1, 1)),
             delta: Vec3.create(2, 2, 2),
             dimensions: Vec3.create(2, 2, 2),
@@ -20,12 +27,10 @@ describe('alpha-orbitals-cubes', () => {
             size: Vec3.create(2, 2, 2)
         };
 
-        const matrix = await sphericalCollocation({
-            grid,
-            alphaOrbitals: [-2.2623991420609075e-16, 0.6360205395000592, 0.6672122399886391, -0.3876927909355508, -1.6780131293332933e-16, 2.844782862661151e-16, 4.977960694176068e-19, -2.3945919908996803e-16],
-            basis: _testBasis,
-            cutoffThreshold: 0,
-            sphericalOrder: 'cca-reverse'
+        const matrix = await sphericalCollocation(grid, {
+            energy: 0,
+            occupancy: 0,
+            alpha: [-2.2623991420609075e-16, 0.6360205395000592, 0.6672122399886391, -0.3876927909355508, -1.6780131293332933e-16, 2.844782862661151e-16, 4.977960694176068e-19, -2.3945919908996803e-16]
         }, RuntimeContext.Synchronous);
 
         const expected = [-0.1451730622877498, 0.06479453956039086, -0.2777738736440713, -0.057116584776260436, 0.05929916178822645, 0.2742903371231049, -0.07221698722165386, 0.15389180241391376];

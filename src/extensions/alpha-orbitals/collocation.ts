@@ -9,31 +9,15 @@
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../mol-task';
 import { arrayMin } from '../../mol-util/array';
-import { Basis, CubeGridInfo } from './cubes';
-import {
-    normalizeBasicOrder,
-
-    SphericalBasisOrder, SphericalFunctions
-} from './orbitals';
-
-export interface CollocationParams {
-    grid: CubeGridInfo;
-    basis: Basis;
-    sphericalOrder: SphericalBasisOrder;
-    cutoffThreshold: number;
-    alphaOrbitals: number[];
-}
+import { AlphaOrbital, CubeGridInfo } from './data-model';
+import { normalizeBasicOrder, SphericalFunctions } from './spherical-functions';
 
 export async function sphericalCollocation(
-    {
-        grid,
-        basis,
-        sphericalOrder,
-        cutoffThreshold,
-        alphaOrbitals,
-    }: CollocationParams,
+    grid: CubeGridInfo,
+    orbital: AlphaOrbital,
     taskCtx: RuntimeContext
 ) {
+    const { basis, sphericalOrder, cutoffThreshold } = grid.params;
     let baseCount = 0;
 
     for (const atom of basis.atoms) {
@@ -58,7 +42,7 @@ export async function sphericalCollocation(
             for (const L of shell.angularMomentum) {
                 const alpha = normalizeBasicOrder(
                     L,
-                    alphaOrbitals.slice(baseIndex, baseIndex + 2 * L + 1),
+                    orbital.alpha.slice(baseIndex, baseIndex + 2 * L + 1),
                     sphericalOrder
                 );
                 baseIndex += 2 * L + 1;
