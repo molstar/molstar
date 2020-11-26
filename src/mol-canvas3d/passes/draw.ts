@@ -75,7 +75,7 @@ export class DrawPass {
 
         this.drawTarget = createNullRenderTarget(webgl.gl);
 
-        this.colorTarget = webgl.createRenderTarget(width, height);
+        this.colorTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear');
         this.packedDepth = !extensions.depthTexture;
 
         this.depthTarget = webgl.createRenderTarget(width, height);

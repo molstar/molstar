@@ -151,7 +151,7 @@ export type ShaderDefines = {
     [k: string]: ValueCell<DefineType>
 }
 
-function getDefinesCode (defines: ShaderDefines) {
+function getDefinesCode(defines: ShaderDefines) {
     if (defines === undefined) return '';
     const lines = [];
     for (const name in defines) {

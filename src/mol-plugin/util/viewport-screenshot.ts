@@ -117,7 +117,7 @@ class ViewportScreenshotHelper extends PluginComponent {
             },
             postprocessing: {
                 ...c.props.postprocessing,
-                antialiasing: false
+                antialiasing: { name: 'off', params: {} }
             }
         });
     }
@@ -136,7 +136,7 @@ class ViewportScreenshotHelper extends PluginComponent {
                 // TODO: optimize because this creates a copy of a large object!
                 postprocessing: {
                     ...this.plugin.canvas3d!.props.postprocessing,
-                    antialiasing: false
+                    antialiasing: { name: 'off', params: {} }
                 }
             });
             return this._imagePass;

@@ -22,7 +22,7 @@ import { VertexArray, createVertexArray } from './vertex-array';
 
 function defineValueHash(v: boolean | number | string): number {
     return typeof v === 'boolean' ? (v ? 1 : 0) :
-        typeof v === 'number' ? v : hashString(v);
+        typeof v === 'number' ? (v * 10000) : hashString(v);
 }
 
 function wrapCached<T extends Resource>(resourceItem: ReferenceItem<T>) {
