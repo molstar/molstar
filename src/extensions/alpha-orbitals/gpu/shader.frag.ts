@@ -34,6 +34,11 @@ uniform sampler2D tCumulativeSum;
 
 uniform bool uLittleEndian;
 
+//////////////////////////////////////////////////////////
+
+// floatToRgba adapted from https://github.com/equinor/glsl-float-to-rgba
+// MIT License, Copyright (c) 2020 Equinor
+
 float shiftRight (float v, float amt) {
   v = floor(v) + 0.5;
   return floor(v / exp2(amt));
@@ -48,8 +53,7 @@ float extractBits (float num, float from, float to) {
     from = floor(from + 0.5); to = floor(to + 0.5);
     return maskLast(shiftRight(num, from), to - from);
 }
-// Adapted from https://github.com/equinor/glsl-float-to-rgba
-// MIT License, Copyright (c) 2020 Equinor
+
 vec4 floatToRgba(float texelFloat) {
     if (texelFloat == 0.0) return vec4(0, 0, 0, 0);
     float sign = texelFloat > 0.0 ? 0.0 : 1.0;
@@ -72,6 +76,23 @@ vec4 floatToRgba(float texelFloat) {
 }
 
 ///////////////////////////////////////////////////////
+
+// rgbaToFloat adapted from https://github.com/ihmeuw/glsl-rgba-to-float
+// BSD 3-Clause License
+//
+// Copyright (c) 2019, Institute for Health Metrics and Evaluation All rights reserved.
+// Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+//  - Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+//  - Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+//  - Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+// INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+// IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+// OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
+// OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+// OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ivec4 floatsToBytes(vec4 inputFloats) {
   ivec4 bytes = ivec4(inputFloats * 255.0);
@@ -133,7 +154,6 @@ float bitsToFloat(bool bits[32]) {
   return signBit * mantissa * exp2(exponent - exponentBias - 23.0);
 }
 
-// Decode a 32-bit float from the RGBA color channels of a texel.
 float rgbaToFloat(vec4 texelRGBA) {
   ivec4 rgbaBytes = floatsToBytes(texelRGBA);
   bool bits[32];
