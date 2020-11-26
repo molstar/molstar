@@ -131,7 +131,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
 
             addFixedCountDashedCylinder(builderState, va, vb, 0.5, 7, cylinderProps);
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.Triple) {
-            const order = LinkStyle.Double ? 2 : 3;
+            const order = linkStyle === LinkStyle.Double ? 2 : 3;
             const multiRadius = linkRadius * (linkScale / (0.5 * order));
             const absOffset = (linkRadius - multiRadius) * linkSpacing;
 
