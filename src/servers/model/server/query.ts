@@ -30,6 +30,7 @@ import { MolEncoder } from '../../../mol-io/writer/mol/encoder';
 import { Mol2Encoder } from '../../../mol-io/writer/mol2/encoder';
 import { ComponentAtom } from '../../../mol-model-formats/structure/property/atoms/chem_comp';
 import { Mat4 } from '../../../mol-math/linear-algebra';
+import { GlobalModelTransformInfo } from '../../../mol-model/structure/model/properties/global-transform';
 
 export interface Stats {
     structure: StructureWrapper,
@@ -247,6 +248,7 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
 
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter(entry.queryDefinition.filter);
         if (result.length > 0) encode_mmCIF_categories(encoder, result, { copyAllCategories: entry.copyAllCategories });
+        if (entry.transform && !Mat4.isIdentity(entry.transform)) GlobalModelTransformInfo.writeMmCif(encoder, entry.transform);
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter();
         perf.end('encode');
 

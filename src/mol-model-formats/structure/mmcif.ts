@@ -18,6 +18,7 @@ import { AtomSiteAnisotrop } from './property/anisotropic';
 import { ComponentBond } from './property/bonds/chem_comp';
 import { StructConn } from './property/bonds/struct_conn';
 import { Trajectory } from '../../mol-model/structure';
+import { GlobalModelTransformInfo } from '../../mol-model/structure/model/properties/global-transform';
 
 function modelSymmetryFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
@@ -68,6 +69,8 @@ function structConnFromMmcif(model: Model) {
     };
 }
 StructConn.Provider.formatRegistry.add('mmCIF', structConnFromMmcif);
+
+GlobalModelTransformInfo.Provider.formatRegistry.add('mmCIF', GlobalModelTransformInfo.fromMmCif, GlobalModelTransformInfo.hasData);
 
 //
 

@@ -7,7 +7,7 @@
 
 import { UniqueArray } from '../../../../mol-data/generic';
 import { OrderedSet, SortedArray, Interval } from '../../../../mol-data/int';
-import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 import Structure from '../structure';
 import Unit from '../unit';
@@ -489,7 +489,7 @@ export namespace Loci {
 
     const boundaryHelper = new BoundaryHelper('98');
     const tempPosBoundary = Vec3();
-    export function getBoundary(loci: Loci): Boundary {
+    export function getBoundary(loci: Loci, transform?: Mat4): Boundary {
         boundaryHelper.reset();
 
         for (const e of loci.elements) {
@@ -499,6 +499,7 @@ export namespace Loci {
             for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
                 const eI = elements[OrderedSet.getAt(indices, i)];
                 pos(eI, tempPosBoundary);
+                if (transform) Vec3.transformMat4(tempPosBoundary, tempPosBoundary, transform);
                 boundaryHelper.includePositionRadius(tempPosBoundary, r(eI));
             }
         }
@@ -510,6 +511,7 @@ export namespace Loci {
             for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
                 const eI = elements[OrderedSet.getAt(indices, i)];
                 pos(eI, tempPosBoundary);
+                if (transform) Vec3.transformMat4(tempPosBoundary, tempPosBoundary, transform);
                 boundaryHelper.radiusPositionRadius(tempPosBoundary, r(eI));
             }
         }

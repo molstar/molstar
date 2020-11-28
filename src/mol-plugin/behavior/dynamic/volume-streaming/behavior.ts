@@ -10,7 +10,7 @@ import { PluginStateObject } from '../../../../mol-plugin-state/objects';
 import { Volume, Grid } from '../../../../mol-model/volume';
 import { VolumeServerHeader, VolumeServerInfo } from './model';
 import { Box3D } from '../../../../mol-math/geometry';
-import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
 import { Color } from '../../../../mol-util/color';
 import { PluginBehavior } from '../../behavior';
 import { LRUCache } from '../../../../mol-util/lru-cache';
@@ -23,6 +23,7 @@ import { StructureElement, Structure } from '../../../../mol-model/structure';
 import { PluginContext } from '../../../context';
 import { EmptyLoci, Loci, isEmptyLoci } from '../../../../mol-model/loci';
 import { Asset } from '../../../../mol-util/assets';
+import { GlobalModelTransformInfo } from '../../../../mol-model/structure/model/properties/global-transform';
 
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
@@ -302,6 +303,7 @@ export namespace VolumeStreaming {
             }
         }
 
+        private _invTransform: Mat4 = Mat4();
         private getBoxFromLoci(loci: StructureElement.Loci | EmptyLoci): Box3D {
             if (Loci.isEmpty(loci)) {
                 return Box3D();
@@ -312,11 +314,16 @@ export namespace VolumeStreaming {
             const root = this.getStructureRoot();
             if (!root || root.obj?.data !== parent.obj?.data) return Box3D();
 
+            const transform = GlobalModelTransformInfo.get(root.obj?.data.models[0]!);
+            if (transform) Mat4.invert(this._invTransform, transform);
+
             const extendedLoci = StructureElement.Loci.extendToWholeResidues(loci);
-            const box = StructureElement.Loci.getBoundary(extendedLoci).box;
+            const box = StructureElement.Loci.getBoundary(extendedLoci, transform && !Number.isNaN(this._invTransform[0]) ? this._invTransform : void 0).box;
+
             if (StructureElement.Loci.size(extendedLoci) === 1) {
                 Box3D.expand(box, box, Vec3.create(1, 1, 1));
             }
+
             return box;
         }
 
@@ -360,7 +367,6 @@ export namespace VolumeStreaming {
             const switchedToSelection = params.entry.params.view.name === 'selection-box' && this.params && this.params.entry && this.params.entry.params && this.params.entry.params.view && this.params.entry.params.view.name !== 'selection-box';
 
             this.params = params;
-
             let box: Box3D | undefined = void 0, emptyData = false;
 
             switch (params.entry.params.view.name) {

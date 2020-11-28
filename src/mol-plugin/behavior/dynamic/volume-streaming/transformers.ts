@@ -22,6 +22,7 @@ import { Box3D } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { PluginConfig } from '../../../config';
 import { Model } from '../../../../mol-model/structure';
+import { GlobalModelTransformInfo } from '../../../../mol-model/structure/model/properties/global-transform';
 
 function addEntry(entries: InfoEntryProps[], method: VolumeServerInfo.Kind, dataId: string, emDefaultContourLevel: number) {
     entries.push({
@@ -253,20 +254,22 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
         channel: PD.Select<VolumeStreaming.ChannelType>('em', VolumeStreaming.ChannelTypeOptions, { isHidden: true })
     }
 })({
-    apply: ({ a, params: srcParams }, plugin: PluginContext) => Task.create('Volume Representation', async ctx => {
+    apply: ({ a, params: srcParams, spine }, plugin: PluginContext) => Task.create('Volume Representation', async ctx => {
         const channel = a.data.channels[srcParams.channel];
         if (!channel) return StateObject.Null;
 
         const params = createVolumeProps(a.data, srcParams.channel);
-
         const provider = VolumeRepresentationRegistry.BuiltIn.isosurface;
         const props = params.type.params || {};
         const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams);
         repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params));
+        const structure = spine.getAncestorOfType(SO.Molecule.Structure)?.data;
+        const transform = structure?.models.length === 0 ? void 0 : GlobalModelTransformInfo.get(structure?.models[0]!);
         await repr.createOrUpdate(props, channel.data).runInContext(ctx);
+        if (transform) repr.setState({ transform });
         return new SO.Volume.Representation3D({ repr, source: a }, { label: `${Math.round(channel.isoValue.relativeValue * 100) / 100} σ [${srcParams.channel}]` });
     }),
-    update: ({ a, b, oldParams, newParams }, plugin: PluginContext) => Task.create('Volume Representation', async ctx => {
+    update: ({ a, b, newParams, spine }, plugin: PluginContext) => Task.create('Volume Representation', async ctx => {
         // TODO : check if params/underlying data/etc have changed; maybe will need to export "data" or some other "tag" in the Representation for this to work
 
         const channel = a.data.channels[newParams.channel];
@@ -277,6 +280,13 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
         const props = { ...b.data.repr.props, ...params.type.params };
         b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params));
         await b.data.repr.createOrUpdate(props, channel.data).runInContext(ctx);
+
+        // TODO: set the transform here as well in case the structure moves?
+        //       doing this here now breaks the code for some reason...
+        // const structure = spine.getAncestorOfType(SO.Molecule.Structure)?.data;
+        // const transform = structure?.models.length === 0 ? void 0 : GlobalModelTransformInfo.get(structure?.models[0]!);
+        // if (transform) b.data.repr.setState({ transform });
+
         return StateTransformer.UpdateResult.Updated;
     })
 });

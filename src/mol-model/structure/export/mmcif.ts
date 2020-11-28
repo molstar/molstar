@@ -132,7 +132,8 @@ function getCustomPropCategories(customProp: CustomPropertyDescriptor, ctx: CifE
 type encode_mmCIF_categories_Params = {
     skipCategoryNames?: Set<string>,
     exportCtx?: CifExportContext,
-    copyAllCategories?: boolean
+    copyAllCategories?: boolean,
+    customProperties?: CustomPropertyDescriptor[]
 }
 
 /** Doesn't start a data block */
@@ -144,7 +145,7 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: 
     const ctx: CifExportContext = params?.exportCtx || CifExportContext.create(structures);
 
     if (params?.copyAllCategories && MmcifFormat.is(models[0].sourceData)) {
-        encode_mmCIF_categories_copyAll(encoder, ctx);
+        encode_mmCIF_categories_copyAll(encoder, ctx, params);
     } else {
         encode_mmCIF_categories_default(encoder, ctx, params);
     }
@@ -168,6 +169,14 @@ function encode_mmCIF_categories_default(encoder: CifWriter.Encoder, ctx: CifExp
         }
     }
 
+    if (params?.customProperties) {
+        for (const customProp of params?.customProperties) {
+            for (const [cat, propCtx] of getCustomPropCategories(customProp, ctx, _params)) {
+                encoder.writeCategory(cat, propCtx);
+            }
+        }
+    }
+
     for (const s of ctx.structures) {
         if (!s.hasCustomProperties) continue;
         for (const customProp of s.customPropertyDescriptors.all) {
@@ -178,7 +187,7 @@ function encode_mmCIF_categories_default(encoder: CifWriter.Encoder, ctx: CifExp
     }
 }
 
-function encode_mmCIF_categories_copyAll(encoder: CifWriter.Encoder, ctx: CifExportContext) {
+function encode_mmCIF_categories_copyAll(encoder: CifWriter.Encoder, ctx: CifExportContext, params?: encode_mmCIF_categories_Params) {
     const providedCategories = new Map<string, CifExportCategoryInfo>();
 
     for (const cat of Categories) {
@@ -188,9 +197,18 @@ function encode_mmCIF_categories_copyAll(encoder: CifWriter.Encoder, ctx: CifExp
     const mapping = atom_site_operator_mapping(ctx);
     if (mapping) providedCategories.set(mapping[0].name, mapping);
 
+    const _params = params || { };
     for (const customProp of ctx.firstModel.customProperties.all) {
-        for (const info of getCustomPropCategories(customProp, ctx)) {
+        for (const info of getCustomPropCategories(customProp, ctx, _params)) {
             providedCategories.set(info[0].name, info);
+        }
+    }
+
+    if (params?.customProperties) {
+        for (const customProp of params?.customProperties) {
+            for (const info of getCustomPropCategories(customProp, ctx, _params)) {
+                providedCategories.set(info[0].name, info);
+            }
         }
     }
 

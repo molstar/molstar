@@ -1,3 +1,6 @@
+# 0.9.5
+* Support molstar_global_model_transform_info category.
+
 # 0.9.4
 * bug fix for /ligand queries on metal ions
 
