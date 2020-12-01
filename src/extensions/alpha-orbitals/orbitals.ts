@@ -7,11 +7,14 @@
  */
 
 import { sortArray } from '../../mol-data/util';
+import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d-compute';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Task } from '../../mol-task';
 import { sphericalCollocation } from './collocation';
 import { AlphaOrbital, createGrid, CubeGrid, CubeGridComputationParams, initCubeGrid } from './data-model';
-import { canComputeAlphaOrbitalsOnGPU, gpuComputeAlphaOrbitalsGridValues } from './gpu/compute';
+import { gpuComputeAlphaOrbitalsGridValues } from './gpu/compute';
+
+// setDebugMode(true);
 
 export function createSphericalCollocationGrid(
     params: CubeGridComputationParams, orbital: AlphaOrbital, webgl?: WebGLContext
@@ -20,9 +23,9 @@ export function createSphericalCollocationGrid(
         const cubeGrid = initCubeGrid(params);
 
         let matrix: Float32Array;
-        if (canComputeAlphaOrbitalsOnGPU(webgl)) {
+        if (canComputeGrid3dOnGPU(webgl)) {
             // console.time('gpu');
-            matrix = gpuComputeAlphaOrbitalsGridValues(webgl!, cubeGrid, orbital);
+            matrix = await gpuComputeAlphaOrbitalsGridValues(ctx, webgl!, cubeGrid, orbital);
             // console.timeEnd('gpu');
         } else {
             // console.time('cpu');

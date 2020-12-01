@@ -20,8 +20,8 @@ import { BehaviorSubject } from 'rxjs';
 import { debounceTime, skip } from 'rxjs/operators';
 import './index.html';
 import { Basis, AlphaOrbital } from '../../extensions/alpha-orbitals/data-model';
-import { canComputeAlphaOrbitalsOnGPU } from '../../extensions/alpha-orbitals/gpu/compute';
 import { PluginCommands } from '../../mol-plugin/commands';
+import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d-compute';
 require('mol-plugin-ui/skin/light.scss');
 
 interface DemoInput {
@@ -71,7 +71,7 @@ export class AlphaOrbitalsExample {
 
         this.plugin.managers.interactivity.setProps({ granularity: 'element' });
 
-        if (!canComputeAlphaOrbitalsOnGPU(this.plugin.canvas3d?.webgl)) {
+        if (!canComputeGrid3dOnGPU(this.plugin.canvas3d?.webgl)) {
             PluginCommands.Toast.Show(this.plugin, {
                 title: 'Error',
                 message: `Browser/device does not support required WebGL extension (OES_texture_float).`

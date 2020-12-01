@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { RenderableSchema, Values, KindValue, UniformSpec, TextureSpec, DefineSpec, RenderableValues } from '../renderable/schema';
+import { RenderableSchema, Values, UnboxedValues, UniformSpec, TextureSpec, DefineSpec, RenderableValues } from '../renderable/schema';
 import { WebGLContext } from '../webgl/context';
 import { getRegularGrid3dDelta, RegularGrid3d } from '../../mol-math/geometry/common';
 import shader_template from '../shader/util/grid3d-template.frag';
@@ -19,6 +19,10 @@ import { createComputeRenderable } from '../renderable';
 import { isLittleEndian } from '../../mol-util/is-little-endian';
 import { RuntimeContext } from '../../mol-task';
 
+export function canComputeGrid3dOnGPU(webgl?: WebGLContext) {
+    return !!webgl?.extensions.textureFloat;
+}
+
 export interface Grid3DComputeRenderableSpec<S extends RenderableSchema, P, CS> {
     schema: S,
     // indicate which params are loop bounds for WebGL1 compat
@@ -27,15 +31,13 @@ export interface Grid3DComputeRenderableSpec<S extends RenderableSchema, P, CS> 
     mainCode: string,
     returnCode: string,
 
-    values(params: P, grid: RegularGrid3d): SchemaValues<S>,
+    values(params: P, grid: RegularGrid3d): UnboxedValues<S>,
 
     cumulative?: {
-        init(params: P, values: SchemaValues<S>): CS,
-        next(params: P, state: CS, values: Values<S>): boolean
+        states(params: P): CS[],
+        update(params: P, state: CS, values: Values<S>): void
     }
 }
-
-type SchemaValues<S extends RenderableSchema> = { readonly [k in keyof S]: KindValue[S[k]['kind']] }
 
 const FrameBufferName = 'grid3d-computable' as const;
 const Texture0Name = 'grid3d-computable-0' as const;
@@ -54,7 +56,7 @@ const CumulativeSumSchema = {
     tCumulativeSum: TextureSpec('texture', 'rgba', 'ubyte', 'nearest')
 };
 
-export function createGrid3dComputable<S extends RenderableSchema, P, CS>(spec: Grid3DComputeRenderableSpec<S, P, CS>) {
+export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>(spec: Grid3DComputeRenderableSpec<S, P, CS>) {
     const id = UUID.create22();
 
     const uniforms: string[] = [];
@@ -64,7 +66,8 @@ export function createGrid3dComputable<S extends RenderableSchema, P, CS>(spec: 
         if (u.kind.indexOf('[]') >= 0) throw new Error('array uniforms are not supported');
         const isBound = (spec.loopBounds?.indexOf(k) ?? -1) >= 0;
         if (isBound) uniforms.push(`#ifndef ${k}`);
-        uniforms.push(`uniform ${getUniformGlslType(u.kind as any)} ${k};`);
+        if (u.type === 'uniform') uniforms.push(`uniform ${getUniformGlslType(u.kind as any)} ${k};`);
+        else if (u.type === 'texture') uniforms.push(`uniform sampler2D ${k};`);
         if (isBound) uniforms.push(`#endif`);
     });
 
@@ -113,8 +116,7 @@ export function createGrid3dComputable<S extends RenderableSchema, P, CS>(spec: 
         const [nx, ny, nz] = grid.dimensions;
         const uWidth = Math.ceil(Math.sqrt(nx * ny * nz));
 
-        const values: SchemaValues<S & typeof SchemaBase> = {
-            ...QuadValues,
+        const values: UnboxedValues<S & typeof SchemaBase> = {
             uDimensions: grid.dimensions,
             uMin: grid.box.min,
             uDelta: getRegularGrid3dDelta(grid),
@@ -132,8 +134,9 @@ export function createGrid3dComputable<S extends RenderableSchema, P, CS>(spec: 
         }
 
         let renderable = webgl.namedComputeRenderables[id];
+        let cells: RenderableValues;
         if (renderable) {
-            const cells = renderable.values as RenderableValues;
+            cells = renderable.values as RenderableValues;
             objectForEach(values, (c, k) => {
                 const s = schema[k];
                 if (s?.type === 'value' || s?.type === 'attribute') return;
@@ -145,17 +148,50 @@ export function createGrid3dComputable<S extends RenderableSchema, P, CS>(spec: 
                 }
             });
         } else {
-            const cells = {} as any;
-            objectForEach(values, (v, k) => cells[k] = ValueCell.create(v));
+            cells = {} as any;
+            objectForEach(QuadValues, (v, k) => (cells as any)[k] = v);
+            objectForEach(values, (v, k) => (cells as any)[k] = ValueCell.create(v));
             renderable = createComputeRenderable(createComputeRenderItem(webgl, 'triangles', shader, schema, cells), cells);
         }
 
+
         if (spec.cumulative) {
-            throw new Error('nyi');
+            const { gl } = webgl;
+
+            const states = spec.cumulative.states(params);
+
+            tex[0].define(uWidth, uWidth);
+            tex[1].define(uWidth, uWidth);
+
+            resetGl(webgl, uWidth);
+            gl.clearColor(0, 0, 0, 0);
+
+            tex[0].attachFramebuffer(framebuffer, 'color0');
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            tex[1].attachFramebuffer(framebuffer, 'color0');
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            await ctx.update({ message: 'Computing...', isIndeterminate: false, current: 0, max: states.length });
+
+            for (let i = 0; i < states.length; i++) {
+                ValueCell.update(cells.tCumulativeSum, tex[(i + 1) % 2]);
+                tex[i % 2].attachFramebuffer(framebuffer, 'color0');
+                resetGl(webgl, uWidth);
+                spec.cumulative.update(params, states[i], cells as any);
+                renderable.update();
+                renderable.render();
+
+                if (i !== states.length - 1 && ctx.shouldUpdate) {
+                    await ctx.update({ current: i + 1 });
+                }
+            }
         } else {
+            tex[0].define(uWidth, uWidth);
             tex[0].attachFramebuffer(framebuffer, 'color0');
             framebuffer.bind();
             resetGl(webgl, uWidth);
+            renderable.update();
             renderable.render();
         }
 
