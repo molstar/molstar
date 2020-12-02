@@ -19,9 +19,9 @@ export function createSphericalCollocationDensityGrid(
 
         let matrix: Float32Array;
         if (canComputeGrid3dOnGPU(webgl)) {
-            // console.time('gpu');
+            console.time('gpu');
             matrix = await gpuComputeAlphaOrbitalsDensityGridValues(ctx, webgl!, cubeGrid, orbitals);
-            // console.timeEnd('gpu');
+            console.timeEnd('gpu');
         } else {
             throw new Error('Missing OES_texture_float WebGL extension.');
         }

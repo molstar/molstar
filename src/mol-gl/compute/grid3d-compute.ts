@@ -35,7 +35,10 @@ export interface Grid3DComputeRenderableSpec<S extends RenderableSchema, P, CS> 
 
     cumulative?: {
         states(params: P): CS[],
-        update(params: P, state: CS, values: Values<S>): void
+        update(params: P, state: CS, values: Values<S>): void,
+        // call gl.readPixes every 'yieldPeriod' states to split the computation
+        // into multiple parts, if not set, the computation will be synchronous
+        yieldPeriod?: number
     }
 }
 
@@ -154,7 +157,7 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
             renderable = createComputeRenderable(createComputeRenderItem(webgl, 'triangles', shader, schema, cells), cells);
         }
 
-
+        const array = new Uint8Array(uWidth * uWidth * 4);
         if (spec.cumulative) {
             const { gl } = webgl;
 
@@ -172,7 +175,11 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
             tex[1].attachFramebuffer(framebuffer, 'color0');
             gl.clear(gl.COLOR_BUFFER_BIT);
 
-            await ctx.update({ message: 'Computing...', isIndeterminate: false, current: 0, max: states.length });
+            if (spec.cumulative.yieldPeriod) {
+                await ctx.update({ message: 'Computing...', isIndeterminate: false, current: 0, max: states.length });
+            }
+
+            const yieldPeriod = Math.max(1, spec.cumulative.yieldPeriod ?? 1 | 0);
 
             for (let i = 0; i < states.length; i++) {
                 ValueCell.update(cells.tCumulativeSum, tex[(i + 1) % 2]);
@@ -182,8 +189,13 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
                 renderable.update();
                 renderable.render();
 
-                if (i !== states.length - 1 && ctx.shouldUpdate) {
-                    await ctx.update({ current: i + 1 });
+                if (spec.cumulative.yieldPeriod && i !== states.length - 1) {
+                    if (i % yieldPeriod === yieldPeriod - 1) {
+                        webgl.readPixels(0, 0, 1, 1, array);
+                    }
+                    if (ctx.shouldUpdate) {
+                        await ctx.update({ current: i + 1 });
+                    }
                 }
             }
         } else {
@@ -195,7 +207,6 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
             renderable.render();
         }
 
-        const array = new Uint8Array(uWidth * uWidth * 4);
         webgl.readPixels(0, 0, uWidth, uWidth, array);
         return new Float32Array(array.buffer, array.byteOffset, nx * ny * nz);
     };
