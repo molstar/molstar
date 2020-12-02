@@ -193,7 +193,7 @@ export class MultiSamplePass {
 
         const { x, y, width, height } = camera.viewport;
         const sampleWeight = 1.0 / offsetList.length;
-        const postprocessingEnabled = PostprocessingPass.isEnabled(props.postprocessing) || props.postprocessing.antialiasing.name === 'on';
+        const postprocessingEnabled = PostprocessingPass.isEnabled(props.postprocessing);
 
         if (sampleIndex === -1) {
             drawPass.render(renderer, camera, scene, helper, false, transparentBackground);
