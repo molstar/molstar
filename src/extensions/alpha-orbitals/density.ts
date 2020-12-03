@@ -5,7 +5,7 @@
  */
 
 import { sortArray } from '../../mol-data/util';
-import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d-compute';
+import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Task } from '../../mol-task';
 import { AlphaOrbital, createGrid, CubeGrid, CubeGridComputationParams, initCubeGrid } from './data-model';
@@ -19,9 +19,9 @@ export function createSphericalCollocationDensityGrid(
 
         let matrix: Float32Array;
         if (canComputeGrid3dOnGPU(webgl)) {
-            console.time('gpu');
+            // console.time('gpu');
             matrix = await gpuComputeAlphaOrbitalsDensityGridValues(ctx, webgl!, cubeGrid, orbitals);
-            console.timeEnd('gpu');
+            // console.timeEnd('gpu');
         } else {
             throw new Error('Missing OES_texture_float WebGL extension.');
         }

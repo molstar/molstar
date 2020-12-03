@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { createGrid3dComputeRenderable } from '../../../mol-gl/compute/grid3d-compute';
+import { createGrid3dComputeRenderable } from '../../../mol-gl/compute/grid3d';
 import { TextureSpec, UnboxedValues, UniformSpec } from '../../../mol-gl/renderable/schema';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { RuntimeContext } from '../../../mol-task';

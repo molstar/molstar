@@ -7,7 +7,7 @@
  */
 
 import { sortArray } from '../../mol-data/util';
-import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d-compute';
+import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Task } from '../../mol-task';
 import { sphericalCollocation } from './collocation';

@@ -21,7 +21,7 @@ import { debounceTime, skip } from 'rxjs/operators';
 import './index.html';
 import { Basis, AlphaOrbital } from '../../extensions/alpha-orbitals/data-model';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d-compute';
+import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d';
 require('mol-plugin-ui/skin/light.scss');
 
 interface DemoInput {
