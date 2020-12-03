@@ -80,3 +80,29 @@ export function getUniformSetters(schema: RenderableSchema) {
     });
     return setters;
 }
+
+export function getUniformGlslType(kind: UniformKind): string {
+    switch (kind) {
+        case 'f': return 'float';
+        case 'i': return 'int';
+        case 't': return 'sampler2D';
+        case 'b': return 'bool';
+        case 'v2': return 'vec2';
+        case 'v3': return 'vec3';
+        case 'v4': return 'vec4';
+        case 'm3': return 'mat3';
+        case 'm4': return 'mat4';
+    }
+    throw new Error(`${kind} has no primitive GLSL type.`);
+}
+
+export function isUniformValueScalar(kind: UniformKind): boolean {
+    switch (kind) {
+        case 'f':
+        case 'i':
+        case 'b':
+            return true;
+        default:
+            return false;
+    }
+}

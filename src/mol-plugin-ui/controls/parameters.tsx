@@ -186,6 +186,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'file-list': return FileListControl;
         case 'select': return SelectControl;
         case 'value-ref': return ValueRefControl;
+        case 'data-ref': return void 0;
         case 'text': return TextControl;
         case 'interval': return typeof param.min !== 'undefined' && typeof param.max !== 'undefined'
             ? BoundedIntervalControl : IntervalControl;

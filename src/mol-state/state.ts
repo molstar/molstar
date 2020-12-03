@@ -328,6 +328,8 @@ class State {
         const oldTree = this._tree;
         this._tree = _tree;
 
+        const cells = this.cells;
+
         const ctx: UpdateContext = {
             parent: this,
             editInfo: StateBuilder.is(tree) ? tree.editInfo : void 0,
@@ -346,7 +348,9 @@ class State {
             changed: false,
             hadError: false,
             wasAborted: false,
-            newCurrent: void 0
+            newCurrent: void 0,
+
+            getCellData: ref => cells.get(ref)!.obj?.data
         };
 
         this.errorFree = true;
@@ -454,7 +458,9 @@ interface UpdateContext {
     changed: boolean,
     hadError: boolean,
     wasAborted: boolean,
-    newCurrent?: Ref
+    newCurrent?: Ref,
+
+    getCellData: (ref: string) => any
 }
 
 async function update(ctx: UpdateContext) {
@@ -841,7 +847,7 @@ function resolveParams(ctx: UpdateContext, transform: StateTransform, src: State
     (transform.params as any) = transform.params
         ? assignIfUndefined(transform.params, defaultValues)
         : defaultValues;
-    ParamDefinition.resolveValueRefs(definition, transform.params);
+    ParamDefinition.resolveRefs(definition, transform.params, ctx.getCellData);
     return { definition, values: transform.params };
 }
 

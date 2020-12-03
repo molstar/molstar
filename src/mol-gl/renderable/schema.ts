@@ -29,6 +29,7 @@ export type ValueKind = keyof ValueKindType
 export type KindValue = UniformKindValue & DataTypeArrayType & TextureKindValue & ValueKindType
 
 export type Values<S extends RenderableSchema> = { readonly [k in keyof S]: ValueCell<KindValue[S[k]['kind']]> }
+export type UnboxedValues<S extends RenderableSchema> = { readonly [k in keyof S]: KindValue[S[k]['kind']] }
 
 export function splitValues(schema: RenderableSchema, values: RenderableValues) {
     const attributeValues: AttributeValues = {};
@@ -101,6 +102,7 @@ export type RenderableSchema = {
     )
 }
 export type RenderableValues = { readonly [k: string]: ValueCell<any> }
+
 
 //
 

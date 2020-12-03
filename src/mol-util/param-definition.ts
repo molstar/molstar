@@ -296,6 +296,13 @@ export namespace ParamDefinition {
         return setInfo<ValueRef<T>>({ type: 'value-ref', defaultValue: { ref: info?.defaultRef ?? '', getValue: unsetGetValue as any }, getOptions, resolveRef }, info);
     }
 
+    export interface DataRef<T = any> extends Base<{ ref: string, getValue: () => T }> {
+        type: 'data-ref'
+    }
+    export function DataRef<T>(info?: Info & { defaultRef?: string }) {
+        return setInfo<DataRef<T>>({ type: 'data-ref', defaultValue: { ref: info?.defaultRef ?? '', getValue: unsetGetValue as any } }, info);
+    }
+
     export interface Converted<T, C> extends Base<T> {
         type: 'converted',
         converted: Any,
@@ -329,7 +336,7 @@ export namespace ParamDefinition {
 
     export type Any =
         | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Mat4 | Numeric | FileParam | UrlParam | FileListParam | Interval | LineGraph
-        | ColorList | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList | ValueRef
+        | ColorList | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList | ValueRef | DataRef
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
@@ -360,29 +367,33 @@ export namespace ParamDefinition {
         return () => resolve(ref);
     }
 
-    function resolveRefValue(p: Any, value: any) {
+    function resolveRefValue(p: Any, value: any, getData: (ref: string) => any) {
         if (!value) return;
 
         if (p.type === 'value-ref') {
             const v = value as ValueRef['defaultValue'];
             if (!v.ref) v.getValue = () => { throw new Error('Unset ref in ValueRef value.'); };
             else v.getValue = _resolveRef(p.resolveRef, v.ref);
+        } else if (p.type === 'data-ref') {
+            const v = value as ValueRef['defaultValue'];
+            if (!v.ref) v.getValue = () => { throw new Error('Unset ref in ValueRef value.'); };
+            else v.getValue = _resolveRef(getData, v.ref);
         } else if (p.type === 'group') {
-            resolveValueRefs(p.params, value);
+            resolveRefs(p.params, value, getData);
         } else if (p.type === 'mapped') {
             const v = value as NamedParams;
             const param = p.map(v.name);
-            resolveRefValue(param, v.params);
+            resolveRefValue(param, v.params, getData);
         } else if (p.type === 'object-list') {
             if (!hasValueRef(p.element)) return;
             for (const e of value) {
-                resolveValueRefs(p.element, e);
+                resolveRefs(p.element, e, getData);
             }
         }
     }
 
     function hasParamValueRef(p: Any) {
-        if (p.type === 'value-ref') {
+        if (p.type === 'value-ref' || p.type === 'data-ref') {
             return true;
         } else if (p.type === 'group') {
             if (hasValueRef(p.params)) return true;
@@ -403,9 +414,9 @@ export namespace ParamDefinition {
         return false;
     }
 
-    export function resolveValueRefs(params: Params, values: any) {
+    export function resolveRefs(params: Params, values: any, getData: (ref: string) => any) {
         for (const n of Object.keys(params)) {
-            resolveRefValue(params[n], values?.[n]);
+            resolveRefValue(params[n], values?.[n], getData);
         }
     }
 
