@@ -131,7 +131,6 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, params);
             repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, params));
 
-            // TODO set initial state, repr.setState({})
             const props = params.type.params || {};
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             return new SO.Molecule.Structure.Representation3D({ repr, source: a }, { label: provider.label });
@@ -205,6 +204,8 @@ const UnwindStructureAssemblyRepresentation3D = PluginStateTransform.BuiltIn({
     update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure;
         if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+
         if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
         const unitTransforms = b.data.state.unitTransforms!;
         unwindStructureAssembly(structure, unitTransforms, newParams.t);
@@ -240,6 +241,8 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     update({ a, b, newParams, oldParams }) {
         const structure = a.data.source.data;
         if (b.data.info !== structure.root) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+
         if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
         const unitTransforms = b.data.state.unitTransforms!;
         explodeStructure(structure.root, unitTransforms, newParams.t);
@@ -287,6 +290,8 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
         const oldStructure = b.data.info as Structure;
         const newStructure = a.data.source.data;
         if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+
         const oldOverpaint = b.data.state.overpaint!;
         const newOverpaint = Overpaint.ofScript(newParams.layers, newStructure);
         if (Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged;
@@ -337,6 +342,8 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
         const oldStructure = b.data.info as Structure;
         const newStructure = a.data.source.data;
         if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+
         const oldOverpaint = b.data.state.overpaint!;
         const newOverpaint = Overpaint.ofBundle(newParams.layers, newStructure);
         if (Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged;
@@ -383,6 +390,8 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
     update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure;
         if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+
         const oldTransparency = b.data.state.transparency!;
         const newTransparency = Transparency.ofScript(newParams.layers, structure);
         if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged;
@@ -430,6 +439,8 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
     update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure;
         if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+
         const oldTransparency = b.data.state.transparency!;
         const newTransparency = Transparency.ofBundle(newParams.layers, structure);
         if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged;
@@ -476,6 +487,8 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
     update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure;
         if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+
         const oldClipping = b.data.state.clipping!;
         const newClipping = Clipping.ofScript(newParams.layers, structure);
         if (Clipping.areEqual(oldClipping, newClipping)) return StateTransformer.UpdateResult.Unchanged;
@@ -523,6 +536,8 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
     update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure;
         if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+
         const oldClipping = b.data.state.clipping!;
         const newClipping = Clipping.ofBundle(newParams.layers, structure);
         if (Clipping.areEqual(oldClipping, newClipping)) return StateTransformer.UpdateResult.Unchanged;
@@ -619,7 +634,6 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     }
 })({
     canAutoUpdate({ oldParams, newParams }) {
-        // TODO: allow for small molecules
         return oldParams.type.name === newParams.type.name;
     },
     apply({ a, params }, plugin: PluginContext) {
@@ -627,10 +641,10 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
             const provider = plugin.representation.volume.registry.get(params.type.name);
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
-            const props = params.type.params || {};
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams);
             repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, params));
-            // TODO set initial state, repr.setState({})
+
+            const props = params.type.params || {};
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             return new SO.Volume.Representation3D({ repr, source: a }, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
         });
@@ -673,7 +687,6 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Shape Representation', async ctx => {
             const props = { ...PD.getDefaultValues(a.data.params), ...params };
             const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils);
-            // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data.data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, source: a }, { label: a.data.label });
         });

@@ -44,7 +44,7 @@ export const HighlightLoci = PluginBehavior.create({
     ctor: class extends PluginBehavior.Handler<HighlightLociProps> {
         private lociMarkProvider = (interactionLoci: Representation.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d || !this.params.mark) return;
-            this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action);
+            this.ctx.canvas3d.mark(interactionLoci, action);
         }
         register() {
             this.subscribeObservable(this.ctx.behaviors.interaction.hover, ({ current, buttons, modifiers }) => {
@@ -57,12 +57,14 @@ export const HighlightLoci = PluginBehavior.create({
                 let matched = false;
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnly, buttons, modifiers)) {
-                    this.ctx.managers.interactivity.lociHighlights.highlightOnly(current);
+                    // remove repr to highlight loci everywhere on hover
+                    this.ctx.managers.interactivity.lociHighlights.highlightOnly({ loci: current.loci });
                     matched = true;
                 }
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnlyExtend, buttons, modifiers)) {
-                    this.ctx.managers.interactivity.lociHighlights.highlightOnlyExtend(current);
+                    // remove repr to highlight loci everywhere on hover
+                    this.ctx.managers.interactivity.lociHighlights.highlightOnlyExtend({ loci: current.loci });
                     matched = true;
                 }
 

@@ -110,7 +110,7 @@ export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 export class PostprocessingPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.occlusion.name === 'on' || props.outline.name === 'on';
+        return props.occlusion.name === 'on' || props.outline.name === 'on' || props.antialiasing.name === 'on';
     }
 
     readonly target: RenderTarget
@@ -146,7 +146,7 @@ export class PostprocessingPass {
     private updateState(camera: ICamera) {
         const { gl, state } = this.webgl;
 
-        state.disable(gl.SCISSOR_TEST);
+        state.enable(gl.SCISSOR_TEST);
         state.disable(gl.BLEND);
         state.disable(gl.DEPTH_TEST);
         state.depthMask(false);
