@@ -14,6 +14,8 @@ import { VisualContext } from '../../../visual';
 import { BaseGeometry } from '../../../../mol-geo/geometry/base';
 import { Lines } from '../../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../../mol-geo/geometry/lines/lines-builder';
+import { Cylinders } from '../../../../mol-geo/geometry/cylinders/cylinders';
+import { CylindersBuilder } from '../../../../mol-geo/geometry/cylinders/cylinders-builder';
 
 export const LinkCylinderParams = {
     linkScale: PD.Numeric(0.4, { min: 0, max: 1, step: 0.1 }),
@@ -167,6 +169,67 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
     }
 
     return MeshBuilder.getMesh(builderState);
+}
+
+/**
+ * Each edge is included twice to allow for coloring/picking
+ * the half closer to the first vertex, i.e. vertex a.
+ */
+export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkCylinderProps, cylinders?: Cylinders) {
+    const { linkCount, referencePosition, position, style, radius, ignore } = linkBuilder;
+
+    if (!linkCount) return Cylinders.createEmpty(cylinders);
+
+    const { linkScale, linkSpacing, linkCap, dashCount, dashScale, dashCap } = props;
+
+    const cylindersCountEstimate = linkCount * 2;
+    const builder = CylindersBuilder.create(cylindersCountEstimate, cylindersCountEstimate / 4, cylinders);
+
+    const va = Vec3();
+    const vb = Vec3();
+    const vShift = Vec3();
+
+    // automatically adjust length for evenly spaced dashed cylinders
+    const segmentCount = dashCount % 2 === 1 ? dashCount : dashCount + 1;
+    const lengthScale = 0.5 - (0.5 / 2 / segmentCount);
+
+    for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
+        if (ignore && ignore(edgeIndex)) continue;
+
+        position(va, vb, edgeIndex);
+
+        const linkRadius = radius(edgeIndex);
+        const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
+
+        if (linkStyle === LinkStyle.Solid) {
+            v3scale(vb, v3add(vb, va, vb), 0.5);
+            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], 1, linkCap, false, edgeIndex);
+        } else if (linkStyle === LinkStyle.Dashed) {
+            v3scale(tmpV12, v3sub(tmpV12, vb, va), lengthScale);
+            v3sub(vb, vb, tmpV12);
+            builder.addFixedCountDashes(va, vb, segmentCount, dashScale, dashCap, dashCap, edgeIndex);
+        } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.Triple) {
+            v3scale(vb, v3add(vb, va, vb), 0.5);
+            const order = linkStyle === LinkStyle.Double ? 2 : 3;
+            const multiScale = linkScale / (0.5 * order);
+            const absOffset = (linkRadius - multiScale * linkRadius) * linkSpacing;
+
+            calculateShiftDir(vShift, va, vb, referencePosition ? referencePosition(edgeIndex) : null);
+            v3setMagnitude(vShift, vShift, absOffset);
+
+            if (order === 3) builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], multiScale, linkCap, false, edgeIndex);
+            builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vb[0] + vShift[0], vb[1] + vShift[1], vb[2] + vShift[2], multiScale, linkCap, false, edgeIndex);
+            builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vb[0] - vShift[0], vb[1] - vShift[1], vb[2] - vShift[2], multiScale, linkCap, false, edgeIndex);
+        } else if (linkStyle === LinkStyle.Disk) {
+            v3scale(tmpV12, v3sub(tmpV12, vb, va), 0.475);
+            v3add(va, va, tmpV12);
+            v3sub(vb, vb, tmpV12);
+
+            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], 1, linkCap, false, edgeIndex);
+        }
+    }
+
+    return builder.getCylinders();
 }
 
 /**

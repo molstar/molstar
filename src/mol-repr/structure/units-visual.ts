@@ -29,13 +29,14 @@ import { Transparency } from '../../mol-theme/transparency';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { SizeTheme } from '../../mol-theme/size';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
+import { Cylinders } from '../../mol-geo/geometry/cylinders/cylinders';
 import { Points } from '../../mol-geo/geometry/points/points';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { Text } from '../../mol-geo/geometry/text/text';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { SizeValues } from '../../mol-gl/renderable/schema';
-import { StructureParams, StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureTextParams, StructureDirectVolumeParams, StructureTextureMeshParams } from './params';
+import { StructureParams, StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureTextParams, StructureDirectVolumeParams, StructureTextureMeshParams, StructureCylindersParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
@@ -327,6 +328,23 @@ export function UnitsSpheresVisual<P extends UnitsSpheresParams>(builder: UnitsS
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true;
         },
         geometryUtils: Spheres.Utils
+    }, materialId);
+}
+
+// cylinders
+
+export const UnitsCylindersParams = { ...StructureCylindersParams, ...StructureParams };
+export type UnitsCylindersParams = typeof UnitsCylindersParams
+export interface UnitsCylindersVisualBuilder<P extends UnitsCylindersParams> extends UnitsVisualBuilder<P, Cylinders> { }
+
+export function UnitsCylindersVisual<P extends UnitsCylindersParams>(builder: UnitsCylindersVisualBuilder<P>, materialId: number): UnitsVisual<P> {
+    return UnitsVisual<Cylinders, P>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup);
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true;
+        },
+        geometryUtils: Cylinders.Utils
     }, materialId);
 }
 

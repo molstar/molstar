@@ -10,6 +10,7 @@ import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { Points } from '../../mol-geo/geometry/points/points';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
+import { Cylinders } from '../../mol-geo/geometry/cylinders/cylinders';
 import { Text } from '../../mol-geo/geometry/text/text';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -30,9 +31,11 @@ export type StructureMeshParams = typeof StructureMeshParams
 export const StructureSpheresParams = { ...Spheres.Params };
 export type StructureSpheresParams = typeof StructureSpheresParams
 
+export const StructureCylindersParams = { ...Cylinders.Params };
+export type StructureCylindersParams = typeof StructureCylindersParams
+
 export const StructurePointsParams = { ...Points.Params };
 export type StructurePointsParams = typeof StructurePointsParams
-
 
 export const StructureLinesParams = { ...Lines.Params };
 export type StructureLinesParams = typeof StructureLinesParams

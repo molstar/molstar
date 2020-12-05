@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { getElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
-import { IntraUnitBondCylinderVisual, IntraUnitBondCylinderParams } from '../visual/bond-intra-unit-cylinder';
-import { InterUnitBondCylinderVisual, InterUnitBondCylinderParams } from '../visual/bond-inter-unit-cylinder';
+import { getIntraUnitBondCylinderVisual, IntraUnitBondCylinderParams } from '../visual/bond-intra-unit-cylinder';
+import { InterUnitBondCylinderParams, getInterUnitBondCylinderVisual } from '../visual/bond-inter-unit-cylinder';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';
 import { ComplexRepresentation } from '../complex-representation';
@@ -18,8 +18,8 @@ import { getUnitKindsParam } from '../params';
 
 const BallAndStickVisuals = {
     'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Element sphere mesh', ctx, getParams, getElementSphereVisual(ctx.webgl)),
-    'intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitBondCylinderParams>) => UnitsRepresentation('Intra-unit bond cylinder', ctx, getParams, IntraUnitBondCylinderVisual),
-    'inter-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitBondCylinderParams>) => ComplexRepresentation('Inter-unit bond cylinder', ctx, getParams, InterUnitBondCylinderVisual),
+    'intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitBondCylinderParams>) => UnitsRepresentation('Intra-unit bond cylinder', ctx, getParams, getIntraUnitBondCylinderVisual(ctx.webgl)),
+    'inter-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitBondCylinderParams>) => ComplexRepresentation('Inter-unit bond cylinder', ctx, getParams, getInterUnitBondCylinderVisual(ctx.webgl)),
 };
 
 export const BallAndStickParams = {

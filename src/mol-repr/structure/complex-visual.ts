@@ -25,13 +25,14 @@ import { Mat4 } from '../../mol-math/linear-algebra';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { Cylinders } from '../../mol-geo/geometry/cylinders/cylinders';
+import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
-import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams } from './params';
+import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
-import { Lines } from '../../mol-geo/geometry/lines/lines';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -258,6 +259,24 @@ export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexM
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true;
         },
         geometryUtils: Mesh.Utils
+    }, materialId);
+}
+
+// cylinders
+
+export const ComplexCylindersParams = { ...StructureCylindersParams, ...StructureParams };
+export type ComplexCylindersParams = typeof ComplexCylindersParams
+
+export interface ComplexCylindersVisualBuilder<P extends ComplexCylindersParams> extends ComplexVisualBuilder<P, Cylinders> { }
+
+export function ComplexCylindersVisual<P extends ComplexCylindersParams>(builder: ComplexCylindersVisualBuilder<P>, materialId: number): ComplexVisual<P> {
+    return ComplexVisual<Cylinders, P>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true;
+        },
+        geometryUtils: Cylinders.Utils
     }, materialId);
 }
 
