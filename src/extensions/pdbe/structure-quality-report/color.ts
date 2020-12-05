@@ -6,7 +6,7 @@
 
 import { StructureQualityReport, StructureQualityReportProvider } from './prop';
 import { Location } from '../../../mol-model/location';
-import { StructureElement } from '../../../mol-model/structure';
+import { Bond, StructureElement } from '../../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ThemeDataContext } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
@@ -46,11 +46,16 @@ export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: P
 
     if (ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(StructureQualityReportProvider.descriptor)) {
         const getIssues = StructureQualityReport.getIssues;
+        const l = StructureElement.Location.create(ctx.structure);
 
         if (props.type.name === 'issue-count') {
             color = (location: Location) => {
                 if (StructureElement.Location.is(location)) {
                     return ValidationColors[Math.min(3, getIssues(location).length) + 1];
+                } else if (Bond.isLocation(location)) {
+                    l.unit = location.aUnit;
+                    l.element = location.aUnit.elements[location.aIndex];
+                    return ValidationColors[Math.min(3, getIssues(l).length) + 1];
                 }
                 return ValidationColors[0];
             };
@@ -59,6 +64,10 @@ export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: P
             color = (location: Location) => {
                 if (StructureElement.Location.is(location) && getIssues(location).indexOf(issue) >= 0) {
                     return ValidationColors[4];
+                } else if (Bond.isLocation(location)) {
+                    l.unit = location.aUnit;
+                    l.element = location.aUnit.elements[location.aIndex];
+                    return ValidationColors[Math.min(3, getIssues(l).length) + 1];
                 }
                 return ValidationColors[0];
             };

@@ -98,11 +98,15 @@ export namespace BondIterator {
         const unit = group.units[0];
         const groupCount = Unit.isAtomic(unit) ? unit.bonds.edgeCount * 2 : 0;
         const instanceCount = group.units.length;
-        const location = StructureElement.Location.create(structure);
+        const location = Bond.Location();
+        location.aStructure = structure;
+        location.bStructure = structure;
         const getLocation = (groupIndex: number, instanceIndex: number) => {
-            const unit = group.units[instanceIndex];
-            location.unit = unit;
-            location.element = unit.elements[(unit as Unit.Atomic).bonds.a[groupIndex]];
+            const unit = group.units[instanceIndex] as Unit.Atomic;
+            location.aUnit = unit;
+            location.bUnit = unit;
+            location.aIndex = unit.bonds.a[groupIndex];
+            location.bIndex = unit.bonds.b[groupIndex];
             return location;
         };
         return LocationIterator(groupCount, instanceCount, 1, getLocation);
@@ -111,11 +115,15 @@ export namespace BondIterator {
     export function fromStructure(structure: Structure): LocationIterator {
         const groupCount = structure.interUnitBonds.edgeCount;
         const instanceCount = 1;
-        const location = StructureElement.Location.create(structure);
+        const location = Bond.Location();
+        location.aStructure = structure;
+        location.bStructure = structure;
         const getLocation = (groupIndex: number) => {
             const bond = structure.interUnitBonds.edges[groupIndex];
-            location.unit = structure.unitMap.get(bond.unitA);
-            location.element = location.unit.elements[bond.indexA];
+            location.aUnit = structure.unitMap.get(bond.unitA);
+            location.aIndex = bond.indexA;
+            location.bUnit = structure.unitMap.get(bond.unitB);
+            location.bIndex = bond.indexB;
             return location;
         };
         return LocationIterator(groupCount, instanceCount, 1, getLocation, true);

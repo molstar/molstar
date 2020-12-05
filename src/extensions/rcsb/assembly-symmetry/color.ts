@@ -9,7 +9,7 @@ import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { AssemblySymmetryProvider, AssemblySymmetry } from './prop';
 import { Color } from '../../../mol-util/color';
-import { Unit, StructureElement, StructureProperties } from '../../../mol-model/structure';
+import { Unit, StructureElement, StructureProperties, Bond } from '../../../mol-model/structure';
 import { Location } from '../../../mol-model/location';
 import { ScaleLegend, TableLegend } from '../../../mol-util/legend';
 import { getPalette, getPaletteParams } from '../../../mol-util/color/palette';
@@ -50,6 +50,8 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
     const clusters = assemblySymmetry?.value?.clusters;
 
     if (clusters?.length && ctx.structure) {
+        const l = StructureElement.Location.create(ctx.structure);
+
         const clusterByMember = new Map<string, number>();
         for (let i = 0, il = clusters.length; i < il; ++i) {
             const { members } = clusters[i]!;
@@ -67,12 +69,20 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
         legend = palette.legend;
 
         const _emptyList: any[] = [];
+        const getColor = (location: StructureElement.Location) => {
+            const { assembly } = location.unit.conformation.operator;
+            const asymId = getAsymId(location.unit)(location);
+            const cluster = clusterByMember.get(clusterMemberKey(asymId, assembly?.operList || _emptyList));
+            return cluster !== undefined ? palette.color(cluster) : DefaultColor;
+        };
+
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location)) {
-                const { assembly } = location.unit.conformation.operator;
-                const asymId = getAsymId(location.unit)(location);
-                const cluster = clusterByMember.get(clusterMemberKey(asymId, assembly?.operList || _emptyList));
-                return cluster !== undefined ? palette.color(cluster) : DefaultColor;
+                return getColor(location);
+            } else if (Bond.isLocation(location)) {
+                l.unit = location.aUnit;
+                l.element = location.aUnit.elements[location.aIndex];
+                return getColor(l);
             }
             return DefaultColor;
         };

@@ -8,7 +8,7 @@ import { ThemeDataContext } from '../../../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../../../mol-theme/color';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { Color } from '../../../../mol-util/color';
-import { StructureElement } from '../../../../mol-model/structure';
+import { Bond, ElementIndex, StructureElement } from '../../../../mol-model/structure';
 import { Location } from '../../../../mol-model/location';
 import { CustomProperty } from '../../../../mol-model-props/common/custom-property';
 import { ValidationReportProvider, ValidationReport } from '../prop';
@@ -59,31 +59,35 @@ export function GeometryQualityColorTheme(ctx: ThemeDataContext, props: PD.Value
         const residueIndex = model.atomicHierarchy.residueAtomSegments.index;
         const { polymerType } = model.atomicHierarchy.derived.residue;
         const ignore = new Set(props.ignore);
+        const getColor = (element: ElementIndex) => {
+            const rI = residueIndex[element];
+
+            const value = geometryIssues.get(rI);
+            if (value === undefined) return DefaultColor;
+
+            let count = SetUtils.differenceSize(value, ignore);
+
+            if (count > 0 && polymerType[rI] === PolymerType.NA) {
+                count = 0;
+                if (!ignore.has('clash') && clashes.getVertexEdgeCount(element) > 0) count += 1;
+                if (!ignore.has('mog-bond-outlier') && bondOutliers.index.has(element)) count += 1;
+                if (!ignore.has('mog-angle-outlier') && angleOutliers.index.has(element)) count += 1;
+            }
+
+            switch (count) {
+                case undefined: return DefaultColor;
+                case 0: return NoIssuesColor;
+                case 1: return OneIssueColor;
+                case 2: return TwoIssuesColor;
+                default: return ThreeOrMoreIssuesColor;
+            }
+        };
 
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location) && location.unit.model === model) {
-                const { element } = location;
-                const rI = residueIndex[element];
-
-                const value = geometryIssues.get(rI);
-                if (value === undefined) return DefaultColor;
-
-                let count = SetUtils.differenceSize(value, ignore);
-
-                if (count > 0 && polymerType[rI] === PolymerType.NA) {
-                    count = 0;
-                    if (!ignore.has('clash') && clashes.getVertexEdgeCount(element) > 0) count += 1;
-                    if (!ignore.has('mog-bond-outlier') && bondOutliers.index.has(element)) count += 1;
-                    if (!ignore.has('mog-angle-outlier') && angleOutliers.index.has(element)) count += 1;
-                }
-
-                switch (count) {
-                    case undefined: return DefaultColor;
-                    case 0: return NoIssuesColor;
-                    case 1: return OneIssueColor;
-                    case 2: return TwoIssuesColor;
-                    default: return ThreeOrMoreIssuesColor;
-                }
+                return getColor(location.element);
+            } else if (Bond.isLocation(location) && location.aUnit.model === model) {
+                return getColor(location.aUnit.elements[location.aIndex]);
             }
             return DefaultColor;
         };

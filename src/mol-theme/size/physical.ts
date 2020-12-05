@@ -44,7 +44,10 @@ export function PhysicalSizeTheme(ctx: ThemeDataContext, props: PD.Values<Physic
         if (StructureElement.Location.is(location)) {
             size = scale * getPhysicalRadius(location.unit, location.element);
         } else if (Bond.isLocation(location)) {
-            size = scale * getPhysicalRadius(location.aUnit, location.aUnit.elements[location.aIndex]);
+            size = scale * Math.min(
+                getPhysicalRadius(location.aUnit, location.aUnit.elements[location.aIndex]),
+                getPhysicalRadius(location.bUnit, location.bUnit.elements[location.bIndex])
+            );
         } else {
             size = scale * DefaultSize;
         }

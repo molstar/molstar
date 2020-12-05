@@ -9,7 +9,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Color } from '../../../mol-util/color';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ScaleLegend, TableLegend } from '../../../mol-util/legend';
-import { StructureElement, Model } from '../../../mol-model/structure';
+import { StructureElement, Model, Bond } from '../../../mol-model/structure';
 import { Location } from '../../../mol-model/location';
 import { CellPackInfoProvider } from '../property';
 
@@ -37,9 +37,12 @@ export function CellPackProvidedColorTheme(ctx: ThemeDataContext, props: PD.Valu
         }
 
         color = (location: Location): Color => {
-            return StructureElement.Location.is(location)
-                ? modelColor.get(Model.TrajectoryInfo.get(location.unit.model).index)!
-                : DefaultColor;
+            if (StructureElement.Location.is(location)) {
+                return modelColor.get(Model.TrajectoryInfo.get(location.unit.model).index)!;
+            } else if (Bond.isLocation(location)) {
+                return modelColor.get(Model.TrajectoryInfo.get(location.aUnit.model).index)!;
+            }
+            return DefaultColor;
         };
     } else {
         color = () => DefaultColor;
