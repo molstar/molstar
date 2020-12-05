@@ -93,7 +93,7 @@ export namespace Lines {
     function hashCode(lines: Lines) {
         return hashFnv32a([
             lines.lineCount, lines.mappingBuffer.ref.version, lines.indexBuffer.ref.version,
-            lines.groupBuffer.ref.version, lines.startBuffer.ref.version, lines.startBuffer.ref.version
+            lines.groupBuffer.ref.version, lines.startBuffer.ref.version, lines.endBuffer.ref.version
         ]);
     }
 
