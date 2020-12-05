@@ -80,6 +80,8 @@ export const InteractionsInterUnitParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
+    dashCount: PD.Numeric(6, { min: 2, max: 10, step: 2 }),
+    dashScale: PD.Numeric(0.4, { min: 0, max: 2, step: 0.1 }),
 };
 export type InteractionsInterUnitParams = typeof InteractionsInterUnitParams
 
@@ -93,6 +95,9 @@ export function InteractionsInterUnitVisual(materialId: number): ComplexVisual<I
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InteractionsInterUnitParams>, currentProps: PD.Values<InteractionsInterUnitParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.dashCount !== currentProps.dashCount ||
+                newProps.dashScale !== currentProps.dashScale ||
+                newProps.dashCap !== currentProps.dashCap ||
                 newProps.radialSegments !== currentProps.radialSegments
             );
 

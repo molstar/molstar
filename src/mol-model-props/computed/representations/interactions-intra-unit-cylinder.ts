@@ -66,6 +66,8 @@ export const InteractionsIntraUnitParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
+    dashCount: PD.Numeric(6, { min: 2, max: 10, step: 2 }),
+    dashScale: PD.Numeric(0.4, { min: 0, max: 2, step: 0.1 }),
 };
 export type InteractionsIntraUnitParams = typeof InteractionsIntraUnitParams
 
@@ -79,6 +81,9 @@ export function InteractionsIntraUnitVisual(materialId: number): UnitsVisual<Int
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InteractionsIntraUnitParams>, currentProps: PD.Values<InteractionsIntraUnitParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.dashCount !== currentProps.dashCount ||
+                newProps.dashScale !== currentProps.dashScale ||
+                newProps.dashCap !== currentProps.dashCap ||
                 newProps.radialSegments !== currentProps.radialSegments
             );
 

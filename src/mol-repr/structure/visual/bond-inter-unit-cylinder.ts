@@ -149,6 +149,9 @@ export function InterUnitBondCylinderVisual(materialId: number): ComplexVisual<I
                 newProps.linkSpacing !== currentProps.linkSpacing ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.linkCap !== currentProps.linkCap ||
+                newProps.dashCount !== currentProps.dashCount ||
+                newProps.dashScale !== currentProps.dashScale ||
+                newProps.dashCap !== currentProps.dashCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );
