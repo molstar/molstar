@@ -22,28 +22,31 @@ import { Theme } from '../../mol-theme/theme';
 import { RenderObjectValues } from '../../mol-gl/render-object';
 import { TextureMesh } from './texture-mesh/texture-mesh';
 import { Image } from './image/image';
+import { Cylinders } from './cylinders/cylinders';
 
-export type GeometryKind = 'mesh' | 'points' | 'spheres' | 'text' | 'lines' | 'direct-volume' | 'image' | 'texture-mesh'
+export type GeometryKind = 'mesh' | 'points' | 'spheres' | 'cylinders' | 'text' | 'lines' | 'direct-volume' | 'image' | 'texture-mesh'
 
 export type Geometry<T extends GeometryKind = GeometryKind> =
     T extends 'mesh' ? Mesh :
         T extends 'points' ? Points :
             T extends 'spheres' ? Spheres :
-                T extends 'text' ? Text :
-                    T extends 'lines' ? Lines :
-                        T extends 'direct-volume' ? DirectVolume :
-                            T extends 'image' ? Image :
-                                T extends 'texture-mesh' ? TextureMesh : never
+                T extends 'cylinders' ? Cylinders :
+                    T extends 'text' ? Text :
+                        T extends 'lines' ? Lines :
+                            T extends 'direct-volume' ? DirectVolume :
+                                T extends 'image' ? Image :
+                                    T extends 'texture-mesh' ? TextureMesh : never
 
 type GeometryParams<T extends GeometryKind> =
     T extends 'mesh' ? Mesh.Params :
         T extends 'points' ? Points.Params :
             T extends 'spheres' ? Spheres.Params :
-                T extends 'text' ? Text.Params :
-                    T extends 'lines' ? Lines.Params :
-                        T extends 'direct-volume' ? DirectVolume.Params :
-                            T extends 'image' ? Image.Params :
-                                T extends 'texture-mesh' ? TextureMesh.Params : never
+                T extends 'cylinders' ? Cylinders.Params :
+                    T extends 'text' ? Text.Params :
+                        T extends 'lines' ? Lines.Params :
+                            T extends 'direct-volume' ? DirectVolume.Params :
+                                T extends 'image' ? Image.Params :
+                                    T extends 'texture-mesh' ? TextureMesh.Params : never
 
 export interface GeometryUtils<G extends Geometry, P extends PD.Params = GeometryParams<G['kind']>, V = RenderObjectValues<G['kind']>> {
     Params: P
@@ -65,6 +68,7 @@ export namespace Geometry {
             case 'mesh': return geometry.triangleCount * 3;
             case 'points': return geometry.pointCount;
             case 'spheres': return geometry.sphereCount * 2 * 3;
+            case 'cylinders': return geometry.cylinderCount * 4 * 3;
             case 'text': return geometry.charCount * 2 * 3;
             case 'lines': return geometry.lineCount * 2 * 3;
             case 'direct-volume': return 12 * 3;
@@ -78,6 +82,7 @@ export namespace Geometry {
             case 'mesh': return geometry.vertexCount;
             case 'points': return geometry.pointCount;
             case 'spheres': return geometry.sphereCount * 4;
+            case 'cylinders': return geometry.cylinderCount * 6;
             case 'text': return geometry.charCount * 4;
             case 'lines': return geometry.lineCount * 4;
             case 'direct-volume':
@@ -93,6 +98,7 @@ export namespace Geometry {
             case 'mesh':
             case 'points':
             case 'spheres':
+            case 'cylinders':
             case 'text':
             case 'lines':
                 return getDrawCount(geometry) === 0 ? 0 : (arrayMax(geometry.groupBuffer.ref.value) + 1);
@@ -111,6 +117,7 @@ export namespace Geometry {
             case 'mesh': return Mesh.Utils as any;
             case 'points': return Points.Utils as any;
             case 'spheres': return Spheres.Utils as any;
+            case 'cylinders': return Cylinders.Utils as any;
             case 'text': return Text.Utils as any;
             case 'lines': return Lines.Utils as any;
             case 'direct-volume': return DirectVolume.Utils as any;
