@@ -101,7 +101,7 @@ export const PostprocessingParams = {
             edgeThresholdMin:PD.Numeric(0.0312, { min: 0.0312, max: 0.0833, step: 0.0001 }, { description: 'Trims the algorithm from processing darks.' }),
             edgeThresholdMax: PD.Numeric(0.063, { min: 0.063, max: 0.333, step: 0.001 }, { description: 'The minimum amount of local contrast required to apply algorithm.' }),
             iterations: PD.Numeric(12, { min: 0, max: 32, step: 1 }, { description: 'Number of edge exploration steps.' }),
-            subpixelQuality: PD.Numeric(1.00, { min: 0.00, max: 1.00, step: 0.01 }, { description: 'Choose the amount of sub-pixel aliasing removal.' }),
+            subpixelQuality: PD.Numeric(0.30, { min: 0.00, max: 1.00, step: 0.01 }, { description: 'Choose the amount of sub-pixel aliasing removal.' }),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Fast Approximate Anti-Aliasing (FXAA)' }),
@@ -293,7 +293,7 @@ function getFxaaRenderable(ctx: WebGLContext, colorTexture: Texture): FxaaRender
         dEdgeThresholdMin: ValueCell.create(0.0312),
         dEdgeThresholdMax: ValueCell.create(0.125),
         dIterations: ValueCell.create(12),
-        dSubpixelQuality: ValueCell.create(0.75),
+        dSubpixelQuality: ValueCell.create(0.3),
     };
 
     const schema = { ...FxaaSchema };

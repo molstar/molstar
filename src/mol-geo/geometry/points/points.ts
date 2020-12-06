@@ -119,7 +119,7 @@ export namespace Points {
 
     export const Params = {
         ...BaseGeometry.Params,
-        sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
+        sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
         pointSizeAttenuation: PD.Boolean(false),
         pointFilledCircle: PD.Boolean(false),
         pointEdgeBleach: PD.Numeric(0.2, { min: 0, max: 1, step: 0.05 }),
