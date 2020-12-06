@@ -113,15 +113,6 @@ export const GroProvider: TrajectoryFormatProvider = {
     visuals: defaultVisuals
 };
 
-export const Provider3dg: TrajectoryFormatProvider = {
-    label: '3DG',
-    description: '3DG',
-    category: TrajectoryFormatCategory,
-    stringExtensions: ['3dg'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFrom3DG),
-    visuals: defaultVisuals
-};
-
 export const MolProvider: TrajectoryFormatProvider = {
     label: 'MOL/SDF',
     description: 'MOL/SDF',
@@ -146,7 +137,6 @@ export const BuiltInTrajectoryFormats = [
     ['pdb', PdbProvider] as const,
     ['pdbqt', PdbqtProvider] as const,
     ['gro', GroProvider] as const,
-    ['3dg', Provider3dg] as const,
     ['mol', MolProvider] as const,
     ['mol2', Mol2Provider] as const,
 ] as const;

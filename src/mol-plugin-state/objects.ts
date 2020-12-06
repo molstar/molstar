@@ -5,7 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { File3DG } from '../mol-io/reader/3dg/parser';
 import { Ccp4File } from '../mol-io/reader/ccp4/schema';
 import { CifFile } from '../mol-io/reader/cif';
 import { DcdFile } from '../mol-io/reader/dcd/parser';
@@ -83,7 +82,6 @@ export namespace PluginStateObject {
             { kind: 'cif', data: CifFile } |
             { kind: 'pdb', data: CifFile } |
             { kind: 'gro', data: CifFile } |
-            { kind: '3dg', data: File3DG } |
             { kind: 'dcd', data: DcdFile } |
             { kind: 'ccp4', data: Ccp4File } |
             { kind: 'dsn6', data: Dsn6File } |
