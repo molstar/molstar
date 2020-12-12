@@ -19,8 +19,8 @@ import { DrawPass } from './draw';
 import { Camera, ICamera } from '../../mol-canvas3d/camera';
 import quad_vert from '../../mol-gl/shader/quad.vert';
 import postprocessing_frag from '../../mol-gl/shader/postprocessing.frag';
-import fxaa_frag from '../../mol-gl/shader/fxaa.frag';
 import { StereoCamera } from '../camera/stereo';
+import { FxaaParams, FxaaPass } from './fxaa';
 
 const PostprocessingSchema = {
     ...QuadSchema,
@@ -97,27 +97,22 @@ export const PostprocessingParams = {
         off: PD.Group({})
     }, { cycle: true, description: 'Draw outline around 3D objects' }),
     antialiasing: PD.MappedStatic('on', {
-        on: PD.Group({
-            edgeThresholdMin:PD.Numeric(0.0312, { min: 0.0312, max: 0.0833, step: 0.0001 }, { description: 'Trims the algorithm from processing darks.' }),
-            edgeThresholdMax: PD.Numeric(0.063, { min: 0.063, max: 0.333, step: 0.001 }, { description: 'The minimum amount of local contrast required to apply algorithm.' }),
-            iterations: PD.Numeric(12, { min: 0, max: 32, step: 1 }, { description: 'Number of edge exploration steps.' }),
-            subpixelQuality: PD.Numeric(0.30, { min: 0.00, max: 1.00, step: 0.01 }, { description: 'Choose the amount of sub-pixel aliasing removal.' }),
-        }),
+        on: PD.Group(FxaaParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'Fast Approximate Anti-Aliasing (FXAA)' }),
+    }, { cycle: true, description: 'Smooth pixel edges' }),
 };
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 export class PostprocessingPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.occlusion.name === 'on' || props.outline.name === 'on' || props.antialiasing.name === 'on';
+        return props.occlusion.name === 'on' || props.outline.name === 'on' || props.antialiasing.name !== 'off';
     }
 
     readonly target: RenderTarget
 
     private readonly tmpTarget: RenderTarget
     private readonly renderable: PostprocessingRenderable
-    private readonly fxaa: FxaaRenderable
+    private readonly fxaa: FxaaPass
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
         const { colorTarget, depthTexture } = drawPass;
@@ -127,7 +122,7 @@ export class PostprocessingPass {
         this.target = webgl.createRenderTarget(width, height, false);
         this.tmpTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture);
-        this.fxaa = getFxaaRenderable(webgl, this.tmpTarget.texture);
+        this.fxaa = new FxaaPass(webgl, this.tmpTarget.texture);
     }
 
     syncSize() {
@@ -139,7 +134,7 @@ export class PostprocessingPass {
             this.target.setSize(width, height);
             this.tmpTarget.setSize(width, height);
             ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
-            ValueCell.update(this.fxaa.values.uTexSizeInv, Vec2.set(this.fxaa.values.uTexSizeInv.ref.value, 1 / width, 1 / height));
+            this.fxaa.setSize(width, height);
         }
     }
 
@@ -196,7 +191,7 @@ export class PostprocessingPass {
             this.renderable.update();
         }
 
-        if (props.antialiasing.name === 'on') {
+        if (props.antialiasing.name !== 'off') {
             this.tmpTarget.bind();
         } else if (toDrawingBuffer) {
             this.webgl.unbindFramebuffer();
@@ -209,32 +204,11 @@ export class PostprocessingPass {
     }
 
     private _renderFxaa(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
-        if (props.antialiasing.name === 'off') return;
-
-        const { values } = this.fxaa;
-
-        let needsUpdate = false;
+        if (props.antialiasing.name !== 'on') return;
 
         const input = (props.occlusion.name === 'on' || props.outline.name === 'on')
             ? this.tmpTarget.texture : this.drawPass.colorTarget.texture;
-        if (values.tColor.ref.value !== input) {
-            ValueCell.update(this.fxaa.values.tColor, input);
-            needsUpdate = true;
-        }
-
-        const { edgeThresholdMin, edgeThresholdMax, iterations, subpixelQuality } = props.antialiasing.params;
-        if (values.dEdgeThresholdMin.ref.value !== edgeThresholdMin) needsUpdate = true;
-        ValueCell.updateIfChanged(values.dEdgeThresholdMin, edgeThresholdMin);
-        if (values.dEdgeThresholdMax.ref.value !== edgeThresholdMax) needsUpdate = true;
-        ValueCell.updateIfChanged(values.dEdgeThresholdMax, edgeThresholdMax);
-        if (values.dIterations.ref.value !== iterations) needsUpdate = true;
-        ValueCell.updateIfChanged(values.dIterations, iterations);
-        if (values.dSubpixelQuality.ref.value !== subpixelQuality) needsUpdate = true;
-        ValueCell.updateIfChanged(values.dSubpixelQuality, subpixelQuality);
-
-        if (needsUpdate) {
-            this.fxaa.update();
-        }
+        this.fxaa.update(input, props.antialiasing.params);
 
         if (toDrawingBuffer) {
             this.webgl.unbindFramebuffer();
@@ -266,38 +240,3 @@ export class PostprocessingPass {
     }
 }
 
-//
-
-const FxaaSchema = {
-    ...QuadSchema,
-    tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
-    uTexSizeInv: UniformSpec('v2'),
-
-    dEdgeThresholdMin: DefineSpec('number'),
-    dEdgeThresholdMax: DefineSpec('number'),
-    dIterations: DefineSpec('number'),
-    dSubpixelQuality: DefineSpec('number'),
-};
-const FxaaShaderCode = ShaderCode('fxaa', quad_vert, fxaa_frag);
-type FxaaRenderable = ComputeRenderable<Values<typeof FxaaSchema>>
-
-function getFxaaRenderable(ctx: WebGLContext, colorTexture: Texture): FxaaRenderable {
-    const width = colorTexture.getWidth();
-    const height = colorTexture.getHeight();
-
-    const values: Values<typeof FxaaSchema> = {
-        ...QuadValues,
-        tColor: ValueCell.create(colorTexture),
-        uTexSizeInv: ValueCell.create(Vec2.create(1 / width, 1 / height)),
-
-        dEdgeThresholdMin: ValueCell.create(0.0312),
-        dEdgeThresholdMax: ValueCell.create(0.125),
-        dIterations: ValueCell.create(12),
-        dSubpixelQuality: ValueCell.create(0.3),
-    };
-
-    const schema = { ...FxaaSchema };
-    const renderItem = createComputeRenderItem(ctx, 'triangles', FxaaShaderCode, schema, values);
-
-    return createComputeRenderable(renderItem, values);
-}
