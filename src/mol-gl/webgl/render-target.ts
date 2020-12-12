@@ -19,7 +19,7 @@ export interface RenderTarget {
 
     getWidth: () => number
     getHeight: () => number
-    /** binds framebuffer and sets viewport to rendertarget's width and height */
+    /** binds framebuffer */
     bind: () => void
     setSize: (width: number, height: number) => void
     reset: () => void

@@ -67,7 +67,7 @@ export class DrawPass {
     private wboit: WboitPass | undefined
 
     get wboitEnabled() {
-        return !!this.wboit?.enabled;
+        return !!this.wboit?.supported;
     }
 
     constructor(private webgl: WebGLContext, width: number, height: number, enableWboit: boolean) {
@@ -117,7 +117,7 @@ export class DrawPass {
 
             ValueCell.update(this.depthMerge.values.uTexSize, Vec2.set(this.depthMerge.values.uTexSize.ref.value, width, height));
 
-            if (this.wboit?.enabled) {
+            if (this.wboit?.supported) {
                 this.wboit.setSize(width, height);
             }
         }
@@ -138,7 +138,7 @@ export class DrawPass {
     }
 
     private _renderWboit(renderer: Renderer, camera: ICamera, scene: Scene, toDrawingBuffer: boolean) {
-        if (!this.wboit?.enabled) throw new Error('expected wboit to be enabled');
+        if (!this.wboit?.supported) throw new Error('expected wboit to be enabled');
 
         const renderTarget = toDrawingBuffer ? this.drawTarget : this.colorTarget;
         renderTarget.bind();
