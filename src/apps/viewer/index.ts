@@ -69,7 +69,7 @@ const DefaultViewerOptions = {
     layoutShowLeftPanel: true,
     disableAntialiasing: false,
     pixelScale: 1,
-    enableWboit: false,
+    enableWboit: true,
 
     viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
     viewportShowControls: PluginConfig.Viewport.ShowControls.defaultValue,
