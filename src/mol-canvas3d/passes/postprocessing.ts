@@ -21,6 +21,7 @@ import quad_vert from '../../mol-gl/shader/quad.vert';
 import postprocessing_frag from '../../mol-gl/shader/postprocessing.frag';
 import { StereoCamera } from '../camera/stereo';
 import { FxaaParams, FxaaPass } from './fxaa';
+import { SmaaParams, SmaaPass } from './smaa';
 
 const PostprocessingSchema = {
     ...QuadSchema,
@@ -96,10 +97,11 @@ export const PostprocessingParams = {
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Draw outline around 3D objects' }),
-    antialiasing: PD.MappedStatic('on', {
-        on: PD.Group(FxaaParams),
+    antialiasing: PD.MappedStatic('smaa', {
+        fxaa: PD.Group(FxaaParams),
+        smaa: PD.Group(SmaaParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'Smooth pixel edges' }),
+    }, { options: [['fxaa', 'FXAA'], ['smaa', 'SMAA'], ['off', 'Off']], description: 'Smooth pixel edges' }),
 };
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
@@ -113,6 +115,7 @@ export class PostprocessingPass {
     private readonly tmpTarget: RenderTarget
     private readonly renderable: PostprocessingRenderable
     private readonly fxaa: FxaaPass
+    private readonly smaa: SmaaPass
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
         const { colorTarget, depthTexture } = drawPass;
@@ -123,6 +126,7 @@ export class PostprocessingPass {
         this.tmpTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture);
         this.fxaa = new FxaaPass(webgl, this.tmpTarget.texture);
+        this.smaa = new SmaaPass(webgl, this.tmpTarget.texture);
     }
 
     syncSize() {
@@ -135,6 +139,8 @@ export class PostprocessingPass {
             this.tmpTarget.setSize(width, height);
             ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
             this.fxaa.setSize(width, height);
+
+            if (this.smaa.supported) this.smaa.setSize(width, height);
         }
     }
 
@@ -204,7 +210,7 @@ export class PostprocessingPass {
     }
 
     private _renderFxaa(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
-        if (props.antialiasing.name !== 'on') return;
+        if (props.antialiasing.name !== 'fxaa') return;
 
         const input = (props.occlusion.name === 'on' || props.outline.name === 'on')
             ? this.tmpTarget.texture : this.drawPass.colorTarget.texture;
@@ -220,13 +226,28 @@ export class PostprocessingPass {
         this.fxaa.render();
     }
 
+    private _renderSmaa(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
+        if (props.antialiasing.name !== 'smaa') return;
+
+        const input = (props.occlusion.name === 'on' || props.outline.name === 'on')
+            ? this.tmpTarget.texture : this.drawPass.colorTarget.texture;
+        this.smaa.update(input, props.antialiasing.params);
+
+        this.smaa.render(camera.viewport, toDrawingBuffer ? undefined : this.target);
+    }
+
     private _render(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
         if (props.occlusion.name === 'on' || props.outline.name === 'on' || props.antialiasing.name === 'off') {
             this._renderPostprocessing(camera, toDrawingBuffer, props);
         }
 
-        if (props.antialiasing.name === 'on') {
+        if (props.antialiasing.name === 'fxaa') {
             this._renderFxaa(camera, toDrawingBuffer, props);
+        } else if (props.antialiasing.name === 'smaa') {
+            if (!this.smaa.supported) {
+                throw new Error('SMAA not supported, missing "HTMLImageElement"');
+            }
+            this._renderSmaa(camera, toDrawingBuffer, props);
         }
     }
 
