@@ -333,7 +333,6 @@ export function loadImageTexture(src: string, cell: ValueCell<Texture>, texture:
         ValueCell.update(cell, texture);
     };
     img.src = src;
-    document.body.appendChild(img);
 }
 
 //
