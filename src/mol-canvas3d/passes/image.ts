@@ -10,13 +10,14 @@ import Renderer from '../../mol-gl/renderer';
 import Scene from '../../mol-gl/scene';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { DrawPass } from './draw';
-import { PostprocessingPass, PostprocessingParams } from './postprocessing';
+import { PostprocessingParams } from './postprocessing';
 import { MultiSamplePass, MultiSampleParams, MultiSampleHelper } from './multi-sample';
 import { Camera } from '../camera';
 import { Viewport } from '../camera/util';
 import { PixelData } from '../../mol-util/image';
 import { Helper } from '../helper/helper';
 import { CameraHelper, CameraHelperParams } from '../helper/camera-helper';
+import { Color } from '../../mol-util/color';
 
 export const ImageParams = {
     transparentBackground: PD.Boolean(false),
@@ -38,7 +39,6 @@ export class ImagePass {
     get colorTarget() { return this._colorTarget; }
 
     private readonly drawPass: DrawPass
-    private readonly postprocessingPass: PostprocessingPass
     private readonly multiSamplePass: MultiSamplePass
     private readonly multiSampleHelper: MultiSampleHelper
     private readonly helper: Helper
@@ -50,8 +50,7 @@ export class ImagePass {
         this.props = { ...PD.getDefaultValues(ImageParams), ...props };
 
         this.drawPass = new DrawPass(webgl, 128, 128, enableWboit);
-        this.postprocessingPass = new PostprocessingPass(webgl, this.drawPass);
-        this.multiSamplePass = new MultiSamplePass(webgl, this.drawPass, this.postprocessingPass);
+        this.multiSamplePass = new MultiSamplePass(webgl, this.drawPass);
         this.multiSampleHelper = new MultiSampleHelper(this.multiSamplePass);
 
         this.helper = {
@@ -70,7 +69,6 @@ export class ImagePass {
         this._height = height;
 
         this.drawPass.setSize(width, height);
-        this.postprocessingPass.syncSize();
         this.multiSamplePass.syncSize();
     }
 
@@ -88,13 +86,8 @@ export class ImagePass {
             this.multiSampleHelper.render(this.renderer, this._camera, this.scene, this.helper, false, this.props.transparentBackground, this.props);
             this._colorTarget = this.multiSamplePass.colorTarget;
         } else {
-            this.drawPass.render(this.renderer, this._camera, this.scene, this.helper, false, this.props.transparentBackground);
-            if (PostprocessingPass.isEnabled(this.props.postprocessing)) {
-                this.postprocessingPass.render(this._camera, false, this.props.postprocessing);
-                this._colorTarget = this.postprocessingPass.target;
-            } else {
-                this._colorTarget = this.drawPass.colorTarget;
-            }
+            this.drawPass.render(this.renderer, this._camera, this.scene, this.helper, false, Color(0xffffff), this.props.transparentBackground, this.props.postprocessing);
+            this._colorTarget = this.drawPass.getColorTarget(this.props.postprocessing);
         }
     }
 

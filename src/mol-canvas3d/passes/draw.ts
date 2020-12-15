@@ -22,8 +22,11 @@ import { Helper } from '../helper/helper';
 
 import quad_vert from '../../mol-gl/shader/quad.vert';
 import depthMerge_frag from '../../mol-gl/shader/depth-merge.frag';
+import copyFbo_frag from '../../mol-gl/shader/copy-fbo.frag';
 import { StereoCamera } from '../camera/stereo';
 import { WboitPass } from './wboit';
+import { FxaaPass, PostprocessingPass, PostprocessingProps } from './postprocessing';
+import { Color } from '../../mol-util/color';
 
 const DepthMergeSchema = {
     ...QuadSchema,
@@ -50,6 +53,29 @@ function getDepthMergeRenderable(ctx: WebGLContext, depthTexturePrimitives: Text
     return createComputeRenderable(renderItem, values);
 }
 
+const CopyFboSchema = {
+    ...QuadSchema,
+    tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tDepth: TextureSpec('texture', 'depth', 'ushort', 'nearest'),
+    uTexSize: UniformSpec('v2'),
+};
+const  CopyFboShaderCode = ShaderCode('copy-fbo', quad_vert, copyFbo_frag);
+type  CopyFboRenderable = ComputeRenderable<Values<typeof CopyFboSchema>>
+
+function getCopyFboRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture): CopyFboRenderable {
+    const values: Values<typeof CopyFboSchema> = {
+        ...QuadValues,
+        tColor: ValueCell.create(colorTexture),
+        tDepth: ValueCell.create(depthTexture),
+        uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
+    };
+
+    const schema = { ...CopyFboSchema };
+    const renderItem = createComputeRenderItem(ctx, 'triangles', CopyFboShaderCode, schema, values);
+
+    return createComputeRenderable(renderItem, values);
+}
+
 export class DrawPass {
     private readonly drawTarget: RenderTarget
 
@@ -57,14 +83,20 @@ export class DrawPass {
     readonly depthTexture: Texture
     readonly depthTexturePrimitives: Texture
 
-    private readonly packedDepth: boolean
+    readonly packedDepth: boolean
+
     private depthTarget: RenderTarget
     private depthTargetPrimitives: RenderTarget | null
     private depthTargetVolumes: RenderTarget | null
     private depthTextureVolumes: Texture
     private depthMerge: DepthMergeRenderable
 
+    private copyFboTarget: CopyFboRenderable
+    private copyFboPostprocessing: CopyFboRenderable
+
     private wboit: WboitPass | undefined
+    readonly postprocessing: PostprocessingPass
+    private readonly fxaa: FxaaPass
 
     get wboitEnabled() {
         return !!this.wboit?.enabled;
@@ -93,6 +125,11 @@ export class DrawPass {
         this.depthMerge = getDepthMergeRenderable(webgl, this.depthTexturePrimitives, this.depthTextureVolumes, this.packedDepth);
 
         this.wboit = enableWboit ? new WboitPass(webgl, width, height) : undefined;
+        this.postprocessing = new PostprocessingPass(webgl, this);
+        this.fxaa = new FxaaPass(webgl, this);
+
+        this.copyFboTarget = getCopyFboRenderable(webgl, this.colorTarget.texture, this.depthTarget.texture);
+        this.copyFboPostprocessing = getCopyFboRenderable(webgl, this.postprocessing.target.texture, this.depthTarget.texture);
     }
 
     setSize(width: number, height: number) {
@@ -117,9 +154,15 @@ export class DrawPass {
 
             ValueCell.update(this.depthMerge.values.uTexSize, Vec2.set(this.depthMerge.values.uTexSize.ref.value, width, height));
 
+            ValueCell.update(this.copyFboTarget.values.uTexSize, Vec2.set(this.copyFboTarget.values.uTexSize.ref.value, width, height));
+            ValueCell.update(this.copyFboPostprocessing.values.uTexSize, Vec2.set(this.copyFboPostprocessing.values.uTexSize.ref.value, width, height));
+
             if (this.wboit?.enabled) {
                 this.wboit.setSize(width, height);
             }
+
+            this.postprocessing.setSize(width, height);
+            this.fxaa.setSize(width, height);
         }
     }
 
@@ -137,26 +180,30 @@ export class DrawPass {
         this.depthMerge.render();
     }
 
-    private _renderWboit(renderer: Renderer, camera: ICamera, scene: Scene, toDrawingBuffer: boolean) {
+    private _renderWboit(renderer: Renderer, camera: ICamera, scene: Scene, backgroundColor: Color, postprocessingProps: PostprocessingProps) {
         if (!this.wboit?.enabled) throw new Error('expected wboit to be enabled');
 
-        const renderTarget = toDrawingBuffer ? this.drawTarget : this.colorTarget;
-        renderTarget.bind();
+        this.colorTarget.bind();
         renderer.clear(true);
 
         // render opaque primitives
-        this.depthTexturePrimitives.attachFramebuffer(renderTarget.framebuffer, 'depth');
-        renderTarget.bind();
+        this.depthTexturePrimitives.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
+        this.colorTarget.bind();
+        renderer.clearDepth();
         renderer.renderWboitOpaque(scene.primitives, camera, null);
 
         // render opaque volumes
-        this.depthTextureVolumes.attachFramebuffer(renderTarget.framebuffer, 'depth');
-        renderTarget.bind();
+        this.depthTextureVolumes.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
+        this.colorTarget.bind();
         renderer.clearDepth();
         renderer.renderWboitOpaque(scene.volumes, camera, this.depthTexturePrimitives);
 
         // merge depth of opaque primitives and volumes
         this._depthMerge();
+
+        if (PostprocessingPass.isEnabled(postprocessingProps)) {
+            this.postprocessing.render(camera, false, backgroundColor, postprocessingProps);
+        }
 
         // render transparent primitives and volumes
         this.wboit.bind();
@@ -164,12 +211,17 @@ export class DrawPass {
         renderer.renderWboitTransparent(scene.volumes, camera, this.depthTexture);
 
         // evaluate wboit
-        this.depthTexturePrimitives.attachFramebuffer(renderTarget.framebuffer, 'depth');
-        renderTarget.bind();
+        if (PostprocessingPass.isEnabled(postprocessingProps)) {
+            this.depthTexturePrimitives.attachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
+            this.postprocessing.target.bind();
+        } else {
+            this.depthTexturePrimitives.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
+            this.colorTarget.bind();
+        }
         this.wboit.render();
     }
 
-    private _renderBlended(renderer: Renderer, camera: ICamera, scene: Scene, toDrawingBuffer: boolean) {
+    private _renderBlended(renderer: Renderer, camera: ICamera, scene: Scene, toDrawingBuffer: boolean, postprocessingProps: PostprocessingProps) {
         if (toDrawingBuffer) {
             this.webgl.unbindFramebuffer();
         } else {
@@ -221,15 +273,23 @@ export class DrawPass {
         }
     }
 
-    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean) {
+    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, backgroundColor: Color, postprocessingProps: PostprocessingProps) {
+        const antialiasingEnabled = FxaaPass.isEnabled(postprocessingProps);
+
         const { x, y, width, height } = camera.viewport;
         renderer.setViewport(x, y, width, height);
         renderer.update(camera);
 
         if (this.wboitEnabled) {
-            this._renderWboit(renderer, camera, scene, toDrawingBuffer);
+            this._renderWboit(renderer, camera, scene, backgroundColor, postprocessingProps);
         } else {
-            this._renderBlended(renderer, camera, scene, toDrawingBuffer);
+            this._renderBlended(renderer, camera, scene, !antialiasingEnabled && toDrawingBuffer, postprocessingProps);
+        }
+
+        if (PostprocessingPass.isEnabled(postprocessingProps)) {
+            this.postprocessing.target.bind();
+        } else {
+            this.colorTarget.bind();
         }
 
         if (helper.debug.isEnabled) {
@@ -245,18 +305,39 @@ export class DrawPass {
             renderer.renderBlended(helper.camera.scene, helper.camera.camera, null);
         }
 
+        if (antialiasingEnabled) {
+            this.fxaa.render(camera, toDrawingBuffer, postprocessingProps);
+        } else if (toDrawingBuffer) {
+            this.drawTarget.bind();
+
+            if (PostprocessingPass.isEnabled(postprocessingProps)) {
+                this.copyFboPostprocessing.render();
+            } else {
+                this.copyFboTarget.render();
+            }
+        }
+
         this.webgl.gl.flush();
     }
 
-    render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean) {
+    render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, backgroundColor: Color, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
         renderer.setTransparentBackground(transparentBackground);
         renderer.setDrawingBufferSize(this.colorTarget.getWidth(), this.colorTarget.getHeight());
 
         if (StereoCamera.is(camera)) {
-            this._render(renderer, camera.left, scene, helper, toDrawingBuffer);
-            this._render(renderer, camera.right, scene, helper, toDrawingBuffer);
+            this._render(renderer, camera.left, scene, helper, toDrawingBuffer, backgroundColor, postprocessingProps);
+            this._render(renderer, camera.right, scene, helper, toDrawingBuffer, backgroundColor, postprocessingProps);
         } else {
-            this._render(renderer, camera, scene, helper, toDrawingBuffer);
+            this._render(renderer, camera, scene, helper, toDrawingBuffer, backgroundColor, postprocessingProps);
         }
+    }
+
+    getColorTarget(postprocessingProps: PostprocessingProps): RenderTarget {
+        if (FxaaPass.isEnabled(postprocessingProps)) {
+            return this.fxaa.target;
+        } else if (PostprocessingPass.isEnabled(postprocessingProps)) {
+            return this.postprocessing.target;
+        }
+        return this.colorTarget;
     }
 }

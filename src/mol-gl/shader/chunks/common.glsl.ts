@@ -49,6 +49,25 @@ float decodeFloatRGB(const in vec3 rgb) {
     return (rgb.r * 256.0 * 256.0 * 255.0 + rgb.g * 256.0 * 255.0 + rgb.b * 255.0) - 1.0;
 }
 
+vec2 packUnitIntervalToRG(const in float v) {
+    vec2 enc;
+    enc.xy = vec2(fract(v * 256.0), v);
+	enc.y -= enc.x * (1.0 / 256.0);
+    enc.xy *=  256.0 / 255.0;
+
+    return enc;
+}
+
+float unpackRGToUnitInterval(const in vec2 enc) {
+    return dot(enc, vec2(255.0 / (256.0 * 256.0), 255.0 / 256.0));
+}
+
+vec3 screenSpaceToViewSpace(const in vec3 ssPos, const in mat4 invProjection) {
+    vec4 p = vec4(ssPos * 2.0 - 1.0, 1.0);
+    p = invProjection * p;
+    return p.xyz / p.w;
+}
+
 const float PackUpscale = 256.0 / 255.0; // fraction -> 0..1 (including 1)
 const float UnpackDownscale = 255.0 / 256.0; // 0..1 -> fraction (excluding 1)
 const vec3 PackFactors = vec3(256.0 * 256.0 * 256.0, 256.0 * 256.0,  256.0);
