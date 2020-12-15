@@ -5,13 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { parse3DG } from '../../mol-io/reader/3dg/parser';
 import { parseDcd } from '../../mol-io/reader/dcd/parser';
 import { parseGRO } from '../../mol-io/reader/gro/parser';
 import { parsePDB } from '../../mol-io/reader/pdb/parser';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { shapeFromPly } from '../../mol-model-formats/shape/ply';
-import { trajectoryFrom3DG } from '../../mol-model-formats/structure/3dg';
 import { coordinatesFromDcd } from '../../mol-model-formats/structure/dcd';
 import { trajectoryFromGRO } from '../../mol-model-formats/structure/gro';
 import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
@@ -52,7 +50,6 @@ export { TrajectoryFromMOL };
 export { TrajectoryFromMOL2 };
 export { TrajectoryFromCube };
 export { TrajectoryFromCifCore };
-export { TrajectoryFrom3DG };
 export { ModelFromTrajectory };
 export { StructureFromTrajectory };
 export { StructureFromModel };
@@ -333,24 +330,6 @@ const TrajectoryFromCifCore = PluginStateTransform.BuiltIn({
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
             const models = await trajectoryFromCifCore(block).runInContext(ctx);
             if (models.frameCount === 0) throw new Error('No models found.');
-            const props = trajectoryProps(models);
-            return new SO.Molecule.Trajectory(models, props);
-        });
-    }
-});
-
-type TrajectoryFrom3DG = typeof TrajectoryFrom3DG
-const TrajectoryFrom3DG = PluginStateTransform.BuiltIn({
-    name: 'trajectory-from-3dg',
-    display: { name: 'Parse 3DG', description: 'Parse 3DG string and create trajectory.' },
-    from: [SO.Data.String],
-    to: SO.Molecule.Trajectory
-})({
-    apply({ a }) {
-        return Task.create('Parse 3DG', async ctx => {
-            const parsed = await parse3DG(a.data).runInContext(ctx);
-            if (parsed.isError) throw new Error(parsed.message);
-            const models = await trajectoryFrom3DG(parsed.result).runInContext(ctx);
             const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });

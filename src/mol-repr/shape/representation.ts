@@ -23,6 +23,7 @@ import { PickingId } from '../../mol-geo/geometry/picking';
 import { Visual } from '../visual';
 import { RuntimeContext, Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { isDebugMode } from '../../mol-util/debug';
 
 export interface ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>> extends Representation<D, P> { }
 
@@ -216,7 +217,9 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             Representation.updateState(_state, state);
         },
         setTheme(theme: Theme) {
-            console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme` and `ShapeGroupSizeTheme`. Colors are taken from `Shape.getColor` and sizes from `Shape.getSize`');
+            if(isDebugMode) {
+                console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme` and `ShapeGroupSizeTheme`. Colors are taken from `Shape.getColor` and sizes from `Shape.getSize`');
+            }
         },
         destroy() {
             // TODO

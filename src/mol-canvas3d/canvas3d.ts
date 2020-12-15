@@ -150,9 +150,10 @@ namespace Canvas3D {
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
     export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, attribs: Partial<{ antialias: boolean, pixelScale: number, pickScale: number, enableWboit: boolean }> = {}) {
+        const antialias = (attribs.antialias ?? true) && !attribs.enableWboit;
         const gl = getGLContext(canvas, {
             alpha: true,
-            antialias: (attribs.antialias ?? true) && !attribs.enableWboit,
+            antialias,
             depth: true,
             preserveDrawingBuffer: true,
             premultipliedAlpha: true,
@@ -196,6 +197,14 @@ namespace Canvas3D {
             webgl.handleContextRestored();
             if (isDebugMode) console.log('context restored');
         }, false);
+
+        // disable postprocessing anti-aliasing if canvas anti-aliasing is enabled
+        if (antialias && !props.postprocessing?.antialiasing) {
+            props.postprocessing = {
+                ...DefaultCanvas3DParams.postprocessing,
+                antialiasing: { name: 'off', params: {} }
+            };
+        }
 
         return create(webgl, input, passes, props, { pixelScale });
     }

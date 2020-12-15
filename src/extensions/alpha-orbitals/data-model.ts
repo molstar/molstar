@@ -7,8 +7,8 @@
 import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { Grid } from '../../mol-model/volume';
 import { SphericalBasisOrder } from './spherical-functions';
-import { Box3D } from '../../mol-math/geometry';
-import { arrayMin, arrayMax, arrayRms } from '../../mol-util/array';
+import { Box3D, RegularGrid3d } from '../../mol-math/geometry';
+import { arrayMin, arrayMax, arrayRms, arrayMean } from '../../mol-util/array';
 
 // Note: generally contracted gaussians are currently not supported.
 export interface SphericalElectronShell {
@@ -95,7 +95,7 @@ export function initCubeGrid(params: CubeGridComputationParams): CubeGridInfo {
 
 const BohrToAngstromFactor = 0.529177210859;
 
-export function createGrid(gridInfo: CubeGridInfo, values: Float32Array, axisOrder: number[]) {
+export function createGrid(gridInfo: RegularGrid3d, values: Float32Array, axisOrder: number[]) {
     const boxSize = Box3D.size(Vec3(), gridInfo.box);
     const boxOrigin = Vec3.clone(gridInfo.box.min);
 
@@ -122,7 +122,7 @@ export function createGrid(gridInfo: CubeGridInfo, values: Float32Array, axisOrd
         stats: {
             min: arrayMin(values),
             max: arrayMax(values),
-            mean: arrayMax(values),
+            mean: arrayMean(values),
             sigma: arrayRms(values),
         },
     };

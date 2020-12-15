@@ -37,6 +37,15 @@ export type DensityTextureData = {
     gridTexScale: Vec2
 }
 
+export interface RegularGrid3d {
+    box: Box3D,
+    dimensions: Vec3
+}
+
+export function getRegularGrid3dDelta({ box, dimensions }: RegularGrid3d) {
+    return Vec3.div(Vec3(), Box3D.size(Vec3(), box), Vec3.subScalar(Vec3(), dimensions, 1));
+}
+
 export function fillGridDim(length: number, start: number, step: number) {
     const a = new Float32Array(length);
     for (let i = 0; i < a.length; i++) {
