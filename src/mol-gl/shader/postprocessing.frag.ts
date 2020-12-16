@@ -113,7 +113,7 @@ void main(void) {
 			if (color.a != 1.0) {
 				color.a = 1.0 - fogFactor;
 			}
-			color.rgb = mix(color.rgb, vec3(1.0), fogFactor);
+			color.rgb = mix(color.rgb, uFogColor, fogFactor);
 		}
 	#endif
 
