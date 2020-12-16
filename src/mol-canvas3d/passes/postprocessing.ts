@@ -264,7 +264,7 @@ export const PostprocessingParams = {
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
     outline: PD.MappedStatic('off', {
         on: PD.Group({
-            scale: PD.Numeric(1, { min: 0, max: 5, step: 1 }),
+            scale: PD.Numeric(1, { min: 1, max: 5, step: 1 }),
             threshold: PD.Numeric(0.1, { min: 0.01, max: 1, step: 0.01 }),
         }),
         off: PD.Group({})
@@ -313,7 +313,7 @@ export class PostprocessingPass {
         const height = colorTarget.getHeight();
 
         this.nSamples = 64;
-        this.blurKernelSize = 3;
+        this.blurKernelSize = 13;
 
         this.target = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
 
@@ -365,9 +365,10 @@ export class PostprocessingPass {
         let outlinesEnabled = props.outline.name === 'on';
         let occlusionEnabled = props.occlusion.name === 'on';
 
+        let invProjection = Mat4.identity();
+        Mat4.invert(invProjection, camera.projection);
+
         if (props.occlusion.name === 'on') {
-            let invProjection = Mat4.identity();
-            Mat4.invert(invProjection, camera.projection);
             ValueCell.updateIfChanged(this.ssaoRenderable.values.uProjection, camera.projection);
             ValueCell.updateIfChanged(this.ssaoRenderable.values.uInvProjection, invProjection);
 
@@ -413,8 +414,10 @@ export class PostprocessingPass {
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
 
             ValueCell.updateIfChanged(this.renderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
-            ValueCell.updateIfChanged(this.renderable.values.uFogColor, Color.toVec3Normalized(this.renderable.values.uFogColor.ref.value, backgroundColor));
-            ValueCell.updateIfChanged(this.renderable.values.uOutlineScale, props.outline.params.scale);
+            let fogColor = Vec3();
+            Color.toVec3Normalized(fogColor, backgroundColor);
+            ValueCell.updateIfChanged(this.renderable.values.uFogColor, fogColor);
+            ValueCell.updateIfChanged(this.renderable.values.uOutlineScale, props.outline.params.scale - 1);
             ValueCell.updateIfChanged(this.renderable.values.uOutlineThreshold, props.outline.params.threshold);
         }
 
@@ -444,14 +447,6 @@ export class PostprocessingPass {
 
         const { gl, state } = this.webgl;
 
-        state.disable(gl.SCISSOR_TEST);
-        state.disable(gl.BLEND);
-        state.disable(gl.DEPTH_TEST);
-        state.depthMask(false);
-
-        /*
-        const { gl, state } = this.webgl;
-
         state.enable(gl.SCISSOR_TEST);
         state.disable(gl.BLEND);
         state.disable(gl.DEPTH_TEST);
@@ -460,9 +455,6 @@ export class PostprocessingPass {
         const { x, y, width, height } = camera.viewport;
         gl.viewport(x, y, width, height);
         gl.scissor(x, y, width, height);
-
-        state.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT);*/
     }
 
     render(camera: ICamera, toDrawingBuffer: boolean, backgroundColor: Color, props: PostprocessingProps) {
@@ -496,53 +488,6 @@ export class PostprocessingPass {
 
         this.renderable.render();
     }
-
-    _render(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
-        const { values } = this.renderable;
-
-        ValueCell.updateIfChanged(values.uFar, camera.far);
-        ValueCell.updateIfChanged(values.uNear, camera.near);
-        ValueCell.updateIfChanged(values.uFogFar, camera.fogFar);
-        ValueCell.updateIfChanged(values.uFogNear, camera.fogNear);
-
-        let needsUpdate = false;
-
-        const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
-        if (values.dOrthographic.ref.value !== orthographic) needsUpdate = true;
-        ValueCell.updateIfChanged(values.dOrthographic, orthographic);
-
-        const occlusion = props.occlusion.name === 'on';
-        if (values.dOcclusionEnable.ref.value !== occlusion) needsUpdate = true;
-        ValueCell.updateIfChanged(this.renderable.values.dOcclusionEnable, occlusion);
-        if (props.occlusion.name === 'on') {
-            // const { kernelSize } = props.occlusion.params;
-            // if (values.dOcclusionKernelSize.ref.value !== kernelSize) needsUpdate = true;
-            // ValueCell.updateIfChanged(values.dOcclusionKernelSize, kernelSize);
-            // ValueCell.updateIfChanged(values.uOcclusionBias, props.occlusion.params.bias);
-            // ValueCell.updateIfChanged(values.uOcclusionRadius, props.occlusion.params.radius);
-        }
-
-        const outline = props.outline.name === 'on';
-        if (values.dOutlineEnable.ref.value !== outline) needsUpdate = true;
-        ValueCell.updateIfChanged(values.dOutlineEnable, outline);
-        if (props.outline.name === 'on') {
-            ValueCell.updateIfChanged(values.uOutlineScale, props.outline.params.scale * this.webgl.pixelRatio);
-            ValueCell.updateIfChanged(values.uOutlineThreshold, props.outline.params.threshold);
-        }
-
-        if (needsUpdate) {
-            this.renderable.update();
-        }
-
-        if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
-        } else {
-            this.target.bind();
-        }
-
-        // this.updateState(camera);
-        this.renderable.render();
-    }
 }
 
 export class FxaaPass {
@@ -573,7 +518,7 @@ export class FxaaPass {
     private updateState(camera: ICamera) {
         const { gl, state } = this.webgl;
 
-        state.disable(gl.SCISSOR_TEST);
+        state.enable(gl.SCISSOR_TEST);
         state.disable(gl.BLEND);
         state.disable(gl.DEPTH_TEST);
         state.depthMask(false);
@@ -581,9 +526,6 @@ export class FxaaPass {
         const { x, y, width, height } = camera.viewport;
         gl.viewport(x, y, width, height);
         gl.scissor(x, y, width, height);
-
-        state.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
     }
 
     render(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {

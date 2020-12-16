@@ -221,9 +221,9 @@ export class DrawPass {
         this.wboit.render();
     }
 
-    private _renderBlended(renderer: Renderer, camera: ICamera, scene: Scene, toDrawingBuffer: boolean, postprocessingProps: PostprocessingProps) {
+    private _renderBlended(renderer: Renderer, camera: ICamera, scene: Scene, backgroundColor: Color, toDrawingBuffer: boolean, postprocessingProps: PostprocessingProps) {
         if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
+            this.drawTarget.bind();
         } else {
             this.colorTarget.bind();
             if (!this.packedDepth) {
@@ -234,22 +234,22 @@ export class DrawPass {
         renderer.clear(true);
         renderer.renderBlendedOpaque(scene.primitives, camera, null);
 
-        // do a depth pass if not rendering to drawing buffer and
-        // extensions.depthTexture is unsupported (i.e. depthTarget is set)
-        if (!toDrawingBuffer && this.depthTargetPrimitives) {
-            this.depthTargetPrimitives.bind();
-            renderer.clear(false);
-            renderer.renderDepth(scene.primitives, camera, null);
-            this.colorTarget.bind();
-        }
-
-        // do direct-volume rendering
         if (!toDrawingBuffer) {
+            // do a depth pass if not rendering to drawing buffer and
+            // extensions.depthTexture is unsupported (i.e. depthTarget is set)
+            if (this.depthTargetPrimitives) {
+                this.depthTargetPrimitives.bind();
+                renderer.clear(false);
+                renderer.renderDepth(scene.primitives, camera, null);
+                this.colorTarget.bind();
+            }
+
+            // do direct-volume rendering
             if (!this.packedDepth) {
                 this.depthTextureVolumes.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
                 renderer.clearDepth(); // from previous frame
             }
-            renderer.renderBlendedVolume(scene.volumes, camera, this.depthTexturePrimitives);
+            renderer.renderBlendedVolumeOpaque(scene.volumes, camera, this.depthTexturePrimitives);
 
             // do volume depth pass if extensions.depthTexture is unsupported (i.e. depthTarget is set)
             if (this.depthTargetVolumes) {
@@ -259,21 +259,34 @@ export class DrawPass {
                 this.colorTarget.bind();
             }
 
-            if (!this.packedDepth) {
-                this.depthTexturePrimitives.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
+            // merge depths from primitive and volume rendering
+            this._depthMerge();
+            this.colorTarget.bind();
+
+            if (PostprocessingPass.isEnabled(postprocessingProps)) {
+                this.postprocessing.render(camera, false, backgroundColor, postprocessingProps);
+            }
+            renderer.renderBlendedVolumeTransparent(scene.volumes, camera, this.depthTexturePrimitives);
+
+            if (PostprocessingPass.isEnabled(postprocessingProps)) {
+                if (!this.packedDepth) {
+                    this.depthTexturePrimitives.attachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
+                }
+                this.postprocessing.target.bind();
+            } else {
+                if (!this.packedDepth) {
+                    this.depthTexturePrimitives.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
+                }
+                this.colorTarget.bind();
             }
         }
 
         renderer.renderBlendedTransparent(scene.primitives, camera, null);
-
-        // merge depths from primitive and volume rendering
-        if (!toDrawingBuffer) {
-            this._depthMerge();
-            this.colorTarget.bind();
-        }
     }
 
     private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, backgroundColor: Color, postprocessingProps: PostprocessingProps) {
+        const volumeRendering = scene.volumes.renderables.length > 0;
+        const postprocessingEnabled = PostprocessingPass.isEnabled(postprocessingProps);
         const antialiasingEnabled = FxaaPass.isEnabled(postprocessingProps);
 
         const { x, y, width, height } = camera.viewport;
@@ -283,13 +296,15 @@ export class DrawPass {
         if (this.wboitEnabled) {
             this._renderWboit(renderer, camera, scene, backgroundColor, postprocessingProps);
         } else {
-            this._renderBlended(renderer, camera, scene, !antialiasingEnabled && toDrawingBuffer, postprocessingProps);
+            this._renderBlended(renderer, camera, scene, backgroundColor, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, postprocessingProps);
         }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
             this.postprocessing.target.bind();
-        } else {
+        } else if (!toDrawingBuffer || volumeRendering || this.wboitEnabled) {
             this.colorTarget.bind();
+        } else {
+            this.drawTarget.bind();
         }
 
         if (helper.debug.isEnabled) {
@@ -310,9 +325,10 @@ export class DrawPass {
         } else if (toDrawingBuffer) {
             this.drawTarget.bind();
 
+            this.webgl.state.disable(this.webgl.gl.DEPTH_TEST);
             if (PostprocessingPass.isEnabled(postprocessingProps)) {
                 this.copyFboPostprocessing.render();
-            } else {
+            } else if (volumeRendering || this.wboitEnabled) {
                 this.copyFboTarget.render();
             }
         }
