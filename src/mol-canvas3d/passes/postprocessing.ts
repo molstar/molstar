@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  */
 
 import { QuadSchema, QuadValues } from '../../mol-gl/compute/util';

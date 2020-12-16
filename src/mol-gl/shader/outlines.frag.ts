@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
+ */
+
 export default `
 precision highp float;
 precision highp int;
