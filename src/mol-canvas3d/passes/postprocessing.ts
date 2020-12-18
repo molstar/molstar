@@ -78,13 +78,13 @@ const SsaoSchema = {
 
 type SsaoRenderable = ComputeRenderable<Values<typeof SsaoSchema>>
 
-function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture, nSamples: number): SsaoRenderable {
+function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture): SsaoRenderable {
     const values: Values<typeof SsaoSchema> = {
         ...QuadValues,
         tDepth: ValueCell.create(depthTexture),
 
-        uSamples: ValueCell.create(getSamples(nSamples)),
-        dNSamples: ValueCell.create(nSamples),
+        uSamples: ValueCell.create([0.0, 0.0, 1.0]),
+        dNSamples: ValueCell.create(1),
 
         uProjection: ValueCell.create(Mat4.identity()),
         uInvProjection: ValueCell.create(Mat4.identity()),
@@ -122,14 +122,14 @@ const SsaoBlurSchema = {
 
 type SsaoBlurRenderable = ComputeRenderable<Values<typeof SsaoBlurSchema>>
 
-function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, blurKernelSize: number, direction: 'horizontal' | 'vertical'): SsaoBlurRenderable {
+function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, direction: 'horizontal' | 'vertical'): SsaoBlurRenderable {
     const values: Values<typeof SsaoBlurSchema> = {
         ...QuadValues,
         tSsaoDepth: ValueCell.create(ssaoDepthTexture),
         uTexSize: ValueCell.create(Vec2.create(ssaoDepthTexture.getWidth(), ssaoDepthTexture.getHeight())),
 
-        uKernel: ValueCell.create(getBlurKernel(blurKernelSize)),
-        dOcclusionKernelSize: ValueCell.create(blurKernelSize),
+        uKernel: ValueCell.create([0.0]),
+        dOcclusionKernelSize: ValueCell.create(1),
 
         uBlurDirectionX: ValueCell.create(direction === 'horizontal' ? 1 : 0),
         uBlurDirectionY: ValueCell.create(direction === 'vertical' ? 1 : 0),
@@ -160,33 +160,15 @@ function getBlurKernel(kernelSize: number): number[] {
     return kernel;
 }
 
-function getSamples(nSamples: number): number[] {
-    let vectorSamples = [];
-    for (let i = 0; i < nSamples; i++) {
-        let v = Vec3();
-
-        v[0] = Math.random() * 2.0 - 1.0;
-        v[1] = Math.random() * 2.0 - 1.0;
-        v[2] = Math.random();
-
-        Vec3.normalize(v, v);
-
-        Vec3.scale(v, v, Math.random());
-
-        let scale = (i * i) / (nSamples * nSamples);
-        scale = 0.1 + scale * (1.0 - 0.1);
-
-        Vec3.scale(v, v, scale);
-
-        vectorSamples.push(v);
-    }
-
+function getSamples(vectorSamples: Vec3[], nSamples: number): number[] {
     let samples = [];
     for (let i = 0; i < nSamples; i++) {
-        let v = vectorSamples[i];
-        samples.push(v[0]);
-        samples.push(v[1]);
-        samples.push(v[2]);
+        let scale = (i * i + 2.0 * i + 1) / (nSamples * nSamples);
+        scale = 0.1 + scale * (1.0 - 0.1);
+
+        samples.push(vectorSamples[i][0] * scale);
+        samples.push(vectorSamples[i][1] * scale);
+        samples.push(vectorSamples[i][2] * scale);
     }
 
     return samples;
@@ -257,16 +239,16 @@ export const PostprocessingParams = {
     occlusion: PD.MappedStatic('off', {
         on: PD.Group({
             samples: PD.Numeric(64, {min: 1, max: 256, step: 1}),
-            radius: PD.Numeric(8.0, { min: 0.1, max: 64, step: 0.1 }),
-            bias: PD.Numeric(0.025, { min: 0, max: 1, step: 0.001 }),
-            kernelSize: PD.Numeric(13, { min: 1, max: 25, step: 2 }),
+            radius: PD.Numeric(8.0, { min: 1, max: 64, step: 1 }),
+            bias: PD.Numeric(1.0, { min: 0, max: 1, step: 0.001 }),
+            blurKernelSize: PD.Numeric(13, { min: 1, max: 25, step: 2 }),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
     outline: PD.MappedStatic('off', {
         on: PD.Group({
             scale: PD.Numeric(1, { min: 1, max: 5, step: 1 }),
-            threshold: PD.Numeric(0.1, { min: 0.01, max: 1, step: 0.01 }),
+            threshold: PD.Numeric(0.33, { min: 0.01, max: 1, step: 0.01 }),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Draw outline around 3D objects' }),
@@ -284,7 +266,7 @@ export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 export class PostprocessingPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.occlusion.name === 'on' || props.outline.name === 'on' || props.antialiasing.name === 'on';
+        return props.occlusion.name === 'on' || props.outline.name === 'on';
     }
 
     readonly target: RenderTarget
@@ -292,6 +274,7 @@ export class PostprocessingPass {
     private readonly outlinesTarget: RenderTarget
     private readonly outlinesRenderable: OutlinesRenderable
 
+    private readonly randomHemisphereVector: Vec3[]
     private readonly ssaoFramebuffer: Framebuffer
     private readonly ssaoBlurFirstPassFramebuffer: Framebuffer
     private readonly ssaoBlurSecondPassFramebuffer: Framebuffer
@@ -313,14 +296,24 @@ export class PostprocessingPass {
         const width = colorTarget.getWidth();
         const height = colorTarget.getHeight();
 
-        this.nSamples = 64;
-        this.blurKernelSize = 13;
+        this.nSamples = 1;
+        this.blurKernelSize = 1;
 
         this.target = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
 
         this.outlinesTarget = webgl.createRenderTarget(width, height, false);
         this.outlinesRenderable = getOutlinesRenderable(webgl, depthTexture);
 
+        this.randomHemisphereVector = [];
+        for (let i = 0; i < 256; i++) {
+            let v = Vec3();
+            v[0] = Math.random() * 2.0 - 1.0;
+            v[1] = Math.random() * 2.0 - 1.0;
+            v[2] = Math.random();
+            Vec3.normalize(v, v);
+            Vec3.scale(v, v, Math.random());
+            this.randomHemisphereVector.push(v);
+        }
         this.ssaoFramebuffer = webgl.resources.framebuffer();
         this.ssaoBlurFirstPassFramebuffer = webgl.resources.framebuffer();
         this.ssaoBlurSecondPassFramebuffer = webgl.resources.framebuffer();
@@ -335,9 +328,9 @@ export class PostprocessingPass {
 
         this.ssaoDepthTexture.attachFramebuffer(this.ssaoBlurSecondPassFramebuffer, 'color0');
 
-        this.ssaoRenderable = getSsaoRenderable(webgl, depthTexture, this.nSamples);
-        this.ssaoBlurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, this.blurKernelSize, 'horizontal');
-        this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, this.blurKernelSize, 'vertical');
+        this.ssaoRenderable = getSsaoRenderable(webgl, depthTexture);
+        this.ssaoBlurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
+        this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, 'vertical');
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture,  depthTexture, packedDepth, this.outlinesTarget.texture, this.ssaoDepthTexture);
     }
 
@@ -387,16 +380,16 @@ export class PostprocessingPass {
                 needsUpdateSsao = true;
 
                 this.nSamples = props.occlusion.params.samples;
-                ValueCell.updateIfChanged(this.ssaoRenderable.values.uSamples, getSamples(this.nSamples));
+                ValueCell.updateIfChanged(this.ssaoRenderable.values.uSamples, getSamples(this.randomHemisphereVector, this.nSamples));
                 ValueCell.updateIfChanged(this.ssaoRenderable.values.dNSamples, this.nSamples);
             }
             ValueCell.updateIfChanged(this.ssaoRenderable.values.uRadius, props.occlusion.params.radius);
             ValueCell.updateIfChanged(this.ssaoRenderable.values.uBias, props.occlusion.params.bias);
 
-            if (this.blurKernelSize !== props.occlusion.params.kernelSize) {
+            if (this.blurKernelSize !== props.occlusion.params.blurKernelSize) {
                 needsUpdateSsaoBlur = true;
 
-                this.blurKernelSize = props.occlusion.params.kernelSize;
+                this.blurKernelSize = props.occlusion.params.blurKernelSize;
                 let kernel = getBlurKernel(this.blurKernelSize);
 
                 ValueCell.updateIfChanged(this.ssaoBlurFirstPassRenderable.values.uKernel, kernel);
@@ -408,7 +401,8 @@ export class PostprocessingPass {
         }
 
         if (props.outline.name === 'on') {
-            let maxPossibleViewZDiff = props.outline.params.threshold * (camera.fogFar - camera.near);
+            let factor = Math.pow(1000, props.outline.params.threshold) / 1000;
+            let maxPossibleViewZDiff = factor * (camera.far - camera.near);
 
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);

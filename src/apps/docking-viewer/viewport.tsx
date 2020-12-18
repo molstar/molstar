@@ -48,12 +48,12 @@ function occlusionStyle(plugin: PluginContext) {
             occlusion: { name: 'on', params: {
                 samples: 64,
                 radius: 8,
-                bias: 0.025,
-                kernelSize: 13
+                bias: 1.0,
+                blurKernelSize: 13
             } },
             outline: { name: 'on', params: {
                 scale: 1.0,
-                threshold: 0.8
+                threshold: 0.33
             } }
         }
     } });

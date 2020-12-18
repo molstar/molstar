@@ -25,19 +25,19 @@ uniform float uFar;
 #include common
 
 float perspectiveDepthToViewZ(const in float invClipZ, const in float near, const in float far) {
-	return (near * far) / ((far - near) * invClipZ - far);
+    return (near * far) / ((far - near) * invClipZ - far);
 }
 
 float orthographicDepthToViewZ(const in float linearClipZ, const in float near, const in float far) {
-	return linearClipZ * (near - far) - near;
+    return linearClipZ * (near - far) - near;
 }
 
 float getViewZ(const in float depth) {
-	#if dOrthographic == 1
-		return orthographicDepthToViewZ(depth, uNear, uFar);
-	#else
-		return perspectiveDepthToViewZ(depth, uNear, uFar);
-	#endif
+    #if dOrthographic == 1
+        return orthographicDepthToViewZ(depth, uNear, uFar);
+    #else
+        return perspectiveDepthToViewZ(depth, uNear, uFar);
+    #endif
 }
 
 bool isBackground(const in float depth) {
@@ -45,13 +45,13 @@ bool isBackground(const in float depth) {
 }
 
 void main(void) {
-	vec2 coords = gl_FragCoord.xy / uTexSize;
+    vec2 coords = gl_FragCoord.xy / uTexSize;
 
     vec2 packedDepth = texture(tSsaoDepth, coords).zw;
 
     float selfDepth = unpackRGToUnitInterval(packedDepth);
     // if background and if second pass
-	if (isBackground(selfDepth) && uBlurDirectionY != 0.0) {
+    if (isBackground(selfDepth) && uBlurDirectionY != 0.0) {
        gl_FragColor = vec4(packUnitIntervalToRG(1.0), packedDepth);
        return;
     }

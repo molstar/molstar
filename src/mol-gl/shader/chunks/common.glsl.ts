@@ -52,7 +52,7 @@ float decodeFloatRGB(const in vec3 rgb) {
 vec2 packUnitIntervalToRG(const in float v) {
     vec2 enc;
     enc.xy = vec2(fract(v * 256.0), v);
-	enc.y -= enc.x * (1.0 / 256.0);
+    enc.y -= enc.x * (1.0 / 256.0);
     enc.xy *=  256.0 / 255.0;
 
     return enc;
