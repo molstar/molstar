@@ -16,6 +16,7 @@ uniform sampler2D tDepth;
 uniform sampler2D tOutlines;
 uniform vec2 uTexSize;
 
+uniform mat4 uInvProjection;
 uniform float uNear;
 uniform float uFar;
 uniform float uFogNear;
@@ -66,7 +67,7 @@ float getOutline(const in vec2 coords, out float closestTexel) {
     float selfViewZ = isBackground(selfDepth) ? backgroundViewZ : getViewZ(getDepth(coords));
 
     float outline = 1.0;
-    closestTexel = 1.0;
+    closestTexel = backgroundViewZ;
     for (float y = -uOutlineScale; y <= uOutlineScale; y++) {
         for (float x = -uOutlineScale; x <= uOutlineScale; x++) {
             if (x * x + y * y > uOutlineScale * uOutlineScale) {
@@ -79,7 +80,9 @@ float getOutline(const in vec2 coords, out float closestTexel) {
             float sampleOutline = sampleOutlineCombined.r;
             float sampleOutlineDepth = unpackRGToUnitInterval(sampleOutlineCombined.gb);
 
-            if (sampleOutline == 0.0 && sampleOutlineDepth < closestTexel && abs(selfViewZ - sampleOutlineDepth) > uMaxPossibleViewZDiff) {
+            float sampleOutlineViewDirLength = length(screenSpaceToViewSpace(vec3(sampleCoords, sampleOutlineDepth), uInvProjection));
+
+            if (sampleOutline == 0.0 && sampleOutlineViewDirLength < closestTexel && abs(selfViewZ - sampleOutlineDepth) > uMaxPossibleViewZDiff) {
                 outline = 0.0;
                 closestTexel = sampleOutlineDepth;
             }

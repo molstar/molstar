@@ -183,6 +183,7 @@ const PostprocessingSchema = {
     uTexSize: UniformSpec('v2'),
 
     dOrthographic: DefineSpec('number'),
+    uInvProjection: UniformSpec('m4'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
     uFogNear: UniformSpec('f'),
@@ -211,6 +212,7 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
 
         dOrthographic: ValueCell.create(0),
+        uInvProjection: ValueCell.create(Mat4.identity()),
         uNear: ValueCell.create(1),
         uFar: ValueCell.create(10000),
         uFogNear: ValueCell.create(10000),
@@ -408,6 +410,7 @@ export class PostprocessingPass {
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
 
+            ValueCell.updateIfChanged(this.renderable.values.uInvProjection, invProjection);
             ValueCell.updateIfChanged(this.renderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
             let fogColor = Vec3();
             Color.toVec3Normalized(fogColor, backgroundColor);
