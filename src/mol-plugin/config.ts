@@ -25,7 +25,7 @@ export const PluginConfig = {
         IsBusyTimeoutMs: item('plugin-config.is-busy-timeout', 750),
         DisableAntialiasing: item('plugin-config.disable-antialiasing', false),
         PixelScale: item('plugin-config.pixel-scale', 1),
-        EnableWboit: item('plugin-config.enable-wboit', false)
+        EnableWboit: item('plugin-config.enable-wboit', true)
     },
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
