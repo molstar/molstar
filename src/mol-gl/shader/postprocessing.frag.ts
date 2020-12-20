@@ -1,12 +1,22 @@
+/**
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
+ */
+
 export default `
 precision highp float;
 precision highp int;
 precision highp sampler2D;
 
+uniform sampler2D tSsaoDepth;
 uniform sampler2D tColor;
-uniform sampler2D tPackedDepth;
+uniform sampler2D tDepth;
+uniform sampler2D tOutlines;
 uniform vec2 uTexSize;
 
+uniform mat4 uInvProjection;
 uniform float uNear;
 uniform float uFar;
 uniform float uFogNear;
@@ -19,20 +29,11 @@ uniform float uOcclusionRadius;
 uniform float uOutlineScale;
 uniform float uOutlineThreshold;
 
-const float noiseAmount = 0.0002;
+uniform float uMaxPossibleViewZDiff;
+
 const vec4 occlusionColor = vec4(0.0, 0.0, 0.0, 1.0);
 
 #include common
-
-float noise(const in vec2 coords) {
-    float a = 12.9898;
-    float b = 78.233;
-    float c = 43758.5453;
-    float dt = dot(coords, vec2(a,b));
-    float sn = mod(dt, 3.14159);
-
-    return fract(sin(sn) * c);
-}
 
 float perspectiveDepthToViewZ(const in float invClipZ, const in float near, const in float far) {
     return (near * far) / ((far - near) * invClipZ - far);
@@ -51,68 +52,80 @@ float getViewZ(const in float depth) {
 }
 
 float getDepth(const in vec2 coords) {
-    return unpackRGBAToDepth(texture2D(tPackedDepth, coords));
+    return unpackRGBAToDepth(texture2D(tDepth, coords));
 }
 
-float calcSSAO(const in vec2 coords, const in float depth) {
-    float occlusionFactor = 0.0;
+bool isBackground(const in float depth) {
+    return depth >= 0.99;
+}
 
-    for (int i = -dOcclusionKernelSize; i <= dOcclusionKernelSize; i++) {
-        for (int j = -dOcclusionKernelSize; j <= dOcclusionKernelSize; j++) {
-            vec2 coordsDelta = coords + uOcclusionRadius / float(dOcclusionKernelSize) * vec2(float(i) / uTexSize.x, float(j) / uTexSize.y);
-            coordsDelta += noiseAmount * (noise(coordsDelta) - 0.5) / uTexSize;
-            coordsDelta = clamp(coordsDelta, 0.5 / uTexSize, 1.0 - 1.0 / uTexSize);
-            if (getDepth(coordsDelta) < depth) occlusionFactor += 1.0;
+float getOutline(const in vec2 coords, out float closestTexel) {
+    float backgroundViewZ = uFar + 3.0 * uMaxPossibleViewZDiff;
+    vec2 invTexSize = 1.0 / uTexSize;
+
+    float selfDepth = getDepth(coords);
+    float selfViewZ = isBackground(selfDepth) ? backgroundViewZ : getViewZ(getDepth(coords));
+
+    float outline = 1.0;
+    closestTexel = backgroundViewZ;
+    for (float y = -uOutlineScale; y <= uOutlineScale; y++) {
+        for (float x = -uOutlineScale; x <= uOutlineScale; x++) {
+            if (x * x + y * y > uOutlineScale * uOutlineScale) {
+                continue;
+            }
+
+            vec2 sampleCoords = coords + vec2(x, y) * invTexSize;
+
+            vec4 sampleOutlineCombined = texture2D(tOutlines, sampleCoords);
+            float sampleOutline = sampleOutlineCombined.r;
+            float sampleOutlineDepth = unpackRGToUnitInterval(sampleOutlineCombined.gb);
+
+            float sampleOutlineViewDirLength = length(screenSpaceToViewSpace(vec3(sampleCoords, sampleOutlineDepth), uInvProjection));
+
+            if (sampleOutline == 0.0 && sampleOutlineViewDirLength < closestTexel && abs(selfViewZ - sampleOutlineDepth) > uMaxPossibleViewZDiff) {
+                outline = 0.0;
+                closestTexel = sampleOutlineDepth;
+            }
         }
     }
-
-    return occlusionFactor / float((2 * dOcclusionKernelSize + 1) * (2 * dOcclusionKernelSize + 1));
+    return outline;
 }
 
-vec2 calcEdgeDepth(const in vec2 coords) {
-    vec2 invTexSize = 1.0 / uTexSize;
-    float halfScaleFloor = floor(uOutlineScale * 0.5);
-    float halfScaleCeil = ceil(uOutlineScale * 0.5);
-
-    vec2 bottomLeftUV = coords - invTexSize * halfScaleFloor;
-    vec2 topRightUV = coords + invTexSize * halfScaleCeil;
-    vec2 bottomRightUV = coords + vec2(invTexSize.x * halfScaleCeil, -invTexSize.y * halfScaleFloor);
-    vec2 topLeftUV = coords + vec2(-invTexSize.x * halfScaleFloor, invTexSize.y * halfScaleCeil);
-
-    float depth0 = getDepth(bottomLeftUV);
-    float depth1 = getDepth(topRightUV);
-    float depth2 = getDepth(bottomRightUV);
-    float depth3 = getDepth(topLeftUV);
-
-    float depthFiniteDifference0 = depth1 - depth0;
-    float depthFiniteDifference1 = depth3 - depth2;
-
-    return vec2(
-        sqrt(pow(depthFiniteDifference0, 2.0) + pow(depthFiniteDifference1, 2.0)) * 100.0,
-        min(depth0, min(depth1, min(depth2, depth3)))
-    );
+float getSsao(vec2 coords) {
+    float rawSsao = unpackRGToUnitInterval(texture(tSsaoDepth, coords).xy);
+    if (rawSsao > 0.999) {
+        return 1.0;
+    } else if (rawSsao > 0.001) {
+        return rawSsao;
+    }
+    return 0.0;
 }
 
 void main(void) {
     vec2 coords = gl_FragCoord.xy / uTexSize;
-    vec4 color = texture2D(tColor, coords);
+    vec4 color = texture(tColor, coords);
 
     #ifdef dOutlineEnable
-        vec2 edgeDepth = calcEdgeDepth(coords);
-        float edgeFlag = step(edgeDepth.x, uOutlineThreshold);
-        color.rgb *= edgeFlag;
+        float closestTexel;
+        float outline = getOutline(coords, closestTexel);
 
-        float viewDist = abs(getViewZ(edgeDepth.y));
-        float fogFactor = smoothstep(uFogNear, uFogFar, viewDist) * (1.0 - edgeFlag);
-        color.rgb = mix(color.rgb, uFogColor, fogFactor);
+        if (outline == 0.0) {
+            color.rgb *= outline;
+            float viewDist = abs(getViewZ(closestTexel));
+            float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+            if (color.a != 1.0) {
+                color.a = 1.0 - fogFactor;
+            }
+            color.rgb = mix(color.rgb, uFogColor, fogFactor);
+        }
     #endif
 
     // occlusion needs to be handled after outline to darken them properly
     #ifdef dOcclusionEnable
         float depth = getDepth(coords);
-        if (depth <= 0.99) {
-            float occlusionFactor = calcSSAO(coords, depth);
-            color = mix(color, occlusionColor, uOcclusionBias * occlusionFactor);
+        if (!isBackground(depth)) {
+            float occlusionFactor = getSsao(coords);
+            color = mix(occlusionColor, color, occlusionFactor);
         }
     #endif
 

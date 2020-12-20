@@ -24,7 +24,7 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { DebugHelperParams } from './helper/bounding-sphere-helper';
 import { SetUtils } from '../mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
-import { PostprocessingParams, PostprocessingPass } from './passes/postprocessing';
+import { PostprocessingParams } from './passes/postprocessing';
 import { MultiSampleHelper, MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
 import { PickData } from './passes/pick';
 import { PickHelper } from './passes/pick';
@@ -310,9 +310,7 @@ namespace Canvas3D {
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
                     multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
                 } else {
-                    const toDrawingBuffer = !PostprocessingPass.isEnabled(p.postprocessing) && scene.volumes.renderables.length === 0 && !passes.draw.wboitEnabled;
-                    passes.draw.render(renderer, cam, scene, helper, toDrawingBuffer, p.transparentBackground);
-                    if (!toDrawingBuffer) passes.postprocessing.render(cam, true, p.postprocessing);
+                    passes.draw.render(renderer, cam, scene, helper, true, p.renderer.backgroundColor, p.transparentBackground, p.postprocessing);
                 }
                 pickHelper.dirty = true;
                 didRender = true;

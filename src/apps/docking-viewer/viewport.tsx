@@ -46,13 +46,14 @@ function occlusionStyle(plugin: PluginContext) {
         postprocessing: {
             ...plugin.canvas3d!.props.postprocessing,
             occlusion: { name: 'on', params: {
-                kernelSize: 8,
-                bias: 0.8,
-                radius: 64
+                samples: 64,
+                radius: 8,
+                bias: 1.0,
+                blurKernelSize: 13
             } },
             outline: { name: 'on', params: {
                 scale: 1.0,
-                threshold: 0.8
+                threshold: 0.33
             } }
         }
     } });

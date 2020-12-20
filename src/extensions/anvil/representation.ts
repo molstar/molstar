@@ -10,7 +10,6 @@ import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../mol-repr/representation';
 import { Structure } from '../../mol-model/structure';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
-import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 import { StructureRepresentationProvider, StructureRepresentation, StructureRepresentationStateBuilder } from '../../mol-repr/structure/representation';
 import { MembraneOrientation } from './prop';
 import { ThemeRegistryContext } from '../../mol-theme/theme';
@@ -27,6 +26,7 @@ import { MembraneOrientationProvider } from './prop';
 import { MarkerActions } from '../../mol-util/marker-action';
 import { lociLabel } from '../../mol-theme/label';
 import { ColorNames } from '../../mol-util/color/names';
+import { CustomProperty } from '../../mol-model-props/common/custom-property';
 
 const SharedParams = {
     color: PD.Color(ColorNames.lightgrey),
@@ -61,7 +61,6 @@ export type BilayerRimsParams = typeof BilayerRimsParams
 export type BilayerRimsProps = PD.Values<BilayerRimsParams>
 
 const MembraneOrientationVisuals = {
-    'bilayer-spheres': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<MembraneOrientation, BilayerSpheresParams>) => ShapeRepresentation(getBilayerSpheres, Spheres.Utils, { modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
     'bilayer-planes': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<MembraneOrientation, BilayerPlanesParams>) => ShapeRepresentation(getBilayerPlanes, Mesh.Utils, { modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }), modifyProps: p => ({ ...p, alpha: p.sectorOpacity, ignoreLight: true, doubleSided: false }) }),
     'bilayer-rims': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<MembraneOrientation, BilayerRimsParams>) => ShapeRepresentation(getBilayerRims, Lines.Utils, { modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) })
 };
@@ -91,9 +90,13 @@ export const MembraneOrientationRepresentationProvider = StructureRepresentation
     factory: MembraneOrientationRepresentation,
     getParams: getMembraneOrientationParams,
     defaultValues: PD.getDefaultValues(MembraneOrientationParams),
-    defaultColorTheme: { name: 'uniform' },
-    defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (structure: Structure) => structure.elementCount > 0
+    defaultColorTheme: { name: 'shape-group' },
+    defaultSizeTheme: { name: 'shape-group' },
+    isApplicable: (structure: Structure) => structure.elementCount > 0,
+    ensureCustomProperties: {
+        attach: (ctx: CustomProperty.Context, structure: Structure) => MembraneOrientationProvider.attach(ctx, structure, void 0, true),
+        detach: (data) => MembraneOrientationProvider.ref(data, false)
+    }
 });
 
 function membraneLabel(data: Structure) {
@@ -150,29 +153,4 @@ function getLayerPlane(state: MeshBuilder.State, p: Vec3, centroid: Vec3, normal
     state.currentGroup = 0;
     MeshBuilder.addPrimitive(state, Mat4.id, circle);
     MeshBuilder.addPrimitiveFlipped(state, Mat4.id, circle);
-}
-
-function getBilayerSpheres(ctx: RuntimeContext, data: Structure, props: BilayerSpheresProps, shape?: Shape<Spheres>): Shape<Spheres> {
-    const { density } = props;
-    const { radius, planePoint1, planePoint2, normalVector } = MembraneOrientationProvider.get(data).value!;
-    const scaledRadius = (props.radiusFactor * radius) * (props.radiusFactor * radius);
-
-    const spheresBuilder = SpheresBuilder.create(256, 128, shape?.geometry);
-    getLayerSpheres(spheresBuilder, planePoint1, normalVector, density, scaledRadius);
-    getLayerSpheres(spheresBuilder, planePoint2, normalVector, density, scaledRadius);
-    return Shape.create('Bilayer spheres', data, spheresBuilder.getSpheres(), () => props.color, () => props.sphereSize, () => membraneLabel(data));
-}
-
-function getLayerSpheres(spheresBuilder: SpheresBuilder, point: Vec3, normalVector: Vec3, density: number, sqRadius: number) {
-    Vec3.normalize(normalVector, normalVector);
-    const d = -Vec3.dot(normalVector, point);
-    const rep = Vec3();
-    for (let i = -1000, il = 1000; i < il; i += density) {
-        for (let j = -1000, jl = 1000; j < jl; j += density) {
-            Vec3.set(rep, i, j, normalVector[2] === 0 ? 0 : -(d + i * normalVector[0] + j * normalVector[1]) / normalVector[2]);
-            if (Vec3.squaredDistance(rep, point) < sqRadius) {
-                spheresBuilder.add(rep[0], rep[1], rep[2], 0);
-            }
-        }
-    }
 }

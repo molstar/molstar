@@ -20,6 +20,7 @@ import { stringToWords } from '../mol-util/string';
 import { degToRad } from '../mol-math/misc';
 import { createNullTexture, Texture, Textures } from './webgl/texture';
 import { arrayMapUpsert } from '../mol-util/array';
+import { clamp } from '../mol-math/interpolate';
 
 export interface RendererStats {
     programCount: number
@@ -50,7 +51,8 @@ interface Renderer {
     renderBlended: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderBlendedVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderBlendedVolumeOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderBlendedVolumeTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderWboitOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderWboitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
 
@@ -451,7 +453,7 @@ namespace Renderer {
             }
         };
 
-        const renderBlendedVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+        const renderBlendedVolumeOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
             state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             state.enable(gl.BLEND);
 
@@ -460,7 +462,32 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                renderObject(r, 'colorBlended');
+
+                // TODO: simplify, handle on renderable.state???
+                // uAlpha is updated in "render" so we need to recompute it here
+                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+                if (alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && !r.values.dXrayShaded?.ref.value) {
+                    renderObject(r, 'colorBlended');
+                }
+            }
+        };
+
+        const renderBlendedVolumeTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            state.enable(gl.BLEND);
+
+            updateInternal(group, camera, depthTexture, false);
+
+            const { renderables } = group;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+
+                // TODO: simplify, handle on renderable.state???
+                // uAlpha is updated in "render" so we need to recompute it here
+                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dXrayShaded?.ref.value) {
+                    renderObject(r, 'colorBlended');
+                }
             }
         };
 
@@ -474,8 +501,11 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
+
                 // TODO: simplify, handle on renderable.state???
-                if (r.values.uAlpha.ref.value === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dRenderMode?.ref.value !== 'volume' && !r.values.dPointFilledCircle?.ref.value && !r.values.dXrayShaded?.ref.value) {
+                // uAlpha is updated in "render" so we need to recompute it here
+                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+                if (alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dRenderMode?.ref.value !== 'volume' && !r.values.dPointFilledCircle?.ref.value && !r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'colorWboit');
                 }
             }
@@ -487,8 +517,11 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
+
                 // TODO: simplify, handle on renderable.state???
-                if (r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dRenderMode?.ref.value === 'volume' || r.values.dPointFilledCircle?.ref.value || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
+                // uAlpha is updated in "render" so we need to recompute it here
+                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dRenderMode?.ref.value === 'volume' || r.values.dPointFilledCircle?.ref.value || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'colorWboit');
                 }
             }
@@ -523,7 +556,8 @@ namespace Renderer {
             renderBlended,
             renderBlendedOpaque,
             renderBlendedTransparent,
-            renderBlendedVolume,
+            renderBlendedVolumeOpaque,
+            renderBlendedVolumeTransparent,
             renderWboitOpaque,
             renderWboitTransparent,
 
