@@ -317,6 +317,12 @@ export function ComplexTextVisual<P extends ComplexTextParams>(builder: ComplexT
             if (newProps.tetherLength !== currentProps.tetherLength) state.createGeometry = true;
             if (newProps.tetherBaseWidth !== currentProps.tetherBaseWidth) state.createGeometry = true;
             if (newProps.attachment !== currentProps.attachment) state.createGeometry = true;
+
+            if (newProps.fontFamily !== currentProps.fontFamily) state.createGeometry = true;
+            if (newProps.fontQuality !== currentProps.fontQuality) state.createGeometry = true;
+            if (newProps.fontStyle !== currentProps.fontStyle) state.createGeometry = true;
+            if (newProps.fontVariant !== currentProps.fontVariant) state.createGeometry = true;
+            if (newProps.fontWeight !== currentProps.fontWeight) state.createGeometry = true;
         },
         geometryUtils: Text.Utils
     }, materialId);

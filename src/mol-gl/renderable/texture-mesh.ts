@@ -22,6 +22,8 @@ export const TextureMeshSchema = {
     dFlatShaded: DefineSpec('boolean'),
     dDoubleSided: DefineSpec('boolean'),
     dFlipSided: DefineSpec('boolean'),
+    dIgnoreLight: DefineSpec('boolean'),
+    dXrayShaded: DefineSpec('boolean'),
     dGeoTexture: DefineSpec('boolean'),
 };
 export type TextureMeshSchema = typeof TextureMeshSchema
