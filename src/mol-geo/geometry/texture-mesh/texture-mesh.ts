@@ -75,6 +75,8 @@ export namespace TextureMesh {
         doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
         flipSided: PD.Boolean(false, BaseGeometry.ShadingCategory),
         flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
     };
     export type Params = typeof Params
 
@@ -126,6 +128,8 @@ export namespace TextureMesh {
             dDoubleSided: ValueCell.create(props.doubleSided),
             dFlatShaded: ValueCell.create(props.flatShaded),
             dFlipSided: ValueCell.create(props.flipSided),
+            dIgnoreLight: ValueCell.create(props.ignoreLight),
+            dXrayShaded: ValueCell.create(props.xrayShaded),
             dGeoTexture: ValueCell.create(true),
         };
     }
@@ -142,6 +146,8 @@ export namespace TextureMesh {
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded);
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
+        ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
+        ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
 
         if (values.drawCount.ref.value > values.aGroup.ref.value.length) {
             // console.log('updating vertex ids in aGroup to handle larger drawCount')
