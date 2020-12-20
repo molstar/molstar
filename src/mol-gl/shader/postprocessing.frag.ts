@@ -16,12 +16,12 @@ uniform sampler2D tDepth;
 uniform sampler2D tOutlines;
 uniform vec2 uTexSize;
 
-uniform mat4 uInvProjection;
 uniform float uNear;
 uniform float uFar;
 uniform float uFogNear;
 uniform float uFogFar;
 uniform vec3 uFogColor;
+uniform bool uTransparentBackground;
 
 uniform float uOcclusionBias;
 uniform float uOcclusionRadius;
@@ -31,17 +31,9 @@ uniform float uOutlineThreshold;
 
 uniform float uMaxPossibleViewZDiff;
 
-const vec4 occlusionColor = vec4(0.0, 0.0, 0.0, 1.0);
+const vec3 occlusionColor = vec3(0.0);
 
 #include common
-
-float perspectiveDepthToViewZ(const in float invClipZ, const in float near, const in float far) {
-    return (near * far) / ((far - near) * invClipZ - far);
-}
-
-float orthographicDepthToViewZ(const in float linearClipZ, const in float near, const in float far) {
-    return linearClipZ * (near - far) - near;
-}
 
 float getViewZ(const in float depth) {
     #if dOrthographic == 1
@@ -64,25 +56,23 @@ float getOutline(const in vec2 coords, out float closestTexel) {
     vec2 invTexSize = 1.0 / uTexSize;
 
     float selfDepth = getDepth(coords);
-    float selfViewZ = isBackground(selfDepth) ? backgroundViewZ : getViewZ(getDepth(coords));
+    float selfViewZ = isBackground(selfDepth) ? backgroundViewZ : getViewZ(selfDepth);
 
     float outline = 1.0;
-    closestTexel = backgroundViewZ;
-    for (float y = -uOutlineScale; y <= uOutlineScale; y++) {
-        for (float x = -uOutlineScale; x <= uOutlineScale; x++) {
-            if (x * x + y * y > uOutlineScale * uOutlineScale) {
+    closestTexel = 1.0;
+    for (int y = -dOutlineScale; y <= dOutlineScale; y++) {
+        for (int x = -dOutlineScale; x <= dOutlineScale; x++) {
+            if (x * x + y * y > dOutlineScale * dOutlineScale) {
                 continue;
             }
 
-            vec2 sampleCoords = coords + vec2(x, y) * invTexSize;
+            vec2 sampleCoords = coords + vec2(float(x), float(y)) * invTexSize;
 
             vec4 sampleOutlineCombined = texture2D(tOutlines, sampleCoords);
             float sampleOutline = sampleOutlineCombined.r;
             float sampleOutlineDepth = unpackRGToUnitInterval(sampleOutlineCombined.gb);
 
-            float sampleOutlineViewDirLength = length(screenSpaceToViewSpace(vec3(sampleCoords, sampleOutlineDepth), uInvProjection));
-
-            if (sampleOutline == 0.0 && sampleOutlineViewDirLength < closestTexel && abs(selfViewZ - sampleOutlineDepth) > uMaxPossibleViewZDiff) {
+            if (sampleOutline == 0.0 && sampleOutlineDepth < closestTexel && abs(selfViewZ - sampleOutlineDepth) > uMaxPossibleViewZDiff) {
                 outline = 0.0;
                 closestTexel = sampleOutlineDepth;
             }
@@ -92,7 +82,7 @@ float getOutline(const in vec2 coords, out float closestTexel) {
 }
 
 float getSsao(vec2 coords) {
-    float rawSsao = unpackRGToUnitInterval(texture(tSsaoDepth, coords).xy);
+    float rawSsao = unpackRGToUnitInterval(texture2D(tSsaoDepth, coords).xy);
     if (rawSsao > 0.999) {
         return 1.0;
     } else if (rawSsao > 0.001) {
@@ -103,7 +93,10 @@ float getSsao(vec2 coords) {
 
 void main(void) {
     vec2 coords = gl_FragCoord.xy / uTexSize;
-    vec4 color = texture(tColor, coords);
+    vec4 color = texture2D(tColor, coords);
+
+    float viewDist;
+    float fogFactor;
 
     #ifdef dOutlineEnable
         float closestTexel;
@@ -111,12 +104,13 @@ void main(void) {
 
         if (outline == 0.0) {
             color.rgb *= outline;
-            float viewDist = abs(getViewZ(closestTexel));
-            float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-            if (color.a != 1.0) {
+            viewDist = abs(getViewZ(closestTexel));
+            fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+            if (!uTransparentBackground) {
+                color.rgb = mix(color.rgb, uFogColor, fogFactor);
+            } else {
                 color.a = 1.0 - fogFactor;
             }
-            color.rgb = mix(color.rgb, uFogColor, fogFactor);
         }
     #endif
 
@@ -124,8 +118,14 @@ void main(void) {
     #ifdef dOcclusionEnable
         float depth = getDepth(coords);
         if (!isBackground(depth)) {
+            viewDist = abs(getViewZ(depth));
+            fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
             float occlusionFactor = getSsao(coords);
-            color = mix(occlusionColor, color, occlusionFactor);
+            if (!uTransparentBackground) {
+                color.rgb = mix(mix(occlusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
+            } else {
+                color.rgb = mix(occlusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
+            }
         }
     #endif
 

@@ -17,7 +17,6 @@ import { Viewport } from '../camera/util';
 import { PixelData } from '../../mol-util/image';
 import { Helper } from '../helper/helper';
 import { CameraHelper, CameraHelperParams } from '../helper/camera-helper';
-import { Color } from '../../mol-util/color';
 
 export const ImageParams = {
     transparentBackground: PD.Boolean(false),
@@ -86,7 +85,7 @@ export class ImagePass {
             this.multiSampleHelper.render(this.renderer, this._camera, this.scene, this.helper, false, this.props.transparentBackground, this.props);
             this._colorTarget = this.multiSamplePass.colorTarget;
         } else {
-            this.drawPass.render(this.renderer, this._camera, this.scene, this.helper, false, Color(0xffffff), this.props.transparentBackground, this.props.postprocessing);
+            this.drawPass.render(this.renderer, this._camera, this.scene, this.helper, false, this.props.transparentBackground, this.props.postprocessing);
             this._colorTarget = this.drawPass.getColorTarget(this.props.postprocessing);
         }
     }

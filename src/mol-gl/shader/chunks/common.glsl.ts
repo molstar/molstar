@@ -28,7 +28,7 @@ export default `
 float intDiv(const in float a, const in float b) { return float(int(a) / int(b)); }
 float intMod(const in float a, const in float b) { return a - b * float(int(a) / int(b)); }
 
-float pow2(const in float x) { return x*x; }
+float pow2(const in float x) { return x * x; }
 
 const float maxFloat = 10000.0; // NOTE constant also set in TypeScript
 const float floatLogFactor = 9.210440366976517; // log(maxFloat + 1.0);
@@ -90,8 +90,16 @@ vec4 linearTosRGB(const in vec4 c) {
     return vec4(mix(pow(c.rgb, vec3(0.41666)) * 1.055 - vec3(0.055), c.rgb * 12.92, vec3(lessThanEqual(c.rgb, vec3(0.0031308)))), c.a);
 }
 
-float linearizeDepth(in float depth, in float near, in float far) {
+float linearizeDepth(const in float depth, const in float near, const in float far) {
     return (2.0 * near) / (far + near - depth * (far - near));
+}
+
+float perspectiveDepthToViewZ(const in float invClipZ, const in float near, const in float far) {
+    return (near * far) / ((far - near) * invClipZ - far);
+}
+
+float orthographicDepthToViewZ(const in float linearClipZ, const in float near, const in float far) {
+    return linearClipZ * (near - far) - near;
 }
 
 #if __VERSION__ != 300

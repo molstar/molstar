@@ -27,10 +27,10 @@ void main(){
         gl_FragColor = material;
 
         #include apply_marker_color
-        #include apply_fog
 
         float fragmentDepth = gl_FragCoord.z;
         bool interior = false;
+        #include apply_fog
         #include wboit_write
     #endif
 }

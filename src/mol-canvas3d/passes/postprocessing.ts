@@ -184,26 +184,24 @@ const PostprocessingSchema = {
     uTexSize: UniformSpec('v2'),
 
     dOrthographic: DefineSpec('number'),
-    uInvProjection: UniformSpec('m4'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
     uFogNear: UniformSpec('f'),
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),
+    uTransparentBackground: UniformSpec('b'),
 
     uMaxPossibleViewZDiff: UniformSpec('f'),
 
     dOcclusionEnable: DefineSpec('boolean'),
 
     dOutlineEnable: DefineSpec('boolean'),
-    uOutlineScale: UniformSpec('f'),
+    dOutlineScale: DefineSpec('number'),
     uOutlineThreshold: UniformSpec('f'),
-
-    dPackedDepth: DefineSpec('boolean'),
 };
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
 
-function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture, packedDepth: boolean, outlinesTexture: Texture, ssaoDepthTexture: Texture): PostprocessingRenderable {
+function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture, outlinesTexture: Texture, ssaoDepthTexture: Texture): PostprocessingRenderable {
     const values: Values<typeof PostprocessingSchema> = {
         ...QuadValues,
         tSsaoDepth: ValueCell.create(ssaoDepthTexture),
@@ -213,22 +211,20 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
 
         dOrthographic: ValueCell.create(0),
-        uInvProjection: ValueCell.create(Mat4.identity()),
         uNear: ValueCell.create(1),
         uFar: ValueCell.create(10000),
         uFogNear: ValueCell.create(10000),
         uFogFar: ValueCell.create(10000),
         uFogColor: ValueCell.create(Vec3.create(1, 1, 1)),
+        uTransparentBackground: ValueCell.create(false),
 
         uMaxPossibleViewZDiff: ValueCell.create(0.5),
 
         dOcclusionEnable: ValueCell.create(false),
 
         dOutlineEnable: ValueCell.create(false),
-        uOutlineScale: ValueCell.create(ctx.pixelRatio),
-        uOutlineThreshold: ValueCell.create(0.8),
-
-        dPackedDepth: ValueCell.create(packedDepth),
+        dOutlineScale: ValueCell.create(1),
+        uOutlineThreshold: ValueCell.create(0.33),
     };
 
     const schema = { ...PostprocessingSchema };
@@ -242,9 +238,9 @@ export const PostprocessingParams = {
     occlusion: PD.MappedStatic('off', {
         on: PD.Group({
             samples: PD.Numeric(64, {min: 1, max: 256, step: 1}),
-            radius: PD.Numeric(8.0, { min: 1, max: 64, step: 1 }),
-            bias: PD.Numeric(1.0, { min: 0, max: 1, step: 0.001 }),
-            blurKernelSize: PD.Numeric(13, { min: 1, max: 25, step: 2 }),
+            radius: PD.Numeric(24.0, { min: 1, max: 64, step: 1 }),
+            bias: PD.Numeric(1.2, { min: 0, max: 2, step: 0.1 }),
+            blurKernelSize: PD.Numeric(20, { min: 1, max: 25, step: 2 }),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
@@ -291,7 +287,7 @@ export class PostprocessingPass {
     private readonly renderable: PostprocessingRenderable
 
     constructor(private webgl: WebGLContext, drawPass: DrawPass) {
-        const { colorTarget, depthTexture, packedDepth } = drawPass;
+        const { colorTarget, depthTexture } = drawPass;
         const width = colorTarget.getWidth();
         const height = colorTarget.getHeight();
 
@@ -330,7 +326,7 @@ export class PostprocessingPass {
         this.ssaoRenderable = getSsaoRenderable(webgl, depthTexture);
         this.ssaoBlurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
         this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, 'vertical');
-        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture,  depthTexture, packedDepth, this.outlinesTarget.texture, this.ssaoDepthTexture);
+        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture,  depthTexture, this.outlinesTarget.texture, this.ssaoDepthTexture);
     }
 
     setSize(width: number, height: number) {
@@ -349,14 +345,14 @@ export class PostprocessingPass {
         }
     }
 
-    private updateState(camera: ICamera, backgroundColor: Color, props: PostprocessingProps) {
+    private updateState(camera: ICamera, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps) {
         let needsUpdateMain = false;
         let needsUpdateSsao = false;
         let needsUpdateSsaoBlur = false;
 
-        let orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
-        let outlinesEnabled = props.outline.name === 'on';
-        let occlusionEnabled = props.occlusion.name === 'on';
+        const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
+        const outlinesEnabled = props.outline.name === 'on';
+        const occlusionEnabled = props.occlusion.name === 'on';
 
         let invProjection = Mat4.identity();
         Mat4.invert(invProjection, camera.projection);
@@ -400,26 +396,26 @@ export class PostprocessingPass {
         }
 
         if (props.outline.name === 'on') {
-            let factor = Math.pow(1000, props.outline.params.threshold) / 1000;
-            let maxPossibleViewZDiff = factor * (camera.far - camera.near);
+            const factor = Math.pow(1000, props.outline.params.threshold) / 1000;
+            const maxPossibleViewZDiff = factor * (camera.far - camera.near);
+            const outlineScale = props.outline.params.scale - 1;
 
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
 
-            ValueCell.updateIfChanged(this.renderable.values.uInvProjection, invProjection);
             ValueCell.updateIfChanged(this.renderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
-            let fogColor = Vec3();
-            Color.toVec3Normalized(fogColor, backgroundColor);
-            ValueCell.updateIfChanged(this.renderable.values.uFogColor, fogColor);
-            ValueCell.updateIfChanged(this.renderable.values.uOutlineScale, props.outline.params.scale - 1);
             ValueCell.updateIfChanged(this.renderable.values.uOutlineThreshold, props.outline.params.threshold);
+            if (this.renderable.values.dOutlineScale.ref.value !== outlineScale) { needsUpdateMain = true; }
+            ValueCell.updateIfChanged(this.renderable.values.dOutlineScale, outlineScale);
         }
 
         ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
         ValueCell.updateIfChanged(this.renderable.values.uNear, camera.near);
         ValueCell.updateIfChanged(this.renderable.values.uFogFar, camera.fogFar);
         ValueCell.updateIfChanged(this.renderable.values.uFogNear, camera.fogNear);
+        ValueCell.update(this.renderable.values.uFogColor, Color.toVec3Normalized(this.renderable.values.uFogColor.ref.value, backgroundColor));
+        ValueCell.updateIfChanged(this.renderable.values.uTransparentBackground, transparentBackground);
         if (this.renderable.values.dOrthographic.ref.value !== orthographic) { needsUpdateMain = true; }
         ValueCell.updateIfChanged(this.renderable.values.dOrthographic, orthographic);
         if (this.renderable.values.dOutlineEnable.ref.value !== outlinesEnabled) { needsUpdateMain = true; }
@@ -452,8 +448,8 @@ export class PostprocessingPass {
         gl.scissor(x, y, width, height);
     }
 
-    render(camera: ICamera, toDrawingBuffer: boolean, backgroundColor: Color, props: PostprocessingProps) {
-        this.updateState(camera, backgroundColor, props);
+    render(camera: ICamera, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps) {
+        this.updateState(camera, transparentBackground, backgroundColor, props);
 
         if (props.outline.name === 'on') {
             this.outlinesTarget.bind();
@@ -494,7 +490,7 @@ export class AntialiasingPass {
     private readonly fxaa: FxaaPass
     private readonly smaa: SmaaPass
 
-    constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
+    constructor(webgl: WebGLContext, private drawPass: DrawPass) {
         const { colorTarget } = drawPass;
         const width = colorTarget.getWidth();
         const height = colorTarget.getHeight();
@@ -505,28 +501,14 @@ export class AntialiasingPass {
     }
 
     setSize(width: number, height: number) {
-        const [w, h] = [this.target.texture.getWidth(), this.target.texture.getHeight()];
+        const w = this.target.texture.getWidth();
+        const h = this.target.texture.getHeight();
+
         if (width !== w || height !== h) {
             this.target.setSize(width, height);
             this.fxaa.setSize(width, height);
             if (this.smaa.supported) this.smaa.setSize(width, height);
         }
-    }
-
-    private updateState(camera: ICamera) {
-        const { gl, state } = this.webgl;
-
-        state.enable(gl.SCISSOR_TEST);
-        state.disable(gl.BLEND);
-        state.disable(gl.DEPTH_TEST);
-        state.depthMask(false);
-
-        const { x, y, width, height } = camera.viewport;
-        gl.viewport(x, y, width, height);
-        gl.scissor(x, y, width, height);
-
-        state.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
     }
 
     private _renderFxaa(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
@@ -536,15 +518,7 @@ export class AntialiasingPass {
             ? this.drawPass.postprocessing.target.texture
             : this.drawPass.colorTarget.texture;
         this.fxaa.update(input, props.antialiasing.params);
-
-        if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
-        } else {
-            this.target.bind();
-        }
-
-        this.updateState(camera);
-        this.fxaa.render();
+        this.fxaa.render(camera.viewport, toDrawingBuffer ? undefined : this.target);
     }
 
     private _renderSmaa(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
@@ -554,7 +528,6 @@ export class AntialiasingPass {
             ? this.drawPass.postprocessing.target.texture
             : this.drawPass.colorTarget.texture;
         this.smaa.update(input, props.antialiasing.params);
-
         this.smaa.render(camera.viewport, toDrawingBuffer ? undefined : this.target);
     }
 

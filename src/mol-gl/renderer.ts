@@ -632,9 +632,7 @@ namespace Renderer {
                 }
             },
 
-            get props() {
-                return p;
-            },
+            props: p,
             get stats(): RendererStats {
                 return {
                     programCount: ctx.stats.resourceCounts.program,

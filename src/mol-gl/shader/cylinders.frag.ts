@@ -17,7 +17,6 @@ varying float vSize;
 varying float vCap;
 
 uniform vec3 uCameraDir;
-uniform float uIsOrtho;
 uniform vec3 uCameraPosition;
 
 #include common
@@ -132,9 +131,9 @@ void main() {
 
         #include apply_interior_color
         #include apply_marker_color
-        #include apply_fog
 
         float fragmentDepth = gl_FragDepthEXT;
+        #include apply_fog
         #include wboit_write
     #endif
 }

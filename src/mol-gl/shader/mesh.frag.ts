@@ -59,9 +59,9 @@ void main() {
 
         #include apply_interior_color
         #include apply_marker_color
-        #include apply_fog
 
         float fragmentDepth = gl_FragCoord.z;
+        #include apply_fog
         #include wboit_write
     #endif
 }

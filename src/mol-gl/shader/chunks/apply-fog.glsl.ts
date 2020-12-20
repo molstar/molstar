@@ -1,5 +1,8 @@
 export default `
-float fogDepth = length(vViewPosition);
+float viewZ = uIsOrtho == 1.0
+    ? orthographicDepthToViewZ(fragmentDepth, uNear, uFar)
+    : perspectiveDepthToViewZ(fragmentDepth, uNear, uFar);
+float fogDepth = abs(viewZ);
 float fogFactor = smoothstep(uFogNear, uFogFar, fogDepth);
 float fogAlpha = (1.0 - fogFactor) * gl_FragColor.a;
 float preFogAlpha = gl_FragColor.a;

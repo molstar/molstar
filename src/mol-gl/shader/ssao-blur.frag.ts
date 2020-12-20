@@ -24,14 +24,6 @@ uniform float uFar;
 
 #include common
 
-float perspectiveDepthToViewZ(const in float invClipZ, const in float near, const in float far) {
-    return (near * far) / ((far - near) * invClipZ - far);
-}
-
-float orthographicDepthToViewZ(const in float linearClipZ, const in float near, const in float far) {
-    return linearClipZ * (near - far) - near;
-}
-
 float getViewZ(const in float depth) {
     #if dOrthographic == 1
         return orthographicDepthToViewZ(depth, uNear, uFar);
@@ -47,7 +39,7 @@ bool isBackground(const in float depth) {
 void main(void) {
     vec2 coords = gl_FragCoord.xy / uTexSize;
 
-    vec2 packedDepth = texture(tSsaoDepth, coords).zw;
+    vec2 packedDepth = texture2D(tSsaoDepth, coords).zw;
 
     float selfDepth = unpackRGToUnitInterval(packedDepth);
     // if background and if second pass
@@ -66,27 +58,27 @@ void main(void) {
     for (int i = -dOcclusionKernelSize / 2; i <= dOcclusionKernelSize / 2; i++) {
         vec2 sampleCoords = coords + float(i) * offset;
 
-        vec4 sampleSsaoDepth = texture(tSsaoDepth, sampleCoords);
+        vec4 sampleSsaoDepth = texture2D(tSsaoDepth, sampleCoords);
 
         float sampleDepth = unpackRGToUnitInterval(sampleSsaoDepth.zw);
         if (isBackground(sampleDepth)) {
             continue;
         }
 
-        if (abs(i) > 1) {
+        if (abs(float(i)) > 1.0) { // abs is not defined for int in webgl1
             float sampleViewZ = getViewZ(sampleDepth);
             if (abs(selfViewZ - sampleViewZ) > uMaxPossibleViewZDiff) {
                 continue;
             }
         }
 
-        float kernel = uKernel[abs(i)];
+        float kernel = uKernel[int(abs(float(i)))]; // abs is not defined for int in webgl1
         float sampleValue = unpackRGToUnitInterval(sampleSsaoDepth.xy);
 
         sum += kernel * sampleValue;
         kernelSum += kernel;
     }
-    
+
     gl_FragColor = vec4(packUnitIntervalToRG(sum / kernelSum), packedDepth);
 }
 `;

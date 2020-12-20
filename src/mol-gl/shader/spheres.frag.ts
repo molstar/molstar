@@ -15,9 +15,6 @@ precision highp int;
 #include common_clip
 #include wboit_params
 
-uniform float uClipNear;
-uniform float uIsOrtho;
-
 varying float vRadius;
 varying float vRadiusSq;
 varying vec3 vPoint;
@@ -98,9 +95,9 @@ void main(void){
 
         #include apply_interior_color
         #include apply_marker_color
-        #include apply_fog
 
         float fragmentDepth = gl_FragDepthEXT;
+        #include apply_fog
         #include wboit_write
     #endif
 }

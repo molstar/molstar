@@ -19,14 +19,6 @@ uniform float uMaxPossibleViewZDiff;
 
 #include common
 
-float perspectiveDepthToViewZ(const in float invClipZ, const in float near, const in float far) {
-    return (near * far) / ((far - near) * invClipZ - far);
-}
-
-float orthographicDepthToViewZ(const in float linearClipZ, const in float near, const in float far) {
-    return linearClipZ * (near - far) - near;
-}
-
 float getViewZ(const in float depth) {
     #if dOrthographic == 1
         return orthographicDepthToViewZ(depth, uNear, uFar);
@@ -45,7 +37,7 @@ bool isBackground(const in float depth) {
 
 void main(void) {
     float backgroundViewZ = uFar + 3.0 * uMaxPossibleViewZDiff;
-    
+
     vec2 coords = gl_FragCoord.xy / uTexSize;
     vec2 invTexSize = 1.0 / uTexSize;
 

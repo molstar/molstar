@@ -31,6 +31,10 @@ varying vec3 vViewPosition;
 
 uniform vec2 uViewOffset;
 
+uniform float uNear;
+uniform float uFar;
+uniform float uIsOrtho;
+
 uniform float uFogNear;
 uniform float uFogFar;
 uniform vec3 uFogColor;

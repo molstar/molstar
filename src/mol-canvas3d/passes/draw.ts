@@ -26,7 +26,6 @@ import copyFbo_frag from '../../mol-gl/shader/copy-fbo.frag';
 import { StereoCamera } from '../camera/stereo';
 import { WboitPass } from './wboit';
 import { AntialiasingPass, PostprocessingPass, PostprocessingProps } from './postprocessing';
-import { Color } from '../../mol-util/color';
 
 const DepthMergeSchema = {
     ...QuadSchema,
@@ -59,7 +58,7 @@ const CopyFboSchema = {
     tDepth: TextureSpec('texture', 'depth', 'ushort', 'nearest'),
     uTexSize: UniformSpec('v2'),
 };
-const  CopyFboShaderCode = ShaderCode('copy-fbo', quad_vert, copyFbo_frag);
+const  CopyFboShaderCode = ShaderCode('copy-fbo', quad_vert, copyFbo_frag, { fragDepth: 'required' });
 type  CopyFboRenderable = ComputeRenderable<Values<typeof CopyFboSchema>>
 
 function getCopyFboRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture): CopyFboRenderable {
@@ -96,7 +95,7 @@ export class DrawPass {
 
     private wboit: WboitPass | undefined
     readonly postprocessing: PostprocessingPass
-    private readonly fxaa: AntialiasingPass
+    private readonly antialiasing: AntialiasingPass
 
     get wboitEnabled() {
         return !!this.wboit?.supported;
@@ -126,7 +125,7 @@ export class DrawPass {
 
         this.wboit = enableWboit ? new WboitPass(webgl, width, height) : undefined;
         this.postprocessing = new PostprocessingPass(webgl, this);
-        this.fxaa = new AntialiasingPass(webgl, this);
+        this.antialiasing = new AntialiasingPass(webgl, this);
 
         this.copyFboTarget = getCopyFboRenderable(webgl, this.colorTarget.texture, this.depthTarget.texture);
         this.copyFboPostprocessing = getCopyFboRenderable(webgl, this.postprocessing.target.texture, this.depthTarget.texture);
@@ -162,7 +161,7 @@ export class DrawPass {
             }
 
             this.postprocessing.setSize(width, height);
-            this.fxaa.setSize(width, height);
+            this.antialiasing.setSize(width, height);
         }
     }
 
@@ -180,7 +179,7 @@ export class DrawPass {
         this.depthMerge.render();
     }
 
-    private _renderWboit(renderer: Renderer, camera: ICamera, scene: Scene, backgroundColor: Color, postprocessingProps: PostprocessingProps) {
+    private _renderWboit(renderer: Renderer, camera: ICamera, scene: Scene, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
         if (!this.wboit?.supported) throw new Error('expected wboit to be supported');
 
         this.colorTarget.bind();
@@ -202,7 +201,7 @@ export class DrawPass {
         this._depthMerge();
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
-            this.postprocessing.render(camera, false, backgroundColor, postprocessingProps);
+            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
         }
 
         // render transparent primitives and volumes
@@ -221,7 +220,7 @@ export class DrawPass {
         this.wboit.render();
     }
 
-    private _renderBlended(renderer: Renderer, camera: ICamera, scene: Scene, backgroundColor: Color, toDrawingBuffer: boolean, postprocessingProps: PostprocessingProps) {
+    private _renderBlended(renderer: Renderer, camera: ICamera, scene: Scene, toDrawingBuffer: boolean, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
         if (toDrawingBuffer) {
             this.drawTarget.bind();
         } else {
@@ -264,7 +263,7 @@ export class DrawPass {
             this.colorTarget.bind();
 
             if (PostprocessingPass.isEnabled(postprocessingProps)) {
-                this.postprocessing.render(camera, false, backgroundColor, postprocessingProps);
+                this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
             }
             renderer.renderBlendedVolumeTransparent(scene.volumes, camera, this.depthTexturePrimitives);
 
@@ -284,7 +283,7 @@ export class DrawPass {
         renderer.renderBlendedTransparent(scene.primitives, camera, null);
     }
 
-    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, backgroundColor: Color, postprocessingProps: PostprocessingProps) {
+    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
         const volumeRendering = scene.volumes.renderables.length > 0;
         const postprocessingEnabled = PostprocessingPass.isEnabled(postprocessingProps);
         const antialiasingEnabled = AntialiasingPass.isEnabled(postprocessingProps);
@@ -294,9 +293,9 @@ export class DrawPass {
         renderer.update(camera);
 
         if (this.wboitEnabled) {
-            this._renderWboit(renderer, camera, scene, backgroundColor, postprocessingProps);
+            this._renderWboit(renderer, camera, scene, transparentBackground, postprocessingProps);
         } else {
-            this._renderBlended(renderer, camera, scene, backgroundColor, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, postprocessingProps);
+            this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, transparentBackground, postprocessingProps);
         }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
@@ -321,7 +320,7 @@ export class DrawPass {
         }
 
         if (antialiasingEnabled) {
-            this.fxaa.render(camera, toDrawingBuffer, postprocessingProps);
+            this.antialiasing.render(camera, toDrawingBuffer, postprocessingProps);
         } else if (toDrawingBuffer) {
             this.drawTarget.bind();
 
@@ -336,21 +335,21 @@ export class DrawPass {
         this.webgl.gl.flush();
     }
 
-    render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, backgroundColor: Color, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
+    render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
         renderer.setTransparentBackground(transparentBackground);
         renderer.setDrawingBufferSize(this.colorTarget.getWidth(), this.colorTarget.getHeight());
 
         if (StereoCamera.is(camera)) {
-            this._render(renderer, camera.left, scene, helper, toDrawingBuffer, backgroundColor, postprocessingProps);
-            this._render(renderer, camera.right, scene, helper, toDrawingBuffer, backgroundColor, postprocessingProps);
+            this._render(renderer, camera.left, scene, helper, toDrawingBuffer, transparentBackground, postprocessingProps);
+            this._render(renderer, camera.right, scene, helper, toDrawingBuffer, transparentBackground, postprocessingProps);
         } else {
-            this._render(renderer, camera, scene, helper, toDrawingBuffer, backgroundColor, postprocessingProps);
+            this._render(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, postprocessingProps);
         }
     }
 
     getColorTarget(postprocessingProps: PostprocessingProps): RenderTarget {
         if (AntialiasingPass.isEnabled(postprocessingProps)) {
-            return this.fxaa.target;
+            return this.antialiasing.target;
         } else if (PostprocessingPass.isEnabled(postprocessingProps)) {
             return this.postprocessing.target;
         }
