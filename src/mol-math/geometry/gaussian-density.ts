@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Box3D } from '../geometry';
+import { Box3D, DensityData, DensityTextureData } from '../geometry';
 import { RuntimeContext, Task } from '../../mol-task';
-import { PositionData, DensityData } from './common';
+import { PositionData } from './common';
 import { GaussianDensityCPU } from './gaussian-density/cpu';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Texture } from '../../mol-gl/webgl/texture';
@@ -33,13 +33,21 @@ export const DefaultGaussianDensityProps = {
 };
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
 
+export type GaussianDensityData = {
+    radiusFactor: number
+} & DensityData
+
+export type GaussianDensityTextureData = {
+    radiusFactor: number
+} & DensityTextureData
+
 export function computeGaussianDensity(position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps, webgl?: WebGLContext) {
     return Task.create('Gaussian Density', async ctx => {
         return await GaussianDensity(ctx, position, box, radius, props, webgl);
     });
 }
 
-export async function GaussianDensity(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps, webgl?: WebGLContext): Promise<DensityData> {
+export async function GaussianDensity(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps, webgl?: WebGLContext): Promise<GaussianDensityData> {
     if (props.useGpu) {
         if (!GaussianDensityGPU) throw 'GPU computation not supported on this platform';
         if (!webgl) throw 'No WebGL context provided';

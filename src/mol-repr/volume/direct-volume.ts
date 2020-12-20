@@ -113,6 +113,7 @@ export function createDirectVolume2d(ctx: RuntimeContext, webgl: WebGLContext, v
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     const bbox = getBoundingBox(gridDimension, transform);
 
+    // TODO: handle disposal
     const texture = directVolume ? directVolume.gridTexture.ref.value : webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     texture.load(textureImage);
 
@@ -195,6 +196,7 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     const bbox = getBoundingBox(gridDimension, transform);
 
+    // TODO: handle disposal
     const texture = directVolume ? directVolume.gridTexture.ref.value : webgl.resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear');
     texture.load(textureVolume);
 

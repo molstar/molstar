@@ -33,10 +33,10 @@ export type GaussianSurfaceMeshParams = typeof GaussianSurfaceMeshParams
 
 async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
     const { smoothness } = props;
-    const { transform, field, idField } = await computeUnitGaussianDensity(structure, unit, props, ctx.webgl).runInContext(ctx.runtime);
+    const { transform, field, idField, radiusFactor } = await computeUnitGaussianDensity(structure, unit, props, ctx.webgl).runInContext(ctx.runtime);
 
     const params = {
-        isoLevel: Math.exp(-smoothness),
+        isoLevel: Math.exp(-smoothness) / radiusFactor,
         scalarField: field,
         idField
     };
@@ -81,10 +81,10 @@ export type StructureGaussianSurfaceMeshParams = typeof StructureGaussianSurface
 
 async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
     const { smoothness } = props;
-    const { transform, field, idField } = await computeStructureGaussianDensity(structure, props, ctx.webgl).runInContext(ctx.runtime);
+    const { transform, field, idField, radiusFactor } = await computeStructureGaussianDensity(structure, props, ctx.webgl).runInContext(ctx.runtime);
 
     const params = {
-        isoLevel: Math.exp(-smoothness),
+        isoLevel: Math.exp(-smoothness) / radiusFactor,
         scalarField: field,
         idField
     };
@@ -119,14 +119,24 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
 
 //
 
+const GaussianSurfaceName = 'gaussian-surface';
+
 async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityTextureProps, textureMesh?: TextureMesh): Promise<TextureMesh> {
     if (!ctx.webgl) throw new Error('webgl context required to create gaussian surface texture-mesh');
-    const isoLevel = Math.exp(-props.smoothness);
 
-    const densityTextureData = await computeUnitGaussianDensityTexture2d(structure, unit, props, ctx.webgl).runInContext(ctx.runtime);
+    const { namedTextures, resources, extensions: { colorBufferFloat, textureFloat } } = ctx.webgl;
+    if (!namedTextures[GaussianSurfaceName]) {
+        namedTextures[GaussianSurfaceName] = colorBufferFloat && textureFloat
+            ? resources.texture('image-float32', 'rgba', 'float', 'linear')
+            : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+    }
+
+    const densityTextureData = await computeUnitGaussianDensityTexture2d(structure, unit, props, ctx.webgl, namedTextures[GaussianSurfaceName]).runInContext(ctx.runtime);
     // console.log(densityTextureData)
     // console.log('vertexGroupTexture', readTexture(ctx.webgl, densityTextureData.texture))
     // ctx.webgl.waitForGpuCommandsCompleteSync()
+
+    const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
     const activeVoxelsTex = calcActiveVoxels(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, isoLevel, densityTextureData.gridTexScale);
     // ctx.webgl.waitForGpuCommandsCompleteSync()
@@ -141,7 +151,11 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
     // Sphere3D.addVec3(boundingSphere, boundingSphere, densityTextureData.gridDimension)
     const boundingSphere = Sphere3D.fromBox3D(Sphere3D(), densityTextureData.bbox);
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, boundingSphere, textureMesh);
-
+    // console.log({
+    //     renderables: ctx.webgl.namedComputeRenderables,
+    //     framebuffers: ctx.webgl.namedFramebuffers,
+    //     textures: ctx.webgl.namedTextures,
+    // });
     // ctx.webgl.waitForGpuCommandsCompleteSync()
     return surface;
 }

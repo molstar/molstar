@@ -30,18 +30,36 @@ const ActiveVoxelsSchema = {
     uScale: UniformSpec('v2'),
 };
 
+const ActiveVoxelsName = 'active-voxels';
+
 function getActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, isoValue: number, scale: Vec2) {
+    if (ctx.namedComputeRenderables[ActiveVoxelsName]) {
+        const v = ctx.namedComputeRenderables[ActiveVoxelsName].values;
+
+        ValueCell.update(v.uQuadScale, scale);
+        ValueCell.update(v.tVolumeData, volumeData);
+        ValueCell.updateIfChanged(v.uIsoValue, isoValue);
+        ValueCell.update(v.uGridDim, gridDim);
+        ValueCell.update(v.uGridTexDim, gridTexDim);
+        ValueCell.update(v.uScale, scale);
+
+        ctx.namedComputeRenderables[ActiveVoxelsName].update();
+    } else {
+        ctx.namedComputeRenderables[ActiveVoxelsName] = createActiveVoxelsRenderable(ctx, volumeData, gridDim, gridTexDim, isoValue, scale);
+    }
+    return ctx.namedComputeRenderables[ActiveVoxelsName];
+}
+
+function createActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, isoValue: number, scale: Vec2) {
     const values: Values<typeof ActiveVoxelsSchema> = {
         ...QuadValues,
-        uQuadScale: ValueCell.create(scale),
-
         tTriCount: ValueCell.create(getTriCount()),
+
+        uQuadScale: ValueCell.create(scale),
         tVolumeData: ValueCell.create(volumeData),
         uIsoValue: ValueCell.create(isoValue),
-
         uGridDim: ValueCell.create(gridDim),
         uGridTexDim: ValueCell.create(gridTexDim),
-
         uScale: ValueCell.create(scale),
     };
 
@@ -68,10 +86,16 @@ export function calcActiveVoxels(ctx: WebGLContext, volumeData: Texture, gridDim
     const width = volumeData.getWidth();
     const height = volumeData.getHeight();
 
-    const framebuffer = resources.framebuffer();
+    if (!ctx.namedFramebuffers[ActiveVoxelsName]) {
+        ctx.namedFramebuffers[ActiveVoxelsName] = resources.framebuffer();
+    }
+    const framebuffer = ctx.namedFramebuffers[ActiveVoxelsName];
     framebuffer.bind();
 
-    const activeVoxelsTex = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+    if (!ctx.namedTextures[ActiveVoxelsName]) {
+        ctx.namedTextures[ActiveVoxelsName] = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+    }
+    const activeVoxelsTex = ctx.namedTextures[ActiveVoxelsName];
     activeVoxelsTex.define(width, height);
 
     const renderable = getActiveVoxelsRenderable(ctx, volumeData, gridDim, gridTexDim, isoValue, gridScale);
@@ -80,6 +104,7 @@ export function calcActiveVoxels(ctx: WebGLContext, volumeData: Texture, gridDim
     activeVoxelsTex.attachFramebuffer(framebuffer, 0);
     setRenderingDefaults(ctx);
     gl.viewport(0, 0, width, height);
+    gl.clear(gl.COLOR_BUFFER_BIT);
     renderable.render();
 
     // console.log('gridScale', gridScale, 'gridTexDim', gridTexDim, 'gridDim', gridDim)

@@ -7,12 +7,12 @@
 import { Box3D, fillGridDim } from '../../geometry';
 import { Vec3, Mat4, Tensor } from '../../linear-algebra';
 import { RuntimeContext } from '../../../mol-task';
-import { PositionData, DensityData } from '../common';
+import { PositionData } from '../common';
 import { OrderedSet } from '../../../mol-data/int';
-import { GaussianDensityProps } from '../gaussian-density';
+import { GaussianDensityProps, GaussianDensityData } from '../gaussian-density';
 import { fasterExp } from '../../approx';
 
-export async function GaussianDensityCPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps): Promise<DensityData> {
+export async function GaussianDensityCPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps): Promise<GaussianDensityData> {
     const { resolution, radiusOffset, smoothness } = props;
     const scaleFactor = 1 / resolution;
 
@@ -129,5 +129,5 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     Mat4.fromScaling(transform, Vec3.create(resolution, resolution, resolution));
     Mat4.setTranslation(transform, expandedBox.min);
 
-    return { field, idField, transform };
+    return { field, idField, transform, radiusFactor: 1 };
 }
