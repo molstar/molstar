@@ -38,18 +38,46 @@ const IsosurfaceSchema = {
     uScale: UniformSpec('v2'),
 };
 
+const IsosurfaceName = 'isosurface';
+
 function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number, height: number) {
+    if (ctx.namedComputeRenderables[IsosurfaceName]) {
+        const v = ctx.namedComputeRenderables[IsosurfaceName].values;
+
+        ValueCell.update(v.uQuadScale, Vec2.create(1, height / Math.pow(2, levels)));
+        ValueCell.update(v.tActiveVoxelsPyramid, activeVoxelsPyramid);
+        ValueCell.update(v.tActiveVoxelsBase, activeVoxelsBase);
+        ValueCell.update(v.tVolumeData, volumeData);
+
+        ValueCell.updateIfChanged(v.uIsoValue, isoValue);
+        ValueCell.updateIfChanged(v.uSize, Math.pow(2, levels));
+        ValueCell.updateIfChanged(v.uLevels, levels);
+        ValueCell.updateIfChanged(v.uCount, count);
+
+        ValueCell.update(v.uGridDim, gridDim);
+        ValueCell.update(v.uGridTexDim, gridTexDim);
+        ValueCell.update(v.uGridTransform, transform);
+        ValueCell.update(v.uScale, scale);
+
+        ctx.namedComputeRenderables[IsosurfaceName].update();
+    } else {
+        ctx.namedComputeRenderables[IsosurfaceName] = createIsosurfaceRenderable(ctx, activeVoxelsPyramid, activeVoxelsBase, volumeData, gridDim, gridTexDim, transform, isoValue, levels, scale, count, height);
+    }
+    return ctx.namedComputeRenderables[IsosurfaceName];
+}
+
+function createIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number, height: number) {
     // console.log('uSize', Math.pow(2, levels))
     const values: Values<typeof IsosurfaceSchema> = {
         ...QuadValues,
-        uQuadScale: ValueCell.create(Vec2.create(1, height / Math.pow(2, levels))),
-
         tTriIndices: ValueCell.create(getTriIndices()),
+
+        uQuadScale: ValueCell.create(Vec2.create(1, height / Math.pow(2, levels))),
         tActiveVoxelsPyramid: ValueCell.create(activeVoxelsPyramid),
         tActiveVoxelsBase: ValueCell.create(activeVoxelsBase),
         tVolumeData: ValueCell.create(volumeData),
-        uIsoValue: ValueCell.create(isoValue),
 
+        uIsoValue: ValueCell.create(isoValue),
         uSize: ValueCell.create(Math.pow(2, levels)),
         uLevels: ValueCell.create(levels),
         uCount: ValueCell.create(count),
@@ -57,7 +85,6 @@ function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture
         uGridDim: ValueCell.create(gridDim),
         uGridTexDim: ValueCell.create(gridTexDim),
         uGridTransform: ValueCell.create(transform),
-
         uScale: ValueCell.create(scale),
     };
 
@@ -86,27 +113,23 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     // console.log('iso', 'gridDim', gridDim, 'scale', scale, 'gridTexDim', gridTexDim)
     // console.log('iso volumeData', volumeData)
 
-    const framebuffer = resources.framebuffer();
+    if (!ctx.namedFramebuffers[IsosurfaceName]) {
+        ctx.namedFramebuffers[IsosurfaceName] = resources.framebuffer();
+    }
+    const framebuffer = ctx.namedFramebuffers[IsosurfaceName];
 
-    let needsClear = false;
+    const w = pyramidTex.getWidth();
+    const h = pyramidTex.getHeight();
 
     if (!vertexGroupTexture) {
         vertexGroupTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest');
-        vertexGroupTexture.define(pyramidTex.getWidth(), pyramidTex.getHeight());
-    } else if (vertexGroupTexture.getWidth() !== pyramidTex.getWidth() || vertexGroupTexture.getHeight() !== pyramidTex.getHeight()) {
-        vertexGroupTexture.define(pyramidTex.getWidth(), pyramidTex.getHeight());
-    } else {
-        needsClear = true;
     }
+    vertexGroupTexture.define(w, h);
 
     if (!normalTexture) {
         normalTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest');
-        normalTexture.define(pyramidTex.getWidth(), pyramidTex.getHeight());
-    } else if (normalTexture.getWidth() !== pyramidTex.getWidth() || normalTexture.getHeight() !== pyramidTex.getHeight()) {
-        normalTexture.define(pyramidTex.getWidth(), pyramidTex.getHeight());
-    } else {
-        needsClear = true;
     }
+    normalTexture.define(w, h);
 
     // const infoTex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     // infoTex.define(pyramidTex.width, pyramidTex.height)
@@ -147,11 +170,11 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     ]);
 
     setRenderingDefaults(ctx);
-    gl.viewport(0, 0, pyramidTex.getWidth(), pyramidTex.getHeight());
-    if (needsClear) gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.viewport(0, 0, w, h);
+    gl.clear(gl.COLOR_BUFFER_BIT);
     renderable.render();
 
-    gl.finish();
+    gl.flush();
 
     // const vgt = readTexture(ctx, vertexGroupTexture, pyramidTex.width, height)
     // console.log('vertexGroupTexture', vgt.array.subarray(0, 4 * count))

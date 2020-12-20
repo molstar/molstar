@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createComputeRenderable, ComputeRenderable } from '../../renderable';
+import { createComputeRenderable } from '../../renderable';
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
 import { Values, TextureSpec } from '../../renderable/schema';
@@ -21,33 +21,32 @@ const HistopyramidSumSchema = {
     tTexture: TextureSpec('texture', 'rgba', 'float', 'nearest'),
 };
 
-let HistopyramidSumRenderable: ComputeRenderable<Values<typeof HistopyramidSumSchema>>;
+const HistopyramidSumName = 'histopyramid-sum';
+
 function getHistopyramidSumRenderable(ctx: WebGLContext, texture: Texture) {
-    if (HistopyramidSumRenderable) {
-        ValueCell.update(HistopyramidSumRenderable.values.tTexture, texture);
-        HistopyramidSumRenderable.update();
-        return HistopyramidSumRenderable;
+    if (ctx.namedComputeRenderables[HistopyramidSumName]) {
+        const v = ctx.namedComputeRenderables[HistopyramidSumName].values;
+
+        ValueCell.update(v.tTexture, texture);
+
+        ctx.namedComputeRenderables[HistopyramidSumName].update();
     } else {
-        const values: Values<typeof HistopyramidSumSchema> = {
-            ...QuadValues,
-            tTexture: ValueCell.create(texture),
-        };
-
-        const schema = { ...HistopyramidSumSchema };
-        const shaderCode = ShaderCode('sum', quad_vert, sum_frag);
-        const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
-
-        HistopyramidSumRenderable = createComputeRenderable(renderItem, values);
-        return HistopyramidSumRenderable;
+        ctx.namedComputeRenderables[HistopyramidSumName] = createHistopyramidSumRenderable(ctx, texture);
     }
+    return ctx.namedComputeRenderables[HistopyramidSumName];
 }
 
-let SumTexture: Texture;
-function getSumTexture(ctx: WebGLContext) {
-    if (SumTexture) return SumTexture;
-    SumTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
-    SumTexture.define(1, 1);
-    return SumTexture;
+function createHistopyramidSumRenderable(ctx: WebGLContext, texture: Texture) {
+    const values: Values<typeof HistopyramidSumSchema> = {
+        ...QuadValues,
+        tTexture: ValueCell.create(texture),
+    };
+
+    const schema = { ...HistopyramidSumSchema };
+    const shaderCode = ShaderCode('sum', quad_vert, sum_frag);
+    const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
+
+    return createComputeRenderable(renderItem, values);
 }
 
 function setRenderingDefaults(ctx: WebGLContext) {
@@ -68,8 +67,16 @@ export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture
     const renderable = getHistopyramidSumRenderable(ctx, pyramidTopTexture);
     ctx.state.currentRenderItemId = -1;
 
-    const framebuffer = resources.framebuffer();
-    const sumTexture = getSumTexture(ctx);
+    if (!ctx.namedFramebuffers[HistopyramidSumName]) {
+        ctx.namedFramebuffers[HistopyramidSumName] = resources.framebuffer();
+    }
+    const framebuffer = ctx.namedFramebuffers[HistopyramidSumName];
+
+    if (!ctx.namedTextures[HistopyramidSumName]) {
+        ctx.namedTextures[HistopyramidSumName] = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+        ctx.namedTextures[HistopyramidSumName].define(1, 1);
+    }
+    const sumTexture = ctx.namedTextures[HistopyramidSumName];
     sumTexture.attachFramebuffer(framebuffer, 0);
 
     setRenderingDefaults(ctx);
