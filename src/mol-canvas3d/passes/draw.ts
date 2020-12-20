@@ -22,7 +22,7 @@ import { Helper } from '../helper/helper';
 
 import quad_vert from '../../mol-gl/shader/quad.vert';
 import depthMerge_frag from '../../mol-gl/shader/depth-merge.frag';
-import copyFbo_frag from '../../mol-gl/shader/copy-fbo.frag';
+import { copy_frag } from '../../mol-gl/shader/copy.frag';
 import { StereoCamera } from '../camera/stereo';
 import { WboitPass } from './wboit';
 import { AntialiasingPass, PostprocessingPass, PostprocessingProps } from './postprocessing';
@@ -52,25 +52,23 @@ function getDepthMergeRenderable(ctx: WebGLContext, depthTexturePrimitives: Text
     return createComputeRenderable(renderItem, values);
 }
 
-const CopyFboSchema = {
+const CopySchema = {
     ...QuadSchema,
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
-    tDepth: TextureSpec('texture', 'depth', 'ushort', 'nearest'),
     uTexSize: UniformSpec('v2'),
 };
-const  CopyFboShaderCode = ShaderCode('copy-fbo', quad_vert, copyFbo_frag, { fragDepth: 'required' });
-type  CopyFboRenderable = ComputeRenderable<Values<typeof CopyFboSchema>>
+const  CopyShaderCode = ShaderCode('copy', quad_vert, copy_frag);
+type  CopyRenderable = ComputeRenderable<Values<typeof CopySchema>>
 
-function getCopyFboRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture): CopyFboRenderable {
-    const values: Values<typeof CopyFboSchema> = {
+function getCopyRenderable(ctx: WebGLContext, colorTexture: Texture): CopyRenderable {
+    const values: Values<typeof CopySchema> = {
         ...QuadValues,
         tColor: ValueCell.create(colorTexture),
-        tDepth: ValueCell.create(depthTexture),
         uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
     };
 
-    const schema = { ...CopyFboSchema };
-    const renderItem = createComputeRenderItem(ctx, 'triangles', CopyFboShaderCode, schema, values);
+    const schema = { ...CopySchema };
+    const renderItem = createComputeRenderItem(ctx, 'triangles', CopyShaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);
 }
@@ -90,8 +88,8 @@ export class DrawPass {
     private depthTextureVolumes: Texture
     private depthMerge: DepthMergeRenderable
 
-    private copyFboTarget: CopyFboRenderable
-    private copyFboPostprocessing: CopyFboRenderable
+    private copyFboTarget: CopyRenderable
+    private copyFboPostprocessing: CopyRenderable
 
     private wboit: WboitPass | undefined
     readonly postprocessing: PostprocessingPass
@@ -127,8 +125,8 @@ export class DrawPass {
         this.postprocessing = new PostprocessingPass(webgl, this);
         this.antialiasing = new AntialiasingPass(webgl, this);
 
-        this.copyFboTarget = getCopyFboRenderable(webgl, this.colorTarget.texture, this.depthTarget.texture);
-        this.copyFboPostprocessing = getCopyFboRenderable(webgl, this.postprocessing.target.texture, this.depthTarget.texture);
+        this.copyFboTarget = getCopyRenderable(webgl, this.colorTarget.texture);
+        this.copyFboPostprocessing = getCopyRenderable(webgl, this.postprocessing.target.texture);
     }
 
     setSize(width: number, height: number) {
@@ -239,6 +237,7 @@ export class DrawPass {
             if (this.depthTargetPrimitives) {
                 this.depthTargetPrimitives.bind();
                 renderer.clear(false);
+                // TODO: this should only render opaque
                 renderer.renderDepth(scene.primitives, camera, null);
                 this.colorTarget.bind();
             }
@@ -267,17 +266,12 @@ export class DrawPass {
             }
             renderer.renderBlendedVolumeTransparent(scene.volumes, camera, this.depthTexturePrimitives);
 
-            if (PostprocessingPass.isEnabled(postprocessingProps)) {
-                if (!this.packedDepth) {
-                    this.depthTexturePrimitives.attachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
-                }
-                this.postprocessing.target.bind();
-            } else {
-                if (!this.packedDepth) {
-                    this.depthTexturePrimitives.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
-                }
-                this.colorTarget.bind();
+            const target = PostprocessingPass.isEnabled(postprocessingProps)
+                ? this.postprocessing.target : this.colorTarget;
+            if (!this.packedDepth) {
+                this.depthTexturePrimitives.attachFramebuffer(target.framebuffer, 'depth');
             }
+            target.bind();
         }
 
         renderer.renderBlendedTransparent(scene.primitives, camera, null);
