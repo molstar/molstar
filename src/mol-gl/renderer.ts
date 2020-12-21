@@ -96,10 +96,11 @@ export const RendererParams = {
         variant: PD.Select('instance', PD.arrayToOptions<Clipping.Variant>(['instance', 'pixel'])),
         objects: PD.ObjectList({
             type: PD.Select('plane', PD.objectToOptions(Clipping.Type, t => stringToWords(t))),
+            invert: PD.Boolean(false),
             position: PD.Vec3(Vec3()),
             rotation: PD.Group({
                 axis: PD.Vec3(Vec3.create(1, 0, 0)),
-                angle: PD.Numeric(0, { min: -180, max: 180, step: 0.1 }, { description: 'Angle in Degrees' }),
+                angle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { description: 'Angle in Degrees' }),
             }, { isExpanded: true }),
             scale: PD.Vec3(Vec3.create(1, 1, 1)),
         }, o => stringToWords(o.type))
@@ -144,6 +145,7 @@ type Clip = {
     objects: {
         count: number
         type: number[]
+        invert: boolean[]
         position: number[]
         rotation: number[]
         scale: number[]
@@ -152,8 +154,9 @@ type Clip = {
 
 const tmpQuat = Quat();
 function getClip(props: RendererProps['clip'], clip?: Clip): Clip {
-    const { type, position, rotation, scale } = clip?.objects || {
+    const { type, invert, position, rotation, scale } = clip?.objects || {
         type: (new Array(5)).fill(1),
+        invert: (new Array(5)).fill(false),
         position: (new Array(5 * 3)).fill(0),
         rotation: (new Array(5 * 4)).fill(0),
         scale: (new Array(5 * 3)).fill(1),
@@ -161,13 +164,14 @@ function getClip(props: RendererProps['clip'], clip?: Clip): Clip {
     for (let i = 0, il = props.objects.length; i < il; ++i) {
         const p = props.objects[i];
         type[i] = Clipping.Type[p.type];
+        invert[i] = p.invert;
         Vec3.toArray(p.position, position, i * 3);
         Quat.toArray(Quat.setAxisAngle(tmpQuat, p.rotation.axis, degToRad(p.rotation.angle)), rotation, i * 4);
         Vec3.toArray(p.scale, scale, i * 3);
     }
     return {
         variant: props.variant,
-        objects: { count: props.objects.length, type, position, rotation, scale }
+        objects: { count: props.objects.length, type, invert, position, rotation, scale }
     };
 }
 
@@ -232,6 +236,7 @@ namespace Renderer {
             uTransparentBackground: ValueCell.create(false),
 
             uClipObjectType: ValueCell.create(clip.objects.type),
+            uClipObjectInvert: ValueCell.create(clip.objects.invert),
             uClipObjectPosition: ValueCell.create(clip.objects.position),
             uClipObjectRotation: ValueCell.create(clip.objects.rotation),
             uClipObjectScale: ValueCell.create(clip.objects.scale),

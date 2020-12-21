@@ -5,6 +5,7 @@ uniform int uGroupCount;
 
 #if dClipObjectCount != 0
     uniform int uClipObjectType[dClipObjectCount];
+    uniform bool uClipObjectInvert[dClipObjectCount];
     uniform vec3 uClipObjectPosition[dClipObjectCount];
     uniform vec4 uClipObjectRotation[dClipObjectCount];
     uniform vec3 uClipObjectScale[dClipObjectCount];
