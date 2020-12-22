@@ -238,8 +238,8 @@ export const PostprocessingParams = {
     occlusion: PD.MappedStatic('off', {
         on: PD.Group({
             samples: PD.Numeric(64, {min: 1, max: 256, step: 1}),
-            radius: PD.Numeric(24.0, { min: 1, max: 64, step: 1 }),
-            bias: PD.Numeric(1.2, { min: 0, max: 2, step: 0.1 }),
+            radius: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, { description: 'Final radius is 2^x.' }),
+            bias: PD.Numeric(1.2, { min: 0, max: 5, step: 0.1 }),
             blurKernelSize: PD.Numeric(20, { min: 1, max: 25, step: 2 }),
         }),
         off: PD.Group({})
@@ -378,7 +378,7 @@ export class PostprocessingPass {
                 ValueCell.updateIfChanged(this.ssaoRenderable.values.uSamples, getSamples(this.randomHemisphereVector, this.nSamples));
                 ValueCell.updateIfChanged(this.ssaoRenderable.values.dNSamples, this.nSamples);
             }
-            ValueCell.updateIfChanged(this.ssaoRenderable.values.uRadius, props.occlusion.params.radius);
+            ValueCell.updateIfChanged(this.ssaoRenderable.values.uRadius, Math.pow(2, props.occlusion.params.radius));
             ValueCell.updateIfChanged(this.ssaoRenderable.values.uBias, props.occlusion.params.bias);
 
             if (this.blurKernelSize !== props.occlusion.params.blurKernelSize) {

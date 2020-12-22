@@ -337,7 +337,7 @@ function updateClip(camera: Camera) {
     }
 
     camera.near = near;
-    camera.far = far;
+    camera.far = 2 * far; // avoid precision issues distingushing far objects from background
     camera.fogNear = fogNear;
     camera.fogFar = fogFar;
 }

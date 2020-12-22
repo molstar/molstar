@@ -48,7 +48,7 @@ float getDepth(const in vec2 coords) {
 }
 
 bool isBackground(const in float depth) {
-    return depth >= 0.99;
+    return depth == 1.0;
 }
 
 float getOutline(const in vec2 coords, out float closestTexel) {
@@ -98,6 +98,21 @@ void main(void) {
     float viewDist;
     float fogFactor;
 
+    #ifdef dOcclusionEnable
+        float depth = getDepth(coords);
+        if (!isBackground(depth)) {
+            viewDist = abs(getViewZ(depth));
+            fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+            float occlusionFactor = getSsao(coords);
+            if (!uTransparentBackground) {
+                color.rgb = mix(mix(occlusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
+            } else {
+                color.rgb = mix(occlusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
+            }
+        }
+    #endif
+
+    // outline needs to be handled after occlusion to keep them clean
     #ifdef dOutlineEnable
         float closestTexel;
         float outline = getOutline(coords, closestTexel);
@@ -114,20 +129,7 @@ void main(void) {
         }
     #endif
 
-    // occlusion needs to be handled after outline to darken them properly
-    #ifdef dOcclusionEnable
-        float depth = getDepth(coords);
-        if (!isBackground(depth)) {
-            viewDist = abs(getViewZ(depth));
-            fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-            float occlusionFactor = getSsao(coords);
-            if (!uTransparentBackground) {
-                color.rgb = mix(mix(occlusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
-            } else {
-                color.rgb = mix(occlusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
-            }
-        }
-    #endif
+
 
     gl_FragColor = color;
 }

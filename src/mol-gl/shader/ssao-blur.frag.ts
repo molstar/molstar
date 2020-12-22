@@ -33,7 +33,7 @@ float getViewZ(const in float depth) {
 }
 
 bool isBackground(const in float depth) {
-    return depth >= 0.99;
+    return depth == 1.0;
 }
 
 void main(void) {
