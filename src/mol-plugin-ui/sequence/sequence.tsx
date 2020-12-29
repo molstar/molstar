@@ -19,7 +19,8 @@ import { Representation } from '../../mol-repr/representation';
 type SequenceProps = {
     sequenceWrapper: SequenceWrapper.Any,
     sequenceNumberPeriod?: number,
-    hideSequenceNumbers?: boolean
+    hideSequenceNumbers?: boolean,
+    label?: string
 }
 
 /** Note, if this is changed, the CSS for `msp-sequence-number` needs adjustment too */
@@ -292,7 +293,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.updateMarker();
 
         return <div
-            className='msp-sequence-wrapper msp-sequence-wrapper-non-empty'
+            className='msp-sequence-wrapper'
             onContextMenu={this.contextMenu}
             onMouseDown={this.mouseDown}
             onMouseUp={this.mouseUp}
@@ -300,6 +301,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             onMouseLeave={this.mouseLeave}
             ref={this.parentDiv}
         >
+            {this.props.label && <div className='msp-sequence-label'>{this.props.label}</div>}
             {elems}
         </div>;
     }
