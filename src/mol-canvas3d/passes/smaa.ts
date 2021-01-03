@@ -12,7 +12,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { createTexture, loadImageTexture, Texture } from '../../mol-gl/webgl/texture';
-import { Vec2 } from '../../mol-math/linear-algebra';
+import { Vec2, Vec4 } from '../../mol-math/linear-algebra';
 import { ValueCell } from '../../mol-util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { blend_vert } from '../../mol-gl/shader/smaa/blend.vert';
@@ -76,6 +76,10 @@ export class SmaaPass {
 
         state.clearColor(0, 0, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
+
+        ValueCell.update(this.edgesRenderable.values.uViewport, Viewport.toVec4(this.edgesRenderable.values.uViewport.ref.value, viewport));
+        ValueCell.update(this.weightsRenderable.values.uViewport, Viewport.toVec4(this.weightsRenderable.values.uViewport.ref.value, viewport));
+        ValueCell.update(this.blendRenderable.values.uViewport, Viewport.toVec4(this.blendRenderable.values.uViewport.ref.value, viewport));
     }
 
     setSize(width: number, height: number) {
@@ -141,6 +145,7 @@ const EdgesSchema = {
     ...QuadSchema,
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     uTexSizeInv: UniformSpec('v2'),
+    uViewport: UniformSpec('v4'),
 
     dEdgeThreshold: DefineSpec('number')
 };
@@ -155,6 +160,7 @@ function getEdgesRenderable(ctx: WebGLContext, colorTexture: Texture): EdgesRend
         ...QuadValues,
         tColor: ValueCell.create(colorTexture),
         uTexSizeInv: ValueCell.create(Vec2.create(1 / width, 1 / height)),
+        uViewport: ValueCell.create(Vec4()),
 
         dEdgeThreshold: ValueCell.create(0.1),
     };
@@ -173,6 +179,7 @@ const WeightsSchema = {
     tArea: TextureSpec('texture', 'rgb', 'ubyte', 'linear'),
     tSearch: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     uTexSizeInv: UniformSpec('v2'),
+    uViewport: UniformSpec('v4'),
 
     dMaxSearchSteps: DefineSpec('number'),
 };
@@ -192,6 +199,7 @@ function getWeightsRenderable(ctx: WebGLContext, edgesTexture: Texture): Weights
         tArea: ValueCell.create(areaTexture),
         tSearch: ValueCell.create(searchTexture),
         uTexSizeInv: ValueCell.create(Vec2.create(1 / width, 1 / height)),
+        uViewport: ValueCell.create(Vec4()),
 
         dMaxSearchSteps: ValueCell.create(8),
     };
@@ -213,6 +221,7 @@ const BlendSchema = {
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     tWeights: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     uTexSizeInv: UniformSpec('v2'),
+    uViewport: UniformSpec('v4'),
 };
 const BlendShaderCode = ShaderCode('smaa-blend', blend_vert, blend_frag);
 type BlendRenderable = ComputeRenderable<Values<typeof BlendSchema>>
@@ -226,6 +235,7 @@ function getBlendRenderable(ctx: WebGLContext, colorTexture: Texture, weightsTex
         tColor: ValueCell.create(colorTexture),
         tWeights: ValueCell.create(weightsTexture),
         uTexSizeInv: ValueCell.create(Vec2.create(1 / width, 1 / height)),
+        uViewport: ValueCell.create(Vec4()),
     };
 
     const schema = { ...BlendSchema };

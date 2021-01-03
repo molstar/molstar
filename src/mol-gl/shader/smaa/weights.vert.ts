@@ -14,6 +14,7 @@ attribute vec2 aPosition;
 uniform vec2 uQuadScale;
 
 uniform vec2 uTexSizeInv;
+uniform vec4 uViewport;
 
 varying vec2 vUv;
 varying vec4 vOffset[3];
@@ -31,7 +32,9 @@ void SMAABlendingWeightCalculationVS(vec2 texCoord) {
 }
 
 void main() {
-    vUv = (aPosition + 1.0) * 0.5;
+    vec2 scale = uViewport.zw * uTexSizeInv;
+    vec2 shift = uViewport.xy * uTexSizeInv;
+    vUv = (aPosition + 1.0) * 0.5 * scale + shift;
     SMAABlendingWeightCalculationVS(vUv);
     vec2 position = aPosition * uQuadScale - vec2(1.0, 1.0) + uQuadScale;
     gl_Position = vec4(position, 0.0, 1.0);

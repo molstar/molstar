@@ -129,8 +129,6 @@ void main(void) {
         }
     #endif
 
-
-
     gl_FragColor = color;
 }
 `;
