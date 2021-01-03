@@ -81,6 +81,7 @@ export namespace BaseGeometry {
             colorOnly: false,
             opaque,
             writeDepth: opaque,
+            noClip: false,
         };
     }
 

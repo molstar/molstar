@@ -94,7 +94,8 @@ function createPoints() {
         pickable: true,
         colorOnly: false,
         opaque: true,
-        writeDepth: true
+        writeDepth: true,
+        noClip: false,
     };
 
     return createRenderObject('points', values, state, -1);
