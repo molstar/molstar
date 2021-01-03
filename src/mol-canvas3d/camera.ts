@@ -319,8 +319,8 @@ function updateClip(camera: Camera) {
     let far = cameraDistance + normalizedFar;
 
     const fogNearFactor = -(50 - fog) / 50;
-    let fogNear = cameraDistance - (normalizedFar * fogNearFactor);
-    let fogFar = far;
+    const fogNear = cameraDistance - (normalizedFar * fogNearFactor);
+    const fogFar = far;
 
     if (mode === 'perspective') {
         // set at least to 5 to avoid slow sphere impostor rendering

@@ -235,11 +235,11 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
 }
 
 export const PostprocessingParams = {
-    occlusion: PD.MappedStatic('off', {
+    occlusion: PD.MappedStatic('on', {
         on: PD.Group({
             samples: PD.Numeric(64, {min: 1, max: 256, step: 1}),
             radius: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, { description: 'Final radius is 2^x.' }),
-            bias: PD.Numeric(1.2, { min: 0, max: 5, step: 0.1 }),
+            bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
             blurKernelSize: PD.Numeric(20, { min: 1, max: 25, step: 2 }),
         }),
         off: PD.Group({})

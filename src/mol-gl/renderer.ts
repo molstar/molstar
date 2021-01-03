@@ -119,22 +119,22 @@ function getStyle(props: RendererProps['style']) {
             };
         case 'matte':
             return {
-                lightIntensity: 0.6, ambientIntensity: 0.4,
+                lightIntensity: 0.7, ambientIntensity: 0.3,
                 metalness: 0, roughness: 1, reflectivity: 0.5
             };
         case 'glossy':
             return {
-                lightIntensity: 0.6, ambientIntensity: 0.4,
+                lightIntensity: 0.7, ambientIntensity: 0.3,
                 metalness: 0, roughness: 0.4, reflectivity: 0.5
             };
         case 'metallic':
             return {
-                lightIntensity: 0.6, ambientIntensity: 0.4,
-                metalness: 0.4, roughness: 0.6, reflectivity: 0.5
+                lightIntensity: 0.7, ambientIntensity: 0.7,
+                metalness: 0.6, roughness: 0.6, reflectivity: 0.5
             };
         case 'plastic':
             return {
-                lightIntensity: 0.6, ambientIntensity: 0.4,
+                lightIntensity: 0.7, ambientIntensity: 0.3,
                 metalness: 0, roughness: 0.2, reflectivity: 0.5
             };
     }
