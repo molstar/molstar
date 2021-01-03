@@ -12,7 +12,7 @@ export default `
     #endif
 
     #if defined(dColorType_vertex) || defined(dColorType_vertexInstance)
-        #if __VERSION__ != 300
+        #if __VERSION__ == 100
             attribute float aVertex;
         #else
             #define aVertex float(gl_VertexID)
@@ -25,7 +25,7 @@ export default `
         uniform sampler2D tOverpaint;
     #endif
 #elif defined(dRenderVariant_pick)
-    #if __VERSION__ != 300
+    #if __VERSION__ == 100
         varying vec4 vColor;
     #else
         flat out vec4 vColor;

@@ -102,7 +102,11 @@ float orthographicDepthToViewZ(const in float linearClipZ, const in float near, 
     return linearClipZ * (near - far) - near;
 }
 
-#if __VERSION__ != 300
+float depthToViewZ(const in float isOrtho, const in float linearClipZ, const in float near, const in float far) {
+    return isOrtho == 1.0 ? orthographicDepthToViewZ(linearClipZ, near, far) : perspectiveDepthToViewZ(linearClipZ, near, far);
+}
+
+#if __VERSION__ == 100
     // transpose
 
     float transpose(const in float m) {

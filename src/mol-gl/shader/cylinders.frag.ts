@@ -113,6 +113,7 @@ void main() {
     if (gl_FragDepthEXT < 0.0) discard;
     if (gl_FragDepthEXT > 1.0) discard;
 
+    float fragmentDepth = gl_FragDepthEXT;
     #include assign_material_color
 
     #if defined(dRenderVariant_pick)
@@ -131,8 +132,6 @@ void main() {
 
         #include apply_interior_color
         #include apply_marker_color
-
-        float fragmentDepth = gl_FragDepthEXT;
         #include apply_fog
         #include wboit_write
     #endif

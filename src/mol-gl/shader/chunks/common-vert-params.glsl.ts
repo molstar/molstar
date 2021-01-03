@@ -18,7 +18,7 @@ uniform vec4 uInvariantBoundingSphere;
     #if defined(dClipping)
         uniform vec2 uClippingTexDim;
         uniform sampler2D tClipping;
-        #if __VERSION__ != 300
+        #if __VERSION__ == 100
             varying float vClipping;
         #else
             flat out float vClipping;
@@ -28,7 +28,7 @@ uniform vec4 uInvariantBoundingSphere;
 
 uniform vec2 uMarkerTexDim;
 uniform sampler2D tMarker;
-#if __VERSION__ != 300
+#if __VERSION__ == 100
     varying float vMarker;
 #else
     flat out float vMarker;

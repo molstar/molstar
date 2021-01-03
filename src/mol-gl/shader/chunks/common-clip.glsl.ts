@@ -63,7 +63,7 @@ export default `
         }
     }
 
-    #if __VERSION__ != 300
+    #if __VERSION__ == 100
         // 8-bit
         int bitwiseAnd(int a, int b) {
             int d = 128;

@@ -14,6 +14,7 @@ precision highp int;
 
 #if dClipObjectCount != 0
     uniform int uClipObjectType[dClipObjectCount];
+    uniform bool uClipObjectInvert[dClipObjectCount];
     uniform vec3 uClipObjectPosition[dClipObjectCount];
     uniform vec4 uClipObjectRotation[dClipObjectCount];
     uniform vec3 uClipObjectScale[dClipObjectCount];
@@ -76,7 +77,7 @@ uniform vec3 uCellDim;
 uniform vec3 uCameraPosition;
 uniform mat4 uCartnToUnit;
 
-#if __VERSION__ == 300
+#if __VERSION__ != 100
     // for webgl1 this is given as a 'define'
     uniform int uMaxSteps;
 #endif

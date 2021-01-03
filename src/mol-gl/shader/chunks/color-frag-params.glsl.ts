@@ -10,7 +10,7 @@ export default `
         varying vec4 vOverpaint;
     #endif
 #elif defined(dRenderVariant_pick)
-    #if __VERSION__ != 300
+    #if __VERSION__ == 100
         varying vec4 vColor;
     #else
         flat in vec4 vColor;

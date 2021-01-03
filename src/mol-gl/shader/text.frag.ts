@@ -32,6 +32,9 @@ void main2(){
 
 void main(){
     #include clip_pixel
+
+    float fragmentDepth = gl_FragCoord.z;
+    bool interior = false;
     #include assign_material_color
 
     if (vTexCoord.x > 1.0) {
@@ -65,9 +68,6 @@ void main(){
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
         #include apply_marker_color
-
-        float fragmentDepth = gl_FragCoord.z;
-        bool interior = false;
         #include apply_fog
         #include wboit_write
     #endif

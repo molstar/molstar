@@ -11,7 +11,7 @@ uniform int uGroupCount;
     uniform vec3 uClipObjectScale[dClipObjectCount];
 
     #if defined(dClipping)
-        #if __VERSION__ != 300
+        #if __VERSION__ == 100
             varying float vClipping;
         #else
             flat in float vClipping;
@@ -21,7 +21,7 @@ uniform int uGroupCount;
 
 uniform vec3 uHighlightColor;
 uniform vec3 uSelectColor;
-#if __VERSION__ != 300
+#if __VERSION__ == 100
     varying float vMarker;
 #else
     flat in float vMarker;

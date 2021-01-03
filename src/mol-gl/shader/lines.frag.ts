@@ -16,6 +16,9 @@ precision highp int;
 
 void main(){
     #include clip_pixel
+
+    bool interior = false;
+    float fragmentDepth = gl_FragCoord.z;
     #include assign_material_color
 
     #if defined(dRenderVariant_pick)
@@ -27,9 +30,6 @@ void main(){
         gl_FragColor = material;
 
         #include apply_marker_color
-
-        float fragmentDepth = gl_FragCoord.z;
-        bool interior = false;
         #include apply_fog
         #include wboit_write
     #endif
