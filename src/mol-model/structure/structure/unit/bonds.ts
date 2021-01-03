@@ -162,7 +162,7 @@ namespace Bond {
         let count = 0;
         for (let i = 0, il = structure.units.length; i < il; ++i) {
             const u = structure.units[i];
-            if (Unit.isAtomic(u)) count += u.bonds.edgeCount / 2; // only count one direction
+            if (Unit.isAtomic(u)) count += u.bonds.edgeCount;
         }
         return count;
     }
