@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -21,7 +21,6 @@ varying float vRadiusSqInv;
 
 uniform vec3 uBboxSize;
 uniform vec3 uBboxMin;
-uniform float uCurrentSlice;
 uniform float uResolution;
 
 void main() {
@@ -29,7 +28,7 @@ void main() {
     #if defined(dCalcType_groupId)
         vGroup = aGroup;
     #endif
-    gl_PointSize = floor(((aRadius * 6.0) / uResolution) + 0.5);
+    gl_PointSize = ceil(((aRadius * 3.0) / uResolution) + uResolution);
     vPosition = (aPosition - uBboxMin) / uResolution;
     gl_Position = vec4(((aPosition - uBboxMin) / uBboxSize) * 2.0 - 1.0, 1.0);
 }

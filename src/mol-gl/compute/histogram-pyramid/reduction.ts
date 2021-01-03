@@ -12,7 +12,7 @@ import { Texture, TextureFilter, TextureFormat, TextureKind, TextureType } from 
 import { ShaderCode } from '../../../mol-gl/shader-code';
 import { ValueCell } from '../../../mol-util';
 import { QuadSchema, QuadValues } from '../util';
-import { Vec2 } from '../../../mol-math/linear-algebra';
+import { Vec2, Vec3 } from '../../../mol-math/linear-algebra';
 import { getHistopyramidSum } from './sum';
 import { Framebuffer } from '../../../mol-gl/webgl/framebuffer';
 import { isPowerOfTwo } from '../../../mol-math/misc';
@@ -77,7 +77,7 @@ function setRenderingDefaults(ctx: WebGLContext) {
     state.disable(gl.CULL_FACE);
     state.disable(gl.BLEND);
     state.disable(gl.DEPTH_TEST);
-    state.disable(gl.SCISSOR_TEST);
+    state.enable(gl.SCISSOR_TEST);
     state.depthMask(false);
     state.colorMask(true, true, true, true);
     state.clearColor(0, 0, 0, 0);
@@ -107,7 +107,7 @@ export interface HistogramPyramid {
     scale: Vec2
 }
 
-export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture, scale: Vec2): HistogramPyramid {
+export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture, scale: Vec2, gridTexDim: Vec3): HistogramPyramid {
     const { gl } = ctx;
 
     // printTexture(ctx, inputTexture, 2)
@@ -153,7 +153,9 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
         }
         ctx.state.currentRenderItemId = -1;
         gl.viewport(0, 0, size, size);
+        gl.scissor(0, 0, size, size);
         gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.scissor(0, 0, gridTexDim[0], gridTexDim[1]);
         renderable.render();
 
         pyramidTexture.bind(0);

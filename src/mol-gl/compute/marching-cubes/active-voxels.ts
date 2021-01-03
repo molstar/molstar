@@ -75,7 +75,7 @@ function setRenderingDefaults(ctx: WebGLContext) {
     state.disable(gl.CULL_FACE);
     state.disable(gl.BLEND);
     state.disable(gl.DEPTH_TEST);
-    state.disable(gl.SCISSOR_TEST);
+    state.enable(gl.SCISSOR_TEST);
     state.depthMask(false);
     state.colorMask(true, true, true, true);
     state.clearColor(0, 0, 0, 0);
@@ -104,7 +104,9 @@ export function calcActiveVoxels(ctx: WebGLContext, volumeData: Texture, gridDim
     activeVoxelsTex.attachFramebuffer(framebuffer, 0);
     setRenderingDefaults(ctx);
     gl.viewport(0, 0, width, height);
+    gl.scissor(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.scissor(0, 0, gridTexDim[0], gridTexDim[1]);
     renderable.render();
 
     // console.log('gridScale', gridScale, 'gridTexDim', gridTexDim, 'gridDim', gridDim)

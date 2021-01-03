@@ -131,25 +131,31 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
             : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     }
 
-    const densityTextureData = await computeUnitGaussianDensityTexture2d(structure, unit, props, ctx.webgl, namedTextures[GaussianSurfaceName]).runInContext(ctx.runtime);
+    // console.time('computeUnitGaussianDensityTexture2d');
+    const densityTextureData = await computeUnitGaussianDensityTexture2d(structure, unit, true, props, ctx.webgl, namedTextures[GaussianSurfaceName]).runInContext(ctx.runtime);
     // console.log(densityTextureData)
     // console.log('vertexGroupTexture', readTexture(ctx.webgl, densityTextureData.texture))
-    // ctx.webgl.waitForGpuCommandsCompleteSync()
+    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // console.timeEnd('computeUnitGaussianDensityTexture2d');
 
     const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
+    // console.time('calcActiveVoxels');
     const activeVoxelsTex = calcActiveVoxels(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, isoLevel, densityTextureData.gridTexScale);
-    // ctx.webgl.waitForGpuCommandsCompleteSync()
+    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // console.timeEnd('calcActiveVoxels');
 
-    const compacted = createHistogramPyramid(ctx.webgl, activeVoxelsTex, densityTextureData.gridTexScale);
-    // ctx.webgl.waitForGpuCommandsCompleteSync()
+    // console.time('createHistogramPyramid');
+    const compacted = createHistogramPyramid(ctx.webgl, activeVoxelsTex, densityTextureData.gridTexScale, densityTextureData.gridTexDim);
+    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // console.timeEnd('createHistogramPyramid');
 
+    // console.time('createIsosurfaceBuffers');
     const gv = createIsosurfaceBuffers(ctx.webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.transform, isoLevel, textureMesh ? textureMesh.vertexGroupTexture.ref.value : undefined, textureMesh ? textureMesh.normalTexture.ref.value : undefined);
-    // ctx.webgl.waitForGpuCommandsCompleteSync()
+    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // console.timeEnd('createIsosurfaceBuffers');
 
-    // const boundingSphere = Sphere3D.zero()
-    // Sphere3D.addVec3(boundingSphere, boundingSphere, densityTextureData.gridDimension)
-    const boundingSphere = Sphere3D.fromBox3D(Sphere3D(), densityTextureData.bbox);
+    const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, boundingSphere, textureMesh);
     // console.log({
     //     renderables: ctx.webgl.namedComputeRenderables,

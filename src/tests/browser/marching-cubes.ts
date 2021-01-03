@@ -68,7 +68,7 @@ async function init() {
         console.timeEnd('gpu mc active2');
 
         console.time('gpu mc pyramid2');
-        const compacted2 = createHistogramPyramid(webgl, activeVoxelsTex2, densityTextureData2.gridTexScale);
+        const compacted2 = createHistogramPyramid(webgl, activeVoxelsTex2, densityTextureData2.gridTexScale, densityTextureData2.gridTexDim);
         webgl.waitForGpuCommandsCompleteSync();
         console.timeEnd('gpu mc pyramid2');
 
@@ -91,7 +91,7 @@ async function init() {
     console.timeEnd('gpu mc active');
 
     console.time('gpu mc pyramid');
-    const compacted = createHistogramPyramid(webgl, activeVoxelsTex, densityTextureData.gridTexScale);
+    const compacted = createHistogramPyramid(webgl, activeVoxelsTex, densityTextureData.gridTexScale, densityTextureData.gridTexDim);
     webgl.waitForGpuCommandsCompleteSync();
     console.timeEnd('gpu mc pyramid');
 
