@@ -140,7 +140,7 @@ function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
             copyAllCategories: !!q.copy_all_categories
         })),
         writer,
-        options: { binary: spec.encoding?.toLowerCase() === 'bcif', tarball: spec.asTarGz, download: !!spec.download }
+        options: { binary: spec.encoding?.toLowerCase() === 'bcif', tarball: spec.asTarGz }
     });
     responseMap.set(jobId, res);
     if (JobManager.size === 1) processNextJob();
