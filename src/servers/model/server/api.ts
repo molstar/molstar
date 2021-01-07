@@ -49,7 +49,7 @@ export const CommonQueryParamsInfo: QueryParamInfo[] = [
     { name: 'copy_all_categories', type: QueryParamType.Boolean, defaultValue: false, description: 'If true, copy all categories from the input file.' },
     { name: 'data_source', type: QueryParamType.String, defaultValue: '', description: 'Allows to control how the provided data source ID maps to input file (as specified by the server instance config).' },
     { name: 'transform', type: QueryParamType.String, description: `Transformation to apply to coordinates in '_atom_site'. Accepts a 4x4 transformation matrix, provided as array of 16 float values.` },
-    { name: 'download', type: QueryParamType.Boolean, defaultValue: false, description: `If true, request browser to open 'Save As' dialog.` }
+    { name: 'download', type: QueryParamType.Boolean, defaultValue: false, description: `If true, browser will download text files.` }
 ];
 
 export type Encoding = 'cif' | 'bcif' | 'sdf' | 'mol' | 'mol2';
