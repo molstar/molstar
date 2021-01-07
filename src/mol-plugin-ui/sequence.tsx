@@ -377,9 +377,16 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
 
             <NonEmptySequenceWrapper>
                 {sequenceWrappers.map((s, i) => {
-                    return typeof s.wrapper === 'string'
+                    const elem = typeof s.wrapper === 'string'
                         ? <div key={i} className='msp-sequence-wrapper'>{s.wrapper}</div>
-                        : <Sequence key={i} sequenceWrapper={s.wrapper} label={values.mode === 'single' ? void 0 : s.label} />;
+                        : <Sequence key={i} sequenceWrapper={s.wrapper} />;
+
+                    if (values.mode === 'single') return elem;
+
+                    return <>
+                        <div className='msp-sequence-chain-label'>{s.label}</div>
+                        {elem}
+                    </>;
                 })}
             </NonEmptySequenceWrapper>
         </div>;

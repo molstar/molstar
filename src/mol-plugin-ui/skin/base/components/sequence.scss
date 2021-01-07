@@ -61,6 +61,16 @@ $sequence-select-height: 24px;
     right: 0;
 }
 
+.msp-sequence-chain-label {
+    margin-left: $control-spacing;
+    margin-top: $control-spacing;
+    user-select: none;
+    color: $sequence-number-color;
+    font-size: 90%;
+    line-height: 90%;
+    padding-left: 0.2em;
+}
+
 .msp-sequence-wrapper {
     span {
         cursor: pointer;
@@ -81,7 +91,7 @@ $sequence-select-height: 24px;
         padding-bottom: 1em;
         padding-left: 0.2em;
     }
-
+    
     .msp-sequence-number {
         color: $sequence-number-color;
         word-break: keep-all;
