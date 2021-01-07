@@ -68,7 +68,7 @@ function mapQuery(app: express.Express, queryName: string, queryDefinition: Quer
                 transform: commonParams.transform
             })],
             writer: createResultWriter(res, resultWriterParams),
-            options: { binary: commonParams.encoding === 'bcif', encoding: commonParams.encoding, download: !!commonParams.download }
+            options: { binary: commonParams.encoding === 'bcif', encoding: commonParams.encoding }
         });
         responseMap.set(jobId, res);
         if (JobManager.size === 1) processNextJob();
