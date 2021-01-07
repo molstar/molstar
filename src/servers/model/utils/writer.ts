@@ -48,6 +48,7 @@ export class SimpleResponseResultWriter implements WebResutlWriter {
         this.headerWritten = true;
 
         this.res.writeHead(200, {
+            // TODO there seems to be a bug in swagger-ui - front-end will freeze for cif delivered as text/plain (forcing binary is a hack to circumvent this)
             'Content-Type': this.isBinary ? 'application/octet-stream' : 'text/plain; charset=utf-8',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Headers': 'X-Requested-With',
