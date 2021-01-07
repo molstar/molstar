@@ -20,7 +20,6 @@ type SequenceProps = {
     sequenceWrapper: SequenceWrapper.Any,
     sequenceNumberPeriod?: number,
     hideSequenceNumbers?: boolean,
-    label?: string
 }
 
 /** Note, if this is changed, the CSS for `msp-sequence-number` needs adjustment too */
@@ -301,7 +300,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             onMouseLeave={this.mouseLeave}
             ref={this.parentDiv}
         >
-            {this.props.label && <div className='msp-sequence-label'>{this.props.label}</div>}
             {elems}
         </div>;
     }
