@@ -30,7 +30,7 @@ export interface Job {
 export interface JobDefinition {
     entries: JobEntry[],
     writer: ResultWriter,
-    options?: { outputFilename?: string, binary?: boolean, tarball?: boolean, encoding?: Encoding }
+    options?: { outputFilename?: string, binary?: boolean, tarball?: boolean, encoding?: Encoding, download?: boolean }
 }
 
 export interface JobEntry {

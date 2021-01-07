@@ -45,11 +45,11 @@ async function processNextJob() {
     }
 }
 
-export function createResultWriter(response: express.Response, encoding: string, entryId?: string, queryName?: string) {
+export function createResultWriter(response: express.Response, encoding: string, download: boolean, entryId?: string, queryName?: string) {
     const filenameBase = entryId && queryName
         ? `${entryId}_${splitCamelCase(queryName.replace(/\s/g, '_'), '-').toLowerCase()}`
         : `result`;
-    return new SimpleResponseResultWriter(`${filenameBase}.${encoding}`, response, encoding === 'bcif');
+    return new SimpleResponseResultWriter(`${filenameBase}.${encoding}`, response, encoding === 'bcif', download);
 }
 
 function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
@@ -66,8 +66,8 @@ function mapQuery(app: express.Express, queryName: string, queryDefinition: Quer
                 copyAllCategories: !!commonParams.copy_all_categories,
                 transform: commonParams.transform
             })],
-            writer: createResultWriter(res, commonParams.encoding!, entryId, queryName),
-            options: { binary: commonParams.encoding === 'bcif', encoding: commonParams.encoding }
+            writer: createResultWriter(res, commonParams.encoding!, !!commonParams.download, entryId, queryName),
+            options: { binary: commonParams.encoding === 'bcif', encoding: commonParams.encoding, download: !!commonParams.download }
         });
         responseMap.set(jobId, res);
         if (JobManager.size === 1) processNextJob();
@@ -122,7 +122,7 @@ function serveStatic(req: express.Request, res: express.Response) {
 function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
     const writer = spec.asTarGz
         ? new TarballResponseResultWriter(getMultiQuerySpecFilename(), res)
-        : createResultWriter(res, spec.encoding!);
+        : createResultWriter(res, spec.encoding!, !!spec.download);
 
     if (spec.queries.length > ModelServerConfig.maxQueryManyQueries) {
         writer.doError(400, `query-many queries limit (${ModelServerConfig.maxQueryManyQueries}) exceeded.`);
@@ -139,7 +139,7 @@ function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
             copyAllCategories: !!q.copy_all_categories
         })),
         writer,
-        options: { binary: spec.encoding?.toLowerCase() === 'bcif', tarball: spec.asTarGz }
+        options: { binary: spec.encoding?.toLowerCase() === 'bcif', tarball: spec.asTarGz, download: spec.download }
     });
     responseMap.set(jobId, res);
     if (JobManager.size === 1) processNextJob();
