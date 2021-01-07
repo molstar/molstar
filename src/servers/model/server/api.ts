@@ -292,12 +292,18 @@ export function normalizeRestCommonParams(params: any): CommonQueryParamsInfo {
     return {
         model_nums: params.model_nums ? ('' + params.model_nums).split(',').map(n => n.trim()).filter(n => !!n).map(n => +n) : void 0,
         data_source: params.data_source,
-        // Boolean('false') return true
-        copy_all_categories: params.copy_all_categories === 'true',
+        copy_all_categories: isTrue(params.copy_all_categories),
         encoding: mapEncoding(('' + params.encoding).toLocaleLowerCase()),
         transform: params.transform ? ('' + params.transform).split(',').map(n => n.trim()).map(n => +n) as Mat4 : Mat4.identity(),
-        download: params.download === 'true'
+        download: isTrue(params.download)
     };
+}
+
+function isTrue(val: any): boolean {
+    const b = Boolean(val);
+    if (!b) return false;
+    if (typeof val === 'string') return val !== '0' && val.toLowerCase() !== 'false';
+    return b;
 }
 
 function mapEncoding(value: string) {
