@@ -1,3 +1,6 @@
+# 0.9.6
+* optional download parameter
+
 # 0.9.5
 * Support molstar_global_model_transform_info category.
 

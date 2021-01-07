@@ -56,6 +56,13 @@ interface JobEntryDefinition<Name extends QueryName> {
     transform?: Mat4
 }
 
+export interface ResultWriterParams {
+    encoding: Encoding,
+    download: boolean,
+    entryId?: string,
+    queryName?: string
+}
+
 export function JobEntry<Name extends QueryName>(definition: JobEntryDefinition<Name>): JobEntry {
     const queryDefinition = getQueryByName(definition.queryName);
     if (!queryDefinition) throw new Error(`Query '${definition.queryName}' is not supported.`);
