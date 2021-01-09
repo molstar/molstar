@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -51,6 +51,15 @@ export namespace StructConn {
     };
 
     export const Provider = FormatPropertyProvider.create<StructConn>(Descriptor);
+
+    /**
+     * Heuristic to test if StructConn likely provides all atomic bonds by
+     * checking if the fraction of bonds and atoms is high (> 0.95).
+     */
+    export function isExhaustive(model: Model) {
+        const structConn = StructConn.Provider.get(model);
+        return structConn && (structConn.data.id.rowCount / model.atomicConformation.atomId.rowCount) > 0.95;
+    }
 
     function hasAtom({ units }: Structure, element: ElementIndex) {
         for (let i = 0, _i = units.length; i < _i; i++) {

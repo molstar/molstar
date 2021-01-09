@@ -95,6 +95,8 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
     const structConn = StructConn.Provider.get(unit.model);
     const component = ComponentBond.Provider.get(unit.model);
 
+    const structConnExhaustive = StructConn.isExhaustive(unit.model);
+
     const atomA: StructureElement.UnitIndex[] = [];
     const atomB: StructureElement.UnitIndex[] = [];
     const flags: number[] = [];
@@ -135,6 +137,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
                 structConnAdded.add(_bI);
             }
         }
+        if (structConnExhaustive) continue;
 
         const raI = residueIndex[aI];
         const seqIdA = label_seq_id.value(raI);

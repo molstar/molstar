@@ -50,6 +50,8 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const structConn = unitA.model === unitB.model && StructConn.Provider.get(unitA.model);
     const indexPairs = unitA.model === unitB.model && IndexPairBonds.Provider.get(unitA.model);
 
+    const structConnExhaustive = unitA.model === unitB.model && StructConn.isExhaustive(unitA.model);
+
     // the lookup queries need to happen in the "unitB space".
     // that means _imageA = inverseOperB(operA(aI))
     const imageTransform = Mat4.mul(_imageTransform, unitB.conformation.operator.inverse, unitA.conformation.operator.matrix);
@@ -103,6 +105,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             // all are given and thus we don't need to compute any other
             if (added) continue;
         }
+        if (structConnExhaustive) continue;
 
         const occA = occupancyA.value(aI);
 
