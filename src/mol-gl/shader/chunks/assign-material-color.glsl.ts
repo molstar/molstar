@@ -40,7 +40,18 @@ export default `
                 4.0 / 17.0, 12.0 / 17.0,  2.0 / 17.0, 10.0 / 17.0,
                 16.0 / 17.0,  8.0 / 17.0, 14.0 / 17.0,  6.0 / 17.0
             );
-            at = thresholdMatrix[int(intMod(coord.x, 4.0))][int(intMod(coord.y, 4.0))];
+            int ci = int(intMod(coord.x, 4.0));
+            int ri = int(intMod(coord.y, 4.0));
+            #if __VERSION__ == 100
+                vec4 i = vec4(float(ci * 4 + ri));
+                vec4 v = thresholdMatrix[0] * vec4(equal(i, vec4(0.0, 1.0, 2.0, 3.0))) +
+                    thresholdMatrix[1] * vec4(equal(i, vec4(4.0, 5.0, 6.0, 7.0))) +
+                    thresholdMatrix[2] * vec4(equal(i, vec4(8.0, 9.0, 10.0, 11.0))) +
+                    thresholdMatrix[3] * vec4(equal(i, vec4(12.0, 13.0, 14.0, 15.0)));
+                at = v.x + v.y + v.z + v.w;
+            #else
+                at = thresholdMatrix[ci][ri];
+            #endif
 
             if (ta < 0.99 && (ta < 0.01 || ta < at)) {
                 discard;
