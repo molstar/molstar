@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,6 +20,8 @@ import { StructureFocusRepresentation } from '../../../mol-plugin/behavior/dynam
 import { createStructureColorThemeParams } from '../../helpers/structure-representation-params';
 import { ChainIdColorThemeProvider } from '../../../mol-theme/color/chain-id';
 import { OperatorNameColorThemeProvider } from '../../../mol-theme/color/operator-name';
+import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
+import { StructConn } from '../../../mol-model-formats/structure/property/bonds/struct_conn';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -332,8 +334,12 @@ const atomicDetail = StructureRepresentationPresetProvider({
             structure.elementCount > 1000 &&
             structure.atomicResidueCount / structure.elementCount < 3;
 
-        const atomicType = lowResidueElementRatio ? 'spacefill' :
-            highElementCount ? 'line' : 'ball-and-stick';
+        const m = structure.models[0];
+        const bondsGiven = !!IndexPairBonds.Provider.get(m) || StructConn.isExhaustive(m);
+
+        const atomicType = lowResidueElementRatio && !bondsGiven
+            ? 'spacefill' : highElementCount
+                ? 'line' : 'ball-and-stick';
         const showCarbohydrateSymbol = params.showCarbohydrateSymbol && !highElementCount && !lowResidueElementRatio;
 
         if (showCarbohydrateSymbol) {
@@ -343,7 +349,7 @@ const atomicDetail = StructureRepresentationPresetProvider({
         }
 
         const { update, builder, typeParams, color, ballAndStickColor } = reprBuilder(plugin, params, structure);
-        const colorParams = lowResidueElementRatio
+        const colorParams = lowResidueElementRatio && !bondsGiven
             ? { carbonColor: { name: 'element-symbol', params: {} } }
             : ballAndStickColor;
 

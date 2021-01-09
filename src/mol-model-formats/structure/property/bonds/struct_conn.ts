@@ -56,9 +56,9 @@ export namespace StructConn {
      * Heuristic to test if StructConn likely provides all atomic bonds by
      * checking if the fraction of bonds and atoms is high (> 0.95).
      */
-    export function isExhaustive(model: Model) {
+    export function isExhaustive(model: Model): boolean {
         const structConn = StructConn.Provider.get(model);
-        return structConn && (structConn.data.id.rowCount / model.atomicConformation.atomId.rowCount) > 0.95;
+        return !!structConn && (structConn.data.id.rowCount / model.atomicConformation.atomId.rowCount) > 0.95;
     }
 
     function hasAtom({ units }: Structure, element: ElementIndex) {
