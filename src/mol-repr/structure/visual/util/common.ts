@@ -159,7 +159,7 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, p
     let indices: SortedArray<ElementIndex>;
     let id: AssignableArrayLike<number>;
 
-    if (ignoreHydrogens || (includeParent && rootUnit !== unit)) {
+    if (ignoreHydrogens || traceOnly || (includeParent && rootUnit !== unit)) {
         const _indices = [];
         const _id = [];
         for (let i = 0, il = elements.length; i < il; ++i) {
