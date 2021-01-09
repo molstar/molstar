@@ -92,7 +92,7 @@ const polymer = StructureSelectionQuery('Polymer', MS.struct.modifier.union([
         'entity-test': MS.core.logic.and([
             MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
             MS.core.str.match([
-                MS.re('(polypeptide|cyclic-pseudo-peptide|nucleotide|peptide nucleic acid)', 'i'),
+                MS.re('(polypeptide|cyclic-pseudo-peptide|peptide-like|nucleotide|peptide nucleic acid)', 'i'),
                 MS.ammp('entitySubtype')
             ])
         ])
@@ -122,7 +122,7 @@ const trace = StructureSelectionQuery('Trace', MS.struct.modifier.union([
 const _proteinEntityTest = MS.core.logic.and([
     MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
     MS.core.str.match([
-        MS.re('(polypeptide|cyclic-pseudo-peptide)', 'i'),
+        MS.re('(polypeptide|cyclic-pseudo-peptide|peptide-like)', 'i'),
         MS.ammp('entitySubtype')
     ])
 ]);
