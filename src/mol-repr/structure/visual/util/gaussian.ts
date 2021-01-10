@@ -82,3 +82,12 @@ export function computeStructureGaussianDensityTexture(structure: Structure, pro
         return GaussianDensityTexture(webgl, position, box, radius, p, texture);
     });
 }
+
+export function computeStructureGaussianDensityTexture2d(structure: Structure, powerOfTwo: boolean, props: GaussianDensityTextureProps, webgl: WebGLContext, texture?: Texture) {
+    const { box } = structure.lookup3d.boundary;
+    const p = ensureReasonableResolution(box, props);
+    const { position, radius } = getStructureConformationAndRadius(structure, props.ignoreHydrogens, props.traceOnly);
+    return Task.create('Gaussian Density', async ctx => {
+        return GaussianDensityTexture2d(webgl, position, box, radius, powerOfTwo, p, texture);
+    });
+}

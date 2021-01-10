@@ -19,8 +19,6 @@ uniform mat4 uGridTransform;
 // scale to volume data coord
 uniform vec2 uScale;
 
-// varying vec2 vCoordinate;
-
 #include common
 
 // cube corners
@@ -50,7 +48,6 @@ vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) 
     float row = floor(intDiv(zSlice * gridDim.x, texDim.x));
     vec2 coord = (vec2(column * gridDim.x, row * gridDim.y) + (pos.xy * gridDim.xy)) / (texDim / uScale);
     return texture2D(tex, coord + 0.5 / (texDim / uScale));
-    // return texture2D(tex, coord);
 }
 
 vec4 voxel(vec3 pos) {
@@ -78,7 +75,7 @@ void main(void) {
     vec4 vI4 = vec4(vI);
 
     // traverse the different levels of the pyramid
-    for(int i = 1; i < 12; i++) {
+    for(int i = 1; i < 14; i++) {
         if(float(i) >= uLevels) break;
 
         offset -= diff;
@@ -103,7 +100,7 @@ void main(void) {
     vec2 coord2d = position / uScale;
     vec3 coord3d = floor(index3dFrom2d(coord2d) + 0.5);
 
-    float edgeIndex = floor(texture2D(tActiveVoxelsBase, position).a + 0.5);
+    float edgeIndex = floor(texture2D(tActiveVoxelsBase, position).a * 255.0 + 0.5);
 
     // current vertex for the up to 15 MC cases
     float currentVertex = vI - dot(m, starts);

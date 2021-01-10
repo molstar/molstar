@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -93,7 +93,7 @@ export function calcActiveVoxels(ctx: WebGLContext, volumeData: Texture, gridDim
     framebuffer.bind();
 
     if (!ctx.namedTextures[ActiveVoxelsName]) {
-        ctx.namedTextures[ActiveVoxelsName] = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+        ctx.namedTextures[ActiveVoxelsName] = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
     }
     const activeVoxelsTex = ctx.namedTextures[ActiveVoxelsName];
     activeVoxelsTex.define(width, height);
