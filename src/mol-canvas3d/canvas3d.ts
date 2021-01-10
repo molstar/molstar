@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -469,6 +469,13 @@ namespace Canvas3D {
                 materialId: r.materialId,
             })));
             console.log(webgl.stats);
+
+            const { texture, attribute, elements } = webgl.resources.getByteCounts();
+            console.log({
+                texture: `${(texture / 1024 / 1024).toFixed(3)} MiB`,
+                attribute: `${(attribute / 1024 / 1024).toFixed(3)} MiB`,
+                elements: `${(elements / 1024 / 1024).toFixed(3)} MiB`,
+            });
         }
 
         function add(repr: Representation.Any) {

@@ -90,6 +90,29 @@ export function getInternalFormat(gl: GLRenderingContext, format: TextureFormat,
     return getFormat(gl, format, type);
 }
 
+function getByteCount(format: TextureFormat, type: TextureType, width: number, height: number, depth: number): number {
+    const bpe = getFormatSize(format) * getTypeSize(type);
+    return bpe * width * height * (depth || 1);
+}
+
+function getFormatSize(format: TextureFormat) {
+    switch (format) {
+        case 'alpha': return 1;
+        case 'rgb': return 3;
+        case 'rgba': return 4;
+        case 'depth': return 4;
+    }
+}
+
+function getTypeSize(type: TextureType): number {
+    switch (type) {
+        case 'ubyte': return 1;
+        case 'ushort': return 2;
+        case 'float': return 4;
+        case 'fp16': return 2;
+    }
+}
+
 export function getType(gl: GLRenderingContext, extensions: WebGLExtensions, type: TextureType): number {
     switch (type) {
         case 'ubyte': return gl.UNSIGNED_BYTE;
@@ -146,6 +169,8 @@ export interface Texture {
     getWidth: () => number
     getHeight: () => number
     getDepth: () => number
+
+    getByteCount: () => number
 
     define: (width: number, height: number, depth?: number) => void
     load: (image: TextureImage<any> | TextureVolume<any>) => void
@@ -265,6 +290,8 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         getHeight: () => height,
         getDepth: () => depth,
 
+        getByteCount: () => getByteCount(_format, _type, width, height, depth),
+
         define,
         load,
         bind: (id: TextureId) => {
@@ -339,6 +366,7 @@ export function createNullTexture(gl: GLRenderingContext, kind: TextureKind): Te
         getWidth: () => 0,
         getHeight: () => 0,
         getDepth: () => 0,
+        getByteCount: () => 0,
 
         define: () => {},
         load: () => {},
