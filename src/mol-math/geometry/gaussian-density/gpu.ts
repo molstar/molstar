@@ -120,7 +120,7 @@ type _GaussianDensityTextureData = {
 
 function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, powerOfTwo: boolean, props: GaussianDensityGPUProps, texture?: Texture): _GaussianDensityTextureData {
     // console.log('2d');
-    const { gl, resources, state, extensions: { colorBufferFloat, textureFloat } } = webgl;
+    const { gl, resources, state, extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } } = webgl;
     const { smoothness, resolution } = props;
 
     const { drawCount, positions, radii, groups, scale, expandedBox, dim, maxRadius } = prepareGaussianDensityData(position, box, radius, props);
@@ -147,9 +147,11 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
     framebuffer.bind();
     setRenderingDefaults(webgl);
 
-    if (!texture) texture = colorBufferFloat && textureFloat
-        ? resources.texture('image-float32', 'rgba', 'float', 'linear')
-        : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+    if (!texture) texture = colorBufferHalfFloat && textureHalfFloat
+        ? resources.texture('image-float16', 'rgba', 'fp16', 'linear')
+        : colorBufferFloat && textureFloat
+            ? resources.texture('image-float32', 'rgba', 'float', 'linear')
+            : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     texture.define(width, height);
 
     // console.log(renderable)
@@ -201,7 +203,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
 
 function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, texture?: Texture): _GaussianDensityTextureData {
     // console.log('3d');
-    const { gl, resources, state, extensions: { colorBufferFloat, textureFloat } } = webgl;
+    const { gl, resources, state, extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } } = webgl;
     const { smoothness, resolution } = props;
 
     const { drawCount, positions, radii, groups, scale, expandedBox, dim, maxRadius } = prepareGaussianDensityData(position, box, radius, props);
@@ -225,9 +227,11 @@ function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionDat
     gl.viewport(0, 0, dx, dy);
     gl.scissor(0, 0, dx, dy);
 
-    if (!texture) texture = colorBufferFloat && textureFloat
-        ? resources.texture('volume-float32', 'rgba', 'float', 'linear')
-        : resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear');
+    if (!texture) texture = colorBufferHalfFloat && textureHalfFloat
+        ? resources.texture('volume-float16', 'rgba', 'fp16', 'linear')
+        : colorBufferFloat && textureFloat
+            ? resources.texture('volume-float32', 'rgba', 'float', 'linear')
+            : resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear');
     texture.define(dx, dy, dz);
 
     function render(fbTex: Texture, clear: boolean) {

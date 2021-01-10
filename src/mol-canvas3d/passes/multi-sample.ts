@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -69,11 +69,13 @@ export class MultiSamplePass {
     private compose: ComposeRenderable
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass, private postprocessing: PostprocessingPass) {
-        const { colorBufferFloat, textureFloat } = webgl.extensions;
+        const { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } = webgl.extensions;
         const width = drawPass.colorTarget.getWidth();
         const height = drawPass.colorTarget.getHeight();
         this.colorTarget = webgl.createRenderTarget(width, height, false);
-        this.composeTarget = webgl.createRenderTarget(width, height, false, colorBufferFloat && textureFloat ? 'float32' : 'uint8');
+        const type = colorBufferHalfFloat && textureHalfFloat ? 'fp16' :
+            colorBufferFloat && textureFloat ? 'float32' : 'uint8';
+        this.composeTarget = webgl.createRenderTarget(width, height, false, type);
         this.holdTarget = webgl.createRenderTarget(width, height, false);
         this.compose = getComposeRenderable(webgl, drawPass.colorTarget.texture);
     }

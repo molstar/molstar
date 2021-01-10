@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat } from './compat';
 import { isDebugMode } from '../../mol-util/debug';
 
 export type WebGLExtensions = {
@@ -14,11 +14,14 @@ export type WebGLExtensions = {
     standardDerivatives: COMPAT_standard_derivatives | null
     textureFloat: COMPAT_texture_float | null
     textureFloatLinear: COMPAT_texture_float_linear | null
+    textureHalfFloat: COMPAT_texture_half_float | null
+    textureHalfFloatLinear: COMPAT_texture_half_float_linear | null
     depthTexture: COMPAT_depth_texture | null
     blendMinMax: COMPAT_blend_minmax | null
     vertexArrayObject: COMPAT_vertex_array_object | null
     fragDepth: COMPAT_frag_depth | null
     colorBufferFloat: COMPAT_color_buffer_float | null
+    colorBufferHalfFloat: COMPAT_color_buffer_half_float | null
     drawBuffers: COMPAT_draw_buffers | null
     shaderTextureLod: COMPAT_shader_texture_lod | null
     sRGB: COMPAT_sRGB | null
@@ -50,6 +53,16 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         // - can't be a required extension because it is not supported by `headless-gl`
         console.log('Could not find support for "texture_float_linear"');
     }
+    const textureHalfFloat = getTextureHalfFloat(gl);
+    if (isDebugMode && textureHalfFloat === null) {
+        console.log('Could not find support for "texture_half_float"');
+    }
+    const textureHalfFloatLinear = getTextureHalfFloatLinear(gl);
+    if (isDebugMode && textureHalfFloatLinear === null) {
+        // TODO handle non-support downstream (no gpu gaussian calc, no gpu mc???)
+        // - can't be a required extension because it is not supported by `headless-gl`
+        console.log('Could not find support for "texture_half_float_linear"');
+    }
     const depthTexture = getDepthTexture(gl);
     if (isDebugMode && depthTexture === null) {
         console.log('Could not find support for "depth_texture"');
@@ -72,6 +85,10 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (isDebugMode && colorBufferFloat === null) {
         console.log('Could not find support for "color_buffer_float"');
     }
+    const colorBufferHalfFloat = getColorBufferHalfFloat(gl);
+    if (isDebugMode && colorBufferHalfFloat === null) {
+        console.log('Could not find support for "color_buffer_half_float"');
+    }
     const drawBuffers = getDrawBuffers(gl);
     if (isDebugMode && drawBuffers === null) {
         console.log('Could not find support for "draw_buffers"');
@@ -90,6 +107,8 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         standardDerivatives,
         textureFloat,
         textureFloatLinear,
+        textureHalfFloat,
+        textureHalfFloatLinear,
         elementIndexUint,
         depthTexture,
 
@@ -97,6 +116,7 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         vertexArrayObject,
         fragDepth,
         colorBufferFloat,
+        colorBufferHalfFloat,
         drawBuffers,
         shaderTextureLod,
         sRGB,
