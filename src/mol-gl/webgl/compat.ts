@@ -1,11 +1,11 @@
-import { isDebugMode } from '../../mol-util/debug';
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { getErrorDescription, getGLContext } from './context';
+import { isDebugMode } from '../../mol-util/debug';
+import { getErrorDescription } from './context';
 import { getProgram } from './program';
 import { getShader } from './shader';
 
@@ -111,6 +111,27 @@ export function getTextureFloatLinear(gl: GLRenderingContext): COMPAT_texture_fl
     return gl.getExtension('OES_texture_float_linear');
 }
 
+export interface COMPAT_texture_half_float {
+    readonly HALF_FLOAT: number
+}
+
+export function getTextureHalfFloat(gl: GLRenderingContext): COMPAT_texture_half_float | null {
+    if (isWebGL2(gl)) {
+        return { HALF_FLOAT: gl.HALF_FLOAT };
+    } else {
+        const ext = gl.getExtension('OES_texture_half_float');
+        if (ext === null) return null;
+        return { HALF_FLOAT: ext.HALF_FLOAT_OES };
+    }
+}
+
+export interface COMPAT_texture_half_float_linear {
+}
+
+export function getTextureHalfFloatLinear(gl: GLRenderingContext): COMPAT_texture_half_float_linear | null {
+    return gl.getExtension('OES_texture_half_float_linear');
+}
+
 export interface COMPAT_blend_minmax {
     readonly MIN: number
     readonly MAX: number
@@ -146,10 +167,32 @@ export function getColorBufferFloat(gl: GLRenderingContext): COMPAT_color_buffer
         const ext = gl.getExtension('WEBGL_color_buffer_float');
         if (ext === null) {
             // test as support may not be advertised by browsers
-            return testColorBufferFloat() ? { RGBA32F: 0x8814 } : null;
+            gl.getExtension('OES_texture_float');
+            return testColorBuffer(gl, gl.FLOAT) ? { RGBA32F: 0x8814 } : null;
         }
         gl.getExtension('EXT_float_blend');
         return { RGBA32F: ext.RGBA32F_EXT };
+    }
+}
+
+export interface COMPAT_color_buffer_half_float {
+    readonly RGBA16F: number;
+}
+
+export function getColorBufferHalfFloat(gl: GLRenderingContext): COMPAT_color_buffer_half_float | null {
+    if (isWebGL2(gl)) {
+        if (gl.getExtension('EXT_color_buffer_half_float') === null) return null;
+        gl.getExtension('EXT_float_blend');
+        return { RGBA16F: gl.RGBA16F };
+    } else {
+        const ext = gl.getExtension('EXT_color_buffer_half_float');
+        if (ext === null) {
+            // test as support may not be advertised by browsers
+            gl.getExtension('OES_texture_half_float');
+            return testColorBuffer(gl, 0x8D61) ? { RGBA16F: 0x881A } : null;
+        }
+        gl.getExtension('EXT_float_blend');
+        return { RGBA16F: ext.RGBA16F_EXT };
     }
 }
 
@@ -283,7 +326,7 @@ const TextureTestVertShader = `
 attribute vec4 aPosition;
 
 void main() {
-  gl_Position = aPosition;
+    gl_Position = aPosition;
 }`;
 
 const TextureTestFragShader = `
@@ -292,28 +335,15 @@ uniform vec4 uColor;
 uniform sampler2D uTexture;
 
 void main() {
-  gl_FragColor = texture2D(uTexture, vec2(0.5, 0.5)) * uColor;
+    gl_FragColor = texture2D(uTexture, vec2(0.5, 0.5)) * uColor;
 }`;
 
 const TextureTestTexCoords = new Float32Array([
     -1.0, -1.0, 1.0, -1.0, -1.0,  1.0, -1.0,  1.0, 1.0, -1.0, 1.0,  1.0
 ]);
 
-export function testColorBufferFloat() {
-    // adapted from https://stackoverflow.com/questions/28827511/
-
-    // Get A WebGL context
-    const canvas = document.createElement('canvas');
-    canvas.width = 16;
-    canvas.height = 16;
-    canvas.style.width = `${16}px`;
-    canvas.style.height = `${16}px`;
-    const gl = getGLContext(canvas);
-    if (gl === null) throw new Error('Unable to get WebGL context');
-
-    const type = gl.FLOAT;
-    gl.getExtension('OES_texture_float');
-
+// adapted from https://stackoverflow.com/questions/28827511/
+export function testColorBuffer(gl: GLRenderingContext, type: number) {
     // setup shaders
     const vertShader = getShader(gl, { type: 'vert', source: TextureTestVertShader });
     const fragShader = getShader(gl, { type: 'frag', source: TextureTestFragShader });

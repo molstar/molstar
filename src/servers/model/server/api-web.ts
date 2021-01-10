@@ -11,7 +11,7 @@ import * as bodyParser from 'body-parser';
 import { ModelServerConfig as Config, ModelServerConfig, mapSourceAndIdToFilename } from '../config';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { resolveJob } from './query';
-import { JobManager, JobEntry } from './jobs';
+import { JobManager, JobEntry, ResultWriterParams } from './jobs';
 import { UUID } from '../../../mol-util';
 import { QueryDefinition, normalizeRestQueryParams, normalizeRestCommonParams, QueryList } from './api';
 import { getApiSchema, shortcutIconLink } from './api-schema';
@@ -45,17 +45,18 @@ async function processNextJob() {
     }
 }
 
-export function createResultWriter(response: express.Response, encoding: string, entryId?: string, queryName?: string) {
-    const filenameBase = entryId && queryName
-        ? `${entryId}_${splitCamelCase(queryName.replace(/\s/g, '_'), '-').toLowerCase()}`
+export function createResultWriter(response: express.Response, params: ResultWriterParams) {
+    const filenameBase = params.entryId && params.queryName
+        ? `${params.entryId}_${splitCamelCase(params.queryName.replace(/\s/g, '_'), '-').toLowerCase()}`
         : `result`;
-    return new SimpleResponseResultWriter(`${filenameBase}.${encoding}`, response, encoding === 'bcif');
+    return new SimpleResponseResultWriter(`${filenameBase}.${params.encoding}`, response, params.encoding === 'bcif', params.download);
 }
 
 function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
     function createJob(queryParams: any, req: express.Request, res: express.Response) {
         const entryId = req.params.id;
         const commonParams = normalizeRestCommonParams(req.query);
+        const resultWriterParams = { encoding: commonParams.encoding!, download: !!commonParams.download, entryId, queryName };
         const jobId = JobManager.add({
             entries: [JobEntry({
                 sourceId: commonParams.data_source || ModelServerConfig.defaultSource,
@@ -66,7 +67,7 @@ function mapQuery(app: express.Express, queryName: string, queryDefinition: Quer
                 copyAllCategories: !!commonParams.copy_all_categories,
                 transform: commonParams.transform
             })],
-            writer: createResultWriter(res, commonParams.encoding!, entryId, queryName),
+            writer: createResultWriter(res, resultWriterParams),
             options: { binary: commonParams.encoding === 'bcif', encoding: commonParams.encoding }
         });
         responseMap.set(jobId, res);
@@ -122,7 +123,7 @@ function serveStatic(req: express.Request, res: express.Response) {
 function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
     const writer = spec.asTarGz
         ? new TarballResponseResultWriter(getMultiQuerySpecFilename(), res)
-        : createResultWriter(res, spec.encoding!);
+        : createResultWriter(res, { encoding: spec.encoding!, download: !!spec.download });
 
     if (spec.queries.length > ModelServerConfig.maxQueryManyQueries) {
         writer.doError(400, `query-many queries limit (${ModelServerConfig.maxQueryManyQueries}) exceeded.`);

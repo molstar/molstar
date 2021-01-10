@@ -19,6 +19,7 @@ import { Theme } from '../../mol-theme/theme';
 import { VolumeRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
 import { AlphaOrbital, Basis, CubeGrid } from './data-model';
 import { createSphericalCollocationDensityGrid } from './density';
+import { Tensor } from '../../mol-math/linear-algebra';
 
 export class BasisAndOrbitals extends PluginStateObject.Create<{ basis: Basis, order: SphericalBasisOrder, orbitals: AlphaOrbital[] }>({ name: 'Basis', typeClass: 'Object' }) { }
 
@@ -49,8 +50,42 @@ const CreateOrbitalVolumeParamBase = {
             { atomCount: 25, spacing: 0.4 },
             { atomCount: 0, spacing: 0.35 },
         ]
+    }),
+    clampValues: PD.MappedStatic('off', {
+        off: PD.EmptyGroup(),
+        on: PD.Group({
+            sigma: PD.Numeric(8, { min: 1, max: 20 }, { description: 'Clamp values to range [sigma * negIsoValue, sigma * posIsoValue].' })
+        })
     })
 };
+
+function clampData(matrix: Tensor.Data, min: number, max: number) {
+    for (let i = 0, _i = matrix.length; i < _i; i++) {
+        const v = matrix[i];
+        if (v < min) matrix[i] = min;
+        else if (v > max) matrix[i] = max;
+    }
+}
+
+function clampGrid(data: CubeGrid, v: number) {
+    const grid = data.grid;
+    const min = (data.isovalues?.negative ?? data.grid.stats.min) * v;
+    const max = (data.isovalues?.positive ?? data.grid.stats.max) * v;
+
+    // clamp values for better direct volume resolution
+    // current implementation uses Byte array for values
+    // if this is not enough, update mol* to use float
+    // textures instead
+    if (grid.stats.min < min || grid.stats.max > max) {
+        clampData(data.grid.cells.data, min, max);
+        if (grid.stats.min < min) {
+            (grid.stats.min as number) = min;
+        }
+        if (grid.stats.max > max) {
+            (grid.stats.max as number) = max;
+        }
+    }
+}
 
 export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
     name: 'create-orbital-volume',
@@ -84,6 +119,10 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
                 _propertyData: Object.create(null),
             };
 
+            if (params.clampValues?.name === 'on') {
+                clampGrid(data, params.clampValues?.params?.sigma ?? 8);
+            }
+
             return new PluginStateObject.Volume.Data(volume, { label: 'Orbital Volume' });
         });
     }
@@ -111,6 +150,10 @@ export const CreateOrbitalDensityVolume = PluginStateTransform.BuiltIn({
                 customProperties: new CustomProperties(),
                 _propertyData: Object.create(null),
             };
+
+            if (params.clampValues?.name === 'on') {
+                clampGrid(data, params.clampValues?.params?.sigma ?? 8);
+            }
 
             return new PluginStateObject.Volume.Data(volume, { label: 'Orbital Volume' });
         });

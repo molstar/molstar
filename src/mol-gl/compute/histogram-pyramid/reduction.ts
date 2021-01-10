@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,7 +12,7 @@ import { Texture, TextureFilter, TextureFormat, TextureKind, TextureType } from 
 import { ShaderCode } from '../../../mol-gl/shader-code';
 import { ValueCell } from '../../../mol-util';
 import { QuadSchema, QuadValues } from '../util';
-import { Vec2 } from '../../../mol-math/linear-algebra';
+import { Vec2, Vec3 } from '../../../mol-math/linear-algebra';
 import { getHistopyramidSum } from './sum';
 import { Framebuffer } from '../../../mol-gl/webgl/framebuffer';
 import { isPowerOfTwo } from '../../../mol-math/misc';
@@ -24,6 +24,7 @@ const HistopyramidReductionSchema = {
     tPreviousLevel: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     uSize: UniformSpec('f'),
     uTexSize: UniformSpec('f'),
+    uFirst: UniformSpec('b'),
 };
 
 const HistogramPyramidName = 'histogram-pyramid';
@@ -47,6 +48,7 @@ function createHistopyramidReductionRenderable(ctx: WebGLContext, initialTexture
         tPreviousLevel: ValueCell.create(initialTexture),
         uSize: ValueCell.create(0),
         uTexSize: ValueCell.create(0),
+        uFirst: ValueCell.create(true),
     };
 
     const schema = { ...HistopyramidReductionSchema };
@@ -77,7 +79,7 @@ function setRenderingDefaults(ctx: WebGLContext) {
     state.disable(gl.CULL_FACE);
     state.disable(gl.BLEND);
     state.disable(gl.DEPTH_TEST);
-    state.disable(gl.SCISSOR_TEST);
+    state.enable(gl.SCISSOR_TEST);
     state.depthMask(false);
     state.colorMask(true, true, true, true);
     state.clearColor(0, 0, 0, 0);
@@ -107,18 +109,20 @@ export interface HistogramPyramid {
     scale: Vec2
 }
 
-export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture, scale: Vec2): HistogramPyramid {
+export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture, scale: Vec2, gridTexDim: Vec3): HistogramPyramid {
     const { gl } = ctx;
+    const w = inputTexture.getWidth();
+    const h = inputTexture.getHeight();
 
     // printTexture(ctx, inputTexture, 2)
-    if (inputTexture.getWidth() !== inputTexture.getHeight() || !isPowerOfTwo(inputTexture.getWidth())) {
+    if (w !== h || !isPowerOfTwo(w)) {
         throw new Error('inputTexture must be of square power-of-two size');
     }
 
     // This part set the levels
-    const levels = Math.ceil(Math.log(inputTexture.getWidth()) / Math.log(2));
+    const levels = Math.ceil(Math.log(w) / Math.log(2));
     const maxSize = Math.pow(2, levels);
-    // console.log('levels', levels, 'maxSize', maxSize, 'input', inputTexture.getWidth());
+    // console.log('levels', levels, 'maxSize', maxSize, 'input', w);
 
     const pyramidTexture = getTexture('pyramid', ctx, 'image-float32', 'rgba', 'float', 'nearest');
     pyramidTexture.define(maxSize, maxSize);
@@ -140,20 +144,22 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
         const currLevel = levels - 1 - i;
         const tf = levelTexturesFramebuffers[currLevel];
         tf.framebuffer.bind();
-        // levelTextures[currLevel].attachFramebuffer(framebuffer, 0)
 
         const size = Math.pow(2, currLevel);
         // console.log('size', size, 'draw-level', currLevel, 'read-level', levels - i)
 
         ValueCell.update(renderable.values.uSize, Math.pow(2, i + 1) / maxSize);
         ValueCell.update(renderable.values.uTexSize, size);
+        ValueCell.updateIfChanged(renderable.values.uFirst, i === 0);
         if (i > 0) {
             ValueCell.update(renderable.values.tPreviousLevel, levelTexturesFramebuffers[levels - i].texture);
             renderable.update();
         }
         ctx.state.currentRenderItemId = -1;
         gl.viewport(0, 0, size, size);
+        gl.scissor(0, 0, size, size);
         gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.scissor(0, 0, gridTexDim[0], gridTexDim[1]);
         renderable.render();
 
         pyramidTexture.bind(0);
@@ -171,9 +177,8 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
 
     const finalCount = getHistopyramidSum(ctx, levelTexturesFramebuffers[0].texture);
     const height = Math.ceil(finalCount / Math.pow(2, levels));
-    // const scale = Vec2.create(maxSize / inputTexture.width, maxSize / inputTexture.height)
-    // console.log('height', height, 'finalCount', finalCount, 'scale', scale)
-
+    // const scale = Vec2.create(maxSize / inputTexture.width, maxSize / inputTexture.height);
+    // console.log('height', height, 'finalCount', finalCount, 'scale', scale);
 
     return {
         pyramidTex: pyramidTexture,

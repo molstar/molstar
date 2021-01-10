@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -47,7 +47,7 @@ export const Canvas3DParams = {
             on: PD.Group(StereoCameraParams),
             off: PD.Group({})
         }, { cycle: true, hideIf: p => p?.mode !== 'perspective' }),
-        manualReset: PD.Boolean(false, { isHidden: true })
+        manualReset: PD.Boolean(false, { isHidden: true }),
     }, { pivot: 'mode' }),
     cameraFog: PD.MappedStatic('on', {
         on: PD.Group({
@@ -117,6 +117,7 @@ interface Canvas3D {
 
     notifyDidDraw: boolean,
     readonly didDraw: BehaviorSubject<now.Timestamp>
+    readonly commited: BehaviorSubject<now.Timestamp>
     readonly reprCount: BehaviorSubject<number>
     readonly resized: BehaviorSubject<any>
 
@@ -218,6 +219,7 @@ namespace Canvas3D {
 
         let startTime = now();
         const didDraw = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
+        const commited = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
 
         const { gl, contextRestored } = webgl;
 
@@ -389,6 +391,7 @@ namespace Canvas3D {
                     draw(true);
                     forceDrawAfterAllCommited = false;
                 }
+                commited.next(now());
             }
         }
 
@@ -464,6 +467,13 @@ namespace Canvas3D {
                 materialId: r.materialId,
             })));
             console.log(webgl.stats);
+
+            const { texture, attribute, elements } = webgl.resources.getByteCounts();
+            console.log({
+                texture: `${(texture / 1024 / 1024).toFixed(3)} MiB`,
+                attribute: `${(attribute / 1024 / 1024).toFixed(3)} MiB`,
+                elements: `${(elements / 1024 / 1024).toFixed(3)} MiB`,
+            });
         }
 
         function add(repr: Representation.Any) {
@@ -614,6 +624,7 @@ namespace Canvas3D {
             get notifyDidDraw() { return notifyDidDraw; },
             set notifyDidDraw(v: boolean) { notifyDidDraw = v; },
             didDraw,
+            commited,
             reprCount,
             resized,
             setProps: (properties, doNotRequestDraw = false) => {

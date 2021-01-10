@@ -268,13 +268,20 @@ namespace Renderer {
             }
 
             let definesNeedUpdate = false;
-            if (r.values.dClipObjectCount.ref.value !== clip.objects.count) {
-                ValueCell.update(r.values.dClipObjectCount, clip.objects.count);
-                definesNeedUpdate = true;
-            }
-            if (r.values.dClipVariant.ref.value !== clip.variant) {
-                ValueCell.update(r.values.dClipVariant, clip.variant);
-                definesNeedUpdate = true;
+            if (r.state.noClip) {
+                if (r.values.dClipObjectCount.ref.value !== 0) {
+                    ValueCell.update(r.values.dClipObjectCount, 0);
+                    definesNeedUpdate = true;
+                }
+            } else {
+                if (r.values.dClipObjectCount.ref.value !== clip.objects.count) {
+                    ValueCell.update(r.values.dClipObjectCount, clip.objects.count);
+                    definesNeedUpdate = true;
+                }
+                if (r.values.dClipVariant.ref.value !== clip.variant) {
+                    ValueCell.update(r.values.dClipVariant, clip.variant);
+                    definesNeedUpdate = true;
+                }
             }
             if (definesNeedUpdate) r.update();
 

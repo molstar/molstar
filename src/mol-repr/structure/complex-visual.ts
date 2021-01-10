@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -31,8 +31,9 @@ import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
-import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams } from './params';
+import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
+import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -343,5 +344,23 @@ export function ComplexDirectVolumeVisual<P extends ComplexDirectVolumeParams>(b
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true;
         },
         geometryUtils: DirectVolume.Utils
+    }, materialId);
+}
+
+// texture-mesh
+
+export const ComplexTextureMeshParams = { ...StructureTextureMeshParams, ...StructureParams };
+export type ComplexTextureMeshParams = typeof ComplexTextureMeshParams
+
+export interface ComplexTextureMeshVisualBuilder<P extends ComplexTextureMeshParams> extends ComplexVisualBuilder<P, TextureMesh> { }
+
+export function ComplexTextureMeshVisual<P extends ComplexTextureMeshParams>(builder: ComplexTextureMeshVisualBuilder<P>, materialId: number): ComplexVisual<P> {
+    return ComplexVisual<TextureMesh, P>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true;
+        },
+        geometryUtils: TextureMesh.Utils
     }, materialId);
 }

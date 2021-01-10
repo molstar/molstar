@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -192,7 +192,7 @@ export const ProteinTerminusComponentTypeNames = new Set([
     'L-PEPTIDE NH3 AMINO TERMINUS', 'L-PEPTIDE COOH CARBOXY TERMINUS'
 ]);
 
-/** Chemical component type names for pepdite-like protein */
+/** Chemical component type names for peptide-like protein */
 export const OtherProteinComponentTypeNames = new Set([
     'PEPTIDE LINKING', 'PEPTIDE-LIKE',
 ]);
@@ -416,6 +416,8 @@ export function getEntitySubtype(compId: string, compType: string): EntitySubtyp
         return 'ion';
     } else if (LipidComponentTypeNames.has(compType) || LipidNames.has(compId)) {
         return 'lipid';
+    } else if (OtherProteinComponentTypeNames.has(compType)) {
+        return 'peptide-like';
     } else {
         return 'other';
     }

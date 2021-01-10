@@ -24,9 +24,9 @@ export type ChemComp = Table<mmCIF_chemComp_schema>
 export type ChemCompIdentifier = Table<mmCIF_Schema['pdbx_chem_comp_identifier']>
 export type AtomSite = Table<mmCIF_Schema['atom_site']>
 export type IhmSphereObjSite = Table<mmCIF_Schema['ihm_sphere_obj_site']>
-export type IhmGaussianObjSite =Table<mmCIF_Schema['ihm_gaussian_obj_site']>
-export type UnobsOrZeroOccResidues =Table<mmCIF_Schema['pdbx_unobs_or_zero_occ_residues']>
-export type Molecule =Table<mmCIF_Schema['pdbx_molecule']>
+export type IhmGaussianObjSite = Table<mmCIF_Schema['ihm_gaussian_obj_site']>
+export type UnobsOrZeroOccResidues = Table<mmCIF_Schema['pdbx_unobs_or_zero_occ_residues']>
+export type Molecule = Table<mmCIF_Schema['pdbx_molecule']>
 
 export const BasicSchema = {
     entry: mmCIF_Schema.entry,

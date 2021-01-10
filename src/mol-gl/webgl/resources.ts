@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -45,6 +45,12 @@ interface Resource {
 
 type ResourceName = keyof WebGLStats['resourceCounts']
 
+type ByteCounts = {
+    texture: number
+    attribute: number
+    elements: number
+}
+
 export interface WebGLResources {
     attribute: (array: ArrayType, itemSize: AttributeItemSize, divisor: number, usageHint?: UsageHint) => AttributeBuffer
     elements: (array: ElementsType, usageHint?: UsageHint) => ElementsBuffer
@@ -54,6 +60,8 @@ export interface WebGLResources {
     shader: (type: ShaderType, source: string) => Shader
     texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => Texture,
     vertexArray: (program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) => VertexArray,
+
+    getByteCounts: () => ByteCounts
 
     reset: () => void
     destroy: () => void
@@ -126,6 +134,25 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         },
         vertexArray: (program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) => {
             return wrap('vertexArray', createVertexArray(extensions, program, attributeBuffers, elementsBuffer));
+        },
+
+        getByteCounts: () => {
+            let texture = 0;
+            sets.texture.forEach(r => {
+                texture += (r as Texture).getByteCount();
+            });
+
+            let attribute = 0;
+            sets.attribute.forEach(r => {
+                attribute += (r as AttributeBuffer).length * 4;
+            });
+
+            let elements = 0;
+            sets.elements.forEach(r => {
+                elements += (r as ElementsBuffer).length * 4;
+            });
+
+            return { texture, attribute, elements };
         },
 
         reset: () => {

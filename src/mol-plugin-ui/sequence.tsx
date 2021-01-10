@@ -22,6 +22,7 @@ import { ElementSequenceWrapper } from './sequence/element';
 import { elementLabel } from '../mol-theme/label';
 import { Icon, HelpOutlineSvg } from './controls/icons';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
+import { arrayEqual } from '../mol-util/array';
 
 const MaxDisplaySequenceLength = 5000;
 
@@ -34,14 +35,14 @@ function opKey(l: StructureElement.Location) {
 }
 
 function splitModelEntityId(modelEntityId: string) {
-    const [ modelIdx, entityId ] = modelEntityId.split('|');
-    return [ parseInt(modelIdx), entityId ];
+    const [modelIdx, entityId] = modelEntityId.split('|');
+    return [parseInt(modelIdx), entityId];
 }
 
-function getSequenceWrapper(state: SequenceViewState, structureSelection: StructureSelectionManager): SequenceWrapper.Any | string {
+function getSequenceWrapper(state: { structure: Structure, modelEntityId: string, chainGroupId: number, operatorKey: string }, structureSelection: StructureSelectionManager): SequenceWrapper.Any | string {
     const { structure, modelEntityId, chainGroupId, operatorKey } = state;
     const l = StructureElement.Location.create(structure);
-    const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId);
+    const [modelIdx, entityId] = splitModelEntityId(modelEntityId);
 
     const units: Unit[] = [];
 
@@ -93,7 +94,7 @@ function getSequenceWrapper(state: SequenceViewState, structureSelection: Struct
     }
 }
 
-function getModelEntityOptions(structure: Structure) {
+function getModelEntityOptions(structure: Structure, polymersOnly = false) {
     const options: [string, string][] = [];
     const l = StructureElement.Location.create(structure);
     const seen = new Set<string>();
@@ -104,17 +105,18 @@ function getModelEntityOptions(structure: Structure) {
         const modelIdx = structure.getModelIndex(unit.model);
         const key = `${modelIdx}|${id}`;
         if (seen.has(key)) continue;
+        if (polymersOnly && SP.entity.type(l) !== 'polymer') continue;
 
         let description = SP.entity.pdbx_description(l).join(', ');
         if (structure.models.length) {
             if (structure.representativeModel) { // indicates model trajectory
                 description += ` (Model ${structure.models[modelIdx].modelNum})`;
-            } else  if (description.startsWith('Polymer ')) { // indicates generic entity name
+            } else if (description.startsWith('Polymer ')) { // indicates generic entity name
                 description += ` (${structure.models[modelIdx].entry})`;
             }
         }
         const label = `${id}: ${description}`;
-        options.push([ key, label ]);
+        options.push([key, label]);
         seen.add(key);
     }
 
@@ -126,7 +128,7 @@ function getChainOptions(structure: Structure, modelEntityId: string) {
     const options: [number, string][] = [];
     const l = StructureElement.Location.create(structure);
     const seen = new Set<number>();
-    const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId);
+    const [modelIdx, entityId] = splitModelEntityId(modelEntityId);
 
     for (const unit of structure.units) {
         StructureElement.Location.set(l, structure, unit, unit.elements[0]);
@@ -140,7 +142,7 @@ function getChainOptions(structure: Structure, modelEntityId: string) {
         // - more than one chain in a unit
         let label = elementLabel(l, { granularity: 'chain', hidePrefix: true, htmlStyling: false });
 
-        options.push([ id, label ]);
+        options.push([id, label]);
         seen.add(id);
     }
 
@@ -152,7 +154,7 @@ function getOperatorOptions(structure: Structure, modelEntityId: string, chainGr
     const options: [string, string][] = [];
     const l = StructureElement.Location.create(structure);
     const seen = new Set<string>();
-    const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId);
+    const [modelIdx, entityId] = splitModelEntityId(modelEntityId);
 
     for (const unit of structure.units) {
         StructureElement.Location.set(l, structure, unit, unit.elements[0]);
@@ -164,7 +166,7 @@ function getOperatorOptions(structure: Structure, modelEntityId: string, chainGr
         if (seen.has(id)) continue;
 
         const label = unit.conformation.operator.name;
-        options.push([ id, label ]);
+        options.push([id, label]);
         seen.add(id);
     }
 
@@ -174,47 +176,62 @@ function getOperatorOptions(structure: Structure, modelEntityId: string, chainGr
 
 function getStructureOptions(state: State) {
     const options: [string, string][] = [];
+    const all: Structure[] = [];
 
     const structures = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure));
     for (const s of structures) {
+        if (!s.obj?.data) continue;
+
+        all.push(s.obj.data);
         options.push([s.transform.ref, s.obj!.data.label]);
     }
 
     if (options.length === 0) options.push(['', 'No structure']);
-    return options;
+    return { options, all };
 }
 
+export type SequenceViewMode = 'single' | 'polymers' | 'all'
+const SequenceViewModeParam = PD.Select<SequenceViewMode>('single', [['single', 'Chain'], ['polymers', 'Polymers'], ['all', 'Everything']]);
+
 type SequenceViewState = {
+    structureOptions: { options: [string, string][], all: Structure[] },
     structure: Structure,
     structureRef: string,
     modelEntityId: string,
     chainGroupId: number,
-    operatorKey: string
+    operatorKey: string,
+    mode: SequenceViewMode
 }
 
-export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
-    state = { structure: Structure.Empty, structureRef: '', modelEntityId: '', chainGroupId: -1, operatorKey: '' }
+export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceViewMode }, SequenceViewState> {
+    state: SequenceViewState = { structureOptions: { options: [], all: [] }, structure: Structure.Empty, structureRef: '', modelEntityId: '', chainGroupId: -1, operatorKey: '', mode: 'single' }
 
     componentDidMount() {
         if (this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState());
 
         this.subscribe(this.plugin.state.events.object.updated, ({ ref, obj }) => {
             if (ref === this.state.structureRef && obj && obj.type === PSO.Molecule.Structure.type && obj.data !== this.state.structure) {
-                this.setState(this.getInitialState());
+                this.sync();
             }
         });
 
         this.subscribe(this.plugin.state.events.object.created, ({ obj }) => {
             if (obj && obj.type === PSO.Molecule.Structure.type) {
-                this.setState(this.getInitialState());
+                this.sync();
             }
         });
 
         this.subscribe(this.plugin.state.events.object.removed, ({ obj }) => {
             if (obj && obj.type === PSO.Molecule.Structure.type && obj.data === this.state.structure) {
-                this.setState(this.getInitialState());
+                this.sync();
             }
         });
+    }
+
+    private sync() {
+        const structureOptions = getStructureOptions(this.plugin.state.data);
+        if (arrayEqual(structureOptions.all, this.state.structureOptions.all)) return;
+        this.setState(this.getInitialState());
     }
 
     private getStructure(ref: string) {
@@ -224,12 +241,40 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
         return (cell.obj as PSO.Molecule.Structure).data;
     }
 
-    private getSequenceWrapper() {
-        return getSequenceWrapper(this.state, this.plugin.managers.structure.selection);
+    private getSequenceWrapper(params: SequenceView['params']) {
+        return {
+            wrapper: getSequenceWrapper(this.state, this.plugin.managers.structure.selection),
+            label: `${PD.optionLabel(params.chain, this.state.chainGroupId)} | ${PD.optionLabel(params.entity, this.state.modelEntityId)}`
+        };
+    }
+
+    private getSequenceWrappers(params: SequenceView['params']) {
+        if (this.state.mode === 'single') return [this.getSequenceWrapper(params)];
+
+        const structure = this.getStructure(this.state.structureRef);
+        const wrappers: { wrapper: (string | SequenceWrapper.Any), label: string }[] = [];
+
+        for (const [modelEntityId, eLabel] of getModelEntityOptions(structure, this.state.mode === 'polymers')) {
+            for (const [chainGroupId, cLabel] of getChainOptions(structure, modelEntityId)) {
+                for (const [operatorKey] of getOperatorOptions(structure, modelEntityId, chainGroupId)) {
+                    wrappers.push({
+                        wrapper: getSequenceWrapper({
+                            structure,
+                            modelEntityId,
+                            chainGroupId,
+                            operatorKey
+                        }, this.plugin.managers.structure.selection),
+                        label: `${cLabel} | ${eLabel}`
+                    });
+                }
+            }
+        }
+        return wrappers;
     }
 
     private getInitialState(): SequenceViewState {
-        const structureRef = getStructureOptions(this.plugin.state.data)[0][0];
+        const structureOptions = getStructureOptions(this.plugin.state.data);
+        const structureRef = structureOptions.options[0][0];
         const structure = this.getStructure(structureRef);
         let modelEntityId = getModelEntityOptions(structure)[0][0];
         let chainGroupId = getChainOptions(structure, modelEntityId)[0][0];
@@ -239,20 +284,20 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
             chainGroupId = this.state.chainGroupId;
             operatorKey = this.state.operatorKey;
         }
-        return { structure, structureRef, modelEntityId, chainGroupId, operatorKey };
+        return { structureOptions, structure, structureRef, modelEntityId, chainGroupId, operatorKey, mode: this.props.defaultMode ?? 'single' };
     }
 
     private get params() {
-        const { structure, modelEntityId, chainGroupId } = this.state;
-        const structureOptions = getStructureOptions(this.plugin.state.data);
+        const { structureOptions, structure, modelEntityId, chainGroupId } = this.state;
         const entityOptions = getModelEntityOptions(structure);
         const chainOptions = getChainOptions(structure, modelEntityId);
         const operatorOptions = getOperatorOptions(structure, modelEntityId, chainGroupId);
         return {
-            structure: PD.Select(structureOptions[0][0], structureOptions, { shortLabel: true }),
+            structure: PD.Select(structureOptions.options[0][0], structureOptions.options, { shortLabel: true }),
             entity: PD.Select(entityOptions[0][0], entityOptions, { shortLabel: true }),
             chain: PD.Select(chainOptions[0][0], chainOptions, { shortLabel: true, twoColumns: true, label: 'Chain' }),
-            operator: PD.Select(operatorOptions[0][0], operatorOptions, { shortLabel: true, twoColumns: true })
+            operator: PD.Select(operatorOptions[0][0], operatorOptions, { shortLabel: true, twoColumns: true }),
+            mode: SequenceViewModeParam
         };
     }
 
@@ -261,16 +306,24 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
             structure: this.state.structureRef,
             entity: this.state.modelEntityId,
             chain: this.state.chainGroupId,
-            operator: this.state.operatorKey
+            operator: this.state.operatorKey,
+            mode: this.state.mode
         };
     }
 
     private setParamProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
         const state = { ...this.state };
         switch (p.name) {
+            case 'mode':
+                state.mode = p.value;
+                if (this.state.mode === state.mode) return;
+
+                if (state.mode === 'all' || state.mode === 'polymers') {
+                    break;
+                }
             case 'structure':
-                state.structureRef = p.value;
-                state.structure = this.getStructure(p.value);
+                if (p.name === 'structure') state.structureRef = p.value;
+                state.structure = this.getStructure(state.structureRef);
                 state.modelEntityId = getModelEntityOptions(state.structure)[0][0];
                 state.chainGroupId = getChainOptions(state.structure, state.modelEntityId)[0][0];
                 state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0];
@@ -296,17 +349,16 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
             return <div className='msp-sequence'>
                 <div className='msp-sequence-select'>
                     <Icon svg={HelpOutlineSvg} style={{ cursor: 'help', position: 'absolute', right: 0, top: 0 }}
-                        title='This shows a single sequence. Use the controls to show a different sequence.'/>
+                        title='Shows a sequence of one or more chains. Use the controls to alter selection.' />
 
                     <span>Sequence</span><span style={{ fontWeight: 'normal' }}>No structure available</span>
                 </div>
             </div>;
         }
 
-        const sequenceWrapper = this.getSequenceWrapper();
-
         const params = this.params;
         const values = this.values;
+        const sequenceWrappers = this.getSequenceWrappers(params);
 
         return <div className='msp-sequence'>
             <div className='msp-sequence-select'>
@@ -315,16 +367,34 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
 
                 <span>Sequence of</span>
                 <PureSelectControl title={`[Structure] ${PD.optionLabel(params.structure, values.structure)}`} param={params.structure} name='structure' value={values.structure} onChange={this.setParamProps} />
-                <PureSelectControl title={`[Entity] ${PD.optionLabel(params.entity, values.entity)}`} param={params.entity} name='entity' value={values.entity} onChange={this.setParamProps} />
-                <PureSelectControl title={`[Chain] ${PD.optionLabel(params.chain, values.chain)}`} param={params.chain} name='chain' value={values.chain} onChange={this.setParamProps} />
+                <PureSelectControl title={`[Mode]`} param={SequenceViewModeParam} name='mode' value={values.mode} onChange={this.setParamProps} />
+                {values.mode === 'single' && <PureSelectControl title={`[Entity] ${PD.optionLabel(params.entity, values.entity)}`} param={params.entity} name='entity' value={values.entity} onChange={this.setParamProps} />}
+                {values.mode === 'single' && <PureSelectControl title={`[Chain] ${PD.optionLabel(params.chain, values.chain)}`} param={params.chain} name='chain' value={values.chain} onChange={this.setParamProps} />}
                 {params.operator.options.length > 1 && <>
                     <PureSelectControl title={`[Instance] ${PD.optionLabel(params.operator, values.operator)}`} param={params.operator} name='operator' value={values.operator} onChange={this.setParamProps} />
                 </>}
             </div>
 
-            {typeof sequenceWrapper === 'string'
-                ? <div className='msp-sequence-wrapper msp-sequence-wrapper-non-empty'>{sequenceWrapper}</div>
-                : <Sequence sequenceWrapper={sequenceWrapper} />}
+            <NonEmptySequenceWrapper>
+                {sequenceWrappers.map((s, i) => {
+                    const elem = typeof s.wrapper === 'string'
+                        ? <div key={i} className='msp-sequence-wrapper'>{s.wrapper}</div>
+                        : <Sequence key={i} sequenceWrapper={s.wrapper} />;
+
+                    if (values.mode === 'single') return elem;
+
+                    return <>
+                        <div className='msp-sequence-chain-label'>{s.label}</div>
+                        {elem}
+                    </>;
+                })}
+            </NonEmptySequenceWrapper>
         </div>;
     }
+}
+
+function NonEmptySequenceWrapper({ children }: { children: React.ReactNode }) {
+    return <div className='msp-sequence-wrapper-non-empty'>
+        {children}
+    </div>;
 }

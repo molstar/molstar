@@ -73,7 +73,7 @@ function _computeGaussianDensityTexture(type: '2d' | '3d', position: PositionDat
     if (!GaussianDensityTexture) throw 'GPU computation not supported on this platform';
     return Task.create('Gaussian Density', async ctx => {
         return type === '2d' ?
-            GaussianDensityTexture2d(webgl, position, box, radius, props, texture) :
+            GaussianDensityTexture2d(webgl, position, box, radius, false, props, texture) :
             GaussianDensityTexture3d(webgl, position, box, radius, props, texture);
     });
 }

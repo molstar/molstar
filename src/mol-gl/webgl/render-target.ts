@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -26,12 +26,14 @@ export interface RenderTarget {
     destroy: () => void
 }
 
-export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResources, _width: number, _height: number, depth = true, type: 'uint8' | 'float32' = 'uint8', filter: TextureFilter = 'nearest'): RenderTarget {
+export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResources, _width: number, _height: number, depth = true, type: 'uint8' | 'float32' | 'fp16' = 'uint8', filter: TextureFilter = 'nearest'): RenderTarget {
 
     const framebuffer = resources.framebuffer();
-    const targetTexture = type === 'float32'
-        ? resources.texture('image-float32', 'rgba', 'float', filter)
-        : resources.texture('image-uint8', 'rgba', 'ubyte', filter);
+    const targetTexture = type === 'fp16'
+        ? resources.texture('image-float16', 'rgba', 'fp16', filter)
+        : type === 'float32'
+            ? resources.texture('image-float32', 'rgba', 'float', filter)
+            : resources.texture('image-uint8', 'rgba', 'ubyte', filter);
     // make a depth renderbuffer of the same size as the targetTexture
     const depthRenderbuffer = depth
         ? resources.renderbuffer('depth16', 'depth', _width, _height)

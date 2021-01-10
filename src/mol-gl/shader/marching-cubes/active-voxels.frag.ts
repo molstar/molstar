@@ -37,7 +37,6 @@ vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) 
     float column = intMod(zSlice * gridDim.x, texDim.x) / gridDim.x;
     float row = floor(intDiv(zSlice * gridDim.x, texDim.x));
     vec2 coord = (vec2(column * gridDim.x, row * gridDim.y) + (pos.xy * gridDim.xy)) / (texDim / uScale);
-    // return texture2D(tex, coord + 0.5 / texDim);
     return texture2D(tex, coord);
 }
 
@@ -62,7 +61,7 @@ void main(void) {
 
     // get total triangles to generate for calculated MC case from triCount texture
     float totalTrianglesToGenerate = texture2D(tTriCount, vec2(intMod(c, 16.), floor(c / 16.)) / 16.).a;
-    gl_FragColor = vec4(vec3(floor(totalTrianglesToGenerate * 255.0 + 0.5) * 3.0), c);
+    gl_FragColor = vec4(vec3(totalTrianglesToGenerate * 3.0), c / 255.0);
 
     // gl_FragColor = vec4(255.0, 0.0, 0.0, voxel(posXYZ + c4 / uGridDim).a * 255.0);
     // gl_FragColor = vec4(255.0, 0.0, 0.0, voxel(posXYZ).a * 255.0);

@@ -76,6 +76,7 @@ export function printImageData(imageData: ImageData, scale = 1, pixelated = fals
         img.style.top = '0px';
         img.style.left = '0px';
         img.style.border = 'solid grey';
+        img.style.pointerEvents = 'none';
         document.body.appendChild(img);
     }, 'image/png');
 }

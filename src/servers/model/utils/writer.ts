@@ -48,10 +48,11 @@ export class SimpleResponseResultWriter implements WebResutlWriter {
         this.headerWritten = true;
 
         this.res.writeHead(200, {
+            // TODO there seems to be a bug in swagger-ui - front-end will freeze for cif delivered as text/plain (forcing binary is a hack to circumvent this)
             'Content-Type': this.isBinary ? 'application/octet-stream' : 'text/plain; charset=utf-8',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Headers': 'X-Requested-With',
-            'Content-Disposition': `inline; filename="${this.fn}"`
+            'Content-Disposition': `${this.isDownload ? 'attachment' : 'inline'}; filename="${this.fn}"`
         });
     }
 
@@ -71,7 +72,7 @@ export class SimpleResponseResultWriter implements WebResutlWriter {
         this.ended = true;
     }
 
-    constructor(private fn: string, private res: express.Response, private isBinary: boolean) {
+    constructor(private fn: string, private res: express.Response, private isBinary: boolean, private isDownload: boolean) {
 
     }
 }

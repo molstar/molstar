@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -14,7 +14,8 @@ export type EntitySubtype = (
     mmCIF_Schema['entity_poly']['type']['T'] |
     mmCIF_Schema['pdbx_entity_branch']['type']['T'] |
     'ion' |
-    'lipid'
+    'lipid' |
+    'peptide-like'
 )
 export const EntitySubtype = Column.Schema.Aliased<EntitySubtype>(Column.Schema.Str(''));
 

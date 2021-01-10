@@ -97,7 +97,7 @@ class Structure {
 
     /** Count of all bonds (intra- and inter-unit) in the structure */
     get bondCount() {
-        if (!this._props.bondCount) {
+        if (this._props.bondCount === -1) {
             this._props.bondCount = this.interUnitBonds.edgeCount + Bond.getIntraUnitBondCount(this);
         }
         return this._props.bondCount;

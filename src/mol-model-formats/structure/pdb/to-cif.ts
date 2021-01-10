@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -18,6 +18,8 @@ import { Column } from '../../../mol-data/db';
 import { getMoleculeType } from '../../../mol-model/structure/model/types';
 import { getAtomSiteTemplate, addAtom, getAtomSite } from './atom-site';
 import { addAnisotropic, getAnisotropicTemplate, getAnisotropic } from './anisotropic';
+import { parseConect } from './conect';
+import { isDebugMode } from '../../../mol-util/debug';
 
 export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const { lines } = pdb;
@@ -48,6 +50,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const heteroNames: [string, string][] = [];
 
     let modelNum = 0, modelStr = '';
+    let conectRange: [number, number] | undefined = undefined;
 
     for (let i = 0, _i = lines.count; i < _i; i++) {
         let s = indices[2 * i], e = indices[2 * i + 1];
@@ -63,8 +66,21 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
             case 'C':
                 if (substringStartsWith(data, s, e, 'CRYST1')) {
                     helperCategories.push(...parseCryst1(pdb.id || '?', data.substring(s, e)));
-                } else if (substringStartsWith(data, s, e, 'CONNECT')) {
-                    // TODO: CONNECT records => struct_conn
+                } else if (substringStartsWith(data, s, e, 'CONECT')) {
+                    let j = i + 1;
+                    while (true) {
+                        s = indices[2 * j]; e = indices[2 * j + 1];
+                        if (!substringStartsWith(data, s, e, 'CONECT')) break;
+                        j++;
+                    }
+                    if (conectRange) {
+                        if (isDebugMode) {
+                            console.log('only single CONECT block allowed, ignoring others');
+                        }
+                    } else {
+                        conectRange = [i, j];
+                    }
+                    i = j - 1;
                 } else if (substringStartsWith(data, s, e, 'COMPND')) {
                     let j = i + 1;
                     while (true) {
@@ -164,6 +180,10 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
 
     const atom_site = getAtomSite(atomSite);
     if (!isPdbqt) delete atom_site.partial_charge;
+
+    if (conectRange) {
+        helperCategories.push(parseConect(lines, conectRange[0], conectRange[1], atom_site));
+    }
 
     const categories = {
         entity: CifCategory.ofTable('entity', entityBuilder.getEntityTable()),

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,14 +19,16 @@ const getNextTextureId = idFactory();
 export type TextureKindValue = {
     'image-uint8': TextureImage<Uint8Array>
     'image-float32': TextureImage<Float32Array>
+    'image-float16': TextureImage<Float32Array>
     'image-depth': TextureImage<Uint8Array> // TODO should be Uint32Array
     'volume-uint8': TextureVolume<Uint8Array>
     'volume-float32': TextureVolume<Float32Array>
+    'volume-float16': TextureVolume<Float32Array>
     'texture': Texture
 }
 export type TextureValueType = ValueOf<TextureKindValue>
 export type TextureKind = keyof TextureKindValue
-export type TextureType = 'ubyte' | 'ushort' | 'float'
+export type TextureType = 'ubyte' | 'ushort' | 'float' | 'fp16'
 export type TextureFormat = 'alpha' | 'rgb' | 'rgba' | 'depth'
 /** Numbers are shortcuts for color attachment */
 export type TextureAttachment = 'depth' | 'stencil' | 'color0' | 'color1' | 'color2' | 'color3' | 'color4' | 'color5' | 'color6' | 'color7' | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
@@ -36,12 +38,14 @@ export function getTarget(gl: GLRenderingContext, kind: TextureKind): number {
     switch (kind) {
         case 'image-uint8': return gl.TEXTURE_2D;
         case 'image-float32': return gl.TEXTURE_2D;
+        case 'image-float16': return gl.TEXTURE_2D;
         case 'image-depth': return gl.TEXTURE_2D;
     }
     if (isWebGL2(gl)) {
         switch (kind) {
             case 'volume-uint8': return gl.TEXTURE_3D;
             case 'volume-float32': return gl.TEXTURE_3D;
+            case 'volume-float16': return gl.TEXTURE_3D;
         }
     }
     throw new Error(`unknown texture kind '${kind}'`);
@@ -65,16 +69,19 @@ export function getInternalFormat(gl: GLRenderingContext, format: TextureFormat,
                 switch (type) {
                     case 'ubyte': return gl.ALPHA;
                     case 'float': return gl.R32F;
+                    case 'fp16': return gl.R16F;
                 }
             case 'rgb':
                 switch (type) {
                     case 'ubyte': return gl.RGB;
                     case 'float': return gl.RGB32F;
+                    case 'fp16': return gl.RGB16F;
                 }
             case 'rgba':
                 switch (type) {
                     case 'ubyte': return gl.RGBA;
                     case 'float': return gl.RGBA32F;
+                    case 'fp16': return gl.RGBA16F;
                 }
             case 'depth':
                 return gl.DEPTH_COMPONENT16;
@@ -83,11 +90,37 @@ export function getInternalFormat(gl: GLRenderingContext, format: TextureFormat,
     return getFormat(gl, format, type);
 }
 
-export function getType(gl: GLRenderingContext, type: TextureType): number {
+function getByteCount(format: TextureFormat, type: TextureType, width: number, height: number, depth: number): number {
+    const bpe = getFormatSize(format) * getTypeSize(type);
+    return bpe * width * height * (depth || 1);
+}
+
+function getFormatSize(format: TextureFormat) {
+    switch (format) {
+        case 'alpha': return 1;
+        case 'rgb': return 3;
+        case 'rgba': return 4;
+        case 'depth': return 4;
+    }
+}
+
+function getTypeSize(type: TextureType): number {
+    switch (type) {
+        case 'ubyte': return 1;
+        case 'ushort': return 2;
+        case 'float': return 4;
+        case 'fp16': return 2;
+    }
+}
+
+export function getType(gl: GLRenderingContext, extensions: WebGLExtensions, type: TextureType): number {
     switch (type) {
         case 'ubyte': return gl.UNSIGNED_BYTE;
         case 'ushort': return gl.UNSIGNED_SHORT;
         case 'float': return gl.FLOAT;
+        case 'fp16':
+            if (extensions.textureHalfFloat) return extensions.textureHalfFloat.HALF_FLOAT;
+            else throw new Error('extension "texture_half_float" unavailable');
     }
 }
 
@@ -141,6 +174,8 @@ export interface Texture {
     getHeight: () => number
     getDepth: () => number
 
+    getByteCount: () => number
+
     define: (width: number, height: number, depth?: number) => void
     load: (image: TextureImage<any> | TextureVolume<any> | HTMLImageElement) => void
     bind: (id: TextureId) => void
@@ -173,6 +208,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
     // check texture kind and type compatability
     if (
         (kind.endsWith('float32') && _type !== 'float') ||
+        (kind.endsWith('float16') && _type !== 'fp16') ||
         (kind.endsWith('uint8') && _type !== 'ubyte') ||
         (kind.endsWith('depth') && _type !== 'ushort')
     ) {
@@ -183,7 +219,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
     const filter = getFilter(gl, _filter);
     const format = getFormat(gl, _format, _type);
     const internalFormat = getInternalFormat(gl, _format, _type);
-    const type = getType(gl, _type);
+    const type = getType(gl, extensions, _type);
 
     function init() {
         gl.bindTexture(target, texture);
@@ -261,6 +297,8 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         getWidth: () => width,
         getHeight: () => height,
         getDepth: () => depth,
+
+        getByteCount: () => getByteCount(_format, _type, width, height, depth),
 
         define,
         load,
@@ -349,6 +387,7 @@ export function createNullTexture(gl: GLRenderingContext, kind: TextureKind): Te
         getWidth: () => 0,
         getHeight: () => 0,
         getDepth: () => 0,
+        getByteCount: () => 0,
 
         define: () => {},
         load: () => {},
