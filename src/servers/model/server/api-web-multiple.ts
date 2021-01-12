@@ -19,7 +19,8 @@ export interface MultipleQuerySpec {
     queries: MultipleQueryEntry[],
     encoding?: Encoding,
     asTarGz?: boolean,
-    download?: boolean
+    download?: boolean,
+    filename?: string
 }
 
 export function getMultiQuerySpecFilename() {
