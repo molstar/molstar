@@ -90,6 +90,7 @@ export class MolEncoder extends LigandEncoder {
         const { instance, source } = getCategoryInstanceData(category, context);
         const fields = instance.fields;
         const src = source[0];
+        if (!src) return;
         const data = src.data;
 
         const it = src.keys();
