@@ -291,7 +291,6 @@ export function normalizeRestQueryParams(query: QueryDefinition, params: any) {
 }
 
 export function normalizeRestCommonParams(params: any): CommonQueryParamsInfo {
-    console.log(`${params.download} ${isTrue(params.download)} ${!!params.filename} ${isTrue(params.download) || !!params.filename}}`);
     return {
         model_nums: params.model_nums ? ('' + params.model_nums).split(',').map(n => n.trim()).filter(n => !!n).map(n => +n) : void 0,
         data_source: params.data_source,
