@@ -550,7 +550,7 @@ export namespace ParamDefinition {
         }
     }
 
-    function normalizeParam(p: Any, value: any, defaultIfUndefined: boolean): any {
+    function normalizeParam(p: Any, value: any, defaultIfUndefined: boolean, prune: boolean): any {
         if (value === void 0 || value === null) {
             return defaultIfUndefined ? p.defaultValue : void 0;
         }
@@ -563,13 +563,13 @@ export namespace ParamDefinition {
         if (p.type === 'value') {
             return value;
         } else if (p.type === 'group') {
-            const ret = { ...value };
+            const ret = prune ? Object.create(null) : { ...value };
             for (const key of Object.keys(p.params)) {
                 const param = p.params[key];
-                if (ret[key] === void 0) {
+                if (value[key] === void 0) {
                     if (defaultIfUndefined) ret[key] = param.defaultValue;
                 } else {
-                    ret[key] = normalizeParam(param, ret[key], defaultIfUndefined);
+                    ret[key] = normalizeParam(param, value[key], defaultIfUndefined, prune);
                 }
             }
             return ret;
@@ -592,7 +592,7 @@ export namespace ParamDefinition {
             const param = p.map(v.name);
             return {
                 name: v.name,
-                params: normalizeParam(param, v.params, defaultIfUndefined)
+                params: normalizeParam(param, v.params, defaultIfUndefined, prune)
             };
         } else if (p.type === 'select') {
             const options = !!p._optionSet?.has
@@ -610,7 +610,7 @@ export namespace ParamDefinition {
             return ret;
         } else if (p.type === 'object-list') {
             if (!Array.isArray(value)) return p.defaultValue;
-            return value.map(v => normalizeParams(p.element, v, defaultIfUndefined));
+            return value.map(v => normalizeParams(p.element, v, defaultIfUndefined ? 'all' : 'skip', prune));
         }
 
         // TODO: validate/normalize all param types "properly"??
@@ -618,18 +618,18 @@ export namespace ParamDefinition {
         return value;
     }
 
-    export function normalizeParams(p: Params, value: any, defaultIfUndefined: boolean) {
+    export function normalizeParams(p: Params, value: any, defaultIfUndefined: 'all' | 'children' | 'skip', prune: boolean) {
         if (typeof value !== 'object') {
             return defaultIfUndefined ? getDefaultValues(p) : value;
         }
 
-        const ret = { ...value };
+        const ret = prune ? Object.create(null) : { ...value };
         for (const key of Object.keys(p)) {
             const param = p[key];
-            if (ret[key] === void 0) {
-                if (defaultIfUndefined) ret[key] = param.defaultValue;
+            if (value[key] === void 0) {
+                if (defaultIfUndefined === 'all') ret[key] = param.defaultValue;
             } else {
-                ret[key] = normalizeParam(param, ret[key], defaultIfUndefined);
+                ret[key] = normalizeParam(param, value[key], defaultIfUndefined !== 'skip', prune);
             }
         }
         return ret;
