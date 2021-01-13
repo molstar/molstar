@@ -77,7 +77,8 @@ export namespace ParamDefinition {
         type: 'select'
         /** array of (value, label) tuples */
         options: readonly (readonly [T, string] | readonly [T, string, string | undefined])[]
-        cycle?: boolean
+        cycle?: boolean,
+        _optionSet?: Set<T>
     }
     export function Select<T>(defaultValue: T, options: readonly (readonly [T, string] | readonly [T, string, string | undefined])[], info?: Info & { cycle?: boolean }): Select<T> {
         return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options, cycle: info?.cycle }, info);
@@ -87,7 +88,8 @@ export namespace ParamDefinition {
         type: 'multi-select'
         /** array of (value, label) tuples */
         options: readonly (readonly [E, string])[],
-        emptyValue?: string
+        emptyValue?: string,
+        _optionSet?: Set<T>
     }
     export function MultiSelect<E extends string, T = E[]>(defaultValue: T, options: readonly (readonly [E, string])[], info?: Info & { emptyValue?: string }): MultiSelect<E, T> {
         // TODO: check if default value is a subset of options?
@@ -546,6 +548,91 @@ export namespace ParamDefinition {
         } else {
             return b;
         }
+    }
+
+    function normalizeParam(p: Any, value: any, defaultIfUndefined: boolean): any {
+        if (value === void 0 || value === null) {
+            return defaultIfUndefined ? p.defaultValue : void 0;
+        }
+
+        // TODO: is this a good idea and will work well?
+        // if (typeof p.defaultValue !== typeof value) {
+        //     return p.defaultValue;
+        // }
+
+        if (p.type === 'value') {
+            return value;
+        } else if (p.type === 'group') {
+            const ret = { ...value };
+            for (const key of Object.keys(p.params)) {
+                const param = p.params[key];
+                if (ret[key] === void 0) {
+                    if (defaultIfUndefined) ret[key] = param.defaultValue;
+                } else {
+                    ret[key] = normalizeParam(param, ret[key], defaultIfUndefined);
+                }
+            }
+            return ret;
+        } else if (p.type === 'mapped') {
+            const v = value as NamedParams;
+            if (typeof v.name !== 'string') {
+                return p.defaultValue;
+            }
+            if (typeof v.params === 'undefined') {
+                return defaultIfUndefined ? p.defaultValue : void 0;
+            }
+
+            const options = !!p.select._optionSet?.has
+                ? p.select._optionSet
+                : (p.select._optionSet = new Set(p.select.options.map(o => o[0])));
+            if (!options.has(v.name)) {
+                return p.defaultValue;
+            }
+
+            const param = p.map(v.name);
+            return {
+                name: v.name,
+                params: normalizeParam(param, v.params, defaultIfUndefined)
+            };
+        } else if (p.type === 'select') {
+            const options = !!p._optionSet?.has
+                ? p._optionSet
+                : (p._optionSet = new Set(p.options.map(o => o[0])));
+            if (!options.has(value)) return p.defaultValue;
+            return value;
+        } else if (p.type === 'multi-select') {
+            const options = !!p._optionSet?.has
+                ? p._optionSet
+                : (p._optionSet = new Set(p.options.map(o => o[0])));
+            if (!Array.isArray(value)) return p.defaultValue;
+            const ret = value.filter(function (this: Set<any>, v: any) { return this.has(v); }, options);
+            if (value.length > 0 && ret.length === 0) return p.defaultValue;
+            return ret;
+        } else if (p.type === 'object-list') {
+            if (!Array.isArray(value)) return p.defaultValue;
+            return value.map(v => normalizeParams(p.element, v, defaultIfUndefined));
+        }
+
+        // TODO: validate/normalize all param types "properly"??
+
+        return value;
+    }
+
+    export function normalizeParams(p: Params, value: any, defaultIfUndefined: boolean) {
+        if (typeof value !== 'object') {
+            return defaultIfUndefined ? getDefaultValues(p) : value;
+        }
+
+        const ret = { ...value };
+        for (const key of Object.keys(p)) {
+            const param = p[key];
+            if (ret[key] === void 0) {
+                if (defaultIfUndefined) ret[key] = param.defaultValue;
+            } else {
+                ret[key] = normalizeParam(param, ret[key], defaultIfUndefined);
+            }
+        }
+        return ret;
     }
 
     /**

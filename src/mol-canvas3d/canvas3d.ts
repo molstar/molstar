@@ -628,9 +628,11 @@ namespace Canvas3D {
             reprCount,
             resized,
             setProps: (properties, doNotRequestDraw = false) => {
-                const props: PartialCanvas3DProps = typeof properties === 'function'
+                let props: PartialCanvas3DProps = typeof properties === 'function'
                     ? produce(getProps(), properties)
                     : properties;
+
+                props = PD.normalizeParams(Canvas3DParams, props, false);
 
                 const cameraState: Partial<Camera.Snapshot> = Object.create(null);
                 if (props.camera && props.camera.mode !== undefined && props.camera.mode !== camera.state.mode) {
