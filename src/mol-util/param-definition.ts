@@ -555,11 +555,14 @@ export namespace ParamDefinition {
             return defaultIfUndefined ? p.defaultValue : void 0;
         }
 
-        if (typeof p.defaultValue !== typeof value) {
-            return p.defaultValue;
-        }
+        // TODO: is this a good idea and will work well?
+        // if (typeof p.defaultValue !== typeof value) {
+        //     return p.defaultValue;
+        // }
 
-        if (p.type === 'group') {
+        if (p.type === 'value') {
+            return value;
+        } else if (p.type === 'group') {
             const ret = { ...value };
             for (const key of Object.keys(p.params)) {
                 const param = p.params[key];

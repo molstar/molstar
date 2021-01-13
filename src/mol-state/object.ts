@@ -80,6 +80,8 @@ interface StateObjectCell<T extends StateObject = StateObject, F extends StateTr
         values: any
     } | undefined,
 
+    paramsNormalized: boolean,
+
     dependencies: {
         dependentBy: StateObjectCell[],
         dependsOn: StateObjectCell[]
