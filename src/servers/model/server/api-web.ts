@@ -49,14 +49,14 @@ export function createResultWriter(response: express.Response, params: ResultWri
     const filenameBase = params.entryId && params.queryName
         ? `${params.entryId}_${splitCamelCase(params.queryName.replace(/\s/g, '_'), '-').toLowerCase()}`
         : `result`;
-    return new SimpleResponseResultWriter(`${filenameBase}.${params.encoding}`, response, params.encoding === 'bcif', params.download);
+    return new SimpleResponseResultWriter(params.filename || `${filenameBase}.${params.encoding}`, response, params.encoding === 'bcif', params.download);
 }
 
 function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
     function createJob(queryParams: any, req: express.Request, res: express.Response) {
         const entryId = req.params.id;
         const commonParams = normalizeRestCommonParams(req.query);
-        const resultWriterParams = { encoding: commonParams.encoding!, download: !!commonParams.download, entryId, queryName };
+        const resultWriterParams = { encoding: commonParams.encoding!, download: !!commonParams.download, filename: commonParams.filename!, entryId, queryName };
         const jobId = JobManager.add({
             entries: [JobEntry({
                 sourceId: commonParams.data_source || ModelServerConfig.defaultSource,
@@ -123,7 +123,7 @@ function serveStatic(req: express.Request, res: express.Response) {
 function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
     const writer = spec.asTarGz
         ? new TarballResponseResultWriter(getMultiQuerySpecFilename(), res)
-        : createResultWriter(res, { encoding: spec.encoding!, download: !!spec.download });
+        : createResultWriter(res, { encoding: spec.encoding!, download: !!spec.download, filename: spec.filename });
 
     if (spec.queries.length > ModelServerConfig.maxQueryManyQueries) {
         writer.doError(400, `query-many queries limit (${ModelServerConfig.maxQueryManyQueries}) exceeded.`);

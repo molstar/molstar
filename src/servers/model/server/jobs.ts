@@ -59,6 +59,7 @@ interface JobEntryDefinition<Name extends QueryName> {
 export interface ResultWriterParams {
     encoding: Encoding,
     download: boolean,
+    filename?: string,
     entryId?: string,
     queryName?: string
 }
