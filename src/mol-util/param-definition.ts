@@ -582,7 +582,9 @@ export namespace ParamDefinition {
                 return defaultIfUndefined ? p.defaultValue : void 0;
             }
 
-            const options = p.select._optionSet ?? (p.select._optionSet = new Set(p.select.options.map(o => o[0])));
+            const options = !!p.select._optionSet?.has
+                ? p.select._optionSet
+                : (p.select._optionSet = new Set(p.select.options.map(o => o[0])));
             if (!options.has(v.name)) {
                 return p.defaultValue;
             }
@@ -593,11 +595,15 @@ export namespace ParamDefinition {
                 params: normalizeParam(param, v.params, defaultIfUndefined)
             };
         } else if (p.type === 'select') {
-            const options = p._optionSet ?? (p._optionSet = new Set(p.options.map(o => o[0])));
+            const options = !!p._optionSet?.has
+                ? p._optionSet
+                : (p._optionSet = new Set(p.options.map(o => o[0])));
             if (!options.has(value)) return p.defaultValue;
             return value;
         } else if (p.type === 'multi-select') {
-            const options = p._optionSet ?? (p._optionSet = new Set(p.options.map(o => o[0])));
+            const options = !!p._optionSet?.has
+                ? p._optionSet
+                : (p._optionSet = new Set(p.options.map(o => o[0])));
             if (!Array.isArray(value)) return p.defaultValue;
             const ret = value.filter(function (this: Set<any>, v: any) { return this.has(v); }, options);
             if (value.length > 0 && ret.length === 0) return p.defaultValue;
@@ -612,7 +618,7 @@ export namespace ParamDefinition {
         return value;
     }
 
-    export function normalizeParams(p: Params, value: any, defaultIfUndefined = true) {
+    export function normalizeParams(p: Params, value: any, defaultIfUndefined: boolean) {
         if (typeof value !== 'object') {
             return defaultIfUndefined ? getDefaultValues(p) : value;
         }
