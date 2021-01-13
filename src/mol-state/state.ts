@@ -847,7 +847,7 @@ function resolveParams(ctx: UpdateContext, transform: StateTransform, src: State
     const definition = prms ? prms(src, ctx.parent.globalContext) : {};
 
     if (!cell.paramsNormalized) {
-        (transform.params as any) = ParamDefinition.normalizeParams(definition, transform.params, true);
+        (transform.params as any) = ParamDefinition.normalizeParams(definition, transform.params, 'all', false);
         cell.paramsNormalized = true;
     } else {
         const defaultValues = ParamDefinition.getDefaultValues(definition);
