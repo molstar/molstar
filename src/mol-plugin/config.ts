@@ -26,7 +26,8 @@ export const PluginConfig = {
         DisableAntialiasing: item('plugin-config.disable-antialiasing', false),
         PixelScale: item('plugin-config.pixel-scale', 1),
         PickScale: item('plugin-config.pick-scale', 0.25),
-        EnableWboit: item('plugin-config.enable-wboit', false)
+        EnableWboit: item('plugin-config.enable-wboit', false),
+        ForceWboitAntialiasing: item('plugin-config.force-wboit-antialiasing', false),
     },
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),

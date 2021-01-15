@@ -150,8 +150,8 @@ namespace Canvas3D {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
-    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, attribs: Partial<{ antialias: boolean, pixelScale: number, pickScale: number, enableWboit: boolean }> = {}) {
-        const antialias = (attribs.antialias ?? true) && !attribs.enableWboit;
+    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, attribs: Partial<{ antialias: boolean, forceAntialias: boolean, pixelScale: number, pickScale: number, enableWboit: boolean }> = {}) {
+        const antialias = !!attribs.forceAntialias || ((attribs.antialias ?? true) && !attribs.enableWboit);
         const gl = getGLContext(canvas, {
             alpha: true,
             antialias,

@@ -192,7 +192,8 @@ export class PluginContext {
             const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
             const pickScale = this.config.get(PluginConfig.General.PickScale) || 0.25;
             const enableWboit = this.config.get(PluginConfig.General.EnableWboit) || false;
-            (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas, {}, { antialias, pixelScale, enableWboit, pickScale });
+            const forceWboitAntialias = !(this.config.get(PluginConfig.General.ForceWboitAntialiasing) ?? false);
+            (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas, {}, { antialias, forceAntialias: forceWboitAntialias, pixelScale, enableWboit, pickScale });
             this.canvas3dInit.next(true);
             let props = this.spec.components?.viewport?.canvas3d;
 
