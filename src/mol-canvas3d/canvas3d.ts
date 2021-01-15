@@ -712,6 +712,8 @@ namespace Canvas3D {
                 controls.dispose();
                 renderer.dispose();
                 interactionHelper.dispose();
+
+                gl.getExtension('WEBGL_lose_context')?.loseContext();
             }
         };
 
