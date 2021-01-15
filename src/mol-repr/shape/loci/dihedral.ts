@@ -53,6 +53,11 @@ const ExtendersParams = {
 };
 type ExtendersParams = typeof ExtendersParams
 
+const ArmsParams = {
+    ...LinesParams
+};
+type ArmsParams = typeof ArmsParams
+
 const ArcParams = {
     ...LinesParams
 };
@@ -70,6 +75,7 @@ const DihedralVisuals = {
     'vectors': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, VectorsParams>) => ShapeRepresentation(getVectorsShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'extenders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ExtendersParams>) => ShapeRepresentation(getExtendersShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'connector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ExtendersParams>) => ShapeRepresentation(getConnectorShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
+    'arms': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ArmsParams>) => ShapeRepresentation(getArmsShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'arc': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ArcParams>) => ShapeRepresentation(getArcShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }), modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
     'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, LociLabelTextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, markerActions: MarkerAction.None }) }),
@@ -78,6 +84,7 @@ const DihedralVisuals = {
 export const DihedralParams = {
     ...VectorsParams,
     ...ExtendersParams,
+    ...ArmsParams,
     ...ArcParams,
     ...SectorParams,
     ...LociLabelTextParams,
@@ -155,12 +162,12 @@ function setDihedralState(quad: Loci.Bundle<4>, state: DihedralState, arcScale: 
 
     Vec3.matchDirection(tmpVec, arcNormal, Vec3.sub(tmpVec, arcPointA, sphereA.center));
     const angleA = Vec3.angle(dirBA, tmpVec);
-    const lenA = radius / Math.cos(angleA > halfPI ? angleA - halfPI : angleA);
+    const lenA = radius / Math.cos(angleA - halfPI);
     Vec3.add(projA, sphereB.center, Vec3.setMagnitude(tmpVec, dirBA, lenA));
 
     Vec3.matchDirection(tmpVec, arcNormal, Vec3.sub(tmpVec, arcPointD, sphereD.center));
     const angleD = Vec3.angle(dirCD, tmpVec);
-    const lenD = radius / Math.cos(angleD > halfPI ? angleD - halfPI : angleD);
+    const lenD = radius / Math.cos(angleD - halfPI);
     Vec3.add(projD, sphereC.center, Vec3.setMagnitude(tmpVec, dirCD, lenD));
 
     return state;
@@ -215,6 +222,24 @@ function buildConnectorLine(data: DihedralData, props: DihedralProps, lines?: Li
 
 function getConnectorShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Lines>) {
     const lines = buildConnectorLine(data, props, shape && shape.geometry);
+    const name = getDihedralName(data);
+    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, () => '');
+}
+
+//
+
+function buildArmsLines(data: DihedralData, props: DihedralProps, lines?: Lines): Lines {
+    const builder = LinesBuilder.create(128, 64, lines);
+    for (let i = 0, il = data.quads.length; i < il; ++i) {
+        setDihedralState(data.quads[i], tmpState, props.arcScale);
+        builder.addFixedLengthDashes(tmpState.sphereB.center, tmpState.sphereA.center, props.dashLength, i);
+        builder.addFixedLengthDashes(tmpState.sphereC.center, tmpState.sphereD.center, props.dashLength, i);
+    }
+    return builder.getLines();
+}
+
+function getArmsShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Lines>) {
+    const lines = buildArmsLines(data, props, shape && shape.geometry);
     const name = getDihedralName(data);
     return Shape.create(name, data, lines, () => props.color, () => props.linesSize, () => '');
 }
@@ -299,7 +324,8 @@ function buildText(data: DihedralData, props: DihedralProps, text?: Text): Text 
         Vec3.setMagnitude(tmpVec, tmpVec, tmpState.radius);
         Vec3.add(tmpVec, tmpState.arcCenter, tmpVec);
 
-        const angle = radToDeg(tmpState.angle).toFixed(2);
+        let angle = radToDeg(tmpState.angle).toFixed(2);
+        if (angle === '-0.00') angle = '0.00';
         const label =  props.customText || `${angle}\u00B0`;
         const radius = Math.max(2, tmpState.sphereA.radius, tmpState.sphereB.radius, tmpState.sphereC.radius, tmpState.sphereD.radius);
         const scale = radius / 2;
