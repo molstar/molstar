@@ -17,7 +17,7 @@ export function eachVolumeLoci(loci: Loci, volume: Volume, isoValue: Volume.IsoV
     } else if (Volume.Isosurface.isLoci(loci)) {
         if (!Volume.areEquivalent(loci.volume, volume)) return false;
         if (isoValue) {
-            if (Volume.IsoValue.areSame(loci.isoValue, isoValue, volume.grid.stats)) return false;
+            if (!Volume.IsoValue.areSame(loci.isoValue, isoValue, volume.grid.stats)) return false;
             if (apply(Interval.ofLength(volume.grid.cells.data.length))) changed = true;
         } else {
             // TODO find a cheaper way?
