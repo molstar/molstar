@@ -173,7 +173,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     program.bindTextures(sharedTexturesList, 0);
                     program.bindTextures(textures, sharedTexturesList.length);
                 } else {
-                    program.bindTextures(textures);
+                    program.bindTextures(textures, 0);
                 }
             } else {
                 const vertexArray = vertexArrays[variant];
@@ -191,7 +191,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     program.bindTextures(sharedTexturesList, 0);
                     program.bindTextures(textures, sharedTexturesList.length);
                 } else {
-                    program.bindTextures(textures);
+                    program.bindTextures(textures, 0);
                 }
                 if (vertexArray) {
                     vertexArray.bind();

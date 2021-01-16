@@ -31,15 +31,12 @@ const vec3 c5 = vec3(1., 0., 1.);
 const vec3 c6 = vec3(1., 1., 1.);
 const vec3 c7 = vec3(0., 1., 1.);
 
-const float EPS = 0.00001;
-
 vec3 index3dFrom2d(vec2 coord) {
     vec2 gridTexPos = coord * uGridTexDim.xy;
     vec2 columnRow = floor(gridTexPos / uGridDim.xy);
     vec2 posXY = gridTexPos - columnRow * uGridDim.xy;
     float posZ = columnRow.y * floor(uGridTexDim.x / uGridDim.x) + columnRow.x;
-    vec3 posXYZ = vec3(posXY, posZ);
-    return posXYZ;
+    return vec3(posXY, posZ);
 }
 
 vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) {
@@ -51,7 +48,7 @@ vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) 
 }
 
 vec4 voxel(vec3 pos) {
-    return texture3dFrom2dNearest(tVolumeData, pos, uGridDim, uGridTexDim.xy);
+    return texture3dFrom2dNearest(tVolumeData, pos / uGridDim, uGridDim, uGridTexDim.xy);
 }
 
 void main(void) {
@@ -173,27 +170,34 @@ void main(void) {
     // b0 = floor(b0 + 0.5);
     // b1 = floor(b1 + 0.5);
 
-    vec4 d0 = voxel(b0 / uGridDim);
-    vec4 d1 = voxel(b1 / uGridDim);
+    vec4 d0 = voxel(b0);
+    vec4 d1 = voxel(b1);
 
     float v0 = d0.a;
     float v1 = d1.a;
 
     float t = (uIsoValue - v0) / (v0 - v1);
-    // t = -0.5;
     gl_FragData[0].xyz = (uGridTransform * vec4(b0 + t * (b0 - b1), 1.0)).xyz;
-    gl_FragData[0].w = decodeFloatRGB(d0.rgb); // group id
+
+    // group id
+    #if __VERSION__ == 100
+        // webgl1 does not support 'flat' interpolation (i.e. no interpolation)
+        // so we provide a constant that stands for 'unknown-group'
+        gl_FragData[0].w = 16777216.0;
+    #else
+        gl_FragData[0].w = t < 0.5 ? decodeFloatRGB(d0.rgb) : decodeFloatRGB(d1.rgb);
+    #endif
 
     // normals from gradients
     vec3 n0 = -normalize(vec3(
-        voxel((b0 - c1) / uGridDim).a - voxel((b0 + c1) / uGridDim).a,
-        voxel((b0 - c3) / uGridDim).a - voxel((b0 + c3) / uGridDim).a,
-        voxel((b0 - c4) / uGridDim).a - voxel((b0 + c4) / uGridDim).a
+        voxel(b0 - c1).a - voxel(b0 + c1).a,
+        voxel(b0 - c3).a - voxel(b0 + c3).a,
+        voxel(b0 - c4).a - voxel(b0 + c4).a
     ));
     vec3 n1 = -normalize(vec3(
-        voxel((b1 - c1) / uGridDim).a - voxel((b1 + c1) / uGridDim).a,
-        voxel((b1 - c3) / uGridDim).a - voxel((b1 + c3) / uGridDim).a,
-        voxel((b1 - c4) / uGridDim).a - voxel((b1 + c4) / uGridDim).a
+        voxel(b1 - c1).a - voxel(b1 + c1).a,
+        voxel(b1 - c3).a - voxel(b1 + c3).a,
+        voxel(b1 - c4).a - voxel(b1 + c4).a
     ));
     gl_FragData[1].xyz = -vec3(
         n0.x + t * (n0.x - n1.x),

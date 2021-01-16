@@ -173,7 +173,11 @@ export interface Texture {
     getByteCount: () => number
 
     define: (width: number, height: number, depth?: number) => void
-    load: (image: TextureImage<any> | TextureVolume<any>) => void
+    /**
+     * The `sub` option requires an existing allocation on the GPU, that is, either
+     * `define` or `load` without `sub` must have been called before.
+     */
+    load: (image: TextureImage<any> | TextureVolume<any>, sub?: boolean) => void
     bind: (id: TextureId) => void
     unbind: (id: TextureId) => void
     /** Use `layer` to attach a z-slice of a 3D texture */
@@ -246,7 +250,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         }
     }
 
-    function load(data: TextureImage<any> | TextureVolume<any>) {
+    function load(data: TextureImage<any> | TextureVolume<any>, sub = false) {
         gl.bindTexture(target, texture);
         // unpack alignment of 1 since we use textures only for data
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
@@ -254,12 +258,20 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
         if (isTexture2d(data, target, gl)) {
             gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, !!data.flipY);
-            width = data.width, height = data.height;
-            gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, data.array);
+            if (sub) {
+                gl.texSubImage2D(target, 0, 0, 0, data.width, data.height, format, type, data.array);
+            } else {
+                width = data.width, height = data.height;
+                gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, data.array);
+            }
         } else if (isWebGL2(gl) && isTexture3d(data, target, gl)) {
             gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-            width = data.width, height = data.height, depth = data.depth;
-            gl.texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, data.array);
+            if (sub) {
+                gl.texSubImage3D(target, 0, 0, 0, 0, data.width, data.height, data.depth, format, type, data.array);
+            } else {
+                width = data.width, height = data.height, depth = data.depth;
+                gl.texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, data.array);
+            }
         } else {
             throw new Error('unknown texture target');
         }
@@ -317,11 +329,8 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
             texture = getTexture(gl);
             init();
 
-            if (loadedData) {
-                load(loadedData);
-            } else {
-                define(width, height, depth);
-            }
+            define(width, height, depth);
+            if (loadedData) load(loadedData);
         },
         destroy: () => {
             if (destroyed) return;

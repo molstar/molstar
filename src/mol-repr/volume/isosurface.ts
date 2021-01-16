@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,9 +20,13 @@ import { RepresentationContext, RepresentationParamsGetter, Representation } fro
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
-import { Tensor } from '../../mol-math/linear-algebra';
+import { Tensor, Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { fillSerial } from '../../mol-util/array';
-import { eachVolumeLoci } from './util';
+import { createVolumeTexture2d, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
+import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
+import { calcActiveVoxels } from '../../mol-gl/compute/marching-cubes/active-voxels';
+import { createHistogramPyramid } from '../../mol-gl/compute/histogram-pyramid/reduction';
+import { createIsosurfaceBuffers } from '../../mol-gl/compute/marching-cubes/isosurface';
 
 export const VolumeIsosurfaceParams = {
     isoValue: Volume.IsoValueParam
@@ -91,6 +95,80 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
 
 //
 
+async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Volume, theme: Theme, props: VolumeIsosurfaceProps, textureMesh?: TextureMesh) {
+    if (!ctx.webgl) throw new Error('webgl context required to create volume isosurface texture-mesh');
+
+    const { resources } = ctx.webgl;
+    if (!volume._propertyData['texture2d']) {
+        // TODO: handle disposal
+        volume._propertyData['texture2d'] = resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+    }
+    const texture = volume._propertyData['texture2d'];
+
+    const padding = 1;
+    const transform = Grid.getGridToCartesianTransform(volume.grid);
+    const gridDimension = Vec3.clone(volume.grid.cells.space.dimensions as Vec3);
+    const { width, height, powerOfTwoSize: texDim } = getVolumeTexture2dLayout(gridDimension, padding);
+    const gridTexDim = Vec3.create(width, height, 0);
+    const gridTexScale = Vec2.create(width / texDim, height / texDim);
+    // console.log({ texDim, width, height, gridDimension });
+
+    if (!textureMesh) {
+        // set to power-of-two size required for histopyramid calculation
+        texture.define(texDim, texDim);
+        // load volume into sub-section of texture
+        texture.load(createVolumeTexture2d(volume, 'groups', padding), true);
+    }
+
+    const { max, min } = volume.grid.stats;
+    const diff = max - min;
+    const value = Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue;
+    const isoLevel = ((value - min) / diff);
+
+    gridDimension[0] += padding;
+    gridDimension[1] += padding;
+
+    // console.time('calcActiveVoxels');
+    const activeVoxelsTex = calcActiveVoxels(ctx.webgl, texture, gridDimension, gridTexDim, isoLevel, gridTexScale);
+    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // console.timeEnd('calcActiveVoxels');
+
+    // console.time('createHistogramPyramid');
+    const compacted = createHistogramPyramid(ctx.webgl, activeVoxelsTex, gridTexScale, gridTexDim);
+    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // console.timeEnd('createHistogramPyramid');
+
+    // console.time('createIsosurfaceBuffers');
+    const gv = createIsosurfaceBuffers(ctx.webgl, activeVoxelsTex, texture, compacted, gridDimension, gridTexDim, transform, isoLevel, textureMesh ? textureMesh.vertexGroupTexture.ref.value : undefined, textureMesh ? textureMesh.normalTexture.ref.value : undefined);
+    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // console.timeEnd('createIsosurfaceBuffers');
+
+    const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, Volume.getBoundingSphere(volume), textureMesh);
+    // console.log({
+    //     renderables: ctx.webgl.namedComputeRenderables,
+    //     framebuffers: ctx.webgl.namedFramebuffers,
+    //     textures: ctx.webgl.namedTextures,
+    // });
+    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    return surface;
+}
+
+export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<IsosurfaceMeshParams> {
+    return VolumeVisual<TextureMesh, IsosurfaceMeshParams>({
+        defaultProps: PD.getDefaultValues(IsosurfaceMeshParams),
+        createGeometry: createVolumeIsosurfaceTextureMesh,
+        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, 1, () => NullLocation),
+        getLoci: getIsosurfaceLoci,
+        eachLocation: eachIsosurface,
+        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
+            if (!Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)) state.createGeometry = true;
+        },
+        geometryUtils: TextureMesh.Utils
+    }, materialId);
+}
+
+//
+
 export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume: Volume, theme: Theme, props: VolumeIsosurfaceProps, lines?: Lines) {
     ctx.runtime.update({ message: 'Marching cubes...' });
 
@@ -136,6 +214,8 @@ export function IsosurfaceWireframeVisual(materialId: number): VolumeVisual<Isos
 
 const IsosurfaceVisuals = {
     'solid': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, IsosurfaceMeshParams>) => VolumeRepresentation('Isosurface mesh', ctx, getParams, IsosurfaceMeshVisual, getLoci),
+    // TODO: don't enable yet as it breaks state sessions
+    // 'solid-gpu': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, IsosurfaceMeshParams>) => VolumeRepresentation('Isosurface texture-mesh', ctx, getParams, IsosurfaceTextureMeshVisual, getLoci),
     'wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, IsosurfaceWireframeParams>) => VolumeRepresentation('Isosurface wireframe', ctx, getParams, IsosurfaceWireframeVisual, getLoci),
 };
 
