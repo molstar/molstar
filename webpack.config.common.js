@@ -39,7 +39,7 @@ const sharedConfig = {
         new VersionFile({
             extras: { timestamp: `${new Date().valueOf()}` },
             packageFile: path.resolve(__dirname, 'package.json'),
-            templateString: `export const PLUGIN_VERSION = '<%= package.version %>';\nexport const PLUGIN_VERSION_DATE = new Date(typeof __MOLSTAR_DEBUG_TIMESTAMP__ !== 'undefined' ? __MOLSTAR_DEBUG_TIMESTAMP__ : <%= extras.timestamp %>);`,
+            templateString: `export var PLUGIN_VERSION = '<%= package.version %>';\nexport var PLUGIN_VERSION_DATE = new Date(typeof __MOLSTAR_DEBUG_TIMESTAMP__ !== 'undefined' ? __MOLSTAR_DEBUG_TIMESTAMP__ : <%= extras.timestamp %>);`,
             outputFile: path.resolve(__dirname, 'lib/mol-plugin/version.js')
         })
     ],
