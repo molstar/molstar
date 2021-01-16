@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -24,10 +24,10 @@ export const PluginConfig = {
     General: {
         IsBusyTimeoutMs: item('plugin-config.is-busy-timeout', 750),
         DisableAntialiasing: item('plugin-config.disable-antialiasing', false),
+        DisablePreserveDrawingBuffer: item('plugin-config.disable-preserve-drawing-buffer', false),
         PixelScale: item('plugin-config.pixel-scale', 1),
         PickScale: item('plugin-config.pick-scale', 0.25),
         EnableWboit: item('plugin-config.enable-wboit', false),
-        ForceWboitAntialiasing: item('plugin-config.force-wboit-antialiasing', false),
     },
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),

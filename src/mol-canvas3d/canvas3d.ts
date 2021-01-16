@@ -150,14 +150,24 @@ namespace Canvas3D {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
-    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, attribs: Partial<{ antialias: boolean, forceAntialias: boolean, pixelScale: number, pickScale: number, enableWboit: boolean }> = {}) {
-        const antialias = !!attribs.forceAntialias || ((attribs.antialias ?? true) && !attribs.enableWboit);
+
+    type Attribs = {
+        /** true by default to avoid issues with Safari (Jan 2021) */
+        antialias: boolean,
+        /** true to support multiple viewports with a single context */
+        preserveDrawingBuffer: boolean,
+        pixelScale: number,
+        pickScale: number,
+        enableWboit: boolean
+    }
+
+    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, attribs: Partial<Attribs> = {}) {
         const gl = getGLContext(canvas, {
-            alpha: true,
-            antialias,
-            depth: true,
-            preserveDrawingBuffer: true,
-            premultipliedAlpha: true,
+            antialias: attribs.antialias ?? true,
+            preserveDrawingBuffer: attribs.preserveDrawingBuffer ?? true,
+            alpha: true, // the renderer requires an alpha channel
+            depth: true, // the renderer requires a depth buffer
+            premultipliedAlpha: true, // the renderer outputs PMA
         });
         if (gl === null) throw new Error('Could not create a WebGL rendering context');
 
@@ -198,14 +208,6 @@ namespace Canvas3D {
             webgl.handleContextRestored();
             if (isDebugMode) console.log('context restored');
         }, false);
-
-        // disable postprocessing anti-aliasing if canvas anti-aliasing is enabled
-        if (antialias && !props.postprocessing?.antialiasing) {
-            props.postprocessing = {
-                ...DefaultCanvas3DParams.postprocessing,
-                antialiasing: { name: 'off', params: {} }
-            };
-        }
 
         return create(webgl, input, passes, props, { pixelScale });
     }

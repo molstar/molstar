@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -189,11 +189,11 @@ export class PluginContext {
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
 
             const antialias = !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false);
+            const preserveDrawingBuffer = !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false);
             const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
             const pickScale = this.config.get(PluginConfig.General.PickScale) || 0.25;
             const enableWboit = this.config.get(PluginConfig.General.EnableWboit) || false;
-            const forceWboitAntialias = !(this.config.get(PluginConfig.General.ForceWboitAntialiasing) ?? false);
-            (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas, {}, { antialias, forceAntialias: forceWboitAntialias, pixelScale, enableWboit, pickScale });
+            (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas, {}, { antialias, preserveDrawingBuffer, pixelScale, enableWboit, pickScale });
             this.canvas3dInit.next(true);
             let props = this.spec.components?.viewport?.canvas3d;
 
