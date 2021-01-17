@@ -256,10 +256,10 @@ export class PluginContext {
         return PluginCommands.State.RemoveObject(this, { state: this.state.data, ref: StateTransform.RootRef });
     }
 
-    dispose() {
+    dispose(options?: { doNotForceWebGLContextLoss?: boolean }) {
         if (this.disposed) return;
         this.commands.dispose();
-        this.canvas3d?.dispose();
+        this.canvas3d?.dispose(options);
         this.ev.dispose();
         this.state.dispose();
         this.managers.task.dispose();

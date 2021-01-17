@@ -135,7 +135,7 @@ interface Canvas3D {
     readonly stats: RendererStats
     readonly interaction: Canvas3dInteractionHelper['events']
 
-    dispose(): void
+    dispose(options?: { doNotForceWebGLContextLoss?: boolean }): void
 }
 
 const requestAnimationFrame = typeof window !== 'undefined'
@@ -705,7 +705,7 @@ namespace Canvas3D {
             get interaction() {
                 return interactionHelper.events;
             },
-            dispose: () => {
+            dispose: (options?: { doNotForceWebGLContextLoss?: boolean }) => {
                 contextRestoredSub.unsubscribe();
 
                 scene.clear();
@@ -715,7 +715,7 @@ namespace Canvas3D {
                 renderer.dispose();
                 interactionHelper.dispose();
 
-                gl.getExtension('WEBGL_lose_context')?.loseContext();
+                if (!options?.doNotForceWebGLContextLoss) gl.getExtension('WEBGL_lose_context')?.loseContext();
             }
         };
 
