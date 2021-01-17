@@ -182,8 +182,8 @@ void main(void) {
     // group id
     #if __VERSION__ == 100
         // webgl1 does not support 'flat' interpolation (i.e. no interpolation)
-        // so we provide a constant that stands for 'unknown-group'
-        gl_FragData[0].w = 16777216.0;
+        // so we ensure a constant group id per triangle
+        gl_FragData[0].w = decodeFloatRGB(voxel(coord3d).rgb);
     #else
         gl_FragData[0].w = t < 0.5 ? decodeFloatRGB(d0.rgb) : decodeFloatRGB(d1.rgb);
     #endif
