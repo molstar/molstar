@@ -8,7 +8,7 @@
 import produce, { setAutoFreeze } from 'immer';
 import { List } from 'immutable';
 import { merge } from 'rxjs';
-import { Canvas3D, DefaultCanvas3DParams } from '../mol-canvas3d/canvas3d';
+import { Canvas3D, Canvas3DContext, DefaultCanvas3DParams } from '../mol-canvas3d/canvas3d';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { Model, Structure } from '../mol-model/structure';
 import { DataBuilder } from '../mol-plugin-state/builder/data';
@@ -104,6 +104,7 @@ export class PluginContext {
         }
     } as const;
 
+    readonly canvas3dContext: Canvas3DContext | undefined;
     readonly canvas3d: Canvas3D | undefined;
     readonly animationLoop = new PluginAnimationLoop(this);
     readonly layout = new PluginLayout(this);
@@ -193,7 +194,8 @@ export class PluginContext {
             const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
             const pickScale = this.config.get(PluginConfig.General.PickScale) || 0.25;
             const enableWboit = this.config.get(PluginConfig.General.EnableWboit) || false;
-            (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas, {}, { antialias, preserveDrawingBuffer, pixelScale, enableWboit, pickScale });
+            (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, { antialias, preserveDrawingBuffer, pixelScale, pickScale, enableWboit });
+            (this.canvas3d as Canvas3D) = Canvas3D.create(this.canvas3dContext!);
             this.canvas3dInit.next(true);
             let props = this.spec.components?.viewport?.canvas3d;
 
@@ -259,7 +261,8 @@ export class PluginContext {
     dispose(options?: { doNotForceWebGLContextLoss?: boolean }) {
         if (this.disposed) return;
         this.commands.dispose();
-        this.canvas3d?.dispose(options);
+        this.canvas3d?.dispose();
+        this.canvas3dContext?.dispose(options);
         this.ev.dispose();
         this.state.dispose();
         this.managers.task.dispose();
