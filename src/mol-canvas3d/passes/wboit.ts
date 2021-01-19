@@ -89,13 +89,37 @@ export class WboitPass {
         }
     }
 
-    constructor(private webgl: WebGLContext, width: number, height: number) {
-        const { resources, extensions } = webgl;
-        const { drawBuffers, textureFloat, colorBufferFloat, depthTexture } = extensions;
+    reset() {
+        if (this._enabled) this._init();
+    }
+
+    private _init() {
+        const { extensions: { drawBuffers } } = this.webgl;
+
+        this.framebuffer.bind();
+        drawBuffers!.drawBuffers([
+            drawBuffers!.COLOR_ATTACHMENT0,
+            drawBuffers!.COLOR_ATTACHMENT1,
+        ]);
+
+        this.textureA.attachFramebuffer(this.framebuffer, 'color0');
+        this.textureB.attachFramebuffer(this.framebuffer, 'color1');
+    }
+
+    static isSupported(webgl: WebGLContext) {
+        const { extensions: { drawBuffers, textureFloat, colorBufferFloat, depthTexture } } = webgl;
         if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers) {
             if (isDebugMode) console.log('Missing extensions required for "wboit"');
-            return;
+            return false;
+        } else {
+            return true;
         }
+    }
+
+    constructor(private webgl: WebGLContext, width: number, height: number) {
+        if (!WboitPass.isSupported(webgl)) return;
+
+        const { resources } = webgl;
 
         this.textureA = resources.texture('image-float32', 'rgba', 'float', 'nearest');
         this.textureA.define(width, height);
@@ -104,17 +128,8 @@ export class WboitPass {
         this.textureB.define(width, height);
 
         this.renderable = getEvaluateWboitRenderable(webgl, this.textureA, this.textureB);
-
         this.framebuffer = resources.framebuffer();
-        this.framebuffer.bind();
-        drawBuffers.drawBuffers([
-            drawBuffers.COLOR_ATTACHMENT0,
-            drawBuffers.COLOR_ATTACHMENT1,
-        ]);
-
-        this.textureA.attachFramebuffer(this.framebuffer, 'color0');
-        this.textureB.attachFramebuffer(this.framebuffer, 'color1');
-
+        this._init();
         this._enabled = true;
     }
 }

@@ -193,7 +193,7 @@ export interface WebGLContext {
     readonly isContextLost: boolean
     readonly contextRestored: BehaviorSubject<now.Timestamp>
     setContextLost: () => void
-    handleContextRestored: () => void
+    handleContextRestored: (extraResets?: () => void) => void
 
     /** Cache for compute renderables, managed by consumers */
     readonly namedComputeRenderables: { [name: string]: ComputeRenderable<any> }
@@ -302,7 +302,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         setContextLost: () => {
             isContextLost = true;
         },
-        handleContextRestored: () => {
+        handleContextRestored: (extraResets?: () => void) => {
             Object.assign(extensions, createExtensions(gl));
 
             state.reset();
@@ -312,6 +312,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
 
             resources.reset();
             renderTargets.forEach(rt => rt.reset());
+            extraResets?.();
 
             isContextLost = false;
             contextRestored.next(now());

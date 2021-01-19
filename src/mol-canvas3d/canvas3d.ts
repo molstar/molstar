@@ -129,7 +129,8 @@ namespace Canvas3DContext {
         if (isDebugMode) {
             const loseContextExt = gl.getExtension('WEBGL_lose_context');
             if (loseContextExt) {
-                /** Hold down shift+ctrl+alt and press any mouse button to trigger lose context */
+                // Hold down shift+ctrl+alt and press any mouse button to call `loseContext`.
+                // After 1 second `restoreContext` will be called.
                 canvas.addEventListener('mousedown', e => {
                     if (webgl.isContextLost) return;
                     if (!e.shiftKey || !e.ctrlKey || !e.altKey) return;
@@ -159,7 +160,9 @@ namespace Canvas3DContext {
 
         const handlewWebglContextRestored = () => {
             if (!webgl.isContextLost) return;
-            webgl.handleContextRestored();
+            webgl.handleContextRestored(() => {
+                passes.draw.reset();
+            });
             if (isDebugMode) console.log('context restored');
         };
 
@@ -598,6 +601,10 @@ namespace Canvas3D {
 
         const contextRestoredSub = contextRestored.subscribe(() => {
             pickHelper.dirty = true;
+            draw(true);
+            // Unclear why, but in Chrome with wboit enabled the first `draw` only clears
+            // the drawingBuffer. Note that in Firefox the drawingBuffer is preserved after
+            // context loss so it is unclear if it behaves the same.
             draw(true);
         });
 

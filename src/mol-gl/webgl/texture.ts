@@ -329,7 +329,9 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
             texture = getTexture(gl);
             init();
 
-            define(width, height, depth);
+            const [_width, _height, _depth] = [width, height, depth];
+            width = 0, height = 0, depth = 0; // set to zero to trigger resize
+            define(_width, _height, _depth);
             if (loadedData) load(loadedData);
         },
         destroy: () => {

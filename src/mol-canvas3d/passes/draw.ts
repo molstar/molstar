@@ -95,6 +95,10 @@ export class DrawPass {
         this.wboit = enableWboit ? new WboitPass(webgl, width, height) : undefined;
     }
 
+    reset() {
+        this.wboit?.reset();
+    }
+
     setSize(width: number, height: number) {
         const w = this.colorTarget.getWidth();
         const h = this.colorTarget.getHeight();
