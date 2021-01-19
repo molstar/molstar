@@ -72,7 +72,7 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         this.events.updated.next();
     }
 
-    private root: HTMLElement | undefined;
+    root: HTMLElement | undefined;
     private rootState: RootState | undefined = void 0;
     private expandedViewport: HTMLMetaElement;
 

@@ -7,7 +7,7 @@
 
 import produce, { setAutoFreeze } from 'immer';
 import { List } from 'immutable';
-import { merge } from 'rxjs';
+import { merge, Subscription } from 'rxjs';
 import { Canvas3D, Canvas3DContext, DefaultCanvas3DParams } from '../mol-canvas3d/canvas3d';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { Model, Structure } from '../mol-model/structure';
@@ -61,6 +61,7 @@ import { VolumeHierarchyManager } from '../mol-plugin-state/manager/volume/hiera
 import { filter, take } from 'rxjs/operators';
 import { Vec2 } from '../mol-math/linear-algebra';
 import { PluginAnimationLoop } from './animation-loop';
+import { resizeCanvas } from '../mol-canvas3d/util';
 
 export class PluginContext {
     runTask = <T>(task: Task<T>, params?: { useOverlay?: boolean }) => this.managers.task.run(task, params);
@@ -69,6 +70,8 @@ export class PluginContext {
         if (Task.is(object)) return this.runTask(object);
         return object;
     }
+
+    private subs: Subscription[] = [];
 
     private disposed = false;
     private ev = RxEventHelper.create();
@@ -213,11 +216,30 @@ export class PluginContext {
             }
             this.animationLoop.start();
             (this.helpers.viewportScreenshot as ViewportScreenshotHelper) = new ViewportScreenshotHelper(this);
+
+            this.subs.push(this.canvas3d!.interaction.click.subscribe(e => this.behaviors.interaction.click.next(e)));
+            this.subs.push(this.canvas3d!.interaction.drag.subscribe(e => this.behaviors.interaction.drag.next(e)));
+            this.subs.push(this.canvas3d!.interaction.hover.subscribe(e => this.behaviors.interaction.hover.next(e)));
+            this.subs.push(this.canvas3d!.input.resize.subscribe(() => this.handleResize()));
+            this.subs.push(this.layout.events.updated.subscribe(() => requestAnimationFrame(() => this.handleResize())));
+
+            this.handleResize();
+
             return true;
         } catch (e) {
             this.log.error('' + e);
             console.error(e);
             return false;
+        }
+    }
+
+    handleResize() {
+        const canvas = this.canvas3dContext?.canvas;
+        const container = this.layout.root;
+        if (container && canvas) {
+            const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
+            resizeCanvas(canvas, container, pixelScale);
+            this.canvas3d?.requestResize();
         }
     }
 
@@ -260,6 +282,12 @@ export class PluginContext {
 
     dispose(options?: { doNotForceWebGLContextLoss?: boolean }) {
         if (this.disposed) return;
+
+        for (const s of this.subs) {
+            s.unsubscribe();
+        }
+        this.subs = [];
+
         this.commands.dispose();
         this.canvas3d?.dispose();
         this.canvas3dContext?.dispose(options);
@@ -276,9 +304,9 @@ export class PluginContext {
     }
 
     private initBehaviorEvents() {
-        merge(this.state.data.behaviors.isUpdating, this.state.behaviors.behaviors.isUpdating).subscribe(u => {
+        this.subs.push(merge(this.state.data.behaviors.isUpdating, this.state.behaviors.behaviors.isUpdating).subscribe(u => {
             if (this.behaviors.state.isUpdating.value !== u) this.behaviors.state.isUpdating.next(u);
-        });
+        }));
 
         const timeoutMs = this.config.get(PluginConfig.General.IsBusyTimeoutMs) || 750;
         const isBusy = this.behaviors.state.isBusy;
@@ -292,7 +320,7 @@ export class PluginContext {
             timeout = void 0;
         };
 
-        merge(this.behaviors.state.isUpdating, this.behaviors.state.isAnimating).subscribe(v => {
+        this.subs.push(merge(this.behaviors.state.isUpdating, this.behaviors.state.isAnimating).subscribe(v => {
             const isUpdating = this.behaviors.state.isUpdating.value;
             const isAnimating = this.behaviors.state.isAnimating.value;
 
@@ -305,13 +333,13 @@ export class PluginContext {
                 reset();
                 isBusy.next(false);
             }
-        });
+        }));
 
-        this.behaviors.interaction.selectionMode.subscribe(v => {
+        this.subs.push(this.behaviors.interaction.selectionMode.subscribe(v => {
             if (!v) {
                 this.managers.interactivity?.lociSelects.deselectAll();
             }
-        });
+        }));
     }
 
     private initBuiltInBehavior() {
@@ -320,7 +348,7 @@ export class PluginContext {
         BuiltInPluginBehaviors.Camera.registerDefault(this);
         BuiltInPluginBehaviors.Misc.registerDefault(this);
 
-        merge(this.state.data.events.log, this.state.behaviors.events.log).subscribe(e => this.events.log.next(e));
+        this.subs.push(merge(this.state.data.events.log, this.state.behaviors.events.log).subscribe(e => this.events.log.next(e)));
     }
 
     private async initBehaviors() {
@@ -379,7 +407,7 @@ export class PluginContext {
     }
 
     async init() {
-        this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e));
+        this.subs.push(this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e)));
 
         this.initCustomFormats();
         this.initBehaviorEvents();

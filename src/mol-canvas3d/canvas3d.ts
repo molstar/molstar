@@ -89,6 +89,7 @@ export { Canvas3DContext };
 
 /** Can be used to create multiple Canvas3D objects */
 interface Canvas3DContext {
+    readonly canvas: HTMLCanvasElement
     readonly webgl: WebGLContext
     readonly input: InputObserver
     readonly passes: Passes
@@ -170,6 +171,7 @@ namespace Canvas3DContext {
         canvas.addEventListener('webglcontextrestored', handlewWebglContextRestored, false);
 
         return {
+            canvas,
             webgl,
             input,
             passes,
@@ -224,6 +226,8 @@ interface Canvas3D {
     readonly resized: BehaviorSubject<any>
 
     handleResize(): void
+    /** performs handleResize on the next animation frame */
+    requestResize(): void
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
     requestCameraReset(options?: { durationMs?: number, snapshot?: Partial<Camera.Snapshot> }): void
     readonly camera: Camera
@@ -293,6 +297,7 @@ namespace Canvas3D {
         let cameraResetRequested = false;
         let nextCameraResetDuration: number | undefined = void 0;
         let nextCameraResetSnapshot: Partial<Camera.Snapshot> | undefined = void 0;
+        let resizeRequested = false;
 
         let notifyDidDraw = true;
 
@@ -335,6 +340,12 @@ namespace Canvas3D {
 
         function render(force: boolean) {
             if (webgl.isContextLost) return false;
+
+            if (resizeRequested) {
+                handleResize(false);
+                resizeRequested = false;
+            }
+
             if (x > gl.drawingBufferWidth || x + width < 0 ||
                 y > gl.drawingBufferHeight || y + height < 0
             ) return false;
@@ -610,6 +621,14 @@ namespace Canvas3D {
 
         const resized = new BehaviorSubject<any>(0);
 
+        function handleResize(draw = true) {
+            passes.updateSize();
+            updateViewport();
+            syncViewport();
+            if (draw) requestDraw(true);
+            resized.next(+new Date());
+        }
+
         return {
             webgl,
 
@@ -655,12 +674,9 @@ namespace Canvas3D {
             mark,
             getLoci,
 
-            handleResize: () => {
-                passes.updateSize();
-                updateViewport();
-                syncViewport();
-                requestDraw(true);
-                resized.next(+new Date());
+            handleResize,
+            requestResize: () => {
+                resizeRequested = true;
             },
             requestCameraReset: options => {
                 nextCameraResetDuration = options?.durationMs;
