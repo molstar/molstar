@@ -83,15 +83,15 @@ export namespace ParamDefinition {
         return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options, cycle: info?.cycle }, info);
     }
 
-    export interface MultiSelect<E extends string, T = E[]> extends Base<T> {
+    export interface MultiSelect<E extends string> extends Base<E[]> {
         type: 'multi-select'
         /** array of (value, label) tuples */
         options: readonly (readonly [E, string])[],
         emptyValue?: string
     }
-    export function MultiSelect<E extends string, T = E[]>(defaultValue: T, options: readonly (readonly [E, string])[], info?: Info & { emptyValue?: string }): MultiSelect<E, T> {
+    export function MultiSelect<E extends string>(defaultValue: E[], options: readonly (readonly [E, string])[], info?: Info & { emptyValue?: string }): MultiSelect<E> {
         // TODO: check if default value is a subset of options?
-        const ret = setInfo<MultiSelect<E, T>>({ type: 'multi-select', defaultValue, options }, info);
+        const ret = setInfo<MultiSelect<E>>({ type: 'multi-select', defaultValue, options }, info);
         if (info?.emptyValue) ret.emptyValue = info.emptyValue;
         return ret;
     }
