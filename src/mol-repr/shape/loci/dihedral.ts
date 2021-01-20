@@ -88,7 +88,7 @@ export const DihedralParams = {
     ...ArcParams,
     ...SectorParams,
     ...LociLabelTextParams,
-    visuals: PD.MultiSelect(['extenders', 'sector', 'text'], PD.objectToOptions(DihedralVisuals)),
+    visuals: PD.MultiSelect(['extenders', 'arms', 'sector', 'text'], PD.objectToOptions(DihedralVisuals)),
 };
 export type DihedralParams = typeof DihedralParams
 export type DihedralProps = PD.Values<DihedralParams>
