@@ -1,5 +1,6 @@
 export default `
 precision highp float;
+precision highp int;
 precision highp sampler2D;
 
 uniform sampler2D tActiveVoxelsPyramid;
@@ -21,8 +22,7 @@ uniform vec2 uScale;
 
 #include common
 
-// cube corners
-const vec3 c0 = vec3(0., 0., 0.);
+// cube corners (excluding origin)
 const vec3 c1 = vec3(1., 0., 0.);
 const vec3 c2 = vec3(1., 1., 0.);
 const vec3 c3 = vec3(0., 1., 0.);
@@ -33,21 +33,27 @@ const vec3 c7 = vec3(0., 1., 1.);
 
 vec3 index3dFrom2d(vec2 coord) {
     vec2 gridTexPos = coord * uGridTexDim.xy;
-    vec2 columnRow = floor(gridTexPos / uGridDim.xy);
+    vec2 columnRow = ivec2Div(gridTexPos, uGridDim.xy);
     vec2 posXY = gridTexPos - columnRow * uGridDim.xy;
-    float posZ = columnRow.y * floor(uGridTexDim.x / uGridDim.x) + columnRow.x;
+    float posZ = columnRow.y * intDiv(uGridTexDim.x, uGridDim.x) + columnRow.x;
     return vec3(posXY, posZ);
 }
 
 vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) {
     float zSlice = floor(pos.z * gridDim.z + 0.5); // round to nearest z-slice
-    float column = intMod(zSlice * gridDim.x, texDim.x) / gridDim.x;
-    float row = floor(intDiv(zSlice * gridDim.x, texDim.x));
+    float column = intDiv(intMod(zSlice * gridDim.x, texDim.x), gridDim.x);
+    float row = intDiv(zSlice * gridDim.x, texDim.x);
     vec2 coord = (vec2(column * gridDim.x, row * gridDim.y) + (pos.xy * gridDim.xy)) / (texDim / uScale);
     return texture2D(tex, coord + 0.5 / (texDim / uScale));
 }
 
 vec4 voxel(vec3 pos) {
+    pos = min(max(vec3(0.0), pos), uGridDim - vec3(1.0));
+    return texture3dFrom2dNearest(tVolumeData, pos / uGridDim, uGridDim, uGridTexDim.xy);
+}
+
+vec4 voxel2(vec3 pos) {
+    pos = min(max(vec3(0.0), pos), uGridDim - vec3(vec2(2.0), 1.0));
     return texture3dFrom2dNearest(tVolumeData, pos / uGridDim, uGridDim, uGridTexDim.xy);
 }
 
@@ -143,13 +149,13 @@ void main(void) {
     // vec3 b0 = coord3d;
     // vec3 b1 = coord3d;
     // if (mcIndex == 0.0) {
-    //     b0 += c0; b1 += c1;
+    //     b1 += c1;
     // } else if (mcIndex == 1.0) {
     //     b0 += c1; b1 += c2;
     // } else if (mcIndex == 2.0) {
     //     b0 += c2; b1 += c3;
     // } else if (mcIndex == 3.0) {
-    //     b0 += c3; b1 += c0;
+    //     b0 += c3;
     // } else if (mcIndex == 4.0) {
     //     b0 += c4; b1 += c5;
     // } else if (mcIndex == 5.0) {
@@ -159,7 +165,7 @@ void main(void) {
     // } else if (mcIndex == 7.0) {
     //     b0 += c7; b1 += c4;
     // } else if (mcIndex == 8.0) {
-    //     b0 += c0; b1 += c4;
+    //     b1 += c4;
     // } else if (mcIndex == 9.0) {
     //     b0 += c1; b1 += c5;
     // } else if (mcIndex == 10.0) {
@@ -190,14 +196,14 @@ void main(void) {
 
     // normals from gradients
     vec3 n0 = -normalize(vec3(
-        voxel(b0 - c1).a - voxel(b0 + c1).a,
-        voxel(b0 - c3).a - voxel(b0 + c3).a,
-        voxel(b0 - c4).a - voxel(b0 + c4).a
+        voxel2(b0 - c1).a - voxel2(b0 + c1).a,
+        voxel2(b0 - c3).a - voxel2(b0 + c3).a,
+        voxel2(b0 - c4).a - voxel2(b0 + c4).a
     ));
     vec3 n1 = -normalize(vec3(
-        voxel(b1 - c1).a - voxel(b1 + c1).a,
-        voxel(b1 - c3).a - voxel(b1 + c3).a,
-        voxel(b1 - c4).a - voxel(b1 + c4).a
+        voxel2(b1 - c1).a - voxel2(b1 + c1).a,
+        voxel2(b1 - c3).a - voxel2(b1 + c3).a,
+        voxel2(b1 - c4).a - voxel2(b1 + c4).a
     ));
     gl_FragData[1].xyz = -vec3(
         n0.x + t * (n0.x - n1.x),
