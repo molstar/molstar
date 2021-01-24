@@ -77,8 +77,7 @@ export namespace ParamDefinition {
         type: 'select'
         /** array of (value, label) tuples */
         options: readonly (readonly [T, string] | readonly [T, string, string | undefined])[]
-        cycle?: boolean,
-        _optionSet?: Set<T>
+        cycle?: boolean
     }
     export function Select<T>(defaultValue: T, options: readonly (readonly [T, string] | readonly [T, string, string | undefined])[], info?: Info & { cycle?: boolean }): Select<T> {
         return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options, cycle: info?.cycle }, info);
@@ -88,8 +87,7 @@ export namespace ParamDefinition {
         type: 'multi-select'
         /** array of (value, label) tuples */
         options: readonly (readonly [E, string])[],
-        emptyValue?: string,
-        _optionSet?: Set<E>
+        emptyValue?: string
     }
     export function MultiSelect<E extends string>(defaultValue: E[], options: readonly (readonly [E, string])[], info?: Info & { emptyValue?: string }): MultiSelect<E> {
         // TODO: check if default value is a subset of options?
@@ -550,6 +548,13 @@ export namespace ParamDefinition {
         }
     }
 
+    function selectHasOption(p: Select<any> | MultiSelect<any>, v: any) {
+        for (const o of p.options) {
+            if (o[0] === v) return true;
+        }
+        return false;
+    }
+
     function normalizeParam(p: Any, value: any, defaultIfUndefined: boolean, prune: boolean): any {
         if (value === void 0 || value === null) {
             return defaultIfUndefined ? p.defaultValue : void 0;
@@ -582,10 +587,7 @@ export namespace ParamDefinition {
                 return defaultIfUndefined ? p.defaultValue : void 0;
             }
 
-            const options = !!p.select._optionSet?.has
-                ? p.select._optionSet
-                : (p.select._optionSet = new Set(p.select.options.map(o => o[0])));
-            if (!options.has(v.name)) {
+            if (!selectHasOption(p.select, v.name)) {
                 return p.defaultValue;
             }
 
@@ -595,17 +597,11 @@ export namespace ParamDefinition {
                 params: normalizeParam(param, v.params, defaultIfUndefined, prune)
             };
         } else if (p.type === 'select') {
-            const options = !!p._optionSet?.has
-                ? p._optionSet
-                : (p._optionSet = new Set(p.options.map(o => o[0])));
-            if (!options.has(value)) return p.defaultValue;
+            if (!selectHasOption(p, value)) return p.defaultValue;
             return value;
         } else if (p.type === 'multi-select') {
-            const options = !!p._optionSet?.has
-                ? p._optionSet
-                : (p._optionSet = new Set(p.options.map(o => o[0])));
             if (!Array.isArray(value)) return p.defaultValue;
-            const ret = value.filter(function (this: Set<any>, v: any) { return this.has(v); }, options);
+            const ret = value.filter(function (this: MultiSelect<any>, v: any) { return selectHasOption(this, v); }, p);
             if (value.length > 0 && ret.length === 0) return p.defaultValue;
             return ret;
         } else if (p.type === 'object-list') {
@@ -619,7 +615,7 @@ export namespace ParamDefinition {
     }
 
     export function normalizeParams(p: Params, value: any, defaultIfUndefined: 'all' | 'children' | 'skip', prune: boolean) {
-        if (typeof value !== 'object') {
+        if (typeof value !== 'object' || value === null) {
             return defaultIfUndefined ? getDefaultValues(p) : value;
         }
 
