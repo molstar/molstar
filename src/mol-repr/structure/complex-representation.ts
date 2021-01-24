@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -20,9 +20,11 @@ import { Overpaint } from '../../mol-theme/overpaint';
 import { StructureParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { Transparency } from '../../mol-theme/transparency';
+import { WebGLContext } from '../../mol-gl/webgl/context';
 
-export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number) => ComplexVisual<P>): StructureRepresentation<P> {
+export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, props?: PD.Values<P>, webgl?: WebGLContext) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0;
+    const { webgl } = ctx;
     const updated = new Subject<number>();
     const materialId = getNextMaterialId();
     const renderObjects: GraphicsRenderObject[] = [];
@@ -45,15 +47,16 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
             let newVisual = false;
             if (!visual) {
-                visual = visualCtor(materialId);
+                visual = visualCtor(materialId, _props, webgl);
+                newVisual = true;
+            } else if (visual.mustRecreate?.(_props, webgl)) {
+                visual.destroy();
+                visual = visualCtor(materialId, _props, webgl);
                 newVisual = true;
             }
-            const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, structure);
+            const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, structure);
             if (promise) await promise;
-            if (newVisual) {
-                // ensure state is current for new visual
-                setState(_state);
-            }
+            if (newVisual) setState(_state); // current state for new visual
             // update list of renderObjects
             renderObjects.length = 0;
             if (visual && visual.renderObject) renderObjects.push(visual.renderObject);

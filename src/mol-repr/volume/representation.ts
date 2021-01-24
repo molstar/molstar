@@ -30,6 +30,7 @@ import { Subject } from 'rxjs';
 import { Task } from '../../mol-task';
 import { SizeValues } from '../../mol-gl/renderable/schema';
 import { Clipping } from '../../mol-theme/clipping';
+import { WebGLContext } from '../../mol-gl/webgl/context';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<Volume, P> { }
 
@@ -48,6 +49,7 @@ interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
     getLoci(pickingId: PickingId, volume: Volume, props: PD.Values<P>, id: number): Loci
     eachLocation(loci: Loci, volume: Volume, props: PD.Values<P>, apply: (interval: Interval) => boolean): boolean
     setUpdateState(state: VisualUpdateState, volume: Volume, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
+    mustRecreate?: (props: PD.Values<P>) => boolean
 }
 
 interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry> extends VolumeVisualBuilder<P, G> {
@@ -55,7 +57,7 @@ interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry
 }
 
 export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geometry.Params<G>>(builder: VolumeVisualGeometryBuilder<P, G>, materialId: number): VolumeVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder;
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate } = builder;
     const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
 
@@ -208,7 +210,8 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         destroy() {
             // TODO
             renderObject = undefined;
-        }
+        },
+        mustRecreate
     };
 }
 
@@ -224,8 +227,9 @@ export const VolumeParams = {
 };
 export type VolumeParams = typeof VolumeParams
 
-export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, P>, visualCtor: (materialId: number) => VolumeVisual<P>, getLoci: (volume: Volume, props: PD.Values<P>) => Loci): VolumeRepresentation<P> {
+export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, P>, visualCtor: (materialId: number, props?: PD.Values<P>, webgl?: WebGLContext) => VolumeVisual<P>, getLoci: (volume: Volume, props: PD.Values<P>) => Loci): VolumeRepresentation<P> {
     let version = 0;
+    const { webgl } = ctx;
     const updated = new Subject<number>();
     const materialId = getNextMaterialId();
     const renderObjects: GraphicsRenderObject[] = [];
@@ -247,8 +251,13 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         Object.assign(_props, props, qualityProps);
 
         return Task.create('Creating or updating VolumeRepresentation', async runtime => {
-            if (!visual) visual = visualCtor(materialId);
-            const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, volume);
+            if (!visual) {
+                visual = visualCtor(materialId, _props, webgl);
+            } else if (visual.mustRecreate?.(_props, webgl)) {
+                visual.destroy();
+                visual = visualCtor(materialId, _props, webgl);
+            }
+            const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, volume);
             if (promise) await promise;
             // update list of renderObjects
             renderObjects.length = 0;

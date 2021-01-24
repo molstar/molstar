@@ -7,7 +7,7 @@
 
 import { PositionData } from '../common';
 import { Box3D } from '../../geometry';
-import { GaussianDensityGPUProps, GaussianDensityData, GaussianDensityTextureData } from '../gaussian-density';
+import { GaussianDensityProps, GaussianDensityData, GaussianDensityTextureData } from '../gaussian-density';
 import { OrderedSet } from '../../../mol-data/int';
 import { Vec3, Tensor, Mat4, Vec2 } from '../../linear-algebra';
 import { ValueCell } from '../../../mol-util';
@@ -68,7 +68,7 @@ function getTexture(name: string, webgl: WebGLContext, kind: TextureKind, format
     return webgl.namedTextures[_name];
 }
 
-export function GaussianDensityGPU(position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, webgl: WebGLContext): GaussianDensityData {
+export function GaussianDensityGPU(position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, webgl: WebGLContext): GaussianDensityData {
     // always use texture2d when the gaussian density needs to be downloaded from the GPU,
     // it's faster than texture3d
     // console.time('GaussianDensityTexture2d')
@@ -81,17 +81,17 @@ export function GaussianDensityGPU(position: PositionData, box: Box3D, radius: (
     return { field, idField, transform: getTransform(scale, bbox), radiusFactor };
 }
 
-export function GaussianDensityTexture(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, oldTexture?: Texture): GaussianDensityTextureData {
+export function GaussianDensityTexture(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): GaussianDensityTextureData {
     return webgl.isWebGL2 ?
         GaussianDensityTexture3d(webgl, position, box, radius, props, oldTexture) :
         GaussianDensityTexture2d(webgl, position, box, radius, false, props, oldTexture);
 }
 
-export function GaussianDensityTexture2d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, powerOfTwo: boolean, props: GaussianDensityGPUProps, oldTexture?: Texture): GaussianDensityTextureData {
+export function GaussianDensityTexture2d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, powerOfTwo: boolean, props: GaussianDensityProps, oldTexture?: Texture): GaussianDensityTextureData {
     return finalizeGaussianDensityTexture(calcGaussianDensityTexture2d(webgl, position, box, radius, powerOfTwo, props, oldTexture));
 }
 
-export function GaussianDensityTexture3d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, oldTexture?: Texture): GaussianDensityTextureData {
+export function GaussianDensityTexture3d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): GaussianDensityTextureData {
     return finalizeGaussianDensityTexture(calcGaussianDensityTexture3d(webgl, position, box, radius, props, oldTexture));
 }
 
@@ -118,7 +118,7 @@ type _GaussianDensityTextureData = {
     radiusFactor: number
 }
 
-function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, powerOfTwo: boolean, props: GaussianDensityGPUProps, texture?: Texture): _GaussianDensityTextureData {
+function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, powerOfTwo: boolean, props: GaussianDensityProps, texture?: Texture): _GaussianDensityTextureData {
     // console.log('2d');
     const { gl, resources, state, extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } } = webgl;
     const { smoothness, resolution } = props;
@@ -201,7 +201,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
     return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim, gridTexScale, radiusFactor };
 }
 
-function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, texture?: Texture): _GaussianDensityTextureData {
+function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture): _GaussianDensityTextureData {
     // console.log('3d');
     const { gl, resources, state, extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } } = webgl;
     const { smoothness, resolution } = props;
@@ -259,7 +259,7 @@ function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionDat
 
 //
 
-function prepareGaussianDensityData(position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps) {
+function prepareGaussianDensityData(position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps) {
     const { resolution, radiusOffset } = props;
     const scaleFactor = 1 / resolution;
 

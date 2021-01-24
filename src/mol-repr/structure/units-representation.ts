@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -24,11 +24,13 @@ import { Mat4, EPSILON } from '../../mol-math/linear-algebra';
 import { Interval } from '../../mol-data/int';
 import { StructureParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
+import { WebGLContext } from '../../mol-gl/webgl/context';
 
 export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
 
-export function UnitsRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number) => UnitsVisual<P>): StructureRepresentation<P> {
+export function UnitsRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, props?: PD.Values<P>, webgl?: WebGLContext) => UnitsVisual<P>): StructureRepresentation<P> {
     let version = 0;
+    const { webgl } = ctx;
     const updated = new Subject<number>();
     const materialId = getNextMaterialId();
     const renderObjects: GraphicsRenderObject[] = [];
@@ -57,11 +59,10 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                 _groups = structure.unitSymmetryGroups;
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
-                    const visual = visualCtor(materialId);
-                    const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure });
+                    const visual = visualCtor(materialId, _props, webgl);
+                    const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
                     if (promise) await promise;
-                    // ensure state is current for new visual
-                    setVisualState(visual, group, _state);
+                    setVisualState(visual, group, _state); // current state for new visual
                     visuals.set(group.hashCode, { visual, group });
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
                 }
@@ -80,9 +81,17 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                         // console.log(label, 'found visualGroup to reuse');
                         // console.log('old', visualGroup.group)
                         // console.log('new', group)
-                        const { visual } = visualGroup;
-                        const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure });
-                        if (promise) await promise;
+                        let { visual } = visualGroup;
+                        if (visual.mustRecreate?.(_props, webgl)) {
+                            visual.destroy();
+                            visual = visualCtor(materialId, _props, webgl);
+                            const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
+                            if (promise) await promise;
+                            setVisualState(visual, group, _state); // current state for new visual
+                        } else {
+                            const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
+                            if (promise) await promise;
+                        }
                         visuals.set(group.hashCode, { visual, group });
                         oldVisuals.delete(group.hashCode);
 
@@ -95,11 +104,10 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                     } else {
                         // console.log(label, 'did not find visualGroup to reuse, creating new');
                         // newGroups.push(group)
-                        const visual = visualCtor(materialId);
-                        const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure });
+                        const visual = visualCtor(materialId, _props, webgl);
+                        const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
                         if (promise) await promise;
-                        // ensure state is current for new visual
-                        setVisualState(visual, group, _state);
+                        setVisualState(visual, group, _state); // current state for new visual
                         visuals.set(group.hashCode, { visual, group });
                     }
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
@@ -108,17 +116,6 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                     // console.log(label, 'removed unused visual');
                     visual.destroy();
                 });
-
-                // TODO review logic
-                // For new groups, re-use left-over visuals
-                // const unusedVisuals: UnitsVisual<P>[] = []
-                // oldVisuals.forEach(({ visual }) => unusedVisuals.push(visual))
-                // newGroups.forEach(async group => {
-                //     const visual = unusedVisuals.pop() || visualCtor()
-                //     await visual.createOrUpdate({ ...ctx, runtime }, _props, group)
-                //     visuals.set(group.hashCode, { visual, group })
-                // })
-                // unusedVisuals.forEach(visual => visual.destroy())
             } else if (structure && structure !== _structure && Structure.areUnitIdsAndIndicesEqual(structure, _structure)) {
                 // console.log(label, 'structures equivalent but not identical');
                 // Expects that for structures with the same hashCode,
@@ -131,8 +128,18 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                     const group = _groups[i];
                     const visualGroup = visuals.get(group.hashCode);
                     if (visualGroup) {
-                        const promise = visualGroup.visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure });
-                        if (promise) await promise;
+                        let { visual } = visualGroup;
+                        if (visual.mustRecreate?.(_props, ctx.webgl)) {
+                            visual.destroy();
+                            visual = visualCtor(materialId, _props, ctx.webgl);
+                            visualGroup.visual = visual;
+                            const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
+                            if (promise) await promise;
+                            setVisualState(visual, group, _state); // current state for new visual
+                        } else {
+                            const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
+                            if (promise) await promise;
+                        }
                         visualGroup.group = group;
                     } else {
                         throw new Error(`expected to find visual for hashCode ${group.hashCode}`);
@@ -142,12 +149,21 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
             } else {
                 // console.log(label, 'no new structure');
                 // No new structure given, just update all visuals with new props.
-                const visualsList: [ UnitsVisual<P>, Unit.SymmetryGroup ][] = []; // TODO avoid allocation
-                visuals.forEach(({ visual, group }) => visualsList.push([ visual, group ]));
+                const visualsList: { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }[] = []; // TODO avoid allocation
+                visuals.forEach(vg => visualsList.push(vg));
                 for (let i = 0, il = visualsList.length; i < il; ++i) {
-                    const [ visual ] = visualsList[i];
-                    const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props);
-                    if (promise) await promise;
+                    let { visual, group } = visualsList[i];
+                    if (visual.mustRecreate?.(_props, ctx.webgl)) {
+                        visual.destroy();
+                        visual = visualCtor(materialId, _props, webgl);
+                        visualsList[i].visual = visual;
+                        const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure: _structure });
+                        if (promise) await promise;
+                        setVisualState(visual, group, _state); // current state for new visual
+                    } else {
+                        const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props);
+                        if (promise) await promise;
+                    }
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: il });
                 }
             }

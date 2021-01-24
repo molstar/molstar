@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,7 +8,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualContext } from '../../visual';
 import { Structure, Unit } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
-import { GaussianDensityTextureProps, computeStructureGaussianDensityTexture, computeUnitGaussianDensityTexture, GaussianDensityTextureParams } from './util/gaussian';
+import { GaussianDensityProps, computeStructureGaussianDensityTexture, computeUnitGaussianDensityTexture, GaussianDensityParams } from './util/gaussian';
 import { DirectVolume } from '../../../mol-geo/geometry/direct-volume/direct-volume';
 import { ComplexDirectVolumeParams, ComplexVisual, ComplexDirectVolumeVisual } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
@@ -18,7 +18,7 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { UnitsDirectVolumeParams, UnitsVisual, UnitsDirectVolumeVisual } from '../units-visual';
 import { getStructureExtraRadius, getUnitExtraRadius } from './util/common';
 
-async function createGaussianDensityVolume(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityTextureProps, directVolume?: DirectVolume): Promise<DirectVolume> {
+async function createGaussianDensityVolume(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
     const { runtime, webgl } = ctx;
     if (webgl === undefined) throw new Error('createGaussianDensityVolume requires `webgl` object in VisualContext');
 
@@ -41,7 +41,7 @@ async function createGaussianDensityVolume(ctx: VisualContext, structure: Struct
 
 export const GaussianDensityVolumeParams = {
     ...ComplexDirectVolumeParams,
-    ...GaussianDensityTextureParams,
+    ...GaussianDensityParams,
     ignoreHydrogens: PD.Boolean(false),
 };
 export type GaussianDensityVolumeParams = typeof GaussianDensityVolumeParams
@@ -66,7 +66,7 @@ export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<G
 
 //
 
-async function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityTextureProps, directVolume?: DirectVolume): Promise<DirectVolume> {
+async function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
     const { runtime, webgl } = ctx;
     if (webgl === undefined) throw new Error('createUnitGaussianDensityVolume requires `webgl` object in VisualContext');
 
@@ -89,7 +89,7 @@ async function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, 
 
 export const UnitsGaussianDensityVolumeParams = {
     ...UnitsDirectVolumeParams,
-    ...GaussianDensityTextureParams,
+    ...GaussianDensityParams,
     ignoreHydrogens: PD.Boolean(false),
 };
 export type UnitsGaussianDensityVolumeParams = typeof UnitsGaussianDensityVolumeParams

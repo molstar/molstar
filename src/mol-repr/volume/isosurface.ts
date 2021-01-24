@@ -27,12 +27,23 @@ import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { calcActiveVoxels } from '../../mol-gl/compute/marching-cubes/active-voxels';
 import { createHistogramPyramid } from '../../mol-gl/compute/histogram-pyramid/reduction';
 import { createIsosurfaceBuffers } from '../../mol-gl/compute/marching-cubes/isosurface';
+import { WebGLContext } from '../../mol-gl/webgl/context';
 
 export const VolumeIsosurfaceParams = {
     isoValue: Volume.IsoValueParam
 };
 export type VolumeIsosurfaceParams = typeof VolumeIsosurfaceParams
 export type VolumeIsosurfaceProps = PD.Values<VolumeIsosurfaceParams>
+
+function gpuSupport(webgl: WebGLContext) {
+    return webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.drawBuffers;
+}
+
+export function IsosurfaceVisual(materialId: number, props?: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) {
+    return props?.useGpu && webgl && gpuSupport(webgl)
+        ? IsosurfaceTextureMeshVisual(materialId)
+        : IsosurfaceMeshVisual(materialId);
+}
 
 function getLoci(volume: Volume, props: VolumeIsosurfaceProps) {
     return Volume.Isosurface.Loci(volume, props.isoValue);
@@ -74,8 +85,10 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
 
 export const IsosurfaceMeshParams = {
     ...Mesh.Params,
+    ...TextureMesh.Params,
+    ...VolumeIsosurfaceParams,
     quality: { ...Mesh.Params.quality, isEssential: false },
-    ...VolumeIsosurfaceParams
+    useGpu: PD.Boolean(false),
 };
 export type IsosurfaceMeshParams = typeof IsosurfaceMeshParams
 
@@ -89,7 +102,10 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
             if (!Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)) state.createGeometry = true;
         },
-        geometryUtils: Mesh.Utils
+        geometryUtils: Mesh.Utils,
+        mustRecreate: (props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
+            return props.useGpu && !!webgl;
+        }
     }, materialId);
 }
 
@@ -163,7 +179,10 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
             if (!Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)) state.createGeometry = true;
         },
-        geometryUtils: TextureMesh.Utils
+        geometryUtils: TextureMesh.Utils,
+        mustRecreate: (props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
+            return !props.useGpu || !webgl;
+        }
     }, materialId);
 }
 
@@ -190,9 +209,9 @@ export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume
 
 export const IsosurfaceWireframeParams = {
     ...Lines.Params,
+    ...VolumeIsosurfaceParams,
     quality: { ...Lines.Params.quality, isEssential: false },
-    sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
-    ...VolumeIsosurfaceParams
+    sizeFactor: PD.Numeric(3, { min: 0, max: 10, step: 0.1 }),
 };
 export type IsosurfaceWireframeParams = typeof IsosurfaceWireframeParams
 
@@ -213,9 +232,7 @@ export function IsosurfaceWireframeVisual(materialId: number): VolumeVisual<Isos
 //
 
 const IsosurfaceVisuals = {
-    'solid': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, IsosurfaceMeshParams>) => VolumeRepresentation('Isosurface mesh', ctx, getParams, IsosurfaceMeshVisual, getLoci),
-    // TODO: don't enable yet as it breaks state sessions
-    // 'solid-gpu': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, IsosurfaceMeshParams>) => VolumeRepresentation('Isosurface texture-mesh', ctx, getParams, IsosurfaceTextureMeshVisual, getLoci),
+    'solid': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, IsosurfaceMeshParams>) => VolumeRepresentation('Isosurface mesh', ctx, getParams, IsosurfaceVisual, getLoci),
     'wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, IsosurfaceWireframeParams>) => VolumeRepresentation('Isosurface wireframe', ctx, getParams, IsosurfaceWireframeVisual, getLoci),
 };
 

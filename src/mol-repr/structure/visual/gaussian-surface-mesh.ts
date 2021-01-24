@@ -6,7 +6,7 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsMeshParams, UnitsTextureMeshParams, UnitsVisual, UnitsMeshVisual, UnitsTextureMeshVisual } from '../units-visual';
-import { GaussianDensityParams, computeUnitGaussianDensity, GaussianDensityTextureProps, computeUnitGaussianDensityTexture2d, GaussianDensityProps, computeStructureGaussianDensity, computeStructureGaussianDensityTexture2d } from './util/gaussian';
+import { GaussianDensityParams, computeUnitGaussianDensity, computeUnitGaussianDensityTexture2d, GaussianDensityProps, computeStructureGaussianDensity, computeStructureGaussianDensityTexture2d } from './util/gaussian';
 import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
@@ -19,15 +19,45 @@ import { calcActiveVoxels } from '../../../mol-gl/compute/marching-cubes/active-
 import { createHistogramPyramid } from '../../../mol-gl/compute/histogram-pyramid/reduction';
 import { createIsosurfaceBuffers } from '../../../mol-gl/compute/marching-cubes/isosurface';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { ComplexVisual, ComplexMeshParams, ComplexMeshVisual, ComplexTextureMeshVisual } from '../complex-visual';
+import { ComplexVisual, ComplexMeshParams, ComplexMeshVisual, ComplexTextureMeshVisual, ComplexTextureMeshParams } from '../complex-visual';
 import { getUnitExtraRadius, getStructureExtraRadius } from './util/common';
+import { WebGLContext } from '../../../mol-gl/webgl/context';
+
+const SharedParams = {
+    ...GaussianDensityParams,
+    ignoreHydrogens: PD.Boolean(false),
+    useGpu: PD.Boolean(false),
+};
 
 export const GaussianSurfaceMeshParams = {
     ...UnitsMeshParams,
     ...UnitsTextureMeshParams,
-    ...GaussianDensityParams,
+    ...SharedParams,
 };
 export type GaussianSurfaceMeshParams = typeof GaussianSurfaceMeshParams
+
+export const StructureGaussianSurfaceMeshParams = {
+    ...ComplexMeshParams,
+    ...ComplexTextureMeshParams,
+    ...SharedParams,
+};
+export type StructureGaussianSurfaceMeshParams = typeof StructureGaussianSurfaceMeshParams
+
+function gpuSupport(webgl: WebGLContext) {
+    return webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.blendMinMax && webgl.extensions.drawBuffers;
+}
+
+export function GaussianSurfaceVisual(materialId: number, props?: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) {
+    return props?.useGpu && webgl && gpuSupport(webgl)
+        ? GaussianSurfaceTextureMeshVisual(materialId)
+        : GaussianSurfaceMeshVisual(materialId);
+}
+
+export function StructureGaussianSurfaceVisual(materialId: number, props?: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) {
+    return props?.useGpu && webgl && gpuSupport(webgl)
+        ? StructureGaussianSurfaceTextureMeshVisual(materialId)
+        : StructureGaussianSurfaceMeshVisual(materialId);
+}
 
 //
 
@@ -62,22 +92,17 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true;
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true;
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
-            if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
+        },
+        mustRecreate: (props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
+            return props.useGpu && !!webgl;
         }
     }, materialId);
 }
 
 //
-
-export const StructureGaussianSurfaceMeshParams = {
-    ...ComplexMeshParams,
-    ...GaussianDensityParams,
-    ignoreHydrogens: PD.Boolean(false),
-};
-export type StructureGaussianSurfaceMeshParams = typeof StructureGaussianSurfaceMeshParams
 
 async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
     const { smoothness } = props;
@@ -110,9 +135,11 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true;
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true;
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
-            if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
+        },
+        mustRecreate: (props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
+            return props.useGpu && !!webgl;
         }
     }, materialId);
 }
@@ -121,7 +148,7 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
 
 const GaussianSurfaceName = 'gaussian-surface';
 
-async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityTextureProps, textureMesh?: TextureMesh): Promise<TextureMesh> {
+async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, textureMesh?: TextureMesh): Promise<TextureMesh> {
     if (!ctx.webgl) throw new Error('webgl context required to create gaussian surface texture-mesh');
 
     const { namedTextures, resources, extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } } = ctx.webgl;
@@ -182,13 +209,16 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
+        },
+        mustRecreate: (props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
+            return !props.useGpu || !webgl;
         }
     }, materialId);
 }
 
 //
 
-async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityTextureProps, textureMesh?: TextureMesh): Promise<TextureMesh> {
+async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, textureMesh?: TextureMesh): Promise<TextureMesh> {
     if (!ctx.webgl) throw new Error('webgl context required to create structure gaussian surface texture-mesh');
 
     const { namedTextures, resources, extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } } = ctx.webgl;
@@ -248,6 +278,9 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
+        },
+        mustRecreate: (props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
+            return !props.useGpu || !webgl;
         }
     }, materialId);
 }

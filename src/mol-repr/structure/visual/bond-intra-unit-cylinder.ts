@@ -141,11 +141,14 @@ export const IntraUnitBondCylinderParams = {
     ...BondCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
+    useImpostor: PD.Boolean(true),
 };
 export type IntraUnitBondCylinderParams = typeof IntraUnitBondCylinderParams
 
-export function getIntraUnitBondCylinderVisual(webgl?: WebGLContext) {
-    return webgl && webgl.extensions.fragDepth ? IntraUnitBondCylinderImpostorVisual : IntraUnitBondCylinderMeshVisual;
+export function IntraUnitBondCylinderVisual(materialId: number, props?: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) {
+    return props?.useImpostor && webgl && webgl.extensions.fragDepth
+        ? IntraUnitBondCylinderImpostorVisual(materialId)
+        : IntraUnitBondCylinderMeshVisual(materialId);
 }
 
 export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVisual<IntraUnitBondCylinderParams> {
@@ -178,6 +181,9 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                     state.updateSize = true;
                 }
             }
+        },
+        mustRecreate: (props: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) => {
+            return !props.useImpostor || !webgl;
         }
     }, materialId);
 }
@@ -215,6 +221,9 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
                     state.updateSize = true;
                 }
             }
+        },
+        mustRecreate: (props: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) => {
+            return props.useImpostor && !!webgl;
         }
     }, materialId);
 }
