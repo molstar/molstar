@@ -11,6 +11,7 @@ import { Cage } from '../../../mol-geo/primitive/cage';
 
 export interface LinesBuilder {
     add(startX: number, startY: number, startZ: number, endX: number, endY: number, endZ: number, group: number): void
+    addVec(start: Vec3, end: Vec3, group: number): void
     addFixedCountDashes(start: Vec3, end: Vec3, segmentCount: number, group: number): void
     addFixedLengthDashes(start: Vec3, end: Vec3, segmentLength: number, group: number): void
     addCage(t: Mat4, cage: Cage, group: number): void
@@ -39,6 +40,14 @@ export namespace LinesBuilder {
             }
         };
 
+        const addVec = (start: Vec3, end: Vec3, group: number) => {
+            for (let i = 0; i < 4; ++i) {
+                caAdd3(starts, start[0], start[1], start[2]);
+                caAdd3(ends, end[0], end[1], end[2]);
+                caAdd(groups, group);
+            }
+        };
+
         const addFixedCountDashes = (start: Vec3, end: Vec3, segmentCount: number, group: number) => {
             const d = Vec3.distance(start, end);
             const s = Math.floor(segmentCount / 2);
@@ -57,6 +66,7 @@ export namespace LinesBuilder {
 
         return {
             add,
+            addVec,
             addFixedCountDashes,
             addFixedLengthDashes: (start: Vec3, end: Vec3, segmentLength: number, group: number) => {
                 const d = Vec3.distance(start, end);

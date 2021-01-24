@@ -157,7 +157,7 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
     // ctx.webgl.waitForGpuCommandsCompleteSync();
     // console.timeEnd('createIsosurfaceBuffers');
 
-    const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
+    const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, boundingSphere, textureMesh);
     // console.log({
     //     renderables: ctx.webgl.namedComputeRenderables,

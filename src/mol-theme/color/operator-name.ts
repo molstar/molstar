@@ -43,9 +43,9 @@ export function OperatorNameColorTheme(ctx: ThemeDataContext, props: PD.Values<O
         const operatorNameSerialMap = getOperatorNameSerialMap(ctx.structure.root);
 
         const labelTable = Array.from(operatorNameSerialMap.keys());
-        props.palette.params.valueLabel = (i: number) => labelTable[i];
+        const valueLabel = (i: number) => labelTable[i];
 
-        const palette = getPalette(operatorNameSerialMap.size, props);
+        const palette = getPalette(operatorNameSerialMap.size, props, { valueLabel });
         legend = palette.legend;
 
         color = (location: Location): Color => {

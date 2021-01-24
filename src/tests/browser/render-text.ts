@@ -5,7 +5,7 @@
  */
 
 import './index.html';
-import { Canvas3D } from '../../mol-canvas3d/canvas3d';
+import { Canvas3D, Canvas3DContext } from '../../mol-canvas3d/canvas3d';
 import { TextBuilder } from '../../mol-geo/geometry/text/text-builder';
 import { Text } from '../../mol-geo/geometry/text/text';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -24,7 +24,7 @@ const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 resizeCanvas(canvas, parent);
 
-const canvas3d = Canvas3D.fromCanvas(canvas);
+const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas));
 canvas3d.animate();
 
 function textRepr() {

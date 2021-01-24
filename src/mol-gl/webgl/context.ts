@@ -193,7 +193,7 @@ export interface WebGLContext {
     readonly isContextLost: boolean
     readonly contextRestored: BehaviorSubject<now.Timestamp>
     setContextLost: () => void
-    handleContextRestored: () => void
+    handleContextRestored: (extraResets?: () => void) => void
 
     /** Cache for compute renderables, managed by consumers */
     readonly namedComputeRenderables: { [name: string]: ComputeRenderable<any> }
@@ -210,7 +210,7 @@ export interface WebGLContext {
     waitForGpuCommandsCompleteSync: () => void
     getDrawingBufferPixelData: () => PixelData
     clear: (red: number, green: number, blue: number, alpha: number) => void
-    destroy: () => void
+    destroy: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => void
 }
 
 export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScale: number }> = {}): WebGLContext {
@@ -232,7 +232,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     }
 
     let isContextLost = false;
-    let contextRestored = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
+    const contextRestored = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
 
     let readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>;
     if (isWebGL2(gl)) {
@@ -302,7 +302,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         setContextLost: () => {
             isContextLost = true;
         },
-        handleContextRestored: () => {
+        handleContextRestored: (extraResets?: () => void) => {
             Object.assign(extensions, createExtensions(gl));
 
             state.reset();
@@ -312,6 +312,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
 
             resources.reset();
             renderTargets.forEach(rt => rt.reset());
+            extraResets?.();
 
             isContextLost = false;
             contextRestored.next(now());
@@ -347,9 +348,12 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         },
 
-        destroy: () => {
+        destroy: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => {
             resources.destroy();
             unbindResources(gl);
+
+            // to aid GC
+            if (!options?.doNotForceWebGLContextLoss) gl.getExtension('WEBGL_lose_context')?.loseContext();
         }
     };
 }

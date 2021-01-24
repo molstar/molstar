@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -43,7 +43,7 @@ void main() {
 
     gl_Position = uProjection * mvPosition;
 
-    // move z position to near clip plane
-    gl_Position.z = gl_Position.w - 0.0001;
+    // move z position to near clip plane (but not too close to get precision issues)
+    gl_Position.z = gl_Position.w - 0.01;
 }
 `;

@@ -129,6 +129,10 @@ export class DrawPass {
         this.copyFboPostprocessing = getCopyRenderable(webgl, this.postprocessing.target.texture);
     }
 
+    reset() {
+        this.wboit?.reset();
+    }
+
     setSize(width: number, height: number) {
         const w = this.colorTarget.getWidth();
         const h = this.colorTarget.getHeight();

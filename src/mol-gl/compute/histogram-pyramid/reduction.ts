@@ -124,11 +124,11 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
     const maxSize = Math.pow(2, levels);
     // console.log('levels', levels, 'maxSize', maxSize, 'input', w);
 
-    const pyramidTexture = getTexture('pyramid', ctx, 'image-float32', 'rgba', 'float', 'nearest');
-    pyramidTexture.define(maxSize, maxSize);
+    const pyramidTex = getTexture('pyramid', ctx, 'image-float32', 'rgba', 'float', 'nearest');
+    pyramidTex.define(maxSize, maxSize);
 
     const framebuffer = getFramebuffer('pyramid', ctx);
-    pyramidTexture.attachFramebuffer(framebuffer, 0);
+    pyramidTex.attachFramebuffer(framebuffer, 0);
     gl.viewport(0, 0, maxSize, maxSize);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -162,29 +162,24 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
         gl.scissor(0, 0, gridTexDim[0], gridTexDim[1]);
         renderable.render();
 
-        pyramidTexture.bind(0);
+        pyramidTex.bind(0);
         gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, offset, 0, 0, 0, size, size);
-        pyramidTexture.unbind(0);
+        pyramidTex.unbind(0);
 
         offset += size;
     }
 
     gl.finish();
 
-    // printTexture(ctx, pyramidTexture, 2)
+    // printTexture(ctx, pyramidTex, 2)
 
     //
 
-    const finalCount = getHistopyramidSum(ctx, levelTexturesFramebuffers[0].texture);
-    const height = Math.ceil(finalCount / Math.pow(2, levels));
+    // return at least a count of one to avoid issues downstram
+    const count = Math.max(1, getHistopyramidSum(ctx, levelTexturesFramebuffers[0].texture));
+    const height = Math.ceil(count / Math.pow(2, levels));
     // const scale = Vec2.create(maxSize / inputTexture.width, maxSize / inputTexture.height);
     // console.log('height', height, 'finalCount', finalCount, 'scale', scale);
 
-    return {
-        pyramidTex: pyramidTexture,
-        count: finalCount,
-        height,
-        levels,
-        scale
-    };
+    return { pyramidTex, count, height, levels, scale };
 }

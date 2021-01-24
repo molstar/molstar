@@ -6,7 +6,7 @@
 
 import './index.html';
 import { resizeCanvas } from '../../mol-canvas3d/util';
-import { Canvas3D } from '../../mol-canvas3d/canvas3d';
+import { Canvas3D, Canvas3DContext } from '../../mol-canvas3d/canvas3d';
 import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
 import { Mat4 } from '../../mol-math/linear-algebra';
 import { DodecahedronCage } from '../../mol-geo/primitive/dodecahedron';
@@ -23,7 +23,7 @@ const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 resizeCanvas(canvas, parent);
 
-const canvas3d = Canvas3D.fromCanvas(canvas);
+const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas));
 canvas3d.animate();
 
 function linesRepr() {

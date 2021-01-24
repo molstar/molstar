@@ -109,9 +109,9 @@ export function calcActiveVoxels(ctx: WebGLContext, volumeData: Texture, gridDim
     gl.scissor(0, 0, gridTexDim[0], gridTexDim[1]);
     renderable.render();
 
-    // console.log('gridScale', gridScale, 'gridTexDim', gridTexDim, 'gridDim', gridDim)
-    // console.log('volumeData', volumeData)
-    // console.log('at', readTexture(ctx, activeVoxelsTex))
+    // console.log('gridScale', gridScale, 'gridTexDim', gridTexDim, 'gridDim', gridDim);
+    // console.log('volumeData', volumeData);
+    // console.log('at', readTexture(ctx, activeVoxelsTex));
 
     gl.finish();
 

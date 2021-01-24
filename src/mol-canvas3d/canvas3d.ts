@@ -85,6 +85,110 @@ export type PartialCanvas3DProps = {
     [K in keyof Canvas3DProps]?: Canvas3DProps[K] extends { name: string, params: any } ? Canvas3DProps[K] : Partial<Canvas3DProps[K]>
 }
 
+export { Canvas3DContext };
+
+/** Can be used to create multiple Canvas3D objects */
+interface Canvas3DContext {
+    readonly canvas: HTMLCanvasElement
+    readonly webgl: WebGLContext
+    readonly input: InputObserver
+    readonly passes: Passes
+    readonly attribs: Readonly<Canvas3DContext.Attribs>
+    readonly contextLost: BehaviorSubject<now.Timestamp>
+    readonly contextRestored: BehaviorSubject<now.Timestamp>
+    dispose: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => void
+}
+
+namespace Canvas3DContext {
+    const DefaultAttribs = {
+        /** true by default to avoid issues with Safari (Jan 2021) */
+        antialias: true,
+        /** true to support multiple Canvas3D objects with a single context */
+        preserveDrawingBuffer: true,
+        pixelScale: 1,
+        pickScale: 0.25,
+        enableWboit: true
+    };
+    export type Attribs = typeof DefaultAttribs
+
+    export function fromCanvas(canvas: HTMLCanvasElement, attribs: Partial<Attribs> = {}): Canvas3DContext {
+        const a = { ...DefaultAttribs, ...attribs };
+        const { antialias, preserveDrawingBuffer, pixelScale } = a;
+        const gl = getGLContext(canvas, {
+            antialias,
+            preserveDrawingBuffer,
+            alpha: true, // the renderer requires an alpha channel
+            depth: true, // the renderer requires a depth buffer
+            premultipliedAlpha: true, // the renderer outputs PMA
+        });
+        if (gl === null) throw new Error('Could not create a WebGL rendering context');
+
+        const input = InputObserver.fromElement(canvas, { pixelScale });
+        const webgl = createContext(gl, { pixelScale });
+        const passes = new Passes(webgl, attribs);
+
+        if (isDebugMode) {
+            const loseContextExt = gl.getExtension('WEBGL_lose_context');
+            if (loseContextExt) {
+                // Hold down shift+ctrl+alt and press any mouse button to call `loseContext`.
+                // After 1 second `restoreContext` will be called.
+                canvas.addEventListener('mousedown', e => {
+                    if (webgl.isContextLost) return;
+                    if (!e.shiftKey || !e.ctrlKey || !e.altKey) return;
+
+                    if (isDebugMode) console.log('lose context');
+                    loseContextExt.loseContext();
+
+                    setTimeout(() => {
+                        if (!webgl.isContextLost) return;
+                        if (isDebugMode) console.log('restore context');
+                        loseContextExt.restoreContext();
+                    }, 1000);
+                }, false);
+            }
+        }
+
+        // https://www.khronos.org/webgl/wiki/HandlingContextLost
+
+        const contextLost = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
+
+        const handleWebglContextLost = (e: Event) => {
+            webgl.setContextLost();
+            e.preventDefault();
+            if (isDebugMode) console.log('context lost');
+            contextLost.next(now());
+        };
+
+        const handlewWebglContextRestored = () => {
+            if (!webgl.isContextLost) return;
+            webgl.handleContextRestored(() => {
+                passes.draw.reset();
+            });
+            if (isDebugMode) console.log('context restored');
+        };
+
+        canvas.addEventListener('webglcontextlost', handleWebglContextLost, false);
+        canvas.addEventListener('webglcontextrestored', handlewWebglContextRestored, false);
+
+        return {
+            canvas,
+            webgl,
+            input,
+            passes,
+            attribs: a,
+            contextLost,
+            contextRestored: webgl.contextRestored,
+            dispose: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => {
+                input.dispose();
+
+                canvas.removeEventListener('webglcontextlost', handleWebglContextLost, false);
+                canvas.removeEventListener('webglcontextrestored', handlewWebglContextRestored, false);
+                webgl.destroy(options);
+            }
+        };
+    }
+}
+
 export { Canvas3D };
 
 interface Canvas3D {
@@ -122,6 +226,8 @@ interface Canvas3D {
     readonly resized: BehaviorSubject<any>
 
     handleResize(): void
+    /** performs handleResize on the next animation frame */
+    requestResize(): void
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
     requestCameraReset(options?: { durationMs?: number, snapshot?: Partial<Camera.Snapshot> }): void
     readonly camera: Camera
@@ -150,67 +256,7 @@ namespace Canvas3D {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
-    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, attribs: Partial<{ antialias: boolean, pixelScale: number, pickScale: number, enableWboit: boolean }> = {}) {
-        const antialias = (attribs.antialias ?? true) && !attribs.enableWboit;
-        const gl = getGLContext(canvas, {
-            alpha: true,
-            antialias,
-            depth: true,
-            preserveDrawingBuffer: true,
-            premultipliedAlpha: true,
-        });
-        if (gl === null) throw new Error('Could not create a WebGL rendering context');
-
-        const { pixelScale } = attribs;
-        const input = InputObserver.fromElement(canvas, { pixelScale });
-        const webgl = createContext(gl, { pixelScale });
-        const passes = new Passes(webgl, attribs);
-
-        if (isDebugMode) {
-            const loseContextExt = gl.getExtension('WEBGL_lose_context');
-            if (loseContextExt) {
-                canvas.addEventListener('mousedown', e => {
-                    if (webgl.isContextLost) return;
-                    if (!e.shiftKey || !e.ctrlKey || !e.altKey) return;
-
-                    if (isDebugMode) console.log('lose context');
-                    loseContextExt.loseContext();
-
-                    setTimeout(() => {
-                        if (!webgl.isContextLost) return;
-                        if (isDebugMode) console.log('restore context');
-                        loseContextExt.restoreContext();
-                    }, 1000);
-                }, false);
-            }
-        }
-
-        // https://www.khronos.org/webgl/wiki/HandlingContextLost
-
-        canvas.addEventListener('webglcontextlost', e => {
-            webgl.setContextLost();
-            e.preventDefault();
-            if (isDebugMode) console.log('context lost');
-        }, false);
-
-        canvas.addEventListener('webglcontextrestored', () => {
-            if (!webgl.isContextLost) return;
-            webgl.handleContextRestored();
-            if (isDebugMode) console.log('context restored');
-        }, false);
-
-        // disable postprocessing anti-aliasing if canvas anti-aliasing is enabled
-        if (antialias && !props.postprocessing?.antialiasing) {
-            props.postprocessing = {
-                ...DefaultCanvas3DParams.postprocessing,
-                antialiasing: { name: 'off', params: {} }
-            };
-        }
-
-        return create(webgl, input, passes, props, { pixelScale });
-    }
-
-    export function create(webgl: WebGLContext, input: InputObserver, passes: Passes, props: Partial<Canvas3DProps> = {}, attribs: Partial<{ pixelScale: number }>): Canvas3D {
+    export function create({ webgl, input, passes, attribs }: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p: Canvas3DProps = { ...DefaultCanvas3DParams, ...props };
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
@@ -251,6 +297,7 @@ namespace Canvas3D {
         let cameraResetRequested = false;
         let nextCameraResetDuration: number | undefined = void 0;
         let nextCameraResetSnapshot: Partial<Camera.Snapshot> | undefined = void 0;
+        let resizeRequested = false;
 
         let notifyDidDraw = true;
 
@@ -293,6 +340,12 @@ namespace Canvas3D {
 
         function render(force: boolean) {
             if (webgl.isContextLost) return false;
+
+            if (resizeRequested) {
+                handleResize(false);
+                resizeRequested = false;
+            }
+
             if (x > gl.drawingBufferWidth || x + width < 0 ||
                 y > gl.drawingBufferHeight || y + height < 0
             ) return false;
@@ -558,9 +611,21 @@ namespace Canvas3D {
         const contextRestoredSub = contextRestored.subscribe(() => {
             pickHelper.dirty = true;
             draw(true);
+            // Unclear why, but in Chrome with wboit enabled the first `draw` only clears
+            // the drawingBuffer. Note that in Firefox the drawingBuffer is preserved after
+            // context loss so it is unclear if it behaves the same.
+            draw(true);
         });
 
         const resized = new BehaviorSubject<any>(0);
+
+        function handleResize(draw = true) {
+            passes.updateSize();
+            updateViewport();
+            syncViewport();
+            if (draw) requestDraw(true);
+            resized.next(+new Date());
+        }
 
         return {
             webgl,
@@ -607,12 +672,9 @@ namespace Canvas3D {
             mark,
             getLoci,
 
-            handleResize: () => {
-                passes.updateSize();
-                updateViewport();
-                syncViewport();
-                requestDraw(true);
-                resized.next(+new Date());
+            handleResize,
+            requestResize: () => {
+                resizeRequested = true;
             },
             requestCameraReset: options => {
                 nextCameraResetDuration = options?.durationMs;
@@ -708,7 +770,6 @@ namespace Canvas3D {
 
                 scene.clear();
                 helper.debug.clear();
-                input.dispose();
                 controls.dispose();
                 renderer.dispose();
                 interactionHelper.dispose();

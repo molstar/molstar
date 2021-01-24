@@ -7,7 +7,7 @@
 import './index.html';
 import { resizeCanvas } from '../../mol-canvas3d/util';
 import { Representation } from '../../mol-repr/representation';
-import { Canvas3D } from '../../mol-canvas3d/canvas3d';
+import { Canvas3D, Canvas3DContext } from '../../mol-canvas3d/canvas3d';
 import { lociLabel } from '../../mol-theme/label';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { EveryLoci } from '../../mol-model/loci';
@@ -38,7 +38,7 @@ info.style.color = 'white';
 parent.appendChild(info);
 
 let prevReprLoci = Representation.Loci.Empty;
-const canvas3d = Canvas3D.fromCanvas(canvas);
+const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas));
 canvas3d.animate();
 canvas3d.input.move.subscribe(({x, y}) => {
     const pickingId = canvas3d.identify(x, y)?.id;

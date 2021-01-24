@@ -5,7 +5,7 @@
  */
 
 import './index.html';
-import { Canvas3D } from '../../mol-canvas3d/canvas3d';
+import { Canvas3D, Canvas3DContext } from '../../mol-canvas3d/canvas3d';
 import { CIF, CifFrame } from '../../mol-io/reader/cif';
 import { Model, Structure } from '../../mol-model/structure';
 import { ColorTheme } from '../../mol-theme/color';
@@ -37,7 +37,7 @@ const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 resizeCanvas(canvas, parent);
 
-const canvas3d = Canvas3D.fromCanvas(canvas);
+const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas));
 canvas3d.animate();
 
 const info = document.createElement('div');

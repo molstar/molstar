@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -20,22 +20,14 @@ const DefaultGetPaletteProps = {
 };
 type GetPaletteProps = typeof DefaultGetPaletteProps
 
-const LabelParams = {
-    valueLabel: PD.Value((i: number) => `${i + 1}`, { isHidden: true }),
-    minLabel: PD.Value('Start', { isHidden: true }),
-    maxLabel: PD.Value('End', { isHidden: true })
-};
-
 export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
     const p = { ...DefaultGetPaletteProps, ...props };
     return {
         palette: PD.MappedStatic(p.type, {
             colors: PD.Group({
-                ...LabelParams,
                 list: PD.ColorList(p.colorList),
             }, { isFlat: true }),
             generate: PD.Group({
-                ...LabelParams,
                 ...DistinctColorsParams,
                 maxCount: PD.Numeric(75, { min: 1, max: 250, step: 1 }),
             }, { isFlat: true })
@@ -51,18 +43,26 @@ export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
 const DefaultPaletteProps = PD.getDefaultValues(getPaletteParams());
 type PaletteProps = typeof DefaultPaletteProps
 
+const DefaultLabelOptions = {
+    valueLabel: (i: number) => `${i + 1}`,
+    minLabel: 'Start',
+    maxLabel: 'End'
+};
+type LabelOptions = typeof DefaultLabelOptions
+
 export interface Palette {
     color: (i: number) => Color
     legend?: TableLegend | ScaleLegend
 }
 
-export function getPalette(count: number, props: PaletteProps) {
+export function getPalette(count: number, props: PaletteProps, labelOptions: Partial<LabelOptions> = {}) {
     let color: (i: number) => Color;
     let legend: ScaleLegend | TableLegend | undefined;
 
     if (props.palette.name === 'colors' && props.palette.params.list.kind === 'interpolate') {
-        const { list, minLabel, maxLabel } = props.palette.params;
+        const { list } = props.palette.params;
         const domain: [number, number] = [0, count - 1];
+        const { minLabel, maxLabel } = { ...DefaultLabelOptions, ...labelOptions };
 
         let colors = list.colors;
         if (colors.length === 0) colors = getColorListFromName(DefaultGetPaletteProps.colorList).list;
@@ -79,7 +79,7 @@ export function getPalette(count: number, props: PaletteProps) {
             count = Math.min(count, props.palette.params.maxCount);
             colors = distinctColors(count, props.palette.params);
         }
-        const valueLabel = props.palette.params.valueLabel || (i => '' + i);
+        const valueLabel = labelOptions.valueLabel ?? DefaultLabelOptions.valueLabel;
         const colorsLength = colors.length;
         const table: [string, Color][] = [];
         for (let i = 0; i < count; ++i) {

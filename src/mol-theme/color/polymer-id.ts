@@ -94,9 +94,9 @@ export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Poly
         const polymerAsymIdSerialMap = getPolymerAsymIdSerialMap(ctx.structure.root);
 
         const labelTable = Array.from(polymerAsymIdSerialMap.keys());
-        props.palette.params.valueLabel = (i: number) => labelTable[i];
+        const valueLabel = (i: number) => labelTable[i];
 
-        const palette = getPalette(polymerAsymIdSerialMap.size, props);
+        const palette = getPalette(polymerAsymIdSerialMap.size, props, { valueLabel });
         legend = palette.legend;
 
         color = (location: Location): Color => {

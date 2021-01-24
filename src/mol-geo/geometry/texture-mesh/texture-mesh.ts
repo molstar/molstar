@@ -104,7 +104,8 @@ export namespace TextureMesh {
 
         const counts = { drawCount: textureMesh.vertexCount, vertexCount: textureMesh.vertexCount / 3, groupCount, instanceCount };
 
-        const transformBoundingSphere = calculateTransformBoundingSphere(textureMesh.boundingSphere, transform.aTransform.ref.value, transform.instanceCount.ref.value);
+        const invariantBoundingSphere = Sphere3D.clone(textureMesh.boundingSphere);
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
         return {
             uGeoTexDim: textureMesh.geoTextureDim,
@@ -113,9 +114,9 @@ export namespace TextureMesh {
 
             // aGroup is used as a vertex index here and the group id is retirieved from tPositionGroup
             aGroup: ValueCell.create(fillSerial(new Float32Array(textureMesh.vertexCount))),
-            boundingSphere: ValueCell.create(transformBoundingSphere),
-            invariantBoundingSphere: ValueCell.create(Sphere3D.clone(textureMesh.boundingSphere)),
-            uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(textureMesh.boundingSphere)),
+            boundingSphere: ValueCell.create(boundingSphere),
+            invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
+            uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
 
             ...color,
             ...marker,
@@ -141,8 +142,7 @@ export namespace TextureMesh {
     }
 
     function updateValues(values: TextureMeshValues, props: PD.Values<Params>) {
-        ValueCell.updateIfChanged(values.alpha, props.alpha); // `uAlpha` is set in renderable.render
-
+        BaseGeometry.updateValues(values, props);
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded);
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
@@ -156,8 +156,9 @@ export namespace TextureMesh {
     }
 
     function updateBoundingSphere(values: TextureMeshValues, textureMesh: TextureMesh) {
-        const invariantBoundingSphere = textureMesh.boundingSphere;
+        const invariantBoundingSphere = Sphere3D.clone(textureMesh.boundingSphere);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value);
+
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere);
         }
