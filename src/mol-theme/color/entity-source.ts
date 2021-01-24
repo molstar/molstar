@@ -131,9 +131,9 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
         const { seqToSrcByModelEntity, srcKeySerialMap } = getMaps(models);
 
         const labelTable = getLabelTable(srcKeySerialMap);
-        props.palette.params.valueLabel = (i: number) => labelTable[i];
+        const valueLabel = (i: number) => labelTable[i];
 
-        const palette = getPalette(srcKeySerialMap.size, props);
+        const palette = getPalette(srcKeySerialMap.size, props, { valueLabel });
         legend = palette.legend;
 
         const getSrcColor = (location: StructureElement.Location) => {

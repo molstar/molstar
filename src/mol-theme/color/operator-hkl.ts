@@ -85,11 +85,13 @@ export function OperatorHklColorTheme(ctx: ThemeDataContext, props: PD.Values<Op
             else labelTable[i] += `, ${label}`;
         });
 
-        props.palette.params.minLabel = formatHkl(min);
-        props.palette.params.maxLabel = formatHkl(max);
-        props.palette.params.valueLabel = (i: number) => labelTable[i];
+        const labelOptions = {
+            minLabel: formatHkl(min),
+            maxLabel: formatHkl(max),
+            valueLabel: (i: number) => labelTable[i]
+        };
 
-        const palette = getPalette(map.size, props);
+        const palette = getPalette(map.size, props, labelOptions);
         legend = palette.legend;
 
         color = (location: Location): Color => {

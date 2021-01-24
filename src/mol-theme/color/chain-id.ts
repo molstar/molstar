@@ -84,9 +84,9 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
         const asymIdSerialMap = getAsymIdSerialMap(ctx.structure.root, props.asymId);
 
         const labelTable = Array.from(asymIdSerialMap.keys());
-        props.palette.params.valueLabel = (i: number) => labelTable[i];
+        const valueLabel = (i: number) => labelTable[i];
 
-        const palette = getPalette(asymIdSerialMap.size, props);
+        const palette = getPalette(asymIdSerialMap.size, props, { valueLabel });
         legend = palette.legend;
 
         color = (location: Location): Color => {
