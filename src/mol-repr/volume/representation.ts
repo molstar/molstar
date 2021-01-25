@@ -50,6 +50,7 @@ interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
     eachLocation(loci: Loci, volume: Volume, props: PD.Values<P>, apply: (interval: Interval) => boolean): boolean
     setUpdateState(state: VisualUpdateState, volume: Volume, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
     mustRecreate?: (props: PD.Values<P>) => boolean
+    dispose?: (geometry: G) => void
 }
 
 interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry> extends VolumeVisualBuilder<P, G> {
@@ -57,7 +58,7 @@ interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry
 }
 
 export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geometry.Params<G>>(builder: VolumeVisualGeometryBuilder<P, G>, materialId: number): VolumeVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate } = builder;
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, dispose } = builder;
     const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
 
@@ -208,7 +209,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             return Visual.setClipping(renderObject, clipping, lociApply, true);
         },
         destroy() {
-            // TODO
+            dispose?.(geometry);
             renderObject = undefined;
         },
         mustRecreate

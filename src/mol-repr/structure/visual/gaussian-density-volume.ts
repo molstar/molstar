@@ -60,6 +60,9 @@ export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<G
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
+        },
+        dispose: (geometry: DirectVolume) => {
+            geometry.gridTexture.ref.value.destroy();
         }
     }, materialId);
 }
@@ -108,6 +111,9 @@ export function UnitsGaussianDensityVolumeVisual(materialId: number): UnitsVisua
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
+        },
+        dispose: (geometry: DirectVolume) => {
+            geometry.gridTexture.ref.value.destroy();
         }
     }, materialId);
 }

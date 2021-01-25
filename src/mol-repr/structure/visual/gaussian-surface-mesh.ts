@@ -212,6 +212,10 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
         },
         mustRecreate: (props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
             return !props.useGpu || !webgl;
+        },
+        dispose: (geometry: TextureMesh) => {
+            geometry.normalTexture.ref.value.destroy();
+            geometry.vertexGroupTexture.ref.value.destroy();
         }
     }, materialId);
 }
@@ -281,6 +285,10 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
         },
         mustRecreate: (props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
             return !props.useGpu || !webgl;
+        },
+        dispose: (geometry: TextureMesh) => {
+            geometry.normalTexture.ref.value.destroy();
+            geometry.vertexGroupTexture.ref.value.destroy();
         }
     }, materialId);
 }

@@ -53,6 +53,7 @@ interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
     eachLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean): boolean,
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure): void
     mustRecreate?: (props: PD.Values<P>) => boolean
+    dispose?: (geometry: G) => void
 }
 
 interface ComplexVisualGeometryBuilder<P extends StructureParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
@@ -60,7 +61,7 @@ interface ComplexVisualGeometryBuilder<P extends StructureParams, G extends Geom
 }
 
 export function ComplexVisual<G extends Geometry, P extends StructureParams & Geometry.Params<G>>(builder: ComplexVisualGeometryBuilder<P, G>, materialId: number): ComplexVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate } = builder;
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, dispose } = builder;
     const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
 
@@ -240,7 +241,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             Visual.setClipping(renderObject, clipping, lociApply, true);
         },
         destroy() {
-            // TODO
+            dispose?.(geometry);
             renderObject = undefined;
         },
         mustRecreate

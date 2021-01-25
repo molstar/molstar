@@ -59,6 +59,7 @@ interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
     eachLocation(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean): boolean
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup): void
     mustRecreate?: (props: PD.Values<P>) => boolean
+    dispose?: (geometry: G) => void
 }
 
 interface UnitsVisualGeometryBuilder<P extends StructureParams, G extends Geometry> extends UnitsVisualBuilder<P, G> {
@@ -66,7 +67,7 @@ interface UnitsVisualGeometryBuilder<P extends StructureParams, G extends Geomet
 }
 
 export function UnitsVisual<G extends Geometry, P extends StructureParams & Geometry.Params<G>>(builder: UnitsVisualGeometryBuilder<P, G>, materialId: number): UnitsVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate } = builder;
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, dispose } = builder;
     const { createEmpty: createEmptyGeometry, updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
 
@@ -292,7 +293,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             Visual.setClipping(renderObject, clipping, lociApply, true);
         },
         destroy() {
-            // TODO
+            dispose?.(geometry);
             renderObject = undefined;
         },
         mustRecreate
