@@ -55,12 +55,13 @@ function getLabelName(data: LabelData) {
 
 function buildText(data: LabelData, props: LabelProps, text?: Text): Text {
     const builder = TextBuilder.create(props, 128, 64, text);
+    const customLabel = props.customText.trim();
     for (let i = 0, il = data.infos.length; i < il; ++i) {
         const info = data.infos[i];
         const sphere = Loci.getBoundingSphere(info.loci, tmpSphere);
         if (!sphere) continue;
         const { center, radius } = sphere;
-        const text = label(info, true);
+        const text = customLabel || label(info, true);
         builder.add(text, center[0], center[1], center[2], props.scaleByRadius ? radius / 0.9 : 0, props.scaleByRadius ? Math.max(1, radius) : 1, i);
     }
     return builder.getText();
@@ -69,9 +70,13 @@ function buildText(data: LabelData, props: LabelProps, text?: Text): Text {
 function getTextShape(ctx: RuntimeContext, data: LabelData, props: LabelProps, shape?: Shape<Text>) {
     const text = buildText(data, props, shape && shape.geometry);
     const name = getLabelName(data);
-    const getLabel = function (groupId: number) {
-        return label(data.infos[groupId]);
-    };
+    const customLabel = props.customText.trim();
+    const getLabel = customLabel
+        ? function (groupId: number) {
+            return customLabel;
+        } : function (groupId: number) {
+            return label(data.infos[groupId]);
+        };
     return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel);
 }
 
