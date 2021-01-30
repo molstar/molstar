@@ -378,7 +378,7 @@ class State {
                 definition: {},
                 values: {}
             },
-            paramsNormalized: true,
+            paramsNormalizedVersion: root.version,
             dependencies: { dependentBy: [], dependsOn: [] },
             cache: { }
         });
@@ -663,7 +663,7 @@ function addCellsVisitor(transform: StateTransform, _: any, { ctx, added, visite
         state: { ...transform.state },
         errorText: void 0,
         params: void 0,
-        paramsNormalized: false,
+        paramsNormalizedVersion: '',
         dependencies: { dependentBy: [], dependsOn: [] },
         cache: void 0
     };
@@ -846,9 +846,9 @@ function resolveParams(ctx: UpdateContext, transform: StateTransform, src: State
     const prms = transform.transformer.definition.params;
     const definition = prms ? prms(src, ctx.parent.globalContext) : {};
 
-    if (!cell.paramsNormalized) {
-        (transform.params as any) = ParamDefinition.normalizeParams(definition, transform.params, 'all', false);
-        cell.paramsNormalized = true;
+    if (cell.paramsNormalizedVersion !== transform.version) {
+        (transform.params as any) = ParamDefinition.normalizeParams(definition, transform.params, 'all');
+        cell.paramsNormalizedVersion = transform.version;
     } else {
         const defaultValues = ParamDefinition.getDefaultValues(definition);
         (transform.params as any) = transform.params

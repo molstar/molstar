@@ -694,7 +694,7 @@ namespace Canvas3D {
                     ? produce(getProps(), properties)
                     : properties;
 
-                props = PD.normalizeParams(Canvas3DParams, props, 'children', true);
+                props = PD.normalizeParams(Canvas3DParams, props, 'children');
 
                 const cameraState: Partial<Camera.Snapshot> = Object.create(null);
                 if (props.camera && props.camera.mode !== undefined && props.camera.mode !== camera.state.mode) {
