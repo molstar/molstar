@@ -520,6 +520,7 @@ namespace Canvas3D {
                 drawCount: r.values.drawCount.ref.value,
                 instanceCount: r.values.instanceCount.ref.value,
                 materialId: r.materialId,
+                renderItemId: r.id,
             })));
             console.log(webgl.stats);
 
