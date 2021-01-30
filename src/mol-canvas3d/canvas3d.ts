@@ -341,9 +341,11 @@ namespace Canvas3D {
         function render(force: boolean) {
             if (webgl.isContextLost) return false;
 
+            let resized = false;
             if (resizeRequested) {
                 handleResize(false);
                 resizeRequested = false;
+                resized = true;
             }
 
             if (x > gl.drawingBufferWidth || x + width < 0 ||
@@ -355,7 +357,7 @@ namespace Canvas3D {
             const cameraChanged = camera.update();
             const multiSampleChanged = multiSampleHelper.update(force || cameraChanged, p.multiSample);
 
-            if (force || cameraChanged || multiSampleChanged) {
+            if (resized || force || cameraChanged || multiSampleChanged) {
                 let cam: Camera | StereoCamera = camera;
                 if (p.camera.stereo.name === 'on') {
                     stereoCamera.update();
