@@ -89,7 +89,7 @@ export namespace Geometry {
                 const [x, y, z] = geometry.gridDimension.ref.value;
                 return x * y * z;
             case 'image': return 4;
-            case 'texture-mesh': return geometry.vertexCount / 3;
+            case 'texture-mesh': return geometry.vertexCount;
         }
     }
 
