@@ -36,8 +36,8 @@ export const DefaultTrackballBindings = {
 export const TrackballControlsParams = {
     noScroll: PD.Boolean(true, { isHidden: true }),
 
-    rotateSpeed: PD.Numeric(3.0, { min: 0.1, max: 10, step: 0.1 }),
-    zoomSpeed: PD.Numeric(6.0, { min: 0.1, max: 10, step: 0.1 }),
+    rotateSpeed: PD.Numeric(5.0, { min: 1, max: 10, step: 1 }),
+    zoomSpeed: PD.Numeric(7.0, { min: 1, max: 15, step: 1 }),
     panSpeed: PD.Numeric(1.0, { min: 0.1, max: 5, step: 0.1 }),
 
     spin: PD.Boolean(false, { description: 'Spin the 3D scene around the x-axis in view space' }),
@@ -138,7 +138,8 @@ namespace TrackballControls {
             const dy = _rotCurr[1] - _rotPrev[1];
             Vec3.set(rotMoveDir, dx, dy, 0);
 
-            const angle = Vec3.magnitude(rotMoveDir) * p.rotateSpeed * input.pixelRatio;
+            const aspectRatio = input.width / input.height;
+            const angle = Vec3.magnitude(rotMoveDir) * p.rotateSpeed * input.pixelRatio * aspectRatio;
 
             if (angle) {
                 Vec3.sub(_eye, camera.position, camera.target);
