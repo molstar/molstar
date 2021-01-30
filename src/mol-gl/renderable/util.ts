@@ -17,7 +17,7 @@ export function calculateTextureInfo (n: number, itemSize: number) {
     return { width, height, length: width * height * itemSize };
 }
 
-export interface TextureImage<T extends Uint8Array | Float32Array> {
+export interface TextureImage<T extends Uint8Array | Float32Array | Int32Array> {
     readonly array: T
     readonly width: number
     readonly height: number

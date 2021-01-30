@@ -20,6 +20,7 @@ export type TextureKindValue = {
     'image-uint8': TextureImage<Uint8Array>
     'image-float32': TextureImage<Float32Array>
     'image-float16': TextureImage<Float32Array>
+    'image-int32': TextureImage<Int32Array>
     'image-depth': TextureImage<Uint8Array> // TODO should be Uint32Array
     'volume-uint8': TextureVolume<Uint8Array>
     'volume-float32': TextureVolume<Float32Array>
@@ -28,7 +29,7 @@ export type TextureKindValue = {
 }
 export type TextureValueType = ValueOf<TextureKindValue>
 export type TextureKind = keyof TextureKindValue
-export type TextureType = 'ubyte' | 'ushort' | 'float' | 'fp16'
+export type TextureType = 'ubyte' | 'ushort' | 'float' | 'fp16' | 'int'
 export type TextureFormat = 'alpha' | 'rgb' | 'rgba' | 'depth'
 /** Numbers are shortcuts for color attachment */
 export type TextureAttachment = 'depth' | 'stencil' | 'color0' | 'color1' | 'color2' | 'color3' | 'color4' | 'color5' | 'color6' | 'color7' | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
@@ -43,6 +44,7 @@ export function getTarget(gl: GLRenderingContext, kind: TextureKind): number {
     }
     if (isWebGL2(gl)) {
         switch (kind) {
+            case 'image-int32': return gl.TEXTURE_2D;
             case 'volume-uint8': return gl.TEXTURE_3D;
             case 'volume-float32': return gl.TEXTURE_3D;
             case 'volume-float16': return gl.TEXTURE_3D;
@@ -56,8 +58,12 @@ export function getFormat(gl: GLRenderingContext, format: TextureFormat, type: T
         case 'alpha':
             if (isWebGL2(gl) && type === 'float') return gl.RED;
             else return gl.ALPHA;
-        case 'rgb': return gl.RGB;
-        case 'rgba': return gl.RGBA;
+        case 'rgb':
+            if (isWebGL2(gl) && type === 'int') return gl.RGB_INTEGER;
+            return gl.RGB;
+        case 'rgba':
+            if (isWebGL2(gl) && type === 'int') return gl.RGBA_INTEGER;
+            return gl.RGBA;
         case 'depth': return gl.DEPTH_COMPONENT;
     }
 }
@@ -70,18 +76,21 @@ export function getInternalFormat(gl: GLRenderingContext, format: TextureFormat,
                     case 'ubyte': return gl.ALPHA;
                     case 'float': return gl.R32F;
                     case 'fp16': return gl.R16F;
+                    case 'int': return gl.R32I;
                 }
             case 'rgb':
                 switch (type) {
                     case 'ubyte': return gl.RGB;
                     case 'float': return gl.RGB32F;
                     case 'fp16': return gl.RGB16F;
+                    case 'int': return gl.RGB32I;
                 }
             case 'rgba':
                 switch (type) {
                     case 'ubyte': return gl.RGBA;
                     case 'float': return gl.RGBA32F;
                     case 'fp16': return gl.RGBA16F;
+                    case 'int': return gl.RGBA32I;
                 }
             case 'depth':
                 return gl.DEPTH_COMPONENT16;
@@ -110,6 +119,7 @@ function getTypeSize(type: TextureType): number {
         case 'ushort': return 2;
         case 'float': return 4;
         case 'fp16': return 2;
+        case 'int': return 4;
     }
 }
 
@@ -121,6 +131,9 @@ export function getType(gl: GLRenderingContext, extensions: WebGLExtensions, typ
         case 'fp16':
             if (extensions.textureHalfFloat) return extensions.textureHalfFloat.HALF_FLOAT;
             else throw new Error('extension "texture_half_float" unavailable');
+        case 'int':
+            if (isWebGL2(gl)) return gl.INT;
+            else throw new Error('texture type "int" requires webgl2');
     }
 }
 
@@ -214,6 +227,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         (kind.endsWith('float32') && _type !== 'float') ||
         (kind.endsWith('float16') && _type !== 'fp16') ||
         (kind.endsWith('uint8') && _type !== 'ubyte') ||
+        (kind.endsWith('int32') && _type !== 'int') ||
         (kind.endsWith('depth') && _type !== 'ushort')
     ) {
         throw new Error(`texture kind '${kind}' and type '${_type}' are incompatible`);
@@ -295,7 +309,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
             if (layer === undefined) throw new Error('need `layer` to attach 3D texture');
             gl.framebufferTextureLayer(gl.FRAMEBUFFER, getAttachment(gl, extensions, attachment), texture, 0, layer);
         } else {
-            throw new Error('unknown texture target');
+            throw new Error('unknown/unsupported texture target');
         }
     }
 

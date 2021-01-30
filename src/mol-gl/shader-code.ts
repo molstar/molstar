@@ -23,12 +23,16 @@ export interface ShaderExtensions {
     readonly shaderTextureLod?: ShaderExtensionsValue
 }
 
+type FragOutTypes = { [k in number]: 'vec4' | 'ivec4' }
+
 export interface ShaderCode {
     readonly id: number
     readonly name: string
     readonly vert: string
     readonly frag: string
     readonly extensions: ShaderExtensions
+    /** Fragment shader output type only applicable for webgl2 */
+    readonly outTypes: FragOutTypes
 }
 
 import apply_fog from './shader/chunks/apply-fog.glsl';
@@ -117,8 +121,8 @@ function addIncludes(text: string) {
         .replace(reMultipleLinebreaks, '\n');
 }
 
-export function ShaderCode(name: string, vert: string, frag: string, extensions: ShaderExtensions = {}): ShaderCode {
-    return { id: shaderCodeId(), name, vert: addIncludes(vert), frag: addIncludes(frag), extensions };
+export function ShaderCode(name: string, vert: string, frag: string, extensions: ShaderExtensions = {}, outTypes: FragOutTypes = {}): ShaderCode {
+    return { id: shaderCodeId(), name, vert: addIncludes(vert), frag: addIncludes(frag), extensions, outTypes };
 }
 
 // Note: `drawBuffers` need to be 'optional' for wboit
@@ -226,8 +230,6 @@ const glsl300VertPrefix = `#version 300 es
 `;
 
 const glsl300FragPrefixCommon = `
-layout(location = 0) out highp vec4 out_FragData0;
-
 #define varying in
 #define texture2D texture
 #define texture2DLodEXT textureLod
@@ -238,8 +240,12 @@ layout(location = 0) out highp vec4 out_FragData0;
 #define depthTextureSupport
 `;
 
-function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
-    const prefix = [ '#version 300 es' ];
+function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExtensions, shaderExtensions: ShaderExtensions, outTypes: FragOutTypes) {
+    const prefix = [
+        '#version 300 es',
+        `layout(location = 0) out highp ${outTypes[0] || 'vec4'} out_FragData0;`
+    ];
+
     if (shaderExtensions.standardDerivatives) {
         prefix.push('#define enabledStandardDerivatives');
     }
@@ -250,7 +256,7 @@ function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExten
         prefix.push('#define requiredDrawBuffers');
         const maxDrawBuffers = gl.getParameter(gl.MAX_DRAW_BUFFERS) as number;
         for (let i = 1, il = maxDrawBuffers; i < il; ++i) {
-            prefix.push(`layout(location = ${i}) out highp vec4 out_FragData${i};`);
+            prefix.push(`layout(location = ${i}) out highp ${outTypes[i] || 'vec4'} out_FragData${i};`);
         }
     }
     if (shaderExtensions.shaderTextureLod) {
@@ -268,7 +274,7 @@ export function addShaderDefines(gl: GLRenderingContext, extensions: WebGLExtens
     const header = getDefinesCode(defines);
     const vertPrefix = isWebGL2(gl) ? glsl300VertPrefix : '';
     const fragPrefix = isWebGL2(gl)
-        ? getGlsl300FragPrefix(gl, extensions, shaders.extensions)
+        ? getGlsl300FragPrefix(gl, extensions, shaders.extensions, shaders.outTypes)
         : getGlsl100FragPrefix(extensions, shaders.extensions);
     const frag = isWebGL2(gl) ? transformGlsl300Frag(shaders.frag) : shaders.frag;
     return {
@@ -276,6 +282,7 @@ export function addShaderDefines(gl: GLRenderingContext, extensions: WebGLExtens
         name: shaders.name,
         vert: `${vertPrefix}${header}${shaders.vert}`,
         frag: `${fragPrefix}${header}${frag}`,
-        extensions: shaders.extensions
+        extensions: shaders.extensions,
+        outTypes: shaders.outTypes
     };
 }
