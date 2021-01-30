@@ -15,9 +15,6 @@ precision highp int;
 #include common_clip
 #include wboit_params
 
-uniform float uClipNear;
-uniform float uIsOrtho;
-
 varying float vRadius;
 varying float vRadiusSq;
 varying vec3 vPoint;
@@ -25,10 +22,6 @@ varying vec3 vPointViewPosition;
 
 vec3 cameraPos;
 vec3 cameraNormal;
-
-float calcClip(const in vec3 cameraPos) {
-    return dot(vec4(cameraPos, 1.0), vec4(0.0, 0.0, 1.0, uClipNear - 0.5));
-}
 
 bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
     vec3 cameraSpherePos = -vPointViewPosition;
@@ -75,19 +68,17 @@ void main(void){
             discard;
     #endif
 
-    // FIXME not compatible with custom clipping plane
-    // Set the depth based on the new cameraPos.
-    gl_FragDepthEXT = calcDepth(cameraPos);
+    vec3 vViewPosition = cameraPos;
+    gl_FragDepthEXT = calcDepth(vViewPosition);
     if (!flag && gl_FragDepthEXT >= 0.0) {
         gl_FragDepthEXT = 0.0 + (0.0000001 / vRadius);
     }
 
     // bugfix (mac only?)
-    if (gl_FragDepthEXT < 0.0)
-        discard;
-    if (gl_FragDepthEXT > 1.0)
-        discard;
+    if (gl_FragDepthEXT < 0.0) discard;
+    if (gl_FragDepthEXT > 1.0) discard;
 
+    float fragmentDepth = gl_FragDepthEXT;
     #include assign_material_color
 
     #if defined(dRenderVariant_pick)
@@ -100,15 +91,12 @@ void main(void){
             gl_FragColor = material;
         #else
             vec3 normal = -cameraNormal;
-            vec3 vViewPosition = cameraPos;
             #include apply_light_color
         #endif
 
         #include apply_interior_color
         #include apply_marker_color
         #include apply_fog
-
-        float fragmentDepth = gl_FragDepthEXT;
         #include wboit_write
     #endif
 }

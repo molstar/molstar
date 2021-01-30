@@ -121,6 +121,7 @@ export function InterUnitBondLineVisual(materialId: number): ComplexVisual<Inter
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.linkScale !== currentProps.linkScale ||
                 newProps.linkSpacing !== currentProps.linkSpacing ||
+                newProps.dashCount !== currentProps.dashCount ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)

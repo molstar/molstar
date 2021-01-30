@@ -22,8 +22,10 @@ import { Helper } from '../helper/helper';
 
 import quad_vert from '../../mol-gl/shader/quad.vert';
 import depthMerge_frag from '../../mol-gl/shader/depth-merge.frag';
+import { copy_frag } from '../../mol-gl/shader/copy.frag';
 import { StereoCamera } from '../camera/stereo';
 import { WboitPass } from './wboit';
+import { AntialiasingPass, PostprocessingPass, PostprocessingProps } from './postprocessing';
 
 const DepthMergeSchema = {
     ...QuadSchema,
@@ -50,6 +52,27 @@ function getDepthMergeRenderable(ctx: WebGLContext, depthTexturePrimitives: Text
     return createComputeRenderable(renderItem, values);
 }
 
+const CopySchema = {
+    ...QuadSchema,
+    tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    uTexSize: UniformSpec('v2'),
+};
+const  CopyShaderCode = ShaderCode('copy', quad_vert, copy_frag);
+type  CopyRenderable = ComputeRenderable<Values<typeof CopySchema>>
+
+function getCopyRenderable(ctx: WebGLContext, colorTexture: Texture): CopyRenderable {
+    const values: Values<typeof CopySchema> = {
+        ...QuadValues,
+        tColor: ValueCell.create(colorTexture),
+        uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
+    };
+
+    const schema = { ...CopySchema };
+    const renderItem = createComputeRenderItem(ctx, 'triangles', CopyShaderCode, schema, values);
+
+    return createComputeRenderable(renderItem, values);
+}
+
 export class DrawPass {
     private readonly drawTarget: RenderTarget
 
@@ -57,17 +80,23 @@ export class DrawPass {
     readonly depthTexture: Texture
     readonly depthTexturePrimitives: Texture
 
-    private readonly packedDepth: boolean
+    readonly packedDepth: boolean
+
     private depthTarget: RenderTarget
     private depthTargetPrimitives: RenderTarget | null
     private depthTargetVolumes: RenderTarget | null
     private depthTextureVolumes: Texture
     private depthMerge: DepthMergeRenderable
 
+    private copyFboTarget: CopyRenderable
+    private copyFboPostprocessing: CopyRenderable
+
     private wboit: WboitPass | undefined
+    readonly postprocessing: PostprocessingPass
+    private readonly antialiasing: AntialiasingPass
 
     get wboitEnabled() {
-        return !!this.wboit?.enabled;
+        return !!this.wboit?.supported;
     }
 
     constructor(private webgl: WebGLContext, width: number, height: number, enableWboit: boolean) {
@@ -93,6 +122,11 @@ export class DrawPass {
         this.depthMerge = getDepthMergeRenderable(webgl, this.depthTexturePrimitives, this.depthTextureVolumes, this.packedDepth);
 
         this.wboit = enableWboit ? new WboitPass(webgl, width, height) : undefined;
+        this.postprocessing = new PostprocessingPass(webgl, this);
+        this.antialiasing = new AntialiasingPass(webgl, this);
+
+        this.copyFboTarget = getCopyRenderable(webgl, this.colorTarget.texture);
+        this.copyFboPostprocessing = getCopyRenderable(webgl, this.postprocessing.target.texture);
     }
 
     reset() {
@@ -121,9 +155,15 @@ export class DrawPass {
 
             ValueCell.update(this.depthMerge.values.uTexSize, Vec2.set(this.depthMerge.values.uTexSize.ref.value, width, height));
 
-            if (this.wboit?.enabled) {
+            ValueCell.update(this.copyFboTarget.values.uTexSize, Vec2.set(this.copyFboTarget.values.uTexSize.ref.value, width, height));
+            ValueCell.update(this.copyFboPostprocessing.values.uTexSize, Vec2.set(this.copyFboPostprocessing.values.uTexSize.ref.value, width, height));
+
+            if (this.wboit?.supported) {
                 this.wboit.setSize(width, height);
             }
+
+            this.postprocessing.setSize(width, height);
+            this.antialiasing.setSize(width, height);
         }
     }
 
@@ -141,26 +181,30 @@ export class DrawPass {
         this.depthMerge.render();
     }
 
-    private _renderWboit(renderer: Renderer, camera: ICamera, scene: Scene, toDrawingBuffer: boolean) {
-        if (!this.wboit?.enabled) throw new Error('expected wboit to be enabled');
+    private _renderWboit(renderer: Renderer, camera: ICamera, scene: Scene, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
+        if (!this.wboit?.supported) throw new Error('expected wboit to be supported');
 
-        const renderTarget = toDrawingBuffer ? this.drawTarget : this.colorTarget;
-        renderTarget.bind();
+        this.colorTarget.bind();
         renderer.clear(true);
 
         // render opaque primitives
-        this.depthTexturePrimitives.attachFramebuffer(renderTarget.framebuffer, 'depth');
-        renderTarget.bind();
+        this.depthTexturePrimitives.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
+        this.colorTarget.bind();
+        renderer.clearDepth();
         renderer.renderWboitOpaque(scene.primitives, camera, null);
 
         // render opaque volumes
-        this.depthTextureVolumes.attachFramebuffer(renderTarget.framebuffer, 'depth');
-        renderTarget.bind();
+        this.depthTextureVolumes.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
+        this.colorTarget.bind();
         renderer.clearDepth();
         renderer.renderWboitOpaque(scene.volumes, camera, this.depthTexturePrimitives);
 
         // merge depth of opaque primitives and volumes
         this._depthMerge();
+
+        if (PostprocessingPass.isEnabled(postprocessingProps)) {
+            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
+        }
 
         // render transparent primitives and volumes
         this.wboit.bind();
@@ -168,14 +212,19 @@ export class DrawPass {
         renderer.renderWboitTransparent(scene.volumes, camera, this.depthTexture);
 
         // evaluate wboit
-        this.depthTexturePrimitives.attachFramebuffer(renderTarget.framebuffer, 'depth');
-        renderTarget.bind();
+        if (PostprocessingPass.isEnabled(postprocessingProps)) {
+            this.depthTexturePrimitives.attachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
+            this.postprocessing.target.bind();
+        } else {
+            this.depthTexturePrimitives.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
+            this.colorTarget.bind();
+        }
         this.wboit.render();
     }
 
-    private _renderBlended(renderer: Renderer, camera: ICamera, scene: Scene, toDrawingBuffer: boolean) {
+    private _renderBlended(renderer: Renderer, camera: ICamera, scene: Scene, toDrawingBuffer: boolean, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
         if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
+            this.drawTarget.bind();
         } else {
             this.colorTarget.bind();
             if (!this.packedDepth) {
@@ -186,22 +235,23 @@ export class DrawPass {
         renderer.clear(true);
         renderer.renderBlendedOpaque(scene.primitives, camera, null);
 
-        // do a depth pass if not rendering to drawing buffer and
-        // extensions.depthTexture is unsupported (i.e. depthTarget is set)
-        if (!toDrawingBuffer && this.depthTargetPrimitives) {
-            this.depthTargetPrimitives.bind();
-            renderer.clear(false);
-            renderer.renderDepth(scene.primitives, camera, null);
-            this.colorTarget.bind();
-        }
-
-        // do direct-volume rendering
         if (!toDrawingBuffer) {
+            // do a depth pass if not rendering to drawing buffer and
+            // extensions.depthTexture is unsupported (i.e. depthTarget is set)
+            if (this.depthTargetPrimitives) {
+                this.depthTargetPrimitives.bind();
+                renderer.clear(false);
+                // TODO: this should only render opaque
+                renderer.renderDepth(scene.primitives, camera, null);
+                this.colorTarget.bind();
+            }
+
+            // do direct-volume rendering
             if (!this.packedDepth) {
                 this.depthTextureVolumes.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
                 renderer.clearDepth(); // from previous frame
             }
-            renderer.renderBlendedVolume(scene.volumes, camera, this.depthTexturePrimitives);
+            renderer.renderBlendedVolumeOpaque(scene.volumes, camera, this.depthTexturePrimitives);
 
             // do volume depth pass if extensions.depthTexture is unsupported (i.e. depthTarget is set)
             if (this.depthTargetVolumes) {
@@ -211,29 +261,47 @@ export class DrawPass {
                 this.colorTarget.bind();
             }
 
-            if (!this.packedDepth) {
-                this.depthTexturePrimitives.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
+            // merge depths from primitive and volume rendering
+            this._depthMerge();
+            this.colorTarget.bind();
+
+            if (PostprocessingPass.isEnabled(postprocessingProps)) {
+                this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
             }
+            renderer.renderBlendedVolumeTransparent(scene.volumes, camera, this.depthTexturePrimitives);
+
+            const target = PostprocessingPass.isEnabled(postprocessingProps)
+                ? this.postprocessing.target : this.colorTarget;
+            if (!this.packedDepth) {
+                this.depthTexturePrimitives.attachFramebuffer(target.framebuffer, 'depth');
+            }
+            target.bind();
         }
 
         renderer.renderBlendedTransparent(scene.primitives, camera, null);
-
-        // merge depths from primitive and volume rendering
-        if (!toDrawingBuffer) {
-            this._depthMerge();
-            this.colorTarget.bind();
-        }
     }
 
-    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean) {
+    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
+        const volumeRendering = scene.volumes.renderables.length > 0;
+        const postprocessingEnabled = PostprocessingPass.isEnabled(postprocessingProps);
+        const antialiasingEnabled = AntialiasingPass.isEnabled(postprocessingProps);
+
         const { x, y, width, height } = camera.viewport;
         renderer.setViewport(x, y, width, height);
         renderer.update(camera);
 
         if (this.wboitEnabled) {
-            this._renderWboit(renderer, camera, scene, toDrawingBuffer);
+            this._renderWboit(renderer, camera, scene, transparentBackground, postprocessingProps);
         } else {
-            this._renderBlended(renderer, camera, scene, toDrawingBuffer);
+            this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, transparentBackground, postprocessingProps);
+        }
+
+        if (PostprocessingPass.isEnabled(postprocessingProps)) {
+            this.postprocessing.target.bind();
+        } else if (!toDrawingBuffer || volumeRendering || this.wboitEnabled) {
+            this.colorTarget.bind();
+        } else {
+            this.drawTarget.bind();
         }
 
         if (helper.debug.isEnabled) {
@@ -249,18 +317,40 @@ export class DrawPass {
             renderer.renderBlended(helper.camera.scene, helper.camera.camera, null);
         }
 
+        if (antialiasingEnabled) {
+            this.antialiasing.render(camera, toDrawingBuffer, postprocessingProps);
+        } else if (toDrawingBuffer) {
+            this.drawTarget.bind();
+
+            this.webgl.state.disable(this.webgl.gl.DEPTH_TEST);
+            if (PostprocessingPass.isEnabled(postprocessingProps)) {
+                this.copyFboPostprocessing.render();
+            } else if (volumeRendering || this.wboitEnabled) {
+                this.copyFboTarget.render();
+            }
+        }
+
         this.webgl.gl.flush();
     }
 
-    render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean) {
+    render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
         renderer.setTransparentBackground(transparentBackground);
         renderer.setDrawingBufferSize(this.colorTarget.getWidth(), this.colorTarget.getHeight());
 
         if (StereoCamera.is(camera)) {
-            this._render(renderer, camera.left, scene, helper, toDrawingBuffer);
-            this._render(renderer, camera.right, scene, helper, toDrawingBuffer);
+            this._render(renderer, camera.left, scene, helper, toDrawingBuffer, transparentBackground, postprocessingProps);
+            this._render(renderer, camera.right, scene, helper, toDrawingBuffer, transparentBackground, postprocessingProps);
         } else {
-            this._render(renderer, camera, scene, helper, toDrawingBuffer);
+            this._render(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, postprocessingProps);
         }
+    }
+
+    getColorTarget(postprocessingProps: PostprocessingProps): RenderTarget {
+        if (AntialiasingPass.isEnabled(postprocessingProps)) {
+            return this.antialiasing.target;
+        } else if (PostprocessingPass.isEnabled(postprocessingProps)) {
+            return this.postprocessing.target;
+        }
+        return this.colorTarget;
     }
 }

@@ -121,6 +121,8 @@ export function ShaderCode(name: string, vert: string, frag: string, extensions:
     return { id: shaderCodeId(), name, vert: addIncludes(vert), frag: addIncludes(frag), extensions };
 }
 
+// Note: `drawBuffers` need to be 'optional' for wboit
+
 import points_vert from './shader/points.vert';
 import points_frag from './shader/points.frag';
 export const PointsShaderCode = ShaderCode('points', points_vert, points_frag, { drawBuffers: 'optional' });
@@ -128,6 +130,10 @@ export const PointsShaderCode = ShaderCode('points', points_vert, points_frag, {
 import spheres_vert from './shader/spheres.vert';
 import spheres_frag from './shader/spheres.frag';
 export const SpheresShaderCode = ShaderCode('spheres', spheres_vert, spheres_frag, { fragDepth: 'required', drawBuffers: 'optional' });
+
+import cylinders_vert from './shader/cylinders.vert';
+import cylinders_frag from './shader/cylinders.frag';
+export const CylindersShaderCode = ShaderCode('cylinders', cylinders_vert, cylinders_frag, { fragDepth: 'required', drawBuffers: 'optional' });
 
 import text_vert from './shader/text.vert';
 import text_frag from './shader/text.frag';

@@ -63,7 +63,7 @@ export default `
         }
     }
 
-    #if __VERSION__ != 300
+    #if __VERSION__ == 100
         // 8-bit
         int bitwiseAnd(int a, int b) {
             int d = 128;
@@ -92,8 +92,10 @@ export default `
         for (int i = 0; i < dClipObjectCount; ++i) {
             if (flag == 0 || hasBit(flag, i + 1)) {
                 // TODO take sphere radius into account?
-                if (getSignedDistance(sphere.xyz, uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i]) <= 0.0)
+                bool test = getSignedDistance(sphere.xyz, uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i]) <= 0.0;
+                if ((!uClipObjectInvert[i] && test) || (uClipObjectInvert[i] && !test)) {
                     return true;
+                }
             }
         }
         return false;

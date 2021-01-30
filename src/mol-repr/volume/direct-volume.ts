@@ -39,7 +39,6 @@ export function createDirectVolume2d(ctx: RuntimeContext, webgl: WebGLContext, v
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     const bbox = getBoundingBox(gridDimension, transform);
 
-    // TODO: handle disposal
     const texture = directVolume ? directVolume.gridTexture.ref.value : webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     texture.load(textureImage);
 
@@ -77,7 +76,6 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     const bbox = getBoundingBox(gridDimension, transform);
 
-    // TODO: handle disposal
     const texture = directVolume ? directVolume.gridTexture.ref.value : webgl.resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear');
     texture.load(textureVolume);
 
@@ -139,7 +137,10 @@ export function DirectVolumeVisual(materialId: number): VolumeVisual<DirectVolum
         eachLocation: eachDirectVolume,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<DirectVolumeParams>, currentProps: PD.Values<DirectVolumeParams>) => {
         },
-        geometryUtils: DirectVolume.Utils
+        geometryUtils: DirectVolume.Utils,
+        dispose: (geometry: DirectVolume) => {
+            geometry.gridTexture.ref.value.destroy();
+        }
     }, materialId);
 }
 

@@ -14,11 +14,16 @@ import { VisualContext } from '../../../visual';
 import { BaseGeometry } from '../../../../mol-geo/geometry/base';
 import { Lines } from '../../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../../mol-geo/geometry/lines/lines-builder';
+import { Cylinders } from '../../../../mol-geo/geometry/cylinders/cylinders';
+import { CylindersBuilder } from '../../../../mol-geo/geometry/cylinders/cylinders-builder';
 
 export const LinkCylinderParams = {
     linkScale: PD.Numeric(0.4, { min: 0, max: 1, step: 0.1 }),
     linkSpacing: PD.Numeric(1, { min: 0, max: 2, step: 0.01 }),
     linkCap: PD.Boolean(false),
+    dashCount: PD.Numeric(4, { min: 2, max: 10, step: 2 }),
+    dashScale: PD.Numeric(0.8, { min: 0, max: 2, step: 0.1 }),
+    dashCap: PD.Boolean(true),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
 };
 export const DefaultLinkCylinderProps = PD.getDefaultValues(LinkCylinderParams);
@@ -27,6 +32,7 @@ export type LinkCylinderProps = typeof DefaultLinkCylinderProps
 export const LinkLineParams = {
     linkScale: PD.Numeric(0.5, { min: 0, max: 1, step: 0.1 }),
     linkSpacing: PD.Numeric(0.1, { min: 0, max: 2, step: 0.01 }),
+    dashCount: PD.Numeric(4, { min: 2, max: 10, step: 2 }),
 };
 export const DefaultLinkLineProps = PD.getDefaultValues(LinkLineParams);
 export type LinkLineProps = typeof DefaultLinkLineProps
@@ -95,7 +101,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
 
     if (!linkCount) return Mesh.createEmpty(mesh);
 
-    const { linkScale, linkSpacing, radialSegments, linkCap } = props;
+    const { linkScale, linkSpacing, radialSegments, linkCap, dashCount, dashScale, dashCap } = props;
 
     const vertexCountEstimate = radialSegments * 2 * linkCount * 2;
     const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 4, mesh);
@@ -111,25 +117,30 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
         bottomCap: linkCap
     };
 
+    const segmentCount = dashCount + 1;
+
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
 
         position(va, vb, edgeIndex);
+        v3sub(tmpV12, vb, va);
 
         const linkRadius = radius(edgeIndex);
         const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
+        const [topCap, bottomCap] = (v3dot(tmpV12, up) > 0) ? [false, linkCap] : [linkCap, false];
         builderState.currentGroup = edgeIndex;
 
         if (linkStyle === LinkStyle.Solid) {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
-            cylinderProps.topCap = cylinderProps.bottomCap = linkCap;
+            cylinderProps.topCap = topCap;
+            cylinderProps.bottomCap = bottomCap;
 
             addCylinder(builderState, va, vb, 0.5, cylinderProps);
         } else if (linkStyle === LinkStyle.Dashed) {
-            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius / 3;
-            cylinderProps.topCap = cylinderProps.bottomCap = true;
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius * dashScale;
+            cylinderProps.topCap = cylinderProps.bottomCap = dashCap;
 
-            addFixedCountDashedCylinder(builderState, va, vb, 0.5, 7, cylinderProps);
+            addFixedCountDashedCylinder(builderState, va, vb, 0.5, segmentCount, cylinderProps);
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.Triple) {
             const order = linkStyle === LinkStyle.Double ? 2 : 3;
             const multiRadius = linkRadius * (linkScale / (0.5 * order));
@@ -139,23 +150,19 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
             v3setMagnitude(vShift, vShift, absOffset);
 
             cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius;
-            cylinderProps.topCap = cylinderProps.bottomCap = linkCap;
+            cylinderProps.topCap = topCap;
+            cylinderProps.bottomCap = bottomCap;
 
             if (order === 3) addCylinder(builderState, va, vb, 0.5, cylinderProps);
             addDoubleCylinder(builderState, va, vb, 0.5, vShift, cylinderProps);
         } else if (linkStyle === LinkStyle.Disk) {
-            v3scale(tmpV12, v3sub(tmpV12, vb, va), 0.475);
+            v3scale(tmpV12, tmpV12, 0.475);
             v3add(va, va, tmpV12);
             v3sub(vb, vb, tmpV12);
 
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
-            if (v3dot(tmpV12, up) > 0) {
-                cylinderProps.topCap = false;
-                cylinderProps.bottomCap = linkCap;
-            } else {
-                cylinderProps.topCap = linkCap;
-                cylinderProps.bottomCap = false;
-            }
+            cylinderProps.topCap = topCap;
+            cylinderProps.bottomCap = bottomCap;
 
             addCylinder(builderState, va, vb, 0.5, cylinderProps);
         }
@@ -168,12 +175,73 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
  * Each edge is included twice to allow for coloring/picking
  * the half closer to the first vertex, i.e. vertex a.
  */
+export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkCylinderProps, cylinders?: Cylinders) {
+    const { linkCount, referencePosition, position, style, radius, ignore } = linkBuilder;
+
+    if (!linkCount) return Cylinders.createEmpty(cylinders);
+
+    const { linkScale, linkSpacing, linkCap, dashCount, dashScale, dashCap } = props;
+
+    const cylindersCountEstimate = linkCount * 2;
+    const builder = CylindersBuilder.create(cylindersCountEstimate, cylindersCountEstimate / 4, cylinders);
+
+    const va = Vec3();
+    const vb = Vec3();
+    const vShift = Vec3();
+
+    // automatically adjust length for evenly spaced dashed cylinders
+    const segmentCount = dashCount % 2 === 1 ? dashCount : dashCount + 1;
+    const lengthScale = 0.5 - (0.5 / 2 / segmentCount);
+
+    for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
+        if (ignore && ignore(edgeIndex)) continue;
+
+        position(va, vb, edgeIndex);
+
+        const linkRadius = radius(edgeIndex);
+        const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
+
+        if (linkStyle === LinkStyle.Solid) {
+            v3scale(vb, v3add(vb, va, vb), 0.5);
+            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], 1, linkCap, false, edgeIndex);
+        } else if (linkStyle === LinkStyle.Dashed) {
+            v3scale(tmpV12, v3sub(tmpV12, vb, va), lengthScale);
+            v3sub(vb, vb, tmpV12);
+            builder.addFixedCountDashes(va, vb, segmentCount, dashScale, dashCap, dashCap, edgeIndex);
+        } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.Triple) {
+            v3scale(vb, v3add(vb, va, vb), 0.5);
+            const order = linkStyle === LinkStyle.Double ? 2 : 3;
+            const multiScale = linkScale / (0.5 * order);
+            const absOffset = (linkRadius - multiScale * linkRadius) * linkSpacing;
+
+            calculateShiftDir(vShift, va, vb, referencePosition ? referencePosition(edgeIndex) : null);
+            v3setMagnitude(vShift, vShift, absOffset);
+
+            if (order === 3) builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], multiScale, linkCap, false, edgeIndex);
+            builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vb[0] + vShift[0], vb[1] + vShift[1], vb[2] + vShift[2], multiScale, linkCap, false, edgeIndex);
+            builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vb[0] - vShift[0], vb[1] - vShift[1], vb[2] - vShift[2], multiScale, linkCap, false, edgeIndex);
+        } else if (linkStyle === LinkStyle.Disk) {
+            v3scale(tmpV12, v3sub(tmpV12, vb, va), 0.475);
+            v3add(va, va, tmpV12);
+            v3sub(vb, vb, tmpV12);
+
+            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], 1, linkCap, false, edgeIndex);
+        }
+    }
+
+    return builder.getCylinders();
+}
+
+/**
+ * Each edge is included twice to allow for coloring/picking
+ * the half closer to the first vertex, i.e. vertex a.
+ */
 export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkLineProps, lines?: Lines) {
     const { linkCount, referencePosition, position, style, ignore } = linkBuilder;
 
     if (!linkCount) return Lines.createEmpty(lines);
 
-    const { linkScale, linkSpacing } = props;
+    const { linkScale, linkSpacing, dashCount } = props;
 
     const linesCountEstimate = linkCount * 2;
     const builder = LinesBuilder.create(linesCountEstimate, linesCountEstimate / 4, lines);
@@ -182,20 +250,27 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
     const vb = Vec3();
     const vShift = Vec3();
 
+    // automatically adjust length for evenly spaced dashed lines
+    const segmentCount = dashCount % 2 === 1 ? dashCount : dashCount + 1;
+    const lengthScale = 0.5 - (0.5 / 2 / segmentCount);
+
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
 
         position(va, vb, edgeIndex);
-        v3scale(vb, v3add(vb, va, vb), 0.5);
 
         const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
 
         if (linkStyle === LinkStyle.Solid) {
+            v3scale(vb, v3add(vb, va, vb), 0.5);
             builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], edgeIndex);
         } else if (linkStyle === LinkStyle.Dashed) {
-            builder.addFixedCountDashes(va, vb, 7, edgeIndex);
+            v3scale(tmpV12, v3sub(tmpV12, vb, va), lengthScale);
+            v3sub(vb, vb, tmpV12);
+            builder.addFixedCountDashes(va, vb, segmentCount, edgeIndex);
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.Triple) {
-            const order = LinkStyle.Double ? 2 : 3;
+            v3scale(vb, v3add(vb, va, vb), 0.5);
+            const order = linkStyle === LinkStyle.Double ? 2 : 3;
             const multiRadius = 1 * (linkScale / (0.5 * order));
             const absOffset = (1 - multiRadius) * linkSpacing;
 

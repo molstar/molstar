@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,7 +11,7 @@ import { ColorNames } from '../../mol-util/color/names';
 import { PositionData, Box3D, Sphere3D } from '../../mol-math/geometry';
 import { OrderedSet } from '../../mol-data/int';
 import { Vec3 } from '../../mol-math/linear-algebra';
-import { computeGaussianDensityTexture2d, computeGaussianDensity } from '../../mol-math/geometry/gaussian-density';
+import { computeGaussianDensity, computeGaussianDensityTexture2d } from '../../mol-math/geometry/gaussian-density';
 import { calcActiveVoxels } from '../../mol-gl/compute/marching-cubes/active-voxels';
 import { createHistogramPyramid } from '../../mol-gl/compute/histogram-pyramid/reduction';
 import { createIsosurfaceBuffers } from '../../mol-gl/compute/marching-cubes/isosurface';
@@ -118,7 +118,7 @@ async function init() {
     //
 
     console.time('cpu gaussian');
-    const densityData = await computeGaussianDensity(position, box, radius, { ...props, useGpu: false }, webgl).run();
+    const densityData = await computeGaussianDensity(position, box, radius, props).run();
     console.timeEnd('cpu gaussian');
     console.log({ densityData });
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,7 +12,7 @@ import { UnitsRepresentation, StructureRepresentation, StructureRepresentationSt
 import { EllipsoidMeshParams, EllipsoidMeshVisual } from '../visual/ellipsoid-mesh';
 import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/property/anisotropic';
 import { IntraUnitBondCylinderParams, IntraUnitBondCylinderVisual } from '../visual/bond-intra-unit-cylinder';
-import { InterUnitBondCylinderParams, InterUnitBondCylinderVisual } from '../visual/bond-inter-unit-cylinder';
+import { InterUnitBondCylinderVisual, InterUnitBondCylinderParams } from '../visual/bond-inter-unit-cylinder';
 import { getUnitKindsParam } from '../params';
 
 const EllipsoidVisuals = {

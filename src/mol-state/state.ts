@@ -378,6 +378,7 @@ class State {
                 definition: {},
                 values: {}
             },
+            paramsNormalizedVersion: root.version,
             dependencies: { dependentBy: [], dependsOn: [] },
             cache: { }
         });
@@ -662,6 +663,7 @@ function addCellsVisitor(transform: StateTransform, _: any, { ctx, added, visite
         state: { ...transform.state },
         errorText: void 0,
         params: void 0,
+        paramsNormalizedVersion: '',
         dependencies: { dependentBy: [], dependsOn: [] },
         cache: void 0
     };
@@ -840,13 +842,20 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
     }
 }
 
-function resolveParams(ctx: UpdateContext, transform: StateTransform, src: StateObject) {
+function resolveParams(ctx: UpdateContext, transform: StateTransform, src: StateObject, cell: StateObjectCell) {
     const prms = transform.transformer.definition.params;
     const definition = prms ? prms(src, ctx.parent.globalContext) : {};
-    const defaultValues = ParamDefinition.getDefaultValues(definition);
-    (transform.params as any) = transform.params
-        ? assignIfUndefined(transform.params, defaultValues)
-        : defaultValues;
+
+    if (cell.paramsNormalizedVersion !== transform.version) {
+        (transform.params as any) = ParamDefinition.normalizeParams(definition, transform.params, 'all');
+        cell.paramsNormalizedVersion = transform.version;
+    } else {
+        const defaultValues = ParamDefinition.getDefaultValues(definition);
+        (transform.params as any) = transform.params
+            ? assignIfUndefined(transform.params, defaultValues)
+            : defaultValues;
+    }
+
     ParamDefinition.resolveRefs(definition, transform.params, ctx.getCellData);
     return { definition, values: transform.params };
 }
@@ -873,7 +882,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     const parent = parentCell.obj!;
     current.sourceRef = parentCell.transform.ref;
 
-    const params = resolveParams(ctx, transform, parent);
+    const params = resolveParams(ctx, transform, parent, current);
 
     if (!oldTree.transforms.has(currentRef) || !current.params) {
         current.params = params;

@@ -8,7 +8,7 @@ import { ThemeDataContext } from '../../../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../../../mol-theme/color';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { Color, ColorScale } from '../../../../mol-util/color';
-import { StructureElement, Model } from '../../../../mol-model/structure';
+import { StructureElement, Model, ElementIndex, Bond } from '../../../../mol-model/structure';
 import { Location } from '../../../../mol-model/location';
 import { CustomProperty } from '../../../../mol-model-props/common/custom-property';
 import { ValidationReportProvider, ValidationReport } from '../prop';
@@ -31,10 +31,16 @@ export function RandomCoilIndexColorTheme(ctx: ThemeDataContext, props: {}): Col
 
     if (rci && model) {
         const residueIndex = model.atomicHierarchy.residueAtomSegments.index;
+        const getColor = (element: ElementIndex) => {
+            const value = rci.get(residueIndex[element]);
+            return value === undefined ? DefaultColor : scale.color(value);
+        };
+
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location) && location.unit.model === model) {
-                const value = rci.get(residueIndex[location.element]);
-                return value === undefined ? DefaultColor : scale.color(value);
+                return getColor(location.element);
+            } else if (Bond.isLocation(location) && location.aUnit.model === model) {
+                return getColor(location.aUnit.elements[location.aIndex]);
             }
             return DefaultColor;
         };

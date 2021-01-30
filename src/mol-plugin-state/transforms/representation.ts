@@ -653,9 +653,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Volume Representation', async ctx => {
             if (newParams.type.name !== oldParams.type.name) {
                 const oldProvider = plugin.representation.volume.registry.get(oldParams.type.name);
-                if (oldProvider.ensureCustomProperties) {
-                    oldProvider.ensureCustomProperties.detach(a.data);
-                }
+                oldProvider.ensureCustomProperties?.detach(a.data);
                 return StateTransformer.UpdateResult.Recreate;
             }
             const props = { ...b.data.repr.props, ...newParams.type.params };

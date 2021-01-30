@@ -135,6 +135,7 @@ export const GlobalUniformSchema = {
     uTransparentBackground: UniformSpec('b'),
 
     uClipObjectType: UniformSpec('i[]'),
+    uClipObjectInvert: UniformSpec('b[]'),
     uClipObjectPosition: UniformSpec('v3[]'),
     uClipObjectRotation: UniformSpec('v4[]'),
     uClipObjectScale: UniformSpec('v3[]'),

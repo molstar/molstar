@@ -93,7 +93,7 @@ export namespace Lines {
     function hashCode(lines: Lines) {
         return hashFnv32a([
             lines.lineCount, lines.mappingBuffer.ref.version, lines.indexBuffer.ref.version,
-            lines.groupBuffer.ref.version, lines.startBuffer.ref.version, lines.startBuffer.ref.version
+            lines.groupBuffer.ref.version, lines.startBuffer.ref.version, lines.endBuffer.ref.version
         ]);
     }
 
@@ -164,7 +164,7 @@ export namespace Lines {
 
     export const Params = {
         ...BaseGeometry.Params,
-        sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
+        sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
         lineSizeAttenuation: PD.Boolean(false),
     };
     export type Params = typeof Params

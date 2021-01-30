@@ -151,6 +151,10 @@ export function getAttachment(gl: GLRenderingContext, extensions: WebGLExtension
     throw new Error('unknown texture attachment');
 }
 
+function isImage(x: TextureImage<any> | TextureVolume<any> | HTMLImageElement): x is HTMLImageElement {
+    return typeof HTMLImageElement !== undefined && (x instanceof HTMLImageElement);
+}
+
 function isTexture2d(x: TextureImage<any> | TextureVolume<any>, target: number, gl: GLRenderingContext): x is TextureImage<any> {
     return target === gl.TEXTURE_2D;
 }
@@ -177,7 +181,7 @@ export interface Texture {
      * The `sub` option requires an existing allocation on the GPU, that is, either
      * `define` or `load` without `sub` must have been called before.
      */
-    load: (image: TextureImage<any> | TextureVolume<any>, sub?: boolean) => void
+    load: (image: TextureImage<any> | TextureVolume<any> | HTMLImageElement, sub?: boolean) => void
     bind: (id: TextureId) => void
     unbind: (id: TextureId) => void
     /** Use `layer` to attach a z-slice of a 3D texture */
@@ -233,7 +237,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
     init();
 
     let width = 0, height = 0, depth = 0;
-    let loadedData: undefined | TextureImage<any> | TextureVolume<any>;
+    let loadedData: undefined | TextureImage<any> | TextureVolume<any> | HTMLImageElement;
     let destroyed = false;
 
     function define(_width: number, _height: number, _depth?: number) {
@@ -250,13 +254,17 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         }
     }
 
-    function load(data: TextureImage<any> | TextureVolume<any>, sub = false) {
+    function load(data: TextureImage<any> | TextureVolume<any> | HTMLImageElement, sub = false) {
         gl.bindTexture(target, texture);
         // unpack alignment of 1 since we use textures only for data
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
         gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-        if (isTexture2d(data, target, gl)) {
+        if (isImage(data)) {
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, format, type, data);
+        } else if (isTexture2d(data, target, gl)) {
             gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, !!data.flipY);
             if (sub) {
                 gl.texSubImage2D(target, 0, 0, 0, data.width, data.height, format, type, data.array);
@@ -361,6 +369,19 @@ export function createTextures(ctx: WebGLContext, schema: RenderableSchema, valu
         }
     });
     return textures;
+}
+
+/**
+ * Loads an image from a url to a textures and triggers update asynchronously.
+ * This will not work on node.js with a polyfill for HTMLImageElement.
+ */
+export function loadImageTexture(src: string, cell: ValueCell<Texture>, texture: Texture) {
+    const img = new Image();
+    img.onload = function() {
+        texture.load(img);
+        ValueCell.update(cell, texture);
+    };
+    img.src = src;
 }
 
 //

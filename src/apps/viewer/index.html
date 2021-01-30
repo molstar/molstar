@@ -50,14 +50,14 @@
 
             var disableAntialiasing = getParam('disable-antialiasing', '[^&]+').trim() === '1';
             var pixelScale = parseFloat(getParam('pixel-scale', '[^&]+').trim() || '1');
-            var enableWboit = getParam('enable-wboit', '[^&]+').trim() === '1';
+            var disableWboit = getParam('disable-wboit', '[^&]+').trim() === '1';
             var hideControls = getParam('hide-controls', '[^&]+').trim() === '1';
             var pdbProvider = getParam('pdb-provider', '[^&]+').trim().toLowerCase();
             var emdbProvider = getParam('emdb-provider', '[^&]+').trim().toLowerCase();
             var viewer = new molstar.Viewer('app', {
                 disableAntialiasing: disableAntialiasing,
                 pixelScale: pixelScale,
-                enableWboit: enableWboit,
+                enableWboit: !disableWboit,
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
                 pdbProvider: pdbProvider || 'pdbe',

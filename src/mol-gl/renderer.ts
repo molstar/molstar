@@ -51,7 +51,8 @@ interface Renderer {
     renderBlended: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderBlendedVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderBlendedVolumeOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderBlendedVolumeTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderWboitOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderWboitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
 
@@ -95,10 +96,11 @@ export const RendererParams = {
         variant: PD.Select('instance', PD.arrayToOptions<Clipping.Variant>(['instance', 'pixel'])),
         objects: PD.ObjectList({
             type: PD.Select('plane', PD.objectToOptions(Clipping.Type, t => stringToWords(t))),
+            invert: PD.Boolean(false),
             position: PD.Vec3(Vec3()),
             rotation: PD.Group({
                 axis: PD.Vec3(Vec3.create(1, 0, 0)),
-                angle: PD.Numeric(0, { min: -180, max: 180, step: 0.1 }, { description: 'Angle in Degrees' }),
+                angle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { description: 'Angle in Degrees' }),
             }, { isExpanded: true }),
             scale: PD.Vec3(Vec3.create(1, 1, 1)),
         }, o => stringToWords(o.type))
@@ -117,22 +119,22 @@ function getStyle(props: RendererProps['style']) {
             };
         case 'matte':
             return {
-                lightIntensity: 0.6, ambientIntensity: 0.4,
+                lightIntensity: 0.7, ambientIntensity: 0.3,
                 metalness: 0, roughness: 1, reflectivity: 0.5
             };
         case 'glossy':
             return {
-                lightIntensity: 0.6, ambientIntensity: 0.4,
+                lightIntensity: 0.7, ambientIntensity: 0.3,
                 metalness: 0, roughness: 0.4, reflectivity: 0.5
             };
         case 'metallic':
             return {
-                lightIntensity: 0.6, ambientIntensity: 0.4,
-                metalness: 0.4, roughness: 0.6, reflectivity: 0.5
+                lightIntensity: 0.7, ambientIntensity: 0.7,
+                metalness: 0.6, roughness: 0.6, reflectivity: 0.5
             };
         case 'plastic':
             return {
-                lightIntensity: 0.6, ambientIntensity: 0.4,
+                lightIntensity: 0.7, ambientIntensity: 0.3,
                 metalness: 0, roughness: 0.2, reflectivity: 0.5
             };
     }
@@ -143,6 +145,7 @@ type Clip = {
     objects: {
         count: number
         type: number[]
+        invert: boolean[]
         position: number[]
         rotation: number[]
         scale: number[]
@@ -151,8 +154,9 @@ type Clip = {
 
 const tmpQuat = Quat();
 function getClip(props: RendererProps['clip'], clip?: Clip): Clip {
-    const { type, position, rotation, scale } = clip?.objects || {
+    const { type, invert, position, rotation, scale } = clip?.objects || {
         type: (new Array(5)).fill(1),
+        invert: (new Array(5)).fill(false),
         position: (new Array(5 * 3)).fill(0),
         rotation: (new Array(5 * 4)).fill(0),
         scale: (new Array(5 * 3)).fill(1),
@@ -160,13 +164,14 @@ function getClip(props: RendererProps['clip'], clip?: Clip): Clip {
     for (let i = 0, il = props.objects.length; i < il; ++i) {
         const p = props.objects[i];
         type[i] = Clipping.Type[p.type];
+        invert[i] = p.invert;
         Vec3.toArray(p.position, position, i * 3);
         Quat.toArray(Quat.setAxisAngle(tmpQuat, p.rotation.axis, degToRad(p.rotation.angle)), rotation, i * 4);
         Vec3.toArray(p.scale, scale, i * 3);
     }
     return {
         variant: props.variant,
-        objects: { count: props.objects.length, type, position, rotation, scale }
+        objects: { count: props.objects.length, type, invert, position, rotation, scale }
     };
 }
 
@@ -231,6 +236,7 @@ namespace Renderer {
             uTransparentBackground: ValueCell.create(false),
 
             uClipObjectType: ValueCell.create(clip.objects.type),
+            uClipObjectInvert: ValueCell.create(clip.objects.invert),
             uClipObjectPosition: ValueCell.create(clip.objects.position),
             uClipObjectRotation: ValueCell.create(clip.objects.rotation),
             uClipObjectScale: ValueCell.create(clip.objects.scale),
@@ -459,7 +465,7 @@ namespace Renderer {
             }
         };
 
-        const renderBlendedVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+        const renderBlendedVolumeOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
             state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             state.enable(gl.BLEND);
 
@@ -468,7 +474,32 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                renderObject(r, 'colorBlended');
+
+                // TODO: simplify, handle on renderable.state???
+                // uAlpha is updated in "render" so we need to recompute it here
+                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+                if (alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && !r.values.dXrayShaded?.ref.value) {
+                    renderObject(r, 'colorBlended');
+                }
+            }
+        };
+
+        const renderBlendedVolumeTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            state.enable(gl.BLEND);
+
+            updateInternal(group, camera, depthTexture, false);
+
+            const { renderables } = group;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+
+                // TODO: simplify, handle on renderable.state???
+                // uAlpha is updated in "render" so we need to recompute it here
+                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dXrayShaded?.ref.value) {
+                    renderObject(r, 'colorBlended');
+                }
             }
         };
 
@@ -537,7 +568,8 @@ namespace Renderer {
             renderBlended,
             renderBlendedOpaque,
             renderBlendedTransparent,
-            renderBlendedVolume,
+            renderBlendedVolumeOpaque,
+            renderBlendedVolumeTransparent,
             renderWboitOpaque,
             renderWboitTransparent,
 
@@ -612,9 +644,7 @@ namespace Renderer {
                 }
             },
 
-            get props() {
-                return p;
-            },
+            props: p,
             get stats(): RendererStats {
                 return {
                     programCount: ctx.stats.resourceCounts.program,

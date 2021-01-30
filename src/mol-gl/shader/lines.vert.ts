@@ -20,7 +20,6 @@ precision highp int;
 uniform float uPixelRatio;
 uniform float uViewportHeight;
 
-attribute vec3 aPosition;
 attribute mat4 aTransform;
 attribute float aInstance;
 attribute float aGroup;

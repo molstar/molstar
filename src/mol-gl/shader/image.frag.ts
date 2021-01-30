@@ -10,6 +10,7 @@ precision highp int;
 #include common
 #include read_from_texture
 #include common_frag_params
+#include common_clip
 #include wboit_params
 
 uniform vec2 uImageTexDim;
@@ -88,6 +89,8 @@ varying float vInstance;
 #endif
 
 void main() {
+    #include clip_pixel
+
     #if defined(dInterpolation_cubic)
         vec4 imageData = biCubic(tImageTex, vUv);
     #else
@@ -95,6 +98,9 @@ void main() {
     #endif
     imageData.a = clamp(imageData.a, 0.0, 1.0);
     if (imageData.a > 0.9) imageData.a = 1.0;
+
+    float fragmentDepth = gl_FragCoord.z;
+    bool interior = false;
 
     #if defined(dRenderVariant_pick)
         if (imageData.a < 0.3)
@@ -121,11 +127,9 @@ void main() {
 
         float group = decodeFloatRGB(texture2D(tGroupTex, vUv).rgb);
         float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+
         #include apply_marker_color
         #include apply_fog
-
-        float fragmentDepth = gl_FragCoord.z;
-        bool interior = false;
         #include wboit_write
     #endif
 }

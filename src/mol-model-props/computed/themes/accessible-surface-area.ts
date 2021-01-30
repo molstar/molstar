@@ -9,7 +9,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Color, ColorScale } from '../../../mol-util/color';
 import { ThemeDataContext } from '../../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
-import { StructureElement, Unit } from '../../../mol-model/structure';
+import { Bond, StructureElement, Unit } from '../../../mol-model/structure';
 import { AccessibleSurfaceAreaProvider } from '../accessible-surface-area';
 import { AccessibleSurfaceArea } from '../accessible-surface-area/shrake-rupley';
 import { CustomProperty } from '../../common/custom-property';
@@ -40,12 +40,20 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
     const contextHash = accessibleSurfaceArea ? hash2(accessibleSurfaceArea.id, accessibleSurfaceArea.version) : -1;
 
     if (accessibleSurfaceArea?.value && ctx.structure) {
+        const l = StructureElement.Location.create(ctx.structure);
         const asa = accessibleSurfaceArea.value;
+        const getColor = (location: StructureElement.Location) => {
+            const value = AccessibleSurfaceArea.getNormalizedValue(location, asa);
+            return value === -1 ? DefaultColor : scale.color(value);
+        };
 
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location) && Unit.isAtomic(location.unit)) {
-                const value = AccessibleSurfaceArea.getNormalizedValue(location, asa);
-                return value === -1 ? DefaultColor : scale.color(value);
+                return getColor(location);
+            } else if (Bond.isLocation(location)) {
+                l.unit = location.aUnit;
+                l.element = location.aUnit.elements[location.aIndex];
+                return getColor(l);
             }
             return DefaultColor;
         };

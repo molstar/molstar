@@ -46,6 +46,9 @@ const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
             const props = { label: volume.label || 'Volume', description: `Volume ${a.data.header.NX}\u00D7${a.data.header.NX}\u00D7${a.data.header.NX}` };
             return new SO.Volume.Data(volume, props);
         });
+    },
+    dispose({ b }) {
+        b?.data.customProperties.dispose();
     }
 });
 
@@ -68,6 +71,9 @@ const VolumeFromDsn6 = PluginStateTransform.BuiltIn({
             const props = { label: volume.label || 'Volume', description: `Volume ${a.data.header.xExtent}\u00D7${a.data.header.yExtent}\u00D7${a.data.header.zExtent}` };
             return new SO.Volume.Data(volume, props);
         });
+    },
+    dispose({ b }) {
+        b?.data.customProperties.dispose();
     }
 });
 
@@ -91,6 +97,9 @@ const VolumeFromCube = PluginStateTransform.BuiltIn({
             const props = { label: volume.label || 'Volume', description: `Volume ${a.data.header.dim[0]}\u00D7${a.data.header.dim[1]}\u00D7${a.data.header.dim[2]}` };
             return new SO.Volume.Data(volume, props);
         });
+    },
+    dispose({ b }) {
+        b?.data.customProperties.dispose();
     }
 });
 
@@ -107,6 +116,9 @@ const VolumeFromDx = PluginStateTransform.BuiltIn({
             const props = { label: volume.label || 'Volume', description: `Volume ${a.data.header.dim[0]}\u00D7${a.data.header.dim[1]}\u00D7${a.data.header.dim[2]}` };
             return new SO.Volume.Data(volume, props);
         });
+    },
+    dispose({ b }) {
+        b?.data.customProperties.dispose();
     }
 });
 
@@ -142,6 +154,9 @@ const VolumeFromDensityServerCif = PluginStateTransform.BuiltIn({
             const props = { label: densityServerCif.volume_data_3d_info.name.value(0), description: `Volume ${x}\u00D7${y}\u00D7${z}` };
             return new SO.Volume.Data(volume, props);
         });
+    },
+    dispose({ b }) {
+        b?.data.customProperties.dispose();
     }
 });
 

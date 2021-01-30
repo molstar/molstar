@@ -23,6 +23,9 @@ const float radius = 0.5;
 
 void main(){
     #include clip_pixel
+
+    float fragmentDepth = gl_FragCoord.z;
+    bool interior = false;
     #include assign_material_color
 
     #if defined(dRenderVariant_pick)
@@ -42,9 +45,6 @@ void main(){
 
         #include apply_marker_color
         #include apply_fog
-
-        float fragmentDepth = gl_FragCoord.z;
-        bool interior = false;
         #include wboit_write
     #endif
 }

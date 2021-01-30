@@ -29,7 +29,7 @@ float intDiv(const in float a, const in float b) { return float(int(a) / int(b))
 vec2 ivec2Div(const in vec2 a, const in vec2 b) { return vec2(ivec2(a) / ivec2(b)); }
 float intMod(const in float a, const in float b) { return a - b * float(int(a) / int(b)); }
 
-float pow2(const in float x) { return x*x; }
+float pow2(const in float x) { return x * x; }
 
 const float maxFloat = 10000.0; // NOTE constant also set in TypeScript
 const float floatLogFactor = 9.210440366976517; // log(maxFloat + 1.0);
@@ -48,6 +48,25 @@ vec3 encodeFloatRGB(in float value) {
 }
 float decodeFloatRGB(const in vec3 rgb) {
     return (rgb.r * 256.0 * 256.0 * 255.0 + rgb.g * 256.0 * 255.0 + rgb.b * 255.0) - 1.0;
+}
+
+vec2 packUnitIntervalToRG(const in float v) {
+    vec2 enc;
+    enc.xy = vec2(fract(v * 256.0), v);
+    enc.y -= enc.x * (1.0 / 256.0);
+    enc.xy *=  256.0 / 255.0;
+
+    return enc;
+}
+
+float unpackRGToUnitInterval(const in vec2 enc) {
+    return dot(enc, vec2(255.0 / (256.0 * 256.0), 255.0 / 256.0));
+}
+
+vec3 screenSpaceToViewSpace(const in vec3 ssPos, const in mat4 invProjection) {
+    vec4 p = vec4(ssPos * 2.0 - 1.0, 1.0);
+    p = invProjection * p;
+    return p.xyz / p.w;
 }
 
 const float PackUpscale = 256.0 / 255.0; // fraction -> 0..1 (including 1)
@@ -72,11 +91,23 @@ vec4 linearTosRGB(const in vec4 c) {
     return vec4(mix(pow(c.rgb, vec3(0.41666)) * 1.055 - vec3(0.055), c.rgb * 12.92, vec3(lessThanEqual(c.rgb, vec3(0.0031308)))), c.a);
 }
 
-float linearizeDepth(in float depth, in float near, in float far) {
+float linearizeDepth(const in float depth, const in float near, const in float far) {
     return (2.0 * near) / (far + near - depth * (far - near));
 }
 
-#if __VERSION__ != 300
+float perspectiveDepthToViewZ(const in float invClipZ, const in float near, const in float far) {
+    return (near * far) / ((far - near) * invClipZ - far);
+}
+
+float orthographicDepthToViewZ(const in float linearClipZ, const in float near, const in float far) {
+    return linearClipZ * (near - far) - near;
+}
+
+float depthToViewZ(const in float isOrtho, const in float linearClipZ, const in float near, const in float far) {
+    return isOrtho == 1.0 ? orthographicDepthToViewZ(linearClipZ, near, far) : perspectiveDepthToViewZ(linearClipZ, near, far);
+}
+
+#if __VERSION__ == 100
     // transpose
 
     float transpose(const in float m) {

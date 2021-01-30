@@ -1,6 +1,6 @@
 export default `
-float fogDepth = length(vViewPosition);
-float fogFactor = smoothstep(uFogNear, uFogFar, fogDepth);
+float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
+float fogFactor = smoothstep(uFogNear, uFogFar, abs(viewZ));
 float fogAlpha = (1.0 - fogFactor) * gl_FragColor.a;
 float preFogAlpha = gl_FragColor.a;
 if (!uTransparentBackground) {

@@ -8,7 +8,7 @@ import { ThemeDataContext } from '../../../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../../../mol-theme/color';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { Color, ColorScale } from '../../../../mol-util/color';
-import { StructureElement, Model } from '../../../../mol-model/structure';
+import { StructureElement, Model, ElementIndex, Bond } from '../../../../mol-model/structure';
 import { Location } from '../../../../mol-model/location';
 import { CustomProperty } from '../../../../mol-model-props/common/custom-property';
 import { ValidationReportProvider, ValidationReport } from '../prop';
@@ -37,13 +37,19 @@ export function DensityFitColorTheme(ctx: ThemeDataContext, props: {}): ColorThe
     if (validationReport?.value && model) {
         const { rsrz, rscc } = validationReport.value;
         const residueIndex = model.atomicHierarchy.residueAtomSegments.index;
+        const getColor = (element: ElementIndex) => {
+            const rsrzValue = rsrz.get(residueIndex[element]);
+            if (rsrzValue !== undefined) return scaleRsrz.color(rsrzValue);
+            const rsccValue = rscc.get(residueIndex[element]);
+            if (rsccValue !== undefined) return scaleRscc.color(rsccValue);
+            return DefaultColor;
+        };
+
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location) && location.unit.model === model) {
-                const rsrzValue = rsrz.get(residueIndex[location.element]);
-                if (rsrzValue !== undefined) return scaleRsrz.color(rsrzValue);
-                const rsccValue = rscc.get(residueIndex[location.element]);
-                if (rsccValue !== undefined) return scaleRscc.color(rsccValue);
-                return DefaultColor;
+                return getColor(location.element);
+            } else if (Bond.isLocation(location) && location.aUnit.model === model) {
+                return getColor(location.aUnit.elements[location.aIndex]);
             }
             return DefaultColor;
         };

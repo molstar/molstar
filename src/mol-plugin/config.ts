@@ -27,7 +27,7 @@ export const PluginConfig = {
         DisablePreserveDrawingBuffer: item('plugin-config.disable-preserve-drawing-buffer', false),
         PixelScale: item('plugin-config.pixel-scale', 1),
         PickScale: item('plugin-config.pick-scale', 0.25),
-        EnableWboit: item('plugin-config.enable-wboit', false),
+        EnableWboit: item('plugin-config.enable-wboit', true),
     },
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),

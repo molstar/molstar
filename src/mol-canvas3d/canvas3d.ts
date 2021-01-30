@@ -24,7 +24,7 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { DebugHelperParams } from './helper/bounding-sphere-helper';
 import { SetUtils } from '../mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
-import { PostprocessingParams, PostprocessingPass } from './passes/postprocessing';
+import { PostprocessingParams } from './passes/postprocessing';
 import { MultiSampleHelper, MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
 import { PickData } from './passes/pick';
 import { PickHelper } from './passes/pick';
@@ -51,7 +51,7 @@ export const Canvas3DParams = {
     }, { pivot: 'mode' }),
     cameraFog: PD.MappedStatic('on', {
         on: PD.Group({
-            intensity: PD.Numeric(50, { min: 1, max: 100, step: 1 }),
+            intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Show fog in the distance' }),
@@ -341,9 +341,11 @@ namespace Canvas3D {
         function render(force: boolean) {
             if (webgl.isContextLost) return false;
 
+            let resized = false;
             if (resizeRequested) {
                 handleResize(false);
                 resizeRequested = false;
+                resized = true;
             }
 
             if (x > gl.drawingBufferWidth || x + width < 0 ||
@@ -355,7 +357,7 @@ namespace Canvas3D {
             const cameraChanged = camera.update();
             const multiSampleChanged = multiSampleHelper.update(force || cameraChanged, p.multiSample);
 
-            if (force || cameraChanged || multiSampleChanged) {
+            if (resized || force || cameraChanged || multiSampleChanged) {
                 let cam: Camera | StereoCamera = camera;
                 if (p.camera.stereo.name === 'on') {
                     stereoCamera.update();
@@ -365,9 +367,7 @@ namespace Canvas3D {
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
                     multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
                 } else {
-                    const toDrawingBuffer = !PostprocessingPass.isEnabled(p.postprocessing) && scene.volumes.renderables.length === 0 && !passes.draw.wboitEnabled;
-                    passes.draw.render(renderer, cam, scene, helper, toDrawingBuffer, p.transparentBackground);
-                    if (!toDrawingBuffer) passes.postprocessing.render(cam, true, p.postprocessing);
+                    passes.draw.render(renderer, cam, scene, helper, true, p.transparentBackground, p.postprocessing);
                 }
                 pickHelper.dirty = true;
                 didRender = true;
@@ -692,9 +692,11 @@ namespace Canvas3D {
             reprCount,
             resized,
             setProps: (properties, doNotRequestDraw = false) => {
-                const props: PartialCanvas3DProps = typeof properties === 'function'
+                let props: PartialCanvas3DProps = typeof properties === 'function'
                     ? produce(getProps(), properties)
                     : properties;
+
+                props = PD.normalizeParams(Canvas3DParams, props, 'children');
 
                 const cameraState: Partial<Camera.Snapshot> = Object.create(null);
                 if (props.camera && props.camera.mode !== undefined && props.camera.mode !== camera.state.mode) {

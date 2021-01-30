@@ -14,6 +14,7 @@ precision highp int;
 
 #if dClipObjectCount != 0
     uniform int uClipObjectType[dClipObjectCount];
+    uniform bool uClipObjectInvert[dClipObjectCount];
     uniform vec3 uClipObjectPosition[dClipObjectCount];
     uniform vec4 uClipObjectRotation[dClipObjectCount];
     uniform vec3 uClipObjectScale[dClipObjectCount];
@@ -30,8 +31,6 @@ uniform vec3 uCameraDir;
 
 uniform sampler2D tDepth;
 uniform vec2 uDrawingBufferSize;
-uniform float uNear;
-uniform float uFar;
 
 varying vec3 vOrigPos;
 varying float vInstance;
@@ -70,13 +69,15 @@ uniform bool uInteriorColorFlag;
 uniform vec3 uInteriorColor;
 bool interior;
 
+uniform float uNear;
+uniform float uFar;
 uniform float uIsOrtho;
 
 uniform vec3 uCellDim;
 uniform vec3 uCameraPosition;
 uniform mat4 uCartnToUnit;
 
-#if __VERSION__ == 300
+#if __VERSION__ != 100
     // for webgl1 this is given as a 'define'
     uniform int uMaxSteps;
 #endif
@@ -166,6 +167,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     vec4 src = vec4(0.0);
     vec4 dst = vec4(0.0);
     bool hit = false;
+    float fragmentDepth;
 
     vec3 posMin = vec3(0.0);
     vec3 posMax = vec3(1.0) - vec3(1.0) / uGridDim;
@@ -325,6 +327,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                     #include apply_marker_color
 
                     preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;
+                    fragmentDepth = depth;
                     #include apply_fog
 
                     src = gl_FragColor;
@@ -393,6 +396,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                 #include apply_marker_color
 
                 preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;
+                fragmentDepth = calcDepth(mvPosition.xyz);
                 #include apply_fog
 
                 src = gl_FragColor;
@@ -424,7 +428,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 // TODO: support float texture for higher precision values???
 // TODO: support clipping exclusion texture support
 
-void main () {
+void main() {
     if (gl_FrontFacing)
         discard;
 

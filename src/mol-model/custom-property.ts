@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,7 +9,6 @@ import { CifWriter } from '../mol-io/writer/cif';
 import { CifExportContext } from './structure/export/mmcif';
 import { QuerySymbolRuntime } from '../mol-script/runtime/query/compiler';
 import { UUID } from '../mol-util';
-import { Asset } from '../mol-util/assets';
 
 export { CustomPropertyDescriptor, CustomProperties };
 
@@ -40,11 +39,16 @@ namespace CustomPropertyDescriptor {
     }
 }
 
+/**
+ * Anything with a dispose method, used to despose of data assets or webgl resources
+ */
+type Asset = { dispose: () => void }
+
 class CustomProperties {
     private _list: CustomPropertyDescriptor[] = [];
     private _set = new Set<CustomPropertyDescriptor>();
     private _refs = new Map<CustomPropertyDescriptor, number>();
-    private _assets = new Map<CustomPropertyDescriptor, Asset.Wrapper[]>();
+    private _assets = new Map<CustomPropertyDescriptor, Asset[]>();
 
     get all(): ReadonlyArray<CustomPropertyDescriptor> {
         return this._list;
@@ -72,7 +76,7 @@ class CustomProperties {
     }
 
     /** Sets assets for a prop, disposes of existing assets for that prop */
-    assets(desc: CustomPropertyDescriptor<any>, assets?: Asset.Wrapper[]) {
+    assets(desc: CustomPropertyDescriptor<any>, assets?: Asset[]) {
         const prevAssets = this._assets.get(desc);
         if (prevAssets) {
             for (const a of prevAssets) a.dispose();

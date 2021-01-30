@@ -51,9 +51,9 @@ export class WboitPass {
     private readonly textureA: Texture
     private readonly textureB: Texture
 
-    private _enabled = false;
-    get enabled() {
-        return this._enabled;
+    private _supported = false;
+    get supported() {
+        return this._supported;
     }
 
     bind() {
@@ -90,7 +90,7 @@ export class WboitPass {
     }
 
     reset() {
-        if (this._enabled) this._init();
+        if (this._supported) this._init();
     }
 
     private _init() {
@@ -109,7 +109,14 @@ export class WboitPass {
     static isSupported(webgl: WebGLContext) {
         const { extensions: { drawBuffers, textureFloat, colorBufferFloat, depthTexture } } = webgl;
         if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers) {
-            if (isDebugMode) console.log('Missing extensions required for "wboit"');
+            if (isDebugMode) {
+                const missing: string[] = [];
+                if (!textureFloat) missing.push('textureFloat');
+                if (!colorBufferFloat) missing.push('colorBufferFloat');
+                if (!depthTexture) missing.push('depthTexture');
+                if (!drawBuffers) missing.push('drawBuffers');
+                console.log(`Missing "${missing.join('", "')}" extensions required for "wboit"`);
+            }
             return false;
         } else {
             return true;
@@ -129,7 +136,8 @@ export class WboitPass {
 
         this.renderable = getEvaluateWboitRenderable(webgl, this.textureA, this.textureB);
         this.framebuffer = resources.framebuffer();
+
+        this._supported = true;
         this._init();
-        this._enabled = true;
     }
 }

@@ -11,12 +11,14 @@ import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BitFlags, arrayEqual } from '../../../mol-util';
-import { createLinkCylinderMesh, LinkStyle } from './util/link';
-import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../complex-visual';
+import { createLinkCylinderImpostors, createLinkCylinderMesh, LinkStyle } from './util/link';
+import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual, ComplexCylindersParams, ComplexCylindersVisual } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
 import { BondCylinderParams, BondIterator, getInterBondLoci, eachInterBond, makeInterBondIgnoreTest } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
+import { WebGLContext } from '../../../mol-gl/webgl/context';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator();
 function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
@@ -30,34 +32,41 @@ function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, inde
 }
 
 const tmpRef = Vec3();
-const tmpLoc = StructureElement.Location.create(void 0);
 
-function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondCylinderParams>, mesh?: Mesh) {
+function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme, props: PD.Values<InterUnitBondCylinderParams>) {
+    const locE = StructureElement.Location.create(structure);
+    const locB = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
+
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
     const { sizeFactor, sizeAspectRatio } = props;
 
-    if (!edgeCount) return Mesh.createEmpty(mesh);
-
     const delta = Vec3();
+
+    const radius = (edgeIndex: number) => {
+        const b = edges[edgeIndex];
+        locB.aUnit = structure.unitMap.get(b.unitA);
+        locB.aIndex = b.indexA;
+        locB.bUnit = structure.unitMap.get(b.unitB);
+        locB.bIndex = b.indexB;
+        return theme.size.size(locB) * sizeFactor;
+    };
 
     const radiusA = (edgeIndex: number) => {
         const b = edges[edgeIndex];
-        tmpLoc.structure = structure;
-        tmpLoc.unit = structure.unitMap.get(b.unitA);
-        tmpLoc.element = tmpLoc.unit.elements[b.indexA];
-        return theme.size.size(tmpLoc) * sizeFactor;
+        locE.unit = structure.unitMap.get(b.unitA);
+        locE.element = locE.unit.elements[b.indexA];
+        return theme.size.size(locE) * sizeFactor;
     };
 
     const radiusB = (edgeIndex: number) => {
         const b = edges[edgeIndex];
-        tmpLoc.structure = structure;
-        tmpLoc.unit = structure.unitMap.get(b.unitB);
-        tmpLoc.element = tmpLoc.unit.elements[b.indexB];
-        return theme.size.size(tmpLoc) * sizeFactor;
+        locE.unit = structure.unitMap.get(b.unitB);
+        locE.element = locE.unit.elements[b.indexB];
+        return theme.size.size(locE) * sizeFactor;
     };
 
-    const builderProps = {
+    return {
         linkCount: edgeCount,
         referencePosition: (edgeIndex: number) => {
             const b = edges[edgeIndex];
@@ -112,14 +121,31 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
             }
         },
         radius: (edgeIndex: number) => {
-            return Math.min(radiusA(edgeIndex), radiusB(edgeIndex)) * sizeAspectRatio;
+            return radius(edgeIndex) * sizeAspectRatio;
         },
         ignore: makeInterBondIgnoreTest(structure, props)
     };
+}
 
+function createInterUnitBondCylinderImpostors(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondCylinderParams>, cylinders?: Cylinders) {
+    if (!structure.interUnitBonds.edgeCount) return Cylinders.createEmpty(cylinders);
+
+    const builderProps = getInterUnitBondCylinderBuilderProps(structure, theme, props);
+    const m = createLinkCylinderImpostors(ctx, builderProps, props, cylinders);
+
+    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * props.sizeFactor);
+    m.setBoundingSphere(sphere);
+
+    return m;
+}
+
+function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondCylinderParams>, mesh?: Mesh) {
+    if (!structure.interUnitBonds.edgeCount) return Mesh.createEmpty(mesh);
+
+    const builderProps = getInterUnitBondCylinderBuilderProps(structure, theme, props);
     const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
 
-    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * sizeFactor);
+    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * props.sizeFactor);
     m.setBoundingSphere(sphere);
 
     return m;
@@ -127,13 +153,47 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
 
 export const InterUnitBondCylinderParams = {
     ...ComplexMeshParams,
+    ...ComplexCylindersParams,
     ...BondCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
+    useImpostor: PD.Boolean(true),
 };
 export type InterUnitBondCylinderParams = typeof InterUnitBondCylinderParams
 
-export function InterUnitBondCylinderVisual(materialId: number): ComplexVisual<InterUnitBondCylinderParams> {
+export function InterUnitBondCylinderVisual(materialId: number, props?: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) {
+    return props?.useImpostor && webgl && webgl.extensions.fragDepth
+        ? InterUnitBondCylinderImpostorVisual(materialId)
+        : InterUnitBondCylinderMeshVisual(materialId);
+}
+
+export function InterUnitBondCylinderImpostorVisual(materialId: number): ComplexVisual<InterUnitBondCylinderParams> {
+    return ComplexCylindersVisual<InterUnitBondCylinderParams>({
+        defaultProps: PD.getDefaultValues(InterUnitBondCylinderParams),
+        createGeometry: createInterUnitBondCylinderImpostors,
+        createLocationIterator: BondIterator.fromStructure,
+        getLoci: getInterBondLoci,
+        eachLocation: eachInterBond,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>) => {
+            state.createGeometry = (
+                newProps.linkScale !== currentProps.linkScale ||
+                newProps.linkSpacing !== currentProps.linkSpacing ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.linkCap !== currentProps.linkCap ||
+                newProps.dashCount !== currentProps.dashCount ||
+                newProps.dashScale !== currentProps.dashScale ||
+                newProps.dashCap !== currentProps.dashCap ||
+                !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
+                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
+            );
+        },
+        mustRecreate: (props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
+            return !props.useImpostor || !webgl;
+        }
+    }, materialId);
+}
+
+export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisual<InterUnitBondCylinderParams> {
     return ComplexMeshVisual<InterUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(InterUnitBondCylinderParams),
         createGeometry: createInterUnitBondCylinderMesh,
@@ -149,9 +209,15 @@ export function InterUnitBondCylinderVisual(materialId: number): ComplexVisual<I
                 newProps.linkSpacing !== currentProps.linkSpacing ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.linkCap !== currentProps.linkCap ||
+                newProps.dashCount !== currentProps.dashCount ||
+                newProps.dashScale !== currentProps.dashScale ||
+                newProps.dashCap !== currentProps.dashCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );
+        },
+        mustRecreate: (props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
+            return props.useImpostor && !!webgl;
         }
     }, materialId);
 }

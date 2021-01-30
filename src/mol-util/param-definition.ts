@@ -548,6 +548,89 @@ export namespace ParamDefinition {
         }
     }
 
+    function selectHasOption(p: Select<any> | MultiSelect<any>, v: any) {
+        for (const o of p.options) {
+            if (o[0] === v) return true;
+        }
+        return false;
+    }
+
+    function normalizeParam(p: Any, value: any, defaultIfUndefined: boolean): any {
+        if (value === void 0 || value === null) {
+            return defaultIfUndefined ? p.defaultValue : void 0;
+        }
+
+        // TODO: is this a good idea and will work well?
+        // if (typeof p.defaultValue !== typeof value) {
+        //     return p.defaultValue;
+        // }
+
+        if (p.type === 'value') {
+            return value;
+        } else if (p.type === 'group') {
+            const ret = Object.create(null);
+            for (const key of Object.keys(p.params)) {
+                const param = p.params[key];
+                if (value[key] === void 0) {
+                    if (defaultIfUndefined) ret[key] = param.defaultValue;
+                } else {
+                    ret[key] = normalizeParam(param, value[key], defaultIfUndefined);
+                }
+            }
+            return ret;
+        } else if (p.type === 'mapped') {
+            const v = value as NamedParams;
+            if (typeof v.name !== 'string') {
+                return p.defaultValue;
+            }
+            if (typeof v.params === 'undefined') {
+                return defaultIfUndefined ? p.defaultValue : void 0;
+            }
+
+            if (!selectHasOption(p.select, v.name)) {
+                return p.defaultValue;
+            }
+
+            const param = p.map(v.name);
+            return {
+                name: v.name,
+                params: normalizeParam(param, v.params, defaultIfUndefined)
+            };
+        } else if (p.type === 'select') {
+            if (!selectHasOption(p, value)) return p.defaultValue;
+            return value;
+        } else if (p.type === 'multi-select') {
+            if (!Array.isArray(value)) return p.defaultValue;
+            const ret = value.filter(function (this: MultiSelect<any>, v: any) { return selectHasOption(this, v); }, p);
+            if (value.length > 0 && ret.length === 0) return p.defaultValue;
+            return ret;
+        } else if (p.type === 'object-list') {
+            if (!Array.isArray(value)) return p.defaultValue;
+            return value.map(v => normalizeParams(p.element, v, defaultIfUndefined ? 'all' : 'skip'));
+        }
+
+        // TODO: validate/normalize all param types "properly"??
+
+        return value;
+    }
+
+    export function normalizeParams(p: Params, value: any, defaultIfUndefined: 'all' | 'children' | 'skip') {
+        if (typeof value !== 'object' || value === null) {
+            return defaultIfUndefined ? getDefaultValues(p) : value;
+        }
+
+        const ret = Object.create(null);
+        for (const key of Object.keys(p)) {
+            const param = p[key];
+            if (value[key] === void 0) {
+                if (defaultIfUndefined === 'all') ret[key] = param.defaultValue;
+            } else {
+                ret[key] = normalizeParam(param, value[key], defaultIfUndefined !== 'skip');
+            }
+        }
+        return ret;
+    }
+
     /**
      * Map an object to a list of [K, string][] to be used as options, stringToWords for key used by default (or identity of null).
      *

@@ -15,6 +15,7 @@ import { SpheresValues, SpheresRenderable } from './renderable/spheres';
 import { TextValues, TextRenderable } from './renderable/text';
 import { TextureMeshValues, TextureMeshRenderable } from './renderable/texture-mesh';
 import { ImageValues, ImageRenderable } from './renderable/image';
+import { CylindersRenderable, CylindersValues } from './renderable/cylinders';
 
 const getNextId = idFactory(0, 0x7FFFFFFF);
 
@@ -28,17 +29,18 @@ export interface GraphicsRenderObject<T extends RenderObjectType = RenderObjectT
     readonly materialId: number
 }
 
-export type RenderObjectType = 'mesh' | 'points' | 'spheres' | 'text' | 'lines' | 'direct-volume' | 'image' | 'texture-mesh'
+export type RenderObjectType = 'mesh' | 'points' | 'spheres' | 'cylinders' | 'text' | 'lines' | 'direct-volume' | 'image' | 'texture-mesh'
 
 export type RenderObjectValues<T extends RenderObjectType> =
     T extends 'mesh' ? MeshValues :
         T extends 'points' ? PointsValues :
             T extends 'spheres' ? SpheresValues :
-                T extends 'text' ? TextValues :
-                    T extends 'lines' ? LinesValues :
-                        T extends 'direct-volume' ? DirectVolumeValues :
-                            T extends 'image' ? ImageValues :
-                                T extends 'texture-mesh' ? TextureMeshValues : never
+                T extends 'cylinders' ? CylindersValues :
+                    T extends 'text' ? TextValues :
+                        T extends 'lines' ? LinesValues :
+                            T extends 'direct-volume' ? DirectVolumeValues :
+                                T extends 'image' ? ImageValues :
+                                    T extends 'texture-mesh' ? TextureMeshValues : never
 
 //
 
@@ -51,6 +53,7 @@ export function createRenderable<T extends RenderObjectType>(ctx: WebGLContext, 
         case 'mesh': return MeshRenderable(ctx, o.id, o.values as MeshValues, o.state, o.materialId);
         case 'points': return PointsRenderable(ctx, o.id, o.values as PointsValues, o.state, o.materialId);
         case 'spheres': return SpheresRenderable(ctx, o.id, o.values as SpheresValues, o.state, o.materialId);
+        case 'cylinders': return CylindersRenderable(ctx, o.id, o.values as CylindersValues, o.state, o.materialId);
         case 'text': return TextRenderable(ctx, o.id, o.values as TextValues, o.state, o.materialId);
         case 'lines': return LinesRenderable(ctx, o.id, o.values as LinesValues, o.state, o.materialId);
         case 'direct-volume': return DirectVolumeRenderable(ctx, o.id, o.values as DirectVolumeValues, o.state, o.materialId);
