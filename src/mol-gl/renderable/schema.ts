@@ -242,7 +242,6 @@ export const BaseSchema = {
     ...ClippingSchema,
 
     aInstance: AttributeSpec('float32', 1, 1),
-    aGroup: AttributeSpec('float32', 1, 0),
     /**
      * final per-instance transform calculated for instance `i` as
      * `aTransform[i] = matrix * transform[i] * extraTransform[i]`

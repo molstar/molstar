@@ -14,6 +14,7 @@ import { ValueCell } from '../../mol-util';
 export const PointsSchema = {
     ...BaseSchema,
     ...SizeSchema,
+    aGroup: AttributeSpec('float32', 1, 0),
     aPosition: AttributeSpec('float32', 3, 0),
     dPointSizeAttenuation: DefineSpec('boolean'),
     dPointFilledCircle: DefineSpec('boolean'),

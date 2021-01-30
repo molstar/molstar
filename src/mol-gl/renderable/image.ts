@@ -15,9 +15,9 @@ import { InterpolationTypeNames } from '../../mol-geo/geometry/image/image';
 export const ImageSchema = {
     ...BaseSchema,
 
+    aGroup: AttributeSpec('float32', 1, 0),
     aPosition: AttributeSpec('float32', 3, 0),
     aUv: AttributeSpec('float32', 2, 0),
-
     elements: ElementsSpec('uint32'),
 
     uImageTexDim: UniformSpec('v2'),

@@ -14,6 +14,7 @@ import { LinesShaderCode } from '../shader-code';
 export const LinesSchema = {
     ...BaseSchema,
     ...SizeSchema,
+    aGroup: AttributeSpec('float32', 1, 0),
     aMapping: AttributeSpec('float32', 2, 0),
     aStart: AttributeSpec('float32', 3, 0),
     aEnd: AttributeSpec('float32', 3, 0),

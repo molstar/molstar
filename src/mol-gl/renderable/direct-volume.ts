@@ -7,59 +7,20 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
-import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema, TextureSpec, ValueSpec, ElementsSpec, DefineSpec, InternalValues, GlobalTextureSchema } from './schema';
+import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema, TextureSpec, ElementsSpec, DefineSpec, InternalValues, GlobalTextureSchema, BaseSchema } from './schema';
 import { DirectVolumeShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
 
 export const DirectVolumeSchema = {
-    uColor: UniformSpec('v3'),
-    uColorTexDim: UniformSpec('v2'),
-    tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
-    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance']),
-
-    uMarkerTexDim: UniformSpec('v2'),
-    tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
-
-    uOverpaintTexDim: UniformSpec('v2'),
-    tOverpaint: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
-    dOverpaint: DefineSpec('boolean'),
-
-    uTransparencyTexDim: UniformSpec('v2'),
-    tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
-    dTransparency: DefineSpec('boolean'),
-    transparencyAverage: ValueSpec('number'),
-
-    dClipObjectCount: DefineSpec('number'),
-    dClipVariant: DefineSpec('string', ['instance', 'pixel']),
-    uClippingTexDim: UniformSpec('v2'),
-    tClipping: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
-    dClipping: DefineSpec('boolean'),
-
-    uVertexCount: UniformSpec('i'),
-    uInstanceCount: UniformSpec('i'),
-    uGroupCount: UniformSpec('i'),
-    uInvariantBoundingSphere: UniformSpec('v4'),
-
-    aInstance: AttributeSpec('float32', 1, 1),
-    aTransform: AttributeSpec('float32', 16, 1),
-
-    drawCount: ValueSpec('number'),
-    instanceCount: ValueSpec('number'),
-
-    alpha: ValueSpec('number'),
-
-    matrix: ValueSpec('m4'),
-    transform: ValueSpec('float32'),
-    extraTransform: ValueSpec('float32'),
-    hasReflection: ValueSpec('boolean'),
-
-    boundingSphere: ValueSpec('sphere'),
-    invariantBoundingSphere: ValueSpec('sphere'),
+    ...BaseSchema,
 
     aPosition: AttributeSpec('float32', 3, 0),
     elements: ElementsSpec('uint32'),
 
-    uAlpha: UniformSpec('f'),
+    uColor: UniformSpec('v3'),
+    uColorTexDim: UniformSpec('v2'),
+    tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
+    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance']),
 
     uIsoValue: UniformSpec('v2'),
     uBboxMin: UniformSpec('v3'),

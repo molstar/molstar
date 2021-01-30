@@ -13,6 +13,7 @@ import { ValueCell } from '../../mol-util';
 
 export const MeshSchema = {
     ...BaseSchema,
+    aGroup: AttributeSpec('float32', 1, 0),
     aPosition: AttributeSpec('float32', 3, 0),
     aNormal: AttributeSpec('float32', 3, 0),
     elements: ElementsSpec('uint32'),

@@ -14,6 +14,7 @@ import { ValueCell } from '../../mol-util';
 export const SpheresSchema = {
     ...BaseSchema,
     ...SizeSchema,
+    aGroup: AttributeSpec('float32', 1, 0),
     aPosition: AttributeSpec('float32', 3, 0),
     aMapping: AttributeSpec('float32', 2, 0),
     elements: ElementsSpec('uint32'),
