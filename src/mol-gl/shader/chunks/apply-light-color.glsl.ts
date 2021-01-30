@@ -49,6 +49,6 @@ vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffu
 gl_FragColor = vec4(outgoingLight, color.a);
 
 #ifdef dXrayShaded
-    gl_FragColor.a *= 1.0 - max(0.001, abs(dot(normal, vec3(0, 0, 1))));
+    gl_FragColor.a *= 1.0 - pow(abs(dot(normal, vec3(0, 0, 1))), uXrayEdgeFalloff);
 #endif
 `;

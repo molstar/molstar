@@ -77,6 +77,8 @@ export const RendererParams = {
     highlightColor: PD.Color(Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
     selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
 
+    xrayEdgeFalloff: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.1 }),
+
     style: PD.MappedStatic('matte', {
         custom: PD.Group({
             lightIntensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
@@ -257,6 +259,8 @@ namespace Renderer {
 
             uHighlightColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.highlightColor)),
             uSelectColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.selectColor)),
+
+            uXrayEdgeFalloff: ValueCell.create(p.xrayEdgeFalloff),
         };
         const globalUniformList = Object.entries(globalUniforms);
 
@@ -605,6 +609,11 @@ namespace Renderer {
                 if (props.selectColor !== undefined && props.selectColor !== p.selectColor) {
                     p.selectColor = props.selectColor;
                     ValueCell.update(globalUniforms.uSelectColor, Color.toVec3Normalized(globalUniforms.uSelectColor.ref.value, p.selectColor));
+                }
+
+                if (props.xrayEdgeFalloff !== undefined && props.xrayEdgeFalloff !== p.xrayEdgeFalloff) {
+                    p.xrayEdgeFalloff = props.xrayEdgeFalloff;
+                    ValueCell.update(globalUniforms.uXrayEdgeFalloff, p.xrayEdgeFalloff);
                 }
 
                 if (props.style !== undefined) {

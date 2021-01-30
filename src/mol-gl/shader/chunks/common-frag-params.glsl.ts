@@ -49,5 +49,7 @@ uniform bool uInteriorColorFlag;
 uniform vec3 uInteriorColor;
 bool interior;
 
+uniform float uXrayEdgeFalloff;
+
 uniform mat4 uProjection;
 `;
