@@ -222,9 +222,11 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             }
         },
         destroy() {
-            // TODO
             renderObjects.length = 0;
-            _renderObject = undefined;
+            if (_renderObject) {
+                _renderObject.state.disposed = true;
+                _renderObject = undefined;
+            }
         }
     };
 }

@@ -75,6 +75,7 @@ export namespace BaseGeometry {
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {
         const opaque = props.alpha === undefined ? true : props.alpha === 1;
         return {
+            disposed: false,
             visible: true,
             alphaFactor: 1,
             pickable: true,

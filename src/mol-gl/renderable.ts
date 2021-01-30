@@ -15,6 +15,7 @@ import { Textures } from './webgl/texture';
 const getNextRenderableId = idFactory();
 
 export type RenderableState = {
+    disposed: boolean
     visible: boolean
     alphaFactor: number
     pickable: boolean

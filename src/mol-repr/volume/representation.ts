@@ -210,7 +210,10 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         },
         destroy() {
             dispose?.(geometry);
-            renderObject = undefined;
+            if (renderObject) {
+                renderObject.state.disposed = true;
+                renderObject = undefined;
+            }
         },
         mustRecreate
     };

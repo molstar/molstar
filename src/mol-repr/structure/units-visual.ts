@@ -294,7 +294,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         },
         destroy() {
             dispose?.(geometry);
-            renderObject = undefined;
+            if (renderObject) {
+                renderObject.state.disposed = true;
+                renderObject = undefined;
+            }
         },
         mustRecreate
     };

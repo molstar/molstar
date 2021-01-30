@@ -267,7 +267,7 @@ namespace Renderer {
         let globalUniformsNeedUpdate = true;
 
         const renderObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant) => {
-            if (!r.state.visible || (!r.state.pickable && variant[0] === 'p')) {
+            if (r.state.disposed || !r.state.visible || (!r.state.pickable && variant[0] === 'p')) {
                 return;
             }
 

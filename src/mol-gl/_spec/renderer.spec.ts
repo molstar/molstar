@@ -89,6 +89,7 @@ function createPoints() {
         uPointEdgeBleach: ValueCell.create(0.5),
     };
     const state: RenderableState = {
+        disposed: false,
         visible: true,
         alphaFactor: 1,
         pickable: true,
