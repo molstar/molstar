@@ -8,7 +8,7 @@ import { State, StateTransform, StateTransformer } from '../mol-state';
 import { PluginStateObject as SO } from '../mol-plugin-state/objects';
 import { Camera } from '../mol-canvas3d/camera';
 import { PluginBehavior } from './behavior';
-import { Canvas3DProps } from '../mol-canvas3d/canvas3d';
+import { Canvas3DParams, Canvas3DProps } from '../mol-canvas3d/canvas3d';
 import { PluginCommands } from './commands';
 import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -73,8 +73,9 @@ class PluginState extends PluginComponent {
 
         if (snapshot.behaviour) await this.plugin.runTask(this.behaviors.setSnapshot(snapshot.behaviour));
         if (snapshot.data) await this.plugin.runTask(this.data.setSnapshot(snapshot.data));
-        if (snapshot.canvas3d) {
-            if (snapshot.canvas3d.props) await PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: snapshot.canvas3d.props });
+        if (snapshot.canvas3d?.props) {
+            const settings = PD.normalizeParams(Canvas3DParams, snapshot.canvas3d.props, 'children');
+            await PluginCommands.Canvas3D.SetSettings(this.plugin, { settings });
         }
         if (snapshot.interactivity) {
             if (snapshot.interactivity.props) this.plugin.managers.interactivity.setProps(snapshot.interactivity.props);
