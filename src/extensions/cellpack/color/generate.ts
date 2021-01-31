@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -88,7 +88,6 @@ export const CellPackGenerateColorThemeProvider: ColorTheme.Provider<CellPackGen
     isApplicable: (ctx: ThemeDataContext) => {
         return (
             !!ctx.structure && ctx.structure.elementCount > 0 &&
-            Model.TrajectoryInfo.get(ctx.structure.models[0]).size > 1 &&
             !!CellPackInfoProvider.get(ctx.structure).value
         );
     }

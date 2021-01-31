@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -42,9 +42,9 @@ namespace Unit {
 
     export function create<K extends Kind>(id: number, invariantId: number, chainGroupId: number, traits: Traits, kind: Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set, props?: K extends Kind.Atomic ? AtomicProperties : CoarseProperties): Unit {
         switch (kind) {
-            case Kind.Atomic: return new Atomic(id, invariantId, chainGroupId, traits, model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation, void 0), AtomicProperties(props));
-            case Kind.Spheres: return createCoarse(id, invariantId, chainGroupId, traits, model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres, getSphereRadiusFunc(model)), CoarseProperties(props));
-            case Kind.Gaussians: return createCoarse(id, invariantId, chainGroupId, traits, model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians, getGaussianRadiusFunc(model)), CoarseProperties(props));
+            case Kind.Atomic: return new Atomic(id, invariantId, chainGroupId, traits, model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation, void 0), props ?? AtomicProperties());
+            case Kind.Spheres: return createCoarse(id, invariantId, chainGroupId, traits, model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres, getSphereRadiusFunc(model)), props ?? CoarseProperties());
+            case Kind.Gaussians: return createCoarse(id, invariantId, chainGroupId, traits, model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians, getGaussianRadiusFunc(model)), props ?? CoarseProperties());
         }
     }
 
@@ -165,8 +165,8 @@ namespace Unit {
     }
 
 
-    function BaseProperties(props?: BaseProperties): BaseProperties {
-        return { ...props };
+    function BaseProperties(): BaseProperties {
+        return {};
     }
 
     function getSphereRadiusFunc(model: Model) {
@@ -347,8 +347,8 @@ namespace Unit {
         residueCount?: number
     }
 
-    function AtomicProperties(props?: AtomicProperties): AtomicProperties {
-        return { ...BaseProperties(props), ...props };
+    function AtomicProperties(): AtomicProperties {
+        return BaseProperties();
     }
 
     class Coarse<K extends Kind.Gaussians | Kind.Spheres, C extends CoarseSphereConformation | CoarseGaussianConformation> implements Base {
@@ -383,8 +383,12 @@ namespace Unit {
             const modelCoarseConformation = getCoarseConformation(this.kind, model);
 
             if (!props) {
-                const boundary = Unit.isSameConformation(this as Unit.Spheres | Unit.Gaussians, model) ? this.props.boundary : undefined; // TODO get rid of casting
-                props = { ...this.props, boundary, lookup3d: undefined, principalAxes: undefined };
+                props = { ...this.props };
+                if (!Unit.isSameConformation(this as Unit.Spheres | Unit.Gaussians, model)) { // TODO get rid of casting
+                    props.boundary = undefined;
+                    props.lookup3d = undefined;
+                    props.principalAxes = undefined;
+                }
             }
 
             const conformation = coarseConformation !== modelCoarseConformation
@@ -453,16 +457,16 @@ namespace Unit {
 
     interface CoarseProperties extends BaseProperties { }
 
-    function CoarseProperties(props?: CoarseProperties): CoarseProperties {
-        return BaseProperties(props);
-    }
-
-    function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, chainGroupId: number, traits: Traits, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties): Unit {
-        return new Coarse(id, invariantId, chainGroupId, traits, model, kind, elements, conformation, props) as any as Unit /** lets call this an ugly temporary hack */;
+    function CoarseProperties(): CoarseProperties {
+        return BaseProperties();
     }
 
     export class Spheres extends Coarse<Kind.Spheres, CoarseSphereConformation> { }
     export class Gaussians extends Coarse<Kind.Gaussians, CoarseGaussianConformation> { }
+
+    function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, chainGroupId: number, traits: Traits, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties): K extends Kind.Spheres ? Spheres : Gaussians {
+        return new Coarse(id, invariantId, chainGroupId, traits, model, kind, elements, conformation, props) as any /** lets call this an ugly temporary hack */;
+    }
 
     export function areSameChainOperatorGroup(a: Unit, b: Unit) {
         return a.chainGroupId === b.chainGroupId && a.conformation.operator.name === b.conformation.operator.name;

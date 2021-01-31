@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -396,21 +396,25 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
         }
 
         if (ctx.shouldUpdate) await ctx.update(`${name} - units`);
-        const builder = Structure.Builder({ label: name });
+        const units: Unit[] = [];
         let offsetInvariantId = 0;
+        let offsetChainGroupId = 0;
         for (const s of structures) {
             if (ctx.shouldUpdate) await ctx.update(`${s.label}`);
             let maxInvariantId = 0;
+            let maxChainGroupId = 0;
             for (const u of s.units) {
                 const invariantId = u.invariantId + offsetInvariantId;
+                const chainGroupId = u.chainGroupId + offsetChainGroupId;
                 if (u.invariantId > maxInvariantId) maxInvariantId = u.invariantId;
-                builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, Unit.Trait.None, invariantId);
+                units.push(Unit.create(units.length, invariantId, chainGroupId, u.traits, u.kind, u.model, u.conformation.operator, u.elements, u.props));
             }
             offsetInvariantId += maxInvariantId + 1;
+            offsetChainGroupId += maxChainGroupId + 1;
         }
 
         if (ctx.shouldUpdate) await ctx.update(`${name} - structure`);
-        const structure = builder.getStructure();
+        const structure = new Structure(units);
         for( let i = 0, il = structure.models.length; i < il; ++i) {
             Model.TrajectoryInfo.set(structure.models[i], { size: il, index: i });
         }
