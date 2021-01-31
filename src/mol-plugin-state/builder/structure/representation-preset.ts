@@ -209,7 +209,7 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
         };
         const gaussianProps = {
             radiusOffset: structure.isCoarseGrained ? 2 : 0,
-            smoothness: structure.isCoarseGrained ? 0.5 : 1.5,
+            smoothness: structure.isCoarseGrained ? 1.0 : 1.5,
         };
 
         const { update, builder, typeParams, symmetryColor } = reprBuilder(plugin, params, structure);
@@ -248,18 +248,18 @@ const coarseSurface = StructureRepresentationPresetProvider({
             Object.assign(gaussianProps, {
                 traceOnly: true,
                 radiusOffset: 2,
-                smoothness: 0.5,
+                smoothness: 1,
                 visuals: ['structure-gaussian-surface-mesh']
             });
         } else if(size === Structure.Size.Huge) {
             Object.assign(gaussianProps, {
                 radiusOffset: structure.isCoarseGrained ? 2 : 0,
-                smoothness: 0.5,
+                smoothness: 1,
             });
         } else if(structure.isCoarseGrained) {
             Object.assign(gaussianProps, {
                 radiusOffset: 2,
-                smoothness: 0.5,
+                smoothness: 1,
             });
         }
 

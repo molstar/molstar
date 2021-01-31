@@ -23,16 +23,23 @@ export const GaussianDensityParams = {
 export const DefaultGaussianDensityProps = PD.getDefaultValues(GaussianDensityParams);
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
 
+//
+
 function getTextureMaxCells(webgl: WebGLContext) {
     const d = Math.min(webgl.maxTextureSize / 2, 4096);
     return d * d;
+}
+
+function largestUnitBox(structure: Structure) {
+    const units = structure.unitsSortedByVolume;
+    return units[units.length - 1].lookup3d.boundary.box;
 }
 
 //
 
 export function computeUnitGaussianDensity(structure: Structure, unit: Unit, props: GaussianDensityProps, webgl?: WebGLContext) {
     const { box } = unit.lookup3d.boundary;
-    const p = ensureReasonableResolution(box, props);
+    const p = ensureReasonableResolution(largestUnitBox(structure), props);
     const { position, radius } = getUnitConformationAndRadius(structure, unit, p);
     return Task.create('Gaussian Density', async ctx => {
         return await GaussianDensityCPU(ctx, position, box, radius, p);
@@ -41,7 +48,7 @@ export function computeUnitGaussianDensity(structure: Structure, unit: Unit, pro
 
 export function computeUnitGaussianDensityTexture(structure: Structure, unit: Unit, props: GaussianDensityProps, webgl: WebGLContext, texture?: Texture) {
     const { box } = unit.lookup3d.boundary;
-    const p = ensureReasonableResolution(box, props, getTextureMaxCells(webgl));
+    const p = ensureReasonableResolution(largestUnitBox(structure), props, getTextureMaxCells(webgl));
     const { position, radius } = getUnitConformationAndRadius(structure, unit, p);
     return Task.create('Gaussian Density', async ctx => {
         return GaussianDensityTexture(webgl, position, box, radius, p, texture);
@@ -50,7 +57,7 @@ export function computeUnitGaussianDensityTexture(structure: Structure, unit: Un
 
 export function computeUnitGaussianDensityTexture2d(structure: Structure, unit: Unit, powerOfTwo: boolean, props: GaussianDensityProps, webgl: WebGLContext, texture?: Texture) {
     const { box } = unit.lookup3d.boundary;
-    const p = ensureReasonableResolution(box, props, getTextureMaxCells(webgl));
+    const p = ensureReasonableResolution(largestUnitBox(structure), props, getTextureMaxCells(webgl));
     const { position, radius } = getUnitConformationAndRadius(structure, unit, p);
     return Task.create('Gaussian Density', async ctx => {
         return GaussianDensityTexture2d(webgl, position, box, radius, powerOfTwo, p, texture);

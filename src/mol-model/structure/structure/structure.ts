@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -23,7 +23,7 @@ import { Carbohydrates } from './carbohydrates/data';
 import { computeCarbohydrates } from './carbohydrates/compute';
 import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { idFactory } from '../../../mol-util/id-factory';
-import { GridLookup3D } from '../../../mol-math/geometry';
+import { Box3D, GridLookup3D } from '../../../mol-math/geometry';
 import { UUID } from '../../../mol-util';
 import { CustomProperties } from '../../custom-property';
 import { AtomicHierarchy } from '../model/properties/atomic';
@@ -50,6 +50,7 @@ class Structure {
         interUnitBonds?: InterUnitBonds,
         unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
         unitSymmetryGroupsIndexMap?: IntMap<number>,
+        unitsSortedByVolume?: ReadonlyArray<Unit>;
         carbohydrates?: Carbohydrates,
         models?: ReadonlyArray<Model>,
         model?: Model,
@@ -257,6 +258,13 @@ class Structure {
         return this._props.unitSymmetryGroupsIndexMap;
     }
 
+    /** Array of all units in the structure, sorted by their boundary volume */
+    get unitsSortedByVolume(): ReadonlyArray<Unit> {
+        if (this._props.unitsSortedByVolume) return this._props.unitsSortedByVolume;
+        this._props.unitsSortedByVolume = getUnitsSortedByVolume(this);
+        return this._props.unitsSortedByVolume;
+    }
+
     get carbohydrates(): Carbohydrates {
         if (this._props.carbohydrates) return this._props.carbohydrates;
         this._props.carbohydrates = computeCarbohydrates(this);
@@ -419,7 +427,22 @@ class Structure {
     }
 }
 
-function cmpUnits(units: ArrayLike<Unit>, i: number, j: number) { return units[i].id - units[j].id; }
+function cmpUnits(units: ArrayLike<Unit>, i: number, j: number) {
+    return units[i].id - units[j].id;
+
+}
+function cmpUnitsVolume(units: ArrayLike<Unit>, i: number, j: number) {
+    return Box3D.volume(units[i].boundary.box) - Box3D.volume(units[i].boundary.box);
+}
+
+function getUnitsSortedByVolume(structure: Structure) {
+    const { units } = structure;
+    const unitsByVolume: Unit[] = [];
+    for (let i = 0, _i = units.length; i < _i; i++) {
+        unitsByVolume[i] = units[i];
+    }
+    return sort(unitsByVolume, 0, unitsByVolume.length, cmpUnitsVolume, arraySwap);
+}
 
 function getModels(s: Structure) {
     const { units } = s;

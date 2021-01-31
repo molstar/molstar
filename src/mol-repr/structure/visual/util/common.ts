@@ -104,9 +104,11 @@ const DefaultMaxCells = 500_000_000;
 
 /** guard against overly high resolution for the given box size */
 export function ensureReasonableResolution<T>(box: Box3D, props: { resolution: number } & T, maxCells = DefaultMaxCells) {
-    const volume = Box3D.volume(box);
-    const approxCells = volume / props.resolution;
-    const resolution = approxCells > maxCells ? volume / maxCells : props.resolution;
+    const size = Box3D.size(Vec3(), box);
+    const maxArea = Math.floor(Math.cbrt(maxCells) * Math.cbrt(maxCells));
+    const area = size[0] * size[1];
+    const maxAreaCells = Math.ceil(area / props.resolution);
+    const resolution = maxAreaCells > maxArea ? area / maxArea : props.resolution;
     return { ...props, resolution };
 }
 
