@@ -431,17 +431,23 @@ function cmpUnits(units: ArrayLike<Unit>, i: number, j: number) {
     return units[i].id - units[j].id;
 
 }
-function cmpUnitsVolume(units: ArrayLike<Unit>, i: number, j: number) {
-    return Box3D.volume(units[i].boundary.box) - Box3D.volume(units[i].boundary.box);
+function cmpUnitGroupVolume(units: ArrayLike<[index: number, volume: number]>, i: number, j: number) {
+    const d = units[i][1] - units[j][1];
+    if (d === 0) return units[i][0] - units[j][0];
+    return d;
 }
 
 function getUnitsSortedByVolume(structure: Structure) {
-    const { units } = structure;
-    const unitsByVolume: Unit[] = [];
-    for (let i = 0, _i = units.length; i < _i; i++) {
-        unitsByVolume[i] = units[i];
+    const { unitSymmetryGroups } = structure;
+    const groups = unitSymmetryGroups.map((g, i) => [i, Box3D.volume(g.units[0].lookup3d.boundary.box)] as [number, number]);
+    sort(groups, 0, groups.length, cmpUnitGroupVolume, arraySwap);
+    const ret: Unit[] = [];
+    for (const [i] of groups) {
+        for (const u of unitSymmetryGroups[i].units) {
+            ret.push(u);
+        }
     }
-    return sort(unitsByVolume, 0, unitsByVolume.length, cmpUnitsVolume, arraySwap);
+    return ret;
 }
 
 function getModels(s: Structure) {
