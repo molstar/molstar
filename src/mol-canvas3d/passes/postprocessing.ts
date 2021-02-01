@@ -286,7 +286,11 @@ export class PostprocessingPass {
 
     private readonly renderable: PostprocessingRenderable
 
+    private scale: number
+
     constructor(private webgl: WebGLContext, drawPass: DrawPass) {
+        this.scale = 1 / this.webgl.pixelRatio;
+
         const { colorTarget, depthTexture } = drawPass;
         const width = colorTarget.getWidth();
         const height = colorTarget.getHeight();
@@ -313,12 +317,15 @@ export class PostprocessingPass {
         this.ssaoBlurFirstPassFramebuffer = webgl.resources.framebuffer();
         this.ssaoBlurSecondPassFramebuffer = webgl.resources.framebuffer();
 
-        this.ssaoDepthTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
-        this.ssaoDepthTexture.define(width, height);
+        const sw = Math.floor(width * this.scale);
+        const sh = Math.floor(height * this.scale);
+
+        this.ssaoDepthTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+        this.ssaoDepthTexture.define(sw, sh);
         this.ssaoDepthTexture.attachFramebuffer(this.ssaoFramebuffer, 'color0');
 
-        this.ssaoDepthBlurProxyTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
-        this.ssaoDepthBlurProxyTexture.define(width, height);
+        this.ssaoDepthBlurProxyTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+        this.ssaoDepthBlurProxyTexture.define(sw, sh);
         this.ssaoDepthBlurProxyTexture.attachFramebuffer(this.ssaoBlurFirstPassFramebuffer, 'color0');
 
         this.ssaoDepthTexture.attachFramebuffer(this.ssaoBlurSecondPassFramebuffer, 'color0');
@@ -326,22 +333,24 @@ export class PostprocessingPass {
         this.ssaoRenderable = getSsaoRenderable(webgl, depthTexture);
         this.ssaoBlurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
         this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, 'vertical');
-        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture,  depthTexture, this.outlinesTarget.texture, this.ssaoDepthTexture);
+        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture, this.outlinesTarget.texture, this.ssaoDepthTexture);
     }
 
     setSize(width: number, height: number) {
         const [w, h] = this.renderable.values.uTexSize.ref.value;
         if (width !== w || height !== h) {
+            const sw = Math.floor(width * this.scale);
+            const sh = Math.floor(height * this.scale);
             this.target.setSize(width, height);
             this.outlinesTarget.setSize(width, height);
-            this.ssaoDepthTexture.define(width, height);
-            this.ssaoDepthBlurProxyTexture.define(width, height);
+            this.ssaoDepthTexture.define(sw, sh);
+            this.ssaoDepthBlurProxyTexture.define(sw, sh);
 
             ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
             ValueCell.update(this.outlinesRenderable.values.uTexSize, Vec2.set(this.outlinesRenderable.values.uTexSize.ref.value, width, height));
-            ValueCell.update(this.ssaoRenderable.values.uTexSize, Vec2.set(this.ssaoRenderable.values.uTexSize.ref.value, width, height));
-            ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uTexSize, Vec2.set(this.ssaoRenderable.values.uTexSize.ref.value, width, height));
-            ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uTexSize, Vec2.set(this.ssaoRenderable.values.uTexSize.ref.value, width, height));
+            ValueCell.update(this.ssaoRenderable.values.uTexSize, Vec2.set(this.ssaoRenderable.values.uTexSize.ref.value, sw, sh));
+            ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uTexSize, Vec2.set(this.ssaoRenderable.values.uTexSize.ref.value, sw, sh));
+            ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uTexSize, Vec2.set(this.ssaoRenderable.values.uTexSize.ref.value, sw, sh));
         }
     }
 
@@ -457,6 +466,14 @@ export class PostprocessingPass {
         }
 
         if (props.occlusion.name === 'on') {
+            const { x, y, width, height } = camera.viewport;
+            const sx = Math.floor(x * this.scale);
+            const sy = Math.floor(y * this.scale);
+            const sw = Math.floor(width * this.scale);
+            const sh = Math.floor(height * this.scale);
+            this.webgl.gl.viewport(sx, sy, sw, sh);
+            this.webgl.gl.scissor(sx, sy, sw, sh);
+
             this.ssaoFramebuffer.bind();
             this.ssaoRenderable.render();
 
@@ -465,6 +482,9 @@ export class PostprocessingPass {
 
             this.ssaoBlurSecondPassFramebuffer.bind();
             this.ssaoBlurSecondPassRenderable.render();
+
+            this.webgl.gl.viewport(x, y, width, height);
+            this.webgl.gl.scissor(x, y, width, height);
         }
 
         if (toDrawingBuffer) {
