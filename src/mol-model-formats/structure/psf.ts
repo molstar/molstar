@@ -103,8 +103,8 @@ export { PsfFormat };
 type PsfFormat = ModelFormat<PsfFile>
 
 namespace PsfFormat {
-    export function is(x: ModelFormat): x is PsfFormat {
-        return x.kind === 'psf';
+    export function is(x?: ModelFormat): x is PsfFormat {
+        return x?.kind === 'psf';
     }
 
     export function fromPsf(psf: PsfFile): PsfFormat {

@@ -106,8 +106,8 @@ export { GroFormat };
 type GroFormat = ModelFormat<GroFile>
 
 namespace GroFormat {
-    export function is(x: ModelFormat): x is GroFormat {
-        return x.kind === 'gro';
+    export function is(x?: ModelFormat): x is GroFormat {
+        return x?.kind === 'gro';
     }
 
     export function fromGro(gro: GroFile): GroFormat {

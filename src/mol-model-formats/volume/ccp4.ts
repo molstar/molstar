@@ -98,8 +98,8 @@ export { Ccp4Format };
 type Ccp4Format = ModelFormat<Ccp4File>
 
 namespace Ccp4Format {
-    export function is(x: ModelFormat): x is Ccp4Format {
-        return x.kind === 'ccp4';
+    export function is(x?: ModelFormat): x is Ccp4Format {
+        return x?.kind === 'ccp4';
     }
 
     export function create(ccp4: Ccp4File): Ccp4Format {

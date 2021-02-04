@@ -71,8 +71,8 @@ export { CubeFormat };
 type CubeFormat = ModelFormat<CubeFile>
 
 namespace CubeFormat {
-    export function is(x: ModelFormat): x is CubeFormat {
-        return x.kind === 'cube';
+    export function is(x?: ModelFormat): x is CubeFormat {
+        return x?.kind === 'cube';
     }
 
     export function create(cube: CubeFile): CubeFormat {

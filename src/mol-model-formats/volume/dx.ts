@@ -48,8 +48,8 @@ export { DxFormat };
 type DxFormat = ModelFormat<DxFile>
 
 namespace DxFormat {
-    export function is(x: ModelFormat): x is DxFormat {
-        return x.kind === 'dx';
+    export function is(x?: ModelFormat): x is DxFormat {
+        return x?.kind === 'dx';
     }
 
     export function create(dx: DxFile): DxFormat {

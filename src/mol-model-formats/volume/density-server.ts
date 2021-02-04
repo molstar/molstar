@@ -62,8 +62,8 @@ export { DscifFormat };
 type DscifFormat = ModelFormat<DensityServer_Data_Database>
 
 namespace DscifFormat {
-    export function is(x: ModelFormat): x is DscifFormat {
-        return x.kind === 'dscif';
+    export function is(x?: ModelFormat): x is DscifFormat {
+        return x?.kind === 'dscif';
     }
 
     export function create(dscif: DensityServer_Data_Database): DscifFormat {

@@ -13,12 +13,27 @@ import { createModels } from './basic/parser';
 import { Column } from '../../mol-data/db';
 import { AtomPartialCharge } from './property/partial-charge';
 import { Trajectory } from '../../mol-model/structure';
+import { ModelFormat } from '../format';
+
+export { PdbFormat };
+
+type PdbFormat = ModelFormat<PdbFile>
+
+namespace PdbFormat {
+    export function is(x?: ModelFormat): x is PdbFormat {
+        return x?.kind === 'pdb';
+    }
+
+    export function create(pdb: PdbFile): PdbFormat {
+        return { kind: 'pdb', name: pdb.id || '', data: pdb };
+    }
+}
 
 export function trajectoryFromPDB(pdb: PdbFile): Task<Trajectory> {
     return Task.create('Parse PDB', async ctx => {
         await ctx.update('Converting to mmCIF');
         const cif = await pdbToMmCif(pdb);
-        const format = MmcifFormat.fromFrame(cif);
+        const format = MmcifFormat.fromFrame(cif, undefined, PdbFormat.create(pdb));
         const models = await createModels(format.data.db, format, ctx);
         const partial_charge = cif.categories['atom_site']?.getField('partial_charge');
         if (partial_charge) {

@@ -99,8 +99,8 @@ export { Mol2Format };
 type Mol2Format = ModelFormat<Mol2File>
 
 namespace Mol2Format {
-    export function is(x: ModelFormat): x is Mol2Format {
-        return x.kind === 'mol2';
+    export function is(x?: ModelFormat): x is Mol2Format {
+        return x?.kind === 'mol2';
     }
 
     export function create(mol2: Mol2File): Mol2Format {

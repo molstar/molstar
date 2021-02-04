@@ -60,8 +60,8 @@ export { Dsn6Format };
 type Dsn6Format = ModelFormat<Dsn6File>
 
 namespace Dsn6Format {
-    export function is(x: ModelFormat): x is Dsn6Format {
-        return x.kind === 'dsn6';
+    export function is(x?: ModelFormat): x is Dsn6Format {
+        return x?.kind === 'dsn6';
     }
 
     export function create(dsn6: Dsn6File): Dsn6Format {

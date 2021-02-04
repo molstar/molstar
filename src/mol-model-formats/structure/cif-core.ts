@@ -251,8 +251,8 @@ type CifCoreFormat = ModelFormat<CifCoreFormat.Data>
 
 namespace CifCoreFormat {
     export type Data = { db: CifCore_Database, frame: CifFrame }
-    export function is(x: ModelFormat): x is CifCoreFormat {
-        return x.kind === 'cifCore';
+    export function is(x?: ModelFormat): x is CifCoreFormat {
+        return x?.kind === 'cifCore';
     }
 
     export function fromFrame(frame: CifFrame, db?: CifCore_Database): CifCoreFormat {
