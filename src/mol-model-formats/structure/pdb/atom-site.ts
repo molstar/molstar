@@ -17,7 +17,6 @@ export function getAtomSiteTemplate(data: string, count: number) {
     const ts = () => TokenBuilder.create(data, 2 * count);
     return {
         index: 0,
-        count,
         group_PDB: ts(),
         id: str(),
         auth_atom_id: ts(),
@@ -61,7 +60,7 @@ export function getAtomSite(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema
         label_asym_id: auth_asym_id,
         label_atom_id: auth_atom_id,
         label_comp_id: auth_comp_id,
-        label_seq_id: CifField.ofUndefined(sites.count, Column.Schema.int),
+        label_seq_id: CifField.ofUndefined(sites.index, Column.Schema.int),
         label_entity_id: CifField.ofStrings(sites.label_entity_id),
 
         occupancy: CifField.ofTokens(sites.occupancy),

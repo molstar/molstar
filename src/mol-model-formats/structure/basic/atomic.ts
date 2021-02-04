@@ -74,11 +74,11 @@ function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, o
         let cI = 0;
         let seqId = 0;
         for (let i = 0, il = seqIds.length; i < il; ++i) {
-            if (chainOffsets[cI] > residueOffsets[i]) {
+            if (residueOffsets[i] > chainOffsets[cI + 1]) {
                 cI += 1;
                 seqId = 0;
             }
-            seqIds[i] = ++seqId;
+            seqIds[i] = ++seqId; // start id on one
         }
         residues.label_seq_id = Column.ofIntArray(seqIds);
     }
