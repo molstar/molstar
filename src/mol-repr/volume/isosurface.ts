@@ -39,10 +39,19 @@ function gpuSupport(webgl: WebGLContext) {
     return webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.drawBuffers;
 }
 
-export function IsosurfaceVisual(materialId: number, props?: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) {
-    return props?.useGpu && webgl && gpuSupport(webgl)
-        ? IsosurfaceTextureMeshVisual(materialId)
-        : IsosurfaceMeshVisual(materialId);
+const Padding = 1;
+
+function suitableForGpu(volume: Volume, webgl: WebGLContext) {
+    const gridDim = volume.grid.cells.space.dimensions as Vec3;
+    const { powerOfTwoSize } = getVolumeTexture2dLayout(gridDim, Padding);
+    return powerOfTwoSize <= webgl.maxTextureSize / 2;
+}
+
+export function IsosurfaceVisual(materialId: number, volume: Volume, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) {
+    if (props.useGpu && webgl && gpuSupport(webgl) && suitableForGpu(volume, webgl)) {
+        return IsosurfaceTextureMeshVisual(materialId);
+    }
+    return IsosurfaceMeshVisual(materialId);
 }
 
 function getLoci(volume: Volume, props: VolumeIsosurfaceProps) {
@@ -76,7 +85,11 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
 
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     Mesh.transform(surface, transform);
-    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
+    if (ctx.webgl && !ctx.webgl.isWebGL2) {
+        // 2nd arg means not to split triangles based on group id. Splitting triangles
+        // is too expensive if each cell has its own group id as is the case here.
+        Mesh.uniformTriangleGroup(surface, false);
+    }
 
     surface.setBoundingSphere(Volume.getBoundingSphere(volume));
 
@@ -88,7 +101,7 @@ export const IsosurfaceMeshParams = {
     ...TextureMesh.Params,
     ...VolumeIsosurfaceParams,
     quality: { ...Mesh.Params.quality, isEssential: false },
-    useGpu: PD.Boolean(false),
+    useGpu: PD.Boolean(true, { label: 'Try Use GPU' }),
 };
 export type IsosurfaceMeshParams = typeof IsosurfaceMeshParams
 
@@ -103,8 +116,8 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
             if (!Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)) state.createGeometry = true;
         },
         geometryUtils: Mesh.Utils,
-        mustRecreate: (props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.useGpu && !!webgl;
+        mustRecreate: (volume: Volume, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
+            return props.useGpu && !!webgl && suitableForGpu(volume, webgl);
         }
     }, materialId);
 }
@@ -117,13 +130,17 @@ namespace VolumeIsosurfaceTexture {
     export function get(volume: Volume, webgl: WebGLContext) {
         const { resources } = webgl;
 
-        const padding = 1;
+
         const transform = Grid.getGridToCartesianTransform(volume.grid);
         const gridDimension = Vec3.clone(volume.grid.cells.space.dimensions as Vec3);
-        const { width, height, powerOfTwoSize: texDim } = getVolumeTexture2dLayout(gridDimension, padding);
+        const { width, height, powerOfTwoSize: texDim } = getVolumeTexture2dLayout(gridDimension, Padding);
         const gridTexDim = Vec3.create(width, height, 0);
         const gridTexScale = Vec2.create(width / texDim, height / texDim);
         // console.log({ texDim, width, height, gridDimension });
+
+        if (texDim > webgl.maxTextureSize / 2) {
+            throw new Error('volume too large for gpu isosurface extraction');
+        }
 
         if (!volume._propertyData[name]) {
             volume._propertyData[name] = resources.texture('image-uint8', 'alpha', 'ubyte', 'linear');
@@ -135,8 +152,8 @@ namespace VolumeIsosurfaceTexture {
             volume.customProperties.assets(descriptor, [{ dispose: () => texture.destroy() }]);
         }
 
-        gridDimension[0] += padding;
-        gridDimension[1] += padding;
+        gridDimension[0] += Padding;
+        gridDimension[1] += Padding;
 
         return {
             texture: volume._propertyData[name] as Texture,
@@ -176,8 +193,8 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
             if (!Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)) state.createGeometry = true;
         },
         geometryUtils: TextureMesh.Utils,
-        mustRecreate: (props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
-            return !props.useGpu || !webgl;
+        mustRecreate: (volume: Volume, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
+            return !props.useGpu || !webgl || !suitableForGpu(volume, webgl);
         },
         dispose: (geometry: TextureMesh) => {
             geometry.vertexTexture.ref.value.destroy();

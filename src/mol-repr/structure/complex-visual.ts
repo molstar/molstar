@@ -52,7 +52,7 @@ interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
     eachLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean): boolean,
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure): void
-    mustRecreate?: (props: PD.Values<P>) => boolean
+    mustRecreate?: (structure: Structure, props: PD.Values<P>) => boolean
     dispose?: (geometry: G) => void
 }
 

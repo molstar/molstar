@@ -20,7 +20,9 @@ import { getStructureExtraRadius, getUnitExtraRadius } from './util/common';
 
 async function createGaussianDensityVolume(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
     const { runtime, webgl } = ctx;
-    if (webgl === undefined) throw new Error('createGaussianDensityVolume requires `webgl` object in VisualContext');
+    if (!webgl || !webgl.extensions.blendMinMax) {
+        throw new Error('GaussianDensityVolume requires `webgl` and `blendMinMax` extension');
+    }
 
     const p = { ...props, useGpu: true };
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
@@ -71,7 +73,9 @@ export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<G
 
 async function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
     const { runtime, webgl } = ctx;
-    if (webgl === undefined) throw new Error('createUnitGaussianDensityVolume requires `webgl` object in VisualContext');
+    if (!webgl || !webgl.extensions.blendMinMax) {
+        throw new Error('GaussianDensityVolume requires `webgl` and `blendMinMax` extension');
+    }
 
     const p = { ...props, useGpu: true };
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;

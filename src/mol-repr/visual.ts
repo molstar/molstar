@@ -47,7 +47,7 @@ interface Visual<D, P extends PD.Params> {
     setTransparency: (transparency: Transparency) => void
     setClipping: (clipping: Clipping) => void
     destroy: () => void
-    mustRecreate?: (props: PD.Values<P>, webgl?: WebGLContext) => boolean
+    mustRecreate?: (data: D, props: PD.Values<P>, webgl?: WebGLContext) => boolean
 }
 namespace Visual {
     export type LociApply = (loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) => boolean

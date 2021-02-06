@@ -21,7 +21,7 @@ import { RepresentationContext, RepresentationParamsGetter } from '../representa
 import { Interval } from '../../mol-data/int';
 import { Loci, EmptyLoci } from '../../mol-model/loci';
 import { PickingId } from '../../mol-geo/geometry/picking';
-import { createVolumeTexture2d, createVolumeTexture3d, eachVolumeLoci } from './util';
+import { createVolumeTexture2d, createVolumeTexture3d, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D();
@@ -34,6 +34,11 @@ function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
 
 export function createDirectVolume2d(ctx: RuntimeContext, webgl: WebGLContext, volume: Volume, directVolume?: DirectVolume) {
     const gridDimension = volume.grid.cells.space.dimensions as Vec3;
+    const { width, height } = getVolumeTexture2dLayout(gridDimension);
+    if(Math.max(width, height) > webgl.maxTextureSize / 2) {
+        throw new Error('volume too large for direct-volume rendering');
+    }
+
     const textureImage = createVolumeTexture2d(volume, 'normals');
     // debugTexture(createImageData(textureImage.array, textureImage.width, textureImage.height), 1/3)
     const transform = Grid.getGridToCartesianTransform(volume.grid);
@@ -72,6 +77,10 @@ function getUnitToCartn(grid: Grid) {
 
 export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, volume: Volume, directVolume?: DirectVolume) {
     const gridDimension = volume.grid.cells.space.dimensions as Vec3;
+    if(Math.max(...gridDimension) > webgl.max3dTextureSize / 2) {
+        throw new Error('volume too large for direct-volume rendering');
+    }
+
     const textureVolume = createVolumeTexture3d(volume);
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     const bbox = getBoundingBox(gridDimension, transform);

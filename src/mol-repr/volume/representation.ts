@@ -49,7 +49,7 @@ interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
     getLoci(pickingId: PickingId, volume: Volume, props: PD.Values<P>, id: number): Loci
     eachLocation(loci: Loci, volume: Volume, props: PD.Values<P>, apply: (interval: Interval) => boolean): boolean
     setUpdateState(state: VisualUpdateState, volume: Volume, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
-    mustRecreate?: (props: PD.Values<P>) => boolean
+    mustRecreate?: (volume: Volume, props: PD.Values<P>) => boolean
     dispose?: (geometry: G) => void
 }
 
@@ -231,7 +231,7 @@ export const VolumeParams = {
 };
 export type VolumeParams = typeof VolumeParams
 
-export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, P>, visualCtor: (materialId: number, props?: PD.Values<P>, webgl?: WebGLContext) => VolumeVisual<P>, getLoci: (volume: Volume, props: PD.Values<P>) => Loci): VolumeRepresentation<P> {
+export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, P>, visualCtor: (materialId: number, volume: Volume, props: PD.Values<P>, webgl?: WebGLContext) => VolumeVisual<P>, getLoci: (volume: Volume, props: PD.Values<P>) => Loci): VolumeRepresentation<P> {
     let version = 0;
     const { webgl } = ctx;
     const updated = new Subject<number>();
@@ -256,10 +256,10 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
 
         return Task.create('Creating or updating VolumeRepresentation', async runtime => {
             if (!visual) {
-                visual = visualCtor(materialId, _props, webgl);
-            } else if (visual.mustRecreate?.(_props, webgl)) {
+                visual = visualCtor(materialId, _volume, _props, webgl);
+            } else if (visual.mustRecreate?.(_volume, _props, webgl)) {
                 visual.destroy();
-                visual = visualCtor(materialId, _props, webgl);
+                visual = visualCtor(materialId, _volume, _props, webgl);
             }
             const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, volume);
             if (promise) await promise;

@@ -145,8 +145,8 @@ export const IntraUnitBondCylinderParams = {
 };
 export type IntraUnitBondCylinderParams = typeof IntraUnitBondCylinderParams
 
-export function IntraUnitBondCylinderVisual(materialId: number, props?: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) {
-    return props?.useImpostor && webgl && webgl.extensions.fragDepth
+export function IntraUnitBondCylinderVisual(materialId: number, structure: Structure, props: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) {
+    return props.useImpostor && webgl && webgl.extensions.fragDepth
         ? IntraUnitBondCylinderImpostorVisual(materialId)
         : IntraUnitBondCylinderMeshVisual(materialId);
 }
@@ -182,7 +182,7 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 }
             }
         },
-        mustRecreate: (props: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) => {
+        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) => {
             return !props.useImpostor || !webgl;
         }
     }, materialId);
@@ -222,7 +222,7 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
                 }
             }
         },
-        mustRecreate: (props: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) => {
+        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) => {
             return props.useImpostor && !!webgl;
         }
     }, materialId);
