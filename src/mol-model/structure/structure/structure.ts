@@ -1165,7 +1165,7 @@ namespace Structure {
         /** Must be lower to be medium */
         mediumResidueCount: 5000,
         /** Must be lower to be large (big ribosomes like 4UG0 should still be `large`) */
-        largeResidueCount: 20000,
+        largeResidueCount: 30000,
         /**
          * Structures above `largeResidueCount` are consider huge when they have
          * a `highSymmetryUnitCount` or gigantic when not

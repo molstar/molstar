@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -59,9 +59,9 @@ export interface QualityProps {
 }
 
 export const DefaultQualityThresholds = {
-    lowestElementCount: 500_000,
-    lowerElementCount: 200_000,
-    lowElementCount: 60_000,
+    lowestElementCount: 1_000_000,
+    lowerElementCount: 500_000,
+    lowElementCount: 100_000,
     mediumElementCount: 20_000,
     highElementCount: 2_000,
     coarseGrainedFactor: 10,
@@ -129,49 +129,49 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             detail = 3;
             radialSegments = 36;
             linearSegments = 18;
-            resolution = Math.max(volume / 500_000_000, 0.1);
+            resolution = 0.1;
             doubleSided = true;
             break;
         case 'higher':
             detail = 3;
             radialSegments = 28;
             linearSegments = 14;
-            resolution = Math.max(volume / 400_000_000, 0.3);
+            resolution = 0.3;
             doubleSided = true;
             break;
         case 'high':
             detail = 2;
             radialSegments = 20;
             linearSegments = 10;
-            resolution = Math.max(volume / 300_000_000, 0.5);
+            resolution = 0.5;
             doubleSided = true;
             break;
         case 'medium':
             detail = 1;
             radialSegments = 12;
             linearSegments = 8;
-            resolution = Math.max(volume / 200_000_000, 1);
+            resolution = 0.8;
             doubleSided = true;
             break;
         case 'low':
             detail = 0;
             radialSegments = 8;
             linearSegments = 3;
-            resolution = Math.max(volume / 150_000_000, 2);
+            resolution = 1.3;
             doubleSided = false;
             break;
         case 'lower':
             detail = 0;
             radialSegments = 4;
             linearSegments = 2;
-            resolution = Math.max(volume / 100_000_000, 4);
+            resolution = 2;
             doubleSided = false;
             break;
         case 'lowest':
             detail = 0;
             radialSegments = 2;
             linearSegments = 1;
-            resolution = Math.max(volume / 75_000_000, 8);
+            resolution = 4;
             doubleSided = false;
             break;
         case 'custom':
@@ -179,6 +179,8 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             break;
     }
 
+    // max resolution based on volume (for 'auto' quality)
+    resolution = Math.max(resolution, volume / 500_000_000);
     resolution = Math.min(resolution, 20);
 
     if ((props.alpha !== undefined && props.alpha < 1) || !!props.xrayShaded) {
