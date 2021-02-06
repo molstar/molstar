@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -338,6 +338,11 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 });
                 attributeBuffers.forEach(([_, buffer]) => buffer.destroy());
                 if (elementsBuffer) elementsBuffer.destroy();
+
+                stats.drawCount -= drawCount;
+                stats.instanceCount -= instanceCount;
+                stats.instancedDrawCount -= instanceCount * drawCount;
+
                 destroyed = true;
             }
         }
