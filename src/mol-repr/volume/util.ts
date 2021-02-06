@@ -75,13 +75,14 @@ export function getVolumeTexture2dLayout(dim: Vec3, padding = 0) {
     return { width, height, columns, rows, powerOfTwoSize: height < powerOfTwoSize ? powerOfTwoSize : powerOfTwoSize * 2 };
 }
 
-export function createVolumeTexture2d(volume: Volume, variant: 'normals' | 'groups', padding = 0) {
+export function createVolumeTexture2d(volume: Volume, variant: 'normals' | 'groups' | 'data', padding = 0) {
     const { cells: { space, data }, stats: { max, min } } = volume.grid;
     const dim = space.dimensions as Vec3;
     const { dataOffset: o } = space;
     const { width, height } = getVolumeTexture2dLayout(dim, padding);
 
-    const array = new Uint8Array(width * height * 4);
+    const itemSize = variant === 'data' ? 1 : 4;
+    const array = new Uint8Array(width * height * itemSize);
     const textureImage = { array, width, height };
 
     const diff = max - min;
@@ -102,28 +103,32 @@ export function createVolumeTexture2d(volume: Volume, variant: 'normals' | 'grou
                 const column = Math.floor(((z * xnp) % width) / xnp);
                 const row = Math.floor((z * xnp) / width);
                 const px = column * xnp + x;
-                const index = 4 * ((row * ynp * width) + (y * width) + px);
+                const index = itemSize * ((row * ynp * width) + (y * width) + px);
                 const offset = o(x, y, z);
 
-                if (variant === 'groups') {
-                    encodeFloatRGBtoArray(offset, array, index);
+                if (variant === 'data') {
+                    array[index] = Math.round(((data[offset] - min) / diff) * 255);
                 } else {
-                    v3set(n0,
-                        data[o(Math.max(0, x - 1), y, z)],
-                        data[o(x, Math.max(0, y - 1), z)],
-                        data[o(x, y, Math.max(0, z - 1))]
-                    );
-                    v3set(n1,
-                        data[o(Math.min(xn1, x + 1), y, z)],
-                        data[o(x, Math.min(yn1, y + 1), z)],
-                        data[o(x, y, Math.min(zn1, z + 1))]
-                    );
-                    v3normalize(n0, v3sub(n0, n0, n1));
-                    v3addScalar(n0, v3scale(n0, n0, 0.5), 0.5);
-                    v3toArray(v3scale(n0, n0, 255), array, index);
-                }
+                    if (variant === 'groups') {
+                        encodeFloatRGBtoArray(offset, array, index);
+                    } else {
+                        v3set(n0,
+                            data[o(Math.max(0, x - 1), y, z)],
+                            data[o(x, Math.max(0, y - 1), z)],
+                            data[o(x, y, Math.max(0, z - 1))]
+                        );
+                        v3set(n1,
+                            data[o(Math.min(xn1, x + 1), y, z)],
+                            data[o(x, Math.min(yn1, y + 1), z)],
+                            data[o(x, y, Math.min(zn1, z + 1))]
+                        );
+                        v3normalize(n0, v3sub(n0, n0, n1));
+                        v3addScalar(n0, v3scale(n0, n0, 0.5), 0.5);
+                        v3toArray(v3scale(n0, n0, 255), array, index);
+                    }
 
-                array[index + 3] = ((data[offset] - min) / diff) * 255;
+                    array[index + 3] = Math.round(((data[offset] - min) / diff) * 255);
+                }
             }
         }
     }
@@ -167,7 +172,7 @@ export function createVolumeTexture3d(volume: Volume) {
                 v3addScalar(n0, v3scale(n0, n0, 0.5), 0.5);
                 v3toArray(v3scale(n0, n0, 255), array, i);
 
-                array[i + 3] = ((data[offset] - min) / diff) * 255;
+                array[i + 3] = Math.round(((data[offset] - min) / diff) * 255);
                 i += 4;
             }
         }

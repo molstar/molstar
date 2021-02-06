@@ -36,4 +36,11 @@ uniform sampler2D tMarker;
 
 varying vec3 vModelPosition;
 varying vec3 vViewPosition;
+
+#if __VERSION__ == 100
+    attribute float aVertex;
+    #define VertexID int(aVertex)
+#else
+    #define VertexID gl_VertexID
+#endif
 `;

@@ -15,9 +15,7 @@ import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/a
 import { ElementIterator, getElementLoci, eachElement, getSerialElementLoci, eachSerialElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { TextureMesh } from '../../../mol-geo/geometry/texture-mesh/texture-mesh';
-import { calcActiveVoxels } from '../../../mol-gl/compute/marching-cubes/active-voxels';
-import { createHistogramPyramid } from '../../../mol-gl/compute/histogram-pyramid/reduction';
-import { createIsosurfaceBuffers } from '../../../mol-gl/compute/marching-cubes/isosurface';
+import { extractIsosurface } from '../../../mol-gl/compute/marching-cubes/isosurface';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { ComplexVisual, ComplexMeshParams, ComplexMeshVisual, ComplexTextureMeshVisual, ComplexTextureMeshParams } from '../complex-visual';
 import { getUnitExtraRadius, getStructureExtraRadius } from './util/common';
@@ -169,29 +167,11 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
 
     const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
-    // console.time('calcActiveVoxels');
-    const activeVoxelsTex = calcActiveVoxels(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, isoLevel, densityTextureData.gridTexScale);
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
-    // console.timeEnd('calcActiveVoxels');
-
-    // console.time('createHistogramPyramid');
-    const compacted = createHistogramPyramid(ctx.webgl, activeVoxelsTex, densityTextureData.gridTexScale, densityTextureData.gridTexDim);
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
-    // console.timeEnd('createHistogramPyramid');
-
-    // console.time('createIsosurfaceBuffers');
-    const gv = createIsosurfaceBuffers(ctx.webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.transform, isoLevel, textureMesh ? textureMesh.vertexGroupTexture.ref.value : undefined, textureMesh ? textureMesh.normalTexture.ref.value : undefined);
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
-    // console.timeEnd('createIsosurfaceBuffers');
+    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, true, textureMesh?.vertexTexture.ref.value, textureMesh?.groupTexture.ref.value, textureMesh?.normalTexture.ref.value);
 
     const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
-    const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, boundingSphere, textureMesh);
-    // console.log({
-    //     renderables: ctx.webgl.namedComputeRenderables,
-    //     framebuffers: ctx.webgl.namedFramebuffers,
-    //     textures: ctx.webgl.namedTextures,
-    // });
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
+
     return surface;
 }
 
@@ -214,8 +194,9 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
             return !props.useGpu || !webgl;
         },
         dispose: (geometry: TextureMesh) => {
+            geometry.vertexTexture.ref.value.destroy();
+            geometry.groupTexture.ref.value.destroy();
             geometry.normalTexture.ref.value.destroy();
-            geometry.vertexGroupTexture.ref.value.destroy();
         }
     }, materialId);
 }
@@ -243,29 +224,11 @@ async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, str
 
     const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
-    // console.time('calcActiveVoxels');
-    const activeVoxelsTex = calcActiveVoxels(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, isoLevel, densityTextureData.gridTexScale);
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
-    // console.timeEnd('calcActiveVoxels');
-
-    // console.time('createHistogramPyramid');
-    const compacted = createHistogramPyramid(ctx.webgl, activeVoxelsTex, densityTextureData.gridTexScale, densityTextureData.gridTexDim);
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
-    // console.timeEnd('createHistogramPyramid');
-
-    // console.time('createIsosurfaceBuffers');
-    const gv = createIsosurfaceBuffers(ctx.webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.transform, isoLevel, textureMesh ? textureMesh.vertexGroupTexture.ref.value : undefined, textureMesh ? textureMesh.normalTexture.ref.value : undefined);
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
-    // console.timeEnd('createIsosurfaceBuffers');
+    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, true, textureMesh?.vertexTexture.ref.value, textureMesh?.groupTexture.ref.value, textureMesh?.normalTexture.ref.value);
 
     const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
-    const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, boundingSphere, textureMesh);
-    // console.log({
-    //     renderables: ctx.webgl.namedComputeRenderables,
-    //     framebuffers: ctx.webgl.namedFramebuffers,
-    //     textures: ctx.webgl.namedTextures,
-    // });
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
+
     return surface;
 }
 
@@ -287,8 +250,9 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
             return !props.useGpu || !webgl;
         },
         dispose: (geometry: TextureMesh) => {
+            geometry.vertexTexture.ref.value.destroy();
+            geometry.groupTexture.ref.value.destroy();
             geometry.normalTexture.ref.value.destroy();
-            geometry.vertexGroupTexture.ref.value.destroy();
         }
     }, materialId);
 }

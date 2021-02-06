@@ -4,19 +4,21 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createComputeRenderable } from '../../renderable';
+import { ComputeRenderable, createComputeRenderable } from '../../renderable';
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
-import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
+import { Values, TextureSpec, UniformSpec, DefineSpec } from '../../renderable/schema';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { ShaderCode } from '../../../mol-gl/shader-code';
 import { ValueCell } from '../../../mol-util';
 import { Vec3, Vec2, Mat4 } from '../../../mol-math/linear-algebra';
 import { QuadSchema, QuadValues } from '../util';
-import { HistogramPyramid } from '../histogram-pyramid/reduction';
+import { createHistogramPyramid, HistogramPyramid } from '../histogram-pyramid/reduction';
 import { getTriIndices } from './tables';
 import quad_vert from '../../../mol-gl/shader/quad.vert';
 import isosurface_frag from '../../../mol-gl/shader/marching-cubes/isosurface.frag';
+import { calcActiveVoxels } from './active-voxels';
+import { isWebGL2 } from '../../webgl/compat';
 
 const IsosurfaceSchema = {
     ...QuadSchema,
@@ -34,15 +36,17 @@ const IsosurfaceSchema = {
     uGridDim: UniformSpec('v3'),
     uGridTexDim: UniformSpec('v3'),
     uGridTransform: UniformSpec('m4'),
-
     uScale: UniformSpec('v2'),
+
+    dPackedGroup: DefineSpec('boolean')
 };
+type IsosurfaceValues = Values<typeof IsosurfaceSchema>
 
 const IsosurfaceName = 'isosurface';
 
-function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number, height: number) {
+function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number, packedGroup: boolean): ComputeRenderable<IsosurfaceValues> {
     if (ctx.namedComputeRenderables[IsosurfaceName]) {
-        const v = ctx.namedComputeRenderables[IsosurfaceName].values;
+        const v = ctx.namedComputeRenderables[IsosurfaceName].values as IsosurfaceValues;
 
         ValueCell.update(v.tActiveVoxelsPyramid, activeVoxelsPyramid);
         ValueCell.update(v.tActiveVoxelsBase, activeVoxelsBase);
@@ -58,16 +62,18 @@ function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture
         ValueCell.update(v.uGridTransform, transform);
         ValueCell.update(v.uScale, scale);
 
+        ValueCell.update(v.dPackedGroup, packedGroup);
+
         ctx.namedComputeRenderables[IsosurfaceName].update();
     } else {
-        ctx.namedComputeRenderables[IsosurfaceName] = createIsosurfaceRenderable(ctx, activeVoxelsPyramid, activeVoxelsBase, volumeData, gridDim, gridTexDim, transform, isoValue, levels, scale, count, height);
+        ctx.namedComputeRenderables[IsosurfaceName] = createIsosurfaceRenderable(ctx, activeVoxelsPyramid, activeVoxelsBase, volumeData, gridDim, gridTexDim, transform, isoValue, levels, scale, count, packedGroup);
     }
     return ctx.namedComputeRenderables[IsosurfaceName];
 }
 
-function createIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number, height: number) {
+function createIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number, packedGroup: boolean) {
     // console.log('uSize', Math.pow(2, levels))
-    const values: Values<typeof IsosurfaceSchema> = {
+    const values: IsosurfaceValues = {
         ...QuadValues,
         tTriIndices: ValueCell.create(getTriIndices()),
 
@@ -84,6 +90,8 @@ function createIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Text
         uGridTexDim: ValueCell.create(gridTexDim),
         uGridTransform: ValueCell.create(transform),
         uScale: ValueCell.create(scale),
+
+        dPackedGroup: ValueCell.create(packedGroup)
     };
 
     const schema = { ...IsosurfaceSchema };
@@ -104,65 +112,72 @@ function setRenderingDefaults(ctx: WebGLContext) {
     state.clearColor(0, 0, 0, 0);
 }
 
-export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Texture, volumeData: Texture, histogramPyramid: HistogramPyramid, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, vertexGroupTexture?: Texture, normalTexture?: Texture) {
-    const { gl, resources } = ctx;
+export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Texture, volumeData: Texture, histogramPyramid: HistogramPyramid, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, packedGroup: boolean, vertexTexture?: Texture, groupTexture?: Texture, normalTexture?: Texture) {
+    const { gl, resources, extensions } = ctx;
     const { pyramidTex, height, levels, scale, count } = histogramPyramid;
     const width = pyramidTex.getWidth();
 
-    // console.log('iso', 'gridDim', gridDim, 'scale', scale, 'gridTexDim', gridTexDim)
-    // console.log('iso volumeData', volumeData)
+    // console.log('width', width, 'height', height);
+    // console.log('iso', 'gridDim', gridDim, 'scale', scale, 'gridTexDim', gridTexDim);
+    // console.log('iso volumeData', volumeData);
 
     if (!ctx.namedFramebuffers[IsosurfaceName]) {
         ctx.namedFramebuffers[IsosurfaceName] = resources.framebuffer();
     }
     const framebuffer = ctx.namedFramebuffers[IsosurfaceName];
 
-    if (!vertexGroupTexture) {
-        vertexGroupTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest');
-    }
-    vertexGroupTexture.define(width, height);
+    if (isWebGL2(gl)) {
+        if (!vertexTexture) {
+            vertexTexture = extensions.colorBufferHalfFloat && extensions.textureHalfFloat
+                ? resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
+                : resources.texture('image-float32', 'rgba', 'float', 'nearest');
+        }
 
-    if (!normalTexture) {
-        normalTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+        if (!groupTexture) {
+            groupTexture = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+        }
+
+        if (!normalTexture) {
+            normalTexture = extensions.colorBufferHalfFloat && extensions.textureHalfFloat
+                ? resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
+                : resources.texture('image-float32', 'rgba', 'float', 'nearest');
+        }
+    } else {
+        // in webgl1 drawbuffers must be in the same format for some reason
+        // this is quite wasteful but good enough for medium size meshes
+
+        if (!vertexTexture) {
+            vertexTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+        }
+
+        if (!groupTexture) {
+            groupTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+        }
+
+        if (!normalTexture) {
+            normalTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+        }
     }
+
+    vertexTexture.define(width, height);
+    groupTexture.define(width, height);
     normalTexture.define(width, height);
 
-    // const infoTex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-    // infoTex.define(pyramidTex.width, pyramidTex.height)
+    vertexTexture.attachFramebuffer(framebuffer, 0);
+    groupTexture.attachFramebuffer(framebuffer, 1);
+    normalTexture.attachFramebuffer(framebuffer, 2);
 
-    // const pointTexA = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-    // pointTexA.define(pyramidTex.width, pyramidTex.height)
-
-    // const pointTexB = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-    // pointTexB.define(pyramidTex.width, pyramidTex.height)
-
-    // const coordTex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-    // coordTex.define(pyramidTex.width, pyramidTex.height)
-
-    // const indexTex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-    // indexTex.define(pyramidTex.width, pyramidTex.height)
-
-    const renderable = getIsosurfaceRenderable(ctx, pyramidTex, activeVoxelsBase, volumeData, gridDim, gridTexDim, transform, isoValue, levels, scale, count, height);
+    const renderable = getIsosurfaceRenderable(ctx, pyramidTex, activeVoxelsBase, volumeData, gridDim, gridTexDim, transform, isoValue, levels, scale, count, packedGroup);
     ctx.state.currentRenderItemId = -1;
-
-    vertexGroupTexture.attachFramebuffer(framebuffer, 0);
-    normalTexture.attachFramebuffer(framebuffer, 1);
-    // infoTex.attachFramebuffer(framebuffer, 1)
-    // pointTexA.attachFramebuffer(framebuffer, 2)
-    // pointTexB.attachFramebuffer(framebuffer, 3)
-    // coordTex.attachFramebuffer(framebuffer, 4)
-    // indexTex.attachFramebuffer(framebuffer, 5)
 
     const { drawBuffers } = ctx.extensions;
     if (!drawBuffers) throw new Error('need WebGL draw buffers');
 
+    framebuffer.bind();
     drawBuffers.drawBuffers([
         drawBuffers.COLOR_ATTACHMENT0,
         drawBuffers.COLOR_ATTACHMENT1,
-        // drawBuffers.COLOR_ATTACHMENT2,
-        // drawBuffers.COLOR_ATTACHMENT3,
-        // drawBuffers.COLOR_ATTACHMENT4,
-        // drawBuffers.COLOR_ATTACHMENT5
+        drawBuffers.COLOR_ATTACHMENT2,
     ]);
 
     setRenderingDefaults(ctx);
@@ -172,45 +187,26 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
 
     gl.flush();
 
-    // const vgt = readTexture(ctx, vertexGroupTexture, pyramidTex.width, height)
-    // console.log('vertexGroupTexture', vgt.array.subarray(0, 4 * count))
+    return { vertexTexture, groupTexture, normalTexture, vertexCount: count };
+}
 
-    // const vt = readTexture(ctx, verticesTex, pyramidTex.width, height)
-    // console.log('vt', vt)
-    // const vertices = new Float32Array(3 * compacted.count)
-    // for (let i = 0; i < compacted.count; ++i) {
-    //     vertices[i * 3] = vt.array[i * 4]
-    //     vertices[i * 3 + 1] = vt.array[i * 4 + 1]
-    //     vertices[i * 3 + 2] = vt.array[i * 4 + 2]
-    // }
-    // console.log('vertices', vertices)
+//
 
-    // const it = readTexture(ctx, infoTex, pyramidTex.width, height)
-    // console.log('info', it.array.subarray(0, 4 * compacted.count))
+export function extractIsosurface(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, gridTexScale: Vec2, transform: Mat4, isoValue: number, packedGroup: boolean, vertexTexture?: Texture, groupTexture?: Texture, normalTexture?: Texture) {
+    // console.time('calcActiveVoxels');
+    const activeVoxelsTex = calcActiveVoxels(ctx, volumeData, gridDim, gridTexDim, isoValue, gridTexScale);
+    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // console.timeEnd('calcActiveVoxels');
 
-    // const pat = readTexture(ctx, pointTexA, pyramidTex.width, height)
-    // console.log('point a', pat.array.subarray(0, 4 * compacted.count))
+    // console.time('createHistogramPyramid');
+    const compacted = createHistogramPyramid(ctx, activeVoxelsTex, gridTexScale, gridTexDim);
+    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // console.timeEnd('createHistogramPyramid');
 
-    // const pbt = readTexture(ctx, pointTexB, pyramidTex.width, height)
-    // console.log('point b', pbt.array.subarray(0, 4 * compacted.count))
+    // console.time('createIsosurfaceBuffers');
+    const gv = createIsosurfaceBuffers(ctx, activeVoxelsTex, volumeData, compacted, gridDim, gridTexDim, transform, isoValue, packedGroup, vertexTexture, groupTexture, normalTexture);
+    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // console.timeEnd('createIsosurfaceBuffers');
 
-    // const ct = readTexture(ctx, coordTex, pyramidTex.width, height)
-    // console.log('coord', ct.array.subarray(0, 4 * compacted.count))
-
-    // const idxt = readTexture(ctx, indexTex, pyramidTex.width, height)
-    // console.log('index', idxt.array.subarray(0, 4 * compacted.count))
-
-    // const { field, idField } = await fieldFromTexture2d(ctx, volumeData, gridDimensions)
-    // console.log({ field, idField })
-
-    // const valuesA = new Float32Array(compacted.count)
-    // const valuesB = new Float32Array(compacted.count)
-    // for (let i = 0; i < compacted.count; ++i) {
-    //     valuesA[i] = field.space.get(field.data, pat.array[i * 4], pat.array[i * 4 + 1], pat.array[i * 4 + 2])
-    //     valuesB[i] = field.space.get(field.data, pbt.array[i * 4], pbt.array[i * 4 + 1], pbt.array[i * 4 + 2])
-    // }
-    // console.log('valuesA', valuesA)
-    // console.log('valuesB', valuesB)
-
-    return { vertexGroupTexture, normalTexture, vertexCount: count };
+    return gv;
 }

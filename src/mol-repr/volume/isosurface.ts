@@ -24,9 +24,7 @@ import { Tensor, Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { fillSerial } from '../../mol-util/array';
 import { createVolumeTexture2d, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
-import { calcActiveVoxels } from '../../mol-gl/compute/marching-cubes/active-voxels';
-import { createHistogramPyramid } from '../../mol-gl/compute/histogram-pyramid/reduction';
-import { createIsosurfaceBuffers } from '../../mol-gl/compute/marching-cubes/isosurface';
+import { extractIsosurface } from '../../mol-gl/compute/marching-cubes/isosurface';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { Texture } from '../../mol-gl/webgl/texture';
@@ -128,11 +126,11 @@ namespace VolumeIsosurfaceTexture {
         // console.log({ texDim, width, height, gridDimension });
 
         if (!volume._propertyData[name]) {
-            volume._propertyData[name] = resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+            volume._propertyData[name] = resources.texture('image-uint8', 'alpha', 'ubyte', 'linear');
             const texture = volume._propertyData[name] as Texture;
             texture.define(texDim, texDim);
             // load volume into sub-section of texture
-            texture.load(createVolumeTexture2d(volume, 'groups', padding), true);
+            texture.load(createVolumeTexture2d(volume, 'data', Padding), true);
             volume.customProperties.add(descriptor);
             volume.customProperties.assets(descriptor, [{ dispose: () => texture.destroy() }]);
         }
@@ -160,28 +158,10 @@ async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Vol
 
     const { texture, gridDimension, gridTexDim, gridTexScale, transform } = VolumeIsosurfaceTexture.get(volume, ctx.webgl);
 
-    // console.time('calcActiveVoxels');
-    const activeVoxelsTex = calcActiveVoxels(ctx.webgl, texture, gridDimension, gridTexDim, isoLevel, gridTexScale);
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
-    // console.timeEnd('calcActiveVoxels');
+    const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, false, textureMesh?.vertexTexture.ref.value, textureMesh?.groupTexture.ref.value, textureMesh?.normalTexture.ref.value);
 
-    // console.time('createHistogramPyramid');
-    const compacted = createHistogramPyramid(ctx.webgl, activeVoxelsTex, gridTexScale, gridTexDim);
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
-    // console.timeEnd('createHistogramPyramid');
+    const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, Volume.getBoundingSphere(volume), textureMesh);
 
-    // console.time('createIsosurfaceBuffers');
-    const gv = createIsosurfaceBuffers(ctx.webgl, activeVoxelsTex, texture, compacted, gridDimension, gridTexDim, transform, isoLevel, textureMesh ? textureMesh.vertexGroupTexture.ref.value : undefined, textureMesh ? textureMesh.normalTexture.ref.value : undefined);
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
-    // console.timeEnd('createIsosurfaceBuffers');
-
-    const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, Volume.getBoundingSphere(volume), textureMesh);
-    // console.log({
-    //     renderables: ctx.webgl.namedComputeRenderables,
-    //     framebuffers: ctx.webgl.namedFramebuffers,
-    //     textures: ctx.webgl.namedTextures,
-    // });
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
     return surface;
 }
 
@@ -200,8 +180,9 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
             return !props.useGpu || !webgl;
         },
         dispose: (geometry: TextureMesh) => {
+            geometry.vertexTexture.ref.value.destroy();
+            geometry.groupTexture.ref.value.destroy();
             geometry.normalTexture.ref.value.destroy();
-            geometry.vertexGroupTexture.ref.value.destroy();
         }
     }, materialId);
 }

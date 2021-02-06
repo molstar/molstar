@@ -9,9 +9,9 @@ export default `
     #elif defined(dColorType_groupInstance)
         vColor.rgb = readFromTexture(tColor, aInstance * float(uGroupCount) + group, uColorTexDim).rgb;
     #elif defined(dColorType_vertex)
-        vColor.rgb = readFromTexture(tColor, aVertex, uColorTexDim).rgb;
+        vColor.rgb = readFromTexture(tColor, VertexID, uColorTexDim).rgb;
     #elif defined(dColorType_vertexInstance)
-        vColor.rgb = readFromTexture(tColor, aInstance * float(uVertexCount) + aVertex, uColorTexDim).rgb;
+        vColor.rgb = readFromTexture(tColor, int(aInstance) * uVertexCount + VertexID, uColorTexDim).rgb;
     #endif
 
     #ifdef dOverpaint

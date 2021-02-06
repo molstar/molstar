@@ -28,6 +28,7 @@ export default `
 float intDiv(const in float a, const in float b) { return float(int(a) / int(b)); }
 vec2 ivec2Div(const in vec2 a, const in vec2 b) { return vec2(ivec2(a) / ivec2(b)); }
 float intMod(const in float a, const in float b) { return a - b * float(int(a) / int(b)); }
+int imod(const in int a, const in int b) { return a - b * (a / b); }
 
 float pow2(const in float x) { return x * x; }
 
