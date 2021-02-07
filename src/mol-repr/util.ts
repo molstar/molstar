@@ -164,14 +164,14 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             detail = 0;
             radialSegments = 4;
             linearSegments = 2;
-            resolution = 2;
+            resolution = 3;
             doubleSided = false;
             break;
         case 'lowest':
             detail = 0;
             radialSegments = 2;
             linearSegments = 1;
-            resolution = 4;
+            resolution = 8;
             doubleSided = false;
             break;
         case 'custom':
