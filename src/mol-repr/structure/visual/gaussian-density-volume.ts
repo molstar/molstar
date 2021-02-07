@@ -73,8 +73,11 @@ export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<G
 
 async function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
     const { runtime, webgl } = ctx;
-    if (!webgl || !webgl.extensions.blendMinMax) {
-        throw new Error('GaussianDensityVolume requires `webgl` and `blendMinMax` extension');
+    if (!webgl) {
+        // gpu gaussian density also needs blendMinMax but there is no fallback here so
+        // we allow it here with the results that there is no group id assignment and
+        // hence no group-based coloring or picking
+        throw new Error('GaussianDensityVolume requires `webgl`');
     }
 
     const p = { ...props, useGpu: true };

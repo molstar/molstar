@@ -120,7 +120,7 @@ type _GaussianDensityTextureData = {
 
 function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, powerOfTwo: boolean, props: GaussianDensityProps, texture?: Texture): _GaussianDensityTextureData {
     // console.log('2d');
-    const { gl, resources, state, extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } } = webgl;
+    const { gl, resources, state, extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat, blendMinMax } } = webgl;
     const { smoothness, resolution } = props;
 
     const { drawCount, positions, radii, groups, scale, expandedBox, dim, maxRadius } = prepareGaussianDensityData(position, box, radius, props);
@@ -190,11 +190,13 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
     setupDensityRendering(webgl, renderable);
     render(texture, true);
 
-    setupMinDistanceRendering(webgl, renderable);
-    render(minDistTex, true);
+    if (blendMinMax) {
+        setupMinDistanceRendering(webgl, renderable);
+        render(minDistTex, true);
 
-    setupGroupIdRendering(webgl, renderable);
-    render(texture, false);
+        setupGroupIdRendering(webgl, renderable);
+        render(texture, false);
+    }
 
     // printTexture(webgl, minDistTex, 0.75);
 
