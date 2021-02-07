@@ -22,7 +22,7 @@ import { Clipping } from '../../mol-theme/clipping';
 import { Transparency } from '../../mol-theme/transparency';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 
-export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, props?: PD.Values<P>, webgl?: WebGLContext) => ComplexVisual<P>): StructureRepresentation<P> {
+export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, structure: Structure, props: PD.Values<P>, webgl?: WebGLContext) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0;
     const { webgl } = ctx;
     const updated = new Subject<number>();
@@ -47,11 +47,11 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
             let newVisual = false;
             if (!visual) {
-                visual = visualCtor(materialId, _props, webgl);
+                visual = visualCtor(materialId, _structure, _props, webgl);
                 newVisual = true;
-            } else if (visual.mustRecreate?.(_props, webgl)) {
+            } else if (visual.mustRecreate?.(_structure, _props, webgl)) {
                 visual.destroy();
-                visual = visualCtor(materialId, _props, webgl);
+                visual = visualCtor(materialId, _structure, _props, webgl);
                 newVisual = true;
             }
             const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, structure);

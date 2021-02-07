@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createComputeRenderable } from '../../renderable';
+import { ComputeRenderable, createComputeRenderable } from '../../renderable';
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
 import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
@@ -29,12 +29,13 @@ const ActiveVoxelsSchema = {
 
     uScale: UniformSpec('v2'),
 };
+type ActiveVoxelsValues = Values<typeof ActiveVoxelsSchema>
 
 const ActiveVoxelsName = 'active-voxels';
 
-function getActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, isoValue: number, scale: Vec2) {
+function getActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, isoValue: number, scale: Vec2): ComputeRenderable<ActiveVoxelsValues> {
     if (ctx.namedComputeRenderables[ActiveVoxelsName]) {
-        const v = ctx.namedComputeRenderables[ActiveVoxelsName].values;
+        const v = ctx.namedComputeRenderables[ActiveVoxelsName].values as ActiveVoxelsValues;
 
         ValueCell.update(v.uQuadScale, scale);
         ValueCell.update(v.tVolumeData, volumeData);
@@ -51,7 +52,7 @@ function getActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridD
 }
 
 function createActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, isoValue: number, scale: Vec2) {
-    const values: Values<typeof ActiveVoxelsSchema> = {
+    const values: ActiveVoxelsValues = {
         ...QuadValues,
         tTriCount: ValueCell.create(getTriCount()),
 

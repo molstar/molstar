@@ -157,12 +157,12 @@ export const InterUnitBondCylinderParams = {
     ...BondCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
-    useImpostor: PD.Boolean(true),
+    tryUseImpostor: PD.Boolean(true),
 };
 export type InterUnitBondCylinderParams = typeof InterUnitBondCylinderParams
 
-export function InterUnitBondCylinderVisual(materialId: number, props?: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) {
-    return props?.useImpostor && webgl && webgl.extensions.fragDepth
+export function InterUnitBondCylinderVisual(materialId: number, structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) {
+    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
         ? InterUnitBondCylinderImpostorVisual(materialId)
         : InterUnitBondCylinderMeshVisual(materialId);
 }
@@ -187,8 +187,8 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );
         },
-        mustRecreate: (props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
-            return !props.useImpostor || !webgl;
+        mustRecreate: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
+            return !props.tryUseImpostor || !webgl;
         }
     }, materialId);
 }
@@ -216,8 +216,8 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );
         },
-        mustRecreate: (props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
-            return props.useImpostor && !!webgl;
+        mustRecreate: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
+            return props.tryUseImpostor && !!webgl;
         }
     }, materialId);
 }

@@ -3,7 +3,13 @@ precision highp float;
 precision highp int;
 precision highp sampler2D;
 
-uniform sampler2D tActiveVoxelsPyramid;
+#if __VERSION__ == 100
+    uniform sampler2D tActiveVoxelsPyramid;
+#else
+    precision highp isampler2D;
+    uniform isampler2D tActiveVoxelsPyramid;
+#endif
+
 uniform sampler2D tActiveVoxelsBase;
 uniform sampler2D tVolumeData;
 uniform sampler2D tTriIndices;
@@ -52,65 +58,114 @@ vec4 voxel(vec3 pos) {
     return texture3dFrom2dNearest(tVolumeData, pos / uGridDim, uGridDim, uGridTexDim.xy);
 }
 
-vec4 voxel2(vec3 pos) {
-    pos = min(max(vec3(0.0), pos), uGridDim - vec3(vec2(2.0), 1.0));
+vec4 voxelPadded(vec3 pos) {
+    pos = min(max(vec3(0.0), pos), uGridDim - vec3(vec2(2.0), 1.0)); // remove xy padding
     return texture3dFrom2dNearest(tVolumeData, pos / uGridDim, uGridDim, uGridTexDim.xy);
+}
+
+int idot2(const in ivec2 a, const in ivec2 b) {
+    return a.x * b.x + a.y * b.y;
+}
+
+int idot4(const in ivec4 a, const in ivec4 b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+
+#if __VERSION__ == 100
+    int pyramidVoxel(vec2 pos) {
+        return int(decodeFloatRGB(texture2D(tActiveVoxelsPyramid, pos / (vec2(1.0, 0.5) * uSize)).rgb));
+    }
+#else
+    int pyramidVoxel(vec2 pos) {
+        return texture2D(tActiveVoxelsPyramid, pos / (vec2(1.0, 0.5) * uSize)).r;
+    }
+#endif
+
+vec4 baseVoxel(vec2 pos) {
+    return texture2D(tActiveVoxelsBase, pos / uSize);
 }
 
 void main(void) {
     // get 1D index
-    float vI = dot(floor(uSize * (gl_FragCoord.xy / uSize)), vec2(1.0, uSize));
+    int vI = int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(uSize);
 
     // ignore 1D indices outside of the grid
-    if(vI >= uCount) discard;
+    if(vI >= int(uCount)) discard;
 
-    float offset = uSize - 2.;
-    float k = 1. / uSize;
+    ivec2 offset = ivec2(int(uSize) - 2, 0);
 
-    vec2 relativePosition = k * vec2(offset, 0.);
-    vec4 partialSums = texture2D(tActiveVoxelsPyramid, relativePosition);
-    float start = 0.;
-    vec4 starts = vec4(0.);
-    vec4 ends = vec4(0.);
-    float diff = 2.;
-    vec4 m = vec4(0.);
-    vec2 position = vec2(0.);
-    vec4 vI4 = vec4(vI);
+    int start = 0;
+    ivec4 starts = ivec4(0);
+    ivec4 ends = ivec4(0);
+    int diff = 2;
+    ivec4 m = ivec4(0);
+    ivec2 position = ivec2(0);
+    ivec4 vI4 = ivec4(vI);
+
+    ivec2 relativePosition = ivec2(0);
+    int end = 0;
+    ivec2 pos1 = ivec2(0);
+    ivec2 pos2 = ivec2(0);
+    ivec2 pos3 = ivec2(0);
+    ivec2 pos4 = ivec2(0);
+    ivec3 vI3 = ivec3(vI);
+    ivec3 mask = ivec3(0);
 
     // traverse the different levels of the pyramid
     for(int i = 1; i < 14; i++) {
         if(float(i) >= uLevels) break;
 
-        offset -= diff;
-        diff *= 2.;
-        relativePosition = position + k * vec2(offset, 0.);
+        offset.x -= diff;
+        diff *= 2;
+        relativePosition = position + offset;
 
-        ends = partialSums.wzyx + vec4(start);
-        starts = vec4(start, ends.xyz);
-        m = vec4(greaterThanEqual(vI4, starts)) * vec4(lessThan(vI4, ends));
-        relativePosition += m.y * vec2(k, 0.) + m.z * vec2(0., k) + m.w * vec2(k, k);
+        end = start + pyramidVoxel(vec2(relativePosition));
+        pos1 = ivec2(relativePosition);
+        starts.x = start;
+        ends.x = end;
+        pos2 = ivec2(relativePosition + ivec2(1, 0));
+        starts.y = ends.x;
+        ends.y = ends.x + pyramidVoxel(vec2(pos2));
+        pos3 = relativePosition + ivec2(0, 1);
+        starts.z = ends.y;
+        ends.z = ends.y + pyramidVoxel(vec2(pos3));
+        pos4 = relativePosition + ivec2(1, 1);
+        starts.w = ends.z;
+        mask = ivec3(greaterThanEqual(vI3, starts.rgb)) * ivec3(lessThan(vI3, ends.rgb));
+        m = ivec4(mask, 1 - int(any(bvec3(mask))));
 
-        start = dot(m, starts);
-        position = 2. * (relativePosition - k * vec2(offset, 0.));
-        partialSums = texture2D(tActiveVoxelsPyramid, relativePosition);
+        relativePosition = m.x * pos1 + m.y * pos2 + m.z * pos3 + m.w * pos4;
+        start = idot4(m, starts);
+        position = 2 * (relativePosition - offset);
     }
 
-    ends = partialSums.wzyx + vec4(start);
-    starts = vec4(start, ends.xyz);
-    m = vec4(greaterThanEqual(vI4, starts)) * vec4(lessThan(vI4, ends));
-    position += m.y * vec2(k, 0.) + m.z * vec2(0., k) + m.w * vec2(k, k);
+    end = start + int(baseVoxel(vec2(position)).r * 255.0);
+    pos1 = position;
+    starts.x = start;
+    ends.x = end;
+    pos2 = position + ivec2(1, 0);
+    starts.y = ends.x;
+    ends.y = ends.x + int(baseVoxel(vec2(pos2)).r * 255.0);
+    pos3 = position + ivec2(0, 1);
+    starts.z = ends.y;
+    ends.z = ends.y + int(baseVoxel(vec2(pos3)).r * 255.0);
+    pos4 = position + ivec2(1, 1);
+    starts.w = ends.z;
+    mask = ivec3(greaterThanEqual(vI3, starts.rgb)) * ivec3(lessThan(vI3, ends.rgb));
+    m = ivec4(mask, 1 - int(any(bvec3(mask))));
+    position = m.x * pos1 + m.y * pos2 + m.z * pos3 + m.w * pos4;
 
-    vec2 coord2d = position / uScale;
+    vec2 coord2d = (vec2(position) / uSize) / uScale;
     vec3 coord3d = floor(index3dFrom2d(coord2d) + 0.5);
 
-    float edgeIndex = floor(texture2D(tActiveVoxelsBase, position).a * 255.0 + 0.5);
+    float edgeIndex = floor(baseVoxel(vec2(position)).a * 255.0 + 0.5);
 
     // current vertex for the up to 15 MC cases
-    float currentVertex = vI - dot(m, starts);
+    int currentVertex = vI - idot4(m, starts);
 
     // get index into triIndices table
-    float mcIndex = 16. * edgeIndex + currentVertex;
-    vec4 mcData = texture2D(tTriIndices, vec2(intMod(mcIndex, 64.), floor(mcIndex / 64.)) / 64.);
+    int mcIndex = 16 * int(edgeIndex) + currentVertex;
+    vec4 mcData = texture2D(tTriIndices, vec2(imod(mcIndex, 64), mcIndex / 64) / 64.);
 
     // bit mask to avoid conditionals (see comment below) for getting MC case corner
     vec4 m0 = vec4(floor(mcData.a * 255.0 + 0.5));
@@ -188,30 +243,41 @@ void main(void) {
     // group id
     #if __VERSION__ == 100
         // webgl1 does not support 'flat' interpolation (i.e. no interpolation)
-        // so we ensure a constant group id per triangle
-        gl_FragData[0].w = decodeFloatRGB(voxel(coord3d).rgb);
+        // so we ensure a constant group id per triangle here
+        #ifdef dPackedGroup
+            gl_FragData[1] = vec4(voxel(coord3d).rgb, 1.0);
+        #else
+            vec3 gridDim = uGridDim - vec3(1.0, 1.0, 0.0); // remove xy padding
+            float group = coord3d.z + coord3d.y * gridDim.z + coord3d.x * gridDim.z * gridDim.y;
+            gl_FragData[1] = vec4(group > 16777215.5 ? vec3(1.0) : encodeFloatRGB(group), 1.0);
+        #endif
     #else
-        gl_FragData[0].w = t < 0.5 ? decodeFloatRGB(d0.rgb) : decodeFloatRGB(d1.rgb);
+        #ifdef dPackedGroup
+            gl_FragData[1] = vec4(t < 0.5 ? d0.rgb : d1.rgb, 1.0);
+        #else
+            vec3 b = t < 0.5 ? b0 : b1;
+            vec3 gridDim = uGridDim - vec3(1.0, 1.0, 0.0); // remove xy padding
+            float group = b.z + b.y * gridDim.z + b.x * gridDim.z * gridDim.y;
+            gl_FragData[1] = vec4(group > 16777215.5 ? vec3(1.0) : encodeFloatRGB(group), 1.0);
+        #endif
     #endif
 
     // normals from gradients
     vec3 n0 = -normalize(vec3(
-        voxel2(b0 - c1).a - voxel2(b0 + c1).a,
-        voxel2(b0 - c3).a - voxel2(b0 + c3).a,
-        voxel2(b0 - c4).a - voxel2(b0 + c4).a
+        voxelPadded(b0 - c1).a - voxelPadded(b0 + c1).a,
+        voxelPadded(b0 - c3).a - voxelPadded(b0 + c3).a,
+        voxelPadded(b0 - c4).a - voxelPadded(b0 + c4).a
     ));
     vec3 n1 = -normalize(vec3(
-        voxel2(b1 - c1).a - voxel2(b1 + c1).a,
-        voxel2(b1 - c3).a - voxel2(b1 + c3).a,
-        voxel2(b1 - c4).a - voxel2(b1 + c4).a
+        voxelPadded(b1 - c1).a - voxelPadded(b1 + c1).a,
+        voxelPadded(b1 - c3).a - voxelPadded(b1 + c3).a,
+        voxelPadded(b1 - c4).a - voxelPadded(b1 + c4).a
     ));
-    gl_FragData[1].xyz = -vec3(
+    mat3 normalMatrix = transpose3(inverse3(mat3(uGridTransform)));
+    gl_FragData[2].xyz = normalMatrix * -vec3(
         n0.x + t * (n0.x - n1.x),
         n0.y + t * (n0.y - n1.y),
         n0.z + t * (n0.z - n1.z)
     );
-
-    mat3 normalMatrix = transpose3(inverse3(mat3(uGridTransform)));
-    gl_FragData[1].xyz = normalMatrix * gl_FragData[1].xyz;
 }
 `;

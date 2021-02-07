@@ -21,7 +21,6 @@ import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';
 import { calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { Vec2, Vec4 } from '../../../mol-math/linear-algebra';
-import { fillSerial } from '../../../mol-util/array';
 import { createEmptyClipping } from '../clipping-data';
 import { NullLocation } from '../../../mol-model/location';
 
@@ -34,22 +33,22 @@ export interface TextureMesh {
     groupCount: number,
 
     readonly geoTextureDim: ValueCell<Vec2>,
-    /** texture has vertex positions in XYZ and group id in W */
-    readonly vertexGroupTexture: ValueCell<Texture>,
+    readonly vertexTexture: ValueCell<Texture>,
+    readonly groupTexture: ValueCell<Texture>,
     readonly normalTexture: ValueCell<Texture>,
 
     readonly boundingSphere: Sphere3D
 }
 
 export namespace TextureMesh {
-    export function create(vertexCount: number, groupCount: number, vertexGroupTexture: Texture, normalTexture: Texture, boundingSphere: Sphere3D, textureMesh?: TextureMesh): TextureMesh {
-        const width = vertexGroupTexture.getWidth();
-        const height = vertexGroupTexture.getHeight();
+    export function create(vertexCount: number, groupCount: number, vertexTexture: Texture, groupTexture: Texture, normalTexture: Texture, boundingSphere: Sphere3D, textureMesh?: TextureMesh): TextureMesh {
+        const width = vertexTexture.getWidth();
+        const height = vertexTexture.getHeight();
         if (textureMesh) {
             textureMesh.vertexCount = vertexCount;
             textureMesh.groupCount = groupCount;
             ValueCell.update(textureMesh.geoTextureDim, Vec2.set(textureMesh.geoTextureDim.ref.value, width, height));
-            ValueCell.update(textureMesh.vertexGroupTexture, vertexGroupTexture);
+            ValueCell.update(textureMesh.vertexTexture, vertexTexture);
             ValueCell.update(textureMesh.normalTexture, normalTexture);
             Sphere3D.copy(textureMesh.boundingSphere, boundingSphere);
             return textureMesh;
@@ -59,7 +58,8 @@ export namespace TextureMesh {
                 vertexCount,
                 groupCount,
                 geoTextureDim: ValueCell.create(Vec2.create(width, height)),
-                vertexGroupTexture: ValueCell.create(vertexGroupTexture),
+                vertexTexture: ValueCell.create(vertexTexture),
+                groupTexture: ValueCell.create(groupTexture),
                 normalTexture: ValueCell.create(normalTexture),
                 boundingSphere: Sphere3D.clone(boundingSphere),
             };
@@ -109,11 +109,10 @@ export namespace TextureMesh {
 
         return {
             uGeoTexDim: textureMesh.geoTextureDim,
-            tPositionGroup: textureMesh.vertexGroupTexture,
+            tPosition: textureMesh.vertexTexture,
+            tGroup: textureMesh.groupTexture,
             tNormal: textureMesh.normalTexture,
 
-            // aGroup is used as a vertex index here and the group id is retirieved from tPositionGroup
-            aGroup: ValueCell.create(fillSerial(new Float32Array(textureMesh.vertexCount))),
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
@@ -148,11 +147,6 @@ export namespace TextureMesh {
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
-
-        if (values.drawCount.ref.value > values.aGroup.ref.value.length) {
-            // console.log('updating vertex ids in aGroup to handle larger drawCount')
-            ValueCell.update(values.aGroup, fillSerial(new Float32Array(values.drawCount.ref.value)));
-        }
     }
 
     function updateBoundingSphere(values: TextureMeshValues, textureMesh: TextureMesh) {

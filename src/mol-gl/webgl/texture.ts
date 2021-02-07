@@ -57,6 +57,7 @@ export function getFormat(gl: GLRenderingContext, format: TextureFormat, type: T
     switch (format) {
         case 'alpha':
             if (isWebGL2(gl) && type === 'float') return gl.RED;
+            else if (isWebGL2(gl) && type === 'int') return gl.RED_INTEGER;
             else return gl.ALPHA;
         case 'rgb':
             if (isWebGL2(gl) && type === 'int') return gl.RGB_INTEGER;

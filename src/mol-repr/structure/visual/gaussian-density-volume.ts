@@ -20,11 +20,12 @@ import { getStructureExtraRadius, getUnitExtraRadius } from './util/common';
 
 async function createGaussianDensityVolume(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
     const { runtime, webgl } = ctx;
-    if (webgl === undefined) throw new Error('createGaussianDensityVolume requires `webgl` object in VisualContext');
+    if (!webgl || !webgl.extensions.blendMinMax) {
+        throw new Error('GaussianDensityVolume requires `webgl` and `blendMinMax` extension');
+    }
 
-    const p = { ...props, useGpu: true };
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
-    const densityTextureData = await computeStructureGaussianDensityTexture(structure, p, webgl, oldTexture).runInContext(runtime);
+    const densityTextureData = await computeStructureGaussianDensityTexture(structure, props, webgl, oldTexture).runInContext(runtime);
     const { transform, texture, bbox, gridDim } = densityTextureData;
     const stats = { min: 0, max: 1, mean: 0.04, sigma: 0.01 };
 
@@ -71,11 +72,15 @@ export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<G
 
 async function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
     const { runtime, webgl } = ctx;
-    if (webgl === undefined) throw new Error('createUnitGaussianDensityVolume requires `webgl` object in VisualContext');
+    if (!webgl) {
+        // gpu gaussian density also needs blendMinMax but there is no fallback here so
+        // we allow it here with the results that there is no group id assignment and
+        // hence no group-based coloring or picking
+        throw new Error('GaussianDensityVolume requires `webgl`');
+    }
 
-    const p = { ...props, useGpu: true };
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
-    const densityTextureData = await computeUnitGaussianDensityTexture(structure, unit, p, webgl, oldTexture).runInContext(runtime);
+    const densityTextureData = await computeUnitGaussianDensityTexture(structure, unit, props, webgl, oldTexture).runInContext(runtime);
     const { transform, texture, bbox, gridDim } = densityTextureData;
     const stats = { min: 0, max: 1, mean: 0.04, sigma: 0.01 };
 

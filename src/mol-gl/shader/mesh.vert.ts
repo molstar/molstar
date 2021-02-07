@@ -7,6 +7,7 @@
 export default `
 precision highp float;
 precision highp int;
+precision highp sampler2D;
 
 #include common
 #include read_from_texture
@@ -16,19 +17,17 @@ precision highp int;
 
 #ifdef dGeoTexture
     uniform vec2 uGeoTexDim;
-    uniform sampler2D tPositionGroup;
+    uniform sampler2D tPosition;
+    uniform sampler2D tGroup;
+    uniform sampler2D tNormal;
 #else
     attribute vec3 aPosition;
+    attribute float aGroup;
+    attribute vec3 aNormal;
 #endif
 attribute mat4 aTransform;
 attribute float aInstance;
-attribute float aGroup;
 
-#ifdef dGeoTexture
-    uniform sampler2D tNormal;
-#else
-    attribute vec3 aNormal;
-#endif
 varying vec3 vNormal;
 
 void main(){
@@ -40,7 +39,7 @@ void main(){
     #include clip_instance
 
     #ifdef dGeoTexture
-        vec3 normal = readFromTexture(tNormal, aGroup, uGeoTexDim).xyz;
+        vec3 normal = readFromTexture(tNormal, VertexID, uGeoTexDim).xyz;
     #else
         vec3 normal = aNormal;
     #endif
