@@ -20,12 +20,12 @@ export const ElementSphereParams = {
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     ignoreHydrogens: PD.Boolean(false),
     traceOnly: PD.Boolean(false),
-    useImpostor: PD.Boolean(true),
+    tryUseImpostor: PD.Boolean(true),
 };
 export type ElementSphereParams = typeof ElementSphereParams
 
 export function ElementSphereVisual(materialId: number, structure: Structure, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) {
-    return props.useImpostor && webgl && webgl.extensions.fragDepth
+    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
         ? ElementSphereImpostorVisual(materialId)
         : ElementSphereMeshVisual(materialId);
 }
@@ -44,7 +44,7 @@ export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<Ele
             );
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) => {
-            return !props.useImpostor || !webgl;
+            return !props.tryUseImpostor || !webgl;
         }
     }, materialId);
 }
@@ -65,7 +65,7 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
             );
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) => {
-            return props.useImpostor && !!webgl;
+            return props.tryUseImpostor && !!webgl;
         }
     }, materialId);
 }

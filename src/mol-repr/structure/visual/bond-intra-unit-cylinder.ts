@@ -141,12 +141,12 @@ export const IntraUnitBondCylinderParams = {
     ...BondCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
-    useImpostor: PD.Boolean(true),
+    tryUseImpostor: PD.Boolean(true),
 };
 export type IntraUnitBondCylinderParams = typeof IntraUnitBondCylinderParams
 
 export function IntraUnitBondCylinderVisual(materialId: number, structure: Structure, props: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) {
-    return props.useImpostor && webgl && webgl.extensions.fragDepth
+    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
         ? IntraUnitBondCylinderImpostorVisual(materialId)
         : IntraUnitBondCylinderMeshVisual(materialId);
 }
@@ -183,7 +183,7 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
             }
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) => {
-            return !props.useImpostor || !webgl;
+            return !props.tryUseImpostor || !webgl;
         }
     }, materialId);
 }
@@ -223,7 +223,7 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
             }
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) => {
-            return props.useImpostor && !!webgl;
+            return props.tryUseImpostor && !!webgl;
         }
     }, materialId);
 }

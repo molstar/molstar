@@ -48,7 +48,7 @@ function suitableForGpu(volume: Volume, webgl: WebGLContext) {
 }
 
 export function IsosurfaceVisual(materialId: number, volume: Volume, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) {
-    if (props.useGpu && webgl && gpuSupport(webgl) && suitableForGpu(volume, webgl)) {
+    if (props.tryUseGpu && webgl && gpuSupport(webgl) && suitableForGpu(volume, webgl)) {
         return IsosurfaceTextureMeshVisual(materialId);
     }
     return IsosurfaceMeshVisual(materialId);
@@ -101,7 +101,7 @@ export const IsosurfaceMeshParams = {
     ...TextureMesh.Params,
     ...VolumeIsosurfaceParams,
     quality: { ...Mesh.Params.quality, isEssential: false },
-    useGpu: PD.Boolean(true, { label: 'Try Use GPU' }),
+    tryUseGpu: PD.Boolean(true),
 };
 export type IsosurfaceMeshParams = typeof IsosurfaceMeshParams
 
@@ -117,7 +117,7 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
         },
         geometryUtils: Mesh.Utils,
         mustRecreate: (volume: Volume, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.useGpu && !!webgl && suitableForGpu(volume, webgl);
+            return props.tryUseGpu && !!webgl && suitableForGpu(volume, webgl);
         }
     }, materialId);
 }
@@ -194,7 +194,7 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
         },
         geometryUtils: TextureMesh.Utils,
         mustRecreate: (volume: Volume, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
-            return !props.useGpu || !webgl || !suitableForGpu(volume, webgl);
+            return !props.tryUseGpu || !webgl || !suitableForGpu(volume, webgl);
         },
         dispose: (geometry: TextureMesh) => {
             geometry.vertexTexture.ref.value.destroy();

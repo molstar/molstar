@@ -24,9 +24,8 @@ async function createGaussianDensityVolume(ctx: VisualContext, structure: Struct
         throw new Error('GaussianDensityVolume requires `webgl` and `blendMinMax` extension');
     }
 
-    const p = { ...props, useGpu: true };
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
-    const densityTextureData = await computeStructureGaussianDensityTexture(structure, p, webgl, oldTexture).runInContext(runtime);
+    const densityTextureData = await computeStructureGaussianDensityTexture(structure, props, webgl, oldTexture).runInContext(runtime);
     const { transform, texture, bbox, gridDim } = densityTextureData;
     const stats = { min: 0, max: 1, mean: 0.04, sigma: 0.01 };
 
@@ -80,9 +79,8 @@ async function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, 
         throw new Error('GaussianDensityVolume requires `webgl`');
     }
 
-    const p = { ...props, useGpu: true };
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
-    const densityTextureData = await computeUnitGaussianDensityTexture(structure, unit, p, webgl, oldTexture).runInContext(runtime);
+    const densityTextureData = await computeUnitGaussianDensityTexture(structure, unit, props, webgl, oldTexture).runInContext(runtime);
     const { transform, texture, bbox, gridDim } = densityTextureData;
     const stats = { min: 0, max: 1, mean: 0.04, sigma: 0.01 };
 

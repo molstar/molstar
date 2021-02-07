@@ -24,7 +24,7 @@ import { WebGLContext } from '../../../mol-gl/webgl/context';
 const SharedParams = {
     ...GaussianDensityParams,
     ignoreHydrogens: PD.Boolean(false),
-    useGpu: PD.Boolean(true, { label: 'Try Use GPU' }),
+    tryUseGpu: PD.Boolean(true),
 };
 type SharedParams = typeof SharedParams
 
@@ -58,14 +58,14 @@ function suitableForGpu(structure: Structure, props: PD.Values<SharedParams>, we
 }
 
 export function GaussianSurfaceVisual(materialId: number, structure: Structure, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) {
-    if (props.useGpu && webgl && gpuSupport(webgl) && suitableForGpu(structure, props, webgl)) {
+    if (props.tryUseGpu && webgl && gpuSupport(webgl) && suitableForGpu(structure, props, webgl)) {
         return GaussianSurfaceTextureMeshVisual(materialId);
     }
     return GaussianSurfaceMeshVisual(materialId);
 }
 
 export function StructureGaussianSurfaceVisual(materialId: number, structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) {
-    if (props.useGpu && webgl && gpuSupport(webgl) && suitableForGpu(structure, props, webgl)) {
+    if (props.tryUseGpu && webgl && gpuSupport(webgl) && suitableForGpu(structure, props, webgl)) {
         return StructureGaussianSurfaceTextureMeshVisual(materialId);
     }
     return StructureGaussianSurfaceMeshVisual(materialId);
@@ -109,7 +109,7 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.useGpu && !!webgl && suitableForGpu(structureGroup.structure, props, webgl);
+            return props.tryUseGpu && !!webgl && suitableForGpu(structureGroup.structure, props, webgl);
         }
     }, materialId);
 }
@@ -151,7 +151,7 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
         },
         mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.useGpu && !!webgl && suitableForGpu(structure, props, webgl);
+            return props.tryUseGpu && !!webgl && suitableForGpu(structure, props, webgl);
         }
     }, materialId);
 }
@@ -205,7 +205,7 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return !props.useGpu || !webgl || !suitableForGpu(structureGroup.structure, props, webgl);
+            return !props.tryUseGpu || !webgl || !suitableForGpu(structureGroup.structure, props, webgl);
         },
         dispose: (geometry: TextureMesh) => {
             geometry.vertexTexture.ref.value.destroy();
@@ -261,7 +261,7 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
         },
         mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return !props.useGpu || !webgl || !suitableForGpu(structure, props, webgl);
+            return !props.tryUseGpu || !webgl || !suitableForGpu(structure, props, webgl);
         },
         dispose: (geometry: TextureMesh) => {
             geometry.vertexTexture.ref.value.destroy();
