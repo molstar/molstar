@@ -6,7 +6,8 @@
  */
 
 import '../../mol-util/polyfill';
-import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
+import { createPlugin } from '../../mol-plugin';
+import { DefaultPluginSpec } from '../../mol-plugin/spec';
 import './index.html';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommands } from '../../mol-plugin/commands';

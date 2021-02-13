@@ -6,7 +6,8 @@
 
 import { SphericalBasisOrder } from '../../extensions/alpha-orbitals/spherical-functions';
 import { BasisAndOrbitals, CreateOrbitalDensityVolume, CreateOrbitalRepresentation3D, CreateOrbitalVolume, StaticBasisAndOrbitals } from '../../extensions/alpha-orbitals/transforms';
-import { createPluginAsync, DefaultPluginSpec } from '../../mol-plugin';
+import { createPluginAsync } from '../../mol-plugin';
+import { DefaultPluginSpec } from '../../mol-plugin/spec';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginConfig } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
