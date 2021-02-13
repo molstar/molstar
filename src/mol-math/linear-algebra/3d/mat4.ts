@@ -1070,9 +1070,9 @@ namespace Mat4 {
         return Math.sqrt(Math.max(scaleXSq, scaleYSq, scaleZSq));
     }
 
-    const xAxis = Vec3.create(1, 0, 0);
-    const yAxis = Vec3.create(0, 1, 0);
-    const zAxis = Vec3.create(0, 0, 1);
+    const xAxis = [1, 0, 0] as Vec3;
+    const yAxis = [0, 1, 0] as Vec3;
+    const zAxis = [0, 0, 1] as Vec3;
 
     /** Rotation matrix for 90deg around x-axis */
     export const rotX90: ReadonlyMat4 = fromRotation(zero(), degToRad(90), xAxis);
