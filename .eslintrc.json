@@ -37,10 +37,6 @@
             {
                 "selector": "ExportDefaultDeclaration",
                 "message": "Default exports are not allowed"
-            },
-            {
-                "selector": "TSTupleType > TSNamedTupleMember",
-                "message": "Labels in tuples are not allowed for TS 3.9 compatibility"
             }
         ]
     },

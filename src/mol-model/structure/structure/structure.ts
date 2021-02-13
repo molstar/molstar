@@ -431,7 +431,7 @@ function cmpUnits(units: ArrayLike<Unit>, i: number, j: number) {
     return units[i].id - units[j].id;
 
 }
-function cmpUnitGroupVolume(units: ArrayLike<[/** index */ number, /** volume */ number]>, i: number, j: number) {
+function cmpUnitGroupVolume(units: ArrayLike<[index: number, volume: number]>, i: number, j: number) {
     const d = units[i][1] - units[j][1];
     if (d === 0) return units[i][0] - units[j][0];
     return d;
