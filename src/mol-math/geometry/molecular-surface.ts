@@ -12,7 +12,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { RuntimeContext } from '../../mol-task';
 import { OrderedSet } from '../../mol-data/int';
 import { PositionData } from './common';
-import { Mat4 } from '../../mol-math/linear-algebra/3d';
+import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 import { Box3D, GridLookup3D, fillGridDim } from '../../mol-math/geometry';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { Boundary } from './boundary';

@@ -53,7 +53,7 @@ export class AlphaOrbitalsExample {
 
     async init(target: string | HTMLElement) {
         this.plugin = await createPluginAsync(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...DefaultPluginSpec,
+            ...DefaultPluginSpec(),
             layout: {
                 initial: {
                     isExpanded: false,

@@ -28,7 +28,7 @@ class BasicWrapper {
 
     init(target: string | HTMLElement) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...DefaultPluginSpec,
+            ...DefaultPluginSpec(),
             layout: {
                 initial: {
                     isExpanded: false,

@@ -407,8 +407,8 @@ namespace Quat {
     /**
      * Performs a spherical linear interpolation with two control points
      */
-    let sqlerpTemp1 = Quat();
-    let sqlerpTemp2 = Quat();
+    let sqlerpTemp1 = zero();
+    let sqlerpTemp2 = zero();
     export function sqlerp(out: Quat, a: Quat, b: Quat, c: Quat, d: Quat, t: number) {
         slerp(sqlerpTemp1, a, d, t);
         slerp(sqlerpTemp2, b, c, t);
@@ -435,7 +435,7 @@ namespace Quat {
         axesTmpMat[5] = -view[1];
         axesTmpMat[8] = -view[2];
 
-        return normalize(out, Quat.fromMat3(out, axesTmpMat));
+        return normalize(out, fromMat3(out, axesTmpMat));
     }
 
     export function toString(a: Quat, precision?: number) {

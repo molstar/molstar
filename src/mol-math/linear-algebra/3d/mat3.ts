@@ -134,7 +134,7 @@ namespace Mat3 {
      * Creates a new Mat3 initialized with values from an existing matrix
      */
     export function clone(a: Mat3) {
-        return Mat3.copy(Mat3.zero(), a);
+        return copy(zero(), a);
     }
 
     export function areEqual(a: Mat3, b: Mat3, eps: number) {
@@ -372,7 +372,7 @@ namespace Mat3 {
     }
 
     const piThird = Math.PI / 3;
-    const tmpB = Mat3();
+    const tmpB = zero();
     /**
      * Given a real symmetric 3x3 matrix A, compute the eigenvalues
      *
@@ -447,9 +447,9 @@ namespace Mat3 {
      * Get matrix to transform directions, e.g. normals
      */
     export function directionTransform(out: Mat3, t: Mat4) {
-        Mat3.fromMat4(out, t);
-        Mat3.invert(out, out);
-        Mat3.transpose(out, out);
+        fromMat4(out, t);
+        invert(out, out);
+        transpose(out, out);
         return out;
     }
 

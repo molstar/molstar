@@ -5,7 +5,7 @@
  */
 
 import { Tensor as T } from '../tensor';
-import { Mat4 } from '../3d';
+import { Mat4 } from '../3d/mat4';
 
 describe('tensor', () => {
     it('vector', () => {

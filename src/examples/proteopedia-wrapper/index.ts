@@ -46,7 +46,7 @@ class MolStarProteopediaWrapper {
         customColorList?: number[]
     }) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...DefaultPluginSpec,
+            ...DefaultPluginSpec(),
             animations: [
                 AnimateModelIndex
             ],

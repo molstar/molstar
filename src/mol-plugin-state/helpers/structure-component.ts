@@ -34,7 +34,7 @@ export const StaticStructureComponentTypes = [
 
 export type StaticStructureComponentType = (typeof StaticStructureComponentTypes)[number]
 
-export const StructureComponentParams = {
+export const StructureComponentParams = () => ({
     type: PD.MappedStatic('static', {
         static: PD.Text<StaticStructureComponentType>('polymer'),
         expression: PD.Value<Expression>(MolScriptBuilder.struct.generator.all),
@@ -43,8 +43,8 @@ export const StructureComponentParams = {
     }, { isHidden: true }),
     nullIfEmpty: PD.Optional(PD.Boolean(true, { isHidden: true })),
     label: PD.Text('', { isHidden: true })
-};
-export type StructureComponentParams = PD.ValuesFor<typeof StructureComponentParams>
+});
+export type StructureComponentParams = PD.ValuesFor<ReturnType<typeof StructureComponentParams>>
 
 export function createStructureComponent(a: Structure, params: StructureComponentParams, cache: { source: Structure, entry?: StructureQueryHelper.CacheEntry }) {
     cache.source = a;
