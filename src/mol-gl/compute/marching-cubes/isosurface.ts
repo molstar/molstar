@@ -195,17 +195,17 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
 export function extractIsosurface(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, gridTexScale: Vec2, transform: Mat4, isoValue: number, packedGroup: boolean, vertexTexture?: Texture, groupTexture?: Texture, normalTexture?: Texture) {
     // console.time('calcActiveVoxels');
     const activeVoxelsTex = calcActiveVoxels(ctx, volumeData, gridDim, gridTexDim, isoValue, gridTexScale);
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // ctx.waitForGpuCommandsCompleteSync();
     // console.timeEnd('calcActiveVoxels');
 
     // console.time('createHistogramPyramid');
     const compacted = createHistogramPyramid(ctx, activeVoxelsTex, gridTexScale, gridTexDim);
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // ctx.waitForGpuCommandsCompleteSync();
     // console.timeEnd('createHistogramPyramid');
 
     // console.time('createIsosurfaceBuffers');
     const gv = createIsosurfaceBuffers(ctx, activeVoxelsTex, volumeData, compacted, gridDim, gridTexDim, transform, isoValue, packedGroup, vertexTexture, groupTexture, normalTexture);
-    // ctx.webgl.waitForGpuCommandsCompleteSync();
+    // ctx.waitForGpuCommandsCompleteSync();
     // console.timeEnd('createIsosurfaceBuffers');
 
     return gv;
