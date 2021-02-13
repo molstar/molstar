@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import msgpackDecode from '../../mol-io/common/msgpack/decode';
+import { decodeMsgPack } from '../../mol-io/common/msgpack/decode';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectRef } from '../../mol-state';
 import { FileInfo } from '../../mol-util/file-info';
@@ -30,7 +30,7 @@ export function guessCifVariant(info: FileInfo, data: Uint8Array | string): cifV
         try {
             // TODO: find a way to run msgpackDecode only once
             //      now it is run twice, here and during file parsing
-            if (msgpackDecode(data as Uint8Array).encoder.startsWith('VolumeServer')) return 'dscif';
+            if (decodeMsgPack(data as Uint8Array).encoder.startsWith('VolumeServer')) return 'dscif';
         } catch { }
     } else if (info.ext === 'cif') {
         const str = data as string;

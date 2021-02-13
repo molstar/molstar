@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import StructureElement from './element';
-import Unit from './unit';
+import { StructureElement } from './element';
+import { Unit } from './unit';
 import { VdwRadius } from '../model/properties/atomic';
 import { SecondaryStructureType } from '../model/types';
 import { SecondaryStructureProvider } from '../../../mol-model-props/computed/secondary-structure';
@@ -195,4 +195,4 @@ const StructureProperties = {
 };
 
 type StructureProperties = typeof StructureProperties
-export default StructureProperties;
+export { StructureProperties };

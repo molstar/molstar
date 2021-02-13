@@ -12,12 +12,11 @@ import { VdwRadius } from '../../../../mol-model/structure/model/properties/atom
 import { StructureElement, StructureProperties } from '../../../../mol-model/structure/structure';
 import { getElementMoleculeType } from '../../../../mol-model/structure/util';
 
-const l = StructureElement.Location.create(void 0);
-
 export function assignRadiusForHeavyAtoms(ctx: ShrakeRupleyContext) {
     const { key } = StructureProperties.residue;
     const { type_symbol, label_atom_id, label_comp_id } = StructureProperties.atom;
     const { structure, atomRadiusType, serialResidueIndex } = ctx;
+    const l = StructureElement.Location.create(structure);
 
     let prevResidueIdx = 0;
     let residueIdx = 0;

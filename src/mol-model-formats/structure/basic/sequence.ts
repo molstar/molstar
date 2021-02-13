@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import StructureSequence from '../../../mol-model/structure/model/properties/sequence';
+import { StructureSequence } from '../../../mol-model/structure/model/properties/sequence';
 import { Column } from '../../../mol-data/db';
 import { AtomicHierarchy } from '../../../mol-model/structure/model/properties/atomic';
 import { Entities } from '../../../mol-model/structure/model/properties/common';

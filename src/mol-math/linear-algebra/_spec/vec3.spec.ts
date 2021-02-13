@@ -1,4 +1,10 @@
-import { Vec3 } from '../3d';
+/**
+ * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
+ */
+
+import { Vec3 } from '../3d/vec3';
 
 describe('vec3', () => {
     const vec1 = [ 1, 2, 3 ] as Vec3;

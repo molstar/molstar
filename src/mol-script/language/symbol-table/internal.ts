@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Type from '../type';
+import { Type } from '../type';
 import * as Struct from './structure-query';
 import { Arguments, Argument } from '../symbol';
 import { symbol } from '../helpers';
@@ -28,7 +28,7 @@ const generator = {
     current: symbol(Arguments.None, Struct.Types.ElementSelectionQuery, 'Current selection provided by the query context. Avoid using this in State Transforms.')
 };
 
-export default {
+export const internal = {
     '@header': 'Internal Queries',
     generator
 };

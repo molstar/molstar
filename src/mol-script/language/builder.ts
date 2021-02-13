@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Expression from './expression';
+import { Expression } from './expression';
 import { MSymbol } from './symbol';
 import { MolScriptSymbolTable as SymbolTable } from './symbol-table';
 

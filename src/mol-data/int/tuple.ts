@@ -80,4 +80,4 @@ namespace IntTuple {
     }
 }
 
-export default IntTuple;
+export { IntTuple };

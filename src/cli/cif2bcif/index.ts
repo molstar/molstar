@@ -10,7 +10,7 @@ import * as argparse from 'argparse';
 import * as util from 'util';
 import * as fs from 'fs';
 import * as zlib from 'zlib';
-import convert from './converter';
+import { convert } from './converter';
 
 require('util.promisify').shim();
 

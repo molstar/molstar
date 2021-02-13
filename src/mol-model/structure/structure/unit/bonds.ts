@@ -6,7 +6,7 @@
  */
 
 import { Unit, StructureElement } from '../../structure';
-import Structure from '../structure';
+import { Structure } from '../structure';
 import { BondType } from '../../model/types';
 import { SortedArray, Iterator } from '../../../../mol-data/int';
 import { CentroidHelper } from '../../../../mol-math/geometry/centroid-helper';

@@ -18,8 +18,8 @@ import { decodeFloatRGB } from '../../../mol-util/float-packing';
 import { ShaderCode } from '../../../mol-gl/shader-code';
 import { createComputeRenderItem } from '../../../mol-gl/webgl/render-item';
 import { ValueSpec, AttributeSpec, UniformSpec, TextureSpec, DefineSpec, Values } from '../../../mol-gl/renderable/schema';
-import gaussian_density_vert from '../../../mol-gl/shader/gaussian-density.vert';
-import gaussian_density_frag from '../../../mol-gl/shader/gaussian-density.frag';
+import { gaussianDensity_vert } from '../../../mol-gl/shader/gaussian-density.vert';
+import { gaussianDensity_frag } from '../../../mol-gl/shader/gaussian-density.frag';
 import { Framebuffer } from '../../../mol-gl/webgl/framebuffer';
 
 export const GaussianDensitySchema = {
@@ -50,7 +50,7 @@ type GaussianDensityValues = Values<typeof GaussianDensitySchema>
 type GaussianDensityRenderable = ComputeRenderable<GaussianDensityValues>
 const GaussianDensityName = 'gaussian-density';
 const GaussianDensityShaderCode = ShaderCode(
-    GaussianDensityName, gaussian_density_vert, gaussian_density_frag
+    GaussianDensityName, gaussianDensity_vert, gaussianDensity_frag
 );
 
 function getFramebuffer(webgl: WebGLContext): Framebuffer {

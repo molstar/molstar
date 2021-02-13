@@ -1,4 +1,4 @@
-export default `
+export const common = `
 // TODO find a better place for these convenience defines
 
 #if defined(dRenderVariant_colorBlended) || defined(dRenderVariant_colorWboit)

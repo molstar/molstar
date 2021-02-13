@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Iterator from '../iterator';
+import { Iterator } from '../iterator';
 import { OrderedSet, Interval, Segmentation } from '../int';
 
 /** Emits a segment of length one for each element in the interval that is also in the set */

@@ -7,7 +7,7 @@
  * which under the MIT License, Copyright © 2010-2019 three.js authors
  */
 
-export default `
+export const light_frag_params = `
 uniform float uLightIntensity;
 uniform float uAmbientIntensity;
 uniform float uReflectivity;

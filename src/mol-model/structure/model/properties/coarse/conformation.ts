@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import UUID from '../../../../../mol-util/uuid';
+import { UUID } from '../../../../../mol-util/uuid';
 import { Mat3 } from '../../../../../mol-math/linear-algebra';
 
 export interface CoarseConformation {

@@ -29,15 +29,15 @@ function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, inde
     return null;
 }
 
-const tmpRef = Vec3();
-const tmpLoc = StructureElement.Location.create(void 0);
-
 function createInterUnitBondLines(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondLineParams>, lines?: Lines) {
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
     const { sizeFactor } = props;
 
     if (!edgeCount) return Lines.createEmpty(lines);
+
+    const ref = Vec3();
+    const loc = StructureElement.Location.create();
 
     const builderProps = {
         linkCount: edgeCount,
@@ -58,7 +58,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
             } else {
                 throw new Error('same units in createInterUnitBondLines');
             }
-            return setRefPosition(tmpRef, structure, unitA, indexA) || setRefPosition(tmpRef, structure, unitB, indexB);
+            return setRefPosition(ref, structure, unitA, indexA) || setRefPosition(ref, structure, unitB, indexB);
         },
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const b = edges[edgeIndex];
@@ -83,13 +83,13 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
         },
         radius: (edgeIndex: number) => {
             const b = edges[edgeIndex];
-            tmpLoc.structure = structure;
-            tmpLoc.unit = structure.unitMap.get(b.unitA);
-            tmpLoc.element = tmpLoc.unit.elements[b.indexA];
-            const sizeA = theme.size.size(tmpLoc);
-            tmpLoc.unit = structure.unitMap.get(b.unitB);
-            tmpLoc.element = tmpLoc.unit.elements[b.indexB];
-            const sizeB = theme.size.size(tmpLoc);
+            loc.structure = structure;
+            loc.unit = structure.unitMap.get(b.unitA);
+            loc.element = loc.unit.elements[b.indexA];
+            const sizeA = theme.size.size(loc);
+            loc.unit = structure.unitMap.get(b.unitB);
+            loc.element = loc.unit.elements[b.indexB];
+            const sizeB = theme.size.size(loc);
             return Math.min(sizeA, sizeB) * sizeFactor;
         },
         ignore: makeInterBondIgnoreTest(structure, props)

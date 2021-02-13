@@ -5,10 +5,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Iterator from '../../../mol-data/iterator';
+import { Iterator } from '../../../mol-data/iterator';
 import { Column, Table, Database, DatabaseCollection } from '../../../mol-data/db';
 import { Tensor } from '../../../mol-math/linear-algebra';
-import EncoderBase from '../encoder';
+import { Encoder as EncoderBase } from '../encoder';
 import { ArrayEncoder, ArrayEncoding } from '../../common/binary-cif';
 import { BinaryEncodingProvider } from './encoder/binary';
 

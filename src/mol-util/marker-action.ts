@@ -5,7 +5,7 @@
  */
 
 import { OrderedSet, Interval } from '../mol-data/int';
-import BitFlags from './bit-flags';
+import { BitFlags } from './bit-flags';
 
 export enum MarkerAction {
     None = 0x0,

@@ -22,8 +22,8 @@
  * copyright (c) 2015 Jam3. MIT License
  */
 
-import Mat3 from './mat3';
-import Vec3 from './vec3';
+import { Mat3 } from './mat3';
+import { Vec3 } from './vec3';
 import { EPSILON } from './common';
 import { NumberArray } from '../../../mol-util/type-helpers';
 
@@ -277,7 +277,7 @@ namespace Quat {
         return out;
     }
 
-    const fromUnitVec3Temp = Vec3();
+    const fromUnitVec3Temp = [0, 0, 0] as Vec3;
     /** Quaternion from two normalized unit vectors. */
     export function fromUnitVec3 (out: Quat, a: Vec3, b: Vec3) {
         // assumes a and b are normalized
@@ -376,9 +376,9 @@ namespace Quat {
      *
      * Both vectors are assumed to be unit length.
      */
-    const rotTmpVec3 = Vec3();
-    const rotTmpVec3UnitX = Vec3.create(1, 0, 0);
-    const rotTmpVec3UnitY = Vec3.create(0, 1, 0);
+    const rotTmpVec3 = [0, 0, 0] as Vec3;
+    const rotTmpVec3UnitX = [1, 0, 0] as Vec3;
+    const rotTmpVec3UnitY = [0, 1, 0] as Vec3;
     export function rotationTo(out: Quat, a: Vec3, b: Vec3) {
         let dot = Vec3.dot(a, b);
         if (dot < -0.999999) {
@@ -407,8 +407,8 @@ namespace Quat {
     /**
      * Performs a spherical linear interpolation with two control points
      */
-    let sqlerpTemp1 = Quat();
-    let sqlerpTemp2 = Quat();
+    let sqlerpTemp1 = zero();
+    let sqlerpTemp2 = zero();
     export function sqlerp(out: Quat, a: Quat, b: Quat, c: Quat, d: Quat, t: number) {
         slerp(sqlerpTemp1, a, d, t);
         slerp(sqlerpTemp2, b, c, t);
@@ -421,7 +421,7 @@ namespace Quat {
      * axes. Each axis is a vec3 and is expected to be unit length and
      * perpendicular to all other specified axes.
      */
-    const axesTmpMat = Mat3();
+    const axesTmpMat = [0, 0, 0, 0, 0, 0, 0, 0, 0] as Mat3;
     export function setAxes(out: Quat, view: Vec3, right: Vec3, up: Vec3) {
         axesTmpMat[0] = right[0];
         axesTmpMat[3] = right[1];
@@ -435,7 +435,7 @@ namespace Quat {
         axesTmpMat[5] = -view[1];
         axesTmpMat[8] = -view[2];
 
-        return normalize(out, Quat.fromMat3(out, axesTmpMat));
+        return normalize(out, fromMat3(out, axesTmpMat));
     }
 
     export function toString(a: Quat, precision?: number) {
@@ -445,4 +445,4 @@ namespace Quat {
     export const Identity: ReadonlyQuat = identity();
 }
 
-export default Quat;
+export { Quat };

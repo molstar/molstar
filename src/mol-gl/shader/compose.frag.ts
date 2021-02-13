@@ -1,4 +1,4 @@
-export default `
+export const compose_frag = `
 precision highp float;
 precision highp sampler2D;
 

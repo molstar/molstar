@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Matrix from './matrix';
-import { Vec3 } from '../3d';
+import { Matrix } from './matrix';
+import { Vec3 } from '../3d/vec3';
 import { svd } from './svd';
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { Axes3D } from '../../geometry';

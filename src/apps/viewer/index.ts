@@ -6,7 +6,8 @@
  */
 
 import '../../mol-util/polyfill';
-import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
+import { createPlugin } from '../../mol-plugin';
+import { DefaultPluginSpec } from '../../mol-plugin/spec';
 import './index.html';
 import './embedded.html';
 import './favicon.ico';
@@ -89,15 +90,16 @@ export class Viewer {
 
     constructor(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
         const o = { ...DefaultViewerOptions, ...options };
+        const defaultSpec = DefaultPluginSpec();
 
         const spec: PluginSpec = {
-            actions: [...DefaultPluginSpec.actions],
+            actions: [...defaultSpec.actions],
             behaviors: [
-                ...DefaultPluginSpec.behaviors,
+                ...defaultSpec.behaviors,
                 ...o.extensions.map(e => Extensions[e]),
             ],
-            animations: [...DefaultPluginSpec.animations || []],
-            customParamEditors: DefaultPluginSpec.customParamEditors,
+            animations: [...defaultSpec.animations || []],
+            customParamEditors: defaultSpec.customParamEditors,
             customFormats: o?.customFormats,
             layout: {
                 initial: {
@@ -106,14 +108,14 @@ export class Viewer {
                     controlsDisplay: o.layoutControlsDisplay,
                 },
                 controls: {
-                    ...DefaultPluginSpec.layout && DefaultPluginSpec.layout.controls,
+                    ...defaultSpec.layout && defaultSpec.layout.controls,
                     top: o.layoutShowSequence ? undefined : 'none',
                     bottom: o.layoutShowLog ? undefined : 'none',
                     left: o.layoutShowLeftPanel ? undefined : 'none',
                 }
             },
             components: {
-                ...DefaultPluginSpec.components,
+                ...defaultSpec.components,
                 remoteState: o.layoutShowRemoteState ? 'default' : 'none',
             },
             config: [

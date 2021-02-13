@@ -1,4 +1,4 @@
-export default `
+export const apply_fog = `
 float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
 float fogFactor = smoothstep(uFogNear, uFogFar, abs(viewZ));
 float fogAlpha = (1.0 - fogFactor) * gl_FragColor.a;

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginBehavior } from '../../../behavior';
+import { PluginBehavior } from '../../../behavior/behavior';
 import { Structure, Model } from '../../../../mol-model/structure';
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
 import { StateSelection, StateObject } from '../../../../mol-state';

@@ -10,7 +10,7 @@ import { QueryContext, Structure, StructureQuery, StructureSelection, StructureP
 import { BondType, NucleicBackboneAtoms, ProteinBackboneAtoms, SecondaryStructureType, AminoAcidNamesL, RnaBaseNames, DnaBaseNames, WaterNames, ElementSymbol } from '../../mol-model/structure/model/types';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
-import Expression from '../../mol-script/language/expression';
+import { Expression } from '../../mol-script/language/expression';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { StateBuilder } from '../../mol-state';
 import { RuntimeContext } from '../../mol-task';

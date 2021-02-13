@@ -25,4 +25,4 @@ namespace Expression {
     export function isSymbol(e: Expression): e is Expression.Symbol { return !!e && typeof (e as any).name === 'string'; }
 }
 
-export default Expression;
+export { Expression };

@@ -8,7 +8,7 @@
 import * as Data from '../cif/data-model';
 import * as Schema from '../cif/schema';
 import { Column } from '../../../mol-data/db';
-import parse from '../cif/text/parser';
+import { parseCifText } from '../cif/text/parser';
 
 const columnData = `123abc d,e,f '4 5 6'`;
 // 123abc d,e,f '4 5 6'
@@ -43,7 +43,7 @@ _test.field1 '''123 " '' 1'''
 _test.field2 ''' c glide reflection through the plane (x,1/4,z)
 chosen as one of the generators of the space group'''`;
 
-    const result = await parse(data).run();
+    const result = await parseCifText(data).run();
     if (result.isError) {
         expect(false).toBe(true);
         return;

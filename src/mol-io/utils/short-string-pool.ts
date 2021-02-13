@@ -21,4 +21,4 @@ namespace ShortStringPool {
     }
 }
 
-export default ShortStringPool;
+export { ShortStringPool };

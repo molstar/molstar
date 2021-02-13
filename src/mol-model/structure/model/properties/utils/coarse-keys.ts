@@ -8,7 +8,7 @@
 import { Entities } from '../common';
 import { CoarseElementData, CoarsedElementKeys } from '../coarse';
 import { ChainIndex, ElementIndex, EntityIndex } from '../../indexing';
-import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
+import { SortedRanges } from '../../../../../mol-data/int/sorted-ranges';
 import { OrderedSet } from '../../../../../mol-data/int';
 
 function getElementKey(map: Map<string, number>, key: string, counter: { index: number }) {

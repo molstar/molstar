@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Writer from './writer';
+import { Writer } from './writer';
 
 interface Encoder {
     encode(): void,
@@ -12,4 +12,4 @@ interface Encoder {
     getSize(): number
 }
 
-export default Encoder;
+export { Encoder };

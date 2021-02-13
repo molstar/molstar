@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export default `
+export const texture3d_from_1d_trilinear = `
 vec4 texture3dFrom1dTrilinear(const in sampler2D tex, const in vec3 pos, const in vec3 gridDim, const in vec2 texDim, const in float offset) {
     float gdYZ = gridDim.z * gridDim.y;
     float gdZ = gridDim.z;

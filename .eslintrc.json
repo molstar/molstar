@@ -31,7 +31,14 @@
         "no-unsafe-finally": "warn",
         "no-var": "error",
         "spaced-comment": "error",
-        "semi": "warn"
+        "semi": "warn",
+        "no-restricted-syntax": [
+            "error",
+            {
+                "selector": "ExportDefaultDeclaration",
+                "message": "Default exports are not allowed"
+            }
+        ]
     },
     "overrides": [
         {

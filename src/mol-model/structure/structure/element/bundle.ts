@@ -6,13 +6,13 @@
 
 import { OrderedSet, SortedArray, Interval } from '../../../../mol-data/int';
 import { ElementIndex } from '../../model';
-import Structure from '../structure';
-import Unit from '../unit';
+import { Structure } from '../structure';
+import { Unit } from '../unit';
 import { hashFnv32a, hash2 } from '../../../../mol-data/util';
-import SortedRanges from '../../../../mol-data/int/sorted-ranges';
+import { SortedRanges } from '../../../../mol-data/int/sorted-ranges';
 import { UnitIndex } from './element';
 import { Loci } from './loci';
-import Expression from '../../../../mol-script/language/expression';
+import { Expression } from '../../../../mol-script/language/expression';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 import { StructureSelection } from '../../query';
 

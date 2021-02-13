@@ -8,7 +8,7 @@
 import { Column } from '../../../../../mol-data/db';
 import { Segmentation } from '../../../../../mol-data/int';
 import { ElementIndex, ChainIndex, EntityIndex } from '../../indexing';
-import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
+import { SortedRanges } from '../../../../../mol-data/int/sorted-ranges';
 
 export interface CoarsedElementKeys {
     /** Assign a key to each element */

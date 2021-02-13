@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export default `
+export const common_clip = `
 #if dClipObjectCount != 0
     vec3 quaternionTransform(vec4 q, vec3 v) {
         vec3 t = 2.0 * cross(q.xyz, v);

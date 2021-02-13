@@ -6,8 +6,8 @@
 
 import { Unit, Structure, StructureElement, ElementIndex, ResidueIndex } from '../../../../../mol-model/structure';
 import { Segmentation } from '../../../../../mol-data/int';
-import Iterator from '../../../../../mol-data/iterator';
-import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
+import { Iterator } from '../../../../../mol-data/iterator';
+import { SortedRanges } from '../../../../../mol-data/int/sorted-ranges';
 import { getPolymerRanges } from '../polymer';
 
 /** Iterates over consecutive pairs of residues/coarse elements in polymers */

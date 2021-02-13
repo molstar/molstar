@@ -7,7 +7,7 @@
 import { SymmetryOperator } from '../../../../mol-math/geometry';
 import { CifExportContext } from '../mmcif';
 import { StructureElement, StructureProperties as P, CifExportCategoryInfo } from '../../structure';
-import Unit from '../../structure/unit';
+import { Unit } from '../../structure/unit';
 import { Segmentation } from '../../../../mol-data/int';
 import { CifWriter } from '../../../../mol-io/writer/cif';
 import { Column } from '../../../../mol-data/db';

@@ -4,12 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Expression from './expression';
+import { Expression } from './expression';
 
-interface Container {
+export interface Container {
     source?: string,
     version: string,
     expression: Expression
 }
-
-export default Container;

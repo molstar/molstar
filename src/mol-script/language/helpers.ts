@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Type from './type';
+import { Type } from './type';
 import { MSymbol, Arguments, isSymbol } from './symbol';
 
 export function symbol<A extends Arguments, T extends Type<S>, S>(args: A, type: T, description?: string) {

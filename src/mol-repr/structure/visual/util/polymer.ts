@@ -6,7 +6,7 @@
  */
 
 import { Unit, ElementIndex, StructureElement, Bond, Structure, ResidueIndex } from '../../../../mol-model/structure';
-import SortedRanges from '../../../../mol-data/int/sorted-ranges';
+import { SortedRanges } from '../../../../mol-data/int/sorted-ranges';
 import { OrderedSet, Interval, SortedArray } from '../../../../mol-data/int';
 import { EmptyLoci, Loci } from '../../../../mol-model/loci';
 import { LocationIterator } from '../../../../mol-geo/util/location-iterator';

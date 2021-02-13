@@ -6,8 +6,8 @@
  */
 
 import { computeRings, getFingerprint, createIndex } from './rings/compute';
-import Unit from '../unit';
-import StructureElement from '../element';
+import { Unit } from '../unit';
+import { StructureElement } from '../element';
 import { SortedArray } from '../../../../mol-data/int';
 import { ResidueIndex } from '../../model';
 import { ElementSymbol, BondType } from '../../model/types';

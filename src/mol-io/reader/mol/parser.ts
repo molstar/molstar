@@ -6,7 +6,7 @@
 
 import { Column } from '../../../mol-data/db';
 import { Task } from '../../../mol-task';
-import TokenColumn from '../common/text/column/token';
+import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import { TokenBuilder, Tokenizer } from '../common/text/tokenizer';
 import { ReaderResult as Result } from '../result';
 

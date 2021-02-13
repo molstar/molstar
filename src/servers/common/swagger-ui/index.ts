@@ -9,7 +9,7 @@ import { getAbsoluteFSPath } from 'swagger-ui-dist';
 import { ServeStaticOptions } from 'serve-static';
 import { interpolate } from '../../../mol-util/string';
 import { Handler } from 'express-serve-static-core';
-import IndexTemplate from './indexTemplate';
+import { indexTemplate } from './indexTemplate';
 
 export function swaggerUiAssetsHandler(options?: ServeStaticOptions): Handler {
     const opts = options || {};
@@ -25,7 +25,7 @@ export interface SwaggerUIOptions {
 }
 
 function createHTML(options: SwaggerUIOptions) {
-    return interpolate(IndexTemplate, options);
+    return interpolate(indexTemplate, options);
 }
 
 export function swaggerUiIndexHandler(options: SwaggerUIOptions): express.Handler {

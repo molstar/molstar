@@ -5,7 +5,7 @@
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
  */
 
-export default `
+export const directVolume_frag = `
 precision highp float;
 precision highp int;
 

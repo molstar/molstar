@@ -254,4 +254,4 @@ function to_mmCIF(name: string, structure: Structure, asBinary = false) {
     return enc.getData();
 }
 
-export default to_mmCIF;
+export { to_mmCIF };

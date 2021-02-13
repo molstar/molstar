@@ -60,4 +60,4 @@ namespace Interval {
 /** Interval describing a range [min, max] of values */
 interface Interval<T extends number = number> { '@type': 'int-interval' }
 
-export default Interval;
+export { Interval };

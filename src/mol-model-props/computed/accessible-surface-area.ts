@@ -12,7 +12,7 @@ import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/compiler';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
-import Type from '../../mol-script/language/type';
+import { Type } from '../../mol-script/language/type';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 
 export const AccessibleSurfaceAreaParams = {

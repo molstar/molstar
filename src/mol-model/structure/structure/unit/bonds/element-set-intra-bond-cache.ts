@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import StructureElement from '../../element';
+import { StructureElement } from '../../element';
 import { IntraUnitBonds } from './data';
 import { SortedArray } from '../../../../../mol-data/int';
 import { Model } from '../../../model';

@@ -6,11 +6,11 @@
  */
 
 import { OrderedSet } from '../../../../mol-data/int';
-import Unit from '../unit';
+import { Unit } from '../unit';
 import { Loci } from './loci';
 import { Location } from './location';
 import { ChainIndex } from '../../model/indexing';
-import Structure from '../structure';
+import { Structure } from '../structure';
 
 export interface Stats {
     elementCount: number

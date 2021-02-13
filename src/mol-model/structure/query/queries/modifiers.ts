@@ -14,7 +14,7 @@ import { QueryContext, QueryFn } from '../context';
 import { structureIntersect, structureSubtract } from '../utils/structure-set';
 import { UniqueArray } from '../../../../mol-data/generic';
 import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
-import StructureElement from '../../structure/element';
+import { StructureElement } from '../../structure/element';
 
 function getWholeResidues(ctx: QueryContext, source: Structure, structure: Structure) {
     const builder = source.subsetBuilder(true);

@@ -38,4 +38,4 @@ namespace UUID {
     }
 }
 
-export default UUID;
+export { UUID };

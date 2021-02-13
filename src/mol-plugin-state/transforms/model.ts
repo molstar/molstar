@@ -18,7 +18,7 @@ import { topologyFromPsf } from '../../mol-model-formats/structure/psf';
 import { Coordinates, Model, Queries, QueryContext, Structure, StructureElement, StructureQuery, StructureSelection as Sel, Topology, ArrayTrajectory, Trajectory } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
-import Expression from '../../mol-script/language/expression';
+import { Expression } from '../../mol-script/language/expression';
 import { Script } from '../../mol-script/script';
 import { StateObject, StateTransformer } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
@@ -486,10 +486,10 @@ const StructureSelectionFromExpression = PluginStateTransform.BuiltIn({
     display: { name: 'Selection', description: 'Create a molecular structure from the specified expression.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
-    params: {
+    params: () => ({
         expression: PD.Value<Expression>(MolScriptBuilder.struct.generator.all, { isHidden: true }),
         label: PD.Optional(PD.Text('', { isHidden: true }))
-    }
+    })
 })({
     apply({ a, params, cache }) {
         const { selection, entry } = StructureQueryHelper.createAndRun(a.data, params.expression);
@@ -526,7 +526,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
     display: { name: 'Multi-structure Measurement Selection', description: 'Create selection object from multiple structures.' },
     from: SO.Root,
     to: SO.Molecule.Structure.Selections,
-    params: {
+    params: () => ({
         selections: PD.ObjectList({
             key: PD.Text(void 0, { description: 'A unique key.' }),
             ref: PD.Text(),
@@ -535,7 +535,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
         }, e => e.ref, { isHidden: true }),
         isTransitive: PD.Optional(PD.Boolean(false, { isHidden: true, description: 'Remap the selections from the original structure if structurally equivalent.' })),
         label: PD.Optional(PD.Text('', { isHidden: true }))
-    }
+    })
 })({
     apply({ params, cache, dependencies }) {
         const entries = new Map<string, StructureQueryHelper.CacheEntry>();
@@ -651,10 +651,10 @@ const StructureSelectionFromScript = PluginStateTransform.BuiltIn({
     display: { name: 'Selection', description: 'Create a molecular structure from the specified script.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
-    params: {
+    params: () => ({
         script: PD.Script({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))' }),
         label: PD.Optional(PD.Text(''))
-    }
+    })
 })({
     apply({ a, params, cache }) {
         const { selection, entry } = StructureQueryHelper.createAndRun(a.data, params.script);
@@ -690,10 +690,10 @@ const StructureSelectionFromBundle = PluginStateTransform.BuiltIn({
     display: { name: 'Selection', description: 'Create a molecular structure from the specified structure-element bundle.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
-    params: {
+    params: () => ({
         bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty, { isHidden: true }),
         label: PD.Optional(PD.Text('', { isHidden: true }))
-    }
+    })
 })({
     apply({ a, params, cache }) {
         if (params.bundle.hash !== a.data.hashCode) {

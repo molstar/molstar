@@ -247,4 +247,4 @@ namespace Scene {
     }
 }
 
-export default Scene;
+export { Scene };

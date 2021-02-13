@@ -5,7 +5,7 @@
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
  */
 
-export default `
+export const gaussianDensity_vert = `
 precision highp float;
 
 attribute vec3 aPosition;

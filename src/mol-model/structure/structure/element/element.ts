@@ -7,9 +7,9 @@
 
 import { SortedArray } from '../../../../mol-data/int';
 import { ElementIndex, ResidueIndex, ChainIndex } from '../../model';
-import Unit from '../unit';
+import { Unit } from '../unit';
 import { Location } from './location';
-import StructureProperties from '../properties';
+import { StructureProperties } from '../properties';
 
 // TODO: when nominal types are available, make this indexed by UnitIndex
 export type Set = SortedArray<ElementIndex>

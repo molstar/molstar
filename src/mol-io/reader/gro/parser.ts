@@ -7,7 +7,7 @@
 
 import { Column } from '../../../mol-data/db';
 import { Tokenizer } from '../common/text/tokenizer';
-import FixedColumn from '../common/text/column/fixed';
+import { FixedColumnProvider as FixedColumn } from '../common/text/column/fixed';
 import * as Schema from './schema';
 import { ReaderResult as Result } from '../result';
 import { Task, RuntimeContext } from '../../../mol-task';

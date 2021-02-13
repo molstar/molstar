@@ -23,11 +23,10 @@ import { InteractionFlag } from '../interactions/common';
 import { Unit } from '../../../mol-model/structure/structure';
 import { Sphere3D } from '../../../mol-math/geometry';
 
-const tmpLoc = StructureElement.Location.create(void 0);
-
 function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InteractionsInterUnitParams>, mesh?: Mesh) {
     if (!structure.hasAtomic) return Mesh.createEmpty(mesh);
 
+    const l = StructureElement.Location.create(structure);
     const interactions = InteractionsProvider.get(structure).value!;
     const { contacts, unitsFeatures } = interactions;
 
@@ -55,14 +54,13 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
         radius: (edgeIndex: number) => {
             const b = edges[edgeIndex];
             const fA = unitsFeatures.get(b.unitA);
-            tmpLoc.structure = structure;
-            tmpLoc.unit = structure.unitMap.get(b.unitA);
-            tmpLoc.element = tmpLoc.unit.elements[fA.members[fA.offsets[b.indexA]]];
-            const sizeA = theme.size.size(tmpLoc);
+            l.unit = structure.unitMap.get(b.unitA);
+            l.element = l.unit.elements[fA.members[fA.offsets[b.indexA]]];
+            const sizeA = theme.size.size(l);
             const fB = unitsFeatures.get(b.unitB);
-            tmpLoc.unit = structure.unitMap.get(b.unitB);
-            tmpLoc.element = tmpLoc.unit.elements[fB.members[fB.offsets[b.indexB]]];
-            const sizeB = theme.size.size(tmpLoc);
+            l.unit = structure.unitMap.get(b.unitB);
+            l.element = l.unit.elements[fB.members[fB.offsets[b.indexB]]];
+            const sizeB = theme.size.size(l);
             return Math.min(sizeA, sizeB) * sizeFactor;
         },
         ignore: (edgeIndex: number) => edges[edgeIndex].props.flag === InteractionFlag.Filtered

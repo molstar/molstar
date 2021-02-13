@@ -12,7 +12,7 @@ import * as Data from './data-model';
 // import { FastMap } from '../utils/collections'
 
 /** Find a list of unique blocks+offsets that overlap with the query region. */
-export default function findUniqueBlocks(data: Data.DataContext, sampling: Data.Sampling, queryBox: Box.Fractional) {
+export function findUniqueBlocks(data: Data.DataContext, sampling: Data.Sampling, queryBox: Box.Fractional) {
     const translations = data.header.spacegroup.isPeriodic
         // find all query box translations that overlap with the unit cell.
         ? findDataOverlapTranslationList(queryBox, sampling.dataDomain)

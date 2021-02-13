@@ -6,9 +6,9 @@
  */
 
 import { ElementIndex } from '../../model';
-import Unit from '../unit';
+import { Unit } from '../unit';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
-import Structure from '../structure';
+import { Structure } from '../structure';
 
 export { Location };
 

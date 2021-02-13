@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import parseText from './cif/text/parser';
-import parseBinary from './cif/binary/parser';
+import { parseCifText } from './cif/text/parser';
+import { parseCifBinary } from './cif/binary/parser';
 import { CifFrame } from './cif/data-model';
 import { toDatabaseCollection, toDatabase } from './cif/schema';
 import { mmCIF_Schema, mmCIF_Database } from './cif/schema/mmcif';
@@ -17,9 +17,9 @@ import { DensityServer_Data_Schema, DensityServer_Data_Database } from './cif/sc
 import { CifCore_Database, CifCore_Schema, CifCore_Aliases } from './cif/schema/cif-core';
 
 export const CIF = {
-    parse: (data: string|Uint8Array) => typeof data === 'string' ? parseText(data) : parseBinary(data),
-    parseText,
-    parseBinary,
+    parse: (data: string|Uint8Array) => typeof data === 'string' ? parseCifText(data) : parseCifBinary(data),
+    parseText: parseCifText,
+    parseBinary: parseCifBinary,
     toDatabaseCollection,
     toDatabase,
     schema: {

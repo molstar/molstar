@@ -19,7 +19,7 @@ import { interpolate } from '../../../mol-util/string';
 import { getSchema, shortcutIconLink } from './web-schema';
 import { swaggerUiIndexHandler, swaggerUiAssetsHandler } from '../../common/swagger-ui';
 
-export default function init(app: express.Express) {
+export function init(app: express.Express) {
     app.locals.mapFile = getMapFileFn();
     function makePath(p: string) {
         return `${ServerConfig.apiPrefix}/${p}`;

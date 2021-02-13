@@ -1,4 +1,4 @@
-export default `
+export const assign_size = `
 #if defined(dSizeType_uniform)
     float size = uSize;
 #elif defined(dSizeType_attribute)

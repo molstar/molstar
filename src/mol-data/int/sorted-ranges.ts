@@ -5,7 +5,7 @@
  */
 
 import { Segmentation, OrderedSet, SortedArray, Interval } from '../int';
-import _Iterator from '../iterator';
+import { Iterator as _Iterator } from '../iterator';
 
 /** Pairs of min and max indices of sorted, non-overlapping ranges */
 type SortedRanges<T extends number = number> = SortedArray<T>
@@ -115,4 +115,4 @@ namespace SortedRanges {
     }
 }
 
-export default SortedRanges;
+export { SortedRanges };

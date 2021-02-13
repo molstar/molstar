@@ -1,4 +1,4 @@
-export default `
+export const common_vert_params = `
 uniform mat4 uProjection, uModel, uView;
 uniform vec3 uCameraPosition;
 

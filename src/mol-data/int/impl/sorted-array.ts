@@ -5,7 +5,7 @@
  */
 
 import { sortArray, hash3, hash4, createRangeArray } from '../../util';
-import Interval from '../interval';
+import { Interval } from '../interval';
 
 type Nums = ArrayLike<number>
 

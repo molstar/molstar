@@ -6,10 +6,10 @@
  */
 
 import { MinimizeRmsd } from '../../../../mol-math/linear-algebra/3d/minimize-rmsd';
-import StructureElement from '../element';
+import { StructureElement } from '../element';
 import { OrderedSet } from '../../../../mol-data/int';
 import { AlignSequences } from '../../../sequence/alignment/sequence';
-import StructureProperties from '../properties';
+import { StructureProperties } from '../properties';
 
 export function superpose(xs: StructureElement.Loci[]): MinimizeRmsd.Result[] {
     const ret: MinimizeRmsd.Result[] = [];
