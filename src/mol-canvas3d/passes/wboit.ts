@@ -13,8 +13,8 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { ValueCell } from '../../mol-util';
-import quad_vert from '../../mol-gl/shader/quad.vert';
-import evaluate_wboit_frag from '../../mol-gl/shader/evaluate-wboit.frag';
+import { quad_vert } from '../../mol-gl/shader/quad.vert';
+import { evaluateWboit_frag } from '../../mol-gl/shader/evaluate-wboit.frag';
 import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
 import { Vec2 } from '../../mol-math/linear-algebra';
 import { isDebugMode } from '../../mol-util/debug';
@@ -25,7 +25,7 @@ const EvaluateWboitSchema = {
     tWboitB: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     uTexSize: UniformSpec('v2'),
 };
-const EvaluateWboitShaderCode = ShaderCode('evaluate-wboit', quad_vert, evaluate_wboit_frag);
+const EvaluateWboitShaderCode = ShaderCode('evaluate-wboit', quad_vert, evaluateWboit_frag);
 type EvaluateWboitRenderable = ComputeRenderable<Values<typeof EvaluateWboitSchema>>
 
 function getEvaluateWboitRenderable(ctx: WebGLContext, wboitATexture: Texture, wboitBTexture: Texture): EvaluateWboitRenderable {

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export default `
+export const rgba_to_float = `
     // rgbaToFloat adapted from https://github.com/ihmeuw/glsl-rgba-to-float
     // BSD 3-Clause License
     //

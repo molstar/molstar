@@ -18,7 +18,7 @@ import { topologyFromPsf } from '../../mol-model-formats/structure/psf';
 import { Coordinates, Model, Queries, QueryContext, Structure, StructureElement, StructureQuery, StructureSelection as Sel, Topology, ArrayTrajectory, Trajectory } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
-import Expression from '../../mol-script/language/expression';
+import { Expression } from '../../mol-script/language/expression';
 import { Script } from '../../mol-script/script';
 import { StateObject, StateTransformer } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';

@@ -5,7 +5,7 @@
  */
 
 import * as Impl from './impl/sorted-array';
-import Interval from './interval';
+import { Interval } from './interval';
 
 namespace SortedArray {
     export const Empty: SortedArray = Impl.Empty as any;
@@ -54,4 +54,4 @@ namespace SortedArray {
 
 interface SortedArray<T extends number = number> extends ArrayLike<T> { '@type': 'int-sorted-array' }
 
-export default SortedArray;
+export { SortedArray };

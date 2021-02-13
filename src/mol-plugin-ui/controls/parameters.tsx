@@ -22,7 +22,7 @@ import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
 import { Button, ControlGroup, ControlRow, ExpandGroup, IconButton, TextInput, ToggleButton } from './common';
 import { Icon, HelpOutlineSvg, CheckSvg, ClearSvg, BookmarksOutlinedSvg, MoreHorizSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowDownwardSvg, ArrowUpwardSvg, DeleteOutlinedSvg } from './icons';
 import { legendFor } from './legend';
-import LineGraphComponent from './line-graph/line-graph-component';
+import { LineGraphComponent } from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
 import { Asset } from '../../mol-util/assets';
 import { ColorListEntry } from '../../mol-util/color/color';

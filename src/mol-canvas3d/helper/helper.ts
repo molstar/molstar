@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Scene from '../../mol-gl/scene';
+import { Scene } from '../../mol-gl/scene';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { BoundingSphereHelper, DebugHelperParams } from './bounding-sphere-helper';

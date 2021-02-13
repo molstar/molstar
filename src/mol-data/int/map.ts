@@ -58,4 +58,4 @@ namespace IntMap {
     }
 }
 
-export default IntMap;
+export { IntMap };

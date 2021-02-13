@@ -6,8 +6,8 @@
  */
 
 import * as ColumnHelpers from '../column-helpers';
-import Column from '../column';
-import Table from '../table';
+import { Column } from '../column';
+import { Table } from '../table';
 
 describe('column', () => {
     const cc = Column.ofConst(10, 2, Column.Schema.int);

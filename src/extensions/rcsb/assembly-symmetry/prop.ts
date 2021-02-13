@@ -5,7 +5,7 @@
  */
 
 import { AssemblySymmetryQuery, AssemblySymmetryQueryVariables } from '../graphql/types';
-import query from '../graphql/symmetry.gql';
+import { symmetry_gql } from '../graphql/symmetry.gql';
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Model, StructureSelection, QueryContext } from '../../../mol-model/structure';
@@ -66,7 +66,7 @@ export namespace AssemblySymmetry {
             assembly_id: structure.units[0].conformation.operator.assembly?.id || '',
             entry_id: structure.units[0].model.entryId
         };
-        const result = await client.request(ctx.runtime, query, variables);
+        const result = await client.request(ctx.runtime, symmetry_gql, variables);
         let value: AssemblySymmetryDataValue = [];
 
         if (!result.data.assembly?.rcsb_struct_symmetry) {

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export default `
+export const float_to_rgba = `
     // floatToRgba adapted from https://github.com/equinor/glsl-float-to-rgba
     // MIT License, Copyright (c) 2020 Equinor
 

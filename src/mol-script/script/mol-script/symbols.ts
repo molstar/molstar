@@ -5,10 +5,10 @@
  */
 
 import { UniqueArray } from '../../../mol-data/generic';
-import Expression from '../../language/expression';
+import { Expression } from '../../language/expression';
 import { Argument, MSymbol, Arguments } from '../../language/symbol';
 import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
-import Type from '../../language/type';
+import { Type } from '../../language/type';
 import { Types as StructureQueryTypes } from '../../language/symbol-table/structure-query';
 import { MolScriptBuilder as B } from '../../language/builder';
 import { getPositionalArgs, tryGetArg } from './macro';

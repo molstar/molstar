@@ -18,11 +18,11 @@
  */
 
 import { EPSILON, equalEps } from './common';
-import Vec3 from './vec3';
-import Quat from './quat';
+import { Vec3 } from './vec3';
+import { Quat } from './quat';
 import { degToRad } from '../../misc';
 import { NumberArray } from '../../../mol-util/type-helpers';
-import Mat3 from './mat3';
+import { Mat3 } from './mat3';
 
 interface Mat4 extends Array<number> { [d: number]: number, '@type': 'mat4', length: 16 }
 interface ReadonlyMat4 extends Array<number> { readonly [d: number]: number, '@type': 'mat4', length: 16 }
@@ -1075,32 +1075,32 @@ namespace Mat4 {
     const zAxis = Vec3.create(0, 0, 1);
 
     /** Rotation matrix for 90deg around x-axis */
-    export const rotX90: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(90), xAxis);
+    export const rotX90: ReadonlyMat4 = fromRotation(Mat4(), degToRad(90), xAxis);
     /** Rotation matrix for 180deg around x-axis */
-    export const rotX180: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(180), xAxis);
+    export const rotX180: ReadonlyMat4 = fromRotation(Mat4(), degToRad(180), xAxis);
     /** Rotation matrix for 90deg around y-axis */
-    export const rotY90: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(90), yAxis);
+    export const rotY90: ReadonlyMat4 = fromRotation(Mat4(), degToRad(90), yAxis);
     /** Rotation matrix for 180deg around y-axis */
-    export const rotY180: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(180), yAxis);
+    export const rotY180: ReadonlyMat4 = fromRotation(Mat4(), degToRad(180), yAxis);
     /** Rotation matrix for 270deg around y-axis */
-    export const rotY270: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(270), yAxis);
+    export const rotY270: ReadonlyMat4 = fromRotation(Mat4(), degToRad(270), yAxis);
     /** Rotation matrix for 90deg around z-axis */
-    export const rotZ90: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(90), zAxis);
+    export const rotZ90: ReadonlyMat4 = fromRotation(Mat4(), degToRad(90), zAxis);
     /** Rotation matrix for 180deg around z-axis */
-    export const rotZ180: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(180), zAxis);
+    export const rotZ180: ReadonlyMat4 = fromRotation(Mat4(), degToRad(180), zAxis);
     /** Rotation matrix for 90deg around first x-axis and then y-axis */
-    export const rotXY90: ReadonlyMat4 = Mat4.mul(Mat4(), rotX90, rotY90);
+    export const rotXY90: ReadonlyMat4 = mul(Mat4(), rotX90, rotY90);
     /** Rotation matrix for 90deg around first z-axis and then y-axis */
-    export const rotZY90: ReadonlyMat4 = Mat4.mul(Mat4(), rotZ90, rotY90);
+    export const rotZY90: ReadonlyMat4 = mul(Mat4(), rotZ90, rotY90);
     /** Rotation matrix for 90deg around first z-axis and then y-axis and then z-axis */
-    export const rotZYZ90: ReadonlyMat4 = Mat4.mul(Mat4(), rotZY90, rotZ90);
+    export const rotZYZ90: ReadonlyMat4 = mul(Mat4(), rotZY90, rotZ90);
     /** Rotation matrix for 90deg around first z-axis and then 180deg around x-axis */
-    export const rotZ90X180: ReadonlyMat4 = Mat4.mul(Mat4(), rotZ90, rotX180);
+    export const rotZ90X180: ReadonlyMat4 = mul(Mat4(), rotZ90, rotX180);
     /** Rotation matrix for 90deg around first y-axis and then 180deg around z-axis */
-    export const rotY90Z180: ReadonlyMat4 = Mat4.mul(Mat4(), rotY90, rotZ180);
+    export const rotY90Z180: ReadonlyMat4 = mul(Mat4(), rotY90, rotZ180);
 
     /** Identity matrix */
-    export const id: ReadonlyMat4 = Mat4.identity();
+    export const id: ReadonlyMat4 = identity();
 }
 
-export default Mat4;
+export { Mat4 };

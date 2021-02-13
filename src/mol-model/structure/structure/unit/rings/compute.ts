@@ -8,7 +8,7 @@ import { Segmentation, SortedArray } from '../../../../../mol-data/int';
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
 import { BondType } from '../../../model/types';
 import { StructureElement } from '../../../structure';
-import Unit from '../../unit';
+import { Unit } from '../../unit';
 import { IntraUnitBonds } from '../bonds/data';
 import { sortArray } from '../../../../../mol-data/util';
 import { Column } from '../../../../../mol-data/db';

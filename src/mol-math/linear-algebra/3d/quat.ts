@@ -22,8 +22,8 @@
  * copyright (c) 2015 Jam3. MIT License
  */
 
-import Mat3 from './mat3';
-import Vec3 from './vec3';
+import { Mat3 } from './mat3';
+import { Vec3 } from './vec3';
 import { EPSILON } from './common';
 import { NumberArray } from '../../../mol-util/type-helpers';
 
@@ -445,4 +445,4 @@ namespace Quat {
     export const Identity: ReadonlyQuat = identity();
 }
 
-export default Quat;
+export { Quat };

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column from './column';
+import { Column } from './column';
 import { sortArray } from '../util/sort';
 import { StringBuilder } from '../../mol-util';
 
@@ -280,4 +280,4 @@ namespace Table {
     }
 }
 
-export default Table;
+export { Table };

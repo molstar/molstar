@@ -12,7 +12,7 @@ import * as modifiers from './query/queries/modifiers';
 import * as filters from './query/queries/filters';
 import * as combinators from './query/queries/combinators';
 import * as internal from './query/queries/internal';
-import pred from './query/predicates';
+import { Predicates as pred } from './query/predicates';
 
 export const Queries = {
     generators,

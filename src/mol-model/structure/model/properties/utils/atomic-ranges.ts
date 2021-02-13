@@ -6,14 +6,14 @@
 
 import { AtomicRanges, AtomicIndex, AtomicHierarchy, AtomicDerivedData } from '../atomic/hierarchy';
 import { Segmentation, Interval } from '../../../../../mol-data/int';
-import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
+import { SortedRanges } from '../../../../../mol-data/int/sorted-ranges';
 import { isPolymer, PolymerType } from '../../types';
 import { ElementIndex, ResidueIndex } from '../../indexing';
 import { getAtomIdForAtomRole } from '../../../util';
 import { AtomicConformation } from '../atomic/conformation';
 import { Vec3 } from '../../../../../mol-math/linear-algebra';
 import { Entities } from '../common';
-import StructureSequence from '../sequence';
+import { StructureSequence } from '../sequence';
 
 function areBackboneConnected(riStart: ResidueIndex, riEnd: ResidueIndex, conformation: AtomicConformation, index: AtomicIndex, derived: AtomicDerivedData) {
     const { polymerType, traceElementIndex, directionFromElementIndex, directionToElementIndex } = derived.residue;

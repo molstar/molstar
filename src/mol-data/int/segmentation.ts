@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Interval from './interval';
-import OrderedSet from './ordered-set';
+import { Interval } from './interval';
+import { OrderedSet } from './ordered-set';
 import * as Impl from './impl/segmentation';
 
 namespace Segmentation {
@@ -33,4 +33,4 @@ interface Segmentation<T extends number = number, I extends number = number> {
     readonly count: number
 }
 
-export default Segmentation;
+export { Segmentation };

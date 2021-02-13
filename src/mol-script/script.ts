@@ -6,7 +6,7 @@
 
 import { transpileMolScript } from './script/mol-script/symbols';
 import { parseMolScript } from './language/parser';
-import Expression from './language/expression';
+import { Expression } from './language/expression';
 import { StructureElement, QueryContext, StructureSelection, Structure, QueryFn, QueryContextOptions } from '../mol-model/structure';
 import { compile } from './runtime/query/compiler';
 import { MolScriptBuilder } from './language/builder';

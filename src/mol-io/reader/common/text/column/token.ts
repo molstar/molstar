@@ -8,7 +8,7 @@ import { Column, ColumnHelpers } from '../../../../../mol-data/db';
 import { Tokens } from '../tokenizer';
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../number-parser';
 
-export default function TokenColumnProvider(tokens: Tokens) {
+export function TokenColumnProvider(tokens: Tokens) {
     return function<T extends Column.Schema>(type: T) {
         return TokenColumn(tokens, type);
     };

@@ -10,7 +10,7 @@
 
 import { Quat, Vec2, Vec3, EPSILON } from '../../mol-math/linear-algebra';
 import { Viewport } from '../camera/util';
-import InputObserver, { DragInput, WheelInput, PinchInput, ButtonsType, ModifiersKeys } from '../../mol-util/input/input-observer';
+import { InputObserver, DragInput, WheelInput, PinchInput, ButtonsType, ModifiersKeys } from '../../mol-util/input/input-observer';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Camera } from '../camera';
 import { absMax } from '../../mol-math/misc';

@@ -17,8 +17,10 @@
  * furnished to do so, subject to the following conditions:
  */
 
-import { Mat4, Vec3, EPSILON } from '../3d';
 import { NumberArray } from '../../../mol-util/type-helpers';
+import { EPSILON } from './common';
+import { Mat4 } from './mat4';
+import { Vec3 } from './vec3';
 
 interface Mat3 extends Array<number> { [d: number]: number, '@type': 'mat3', length: 9 }
 interface ReadonlyMat3 extends Array<number> { readonly [d: number]: number, '@type': 'mat3', length: 9 }
@@ -454,4 +456,4 @@ namespace Mat3 {
     export const Identity: ReadonlyMat3 = identity();
 }
 
-export default Mat3;
+export { Mat3 };

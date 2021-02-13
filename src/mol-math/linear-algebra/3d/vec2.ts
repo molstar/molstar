@@ -173,4 +173,4 @@ namespace Vec2 {
     }
 }
 
-export default Vec2;
+export { Vec2 };

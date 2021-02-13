@@ -15,7 +15,7 @@ import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/ac
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
-import Type from '../../mol-script/language/type';
+import { Type } from '../../mol-script/language/type';
 
 export const MembraneOrientationParams = {
     ...ANVILParams

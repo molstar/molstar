@@ -1,4 +1,4 @@
-export default `
+export const common_frag_params = `
 uniform int uObjectId;
 uniform int uInstanceCount;
 uniform int uGroupCount;

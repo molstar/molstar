@@ -648,4 +648,4 @@ namespace InputObserver {
     }
 }
 
-export default InputObserver;
+export { InputObserver };

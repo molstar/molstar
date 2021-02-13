@@ -41,7 +41,7 @@ export interface CubeGridComputationParams {
     cutoffThreshold: number;
     sphericalOrder: SphericalBasisOrder;
     boxExpand: number;
-    gridSpacing: number | [atomCountThreshold: number, spacing: number][];
+    gridSpacing: number | [/** atomCountThreshold */ number, /** spacing */ number][];
     doNotComputeIsovalues?: boolean;
 }
 

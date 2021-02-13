@@ -4,4 +4,4 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export default '0.9.6';
+export const VERSION = '0.9.6';

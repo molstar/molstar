@@ -7,7 +7,7 @@
 import { Model } from './model/model';
 import * as Types from './model/types';
 import { Symmetry } from './model/properties/symmetry';
-import StructureSequence from './model/properties/sequence';
+import { StructureSequence } from './model/properties/sequence';
 
 export * from './model/properties/custom/indexed';
 export * from './model/indexing';

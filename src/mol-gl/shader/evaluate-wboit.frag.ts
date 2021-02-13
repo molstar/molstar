@@ -1,4 +1,4 @@
-export default `
+export const evaluateWboit_frag = `
 precision highp float;
 
 uniform sampler2D tWboitA;

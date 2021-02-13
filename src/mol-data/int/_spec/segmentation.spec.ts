@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from '../ordered-set';
-import Interval from '../interval';
-import Segmentation from '../segmentation';
+import { OrderedSet } from '../ordered-set';
+import { Interval } from '../interval';
+import { Segmentation } from '../segmentation';
 
 describe('segments', () => {
     const data = OrderedSet.ofSortedArray([4, 9, 10, 11, 14, 15, 16]);

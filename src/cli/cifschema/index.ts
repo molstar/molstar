@@ -12,7 +12,7 @@ import fetch from 'node-fetch';
 
 import { parseCsv } from '../../mol-io/reader/csv/parser';
 import { CifFrame, CifBlock } from '../../mol-io/reader/cif';
-import parseText from '../../mol-io/reader/cif/text/parser';
+import { parseCifText } from '../../mol-io/reader/cif/text/parser';
 import { generateSchema } from './util/cif-dic';
 import { generate } from './util/generate';
 import { Filter, Database } from './util/schema';
@@ -28,19 +28,19 @@ function getDicNamespace(block: CifBlock) {
 
 async function runGenerateSchemaMmcif(name: string, fieldNamesPath: string, typescript = false, out: string, moldbImportPath: string, addAliases: boolean) {
     await ensureMmcifDicAvailable();
-    const mmcifDic = await parseText(fs.readFileSync(MMCIF_DIC_PATH, 'utf8')).run();
+    const mmcifDic = await parseCifText(fs.readFileSync(MMCIF_DIC_PATH, 'utf8')).run();
     if (mmcifDic.isError) throw mmcifDic;
 
     await ensureIhmDicAvailable();
-    const ihmDic = await parseText(fs.readFileSync(IHM_DIC_PATH, 'utf8')).run();
+    const ihmDic = await parseCifText(fs.readFileSync(IHM_DIC_PATH, 'utf8')).run();
     if (ihmDic.isError) throw ihmDic;
 
     await ensureCarbBranchDicAvailable();
-    const carbBranchDic = await parseText(fs.readFileSync(CARB_BRANCH_DIC_PATH, 'utf8')).run();
+    const carbBranchDic = await parseCifText(fs.readFileSync(CARB_BRANCH_DIC_PATH, 'utf8')).run();
     if (carbBranchDic.isError) throw carbBranchDic;
 
     await ensureCarbCompDicAvailable();
-    const carbCompDic = await parseText(fs.readFileSync(CARB_COMP_DIC_PATH, 'utf8')).run();
+    const carbCompDic = await parseCifText(fs.readFileSync(CARB_COMP_DIC_PATH, 'utf8')).run();
     if (carbCompDic.isError) throw carbCompDic;
 
     const mmcifDicVersion = getDicVersion(mmcifDic.result.blocks[0]);
@@ -56,7 +56,7 @@ async function runGenerateSchemaMmcif(name: string, fieldNamesPath: string, type
 
 async function runGenerateSchemaCifCore(name: string, fieldNamesPath: string, typescript = false, out: string, moldbImportPath: string, addAliases: boolean) {
     await ensureCifCoreDicAvailable();
-    const cifCoreDic = await parseText(fs.readFileSync(CIF_CORE_DIC_PATH, 'utf8')).run();
+    const cifCoreDic = await parseCifText(fs.readFileSync(CIF_CORE_DIC_PATH, 'utf8')).run();
     if (cifCoreDic.isError) throw cifCoreDic;
 
     const cifCoreDicVersion = getDicVersion(cifCoreDic.result.blocks[0]);
@@ -80,7 +80,7 @@ async function resolveImports(frames: CifFrame[], baseDir: string): Promise<Map<
                 if (!file) continue;
                 if (imports.has(file)) continue;
 
-                const dic = await parseText(fs.readFileSync(path.join(baseDir, file), 'utf8')).run();
+                const dic = await parseCifText(fs.readFileSync(path.join(baseDir, file), 'utf8')).run();
                 if (dic.isError) throw dic;
 
                 imports.set(file, [...dic.result.blocks[0].saveFrames]);
@@ -92,7 +92,7 @@ async function resolveImports(frames: CifFrame[], baseDir: string): Promise<Map<
 }
 
 async function runGenerateSchemaDic(name: string, dicPath: string, fieldNamesPath: string, typescript = false, out: string, moldbImportPath: string, addAliases: boolean) {
-    const dic = await parseText(fs.readFileSync(dicPath, 'utf8')).run();
+    const dic = await parseCifText(fs.readFileSync(dicPath, 'utf8')).run();
     if (dic.isError) throw dic;
 
     const dicVersion = getDicVersion(dic.result.blocks[0]);

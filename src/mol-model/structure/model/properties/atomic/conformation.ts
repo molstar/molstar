@@ -6,7 +6,7 @@
  */
 
 import { Column } from '../../../../../mol-data/db';
-import UUID from '../../../../../mol-util/uuid';
+import { UUID } from '../../../../../mol-util/uuid';
 
 export interface AtomicConformation {
     id: UUID,

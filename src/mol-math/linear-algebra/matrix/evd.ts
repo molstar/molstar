@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Matrix from './matrix';
+import { Matrix } from './matrix';
 
 export namespace EVD {
     export interface Cache {

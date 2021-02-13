@@ -1,4 +1,4 @@
-export default `
+export const assign_position = `
 mat4 model = uModel * aTransform;
 mat4 modelView = uView * model;
 #ifdef dGeoTexture

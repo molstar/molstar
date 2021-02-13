@@ -17,7 +17,7 @@
  * furnished to do so, subject to the following conditions:
  */
 
-import Mat4 from './mat4';
+import { Mat4 } from './mat4';
 import { Quat, Mat3, EPSILON } from '../3d';
 import { spline as _spline, quadraticBezier as _quadraticBezier, clamp } from '../../interpolate';
 import { NumberArray } from '../../../mol-util/type-helpers';
@@ -590,4 +590,4 @@ namespace Vec3 {
     export const unitZ: ReadonlyVec3 = Vec3.create(0, 0, 1);
 }
 
-export default Vec3;
+export { Vec3 };

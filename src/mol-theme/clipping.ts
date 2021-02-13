@@ -7,7 +7,7 @@
 import { Loci } from '../mol-model/loci';
 import { StructureElement, Structure } from '../mol-model/structure';
 import { Script } from '../mol-script/script';
-import BitFlags from '../mol-util/bit-flags';
+import { BitFlags } from '../mol-util/bit-flags';
 
 export { Clipping };
 

@@ -10,14 +10,14 @@ import { Camera } from '../../mol-canvas3d/camera';
 import { Vec3, Mat4, Vec4 } from '../../mol-math/linear-algebra';
 import { ValueCell } from '../../mol-util';
 
-import Renderer from '../renderer';
+import { Renderer } from '../renderer';
 import { createValueColor } from '../../mol-geo/geometry/color-data';
 import { createValueSize } from '../../mol-geo/geometry/size-data';
 import { createContext } from '../webgl/context';
 import { RenderableState } from '../renderable';
 import { createRenderObject } from '../render-object';
 import { PointsValues } from '../renderable/points';
-import Scene from '../scene';
+import { Scene } from '../scene';
 import { createEmptyMarkers } from '../../mol-geo/geometry/marker-data';
 import { fillSerial } from '../../mol-util/array';
 import { Color } from '../../mol-util/color';

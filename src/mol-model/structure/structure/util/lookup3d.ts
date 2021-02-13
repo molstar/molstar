@@ -5,13 +5,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Structure from '../structure';
+import { Structure } from '../structure';
 import { Lookup3D, GridLookup3D, Result } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { OrderedSet } from '../../../../mol-data/int';
 import { StructureUniqueSubsetBuilder } from './unique-subset-builder';
-import StructureElement from '../element';
-import Unit from '../unit';
+import { StructureElement } from '../element';
+import { Unit } from '../unit';
 
 export interface StructureResult extends Result<StructureElement.UnitIndex> {
     units: Unit[]

@@ -15,8 +15,8 @@ import { Vec3, Vec2, Mat4 } from '../../../mol-math/linear-algebra';
 import { QuadSchema, QuadValues } from '../util';
 import { createHistogramPyramid, HistogramPyramid } from '../histogram-pyramid/reduction';
 import { getTriIndices } from './tables';
-import quad_vert from '../../../mol-gl/shader/quad.vert';
-import isosurface_frag from '../../../mol-gl/shader/marching-cubes/isosurface.frag';
+import { quad_vert } from '../../../mol-gl/shader/quad.vert';
+import { isosurface_frag } from '../../../mol-gl/shader/marching-cubes/isosurface.frag';
 import { calcActiveVoxels } from './active-voxels';
 import { isWebGL2 } from '../../webgl/compat';
 

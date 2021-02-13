@@ -17,7 +17,7 @@
  * furnished to do so, subject to the following conditions:
  */
 
-import Mat4 from './mat4';
+import { Mat4 } from './mat4';
 import { EPSILON } from '../3d';
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { Sphere3D } from '../../geometry/primitives/sphere3d';
@@ -245,4 +245,4 @@ namespace Vec4 {
     }
 }
 
-export default Vec4;
+export { Vec4 };

@@ -17,7 +17,7 @@ import { Task } from '../../mol-task';
 import { StructureElement } from '../../mol-model/structure';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 import { SpacegroupCell } from '../../mol-math/geometry';
-import Expression from '../../mol-script/language/expression';
+import { Expression } from '../../mol-script/language/expression';
 import { TrajectoryHierarchyBuilder } from './structure/hierarchy';
 
 export class StructureBuilder {

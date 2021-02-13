@@ -7,8 +7,8 @@
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { createNullRenderTarget, RenderTarget } from '../../mol-gl/webgl/render-target';
-import Renderer from '../../mol-gl/renderer';
-import Scene from '../../mol-gl/scene';
+import { Renderer } from '../../mol-gl/renderer';
+import { Scene } from '../../mol-gl/scene';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { Camera, ICamera } from '../camera';
 import { QuadSchema, QuadValues } from '../../mol-gl/compute/util';
@@ -20,8 +20,8 @@ import { ValueCell } from '../../mol-util';
 import { Vec2 } from '../../mol-math/linear-algebra';
 import { Helper } from '../helper/helper';
 
-import quad_vert from '../../mol-gl/shader/quad.vert';
-import depthMerge_frag from '../../mol-gl/shader/depth-merge.frag';
+import { quad_vert } from '../../mol-gl/shader/quad.vert';
+import { depthMerge_frag } from '../../mol-gl/shader/depth-merge.frag';
 import { copy_frag } from '../../mol-gl/shader/copy.frag';
 import { StereoCamera } from '../camera/stereo';
 import { WboitPass } from './wboit';

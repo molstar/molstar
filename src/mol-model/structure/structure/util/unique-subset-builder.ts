@@ -6,9 +6,9 @@
 
 import { IntMap, SortedArray } from '../../../../mol-data/int';
 import { sortArray } from '../../../../mol-data/util';
-import StructureSymmetry from '../symmetry';
-import Unit from '../unit';
-import Structure from '../structure';
+import { StructureSymmetry } from '../symmetry';
+import { Unit } from '../unit';
+import { Structure } from '../structure';
 import { UniqueArray } from '../../../../mol-data/generic';
 
 type UArray = UniqueArray<number, number>

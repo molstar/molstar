@@ -181,4 +181,4 @@ namespace Mask {
     }
 }
 
-export default Mask;
+export { Mask };

@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import Expression from '../../mol-script/language/expression';
+import { Expression } from '../../mol-script/language/expression';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 import { StructureElement, Structure, StructureSelection as Sel, StructureQuery, Queries, QueryContext, Model } from '../../mol-model/structure';
 import { StructureQueryHelper } from './structure-query';

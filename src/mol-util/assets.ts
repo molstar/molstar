@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import UUID from './uuid';
+import { UUID } from './uuid';
 import { iterableToArray } from '../mol-data/util';
 import { ajaxGet, DataType, DataResponse, readFromFile } from './data-source';
 import { Task } from '../mol-task';

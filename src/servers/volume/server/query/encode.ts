@@ -15,7 +15,7 @@ import { Column } from '../../../../mol-data/db';
 import { ArrayEncoding, ArrayEncoder } from '../../../../mol-io/common/binary-cif';
 import { TypedArrayValueType, TypedArrayValueArray } from '../../../../mol-io/common/typed-array';
 
-export default function encode(query: Data.QueryContext, output: Data.QueryOutputStream) {
+export function encode(query: Data.QueryContext, output: Data.QueryOutputStream) {
     let w = CifWriter.createEncoder({ binary: query.params.asBinary, encoderName: `VolumeServer ${VERSION}` });
     write(w, query);
     w.encode();

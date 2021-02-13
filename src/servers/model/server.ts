@@ -11,7 +11,7 @@ import { ConsoleLogger } from '../../mol-util/console-logger';
 import { PerformanceMonitor } from '../../mol-util/performance-monitor';
 import { configureServer, ModelServerConfig as ServerConfig } from './config';
 import { initWebApi } from './server/api-web';
-import Version from './version';
+import { VERSION } from './version';
 
 function setupShutdown() {
     if (ServerConfig.shutdownTimeoutVarianceMinutes > ServerConfig.shutdownTimeoutMinutes) {
@@ -58,7 +58,7 @@ function startServer() {
     const port = process.env.port || ServerConfig.defaultPort;
     app.listen(port).setTimeout(ServerConfig.requestTimeoutMs);
 
-    console.log(`Mol* ModelServer ${Version}`);
+    console.log(`Mol* ModelServer ${VERSION}`);
     console.log(``);
     console.log(`The server is running on port ${port}.`);
     console.log(``);

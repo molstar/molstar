@@ -230,7 +230,7 @@ namespace Column {
     }
 }
 
-export default Column;
+export { Column };
 
 function createFirstIndexMapOfColumn<T>(c: Column<T>): Map<T, number> {
     const map = new Map<T, number>();

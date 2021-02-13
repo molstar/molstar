@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Matrix from './matrix';
+import { Matrix } from './matrix';
 import { Vec3 } from '../3d';
 import { svd } from './svd';
 import { NumberArray } from '../../../mol-util/type-helpers';

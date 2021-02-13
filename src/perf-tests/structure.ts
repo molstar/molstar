@@ -14,7 +14,7 @@ import { CIF } from '../mol-io/reader/cif';
 import { Structure, Model, Queries as Q, StructureElement, StructureSelection, StructureSymmetry, StructureQuery, StructureProperties as SP } from '../mol-model/structure';
 // import { Segmentation, OrderedSet } from '../mol-data/int'
 
-import to_mmCIF from '../mol-model/structure/export/mmcif';
+import { to_mmCIF } from '../mol-model/structure/export/mmcif';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { trajectoryFromMmCIF, MmcifFormat } from '../mol-model-formats/structure/mmcif';
 // import { printUnits } from '../apps/structure-info/model';

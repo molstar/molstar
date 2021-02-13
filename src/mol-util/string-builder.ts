@@ -158,4 +158,4 @@ namespace StringBuilder {
     }
 }
 
-export default StringBuilder;
+export { StringBuilder };

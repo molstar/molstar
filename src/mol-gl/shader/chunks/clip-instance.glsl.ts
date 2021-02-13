@@ -1,4 +1,4 @@
-export default `
+export const clip_instance = `
 #if defined(dClipVariant_instance) && dClipObjectCount != 0
     int flag = 0;
     #if defined(dClipping)
