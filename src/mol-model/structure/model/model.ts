@@ -119,6 +119,8 @@ export namespace Model {
                 ModelSymmetry.Provider.set(m, symmetry);
             }
 
+            TrajectoryInfo.set(m, { index: i, size: frames.length });
+
             trajectory.push(m);
         }
         return { trajectory, srcIndexArray };
