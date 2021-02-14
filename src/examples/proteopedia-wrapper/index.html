@@ -147,7 +147,7 @@
 
             // adjust this number to make the animation faster or slower
             // requires to "restart" the animation if changed
-            PluginWrapper.animate.modelIndex.maxFPS = 30;
+            PluginWrapper.animate.modelIndex.targetFps = 30;
 
             addControl('Play To End', () => PluginWrapper.animate.modelIndex.onceForward());
             addControl('Play To Start', () => PluginWrapper.animate.modelIndex.onceBackward());

@@ -86,7 +86,7 @@
 
             // adjust this number to make the animation faster or slower
             // requires to "restart" the animation if changed
-            BasicMolStarWrapper.animate.modelIndex.maxFPS = 30;
+            BasicMolStarWrapper.animate.modelIndex.targetFps = 30;
 
             addControl('Play To End', () => BasicMolStarWrapper.animate.modelIndex.onceForward());
             addControl('Play To Start', () => BasicMolStarWrapper.animate.modelIndex.onceBackward());
