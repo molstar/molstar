@@ -7,4 +7,4 @@
 
 import * as StructureElement from './element/index';
 
-export default StructureElement;
+export { StructureElement };

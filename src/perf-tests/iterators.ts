@@ -1,5 +1,5 @@
 import * as B from 'benchmark';
-import It from '../mol-data/iterator';
+import { Iterator as It } from '../mol-data/iterator';
 
 function createData(n: number) {
     const data = []; // new Int32Array(n);

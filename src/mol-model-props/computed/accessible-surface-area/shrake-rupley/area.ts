@@ -31,8 +31,6 @@ export async function computeArea(runtime: RuntimeContext, ctx: ShrakeRupleyCont
 const aPos = Vec3();
 const bPos = Vec3();
 const testPoint = Vec3();
-const aLoc = StructureElement.Location.create(void 0 as any);
-const bLoc = StructureElement.Location.create(void 0 as any);
 
 function setLocation(l: StructureElement.Location, structure: Structure, serialIndex: number) {
     l.structure = structure;
@@ -43,6 +41,8 @@ function setLocation(l: StructureElement.Location, structure: Structure, serialI
 
 function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
     const { structure, atomRadiusType, serialResidueIndex, area, spherePoints, scalingConstant, maxLookupRadius, probeSize } = ctx;
+    const aLoc = StructureElement.Location.create(structure);
+    const bLoc = StructureElement.Location.create(structure);
     const { x, y, z } = StructureProperties.atom;
     const { lookup3d, serialMapping, unitIndexMap } = structure;
     const { cumulativeUnitElementCount } = serialMapping;

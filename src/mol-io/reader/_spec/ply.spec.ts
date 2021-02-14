@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Ply from '../ply/parser';
+import { parsePly } from '../ply/parser';
 import { PlyTable, PlyList } from '../ply/schema';
 
 const plyString = `ply
@@ -111,7 +111,7 @@ end_header
 
 describe('ply reader', () => {
     it('basic', async () => {
-        const parsed = await Ply(plyString).run();
+        const parsed = await parsePly(plyString).run();
         if (parsed.isError) return;
         const plyFile = parsed.result;
 
@@ -130,7 +130,7 @@ describe('ply reader', () => {
     });
 
     it('material', async () => {
-        const parsed = await Ply(plyCubeString).run();
+        const parsed = await parsePly(plyCubeString).run();
         if (parsed.isError) return;
         const plyFile = parsed.result;
 

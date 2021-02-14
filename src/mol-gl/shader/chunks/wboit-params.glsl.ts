@@ -1,4 +1,4 @@
-export default `
+export const wboit_params = `
 #if defined(dRenderVariant_colorWboit)
     #if !defined(dRenderMode_volume) && !defined(dRenderMode_isosurface)
         uniform sampler2D tDepth;

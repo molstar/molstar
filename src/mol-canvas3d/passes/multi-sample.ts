@@ -18,13 +18,13 @@ import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Camera } from '../../mol-canvas3d/camera';
 import { PostprocessingProps } from './postprocessing';
 import { DrawPass } from './draw';
-import Renderer from '../../mol-gl/renderer';
-import Scene from '../../mol-gl/scene';
+import { Renderer } from '../../mol-gl/renderer';
+import { Scene } from '../../mol-gl/scene';
 import { Helper } from '../helper/helper';
 import { StereoCamera } from '../camera/stereo';
 
-import quad_vert from '../../mol-gl/shader/quad.vert';
-import compose_frag from '../../mol-gl/shader/compose.frag';
+import { quad_vert } from '../../mol-gl/shader/quad.vert';
+import { compose_frag } from '../../mol-gl/shader/compose.frag';
 
 const ComposeSchema = {
     ...QuadSchema,

@@ -7,7 +7,7 @@
  */
 
 import * as File from '../common/file';
-import execute from './query/execute';
+import { execute } from './query/execute';
 import * as Data from './query/data-model';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import * as DataFormat from '../common/data-format';

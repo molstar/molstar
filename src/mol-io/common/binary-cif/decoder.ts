@@ -13,7 +13,7 @@ import { IsNativeEndianLittle, flipByteOrder } from '../binary';
  * by Alexander Rose <alexander.rose@weirdbyte.de>, MIT License, Copyright (c) 2016
  */
 
-export default function decode(data: EncodedData): any[] {
+export function decode(data: EncodedData): any[] {
     let current: any = data.data;
     for (let i = data.encoding.length - 1; i >= 0; i--) {
         current = decodeStep(current, data.encoding[i]);

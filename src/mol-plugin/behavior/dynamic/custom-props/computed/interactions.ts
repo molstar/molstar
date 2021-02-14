@@ -10,7 +10,7 @@ import { InteractionsProvider } from '../../../../../mol-model-props/computed/in
 import { Structure } from '../../../../../mol-model/structure';
 import { StateSelection } from '../../../../../mol-state';
 import { PluginStateObject } from '../../../../../mol-plugin-state/objects';
-import StructureElement from '../../../../../mol-model/structure/structure/element';
+import { StructureElement } from '../../../../../mol-model/structure/structure/element';
 import { OrderedSet } from '../../../../../mol-data/int';
 import { featureGroupLabel, featureTypeLabel } from '../../../../../mol-model-props/computed/interactions/common';
 import { Loci } from '../../../../../mol-model/loci';

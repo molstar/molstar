@@ -1,4 +1,4 @@
-export default `
+export const assign_color_varying = `
 #if defined(dRenderVariant_color)
     #if defined(dColorType_attribute)
         vColor.rgb = aColor;

@@ -5,10 +5,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import BitFlags from './bit-flags';
-import StringBuilder from './string-builder';
-import UUID from './uuid';
-import Mask from './mask';
+import { BitFlags } from './bit-flags';
+import { StringBuilder } from './string-builder';
+import { UUID } from './uuid';
+import { Mask } from './mask';
 import { Progress } from '../mol-task';
 
 export * from './value-cell';
@@ -102,7 +102,7 @@ export function shallowEqualObjects(a: {}, b: {}) {
     return true;
 }
 
-export default function shallowEqualArrays(a: any[], b: any[]) {
+export function shallowEqualArrays(a: any[], b: any[]) {
     if (a === b) return true;
     if (!a || !b) return false;
     if (a.length !== b.length) return false;

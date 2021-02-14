@@ -8,7 +8,7 @@ import { Volume } from '../../mol-model/volume';
 import { Loci } from '../../mol-model/loci';
 import { Interval, OrderedSet } from '../../mol-data/int';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
-import Vec3 from '../../mol-math/linear-algebra/3d/vec3';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { encodeFloatRGBtoArray } from '../../mol-util/float-packing';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)

@@ -4,9 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Vec3, Mat4, Mat3, Quat } from '../linear-algebra/3d';
 import { lerp as scalar_lerp } from '../../mol-math/interpolate';
 import { defaults } from '../../mol-util';
+import { Mat3 } from '../linear-algebra/3d/mat3';
+import { Mat4 } from '../linear-algebra/3d/mat4';
+import { Quat } from '../linear-algebra/3d/quat';
+import { Vec3 } from '../linear-algebra/3d/vec3';
 
 interface SymmetryOperator {
     readonly name: string,
@@ -51,13 +54,13 @@ namespace SymmetryOperator {
     export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: number, hkl?: Vec3, spgrOp?: number }
     export function create(name: string, matrix: Mat4, info?: CreateInfo): SymmetryOperator {
         let { assembly, ncsId, hkl, spgrOp } = info || { };
-        const _hkl = hkl ? Vec3.clone(hkl) : Vec3.zero();
+        const _hkl = hkl ? Vec3.clone(hkl) : Vec3();
         spgrOp = defaults(spgrOp, -1);
         ncsId = ncsId || -1;
         const suffix = getSuffix(info);
         if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix };
         if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
-        return { name, assembly, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl, spgrOp, ncsId, suffix };
+        return { name, assembly, matrix, inverse: Mat4.invert(Mat4(), matrix), isIdentity: false, hkl: _hkl, spgrOp, ncsId, suffix };
     }
 
     function getSuffix(info?: CreateInfo) {
@@ -101,7 +104,7 @@ namespace SymmetryOperator {
         return create(name, t, { ncsId });
     }
 
-    const _q1 = Quat.identity(), _q2 = Quat.zero(), _q3 = Quat.zero(), _axis = Vec3.zero();
+    const _q1 = Quat.identity(), _q2 = Quat(), _q3 = Quat(), _axis = Vec3();
     export function lerpFromIdentity(out: Mat4, op: SymmetryOperator, t: number): Mat4 {
         const m = op.inverse;
         if (op.isIdentity) return Mat4.copy(out, m);
@@ -145,7 +148,7 @@ namespace SymmetryOperator {
      * Keep `name`, `assembly`, `ncsId`, `hkl` and `spgrOpId` properties from second.
      */
     export function compose(first: SymmetryOperator, second: SymmetryOperator) {
-        const matrix = Mat4.mul(Mat4.zero(), second.matrix, first.matrix);
+        const matrix = Mat4.mul(Mat4(), second.matrix, first.matrix);
         return create(second.name, matrix, second);
     }
 

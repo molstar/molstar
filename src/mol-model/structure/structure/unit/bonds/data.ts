@@ -7,8 +7,8 @@
 
 import { BondType } from '../../../model/types';
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
-import Unit from '../../unit';
-import StructureElement from '../../element';
+import { Unit } from '../../unit';
+import { StructureElement } from '../../element';
 import { Bond } from '../bonds';
 import { InterUnitGraph } from '../../../../../mol-math/graph/inter-unit-graph';
 

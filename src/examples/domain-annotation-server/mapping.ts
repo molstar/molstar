@@ -9,7 +9,7 @@ import { CifWriter } from '../../mol-io/writer/cif';
 import * as S from './schemas';
 // import { getCategoryInstanceProvider } from './utils'
 
-export default function create(allData: any) {
+export function createMapping(allData: any) {
     const mols = Object.keys(allData);
     const enc = CifWriter.createEncoder();
     enc.startDataBlock(mols[0]);

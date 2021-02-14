@@ -99,4 +99,4 @@ namespace Predicates {
     }
 }
 
-export default Predicates;
+export { Predicates };

@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from '../../mol-math/linear-algebra/3d';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { Sphere3D } from './primitives/sphere3d';
 
 export { CentroidHelper };

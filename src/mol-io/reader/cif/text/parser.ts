@@ -784,7 +784,7 @@ async function parseInternal(data: string, runtimeCtx: RuntimeContext) {
     return result(Data.CifFile(dataBlocks));
 }
 
-export default function parse(data: string) {
+export function parseCifText(data: string) {
     return Task.create<Result<Data.CifFile>>('Parse CIF', async ctx => {
         return await parseInternal(data, ctx);
     });

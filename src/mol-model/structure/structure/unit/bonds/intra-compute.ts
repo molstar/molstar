@@ -7,12 +7,12 @@
 
 import { BondType } from '../../../model/types';
 import { IntraUnitBonds } from './data';
-import Unit from '../../unit';
+import { Unit } from '../../unit';
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
 import { BondComputationProps, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, getElementPairThreshold, DefaultBondComputationProps } from './common';
 import { SortedArray } from '../../../../../mol-data/int';
 import { getIntraBondOrderFromTable } from '../../../model/properties/atomic/bonds';
-import StructureElement from '../../element';
+import { StructureElement } from '../../element';
 import { IndexPairBonds } from '../../../../../mol-model-formats/structure/property/bonds/index-pair';
 import { ComponentBond } from '../../../../../mol-model-formats/structure/property/bonds/chem_comp';
 import { StructConn } from '../../../../../mol-model-formats/structure/property/bonds/struct_conn';

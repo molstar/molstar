@@ -1,4 +1,4 @@
-export default `
+export const assign_group = `
 #ifdef dGeoTexture
     float group = decodeFloatRGB(readFromTexture(tGroup, VertexID, uGeoTexDim).rgb);
 #else

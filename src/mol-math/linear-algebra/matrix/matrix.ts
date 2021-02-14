@@ -112,4 +112,4 @@ namespace Matrix {
     }
 }
 
-export default Matrix;
+export { Matrix };

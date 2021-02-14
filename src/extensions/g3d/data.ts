@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import msgpackDecode from '../../mol-io/common/msgpack/decode';
+import { decodeMsgPack } from '../../mol-io/common/msgpack/decode';
 import { PluginContext } from '../../mol-plugin/context';
 import { Task } from '../../mol-task';
 import { inflate } from '../../mol-util/zip/zip';
@@ -41,7 +41,7 @@ export async function getG3dHeader(ctx: PluginContext, urlOrData: string | Uint8
     for (; last >= 0; last--) {
         if (data[last] !== 0) break;
     }
-    const header = msgpackDecode(data.slice(0, last + 1));
+    const header = decodeMsgPack(data.slice(0, last + 1));
     return header;
 }
 
@@ -53,7 +53,7 @@ export async function getG3dDataBlock(ctx: PluginContext, header: G3dHeader, url
     return {
         header,
         resolution,
-        data: msgpackDecode(unzipped)
+        data: decodeMsgPack(unzipped)
     };
 }
 

@@ -8,14 +8,14 @@
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { now } from '../mol-util/now';
 import { Vec3, Vec2 } from '../mol-math/linear-algebra';
-import InputObserver, { ModifiersKeys, ButtonsType } from '../mol-util/input/input-observer';
-import Renderer, { RendererStats, RendererParams } from '../mol-gl/renderer';
+import { InputObserver, ModifiersKeys, ButtonsType } from '../mol-util/input/input-observer';
+import { Renderer, RendererStats, RendererParams } from '../mol-gl/renderer';
 import { GraphicsRenderObject } from '../mol-gl/render-object';
 import { TrackballControls, TrackballControlsParams } from './controls/trackball';
 import { Viewport } from './camera/util';
 import { createContext, WebGLContext, getGLContext } from '../mol-gl/webgl/context';
 import { Representation } from '../mol-repr/representation';
-import Scene from '../mol-gl/scene';
+import { Scene } from '../mol-gl/scene';
 import { PickingId } from '../mol-geo/geometry/picking';
 import { MarkerAction } from '../mol-util/marker-action';
 import { Loci, EmptyLoci, isEmptyLoci } from '../mol-model/loci';

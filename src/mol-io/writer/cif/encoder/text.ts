@@ -7,12 +7,12 @@
  */
 
 import { Column } from '../../../../mol-data/db';
-import StringBuilder from '../../../../mol-util/string-builder';
+import { StringBuilder } from '../../../../mol-util/string-builder';
 import { Category, Field, Encoder } from '../encoder';
-import Writer from '../../writer';
+import { Writer } from '../../writer';
 import { getFieldDigitCount, getIncludedFields, getCategoryInstanceData, CategoryInstanceData } from './util';
 
-export default class TextEncoder implements Encoder<string> {
+export class TextEncoder implements Encoder<string> {
     private builder = StringBuilder.create();
     private encoded = false;
     private dataBlockCreated = false;

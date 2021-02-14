@@ -5,7 +5,7 @@
  */
 
 import { PrincipalAxes } from '../../../../mol-math/linear-algebra/matrix/principal-axes';
-import Unit from '../unit';
+import { Unit } from '../unit';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 
 const tempPos = Vec3.zero();

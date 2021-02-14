@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Type from '../type';
+import { Type } from '../type';
 import { MSymbol, Arguments, Argument } from '../symbol';
 import { symbol, normalizeTable, symbolList } from '../helpers';
 
@@ -167,7 +167,7 @@ const flags = {
     }), Type.Bool, 'Check if the the 1st argument has all 2nd one\'s flags.'),
 };
 
-const table = {
+export const core = {
     '@header': 'Language Primitives',
     type,
     logic,
@@ -180,14 +180,12 @@ const table = {
     flags
 };
 
-normalizeTable(table);
+normalizeTable(core);
 
-export const SymbolList = symbolList(table);
+export const SymbolList = symbolList(core);
 
 export const SymbolMap = (function() {
     const map: { [id: string]: MSymbol | undefined } = Object.create(null);
     for (const s of SymbolList) map[s.id] = s;
     return map;
 })();
-
-export default table;

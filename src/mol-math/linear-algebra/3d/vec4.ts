@@ -17,10 +17,10 @@
  * furnished to do so, subject to the following conditions:
  */
 
-import Mat4 from './mat4';
-import { EPSILON } from '../3d';
+import { Mat4 } from './mat4';
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { Sphere3D } from '../../geometry/primitives/sphere3d';
+import { EPSILON } from './common';
 
 interface Vec4 extends Array<number> { [d: number]: number, '@type': 'vec4', length: 4 }
 
@@ -245,4 +245,4 @@ namespace Vec4 {
     }
 }
 
-export default Vec4;
+export { Vec4 };

@@ -5,7 +5,7 @@
  */
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
-import Scene from '../../mol-gl/scene';
+import { Scene } from '../../mol-gl/scene';
 import { Camera, ICamera } from '../camera';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';

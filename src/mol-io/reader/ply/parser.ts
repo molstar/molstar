@@ -254,10 +254,8 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(result);
 }
 
-export function parse(data: string) {
+export function parsePly(data: string) {
     return Task.create<Result<PlyFile>>('Parse PLY', async ctx => {
         return await parseInternal(data, ctx);
     });
 }
-
-export default parse;

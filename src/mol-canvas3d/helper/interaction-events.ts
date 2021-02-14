@@ -7,7 +7,7 @@
 
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Representation } from '../../mol-repr/representation';
-import InputObserver, { ModifiersKeys, ButtonsType } from '../../mol-util/input/input-observer';
+import { InputObserver, ModifiersKeys, ButtonsType } from '../../mol-util/input/input-observer';
 import { RxEventHelper } from '../../mol-util/rx-event-helper';
 import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { Camera } from '../camera';

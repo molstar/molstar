@@ -7,8 +7,8 @@
 import { RenderableSchema, Values, UnboxedValues, UniformSpec, TextureSpec, DefineSpec, RenderableValues } from '../renderable/schema';
 import { WebGLContext } from '../webgl/context';
 import { getRegularGrid3dDelta, RegularGrid3d } from '../../mol-math/geometry/common';
-import shader_template from '../shader/util/grid3d-template.frag';
-import quad_vert from '../shader/quad.vert';
+import { grid3dTemplate_frag } from '../shader/util/grid3d-template.frag';
+import { quad_vert } from '../shader/quad.vert';
 import { ShaderCode } from '../shader-code';
 import { UUID, ValueCell } from '../../mol-util';
 import { objectForEach } from '../../mol-util/object';
@@ -74,7 +74,7 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
         if (isBound) uniforms.push(`#endif`);
     });
 
-    const code = shader_template
+    const code = grid3dTemplate_frag
         .replace('{UNIFORMS}', uniforms.join('\n'))
         .replace('{UTILS}', spec.utilCode ?? '')
         .replace('{MAIN}', spec.mainCode)

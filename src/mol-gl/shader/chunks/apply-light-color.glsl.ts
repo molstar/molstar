@@ -7,7 +7,7 @@
  * which under the MIT License, Copyright © 2010-2019 three.js authors
  */
 
-export default `
+export const apply_light_color = `
 // inputs
 // - vec4 material
 // - vec3 vViewPosition

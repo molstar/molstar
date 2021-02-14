@@ -5,7 +5,7 @@
  */
 
 import { MonadicParser as P } from '../../mol-util/monadic-parser';
-import Expression from './expression';
+import { Expression } from './expression';
 import { MolScriptBuilder as B } from './builder';
 
 export function parseMolScript(input: string) {

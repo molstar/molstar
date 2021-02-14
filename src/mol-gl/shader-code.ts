@@ -35,38 +35,38 @@ export interface ShaderCode {
     readonly outTypes: FragOutTypes
 }
 
-import apply_fog from './shader/chunks/apply-fog.glsl';
-import apply_interior_color from './shader/chunks/apply-interior-color.glsl';
-import apply_light_color from './shader/chunks/apply-light-color.glsl';
-import apply_marker_color from './shader/chunks/apply-marker-color.glsl';
-import assign_clipping_varying from './shader/chunks/assign-clipping-varying.glsl';
-import assign_color_varying from './shader/chunks/assign-color-varying.glsl';
-import assign_group from './shader/chunks/assign-group.glsl';
-import assign_marker_varying from './shader/chunks/assign-marker-varying.glsl';
-import assign_material_color from './shader/chunks/assign-material-color.glsl';
-import assign_position from './shader/chunks/assign-position.glsl';
-import assign_size from './shader/chunks/assign-size.glsl';
-import check_picking_alpha from './shader/chunks/check-picking-alpha.glsl';
-import clip_instance from './shader/chunks/clip-instance.glsl';
-import clip_pixel from './shader/chunks/clip-pixel.glsl';
-import color_frag_params from './shader/chunks/color-frag-params.glsl';
-import color_vert_params from './shader/chunks/color-vert-params.glsl';
-import common_clip from './shader/chunks/common-clip.glsl';
-import common_frag_params from './shader/chunks/common-frag-params.glsl';
-import common_vert_params from './shader/chunks/common-vert-params.glsl';
-import common from './shader/chunks/common.glsl';
-import float_to_rgba from './shader/chunks/float-to-rgba.glsl';
-import light_frag_params from './shader/chunks/light-frag-params.glsl';
-import matrix_scale from './shader/chunks/matrix-scale.glsl';
-import normal_frag_params from './shader/chunks/normal-frag-params.glsl';
-import read_from_texture from './shader/chunks/read-from-texture.glsl';
-import rgba_to_float from './shader/chunks/rgba-to-float.glsl';
-import size_vert_params from './shader/chunks/size-vert-params.glsl';
-import texture3d_from_1d_trilinear from './shader/chunks/texture3d-from-1d-trilinear.glsl';
-import texture3d_from_2d_linear from './shader/chunks/texture3d-from-2d-linear.glsl';
-import texture3d_from_2d_nearest from './shader/chunks/texture3d-from-2d-nearest.glsl';
-import wboit_params from './shader/chunks/wboit-params.glsl';
-import wboit_write from './shader/chunks/wboit-write.glsl';
+import { apply_fog } from './shader/chunks/apply-fog.glsl';
+import { apply_interior_color } from './shader/chunks/apply-interior-color.glsl';
+import { apply_light_color } from './shader/chunks/apply-light-color.glsl';
+import { apply_marker_color } from './shader/chunks/apply-marker-color.glsl';
+import { assign_clipping_varying } from './shader/chunks/assign-clipping-varying.glsl';
+import { assign_color_varying } from './shader/chunks/assign-color-varying.glsl';
+import { assign_group } from './shader/chunks/assign-group.glsl';
+import { assign_marker_varying } from './shader/chunks/assign-marker-varying.glsl';
+import { assign_material_color } from './shader/chunks/assign-material-color.glsl';
+import { assign_position } from './shader/chunks/assign-position.glsl';
+import { assign_size } from './shader/chunks/assign-size.glsl';
+import { check_picking_alpha } from './shader/chunks/check-picking-alpha.glsl';
+import { clip_instance } from './shader/chunks/clip-instance.glsl';
+import { clip_pixel } from './shader/chunks/clip-pixel.glsl';
+import { color_frag_params } from './shader/chunks/color-frag-params.glsl';
+import { color_vert_params } from './shader/chunks/color-vert-params.glsl';
+import { common_clip } from './shader/chunks/common-clip.glsl';
+import { common_frag_params } from './shader/chunks/common-frag-params.glsl';
+import { common_vert_params } from './shader/chunks/common-vert-params.glsl';
+import { common } from './shader/chunks/common.glsl';
+import { float_to_rgba } from './shader/chunks/float-to-rgba.glsl';
+import { light_frag_params } from './shader/chunks/light-frag-params.glsl';
+import { matrix_scale } from './shader/chunks/matrix-scale.glsl';
+import { normal_frag_params } from './shader/chunks/normal-frag-params.glsl';
+import { read_from_texture } from './shader/chunks/read-from-texture.glsl';
+import { rgba_to_float } from './shader/chunks/rgba-to-float.glsl';
+import { size_vert_params } from './shader/chunks/size-vert-params.glsl';
+import { texture3d_from_1d_trilinear } from './shader/chunks/texture3d-from-1d-trilinear.glsl';
+import { texture3d_from_2d_linear } from './shader/chunks/texture3d-from-2d-linear.glsl';
+import { texture3d_from_2d_nearest } from './shader/chunks/texture3d-from-2d-nearest.glsl';
+import { wboit_params } from './shader/chunks/wboit-params.glsl';
+import { wboit_write } from './shader/chunks/wboit-write.glsl';
 
 const ShaderChunks: { [k: string]: string } = {
     apply_fog,
@@ -127,36 +127,36 @@ export function ShaderCode(name: string, vert: string, frag: string, extensions:
 
 // Note: `drawBuffers` need to be 'optional' for wboit
 
-import points_vert from './shader/points.vert';
-import points_frag from './shader/points.frag';
+import { points_vert } from './shader/points.vert';
+import { points_frag } from './shader/points.frag';
 export const PointsShaderCode = ShaderCode('points', points_vert, points_frag, { drawBuffers: 'optional' });
 
-import spheres_vert from './shader/spheres.vert';
-import spheres_frag from './shader/spheres.frag';
+import { spheres_vert } from './shader/spheres.vert';
+import { spheres_frag } from './shader/spheres.frag';
 export const SpheresShaderCode = ShaderCode('spheres', spheres_vert, spheres_frag, { fragDepth: 'required', drawBuffers: 'optional' });
 
-import cylinders_vert from './shader/cylinders.vert';
-import cylinders_frag from './shader/cylinders.frag';
+import { cylinders_vert } from './shader/cylinders.vert';
+import { cylinders_frag } from './shader/cylinders.frag';
 export const CylindersShaderCode = ShaderCode('cylinders', cylinders_vert, cylinders_frag, { fragDepth: 'required', drawBuffers: 'optional' });
 
-import text_vert from './shader/text.vert';
-import text_frag from './shader/text.frag';
+import { text_vert }from './shader/text.vert';
+import { text_frag } from './shader/text.frag';
 export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { standardDerivatives: 'required', drawBuffers: 'optional' });
 
-import lines_vert from './shader/lines.vert';
-import lines_frag from './shader/lines.frag';
+import { lines_vert } from './shader/lines.vert';
+import { lines_frag } from './shader/lines.frag';
 export const LinesShaderCode = ShaderCode('lines', lines_vert, lines_frag, { drawBuffers: 'optional' });
 
-import mesh_vert from './shader/mesh.vert';
-import mesh_frag from './shader/mesh.frag';
+import { mesh_vert } from './shader/mesh.vert';
+import { mesh_frag } from './shader/mesh.frag';
 export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { standardDerivatives: 'optional', drawBuffers: 'optional' });
 
-import direct_volume_vert from './shader/direct-volume.vert';
-import direct_volume_frag from './shader/direct-volume.frag';
-export const DirectVolumeShaderCode = ShaderCode('direct-volume', direct_volume_vert, direct_volume_frag, { fragDepth: 'optional', drawBuffers: 'optional' });
+import { directVolume_vert } from './shader/direct-volume.vert';
+import { directVolume_frag } from './shader/direct-volume.frag';
+export const DirectVolumeShaderCode = ShaderCode('direct-volume', directVolume_vert, directVolume_frag, { fragDepth: 'optional', drawBuffers: 'optional' });
 
-import image_vert from './shader/image.vert';
-import image_frag from './shader/image.frag';
+import { image_vert } from './shader/image.vert';
+import { image_frag } from './shader/image.frag';
 export const ImageShaderCode = ShaderCode('image', image_vert, image_frag, { drawBuffers: 'optional' });
 
 //

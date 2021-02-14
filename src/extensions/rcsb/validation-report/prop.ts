@@ -19,7 +19,7 @@ import { equalEps } from '../../../mol-math/linear-algebra/3d/common';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { QuerySymbolRuntime } from '../../../mol-script/runtime/query/compiler';
 import { CustomPropSymbol } from '../../../mol-script/language/symbol';
-import Type from '../../../mol-script/language/type';
+import { Type } from '../../../mol-script/language/type';
 import { Asset } from '../../../mol-util/assets';
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 

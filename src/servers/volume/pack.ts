@@ -9,8 +9,8 @@
  */
 
 import * as argparse from 'argparse';
-import pack from './pack/main';
-import VERSION from './pack/version';
+import { pack } from './pack/main';
+import { VERSION } from './pack/version';
 
 type FileFormat = 'ccp4' | 'dsn6'
 

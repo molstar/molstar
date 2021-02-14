@@ -13,7 +13,7 @@
 // because latter actuall return a column of zeros
 import { Column } from '../../../mol-data/db';
 import { TokenBuilder, Tokenizer } from '../common/text/tokenizer';
-import TokenColumn from '../common/text/column/token';
+import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import * as Schema from './schema';
 import { ReaderResult as Result } from '../result';
 import { Task, RuntimeContext, chunkedSubtask } from '../../../mol-task';

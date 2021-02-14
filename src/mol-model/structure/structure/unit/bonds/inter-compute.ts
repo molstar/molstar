@@ -6,13 +6,13 @@
  */
 
 import { BondType, MoleculeType } from '../../../model/types';
-import Structure from '../../structure';
-import Unit from '../../unit';
+import { Structure } from '../../structure';
+import { Unit } from '../../unit';
 import { getElementIdx, getElementPairThreshold, getElementThreshold, isHydrogen, BondComputationProps, MetalsSet, DefaultBondComputationProps } from './common';
 import { InterUnitBonds, InterUnitEdgeProps } from './data';
 import { SortedArray } from '../../../../../mol-data/int';
 import { Vec3, Mat4 } from '../../../../../mol-math/linear-algebra';
-import StructureElement from '../../element';
+import { StructureElement } from '../../element';
 import { ElementIndex } from '../../../model/indexing';
 import { getInterBondOrderFromTable } from '../../../model/properties/atomic/bonds';
 import { IndexPairBonds } from '../../../../../mol-model-formats/structure/property/bonds/index-pair';

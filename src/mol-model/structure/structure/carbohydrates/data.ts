@@ -4,11 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Unit from '../unit';
+import { Unit } from '../unit';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { ResidueIndex, ElementIndex } from '../../model';
 import { SaccharideComponent } from './constants';
-import StructureElement from '../element';
+import { StructureElement } from '../element';
 import { UnitRings } from '../unit/rings';
 
 export interface CarbohydrateLink {

@@ -20,7 +20,7 @@ export const _struct_conf: CifCategory<CifExportContext> = {
     instance(ctx) {
         const elements = findElements(ctx, 'helix');
         return {
-            fields: struct_conf_fields,
+            fields: struct_conf_fields(),
             source: [{ data: elements, rowCount: elements.length }]
         };
     }
@@ -31,7 +31,7 @@ export const _struct_sheet_range: CifCategory<CifExportContext> = {
     instance(ctx) {
         const elements = (findElements(ctx, 'sheet') as SSElement<SecondaryStructure.Sheet>[]).sort(compare_ssr);
         return {
-            fields: struct_sheet_range_fields,
+            fields: struct_sheet_range_fields(),
             source: [{ data: elements, rowCount: elements.length }]
         };
     }
@@ -42,7 +42,7 @@ function compare_ssr(x: SSElement<SecondaryStructure.Sheet>, y: SSElement<Second
     return a.sheet_id < b.sheet_id ? -1 : a.sheet_id === b.sheet_id ? x.start.element - y.start.element : 1;
 };
 
-const struct_conf_fields: CifField[] = [
+const struct_conf_fields = (): CifField[] => [
     CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('conf_type_id', (i, data) => data[i].element.type_id),
     CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('id', (i, data, idx) => `${data[i].element.type_id}${idx + 1}`),
     ...residueIdFields<number, SSElement<SecondaryStructure.Helix>[]>((i, e) => e[i].start, { prefix: 'beg' }),
@@ -54,7 +54,7 @@ const struct_conf_fields: CifField[] = [
     CifField.int<number, SSElement<SecondaryStructure.Helix>[]>('pdbx_PDB_helix_length', (i, data) => data[i].length)
 ];
 
-const struct_sheet_range_fields: CifField[] = [
+const struct_sheet_range_fields = (): CifField[] => [
     CifField.str<number, SSElement<SecondaryStructure.Sheet>[]>('sheet_id', (i, data) => data[i].element.sheet_id),
     CifField.index('id'),
     ...residueIdFields<number, SSElement<SecondaryStructure.Sheet>[]>((i, e) => e[i].start, { prefix: 'beg' }),

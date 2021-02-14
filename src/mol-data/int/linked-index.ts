@@ -55,4 +55,4 @@ class LinkedIndexImpl implements LinkedIndex {
     }
 }
 
-export default LinkedIndex;
+export { LinkedIndex };

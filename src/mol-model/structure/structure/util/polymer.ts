@@ -6,7 +6,7 @@
 
 import { Unit, ElementIndex } from '../../../../mol-model/structure';
 import { Segmentation, OrderedSet, Interval, SortedArray } from '../../../../mol-data/int';
-import SortedRanges from '../../../../mol-data/int/sorted-ranges';
+import { SortedRanges } from '../../../../mol-data/int/sorted-ranges';
 import { isNucleic, isProtein } from '../../../../mol-model/structure/model/types';
 
 export function getAtomicPolymerElements(unit: Unit.Atomic) {

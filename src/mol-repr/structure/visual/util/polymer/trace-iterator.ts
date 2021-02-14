@@ -7,9 +7,9 @@
 import { Unit, StructureElement, ElementIndex, ResidueIndex, Structure } from '../../../../../mol-model/structure';
 import { Segmentation, SortedArray } from '../../../../../mol-data/int';
 import { MoleculeType, SecondaryStructureType } from '../../../../../mol-model/structure/model/types';
-import Iterator from '../../../../../mol-data/iterator';
+import { Iterator } from '../../../../../mol-data/iterator';
 import { Vec3 } from '../../../../../mol-math/linear-algebra';
-import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
+import { SortedRanges } from '../../../../../mol-data/int/sorted-ranges';
 import { CoarseSphereConformation, CoarseGaussianConformation } from '../../../../../mol-model/structure/model/properties/coarse';
 import { getPolymerRanges } from '../polymer';
 import { AtomicConformation } from '../../../../../mol-model/structure/model/properties/atomic';

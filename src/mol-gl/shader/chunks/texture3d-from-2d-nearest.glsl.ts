@@ -5,7 +5,7 @@
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
  */
 
-export default `
+export const texture3d_from_2d_nearest = `
 vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) {
     float zSlice = floor(pos.z * gridDim.z + 0.5); // round to nearest z-slice
     float column = intMod(zSlice * gridDim.x, texDim.x) / gridDim.x;

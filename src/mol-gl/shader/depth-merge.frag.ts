@@ -1,4 +1,4 @@
-export default `
+export const depthMerge_frag = `
 precision highp float;
 precision highp sampler2D;
 

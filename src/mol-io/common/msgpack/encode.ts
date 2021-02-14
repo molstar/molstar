@@ -8,7 +8,7 @@
 
 import { utf8ByteCount, utf8Write } from '../utf8';
 
-export default function encode(value: any) {
+export function encodeMsgPack(value: any) {
     const buffer = new ArrayBuffer(encodedSize(value));
     const view = new DataView(buffer);
     const bytes = new Uint8Array(buffer);

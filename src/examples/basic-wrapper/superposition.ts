@@ -10,7 +10,7 @@ import { superpose } from '../../mol-model/structure/structure/util/superpositio
 import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
-import Expression from '../../mol-script/language/expression';
+import { Expression } from '../../mol-script/language/expression';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { StateObjectRef } from '../../mol-state';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';

@@ -5,7 +5,7 @@
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
  */
 
-export default `
+export const gaussianDensity_frag = `
 precision highp float;
 
 varying vec3 vPosition;

@@ -1,4 +1,4 @@
-export default `
+export const reduction_frag = `
 precision highp float;
 precision highp int;
 precision highp sampler2D;

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Expression from '../../mol-script/language/expression';
+import { Expression } from '../../mol-script/language/expression';
 import { QueryFn, Structure, StructureSelection as Sel, QueryContext } from '../../mol-model/structure';
 import { Script } from '../../mol-script/script';
 import { compile } from '../../mol-script/runtime/query/compiler';

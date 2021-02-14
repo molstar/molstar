@@ -16,7 +16,7 @@ import { MoleculeType } from '../../mol-model/structure/model/types';
 import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
-import Type from '../../mol-script/language/type';
+import { Type } from '../../mol-script/language/type';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
 import { RuntimeContext, Task } from '../../mol-task';
 import { objectForEach } from '../../mol-util/object';

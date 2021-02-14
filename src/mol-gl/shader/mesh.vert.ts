@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export default `
+export const mesh_vert = `
 precision highp float;
 precision highp int;
 precision highp sampler2D;

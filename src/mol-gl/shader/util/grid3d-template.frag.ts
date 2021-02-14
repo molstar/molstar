@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export default `
+export const grid3dTemplate_frag = `
 precision highp float;
 precision highp int;
 precision highp sampler2D;

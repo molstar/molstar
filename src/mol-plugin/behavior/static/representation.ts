@@ -76,11 +76,18 @@ export function UpdateRepresentationVisibility(ctx: PluginContext) {
     ctx.state.data.events.cell.stateUpdated.subscribe(e => {
         const cell = e.state.cells.get(e.ref)!;
         if (!SO.isRepresentation3D(cell.obj)) return;
-        updateVisibility(cell, cell.obj.data.repr);
-        ctx.canvas3d?.syncVisibility();
+
+        if (updateVisibility(cell, cell.obj.data.repr)) {
+            ctx.canvas3d?.syncVisibility();
+        }
     });
 }
 
 function updateVisibility(cell: StateObjectCell, r: Representation<any>) {
-    r.setState({ visible: !cell.state.isHidden });
+    if (r.state.visible === cell.state.isHidden) {
+        r.setState({ visible: !cell.state.isHidden });
+        return true;
+    } else {
+        return false;
+    }
 }

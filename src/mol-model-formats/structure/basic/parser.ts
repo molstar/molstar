@@ -7,7 +7,7 @@
 
 import { Column, Table } from '../../../mol-data/db';
 import { RuntimeContext } from '../../../mol-task';
-import UUID from '../../../mol-util/uuid';
+import { UUID } from '../../../mol-util/uuid';
 import { Model } from '../../../mol-model/structure/model/model';
 import { Entities } from '../../../mol-model/structure/model/properties/common';
 import { CustomProperties } from '../../../mol-model/custom-property';

@@ -10,14 +10,14 @@ import { UniqueArray } from '../../../mol-data/generic';
 import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator';
 import { Model, ElementIndex } from '../model';
 import { sort, arraySwap, hash1, sortArray, hashString, hashFnv32a } from '../../../mol-data/util';
-import StructureElement from './element';
-import Unit from './unit';
+import { StructureElement } from './element';
+import { Unit } from './unit';
 import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
 import { InterUnitBonds, computeInterUnitBonds, Bond } from './unit/bonds';
-import StructureSymmetry from './symmetry';
-import StructureProperties from './properties';
+import { StructureSymmetry } from './symmetry';
+import { StructureProperties } from './properties';
 import { ResidueIndex, ChainIndex, EntityIndex } from '../model/indexing';
 import { Carbohydrates } from './carbohydrates/data';
 import { computeCarbohydrates } from './carbohydrates/compute';
@@ -1231,4 +1231,4 @@ namespace Structure {
     export const Index = CustomStructureProperty.createSimple<Index>('index', 'root');
 }
 
-export default Structure;
+export { Structure };

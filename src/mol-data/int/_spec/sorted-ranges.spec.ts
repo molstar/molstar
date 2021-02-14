@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import SortedRanges from '../sorted-ranges';
-import OrderedSet from '../ordered-set';
-import SortedArray from '../sorted-array';
+import { SortedRanges } from '../sorted-ranges';
+import { OrderedSet } from '../ordered-set';
+import { SortedArray } from '../sorted-array';
 
 describe('rangesArray', () => {
     function test(name: string, a: any, b: any) {

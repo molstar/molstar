@@ -7,7 +7,7 @@
 import { Task, RuntimeContext, chunkedSubtask } from '../../../mol-task';
 import { Tokenizer, TokenBuilder } from '../common/text/tokenizer';
 import { ReaderResult as Result } from '../result';
-import TokenColumn from '../common/text/column/token';
+import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import { Column } from '../../../mol-data/db';
 
 // http://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html

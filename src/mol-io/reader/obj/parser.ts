@@ -20,5 +20,3 @@ export function parse(data: string) {
         return await parseInternal(data, ctx);
     });
 }
-
-export default parse;

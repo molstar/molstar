@@ -13,7 +13,7 @@ import { Model, ResidueIndex, Unit, IndexedCustomProperty } from '../../../mol-m
 import { residueIdFields } from '../../../mol-model/structure/export/categories/atom_site';
 import { StructureElement, CifExportContext, Structure } from '../../../mol-model/structure/structure';
 import { CustomPropSymbol } from '../../../mol-script/language/symbol';
-import Type from '../../../mol-script/language/type';
+import { Type } from '../../../mol-script/language/type';
 import { QuerySymbolRuntime } from '../../../mol-script/runtime/query/compiler';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { arraySetAdd } from '../../../mol-util/array';

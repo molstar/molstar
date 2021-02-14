@@ -1,3 +1,4 @@
+import { Mat3 } from './3d/mat3';
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -5,7 +6,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mat4, Vec3, Vec4, Mat3 } from './3d';
+import { Mat4 } from './3d/mat4';
+import { Vec3 } from './3d/vec3';
+import { Vec4 } from './3d/vec4';
 
 export interface Tensor { data: Tensor.Data, space: Tensor.Space }
 

@@ -17,10 +17,12 @@
  * furnished to do so, subject to the following conditions:
  */
 
-import Mat4 from './mat4';
-import { Quat, Mat3, EPSILON } from '../3d';
+import { Mat4 } from './mat4';
 import { spline as _spline, quadraticBezier as _quadraticBezier, clamp } from '../../interpolate';
 import { NumberArray } from '../../../mol-util/type-helpers';
+import { Mat3 } from './mat3';
+import { Quat } from './quat';
+import { EPSILON } from './common';
 
 export { ReadonlyVec3 };
 
@@ -273,7 +275,7 @@ namespace Vec3 {
     }
 
     export function setMagnitude(out: Vec3, a: Vec3, l: number) {
-        return Vec3.scale(out, Vec3.normalize(out, a), l);
+        return scale(out, normalize(out, a), l);
     }
 
     /**
@@ -339,11 +341,11 @@ namespace Vec3 {
 
     const slerpRelVec = zero();
     export function slerp(out: Vec3, a: Vec3, b: Vec3, t: number) {
-        const dot = clamp(Vec3.dot(a, b), -1, 1);
-        const theta = Math.acos(dot) * t;
-        Vec3.scaleAndAdd(slerpRelVec, b, a, -dot);
-        Vec3.normalize(slerpRelVec, slerpRelVec);
-        return Vec3.add(out, Vec3.scale(out, a, Math.cos(theta)), Vec3.scale(slerpRelVec, slerpRelVec, Math.sin(theta)));
+        const d = clamp(dot(a, b), -1, 1);
+        const theta = Math.acos(d) * t;
+        scaleAndAdd(slerpRelVec, b, a, -d);
+        normalize(slerpRelVec, slerpRelVec);
+        return add(out, scale(out, a, Math.cos(theta)), scale(slerpRelVec, slerpRelVec, Math.sin(theta)));
     }
 
     /**
@@ -562,8 +564,8 @@ namespace Vec3 {
      * i.e. where the dot product is > 0
      */
     export function matchDirection(out: Vec3, a: Vec3, b: Vec3) {
-        if (Vec3.dot(a, b) > 0) Vec3.copy(out, a);
-        else Vec3.negate(out, Vec3.copy(out, a));
+        if (dot(a, b) > 0) copy(out, a);
+        else negate(out, copy(out, a));
         return out;
     }
 
@@ -580,14 +582,14 @@ namespace Vec3 {
         return `[${a[0].toPrecision(precision)} ${a[1].toPrecision(precision)} ${a[2].toPrecision(precision)}]`;
     }
 
-    export const origin: ReadonlyVec3 = Vec3.create(0, 0, 0);
+    export const origin: ReadonlyVec3 = create(0, 0, 0);
 
-    export const unit: ReadonlyVec3 = Vec3.create(1, 1, 1);
-    export const negUnit: ReadonlyVec3 = Vec3.create(-1, -1, -1);
+    export const unit: ReadonlyVec3 = create(1, 1, 1);
+    export const negUnit: ReadonlyVec3 = create(-1, -1, -1);
 
-    export const unitX: ReadonlyVec3 = Vec3.create(1, 0, 0);
-    export const unitY: ReadonlyVec3 = Vec3.create(0, 1, 0);
-    export const unitZ: ReadonlyVec3 = Vec3.create(0, 0, 1);
+    export const unitX: ReadonlyVec3 = create(1, 0, 0);
+    export const unitY: ReadonlyVec3 = create(0, 1, 0);
+    export const unitZ: ReadonlyVec3 = create(0, 0, 1);
 }
 
-export default Vec3;
+export { Vec3 };

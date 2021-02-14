@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import SB from '../string-builder';
+import { StringBuilder as SB } from '../string-builder';
 
 describe('string-builder', () => {
 

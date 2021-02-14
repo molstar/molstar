@@ -13,8 +13,8 @@ import { ShaderCode } from '../../../mol-gl/shader-code';
 import { ValueCell } from '../../../mol-util';
 import { decodeFloatRGB } from '../../../mol-util/float-packing';
 import { QuadSchema, QuadValues } from '../util';
-import quad_vert from '../../../mol-gl/shader/quad.vert';
-import sum_frag from '../../../mol-gl/shader/histogram-pyramid/sum.frag';
+import { quad_vert } from '../../../mol-gl/shader/quad.vert';
+import { sum_frag } from '../../../mol-gl/shader/histogram-pyramid/sum.frag';
 import { isWebGL2 } from '../../webgl/compat';
 
 const HistopyramidSumSchema = {

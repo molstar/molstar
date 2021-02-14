@@ -8,7 +8,7 @@ import { readStructureWrapper, resolveStructures, readDataAndFrame } from '../se
 import { classifyCif } from './converter';
 import { Structure } from '../../../mol-model/structure';
 import { CifWriter } from '../../../mol-io/writer/cif';
-import Writer from '../../../mol-io/writer/writer';
+import { Writer } from '../../../mol-io/writer/writer';
 import { encode_mmCIF_categories, CifExportContext } from '../../../mol-model/structure/export/mmcif';
 import { ModelPropertiesProvider } from '../property-provider';
 import { FileResultWriter } from '../utils/writer';
