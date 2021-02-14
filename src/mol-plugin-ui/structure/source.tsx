@@ -1,23 +1,23 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as React from 'react';
-import { StructureHierarchyRef, ModelRef, TrajectoryRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
+import { Model } from '../../mol-model/structure';
+import { ModelRef, StructureHierarchyRef, TrajectoryRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { StateSelection } from '../../mol-state';
 import { CollapsableControls, CollapsableState } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { Button, IconButton, ExpandGroup } from '../controls/common';
+import { Button, ExpandGroup, IconButton } from '../controls/common';
+import { BookmarksOutlinedSvg, MoleculeSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
-import { StructureFocusControls } from './focus';
 import { UpdateTransformControl } from '../state/update-transform';
+import { StructureFocusControls } from './focus';
 import { StructureSelectionStatsControls } from './selection';
-import { StateSelection } from '../../mol-state';
-import { MoleculeSvg, BookmarksOutlinedSvg } from '../controls/icons';
-import { Model } from '../../mol-model/structure';
 
 interface StructureSourceControlState extends CollapsableState {
     isBusy: boolean,
@@ -214,12 +214,29 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         mng.hierarchy.applyPreset(trajectories, item.value as any);
     }
 
-    updateStructureModel = async (params: any) => {
-        const { selection } = this.plugin.managers.structure.hierarchy;
-        const m = selection.structures[0].model!;
-        this.plugin.state.updateTransform(this.plugin.state.data, m.cell.transform.ref, params, 'Model Index');
-        // TODO: ?? PluginCommands.Camera.Reset(this.plugin);
+    private updateModelQueueParams: any = void 0;
+    private isUpdatingModel = false;
+
+    private async _updateStructureModel() {
+        if (!this.updateModelQueueParams || this.isUpdatingModel) return;
+        const params = this.updateModelQueueParams;
+        this.updateModelQueueParams = void 0;
+
+        try {
+            this.isUpdatingModel = true;
+            const { selection } = this.plugin.managers.structure.hierarchy;
+            const m = selection.structures[0].model!;
+            await this.plugin.state.updateTransform(this.plugin.state.data, m.cell.transform.ref, params, 'Model Index');
+        } finally {
+            this.isUpdatingModel = false;
+            this._updateStructureModel();
+        }
     }
+
+    updateStructureModel = (params: any) => {
+        this.updateModelQueueParams = params;
+        this._updateStructureModel();
+    };
 
     get modelIndex() {
         const { selection } = this.plugin.managers.structure.hierarchy;

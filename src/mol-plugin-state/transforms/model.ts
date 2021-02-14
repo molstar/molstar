@@ -345,9 +345,9 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Model,
     params: a => {
         if (!a) {
-            return { modelIndex: PD.Numeric(0, {}, { description: 'Zero-based index of the model' }) };
+            return { modelIndex: PD.Numeric(0, {}, { description: 'Zero-based index of the model', immediateUpdate: true }) };
         }
-        return { modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.frameCount, step: 1 }, { description: 'Model Index' })) };
+        return { modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.frameCount, step: 1 }, { description: 'Model Index', immediateUpdate: true })) };
     }
 })({
     isApplicable: a => a.data.frameCount > 0,
