@@ -5,7 +5,7 @@
  */
 
 import { StringBuilder } from '../../mol-util';
-import Writer from './writer';
+import { Writer } from './writer';
 import { Encoder, Category, Field } from './cif/encoder';
 import { ComponentAtom } from '../../mol-model-formats/structure/property/atoms/chem_comp';
 import { ComponentBond } from '../../mol-model-formats/structure/property/bonds/chem_comp';

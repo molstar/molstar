@@ -5,8 +5,6 @@
  * @author Alexander Rose <alexanderose@weirdbyte.de>
  */
 
-import Expression from '../language/expression';
+import { Expression } from '../language/expression';
 
-type Parser = (source: string) => Expression
-
-export default Parser;
+export type Parser = (source: string) => Expression

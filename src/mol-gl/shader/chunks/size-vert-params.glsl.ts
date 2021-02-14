@@ -1,4 +1,4 @@
-export default `
+export const size_vert_params = `
 #if defined(dSizeType_uniform)
     uniform float uSize;
 #elif defined(dSizeType_attribute)

@@ -12,23 +12,21 @@ import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
 import E = CifWriter.Encodings
 
-const _label_asym_id = P.chain.label_asym_id;
 function atom_site_label_asym_id(e: StructureElement.Location) {
-    const l = _label_asym_id(e);
+    const l = P.chain.label_asym_id(e);
     const suffix = e.unit.conformation.operator.suffix;
     if (!suffix) return l;
     return l + suffix;
 }
 
-const _auth_asym_id = P.chain.auth_asym_id;
 function atom_site_auth_asym_id(e: StructureElement.Location) {
-    const l = _auth_asym_id(e);
+    const l = P.chain.auth_asym_id(e);
     const suffix = e.unit.conformation.operator.suffix;
     if (!suffix) return l;
     return l + suffix;
 }
 
-const atom_site_fields = CifWriter.fields<StructureElement.Location, Structure>()
+const atom_site_fields = () => CifWriter.fields<StructureElement.Location, Structure>()
     .str('group_PDB', P.residue.group_PDB)
     .index('id')
     .str('type_symbol', P.atom.type_symbol as any)
@@ -73,7 +71,7 @@ export const _atom_site: CifCategory<CifExportContext> = {
     name: 'atom_site',
     instance({ structures }: CifExportContext) {
         return {
-            fields: atom_site_fields,
+            fields: atom_site_fields(),
             source: structures.map(s => ({
                 data: s,
                 rowCount: s.elementCount,

@@ -13,7 +13,7 @@ import * as Sampling from './sampling';
 import * as DataFormat from '../common/data-format';
 import { FileHandle } from '../../../mol-io/common/file-handle';
 
-export default async function pack(input: { name: string, filename: string }[], blockSizeInMB: number, isPeriodic: boolean, outputFilename: string, format: Format.Type) {
+export async function pack(input: { name: string, filename: string }[], blockSizeInMB: number, isPeriodic: boolean, outputFilename: string, format: Format.Type) {
     try {
         await create(outputFilename, input, blockSizeInMB, isPeriodic, format);
     } catch (e) {

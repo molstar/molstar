@@ -6,7 +6,7 @@
 
 // adpated from https://github.com/dankogai/js-combinatorics, MIT 2013-2016 Dan Kogai
 
-import Iterator from '../iterator';
+import { Iterator } from '../iterator';
 
 function P(m: number, n: number) {
     let p = 1;

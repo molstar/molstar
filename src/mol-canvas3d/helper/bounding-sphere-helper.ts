@@ -9,7 +9,7 @@ import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import Scene from '../../mol-gl/scene';
+import { Scene } from '../../mol-gl/scene';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Sphere3D } from '../../mol-math/geometry';
 import { Color } from '../../mol-util/color';

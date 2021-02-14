@@ -54,13 +54,13 @@ export function computeANVIL(structure: Structure, props: ANVILProps) {
     });
 }
 
-const l = StructureElement.Location.create(void 0);
+
 const centroidHelper = new CentroidHelper();
 function initialize(structure: Structure, props: ANVILProps): ANVILContext {
+    const l = StructureElement.Location.create(structure);
     const { label_atom_id, x, y, z } = StructureProperties.atom;
     const elementCount = structure.polymerResidueCount;
     centroidHelper.reset();
-    l.structure = structure;
 
     let offsets = new Int32Array(elementCount);
     let exposed = new Array<boolean>(elementCount);
@@ -328,6 +328,7 @@ namespace HphobHphil {
     const testPoint = Vec3();
     export function filtered(ctx: ANVILContext, label_comp_id: StructureElement.Property<string>, filter?: (test: Vec3) => boolean): HphobHphil {
         const { offsets, exposed, structure } = ctx;
+        const l = StructureElement.Location.create(structure);
         const { x, y, z } = StructureProperties.atom;
         let hphob = 0;
         let hphil = 0;

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export default `
+export const read_from_texture = `
 vec4 readFromTexture(const in sampler2D tex, const in float i, const in vec2 dim) {
     float x = intMod(i, dim.x);
     float y = floor(intDiv(i, dim.x));

@@ -20,7 +20,7 @@ import { Button, ControlGroup, IconButton, ToggleButton } from '../controls/comm
 import { ParameterControls, ParamOnChange, PureSelectControl } from '../controls/parameters';
 import { UnionSvg, SubtractSvg, IntersectSvg, SetSvg, CubeOutlineSvg, Icon, SelectionModeSvg, RemoveSvg, RestoreSvg, HelpOutlineSvg, CancelOutlinedSvg, BrushSvg, CloseSvg } from '../controls/icons';
 import { AddComponentControls } from './components';
-import Structure from '../../mol-model/structure/structure/structure';
+import { Structure } from '../../mol-model/structure/structure/structure';
 import { ViewportHelpContent, HelpGroup, HelpText } from '../viewport/help';
 
 

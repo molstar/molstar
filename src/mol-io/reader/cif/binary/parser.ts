@@ -6,9 +6,9 @@
 
 import * as Data from '../data-model';
 import { EncodedCategory, EncodedFile } from '../../../common/binary-cif';
-import Field from './field';
+import { Field } from './field';
 import { ReaderResult as Result } from '../../result';
-import decodeMsgPack from '../../../common/msgpack/decode';
+import { decodeMsgPack } from '../../../common/msgpack/decode';
 import { Task } from '../../../../mol-task';
 
 function checkVersions(min: number[], current: number[]) {
@@ -36,7 +36,7 @@ function Category(data: EncodedCategory): Data.CifCategory {
     };
 }
 
-export default function parse(data: Uint8Array) {
+export function parseCifBinary(data: Uint8Array) {
     return Task.create<Result<Data.CifFile>>('Parse BinaryCIF', async ctx => {
         const minVersion = [0, 3];
 

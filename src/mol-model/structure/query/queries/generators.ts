@@ -9,7 +9,7 @@ import { UniqueArray } from '../../../../mol-data/generic';
 import { Segmentation, SortedArray } from '../../../../mol-data/int';
 import { ElementIndex } from '../../model';
 import { StructureElement, StructureProperties as P, Unit } from '../../structure';
-import Structure from '../../structure/structure';
+import { Structure } from '../../structure/structure';
 import { UnitRing } from '../../structure/unit/rings';
 import { QueryContextView, QueryFn, QueryPredicate } from '../context';
 import { StructureQuery } from '../query';

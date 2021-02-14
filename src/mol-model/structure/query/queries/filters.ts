@@ -12,8 +12,8 @@ import { StructureSelection } from '../selection';
 import { structureAreIntersecting } from '../utils/structure-set';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { checkStructureMaxRadiusDistance, checkStructureMinMaxDistance } from '../utils/structure-distance';
-import Structure from '../../structure/structure';
-import StructureElement from '../../structure/element';
+import { Structure } from '../../structure/structure';
+import { StructureElement } from '../../structure/element';
 import { SortedArray } from '../../../../mol-data/int';
 
 export function pick(query: StructureQuery, pred: QueryPredicate): StructureQuery {

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export default `
+export const spheres_frag = `
 precision highp float;
 precision highp int;
 

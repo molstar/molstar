@@ -1,4 +1,4 @@
-export default `<!DOCTYPE html>
+export const indexTemplate = `<!DOCTYPE html>
 <html lang="en">
     <head>
         <meta charset="UTF-8">

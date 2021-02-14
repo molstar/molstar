@@ -258,7 +258,7 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
     display: 'Overpaint 3D Representation',
     from: SO.Molecule.Structure.Representation3D,
     to: SO.Molecule.Structure.Representation3DState,
-    params: {
+    params: () => ({
         layers: PD.ObjectList({
             script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
             color: PD.Color(ColorNames.blueviolet),
@@ -270,7 +270,7 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
                 clear: false
             }]
         }),
-    }
+    })
 })({
     canAutoUpdate() {
         return true;
@@ -309,7 +309,7 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
     display: 'Overpaint 3D Representation',
     from: SO.Molecule.Structure.Representation3D,
     to: SO.Molecule.Structure.Representation3DState,
-    params: {
+    params: () => ({
         layers: PD.ObjectList({
             bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
             color: PD.Color(ColorNames.blueviolet),
@@ -322,7 +322,7 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
             }],
             isHidden: true
         }),
-    }
+    })
 })({
     canAutoUpdate() {
         return true;
@@ -361,7 +361,7 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
     display: 'Transparency 3D Representation',
     from: SO.Molecule.Structure.Representation3D,
     to: SO.Molecule.Structure.Representation3DState,
-    params: {
+    params: () => ({
         layers: PD.ObjectList({
             script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
             value: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }, { label: 'Transparency' }),
@@ -371,7 +371,7 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
                 value: 0.5,
             }]
         })
-    }
+    })
 })({
     canAutoUpdate() {
         return true;
@@ -409,7 +409,7 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
     display: 'Transparency 3D Representation',
     from: SO.Molecule.Structure.Representation3D,
     to: SO.Molecule.Structure.Representation3DState,
-    params: {
+    params: () => ({
         layers: PD.ObjectList({
             bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
             value: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }, { label: 'Transparency' }),
@@ -420,7 +420,7 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
             }],
             isHidden: true
         })
-    }
+    })
 })({
     canAutoUpdate() {
         return true;
@@ -458,7 +458,7 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
     display: 'Clipping 3D Representation',
     from: SO.Molecule.Structure.Representation3D,
     to: SO.Molecule.Structure.Representation3DState,
-    params: {
+    params: () => ({
         layers: PD.ObjectList({
             script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
             groups: PD.Converted((g: Clipping.Groups) => Clipping.Groups.toNames(g), n => Clipping.Groups.fromNames(n), PD.MultiSelect(ObjectKeys(Clipping.Groups.Names), PD.objectToOptions(Clipping.Groups.Names))),
@@ -468,7 +468,7 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
                 groups: Clipping.Groups.Flag.None,
             }]
         }),
-    }
+    })
 })({
     canAutoUpdate() {
         return true;
@@ -506,7 +506,7 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
     display: 'Clipping 3D Representation',
     from: SO.Molecule.Structure.Representation3D,
     to: SO.Molecule.Structure.Representation3DState,
-    params: {
+    params: () => ({
         layers: PD.ObjectList({
             bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
             groups: PD.Converted((g: Clipping.Groups) => Clipping.Groups.toNames(g), n => Clipping.Groups.fromNames(n), PD.MultiSelect(ObjectKeys(Clipping.Groups.Names), PD.objectToOptions(Clipping.Groups.Names))),
@@ -517,7 +517,7 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
             }],
             isHidden: true
         }),
-    }
+    })
 })({
     canAutoUpdate() {
         return true;
@@ -705,9 +705,9 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
     display: 'Model Unit Cell',
     from: SO.Molecule.Model,
     to: SO.Shape.Representation3D,
-    params: {
+    params: () => ({
         ...UnitcellParams,
-    }
+    })
 })({
     isApplicable: a => !!ModelSymmetry.Provider.get(a.data),
     canAutoUpdate({ oldParams, newParams }) {
@@ -743,9 +743,9 @@ const StructureSelectionsDistance3D = PluginStateTransform.BuiltIn({
     display: '3D Distance',
     from: SO.Molecule.Structure.Selections,
     to: SO.Shape.Representation3D,
-    params: {
+    params: () => ({
         ...DistanceParams,
-    }
+    })
 })({
     canAutoUpdate({ oldParams, newParams }) {
         return true;
@@ -776,9 +776,9 @@ const StructureSelectionsAngle3D = PluginStateTransform.BuiltIn({
     display: '3D Angle',
     from: SO.Molecule.Structure.Selections,
     to: SO.Shape.Representation3D,
-    params: {
+    params: () => ({
         ...AngleParams,
-    }
+    })
 })({
     canAutoUpdate({ oldParams, newParams }) {
         return true;
@@ -809,9 +809,9 @@ const StructureSelectionsDihedral3D = PluginStateTransform.BuiltIn({
     display: '3D Dihedral',
     from: SO.Molecule.Structure.Selections,
     to: SO.Shape.Representation3D,
-    params: {
+    params: () => ({
         ...DihedralParams,
-    }
+    })
 })({
     canAutoUpdate({ oldParams, newParams }) {
         return true;
@@ -842,9 +842,9 @@ const StructureSelectionsLabel3D = PluginStateTransform.BuiltIn({
     display: '3D Label',
     from: SO.Molecule.Structure.Selections,
     to: SO.Shape.Representation3D,
-    params: {
+    params: () => ({
         ...LabelParams,
-    }
+    })
 })({
     canAutoUpdate({ oldParams, newParams }) {
         return true;
@@ -875,9 +875,9 @@ const StructureSelectionsOrientation3D = PluginStateTransform.BuiltIn({
     display: '3D Orientation',
     from: SO.Molecule.Structure.Selections,
     to: SO.Shape.Representation3D,
-    params: {
+    params: () => ({
         ...OrientationParams,
-    }
+    })
 })({
     canAutoUpdate({ oldParams, newParams }) {
         return true;

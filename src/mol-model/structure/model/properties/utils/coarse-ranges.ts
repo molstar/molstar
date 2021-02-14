@@ -6,7 +6,7 @@
 
 import { CoarseRanges, CoarseElementData } from '../coarse/hierarchy';
 import { Segmentation, Interval } from '../../../../../mol-data/int';
-import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
+import { SortedRanges } from '../../../../../mol-data/int/sorted-ranges';
 import { ElementIndex } from '../../indexing';
 import { ChemicalComponent } from '../common';
 

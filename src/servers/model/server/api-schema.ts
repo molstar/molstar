@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import VERSION from '../version';
+import { VERSION } from '../version';
 import { QueryParamInfo, QueryParamType, QueryDefinition, CommonQueryParamsInfo, QueryList } from './api';
 import { ModelServerConfig as ServerConfig } from '../config';
 import { MultipleQuerySpec } from './api-web-multiple';

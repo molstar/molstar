@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import S from '../sorted-array';
-import I from '../interval';
+import { SortedArray as S } from '../sorted-array';
+import { Interval as I } from '../interval';
 
 type OrderedSetImpl = I | S
 type Nums = ArrayLike<number>

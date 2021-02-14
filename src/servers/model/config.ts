@@ -6,7 +6,7 @@
 
 import * as argparse from 'argparse';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import VERSION from './version';
+import { VERSION } from './version';
 import * as fs from 'fs';
 import { ModelPropertyProviderConfig } from './property-provider';
 

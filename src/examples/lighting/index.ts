@@ -5,7 +5,8 @@
  */
 
 import { Canvas3DProps } from '../../mol-canvas3d/canvas3d';
-import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
+import { createPlugin } from '../../mol-plugin';
+import { DefaultPluginSpec } from '../../mol-plugin/spec';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
@@ -67,7 +68,7 @@ class LightingDemo {
 
     init(target: string | HTMLElement) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...DefaultPluginSpec,
+            ...DefaultPluginSpec(),
             layout: {
                 initial: {
                     isExpanded: false,

@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import UUID from '../../../mol-util/uuid';
-import StructureSequence from './properties/sequence';
+import { UUID } from '../../../mol-util/uuid';
+import { StructureSequence } from './properties/sequence';
 import { AtomicHierarchy, AtomicConformation, AtomicRanges } from './properties/atomic';
 import { CoarseHierarchy, CoarseConformation } from './properties/coarse';
 import { Entities, ChemicalComponentMap, MissingResidues, StructAsymMap } from './properties/common';
@@ -28,7 +28,7 @@ import { Column } from '../../../mol-data/db';
 import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
 import { Trajectory, ArrayTrajectory } from '../trajectory';
 import { Unit } from '../structure';
-import SortedArray from '../../../mol-data/int/sorted-array';
+import { SortedArray } from '../../../mol-data/int/sorted-array';
 
 /**
  * Interface to the "source data" of the molecule.

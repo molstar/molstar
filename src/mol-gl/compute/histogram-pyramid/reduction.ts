@@ -16,8 +16,8 @@ import { Vec2, Vec3 } from '../../../mol-math/linear-algebra';
 import { getHistopyramidSum } from './sum';
 import { Framebuffer } from '../../../mol-gl/webgl/framebuffer';
 import { isPowerOfTwo } from '../../../mol-math/misc';
-import quad_vert from '../../../mol-gl/shader/quad.vert';
-import reduction_frag from '../../../mol-gl/shader/histogram-pyramid/reduction.frag';
+import { quad_vert } from '../../../mol-gl/shader/quad.vert';
+import { reduction_frag } from '../../../mol-gl/shader/histogram-pyramid/reduction.frag';
 import { isWebGL2 } from '../../webgl/compat';
 
 const HistopyramidReductionSchema = {

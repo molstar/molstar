@@ -5,7 +5,7 @@
  */
 
 import { Tensor as T } from '../tensor';
-import { Mat4 } from '../3d';
+import { Mat4 } from '../3d/mat4';
 
 describe('tensor', () => {
     it('vector', () => {
@@ -52,7 +52,7 @@ describe('tensor', () => {
     it('mat4 equiv', () => {
         const M = T.ColumnMajorMatrix(4, 4);
         const data = M.create();
-        const m = Mat4.zero();
+        const m = Mat4();
 
         for (let i = 0; i < 4; i++) {
             for (let j = 0; j < 4; j++) {

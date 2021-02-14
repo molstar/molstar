@@ -6,10 +6,10 @@
 
 import { IntMap, SortedArray } from '../../../../mol-data/int';
 import { sortArray } from '../../../../mol-data/util';
-import StructureElement from '../element';
-import StructureSymmetry from '../symmetry';
-import Unit from '../unit';
-import Structure from '../structure';
+import { StructureElement } from '../element';
+import { StructureSymmetry } from '../symmetry';
+import { Unit } from '../unit';
+import { Structure } from '../structure';
 import { ElementIndex } from '../../model';
 
 export class StructureSubsetBuilder {

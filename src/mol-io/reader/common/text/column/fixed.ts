@@ -8,7 +8,7 @@ import { Column, ColumnHelpers } from '../../../../../mol-data/db';
 import { trimStr, Tokens } from '../tokenizer';
 import { parseIntSkipLeadingWhitespace, parseFloatSkipLeadingWhitespace } from '../number-parser';
 
-export default function FixedColumnProvider(lines: Tokens) {
+export function FixedColumnProvider(lines: Tokens) {
     return function<T extends Column.Schema>(offset: number, width: number, type: T) {
         return FixedColumn(lines, offset, width, type);
     };

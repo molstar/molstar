@@ -5,7 +5,7 @@
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  */
 
-export default `
+export const wboit_write = `
 #if defined(dRenderVariant_colorWboit)
     if (!uRenderWboit) {
         if (preFogAlpha < 1.0) {

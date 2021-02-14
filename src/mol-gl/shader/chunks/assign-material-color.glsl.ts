@@ -1,4 +1,4 @@
-export default `
+export const assign_material_color = `
 #if defined(dRenderVariant_color)
     #if defined(dColorType_uniform)
         vec4 material = vec4(uColor, uAlpha);

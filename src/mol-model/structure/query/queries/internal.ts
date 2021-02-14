@@ -5,9 +5,9 @@
  */
 
 import { Segmentation, SortedArray } from '../../../../mol-data/int';
-import StructureElement from '../../../../mol-model/structure/structure/element';
+import { StructureElement } from '../../../../mol-model/structure/structure/element';
 import { StructureProperties as P, Unit } from '../../structure';
-import Structure from '../../structure/structure';
+import { Structure } from '../../structure/structure';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
 import { QueryContext } from '../context';

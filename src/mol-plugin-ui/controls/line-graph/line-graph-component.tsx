@@ -3,7 +3,7 @@
  *
  * @author Paul Luna <paulluna0215@gmail.com>
  */
-import PointComponent from './point-component';
+import { PointComponent } from './point-component';
 
 import * as React from 'react';
 import { Vec2 } from '../../../mol-math/linear-algebra';
@@ -14,7 +14,7 @@ interface LineGraphComponentState {
     canSelectMultiple: boolean,
 }
 
-export default class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
+export class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
     private myRef: any;
     private height: number;
     private width: number;

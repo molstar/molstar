@@ -5,7 +5,7 @@
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
  */
 
-export default `
+export const texture3d_from_2d_linear = `
 vec4 texture3dFrom2dLinear(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) {
     float zSlice0 = floor(pos.z * gridDim.z);
     float column0 = intMod(zSlice0 * gridDim.x, texDim.x) / gridDim.x;

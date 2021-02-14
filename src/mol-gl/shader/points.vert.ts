@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export default `
+export const points_vert = `
 precision highp float;
 precision highp int;
 

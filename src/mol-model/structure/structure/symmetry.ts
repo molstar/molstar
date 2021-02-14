@@ -12,10 +12,10 @@ import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { RuntimeContext, Task } from '../../../mol-task';
 import { Symmetry, Model } from '../model';
 import { QueryContext, StructureSelection, Queries as Q } from '../query';
-import Structure from './structure';
-import Unit from './unit';
+import { Structure } from './structure';
+import { Unit } from './unit';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
-import StructureProperties from './properties';
+import { StructureProperties } from './properties';
 
 namespace StructureSymmetry {
     export function buildAssembly(structure: Structure, asmName: string) {
@@ -290,4 +290,4 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
     return assembler.getStructure();
 }
 
-export default StructureSymmetry;
+export { StructureSymmetry };

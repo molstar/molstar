@@ -6,7 +6,7 @@
 
 import { Viewport } from '../mol-canvas3d/camera/util';
 import { ICamera } from '../mol-canvas3d/camera';
-import Scene from './scene';
+import { Scene } from './scene';
 import { WebGLContext } from './webgl/context';
 import { Mat4, Vec3, Vec4, Vec2, Quat } from '../mol-math/linear-algebra';
 import { GraphicsRenderable } from './renderable';
@@ -678,4 +678,4 @@ namespace Renderer {
     }
 }
 
-export default Renderer;
+export { Renderer };

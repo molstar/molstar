@@ -3,7 +3,7 @@ import { compile, QuerySymbolRuntime, DefaultQueryRuntimeTable } from '../mol-sc
 import { QueryContext, Structure, StructureQuery } from '../mol-model/structure';
 import { readCifFile, getModelsAndStructure } from '../cli/structure-info/model';
 import { CustomPropSymbol } from '../mol-script/language/symbol';
-import Type from '../mol-script/language/type';
+import { Type } from '../mol-script/language/type';
 import { parseMolScript } from '../mol-script/language/parser';
 import * as util from 'util';
 import { transpileMolScript } from '../mol-script/script/mol-script/symbols';

@@ -5,8 +5,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import FixedColumn from '../common/text/column/fixed';
-import TokenColumn from '../common/text/column/token';
+import { FixedColumnProvider as FixedColumn } from '../common/text/column/fixed';
+import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import { Column, ColumnHelpers } from '../../../mol-data/db';
 
 const lines = [

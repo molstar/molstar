@@ -12,7 +12,7 @@ import { IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds';
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
 import { BitFlags } from '../../../mol-util';
 import { UnitRings } from './unit/rings';
-import StructureElement from './element';
+import { StructureElement } from './element';
 import { ChainIndex, ResidueIndex, ElementIndex } from '../model/indexing';
 import { IntMap, SortedArray, Segmentation } from '../../../mol-data/int';
 import { hash2, hashFnv32a } from '../../../mol-data/util';
@@ -538,4 +538,4 @@ namespace Unit {
     }
 }
 
-export default Unit;
+export { Unit };

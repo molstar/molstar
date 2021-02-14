@@ -6,7 +6,8 @@
  */
 
 import '../../mol-util/polyfill';
-import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
+import { createPlugin } from '../../mol-plugin';
+import { DefaultPluginSpec } from '../../mol-plugin/spec';
 import './index.html';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -69,9 +70,10 @@ class Viewer {
             viewportShowSelectionMode: false,
             viewportShowAnimation: false,
         } };
+        const defaultSpec = DefaultPluginSpec();
 
         const spec: PluginSpec = {
-            actions: [...DefaultPluginSpec.actions],
+            actions: [...defaultSpec.actions],
             behaviors: [
                 PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci, { mark: false }),
                 PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
@@ -81,8 +83,8 @@ class Viewer {
                 PluginSpec.Behavior(PluginBehaviors.CustomProps.Interactions),
                 PluginSpec.Behavior(PluginBehaviors.CustomProps.SecondaryStructure),
             ],
-            animations: [...DefaultPluginSpec.animations || []],
-            customParamEditors: DefaultPluginSpec.customParamEditors,
+            animations: [...defaultSpec.animations || []],
+            customParamEditors: defaultSpec.customParamEditors,
             layout: {
                 initial: {
                     isExpanded: o.layoutIsExpanded,
@@ -90,14 +92,14 @@ class Viewer {
                     controlsDisplay: o.layoutControlsDisplay,
                 },
                 controls: {
-                    ...DefaultPluginSpec.layout && DefaultPluginSpec.layout.controls,
+                    ...defaultSpec.layout && defaultSpec.layout.controls,
                     top: o.layoutShowSequence ? undefined : 'none',
                     bottom: o.layoutShowLog ? undefined : 'none',
                     left: o.layoutShowLeftPanel ? undefined : 'none',
                 }
             },
             components: {
-                ...DefaultPluginSpec.components,
+                ...defaultSpec.components,
                 remoteState: o.layoutShowRemoteState ? 'default' : 'none',
                 viewport: {
                     view: ViewportComponent

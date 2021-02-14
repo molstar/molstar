@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import core from './symbol-table/core';
-import structureQuery from './symbol-table/structure-query';
-import internal from './symbol-table/internal';
+import { core } from './symbol-table/core';
+import { structureQuery } from './symbol-table/structure-query';
+import { internal } from './symbol-table/internal';
 import { normalizeTable, symbolList } from './helpers';
 import { MSymbol } from './symbol';
 

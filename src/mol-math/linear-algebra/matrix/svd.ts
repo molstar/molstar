@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Matrix from './matrix';
+import { Matrix } from './matrix';
 import { NumberArray } from '../../../mol-util/type-helpers';
 
 // svd method adapted from http://inspirit.github.io/jsfeat/ MIT Eugene Zatepyakin

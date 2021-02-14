@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Interval from '../interval';
-import SortedArray from '../sorted-array';
+import { Interval } from '../interval';
+import { SortedArray } from '../sorted-array';
 
 describe('sortedArray', () => {
     function testI(name: string, a: Interval, b: Interval) {

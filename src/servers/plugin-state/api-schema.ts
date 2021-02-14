@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import VERSION from './version';
+import { VERSION } from './version';
 import { Config } from './config';
 
 export function getSchema(config: Config) {

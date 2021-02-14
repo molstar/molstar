@@ -6,8 +6,8 @@
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
-import Renderer from '../../mol-gl/renderer';
-import Scene from '../../mol-gl/scene';
+import { Renderer } from '../../mol-gl/renderer';
+import { Scene } from '../../mol-gl/scene';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { DrawPass } from './draw';
 import { PostprocessingParams } from './postprocessing';

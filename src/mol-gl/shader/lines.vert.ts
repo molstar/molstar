@@ -6,7 +6,7 @@
  * heavily based on code by WestLangley from https://github.com/WestLangley/three.js/blob/af28b2fb706ac109771ecad0a7447fad90ab3210/examples/js/lines/LineMaterial.js
  */
 
-export default `
+export const lines_vert = `
 precision highp float;
 precision highp int;
 

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Expression from '../../language/expression';
+import { Expression } from '../../language/expression';
 import { QueryContext, QueryFn, Structure } from '../../../mol-model/structure';
 import { MSymbol } from '../../language/symbol';
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';

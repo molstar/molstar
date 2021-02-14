@@ -7,7 +7,7 @@
 
 import { Column, Table } from '../../../mol-data/db';
 import { Interval, Segmentation } from '../../../mol-data/int';
-import UUID from '../../../mol-util/uuid';
+import { UUID } from '../../../mol-util/uuid';
 import { ElementIndex, ChainIndex } from '../../../mol-model/structure';
 import { Model } from '../../../mol-model/structure/model/model';
 import { AtomicConformation, AtomicData, AtomicHierarchy, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from '../../../mol-model/structure/model/properties/atomic';

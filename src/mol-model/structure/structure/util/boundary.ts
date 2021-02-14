@@ -6,7 +6,7 @@
  */
 
 import { Sphere3D } from '../../../../mol-math/geometry';
-import Structure from '../structure';
+import { Structure } from '../structure';
 import { BoundaryHelper } from '../../../../mol-math/geometry/boundary-helper';
 import { Boundary } from '../../../../mol-math/geometry/boundary';
 

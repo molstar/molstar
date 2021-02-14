@@ -1,4 +1,4 @@
-export default `
+export const color_vert_params = `
 #if defined(dRenderVariant_color)
     #if defined(dColorType_uniform)
         uniform vec3 uColor;

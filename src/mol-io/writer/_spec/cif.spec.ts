@@ -1,8 +1,8 @@
 import * as Data from '../../reader/cif/data-model';
 import { CifWriter } from '../cif';
-import decodeMsgPack from '../../common/msgpack/decode';
+import { decodeMsgPack } from '../../common/msgpack/decode';
 import { EncodedFile, EncodedCategory } from '../../common/binary-cif';
-import Field from '../../reader/cif/binary/field';
+import { Field } from '../../reader/cif/binary/field';
 import * as C from '../cif/encoder';
 
 const cartn_x = Data.CifField.ofNumbers([1.001, 1.002, 1.003, 1.004, 1.005, 1.006, 1.007, 1.008, 1.009]);

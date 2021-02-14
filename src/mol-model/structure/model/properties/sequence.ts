@@ -137,4 +137,4 @@ namespace StructureSequence {
     }
 }
 
-export default StructureSequence;
+export { StructureSequence };

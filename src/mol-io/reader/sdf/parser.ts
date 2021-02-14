@@ -9,7 +9,7 @@ import { MolFile, handleAtoms, handleBonds } from '../mol/parser';
 import { Task } from '../../../mol-task';
 import { ReaderResult as Result } from '../result';
 import { Tokenizer, TokenBuilder } from '../common/text/tokenizer';
-import TokenColumn from '../common/text/column/token';
+import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 
 /** http://c4.cabrillo.edu/404/ctfile.pdf - page 41 */
 export interface SdfFile {

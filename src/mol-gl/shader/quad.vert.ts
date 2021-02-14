@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export default `
+export const quad_vert = `
 precision highp float;
 
 attribute vec2 aPosition;

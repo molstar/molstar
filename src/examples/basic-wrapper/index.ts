@@ -6,7 +6,8 @@
 
 import { EmptyLoci } from '../../mol-model/loci';
 import { StructureSelection } from '../../mol-model/structure';
-import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
+import { createPlugin } from '../../mol-plugin';
+import { DefaultPluginSpec } from '../../mol-plugin/spec';
 import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in/model-index';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -28,7 +29,7 @@ class BasicWrapper {
 
     init(target: string | HTMLElement) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...DefaultPluginSpec,
+            ...DefaultPluginSpec(),
             layout: {
                 initial: {
                     isExpanded: false,

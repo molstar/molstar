@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from '../linear-algebra/3d';
+import { Vec3 } from '../linear-algebra/3d/vec3';
 import { CentroidHelper } from './centroid-helper';
 import { Sphere3D } from '../geometry';
 import { Box3D } from './primitives/box3d';

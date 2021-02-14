@@ -18,11 +18,11 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { DrawPass } from './draw';
 import { ICamera } from '../../mol-canvas3d/camera';
-import quad_vert from '../../mol-gl/shader/quad.vert';
-import outlines_frag from '../../mol-gl/shader/outlines.frag';
-import ssao_frag from '../../mol-gl/shader/ssao.frag';
-import ssao_blur_frag from '../../mol-gl/shader/ssao-blur.frag';
-import postprocessing_frag from '../../mol-gl/shader/postprocessing.frag';
+import { quad_vert } from '../../mol-gl/shader/quad.vert';
+import { outlines_frag } from '../../mol-gl/shader/outlines.frag';
+import { ssao_frag } from '../../mol-gl/shader/ssao.frag';
+import { ssaoBlur_frag } from '../../mol-gl/shader/ssao-blur.frag';
+import { postprocessing_frag } from '../../mol-gl/shader/postprocessing.frag';
 import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
 import { Color } from '../../mol-util/color';
 import { FxaaParams, FxaaPass } from './fxaa';
@@ -143,7 +143,7 @@ function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, dir
     };
 
     const schema = { ...SsaoBlurSchema };
-    const shaderCode = ShaderCode('ssao_blur', quad_vert, ssao_blur_frag);
+    const shaderCode = ShaderCode('ssao_blur', quad_vert, ssaoBlur_frag);
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);
@@ -237,10 +237,10 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
 export const PostprocessingParams = {
     occlusion: PD.MappedStatic('on', {
         on: PD.Group({
-            samples: PD.Numeric(64, {min: 1, max: 256, step: 1}),
+            samples: PD.Numeric(32, {min: 1, max: 256, step: 1}),
             radius: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, { description: 'Final radius is 2^x.' }),
             bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
-            blurKernelSize: PD.Numeric(20, { min: 1, max: 25, step: 2 }),
+            blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),

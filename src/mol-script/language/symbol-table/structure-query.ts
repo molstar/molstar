@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Type from '../type';
+import { Type } from '../type';
 import * as Core from './core';
 import { Arguments, Argument } from '../symbol';
 import { symbol } from '../helpers';
@@ -339,7 +339,7 @@ function bondProp(type: Type, description?: string) {
     return symbol(Arguments.None, type, description);
 }
 
-export default {
+export const structureQuery = {
     '@header': 'Structure Queries',
     type,
     slot,

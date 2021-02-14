@@ -5,8 +5,8 @@
  */
 
 import { Unit, StructureElement, ElementIndex, ResidueIndex, Structure } from '../../../../../mol-model/structure';
-import Iterator from '../../../../../mol-data/iterator';
-import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
+import { Iterator } from '../../../../../mol-data/iterator';
+import { SortedRanges } from '../../../../../mol-data/int/sorted-ranges';
 import { getGapRanges } from '../polymer';
 
 /** Iterates over gaps, i.e. the stem residues/coarse elements adjacent to gaps */

@@ -4,7 +4,7 @@
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  */
 
-export default `
+export const ssaoBlur_frag = `
 precision highp float;
 precision highp int;
 precision highp sampler2D;
