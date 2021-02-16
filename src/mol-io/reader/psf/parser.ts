@@ -58,24 +58,44 @@ async function handleAtoms(state: State, count: number): Promise<PsfFile['atoms'
     const charge = TokenBuilder.create(tokenizer.data, count * 2);
     const mass = TokenBuilder.create(tokenizer.data, count * 2);
 
+    const { position } = tokenizer;
+    const line = readLine(tokenizer).trim();
+    tokenizer.position = position;
+
+    // LAMMPS full
+    // AtomID ResID AtomName AtomType Charge Mass Unused0
+    const isLammpsFull = line.split(reWhitespace).length === 7;
+    const n = isLammpsFull ? 6 : 8;
+
     const { length } = tokenizer;
     let linesAlreadyRead = 0;
-    await chunkedSubtask(state.runtimeCtx, 10, void 0, chunkSize => {
+    await chunkedSubtask(state.runtimeCtx, 100000, void 0, chunkSize => {
         const linesToRead = Math.min(count - linesAlreadyRead, chunkSize);
         for (let i = 0; i < linesToRead; ++i) {
-            for (let j = 0; j < 8; ++j) {
+            for (let j = 0; j < n; ++j) {
                 skipWhitespace(tokenizer);
                 markStart(tokenizer);
                 eatValue(tokenizer);
-                switch (j) {
-                    case 0: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 1: TokenBuilder.addUnchecked(segmentName, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 2: TokenBuilder.addUnchecked(residueId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 3: TokenBuilder.addUnchecked(residueName, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 4: TokenBuilder.addUnchecked(atomName, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 5: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 6: TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 7: TokenBuilder.addUnchecked(mass, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                if (isLammpsFull) {
+                    switch (j) {
+                        case 0: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        case 1: TokenBuilder.addUnchecked(residueId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        case 2: TokenBuilder.addUnchecked(atomName, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        case 3: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        case 4: TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        case 5: TokenBuilder.addUnchecked(mass, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                    }
+                } else {
+                    switch (j) {
+                        case 0: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        case 1: TokenBuilder.addUnchecked(segmentName, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        case 2: TokenBuilder.addUnchecked(residueId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        case 3: TokenBuilder.addUnchecked(residueName, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        case 4: TokenBuilder.addUnchecked(atomName, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        case 5: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        case 6: TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        case 7: TokenBuilder.addUnchecked(mass, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                    }
                 }
             }
             // ignore any extra columns
@@ -89,9 +109,13 @@ async function handleAtoms(state: State, count: number): Promise<PsfFile['atoms'
     return {
         count,
         atomId: TokenColumn(atomId)(Column.Schema.int),
-        segmentName: TokenColumn(segmentName)(Column.Schema.str),
+        segmentName: isLammpsFull
+            ? TokenColumn(residueId)(Column.Schema.str)
+            : TokenColumn(segmentName)(Column.Schema.str),
         residueId: TokenColumn(residueId)(Column.Schema.int),
-        residueName: TokenColumn(residueName)(Column.Schema.str),
+        residueName: isLammpsFull
+            ? TokenColumn(residueId)(Column.Schema.str)
+            : TokenColumn(residueName)(Column.Schema.str),
         atomName: TokenColumn(atomName)(Column.Schema.str),
         atomType: TokenColumn(atomType)(Column.Schema.str),
         charge: TokenColumn(charge)(Column.Schema.float),
