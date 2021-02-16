@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -22,6 +22,9 @@ import { Spheres } from '../../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../../mol-geo/geometry/spheres/spheres-builder';
 import { isTrace, isH } from './common';
 import { Sphere3D } from '../../../../mol-math/geometry';
+
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3add = Vec3.add;
 
 type ElementProps = {
     ignoreHydrogens: boolean,
@@ -59,27 +62,38 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     const v = Vec3();
     const pos = unit.conformation.invariantPosition;
     const ignore = makeElementIgnoreTest(unit, props);
-    const l = StructureElement.Location.create(structure);
-    l.unit = unit;
-
+    const l = StructureElement.Location.create(structure, unit);
+    const themeSize = theme.size.size;
+    const center = Vec3();
     let maxSize = 0;
+    let count = 0;
 
     for (let i = 0; i < elementCount; i++) {
         if (ignore && ignore(unit, elements[i])) continue;
 
         l.element = elements[i];
         pos(elements[i], v);
+        v3add(center, center, v);
+        count += 1;
 
         builderState.currentGroup = i;
-        const size = theme.size.size(l);
+        const size = themeSize(l);
         if (size > maxSize) maxSize = size;
 
         addSphere(builderState, v, size * sizeFactor, detail);
     }
 
+    // re-use boundingSphere if it has not changed much
+    let boundingSphere: Sphere3D;
+    Vec3.scale(center, center, 1 / count);
+    if (mesh && Vec3.distance(center, mesh.boundingSphere.center) / mesh.boundingSphere.radius < 1.0) {
+        boundingSphere = Sphere3D.clone(mesh.boundingSphere);
+    } else {
+        boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxSize * sizeFactor + 0.05);
+    }
+
     const m = MeshBuilder.getMesh(builderState);
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxSize * sizeFactor + 0.05);
-    m.setBoundingSphere(sphere);
+    m.setBoundingSphere(boundingSphere);
 
     return m;
 }
@@ -98,21 +112,35 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     const ignore = makeElementIgnoreTest(unit, props);
 
     const l = StructureElement.Location.create(structure, unit);
+    const themeSize = theme.size.size;
+    const center = Vec3();
     let maxSize = 0;
+    let count = 0;
 
     for (let i = 0; i < elementCount; i++) {
         if (ignore?.(unit, elements[i])) continue;
 
         pos(elements[i], v);
         builder.add(v[0], v[1], v[2], i);
+        v3add(center, center, v);
+        count += 1;
 
         l.element = elements[i];
-        const size = theme.size.size(l);
+        const size = themeSize(l);
         if (size > maxSize) maxSize = size;
     }
 
+    // re-use boundingSphere if it has not changed much
+    let boundingSphere: Sphere3D;
+    Vec3.scale(center, center, 1 / count);
+    if (spheres && Vec3.distance(center, spheres.boundingSphere.center) / spheres.boundingSphere.radius < 1.0) {
+        boundingSphere = Sphere3D.clone(spheres.boundingSphere);
+    } else {
+        boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxSize * props.sizeFactor + 0.05);
+    }
+
     const s = builder.getSpheres();
-    s.setBoundingSphere(Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxSize * props.sizeFactor + 0.05));
+    s.setBoundingSphere(boundingSphere);
 
     return s;
 }
