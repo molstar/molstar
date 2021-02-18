@@ -175,7 +175,7 @@ async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Vol
 
     const { texture, gridDimension, gridTexDim, gridTexScale, transform } = VolumeIsosurfaceTexture.get(volume, ctx.webgl);
 
-    const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, false, textureMesh?.vertexTexture.ref.value, textureMesh?.groupTexture.ref.value, textureMesh?.normalTexture.ref.value);
+    const gv = await extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, false, textureMesh?.vertexTexture.ref.value, textureMesh?.groupTexture.ref.value, textureMesh?.normalTexture.ref.value);
 
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, Volume.getBoundingSphere(volume), textureMesh);
 
