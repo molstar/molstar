@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -33,6 +33,8 @@ import { OccupancyColorThemeProvider } from './color/occupancy';
 import { OperatorNameColorThemeProvider } from './color/operator-name';
 import { OperatorHklColorThemeProvider } from './color/operator-hkl';
 import { PartialChargeColorThemeProvider } from './color/partial-charge';
+import { AtomIdColorThemeProvider } from './color/atom-id';
+import { EntityIdColorThemeProvider } from './color/entity-id';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -80,10 +82,12 @@ namespace ColorTheme {
     }
 
     export const BuiltIn = {
+        'atom-id': AtomIdColorThemeProvider,
         'carbohydrate-symbol': CarbohydrateSymbolColorThemeProvider,
         'chain-id': ChainIdColorThemeProvider,
         'element-index': ElementIndexColorThemeProvider,
         'element-symbol': ElementSymbolColorThemeProvider,
+        'entity-id': EntityIdColorThemeProvider,
         'entity-source': EntitySourceColorThemeProvider,
         'hydrophobicity': HydrophobicityColorThemeProvider,
         'illustrative': IllustrativeColorThemeProvider,
