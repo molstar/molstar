@@ -25,12 +25,11 @@ const Canvas3DPresets = {
             mode: 'temporal' as Canvas3DProps['multiSample']['mode']
         },
         postprocessing: {
-            occlusion: { name: 'on', params: { samples: 64, radius: 8, bias: 1.0, blurKernelSize: 13 } },
-            outline: { name: 'on', params: { scale: 1, threshold: 0.33 } }
+            occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15 } },
+            outline: { name: 'on', params: { scale: 1, threshold: 0.1 } }
         },
         renderer: {
-            ambientIntensity: 1,
-            lightIntensity: 0,
+            style: { name: 'flat', params: {} }
         }
     },
     occlusion: <Preset> {
@@ -38,12 +37,11 @@ const Canvas3DPresets = {
             mode: 'temporal' as Canvas3DProps['multiSample']['mode']
         },
         postprocessing: {
-            occlusion: { name: 'on', params: { samples: 64, radius: 8, bias: 1.0, blurKernelSize: 13 } },
+            occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15 } },
             outline: { name: 'off', params: { } }
         },
         renderer: {
-            ambientIntensity: 0.4,
-            lightIntensity: 0.6,
+            style: { name: 'matte', params: {} }
         }
     },
     standard: <Preset> {
@@ -55,16 +53,20 @@ const Canvas3DPresets = {
             outline: { name: 'off', params: { } }
         },
         renderer: {
-            ambientIntensity: 0.4,
-            lightIntensity: 0.6,
+            style: { name: 'matte', params: {} }
         }
     }
 };
+
 
 type Canvas3DPreset = keyof typeof Canvas3DPresets
 
 class LightingDemo {
     plugin: PluginContext;
+
+    private radius = 5;
+    private bias = 1.1;
+    private preset: Canvas3DPreset = 'illustrative';
 
     init(target: string | HTMLElement) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
@@ -83,6 +85,10 @@ class LightingDemo {
 
     setPreset(preset: Canvas3DPreset) {
         const props = Canvas3DPresets[preset];
+        if (props.postprocessing.occlusion?.name === 'on') {
+            props.postprocessing.occlusion.params.radius = this.radius;
+            props.postprocessing.occlusion.params.bias = this.bias;
+        }
         PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: {
             ...props,
             multiSample: {
@@ -100,7 +106,7 @@ class LightingDemo {
         }});
     }
 
-    async load({ url, format = 'mmcif', isBinary = false, assemblyId = '' }: LoadParams) {
+    async load({ url, format = 'mmcif', isBinary = true, assemblyId = '' }: LoadParams, radius: number, bias: number) {
         await this.plugin.clear();
 
         const data = await this.plugin.builders.data.download({ url: Asset.Url(url), isBinary }, { state: { isGhost: true } });
@@ -112,7 +118,11 @@ class LightingDemo {
         if (polymer) await this.plugin.builders.structure.representation.addRepresentation(polymer, { type: 'spacefill', color: 'illustrative' });
 
         const ligand = await this.plugin.builders.structure.tryCreateComponentStatic(structure, 'ligand');
-        if (ligand) await this.plugin.builders.structure.representation.addRepresentation(ligand, { type: 'ball-and-stick' });
+        if (ligand) await this.plugin.builders.structure.representation.addRepresentation(ligand, { type: 'ball-and-stick', color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } });
+
+        this.radius = radius;
+        this.bias = bias;
+        this.setPreset(this.preset);
     }
 }
 
