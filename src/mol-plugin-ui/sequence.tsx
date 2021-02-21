@@ -383,10 +383,10 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
 
                     if (values.mode === 'single') return elem;
 
-                    return <>
+                    return <React.Fragment key={i}>
                         <div className='msp-sequence-chain-label'>{s.label}</div>
                         {elem}
-                    </>;
+                    </React.Fragment>;
                 })}
             </NonEmptySequenceWrapper>
         </div>;
