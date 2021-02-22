@@ -177,4 +177,4 @@ Funding sources include but are not limited to:
 * [RCSB PDB](https://www.rcsb.org) funding by a grant [DBI-1338415; PI: SK Burley] from the NSF, the NIH, and the US DoE
 * [PDBe, EMBL-EBI](https://pdbe.org)
 * [CEITEC](https://www.ceitec.eu/)
-* [EntosAI](https://www.entos.ai) (``alpha-orbitals`` extension)
+* [EntosAI](https://www.entos.ai)

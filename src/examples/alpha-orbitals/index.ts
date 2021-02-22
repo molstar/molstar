@@ -53,14 +53,24 @@ export class AlphaOrbitalsExample {
     plugin: PluginContext;
 
     async init(target: string | HTMLElement) {
+        const defaultSpec = DefaultPluginSpec();
         this.plugin = await createPluginAsync(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...DefaultPluginSpec(),
+            ...defaultSpec,
             layout: {
                 initial: {
                     isExpanded: false,
                     showControls: false
                 },
                 controls: { left: 'none', right: 'none', top: 'none', bottom: 'none' },
+            },
+            components: {
+                viewport: {
+                    canvas3d: {
+                        camera: {
+                            helper: { axes: { name: 'off', params: { } } }
+                        }
+                    }
+                }
             },
             config: [
                 [PluginConfig.Viewport.ShowExpand, false],
