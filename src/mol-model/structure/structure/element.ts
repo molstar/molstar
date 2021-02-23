@@ -5,6 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as StructureElement from './element/index';
+import * as StructureElement from './element/element';
 
 export { StructureElement };
