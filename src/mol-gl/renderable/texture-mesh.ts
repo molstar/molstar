@@ -13,7 +13,7 @@ import { ValueCell } from '../../mol-util';
 
 export const TextureMeshSchema = {
     ...BaseSchema,
-    uGeoTexDim: UniformSpec('v2'),
+    uGeoTexDim: UniformSpec('v2', 'buffered'),
     tPosition: TextureSpec('texture', 'rgb', 'float', 'nearest'),
     tGroup: TextureSpec('texture', 'alpha', 'float', 'nearest'),
     tNormal: TextureSpec('texture', 'rgb', 'float', 'nearest'),

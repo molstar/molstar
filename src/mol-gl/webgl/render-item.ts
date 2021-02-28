@@ -17,6 +17,8 @@ import { checkFramebufferStatus } from './framebuffer';
 import { isDebugMode } from '../../mol-util/debug';
 import { VertexArray } from './vertex-array';
 import { fillSerial } from '../../mol-util/array';
+import { deepClone } from '../../mol-util/object';
+import { cloneUniformValues } from './uniform';
 
 const getNextRenderItemId = idFactory();
 
@@ -123,10 +125,12 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         (schema as any).aVertex = AttributeSpec('float32', 1, 0);
     }
 
-    const { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues } = splitValues(schema, values);
+    const { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues, bufferedUniformValues } = splitValues(schema, values);
 
     const uniformValueEntries = Object.entries(uniformValues);
     const materialUniformValueEntries = Object.entries(materialUniformValues);
+    const backBufferUniformValueEntries = Object.entries(bufferedUniformValues);
+    const frontBufferUniformValueEntries = Object.entries(cloneUniformValues(bufferedUniformValues));
     const defineValueEntries = Object.entries(defineValues);
 
     const versions = getValueVersions(values);
@@ -192,6 +196,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     currentProgramId = program.id;
                 }
                 program.setUniforms(uniformValueEntries);
+                program.setUniforms(frontBufferUniformValueEntries);
                 if (sharedTexturesList && sharedTexturesList.length > 0) {
                     program.bindTextures(sharedTexturesList, 0);
                     program.bindTextures(textures, sharedTexturesList.length);
@@ -318,11 +323,20 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     if (schema[k].kind !== 'texture') {
                         // console.log('texture version changed, uploading image', k);
                         texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
-                        versions[k] = value.ref.version;
                         valueChanges.textures = true;
                     } else {
                         textures[i][1] = value.ref.value as Texture;
                     }
+                    versions[k] = value.ref.version;
+                }
+            }
+
+            for (let i = 0, il = backBufferUniformValueEntries.length; i < il; ++i) {
+                const [k, uniform] = backBufferUniformValueEntries[i];
+                if (uniform.ref.version !== versions[k]) {
+                    // console.log('back-buffer uniform version changed, updating front-buffer', k);
+                    ValueCell.update(frontBufferUniformValueEntries[i][1], deepClone(uniform.ref.value));
+                    versions[k] = uniform.ref.version;
                 }
             }
 

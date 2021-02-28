@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,6 +9,7 @@ import { ValueCell } from '../../mol-util';
 import { GLRenderingContext } from './compat';
 import { RenderableSchema } from '../../mol-gl/renderable/schema';
 import { ValueOf } from '../../mol-util/type-helpers';
+import { deepClone } from '../../mol-util/object';
 
 export type UniformKindValue = {
     'b': boolean; 'b[]': boolean[]
@@ -105,4 +106,12 @@ export function isUniformValueScalar(kind: UniformKind): boolean {
         default:
             return false;
     }
+}
+
+export function cloneUniformValues(uniformValues: UniformValues): UniformValues {
+    const clonedValues: UniformValues = {};
+    Object.keys(uniformValues).forEach(k => {
+        clonedValues[k] = ValueCell.create(deepClone(uniformValues[k].ref.value));
+    });
+    return clonedValues;
 }

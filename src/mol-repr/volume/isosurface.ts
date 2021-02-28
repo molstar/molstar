@@ -175,7 +175,8 @@ async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Vol
 
     const { texture, gridDimension, gridTexDim, gridTexScale, transform } = VolumeIsosurfaceTexture.get(volume, ctx.webgl);
 
-    const gv = await extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, false, textureMesh?.vertexTexture.ref.value, textureMesh?.groupTexture.ref.value, textureMesh?.normalTexture.ref.value);
+    const buffer = textureMesh?.doubleBuffer.get();
+    const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, false, buffer?.vertex, buffer?.group, buffer?.normal);
 
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, Volume.getBoundingSphere(volume), textureMesh);
 
@@ -200,6 +201,7 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
             geometry.vertexTexture.ref.value.destroy();
             geometry.groupTexture.ref.value.destroy();
             geometry.normalTexture.ref.value.destroy();
+            geometry.doubleBuffer.destroy();
         }
     }, materialId);
 }

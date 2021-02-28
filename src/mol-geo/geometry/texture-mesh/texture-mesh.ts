@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -36,11 +36,36 @@ export interface TextureMesh {
     readonly vertexTexture: ValueCell<Texture>,
     readonly groupTexture: ValueCell<Texture>,
     readonly normalTexture: ValueCell<Texture>,
+    readonly doubleBuffer: TextureMesh.DoubleBuffer
 
     readonly boundingSphere: Sphere3D
 }
 
 export namespace TextureMesh {
+    export class DoubleBuffer {
+        private index = 0;
+        private textures: ({ vertex: Texture, group: Texture, normal: Texture } | undefined)[] = []
+
+        get() {
+            return this.textures[this.index];
+        }
+
+        set(vertex: Texture, group: Texture, normal: Texture) {
+            this.textures[this.index] = Object.assign(this.textures[this.index] || {}, {
+                vertex, group, normal
+            });
+            this.index = (this.index + 1) % 2;
+        }
+
+        destroy() {
+            for (const buffer of this.textures) {
+                buffer!.vertex.destroy();
+                buffer!.group.destroy();
+                buffer!.normal.destroy();
+            }
+        }
+    }
+
     export function create(vertexCount: number, groupCount: number, vertexTexture: Texture, groupTexture: Texture, normalTexture: Texture, boundingSphere: Sphere3D, textureMesh?: TextureMesh): TextureMesh {
         const width = vertexTexture.getWidth();
         const height = vertexTexture.getHeight();
@@ -49,7 +74,9 @@ export namespace TextureMesh {
             textureMesh.groupCount = groupCount;
             ValueCell.update(textureMesh.geoTextureDim, Vec2.set(textureMesh.geoTextureDim.ref.value, width, height));
             ValueCell.update(textureMesh.vertexTexture, vertexTexture);
+            ValueCell.update(textureMesh.groupTexture, groupTexture);
             ValueCell.update(textureMesh.normalTexture, normalTexture);
+            textureMesh.doubleBuffer.set(vertexTexture, groupTexture, normalTexture);
             Sphere3D.copy(textureMesh.boundingSphere, boundingSphere);
             return textureMesh;
         } else {
@@ -61,6 +88,7 @@ export namespace TextureMesh {
                 vertexTexture: ValueCell.create(vertexTexture),
                 groupTexture: ValueCell.create(groupTexture),
                 normalTexture: ValueCell.create(normalTexture),
+                doubleBuffer: new DoubleBuffer(),
                 boundingSphere: Sphere3D.clone(boundingSphere),
             };
         }
