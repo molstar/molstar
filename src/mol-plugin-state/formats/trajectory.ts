@@ -103,6 +103,15 @@ export const PdbqtProvider: TrajectoryFormatProvider = {
     visuals: defaultVisuals
 };
 
+export const XyzProvider: TrajectoryFormatProvider = {
+    label: 'XYZ',
+    description: 'XYZ',
+    category: TrajectoryFormatCategory,
+    stringExtensions: ['xyz'],
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromXYZ),
+    visuals: defaultVisuals
+};
+
 export const GroProvider: TrajectoryFormatProvider = {
     label: 'GRO',
     description: 'GRO',
@@ -137,6 +146,7 @@ export const BuiltInTrajectoryFormats = [
     ['pdb', PdbProvider] as const,
     ['pdbqt', PdbqtProvider] as const,
     ['gro', GroProvider] as const,
+    ['xyz', XyzProvider] as const,
     ['mol', MolProvider] as const,
     ['mol2', Mol2Provider] as const,
 ] as const;

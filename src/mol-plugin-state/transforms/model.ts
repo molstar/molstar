@@ -37,6 +37,8 @@ import { parseMol2 } from '../../mol-io/reader/mol2/parser';
 import { trajectoryFromMol2 } from '../../mol-model-formats/structure/mol2';
 import { parseXtc } from '../../mol-io/reader/xtc/parser';
 import { coordinatesFromXtc } from '../../mol-model-formats/structure/xtc';
+import { parseXyz } from '../../mol-io/reader/xyz/parser';
+import { trajectoryFromXyz } from '../../mol-model-formats/structure/xyz';
 
 export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
@@ -46,6 +48,7 @@ export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
 export { TrajectoryFromGRO };
+export { TrajectoryFromXYZ };
 export { TrajectoryFromMOL };
 export { TrajectoryFromMOL2 };
 export { TrajectoryFromCube };
@@ -247,6 +250,24 @@ const TrajectoryFromGRO = PluginStateTransform.BuiltIn({
             const parsed = await parseGRO(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromGRO(parsed.result).runInContext(ctx);
+            const props = trajectoryProps(models);
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
+
+type TrajectoryFromXYZ = typeof TrajectoryFromXYZ
+const TrajectoryFromXYZ = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-xyz',
+    display: { name: 'Parse XYZ', description: 'Parse XYZ string and create trajectory.' },
+    from: [SO.Data.String],
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse XYZ', async ctx => {
+            const parsed = await parseXyz(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const models = await trajectoryFromXyz(parsed.result).runInContext(ctx);
             const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
