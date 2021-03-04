@@ -18,7 +18,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
     params: () => ({
         mode: PD.MappedStatic('loop', {
             palindrome: PD.Group({ }),
-            loop: PD.Group({ }),
+            loop: PD.Group({ direction: PD.Select('forward', [['forward', 'Forward'], ['backward', 'Backward']]) }),
             once: PD.Group({ direction: PD.Select('forward', [['forward', 'Forward'], ['backward', 'Backward']]) }, { isFlat: true })
         }, { options: [['palindrome', 'Palindrome'], ['loop', 'Loop'], ['once', 'Once']] }),
         duration: PD.MappedStatic('fixed', {
@@ -125,8 +125,11 @@ export const AnimateModelIndex = PluginStateAnimation.create({
                         : Math.ceil(1000 * traj.data.frameCount / params.duration.params.targetFps);
 
                     let phase: number = (t.current % durationInMs) / durationInMs;
-
-                    if (params.mode.name === 'palindrome') {
+                    if (params.mode.name === 'loop') {
+                        if (params.mode.params.direction === 'backward') {
+                            phase = 1 - phase;
+                        }
+                    } if (params.mode.name === 'palindrome') {
                         phase = 2 * phase;
                         if (phase > 1) phase =  2 - phase;
                     }
