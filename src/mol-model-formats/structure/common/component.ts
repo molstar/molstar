@@ -50,6 +50,7 @@ const StandardComponents = (function() {
         { id: 'ASP', name: 'ASPARTIC ACID', type: 'L-peptide linking' },
         { id: 'GLU', name: 'GLUTAMIC ACID', type: 'L-peptide linking' },
         { id: 'THR', name: 'THREONINE', type: 'L-peptide linking' },
+        { id: 'PRO', name: 'PROLINE', type: 'L-peptide linking' },
         { id: 'SEC', name: 'SELENOCYSTEINE', type: 'L-peptide linking' },
         { id: 'PYL', name: 'PYRROLYSINE', type: 'L-peptide linking' },
 
