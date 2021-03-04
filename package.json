@@ -144,7 +144,7 @@
     "react-dom": "^17.0.1",
     "rxjs": "^6.6.3",
     "swagger-ui-dist": "^3.37.2",
-    "tslib": "^2.0.3",
+    "tslib": "^2.1.0",
     "util.promisify": "^1.0.1",
     "xhr2": "^0.2.0"
   }

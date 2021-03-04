@@ -4,25 +4,25 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { BehaviorSubject } from 'rxjs';
+import { debounceTime, skip } from 'rxjs/operators';
+import { AlphaOrbital, Basis } from '../../extensions/alpha-orbitals/data-model';
 import { SphericalBasisOrder } from '../../extensions/alpha-orbitals/spherical-functions';
 import { BasisAndOrbitals, CreateOrbitalDensityVolume, CreateOrbitalRepresentation3D, CreateOrbitalVolume, StaticBasisAndOrbitals } from '../../extensions/alpha-orbitals/transforms';
-import { createPluginAsync } from '../../mol-plugin';
-import { DefaultPluginSpec } from '../../mol-plugin/spec';
+import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { createPluginAsync } from '../../mol-plugin-ui';
+import { PluginUIContext } from '../../mol-plugin-ui/context';
+import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
-import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector, StateTransformer } from '../../mol-state';
 import { Color } from '../../mol-util/color';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { mountControls } from './controls';
 import { DemoMoleculeSDF, DemoOrbitals } from './example-data';
-import { BehaviorSubject } from 'rxjs';
-import { debounceTime, skip } from 'rxjs/operators';
 import './index.html';
-import { Basis, AlphaOrbital } from '../../extensions/alpha-orbitals/data-model';
-import { PluginCommands } from '../../mol-plugin/commands';
-import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d';
 require('mol-plugin-ui/skin/light.scss');
 
 interface DemoInput {
@@ -50,10 +50,10 @@ type Selectors = {
 }
 
 export class AlphaOrbitalsExample {
-    plugin: PluginContext;
+    plugin: PluginUIContext;
 
     async init(target: string | HTMLElement) {
-        const defaultSpec = DefaultPluginSpec();
+        const defaultSpec = DefaultPluginUISpec();
         this.plugin = await createPluginAsync(typeof target === 'string' ? document.getElementById(target)! : target, {
             ...defaultSpec,
             layout: {
@@ -61,15 +61,13 @@ export class AlphaOrbitalsExample {
                     isExpanded: false,
                     showControls: false
                 },
-                controls: { left: 'none', right: 'none', top: 'none', bottom: 'none' },
             },
             components: {
-                viewport: {
-                    canvas3d: {
-                        camera: {
-                            helper: { axes: { name: 'off', params: { } } }
-                        }
-                    }
+                controls: { left: 'none', right: 'none', top: 'none', bottom: 'none' },
+            },
+            canvas3d: {
+                camera: {
+                    helper: { axes: { name: 'off', params: { } } }
                 }
             },
             config: [

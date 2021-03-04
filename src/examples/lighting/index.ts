@@ -5,13 +5,13 @@
  */
 
 import { Canvas3DProps } from '../../mol-canvas3d/canvas3d';
-import { createPlugin } from '../../mol-plugin';
-import { DefaultPluginSpec } from '../../mol-plugin/spec';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
+import { createPlugin } from '../../mol-plugin-ui';
+import { PluginUIContext } from '../../mol-plugin-ui/context';
+import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { PluginContext } from '../../mol-plugin/context';
-import './index.html';
 import { Asset } from '../../mol-util/assets';
+import './index.html';
 require('mol-plugin-ui/skin/light.scss');
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }
@@ -62,7 +62,7 @@ const Canvas3DPresets = {
 type Canvas3DPreset = keyof typeof Canvas3DPresets
 
 class LightingDemo {
-    plugin: PluginContext;
+    plugin: PluginUIContext;
 
     private radius = 5;
     private bias = 1.1;
@@ -70,12 +70,14 @@ class LightingDemo {
 
     init(target: string | HTMLElement) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...DefaultPluginSpec(),
+            ...DefaultPluginUISpec(),
             layout: {
                 initial: {
                     isExpanded: false,
                     showControls: false
                 },
+            },
+            components: {
                 controls: { left: 'none', right: 'none', top: 'none', bottom: 'none' }
             }
         });

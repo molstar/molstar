@@ -7,15 +7,15 @@
 
 import * as React from 'react';
 import { Observable, Subscription } from 'rxjs';
-import { PluginContext } from '../mol-plugin/context';
+import { PluginUIContext } from './context';
 import { Button, ColorAccent } from './controls/common';
 import { Icon, ArrowRightSvg, ArrowDropDownSvg } from './controls/icons';
 
-export const PluginReactContext = React.createContext(void 0 as any as PluginContext);
+export const PluginReactContext = React.createContext(void 0 as any as PluginUIContext);
 
 export abstract class PluginUIComponent<P = {}, S = {}, SS = {}> extends React.Component<P, S, SS> {
     static contextType = PluginReactContext;
-    readonly plugin: PluginContext;
+    readonly plugin: PluginUIContext;
 
     private subs: Subscription[] | undefined = void 0;
 
@@ -33,7 +33,7 @@ export abstract class PluginUIComponent<P = {}, S = {}, SS = {}> extends React.C
     protected init?(): void;
 
     constructor(props: P, context?: any) {
-        super(props, context);
+        super(props);
         this.plugin = context;
         if (this.init) this.init();
     }
@@ -41,7 +41,7 @@ export abstract class PluginUIComponent<P = {}, S = {}, SS = {}> extends React.C
 
 export abstract class PurePluginUIComponent<P = {}, S = {}, SS = {}> extends React.PureComponent<P, S, SS> {
     static contextType = PluginReactContext;
-    readonly plugin: PluginContext;
+    readonly plugin: PluginUIContext;
 
     private subs: Subscription[] | undefined = void 0;
 

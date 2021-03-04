@@ -5,31 +5,32 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import '../../mol-util/polyfill';
-import { createPlugin } from '../../mol-plugin';
-import { DefaultPluginSpec } from '../../mol-plugin/spec';
-import './index.html';
-import { PluginContext } from '../../mol-plugin/context';
-import { PluginCommands } from '../../mol-plugin/commands';
-import { PluginSpec } from '../../mol-plugin/spec';
-import { PluginConfig } from '../../mol-plugin/config';
-import { ObjectKeys } from '../../mol-util/type-helpers';
-import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
-import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { Structure } from '../../mol-model/structure';
-import { PluginStateTransform, PluginStateObject as PSO } from '../../mol-plugin-state/objects';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Task } from '../../mol-task';
-import { StateObject } from '../../mol-state';
-import { ViewportComponent, StructurePreset, ShowButtons } from './viewport';
+import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
+import { PluginStateObject as PSO, PluginStateTransform } from '../../mol-plugin-state/objects';
+import { createPlugin } from '../../mol-plugin-ui';
+import { PluginUIContext } from '../../mol-plugin-ui/context';
+import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
+import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginBehaviors } from '../../mol-plugin/behavior';
-import { ColorNames } from '../../mol-util/color/names';
+import { PluginCommands } from '../../mol-plugin/commands';
+import { PluginConfig } from '../../mol-plugin/config';
+import { PluginSpec } from '../../mol-plugin/spec';
+import { StateObject } from '../../mol-state';
+import { Task } from '../../mol-task';
 import { Color } from '../../mol-util/color';
+import { ColorNames } from '../../mol-util/color/names';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import '../../mol-util/polyfill';
+import { ObjectKeys } from '../../mol-util/type-helpers';
+import './index.html';
+import { ShowButtons, StructurePreset, ViewportComponent } from './viewport';
 
 require('mol-plugin-ui/skin/light.scss');
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { setProductionMode, setDebugMode } from '../../mol-util/debug';
+export { setDebugMode, setProductionMode } from '../../mol-util/debug';
+export { Viewer as DockingViewer };
 
 const DefaultViewerOptions = {
     extensions: ObjectKeys({}),
@@ -53,7 +54,7 @@ const DefaultViewerOptions = {
 };
 
 class Viewer {
-    plugin: PluginContext
+    plugin: PluginUIContext
 
     constructor(elementOrId: string | HTMLElement, colors = [Color(0x992211), Color(0xDDDDDD)], showButtons = true) {
         const o = { ...DefaultViewerOptions, ...{
@@ -70,10 +71,10 @@ class Viewer {
             viewportShowSelectionMode: false,
             viewportShowAnimation: false,
         } };
-        const defaultSpec = DefaultPluginSpec();
+        const defaultSpec = DefaultPluginUISpec();
 
-        const spec: PluginSpec = {
-            actions: [...defaultSpec.actions],
+        const spec: PluginUISpec = {
+            actions: defaultSpec.actions,
             behaviors: [
                 PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci, { mark: false }),
                 PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
@@ -83,7 +84,7 @@ class Viewer {
                 PluginSpec.Behavior(PluginBehaviors.CustomProps.Interactions),
                 PluginSpec.Behavior(PluginBehaviors.CustomProps.SecondaryStructure),
             ],
-            animations: [...defaultSpec.animations || []],
+            animations: defaultSpec.animations,
             customParamEditors: defaultSpec.customParamEditors,
             layout: {
                 initial: {
@@ -91,15 +92,15 @@ class Viewer {
                     showControls: o.layoutShowControls,
                     controlsDisplay: o.layoutControlsDisplay,
                 },
-                controls: {
-                    ...defaultSpec.layout && defaultSpec.layout.controls,
-                    top: o.layoutShowSequence ? undefined : 'none',
-                    bottom: o.layoutShowLog ? undefined : 'none',
-                    left: o.layoutShowLeftPanel ? undefined : 'none',
-                }
             },
             components: {
                 ...defaultSpec.components,
+                controls: {
+                    ...defaultSpec.components?.controls,
+                    top: o.layoutShowSequence ? undefined : 'none',
+                    bottom: o.layoutShowLog ? undefined : 'none',
+                    left: o.layoutShowLeftPanel ? undefined : 'none',
+                },
                 remoteState: o.layoutShowRemoteState ? 'default' : 'none',
                 viewport: {
                     view: ViewportComponent
@@ -210,4 +211,3 @@ const MergeStructures = PluginStateTransform.BuiltIn({
 });
 
 (window as any).DockingViewer = Viewer;
-export { Viewer as DockingViewer };

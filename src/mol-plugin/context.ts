@@ -8,44 +8,51 @@
 import produce, { setAutoFreeze } from 'immer';
 import { List } from 'immutable';
 import { merge, Subscription } from 'rxjs';
+import { filter, take } from 'rxjs/operators';
 import { Canvas3D, Canvas3DContext, DefaultCanvas3DParams } from '../mol-canvas3d/canvas3d';
+import { resizeCanvas } from '../mol-canvas3d/util';
+import { Vec2 } from '../mol-math/linear-algebra';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { Model, Structure } from '../mol-model/structure';
 import { DataBuilder } from '../mol-plugin-state/builder/data';
 import { StructureBuilder } from '../mol-plugin-state/builder/structure';
 import { DataFormatRegistry } from '../mol-plugin-state/formats/registry';
 import { StructureSelectionQueryRegistry } from '../mol-plugin-state/helpers/structure-selection-query';
+import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
 import { CameraManager } from '../mol-plugin-state/manager/camera';
 import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
 import { LociLabel, LociLabelManager } from '../mol-plugin-state/manager/loci-label';
+import { PluginStateSnapshotManager } from '../mol-plugin-state/manager/snapshots';
 import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
 import { StructureFocusManager } from '../mol-plugin-state/manager/structure/focus';
 import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure/hierarchy';
 import { StructureHierarchyRef } from '../mol-plugin-state/manager/structure/hierarchy-state';
 import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
-import { PluginUIComponent } from '../mol-plugin-ui/base';
-import { StateTransformParameters } from '../mol-plugin-ui/state/common';
+import { VolumeHierarchyManager } from '../mol-plugin-state/manager/volume/hierarchy';
+import { LeftPanelTabName, PluginLayout } from './layout';
 import { Representation } from '../mol-repr/representation';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
 import { StateTransform } from '../mol-state';
-import { Task, RuntimeContext } from '../mol-task';
+import { RuntimeContext, Task } from '../mol-task';
 import { ColorTheme } from '../mol-theme/color';
 import { SizeTheme } from '../mol-theme/size';
 import { ThemeRegistryContext } from '../mol-theme/theme';
+import { AssetManager } from '../mol-util/assets';
 import { Color } from '../mol-util/color';
 import { ajaxGet } from '../mol-util/data-source';
 import { isDebugMode, isProductionMode } from '../mol-util/debug';
 import { ModifiersKeys } from '../mol-util/input/input-observer';
 import { LogEntry } from '../mol-util/log-entry';
+import { objectForEach } from '../mol-util/object';
 import { RxEventHelper } from '../mol-util/rx-event-helper';
+import { PluginAnimationLoop } from './animation-loop';
 import { BuiltInPluginBehaviors } from './behavior';
 import { PluginBehavior } from './behavior/behavior';
 import { PluginCommandManager } from './command';
 import { PluginCommands } from './commands';
 import { PluginConfig, PluginConfigManager } from './config';
-import { LeftPanelTabName, PluginLayout } from './layout';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
 import { SubstructureParentHelper } from './util/substructure-parent-helper';
@@ -53,15 +60,6 @@ import { TaskManager } from './util/task-manager';
 import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
-import { AssetManager } from '../mol-util/assets';
-import { PluginStateSnapshotManager } from '../mol-plugin-state/manager/snapshots';
-import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
-import { objectForEach } from '../mol-util/object';
-import { VolumeHierarchyManager } from '../mol-plugin-state/manager/volume/hierarchy';
-import { filter, take } from 'rxjs/operators';
-import { Vec2 } from '../mol-math/linear-algebra';
-import { PluginAnimationLoop } from './animation-loop';
-import { resizeCanvas } from '../mol-canvas3d/util';
 
 export class PluginContext {
     runTask = <T>(task: Task<T>, params?: { useOverlay?: boolean }) => this.managers.task.run(task, params);
@@ -71,7 +69,7 @@ export class PluginContext {
         return object;
     }
 
-    private subs: Subscription[] = [];
+    protected subs: Subscription[] = [];
 
     private disposed = false;
     private ev = RxEventHelper.create();
@@ -109,8 +107,8 @@ export class PluginContext {
 
     readonly canvas3dContext: Canvas3DContext | undefined;
     readonly canvas3d: Canvas3D | undefined;
-    readonly animationLoop = new PluginAnimationLoop(this);
     readonly layout = new PluginLayout(this);
+    readonly animationLoop = new PluginAnimationLoop(this);
 
     readonly representation = {
         structure: {
@@ -176,9 +174,8 @@ export class PluginContext {
 
     readonly customModelProperties = new CustomProperty.Registry<Model>();
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
-    readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
-    readonly customStructureControls = new Map<string, { new(): PluginUIComponent<any, any, any> }>();
+    readonly customStructureControls = new Map<string, { new(): any /* contructible react components */ }>();
     readonly genericRepresentationControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [StructureHierarchyRef[], string]>();
 
     /**
@@ -200,7 +197,7 @@ export class PluginContext {
             (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, { antialias, preserveDrawingBuffer, pixelScale, pickScale, enableWboit });
             (this.canvas3d as Canvas3D) = Canvas3D.create(this.canvas3dContext!);
             this.canvas3dInit.next(true);
-            let props = this.spec.components?.viewport?.canvas3d;
+            let props = this.spec.canvas3d;
 
             const backgroundColor = Color(0xFCFBF9);
             if (!props) {
@@ -294,7 +291,6 @@ export class PluginContext {
         this.ev.dispose();
         this.state.dispose();
         this.managers.task.dispose();
-        this.layout.dispose();
         this.helpers.substructureParent.dispose();
 
         objectForEach(this.managers, m => (m as any)?.dispose?.());
@@ -385,24 +381,10 @@ export class PluginContext {
         }
     }
 
-    private initDataActions() {
-        for (const a of this.spec.actions) {
-            this.state.data.actions.add(a.action);
-        }
-    }
-
     private initAnimations() {
         if (!this.spec.animations) return;
         for (const anim of this.spec.animations) {
             this.managers.animation.register(anim);
-        }
-    }
-
-    private initCustomParamEditors() {
-        if (!this.spec.customParamEditors) return;
-
-        for (const [t, e] of this.spec.customParamEditors) {
-            this.customParamEditors.set(t.id, e);
         }
     }
 
@@ -417,9 +399,7 @@ export class PluginContext {
         (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
         (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
 
-        this.initDataActions();
         this.initAnimations();
-        this.initCustomParamEditors();
 
         await this.initBehaviors();
 

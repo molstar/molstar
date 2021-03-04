@@ -7,7 +7,6 @@
 
 import * as React from 'react';
 import { Mat4, Vec2, Vec3 } from '../../mol-math/linear-algebra';
-import { PluginContext } from '../../mol-plugin/context';
 import { Color } from '../../mol-util/color';
 import { ColorListName, ColorListOptions, ColorListOptionsScale, ColorListOptionsSet, getColorListFromName } from '../../mol-util/color/lists';
 import { Legend as LegendData } from '../../mol-util/legend';
@@ -26,6 +25,7 @@ import { LineGraphComponent } from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
 import { Asset } from '../../mol-util/assets';
 import { ColorListEntry } from '../../mol-util/color/color';
+import { PluginUIContext } from '../context';
 
 export type ParameterControlsCategoryFilter = string | null | (string | null)[]
 
@@ -104,7 +104,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
     }
 }
 
-export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: ParamMapping<S, T, PluginContext> }> {
+export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: ParamMapping<S, T, PluginUIContext> }> {
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }, old: any) => {
         const values = { ...old, [p.name]: p.value };
         const t = this.props.mapping.update(values, this.plugin);

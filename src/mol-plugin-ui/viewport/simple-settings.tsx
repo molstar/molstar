@@ -9,13 +9,13 @@ import { produce } from 'immer';
 import * as React from 'react';
 import { Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { PluginContext } from '../../mol-plugin/context';
 import { StateTransform } from '../../mol-state';
 import { Color } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParamMapping } from '../../mol-util/param-mapping';
 import { Mutable } from '../../mol-util/type-helpers';
 import { PluginUIComponent } from '../base';
+import { PluginUIContext } from '../context';
 import { ParameterMappingControl } from '../controls/parameters';
 import { ViewportHelpContent } from './help';
 
@@ -71,9 +71,9 @@ const SimpleSettingsParams = {
 
 type SimpleSettingsParams = typeof SimpleSettingsParams
 const SimpleSettingsMapping = ParamMapping({
-    params: (ctx: PluginContext) => {
+    params: (ctx: PluginUIContext) => {
         const params = PD.clone(SimpleSettingsParams);
-        const controls = ctx.spec.layout?.controls;
+        const controls = ctx.spec.components?.controls;
         if (controls) {
             const options: [LayoutOptions, string][] = [];
             if (controls.top !== 'none') options.push(['sequence', LayoutOptions.sequence]);
@@ -83,8 +83,8 @@ const SimpleSettingsMapping = ParamMapping({
         }
         return params;
     },
-    target(ctx: PluginContext) {
-        const c = ctx.spec.layout?.controls;
+    target(ctx: PluginUIContext) {
+        const c = ctx.spec.components?.controls;
         const r = ctx.layout.state.regionState;
         const layout: SimpleSettingsParams['layout']['defaultValue'] = [];
         if (r.top !== 'hidden' && (!c || c.top !== 'none')) layout.push('sequence');
