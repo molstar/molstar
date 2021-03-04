@@ -159,6 +159,7 @@ const modifier = {
         0: Argument(Types.ElementSelectionQuery),
         'bond-test': Argument(Type.Bool, { isOptional: true, defaultValue: 'true for covalent bonds' as any }),
         'layer-count': Argument(Type.Num, { isOptional: true, defaultValue: 1, description: 'Number of bonded layers to include.' }),
+        'fixed-point': Argument(Type.Bool, { isOptional: true, defaultValue: false, description: 'Continue adding layers as long as new connections exist.' }),
         'as-whole-residues': Argument(Type.Bool, { isOptional: true })
     }), Types.ElementSelectionQuery, 'Pick all atom sets that are connected to the target.'),
 

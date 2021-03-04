@@ -267,7 +267,8 @@ const symbols = [
             query: xs[0] as any,
             bondTest: xs['bond-test'],
             wholeResidues: !!(xs['as-whole-residues'] && xs['as-whole-residues'](ctx)),
-            layerCount: (xs['layer-count'] && xs['layer-count'](ctx)) || 1
+            layerCount: (xs['layer-count'] && xs['layer-count'](ctx)) || 1,
+            fixedPoint: xs['fixed-point']?.(ctx) ?? false
         })(ctx);
     }),
 

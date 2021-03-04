@@ -446,6 +446,16 @@ const covalentlyBonded = StructureSelectionQuery('Residues Covalently Bonded to 
     referencesCurrent: true
 });
 
+const covalentlyBondedComponent = StructureSelectionQuery('Covalently Bonded Component', MS.struct.modifier.union([
+    MS.struct.modifier.includeConnected({
+        0: MS.internal.generator.current(), 'fixed-point': true
+    })
+]), {
+    description: 'Select covalently bonded component based on current selection.',
+    category: StructureSelectionCategory.Manipulate,
+    referencesCurrent: true
+});
+
 const covalentlyOrMetallicBonded = StructureSelectionQuery('Residues with Cov. or Metallic Bond to Selection', MS.struct.modifier.union([
     MS.struct.modifier.includeConnected({
         0: MS.internal.generator.current(),
@@ -638,6 +648,7 @@ export const StructureSelectionQueries = {
     complement,
     covalentlyBonded,
     covalentlyOrMetallicBonded,
+    covalentlyBondedComponent,
     wholeResidues,
 };
 

@@ -306,10 +306,11 @@ export interface IncludeConnectedParams {
     query: StructureQuery,
     bondTest?: QueryFn<boolean>,
     layerCount: number,
-    wholeResidues: boolean
+    wholeResidues: boolean,
+    fixedPoint: boolean
 }
 
-export function includeConnected({ query, layerCount, wholeResidues, bondTest }: IncludeConnectedParams): StructureQuery {
+export function includeConnected({ query, layerCount, wholeResidues, bondTest, fixedPoint }: IncludeConnectedParams): StructureQuery {
     const lc = Math.max(layerCount, 0);
     return function query_includeConnected(ctx) {
         const builder = StructureSelection.UniqueBuilder(ctx.inputStructure);
@@ -318,8 +319,17 @@ export function includeConnected({ query, layerCount, wholeResidues, bondTest }:
         ctx.atomicBond.setTestFn(bondTest);
         StructureSelection.forEach(src, (s, sI) => {
             let incl = s;
-            for (let i = 0; i < lc; i++) {
-                incl = includeConnectedStep(ctx, wholeResidues, incl);
+
+            if (fixedPoint) {
+                while (true) {
+                    const prevCount = incl.elementCount;
+                    incl = includeConnectedStep(ctx, wholeResidues, incl);
+                    if (incl.elementCount === prevCount) break;
+                }
+            } else {
+                for (let i = 0; i < lc; i++) {
+                    incl = includeConnectedStep(ctx, wholeResidues, incl);
+                }
             }
             builder.add(incl);
             if (sI % 10 === 0) ctx.throwIfTimedOut();
