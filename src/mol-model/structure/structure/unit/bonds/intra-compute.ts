@@ -211,7 +211,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
                 ? thresholdAB
                 : beI < 0
                     ? thresholdA
-                    : (thresholdA + getElementThreshold(beI)) / 2; // not sure if avg or min but max is too big
+                    : (thresholdA + getElementThreshold(beI)) / 1.95; // not sure if avg or min but max is too big
 
             if (dist <= pairingThreshold) {
                 atomA[atomA.length] = _aI;
