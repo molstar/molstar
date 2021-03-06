@@ -94,7 +94,10 @@ export function getInternalFormat(gl: GLRenderingContext, format: TextureFormat,
                     case 'int': return gl.RGBA32I;
                 }
             case 'depth':
-                return gl.DEPTH_COMPONENT16;
+                switch (type) {
+                    case 'ushort': return gl.DEPTH_COMPONENT16;
+                    case 'float': return gl.DEPTH_COMPONENT32F;
+                }
         }
     }
     return getFormat(gl, format, type);
@@ -229,7 +232,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         (kind.endsWith('float16') && _type !== 'fp16') ||
         (kind.endsWith('uint8') && _type !== 'ubyte') ||
         (kind.endsWith('int32') && _type !== 'int') ||
-        (kind.endsWith('depth') && _type !== 'ushort')
+        (kind.endsWith('depth') && _type !== 'ushort' && _type !== 'float')
     ) {
         throw new Error(`texture kind '${kind}' and type '${_type}' are incompatible`);
     }

@@ -1,17 +1,17 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { idFactory } from '../../mol-util/id-factory';
-import { GLRenderingContext } from './compat';
+import { GLRenderingContext, isWebGL2 } from './compat';
 import { Framebuffer, checkFramebufferStatus } from './framebuffer';
 import { isDebugMode } from '../../mol-util/debug';
 
 const getNextRenderbufferId = idFactory();
 
-export type RenderbufferFormat = 'depth16' | 'stencil8' | 'rgba4' | 'depth-stencil'
+export type RenderbufferFormat = 'depth16' | 'stencil8' | 'rgba4' | 'depth-stencil' | 'depth32f'
 export type RenderbufferAttachment = 'depth' | 'stencil' | 'depth-stencil' | 'color0'
 
 export function getFormat(gl: GLRenderingContext, format: RenderbufferFormat) {
@@ -20,6 +20,9 @@ export function getFormat(gl: GLRenderingContext, format: RenderbufferFormat) {
         case 'stencil8': return gl.STENCIL_INDEX8;
         case 'rgba4': return gl.RGBA4;
         case 'depth-stencil': return gl.DEPTH_STENCIL;
+        case 'depth32f':
+            if (isWebGL2(gl)) return gl.DEPTH_COMPONENT32F;
+            else throw new Error('WebGL2 needed for `depth32f` renderbuffer format');
     }
 }
 
