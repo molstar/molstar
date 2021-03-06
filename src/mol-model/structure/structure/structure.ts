@@ -158,13 +158,11 @@ class Structure {
     }
 
     /**
-     * Coarse-grained structure, defined as containing less than
-     * twice as many elements as polymer residues
+     * True if any model the structure is based on is coarse grained.
+     * @see Model.isCoarseGrained
      */
     get isCoarseGrained() {
-        const ec = this.elementCount;
-        const prc = this.polymerResidueCount;
-        return prc && ec ? ec / prc < 2 : false;
+        return this.models.some(m => Model.isCoarseGrained(m));
     }
 
     get isEmpty() {
@@ -299,7 +297,7 @@ class Structure {
 
     /** Contains only atomic units */
     get isAtomic() {
-        for (const u of this.units) if (Unit.isAtomic(u)) return false;
+        for (const u of this.units) if (!Unit.isAtomic(u)) return false;
         return true;
     }
 
@@ -311,7 +309,7 @@ class Structure {
 
     /** Contains only coarse units */
     get isCoarse() {
-        for (const u of this.units) if (Unit.isCoarse(u)) return false;
+        for (const u of this.units) if (!Unit.isCoarse(u)) return false;
         return true;
     }
 

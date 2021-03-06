@@ -22,6 +22,7 @@ import { ChainIdColorThemeProvider } from '../../../mol-theme/color/chain-id';
 import { OperatorNameColorThemeProvider } from '../../../mol-theme/color/operator-name';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { StructConn } from '../../../mol-model-formats/structure/property/bonds/struct_conn';
+import { StructureRepresentationRegistry } from '../../../mol-repr/structure/registry';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -230,7 +231,7 @@ const coarseSurface = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-coarse-surface',
     display: {
         name: 'Coarse Surface', group: BuiltInPresetGroupName,
-        description: 'Shows polymers as coarse Gaussian Surface.'
+        description: 'Shows polymers and lipids as coarse Gaussian Surface.'
     },
     params: () => CommonParams,
     async apply(ref, params, plugin) {
@@ -238,7 +239,8 @@ const coarseSurface = StructureRepresentationPresetProvider({
         if (!structureCell) return {};
 
         const components = {
-            polymer: await presetStaticComponent(plugin, structureCell, 'polymer')
+            polymer: await presetStaticComponent(plugin, structureCell, 'polymer'),
+            lipid: await presetStaticComponent(plugin, structureCell, 'lipid'),
         };
 
         const structure = structureCell.obj!.data;
@@ -246,7 +248,7 @@ const coarseSurface = StructureRepresentationPresetProvider({
         const gaussianProps = Object.create(null);
         if (size === Structure.Size.Gigantic) {
             Object.assign(gaussianProps, {
-                traceOnly: true,
+                traceOnly: !structure.isCoarseGrained,
                 radiusOffset: 2,
                 smoothness: 1,
                 visuals: ['structure-gaussian-surface-mesh']
@@ -266,7 +268,8 @@ const coarseSurface = StructureRepresentationPresetProvider({
         const { update, builder, typeParams, symmetryColor } = reprBuilder(plugin, params, structure);
 
         const representations = {
-            polymer: builder.buildRepresentation(update, components.polymer, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color: symmetryColor }, { tag: 'polymer' })
+            polymer: builder.buildRepresentation(update, components.polymer, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color: symmetryColor }, { tag: 'polymer' }),
+            lipid: builder.buildRepresentation(update, components.lipid, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color: symmetryColor }, { tag: 'lipid' })
         };
 
         await update.commit({ revertOnError: true });
@@ -337,9 +340,15 @@ const atomicDetail = StructureRepresentationPresetProvider({
         const m = structure.models[0];
         const bondsGiven = !!IndexPairBonds.Provider.get(m) || StructConn.isExhaustive(m);
 
-        const atomicType = lowResidueElementRatio && !bondsGiven
-            ? 'spacefill' : highElementCount
-                ? 'line' : 'ball-and-stick';
+        let atomicType: StructureRepresentationRegistry.BuiltIn = 'ball-and-stick';
+        if (structure.isCoarseGrained) {
+            // TODO make configurable?
+            atomicType = structure.elementCount > 1_000_000 ? 'point' : 'spacefill';
+        } else if (lowResidueElementRatio && !bondsGiven) {
+            atomicType = 'spacefill';
+        } else if (highElementCount) {
+            atomicType = 'line';
+        }
         const showCarbohydrateSymbol = params.showCarbohydrateSymbol && !highElementCount && !lowResidueElementRatio;
 
         if (showCarbohydrateSymbol) {

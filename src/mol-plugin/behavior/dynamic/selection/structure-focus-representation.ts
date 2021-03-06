@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -107,7 +107,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
                 .apply(StateTransforms.Representation.StructureRepresentation3D, this.getReprParams(this.params.surroundingsParams), { tags: StructureFocusRepresentationTags.SurrRepr }).ref;
         }
 
-        if (components.indexOf('interactions') >= 0 && !refs[StructureFocusRepresentationTags.SurrNciRepr]) {
+        if (components.indexOf('interactions') >= 0 && !refs[StructureFocusRepresentationTags.SurrNciRepr] && cell.obj && InteractionsRepresentationProvider.isApplicable(cell.obj?.data)) {
             refs[StructureFocusRepresentationTags.SurrNciRepr] = builder
                 .to(refs[StructureFocusRepresentationTags.SurrSel]!)
                 .apply(StateTransforms.Representation.StructureRepresentation3D, this.params.nciParams, { tags: StructureFocusRepresentationTags.SurrNciRepr }).ref;

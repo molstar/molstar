@@ -176,7 +176,7 @@ export interface InterBondComputationProps extends BondComputationProps {
 function findBonds(structure: Structure, props: InterBondComputationProps) {
     const builder = new InterUnitGraph.Builder<number, StructureElement.UnitIndex, InterUnitEdgeProps>();
 
-    if (props.noCompute) {
+    if (props.noCompute || structure.isCoarseGrained) {
         // TODO add function that only adds bonds defined in structConn and avoids using
         //      structure.lookup and unit.lookup (expensive for large structure and not
         //      needed for archival files or files with an MD topology)

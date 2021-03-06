@@ -28,7 +28,7 @@ export const InteractionsProvider: CustomStructureProperty.Provider<Interactions
     type: 'local',
     defaultParams: InteractionsParams,
     getParams: (data: Structure) => InteractionsParams,
-    isApplicable: (data: Structure) => true,
+    isApplicable: (data: Structure) => !data.isCoarseGrained,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<InteractionsProps>) => {
         const p = { ...PD.getDefaultValues(InteractionsParams), ...props };
         return { value: await computeInteractions(ctx, data, p) };
