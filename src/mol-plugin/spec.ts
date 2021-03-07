@@ -12,7 +12,7 @@ import { AnimateModelIndex } from '../mol-plugin-state/animation/built-in/model-
 import { AnimateStateSnapshots } from '../mol-plugin-state/animation/built-in/state-snapshots';
 import { PluginStateAnimation } from '../mol-plugin-state/animation/model';
 import { DataFormatProvider } from '../mol-plugin-state/formats/provider';
-import { StateTransformer } from '../mol-state';
+import { StateAction, StateTransformer } from '../mol-state';
 import { PluginBehaviors } from './behavior';
 import { StructureFocusRepresentation } from './behavior/dynamic/selection/structure-focus-representation';
 import { PluginConfigItem } from './config';
@@ -21,6 +21,7 @@ import { PluginLayoutStateProps } from './layout';
 export { PluginSpec };
 
 interface PluginSpec {
+    actions?: PluginSpec.Action[],
     behaviors: PluginSpec.Behavior[],
     animations?: PluginStateAnimation[],
     customFormats?: [string, DataFormatProvider][],
@@ -32,6 +33,17 @@ interface PluginSpec {
 }
 
 namespace PluginSpec {
+    export interface Action {
+        action: StateAction | StateTransformer,
+        /* constructible react component with <action.customControl /> */
+        customControl?: any,
+        autoUpdate?: boolean
+    }
+
+    export function Action(action: StateAction | StateTransformer, params?: { customControl?: any /* constructible react component with <action.customControl /> */, autoUpdate?: boolean }): Action {
+        return { action, customControl: params && params.customControl, autoUpdate: params && params.autoUpdate };
+    }
+
     export interface Behavior {
         transformer: StateTransformer,
         defaultParams?: any

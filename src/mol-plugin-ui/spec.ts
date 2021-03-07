@@ -16,7 +16,6 @@ import { BoxifyVolumeStreaming, CreateVolumeStreamingBehavior, InitVolumeStreami
 export { PluginUISpec };
 
 interface PluginUISpec extends PluginSpec {
-    actions: PluginUISpec.Action[],
     customParamEditors?: [StateAction | StateTransformer, StateTransformParameters.Class][],
     components?: {
         controls?: PluginUISpec.LayoutControls
@@ -31,16 +30,6 @@ interface PluginUISpec extends PluginSpec {
 }
 
 namespace PluginUISpec {
-    export interface Action {
-        action: StateAction | StateTransformer,
-        customControl?: StateTransformParameters.Class,
-        autoUpdate?: boolean
-    }
-
-    export function Action(action: StateAction | StateTransformer, params?: { customControl?: StateTransformParameters.Class, autoUpdate?: boolean }): Action {
-        return { action, customControl: params && params.customControl, autoUpdate: params && params.autoUpdate };
-    }
-
     export interface LayoutControls {
         top?: React.ComponentClass | 'none',
         left?: React.ComponentClass | 'none',
@@ -52,49 +41,49 @@ namespace PluginUISpec {
 export const DefaultPluginUISpec = (): PluginUISpec => ({
     ...DefaultPluginSpec(),
     actions: [
-        PluginUISpec.Action(StateActions.Structure.DownloadStructure),
-        PluginUISpec.Action(StateActions.Structure.AddTrajectory),
-        PluginUISpec.Action(StateActions.Volume.DownloadDensity),
-        PluginUISpec.Action(StateActions.DataFormat.DownloadFile),
-        PluginUISpec.Action(StateActions.DataFormat.OpenFiles),
-        PluginUISpec.Action(StateActions.Structure.EnableModelCustomProps),
-        PluginUISpec.Action(StateActions.Structure.EnableStructureCustomProps),
+        PluginSpec.Action(StateActions.Structure.DownloadStructure),
+        PluginSpec.Action(StateActions.Structure.AddTrajectory),
+        PluginSpec.Action(StateActions.Volume.DownloadDensity),
+        PluginSpec.Action(StateActions.DataFormat.DownloadFile),
+        PluginSpec.Action(StateActions.DataFormat.OpenFiles),
+        PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
+        PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
 
         // Volume streaming
-        PluginUISpec.Action(InitVolumeStreaming),
-        PluginUISpec.Action(BoxifyVolumeStreaming),
-        PluginUISpec.Action(CreateVolumeStreamingBehavior),
+        PluginSpec.Action(InitVolumeStreaming),
+        PluginSpec.Action(BoxifyVolumeStreaming),
+        PluginSpec.Action(CreateVolumeStreamingBehavior),
 
-        PluginUISpec.Action(StateTransforms.Data.Download),
-        PluginUISpec.Action(StateTransforms.Data.ParseCif),
-        PluginUISpec.Action(StateTransforms.Data.ParseCcp4),
-        PluginUISpec.Action(StateTransforms.Data.ParseDsn6),
+        PluginSpec.Action(StateTransforms.Data.Download),
+        PluginSpec.Action(StateTransforms.Data.ParseCif),
+        PluginSpec.Action(StateTransforms.Data.ParseCcp4),
+        PluginSpec.Action(StateTransforms.Data.ParseDsn6),
 
-        PluginUISpec.Action(StateTransforms.Model.TrajectoryFromMmCif),
-        PluginUISpec.Action(StateTransforms.Model.TrajectoryFromCifCore),
-        PluginUISpec.Action(StateTransforms.Model.TrajectoryFromPDB),
-        PluginUISpec.Action(StateTransforms.Model.TransformStructureConformation),
-        PluginUISpec.Action(StateTransforms.Model.StructureFromModel),
-        PluginUISpec.Action(StateTransforms.Model.StructureFromTrajectory),
-        PluginUISpec.Action(StateTransforms.Model.ModelFromTrajectory),
-        PluginUISpec.Action(StateTransforms.Model.StructureSelectionFromScript),
-        PluginUISpec.Action(StateTransforms.Representation.StructureRepresentation3D),
-        PluginUISpec.Action(StateTransforms.Representation.StructureSelectionsDistance3D),
-        PluginUISpec.Action(StateTransforms.Representation.StructureSelectionsAngle3D),
-        PluginUISpec.Action(StateTransforms.Representation.StructureSelectionsDihedral3D),
-        PluginUISpec.Action(StateTransforms.Representation.StructureSelectionsLabel3D),
-        PluginUISpec.Action(StateTransforms.Representation.StructureSelectionsOrientation3D),
-        PluginUISpec.Action(StateTransforms.Representation.ModelUnitcell3D),
-        PluginUISpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D),
-        PluginUISpec.Action(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D),
-        PluginUISpec.Action(StateTransforms.Representation.OverpaintStructureRepresentation3DFromScript),
-        PluginUISpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3DFromScript),
+        PluginSpec.Action(StateTransforms.Model.TrajectoryFromMmCif),
+        PluginSpec.Action(StateTransforms.Model.TrajectoryFromCifCore),
+        PluginSpec.Action(StateTransforms.Model.TrajectoryFromPDB),
+        PluginSpec.Action(StateTransforms.Model.TransformStructureConformation),
+        PluginSpec.Action(StateTransforms.Model.StructureFromModel),
+        PluginSpec.Action(StateTransforms.Model.StructureFromTrajectory),
+        PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
+        PluginSpec.Action(StateTransforms.Model.StructureSelectionFromScript),
+        PluginSpec.Action(StateTransforms.Representation.StructureRepresentation3D),
+        PluginSpec.Action(StateTransforms.Representation.StructureSelectionsDistance3D),
+        PluginSpec.Action(StateTransforms.Representation.StructureSelectionsAngle3D),
+        PluginSpec.Action(StateTransforms.Representation.StructureSelectionsDihedral3D),
+        PluginSpec.Action(StateTransforms.Representation.StructureSelectionsLabel3D),
+        PluginSpec.Action(StateTransforms.Representation.StructureSelectionsOrientation3D),
+        PluginSpec.Action(StateTransforms.Representation.ModelUnitcell3D),
+        PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D),
+        PluginSpec.Action(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D),
+        PluginSpec.Action(StateTransforms.Representation.OverpaintStructureRepresentation3DFromScript),
+        PluginSpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3DFromScript),
 
-        PluginUISpec.Action(AssignColorVolume),
-        PluginUISpec.Action(StateTransforms.Volume.VolumeFromCcp4),
-        PluginUISpec.Action(StateTransforms.Volume.VolumeFromDsn6),
-        PluginUISpec.Action(StateTransforms.Volume.VolumeFromCube),
-        PluginUISpec.Action(StateTransforms.Volume.VolumeFromDx),
-        PluginUISpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
+        PluginSpec.Action(AssignColorVolume),
+        PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),
+        PluginSpec.Action(StateTransforms.Volume.VolumeFromDsn6),
+        PluginSpec.Action(StateTransforms.Volume.VolumeFromCube),
+        PluginSpec.Action(StateTransforms.Volume.VolumeFromDx),
+        PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
     ]
 });
