@@ -84,7 +84,7 @@ function getModels(mol: XyzFile, ctx: RuntimeContext) {
         atom_site
     });
 
-    return createModels(basics, MolFormat.create(mol), ctx);
+    return createModels(basics, XyzFormat.create(mol), ctx);
 }
 
 //
@@ -93,9 +93,9 @@ export { XyzFormat };
 
 type XyzFormat = ModelFormat<XyzFile>
 
-namespace MolFormat {
+namespace XyzFormat {
     export function is(x?: ModelFormat): x is XyzFormat {
-        return x?.kind === 'mol';
+        return x?.kind === 'xyz';
     }
 
     export function create(mol: XyzFile): XyzFormat {

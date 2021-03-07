@@ -18,8 +18,7 @@ import { Sphere3D } from '../../../mol-math/geometry';
 
 export const ElementPointParams = {
     ...UnitsPointsParams,
-    // sizeFactor: PD.Numeric(1.0, { min: 0, max: 10, step: 0.01 }),
-    pointSizeAttenuation: PD.Boolean(false),
+    pointSizeAttenuation: PD.Boolean(true),
     ignoreHydrogens: PD.Boolean(false),
     traceOnly: PD.Boolean(false),
 };

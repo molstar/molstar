@@ -74,7 +74,7 @@ function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, o
         let cI = 0;
         let seqId = 0;
         for (let i = 0, il = seqIds.length; i < il; ++i) {
-            if (residueOffsets[i] > chainOffsets[cI + 1]) {
+            if (residueOffsets[i] >= chainOffsets[cI + 1]) {
                 cI += 1;
                 seqId = 0;
             }

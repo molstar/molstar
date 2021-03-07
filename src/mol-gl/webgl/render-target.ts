@@ -8,7 +8,7 @@ import { idFactory } from '../../mol-util/id-factory';
 import { createNullTexture, Texture, TextureFilter } from './texture';
 import { createNullFramebuffer, Framebuffer } from './framebuffer';
 import { WebGLResources } from './resources';
-import { GLRenderingContext } from './compat';
+import { GLRenderingContext, isWebGL2 } from './compat';
 
 const getNextRenderTargetId = idFactory();
 
@@ -35,9 +35,11 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
             ? resources.texture('image-float32', 'rgba', 'float', filter)
             : resources.texture('image-uint8', 'rgba', 'ubyte', filter);
     // make a depth renderbuffer of the same size as the targetTexture
-    const depthRenderbuffer = depth
-        ? resources.renderbuffer('depth16', 'depth', _width, _height)
-        : null;
+    const depthRenderbuffer = !depth
+        ? null
+        : isWebGL2(gl)
+            ? resources.renderbuffer('depth32f', 'depth', _width, _height)
+            : resources.renderbuffer('depth16', 'depth', _width, _height);
 
     function init() {
         targetTexture.define(_width, _height);

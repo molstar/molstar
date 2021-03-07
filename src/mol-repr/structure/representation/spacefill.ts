@@ -21,7 +21,11 @@ export const SpacefillParams = {
 };
 export type SpacefillParams = typeof SpacefillParams
 export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(SpacefillParams);
+    const params = PD.clone(SpacefillParams);
+    if (structure.isCoarseGrained) {
+        params.sizeFactor.defaultValue = 2;
+    }
+    return params;
 }
 
 export type SpacefillRepresentation = StructureRepresentation<SpacefillParams>

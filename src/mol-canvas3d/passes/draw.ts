@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -100,7 +100,7 @@ export class DrawPass {
     }
 
     constructor(private webgl: WebGLContext, width: number, height: number, enableWboit: boolean) {
-        const { extensions, resources } = webgl;
+        const { extensions, resources, isWebGL2 } = webgl;
 
         this.drawTarget = createNullRenderTarget(webgl.gl);
 
@@ -113,8 +113,8 @@ export class DrawPass {
         this.depthTargetPrimitives = this.packedDepth ? webgl.createRenderTarget(width, height) : null;
         this.depthTargetVolumes = this.packedDepth ? webgl.createRenderTarget(width, height) : null;
 
-        this.depthTexturePrimitives = this.depthTargetPrimitives ? this.depthTargetPrimitives.texture : resources.texture('image-depth', 'depth', 'ushort', 'nearest');
-        this.depthTextureVolumes = this.depthTargetVolumes ? this.depthTargetVolumes.texture : resources.texture('image-depth', 'depth', 'ushort', 'nearest');
+        this.depthTexturePrimitives = this.depthTargetPrimitives ? this.depthTargetPrimitives.texture : resources.texture('image-depth', 'depth', isWebGL2 ? 'float' : 'ushort', 'nearest');
+        this.depthTextureVolumes = this.depthTargetVolumes ? this.depthTargetVolumes.texture : resources.texture('image-depth', 'depth', isWebGL2 ? 'float' : 'ushort', 'nearest');
         if (!this.packedDepth) {
             this.depthTexturePrimitives.define(width, height);
             this.depthTextureVolumes.define(width, height);
