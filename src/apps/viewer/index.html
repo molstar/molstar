@@ -52,9 +52,6 @@
             var pdbProvider = getParam('pdb-provider', '[^&]+').trim().toLowerCase();
             var emdbProvider = getParam('emdb-provider', '[^&]+').trim().toLowerCase();
             var viewer = new molstar.Viewer('app', {
-                disableAntialiasing: disableAntialiasing,
-                pixelScale: pixelScale,
-                enableWboit: !disableWboit,
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
                 pdbProvider: pdbProvider || 'pdbe',
