@@ -69,7 +69,7 @@ async function computeDssp(structure: Structure, props: DSSPComputationProps): P
     const map = new Map<number, SecondaryStructure>();
     for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
         const u = structure.unitSymmetryGroups[i].units[0];
-        if (Unit.isAtomic(u)) {
+        if (Unit.isAtomic(u) && !Model.isCoarseGrained(u.model)) {
             const secondaryStructure = await computeUnitDSSP(u, props);
             map.set(u.invariantId, secondaryStructure);
         }

@@ -227,7 +227,7 @@ export namespace Model {
 
     const CoarseGrainedProp = '__CoarseGrained__';
     /**
-     * Has typical coarse grained atom names (BB, SC1) or less than twice as many
+     * Has typical coarse grained atom names (BB, SC1) or less than three times as many
      * atoms as polymer residues (C-alpha only models).
      */
     export function isCoarseGrained(model: Model): boolean {
@@ -251,7 +251,7 @@ export namespace Model {
 
         const coarseGrained = (hasBB && hasSC1) || (
             polymerResidueCount && atomCount
-                ? atomCount / polymerResidueCount < 2
+                ? atomCount / polymerResidueCount < 3
                 : false
         );
         model._staticPropertyData[CoarseGrainedProp] = coarseGrained;
