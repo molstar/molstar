@@ -164,7 +164,10 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
 
         plugin.state.data.events.object.updated.subscribe(({ oldData, obj, action }) => {
             if (!PluginStateObject.Molecule.Structure.is(obj)) return;
+            // structure NOT changed, keep everything as is; fixes #123
+            if (oldData === obj.data) return;
 
+            // structure changed (e.g. coordinates), try to remap and re-focus
             if (action === 'in-place') {
                 const current = this.state.current;
                 const structure = obj.data as Structure;
