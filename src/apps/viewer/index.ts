@@ -5,43 +5,43 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import '../../mol-util/polyfill';
-import { createPlugin } from '../../mol-plugin';
-import { DefaultPluginSpec } from '../../mol-plugin/spec';
-import './index.html';
-import './embedded.html';
-import './favicon.ico';
-import { PluginContext } from '../../mol-plugin/context';
-import { PluginCommands } from '../../mol-plugin/commands';
-import { PluginSpec } from '../../mol-plugin/spec';
-import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
-import { PluginConfig } from '../../mol-plugin/config';
-import { CellPack } from '../../extensions/cellpack';
-import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
-import { PDBeStructureQualityReport } from '../../extensions/pdbe';
-import { Asset } from '../../mol-util/assets';
-import { ObjectKeys } from '../../mol-util/type-helpers';
-import { PluginState } from '../../mol-plugin/state';
-import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
-import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
-import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
+import { CellPack } from '../../extensions/cellpack';
 import { DnatcoConfalPyramids } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
+import { Mp4Export } from '../../extensions/mp4-export';
+import { PDBeStructureQualityReport } from '../../extensions/pdbe';
+import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
+import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
+import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
+import { StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
+import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { BuildInVolumeFormat } from '../../mol-plugin-state/formats/volume';
-import { Color } from '../../mol-util/color';
-import { StateObjectSelector } from '../../mol-state';
+import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
-import { Mp4Export } from '../../extensions/mp4-export';
-import { StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
+import { createPlugin } from '../../mol-plugin-ui';
+import { PluginUIContext } from '../../mol-plugin-ui/context';
+import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
+import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
+import { PluginCommands } from '../../mol-plugin/commands';
+import { PluginConfig } from '../../mol-plugin/config';
+import { PluginSpec } from '../../mol-plugin/spec';
+import { PluginState } from '../../mol-plugin/state';
+import { StateObjectSelector } from '../../mol-state';
+import { Asset } from '../../mol-util/assets';
+import { Color } from '../../mol-util/color';
+import '../../mol-util/polyfill';
+import { ObjectKeys } from '../../mol-util/type-helpers';
+import './embedded.html';
+import './favicon.ico';
+import './index.html';
 
 require('mol-plugin-ui/skin/light.scss');
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { setProductionMode, setDebugMode } from '../../mol-util/debug';
+export { setDebugMode, setProductionMode } from '../../mol-util/debug';
 
 const CustomFormats = [
     ['g3d', G3dProvider] as const
@@ -86,14 +86,14 @@ const DefaultViewerOptions = {
 type ViewerOptions = typeof DefaultViewerOptions;
 
 export class Viewer {
-    plugin: PluginContext
+    plugin: PluginUIContext
 
     constructor(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
         const o = { ...DefaultViewerOptions, ...options };
-        const defaultSpec = DefaultPluginSpec();
+        const defaultSpec = DefaultPluginUISpec();
 
-        const spec: PluginSpec = {
-            actions: [...defaultSpec.actions],
+        const spec: PluginUISpec = {
+            actions: defaultSpec.actions,
             behaviors: [
                 ...defaultSpec.behaviors,
                 ...o.extensions.map(e => Extensions[e]),
@@ -107,15 +107,15 @@ export class Viewer {
                     showControls: o.layoutShowControls,
                     controlsDisplay: o.layoutControlsDisplay,
                 },
-                controls: {
-                    ...defaultSpec.layout && defaultSpec.layout.controls,
-                    top: o.layoutShowSequence ? undefined : 'none',
-                    bottom: o.layoutShowLog ? undefined : 'none',
-                    left: o.layoutShowLeftPanel ? undefined : 'none',
-                }
             },
             components: {
                 ...defaultSpec.components,
+                controls: {
+                    ...defaultSpec.components?.controls,
+                    top: o.layoutShowSequence ? undefined : 'none',
+                    bottom: o.layoutShowLog ? undefined : 'none',
+                    left: o.layoutShowLeftPanel ? undefined : 'none',
+                },
                 remoteState: o.layoutShowRemoteState ? 'default' : 'none',
             },
             config: [

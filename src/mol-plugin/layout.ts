@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,8 +7,8 @@
 
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { StatefulPluginComponent } from '../mol-plugin-state/component';
-import { PluginContext } from './context';
 import { PluginCommands } from './commands';
+import { PluginContext } from './context';
 
 const regionStateOptions = [
     ['full', 'Full'],

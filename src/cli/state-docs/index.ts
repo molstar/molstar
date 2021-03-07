@@ -18,7 +18,6 @@ _.StateTransforms.Data.Download.id;
 
 // Empty plugin context
 const ctx = new PluginContext({
-    actions: [],
     behaviors: []
 });
 

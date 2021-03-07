@@ -14,9 +14,9 @@ import { PluginCommands } from '../commands';
 export interface PluginToast {
     title: string,
     /**
-     * The message can be either a string, html string, or an arbitrary React component.
+     * The message can be either a string, html string, or an arbitrary React (Function) component.
      */
-    message: string | React.ComponentClass,
+    message: string | Function,
     /**
      * Only one message with a given key can be shown.
      */
@@ -103,7 +103,7 @@ export namespace PluginToastManager {
         serialNumber: number,
         key?: string,
         title: string,
-        message: string | React.ComponentClass,
+        message: string | Function,
         hide: () => void,
         timeout?: number
     }

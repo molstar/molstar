@@ -6,15 +6,15 @@
 
 import * as ReactDOM from 'react-dom';
 import { Canvas3DProps, DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
-import { createPlugin } from '../../mol-plugin';
-import { DefaultPluginSpec } from '../../mol-plugin/spec';
 import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in/model-index';
 import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { PluginStateObject, PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { createPlugin } from '../../mol-plugin-ui';
+import { PluginUIContext } from '../../mol-plugin-ui/context';
+import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { CreateVolumeStreamingInfo, InitVolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { PluginContext } from '../../mol-plugin/context';
 import { PluginState } from '../../mol-plugin/state';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { StateBuilder, StateObject, StateSelection } from '../../mol-state';
@@ -41,13 +41,13 @@ class MolStarProteopediaWrapper {
         modelInfo: this._ev<ModelInfo>()
     };
 
-    plugin: PluginContext;
+    plugin: PluginUIContext;
 
     init(target: string | HTMLElement, options?: {
         customColorList?: number[]
     }) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...DefaultPluginSpec(),
+            ...DefaultPluginUISpec(),
             animations: [
                 AnimateModelIndex
             ],

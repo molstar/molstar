@@ -4,39 +4,36 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { EmptyLoci } from '../../mol-model/loci';
 import { StructureSelection } from '../../mol-model/structure';
-import { createPlugin } from '../../mol-plugin';
-import { DefaultPluginSpec } from '../../mol-plugin/spec';
 import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in/model-index';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
+import { createPlugin } from '../../mol-plugin-ui';
+import { PluginUIContext } from '../../mol-plugin-ui/context';
+import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { PluginContext } from '../../mol-plugin/context';
 import { Script } from '../../mol-script/script';
+import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import { StripedResidues } from './coloring';
 import { CustomToastMessage } from './controls';
 import './index.html';
 import { buildStaticSuperposition, dynamicSuperpositionTest, StaticSuperpositionTestData } from './superposition';
-import { PDBeStructureQualityReport } from '../../extensions/pdbe';
-import { Asset } from '../../mol-util/assets';
 require('mol-plugin-ui/skin/light.scss');
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }
 
 class BasicWrapper {
-    plugin: PluginContext;
+    plugin: PluginUIContext;
 
     init(target: string | HTMLElement) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...DefaultPluginSpec(),
+            ...DefaultPluginUISpec(),
             layout: {
                 initial: {
                     isExpanded: false,
                     showControls: false
-                },
-                controls: {
-                    // left: 'none'
                 }
             },
             components: {

@@ -7,7 +7,6 @@
 
 import { List } from 'immutable';
 import * as React from 'react';
-import { PluginContext } from '../mol-plugin/context';
 import { formatTime } from '../mol-util';
 import { LogEntry } from '../mol-util/log-entry';
 import { PluginReactContext, PluginUIComponent } from './base';
@@ -18,8 +17,9 @@ import { BackgroundTaskProgress, OverlayTaskProgress } from './task';
 import { Toasts } from './toast';
 import { Viewport, ViewportControls } from './viewport';
 import { PluginCommands } from '../mol-plugin/commands';
+import { PluginUIContext } from './context';
 
-export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
+export class Plugin extends React.Component<{ plugin: PluginUIContext }, {}> {
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
         return <div className={`msp-layout-region msp-layout-${kind}`}>
             <div className='msp-layout-static'>
@@ -35,7 +35,7 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     }
 }
 
-export class PluginContextContainer extends React.Component<{ plugin: PluginContext }> {
+export class PluginContextContainer extends React.Component<{ plugin: PluginUIContext }> {
     render() {
         return <PluginReactContext.Provider value={this.props.plugin}>
             <div className='msp-plugin'>
@@ -62,7 +62,7 @@ class Layout extends PluginUIComponent {
 
     get layoutVisibilityClassName() {
         const layout = this.plugin.layout.state;
-        const controls = (this.plugin.spec.layout && this.plugin.spec.layout.controls) || {};
+        const controls = this.plugin.spec.components?.controls ?? {};
 
         const classList: string[] = [];
         if (controls.top === 'none' || !layout.showControls || layout.regionState.top === 'hidden') {
@@ -127,7 +127,7 @@ class Layout extends PluginUIComponent {
 
     render() {
         const layout = this.plugin.layout.state;
-        const controls = this.plugin.spec.layout?.controls || {};
+        const controls = this.plugin.spec.components?.controls || {};
         const viewport = this.plugin.spec.components?.viewport?.view || DefaultViewport;
 
         return <div className='msp-plugin' onDrop={this.onDrop} onDragOver={this.onDragOver}>
@@ -149,7 +149,6 @@ export class ControlsWrapper extends PluginUIComponent {
     render() {
         const StructureTools = this.plugin.spec.components?.structureTools || DefaultStructureTools;
         return <div className='msp-scrollable-container'>
-            {/* <CurrentObject /> */}
             <StructureTools />
         </div>;
     }
