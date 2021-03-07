@@ -23,7 +23,7 @@ export function checkStructureMaxRadiusDistance(ctx: QueryContext, a: Structure,
 }
 
 namespace MinMaxDist {
-    const enum Result {
+    export const enum Result {
         BelowMin,
         WithinMax,
         Miss

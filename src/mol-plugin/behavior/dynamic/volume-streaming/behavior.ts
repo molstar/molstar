@@ -64,8 +64,8 @@ export namespace VolumeStreaming {
         };
     }
 
-    export type EntryParamDefinition = typeof createEntryParams extends (...args: any[]) => (infer T) ? T : never
-    export type EntryParams = EntryParamDefinition extends PD.Params ? PD.Values<EntryParamDefinition> : {}
+    export type EntryParamDefinition = ReturnType<typeof createEntryParams>
+    export type EntryParams = PD.Values<EntryParamDefinition>
 
     export function createEntryParams(options: { entryData?: VolumeServerInfo.EntryData, defaultView?: ViewTypes, structure?: Structure, channelParams?: DefaultChannelParams }) {
         const { entryData, defaultView, structure, channelParams = { } } = options;
@@ -86,7 +86,7 @@ export namespace VolumeStreaming {
                     bottomLeft: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
                     topRight: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
                 }, { description: 'Box around focused element.', isFlat: true }),
-                'cell': PD.Group({}),
+                'cell': PD.Group<{}>({}),
                 // Show selection-box if available and cell otherwise.
                 'auto': PD.Group({
                     radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
@@ -115,8 +115,8 @@ export namespace VolumeStreaming {
 
     export type ViewTypes = 'off' | 'box' | 'selection-box' | 'cell' | 'auto'
 
-    export type ParamDefinition = typeof createParams extends (...args: any[]) => (infer T) ? T : never
-    export type Params = ParamDefinition extends PD.Params ? PD.Values<ParamDefinition> : {}
+    export type ParamDefinition = ReturnType<typeof createParams>
+    export type Params = PD.Values<ParamDefinition>
 
     type ChannelsInfo = { [name in ChannelType]?: { isoValue: Volume.IsoValue, color: Color, wireframe: boolean, opacity: number } }
     type ChannelsData = { [name in 'EM' | '2FO-FC' | 'FO-FC']?: Volume }
