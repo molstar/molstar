@@ -12,13 +12,6 @@ import { StateTransformParameters } from './state/common';
 export class PluginUIContext extends PluginContext {
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
-    private initDataActions() {
-        if (!this.spec.actions) return;
-        for (const a of this.spec.actions) {
-            this.state.data.actions.add(a.action);
-        }
-    }
-
     private initCustomParamEditors() {
         if (!this.spec.customParamEditors) return;
 
@@ -35,7 +28,6 @@ export class PluginUIContext extends PluginContext {
     constructor(public spec: PluginUISpec) {
         super(spec);
 
-        this.initDataActions();
         this.initCustomParamEditors();
     }
 }

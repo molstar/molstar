@@ -388,6 +388,13 @@ export class PluginContext {
         }
     }
 
+    private initDataActions() {
+        if (!this.spec.actions) return;
+        for (const a of this.spec.actions) {
+            this.state.data.actions.add(a.action);
+        }
+    }
+
     async init() {
         this.subs.push(this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e)));
 
@@ -400,6 +407,7 @@ export class PluginContext {
         (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
 
         this.initAnimations();
+        this.initDataActions();
 
         await this.initBehaviors();
 
