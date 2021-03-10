@@ -68,6 +68,7 @@ const DefaultViewerOptions = {
     layoutShowSequence: true,
     layoutShowLog: true,
     layoutShowLeftPanel: true,
+    collapseLeftPanel: false,
     disableAntialiasing: false,
     pixelScale: 1,
     enableWboit: true,
@@ -106,6 +107,12 @@ export class Viewer {
                     isExpanded: o.layoutIsExpanded,
                     showControls: o.layoutShowControls,
                     controlsDisplay: o.layoutControlsDisplay,
+                    regionState: {
+                        bottom: 'full',
+                        left: o.collapseLeftPanel ? 'collapsed' : 'full',
+                        right: 'full',
+                        top: 'full',
+                    }
                 },
             },
             components: {

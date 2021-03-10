@@ -49,11 +49,13 @@
             if (debugMode) molstar.setDebugMode(debugMode, debugMode);
 
             var hideControls = getParam('hide-controls', '[^&]+').trim() === '1';
+            var collapseLeftPanel = getParam('collapse-left-panel', '[^&]+').trim() === '1';
             var pdbProvider = getParam('pdb-provider', '[^&]+').trim().toLowerCase();
             var emdbProvider = getParam('emdb-provider', '[^&]+').trim().toLowerCase();
             var viewer = new molstar.Viewer('app', {
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
+                collapseLeftPanel: collapseLeftPanel,
                 pdbProvider: pdbProvider || 'pdbe',
                 emdbProvider: emdbProvider || 'pdbe',
             });
