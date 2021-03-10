@@ -192,6 +192,15 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
 
 //
 
+/**
+ * GPU isosurface extraction
+ *
+ * Algorithm from "High‐speed Marching Cubes using HistoPyramids"
+ * by C Dyken, G Ziegler, C Theobalt, HP Seidel
+ * https://doi.org/10.1111/j.1467-8659.2008.01182.x
+ *
+ * Implementation based on http://www.miaumiau.cat/2016/10/stream-compaction-in-webgl/
+ */
 export function extractIsosurface(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, gridTexScale: Vec2, transform: Mat4, isoValue: number, packedGroup: boolean, vertexTexture?: Texture, groupTexture?: Texture, normalTexture?: Texture) {
     // console.time('calcActiveVoxels');
     const activeVoxelsTex = calcActiveVoxels(ctx, volumeData, gridDim, gridTexDim, isoValue, gridTexScale);
