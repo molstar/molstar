@@ -75,6 +75,7 @@ function remove(id: string) {
             i++;
             continue;
         }
+        if (e.isSticky) return;
         try {
             for (let j = i + 1; j < index.length; j++) {
                 index[j - 1] = index[j];
@@ -89,15 +90,15 @@ function remove(id: string) {
     }
 }
 
-function clear() {
-    let index = readIndex();
-    for (const e of index) {
-        try {
-            fs.unlinkSync(path.join(Config.working_folder, e.id + '.json'));
-        } catch { }
-    }
-    writeIndex([]);
-}
+// function clear() {
+//     let index = readIndex();
+//     for (const e of index) {
+//         try {
+//             fs.unlinkSync(path.join(Config.working_folder, e.id + '.json'));
+//         } catch { }
+//     }
+//     writeIndex([]);
+// }
 
 function mapPath(path: string) {
     if (!Config.api_prefix) return path;
@@ -128,11 +129,11 @@ app.get(mapPath(`/get/:id`), (req, res) => {
     });
 });
 
-app.get(mapPath(`/clear`), (req, res) => {
-    clear();
-    res.status(200);
-    res.end();
-});
+// app.get(mapPath(`/clear`), (req, res) => {
+//     clear();
+//     res.status(200);
+//     res.end();
+// });
 
 app.get(mapPath(`/remove/:id`), (req, res) => {
     remove((req.params.id as string || '').toLowerCase());
