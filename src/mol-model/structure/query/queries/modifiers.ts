@@ -17,6 +17,9 @@ import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
 import { StructureElement } from '../../structure/element';
 import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 import { UndirectedGraph } from '../../../../mol-math/graph/undirected-graph';
+import { ResidueSet, ResidueSetEntry } from '../../model/properties/utils/residue-set';
+import { StructureProperties } from '../../structure/properties';
+import { arraySetAdd } from '../../../../mol-util/array';
 
 function getWholeResidues(ctx: QueryContext, source: Structure, structure: Structure) {
     const builder = source.subsetBuilder(true);
@@ -440,7 +443,7 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
 export interface SurroundingLigandsParams {
     query: StructureQuery,
     radius: number,
-    computedExpand: boolean
+    includeWater: boolean
 }
 
 /**
@@ -452,20 +455,141 @@ export function surroundingLigands({ query, radius }: SurroundingLigandsParams):
         const source = StructureSelection.unionStructure(query(ctx));
         const surroundings = getWholeResidues(ctx, ctx.inputStructure, getIncludeSurroundings(ctx, ctx.inputStructure, source, { radius }));
 
-        // find ligand component pivots
-        //   - keep non-polymers & non-waters
+        const prd = getPrdAsymIdx(ctx.inputStructure);
+        const { residues, graph } = getStructConnInfo(ctx.inputStructure);
 
-        // expand ligand components
-        //   - expand PRD chains
-        //   - expand components based on struct_conn
+        const l = StructureElement.Location.create(surroundings);
 
-        // add waters
+        const includedPrdChains = new Map<string, string[]>();
+        const includedComponents = new Set<string>();
 
-        return 0 as any;
+        const componentResidues = new ResidueSet({ checkOperator: true });
+
+        for (const unit of surroundings.units) {
+            if (unit.kind !== Unit.Kind.Atomic) continue;
+
+            l.unit = unit;
+
+            const { elements } = unit;
+            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
+            const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
+
+            while (chainsIt.hasNext) {
+                const chainSegment = chainsIt.move();
+                l.element = elements[chainSegment.start];
+
+                const asym_id = StructureProperties.chain.label_asym_id(l);
+                const op_name = StructureProperties.unit.operator_name(l);
+
+                // check for PRD molecules
+                if (prd.has(asym_id)) {
+                    if (includedPrdChains.has(asym_id)) {
+                        arraySetAdd(includedPrdChains.get(asym_id)!, op_name);
+                    } else {
+                        includedPrdChains.set(asym_id, [op_name]);
+                    }
+                    continue;
+                }
+
+                const entityType = StructureProperties.entity.type(l);
+
+                // test entity and chain
+                if (entityType === 'water' || entityType === 'polymer') continue;
+
+                residuesIt.setSegment(chainSegment);
+                while (residuesIt.hasNext) {
+                    const residueSegment = residuesIt.move();
+                    l.element = elements[residueSegment.start];
+
+                    const connEntry = residues.has(l);
+                    if (connEntry) {
+                        const { pivot, component } = graph.getComponent(residues.getLabel(connEntry));
+
+                        if (includedComponents.has(pivot)) continue;
+
+                        includedComponents.add(pivot);
+
+                        for (const v of component) {
+                            const entry = graph.vertices.get(v)!;
+                            if (!prd.has(entry?.label_asym_id)) {
+                                componentResidues.add(entry);
+                            }
+                        }
+                    } else {
+                        const entry = ResidueSet.getEntryFromLocation(l);
+                        componentResidues.add(entry);
+                    }
+                }
+            }
+
+            ctx.throwIfTimedOut();
+        }
+
+        // assemble the core structure
+
+        const builder = ctx.inputStructure.subsetBuilder(true);
+        for (const unit of ctx.inputStructure.units) {
+            if (unit.kind !== Unit.Kind.Atomic) continue;
+
+            l.unit = unit;
+            const { elements } = unit;
+            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
+            const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
+
+            builder.beginUnit(unit.id);
+
+            while (chainsIt.hasNext) {
+                const chainSegment = chainsIt.move();
+                l.element = elements[chainSegment.start];
+
+                const asym_id = StructureProperties.chain.label_asym_id(l);
+                const op_name = StructureProperties.unit.operator_name(l);
+
+                if (includedPrdChains.has(asym_id) && includedPrdChains.get(asym_id)!.indexOf(op_name) >= 0) {
+                    builder.addElementRange(elements, chainSegment.start, chainSegment.end);
+                    continue;
+                }
+
+                if (!componentResidues.hasLabelAsymId(asym_id)) {
+                    continue;
+                }
+
+                residuesIt.setSegment(chainSegment);
+                while (residuesIt.hasNext) {
+                    const residueSegment = residuesIt.move();
+                    l.element = elements[residueSegment.start];
+
+                    if (!componentResidues.has(l)) continue;
+                    builder.addElementRange(elements, residueSegment.start, residueSegment.end);
+                }
+            }
+            builder.commitUnit();
+
+            ctx.throwIfTimedOut();
+        }
+
+        const components = builder.getStructure();
+
+        // const builder = new StructureUniqueSubsetBuilder(source);
+        // const lookup = source.lookup3d;
+        // const r = params.radius;
+
+        // for (const unit of structure.units) {
+        //     const { x, y, z } = unit.conformation;
+        //     const elements = unit.elements;
+        //     for (let i = 0, _i = elements.length; i < _i; i++) {
+        //         const e = elements[i];
+        //         lookup.findIntoBuilder(x(e), y(e), z(e), r, builder);
+        //     }
+
+        //     ctx.throwIfTimedOut();
+        // }
+
+        return StructureSelection.Sequence(ctx.inputStructure, [components]);
     };
 }
 
-function getPrdAsymcIdx(structure: Structure) {
+function getPrdAsymIdx(structure: Structure) {
     const model = structure.models[0];
     const ids = new Set<string>();
     if (!MmcifFormat.is(model.sourceData)) return ids;
@@ -476,35 +600,50 @@ function getPrdAsymcIdx(structure: Structure) {
     return ids;
 }
 
-type SurroudingResidue = [asym_id:string, comp_id:string, seq_id:number, alt_id: string, ins_code: string, symmetry:string]
-
-function getSurroundingResidueLabel(r: SurroudingResidue) {
-    return `${r[0]} ${r[1]} ${r[2]} ${r[3]} ${r[4]} ${r[5]}`;
-}
-
-function structConnGraph(structure: Structure): UndirectedGraph<string, SurroudingResidue> {
+function getStructConnInfo(structure: Structure) {
     const model = structure.models[0];
-    const graph = new UndirectedGraph<string, SurroudingResidue>();
-    if (!MmcifFormat.is(model.sourceData)) return graph;
+    const graph = new UndirectedGraph<string, ResidueSetEntry>();
+    const residues = new ResidueSet({ checkOperator: true });
+
+    if (!MmcifFormat.is(model.sourceData)) return { graph, residues };
 
     const struct_conn = model.sourceData.data.db.struct_conn;
     const { conn_type_id } = struct_conn;
     const { ptnr1_label_asym_id, ptnr1_label_comp_id, ptnr1_label_seq_id, ptnr1_symmetry, pdbx_ptnr1_label_alt_id, pdbx_ptnr1_PDB_ins_code } = struct_conn;
     const { ptnr2_label_asym_id, ptnr2_label_comp_id, ptnr2_label_seq_id, ptnr2_symmetry, pdbx_ptnr2_label_alt_id, pdbx_ptnr2_PDB_ins_code } = struct_conn;
+
     for (let i = 0; i < struct_conn._rowCount; i++) {
         const bondType = conn_type_id.value(i);
         if (bondType !== 'covale' && bondType !== 'metalc') continue;
 
-        const a: SurroudingResidue = [ptnr1_label_asym_id.value(i), ptnr1_label_comp_id.value(i), ptnr1_label_seq_id.value(i), pdbx_ptnr1_label_alt_id.value(i), pdbx_ptnr1_PDB_ins_code.value(i), ptnr1_symmetry.value(i) ?? '1_555'];
-        const b: SurroudingResidue = [ptnr2_label_asym_id.value(i), ptnr2_label_comp_id.value(i), ptnr2_label_seq_id.value(i), pdbx_ptnr2_label_alt_id.value(i), pdbx_ptnr2_PDB_ins_code.value(i), ptnr2_symmetry.value(i) ?? '1_555'];
+        const a: ResidueSetEntry = {
+            label_asym_id: ptnr1_label_asym_id.value(i),
+            label_comp_id: ptnr1_label_comp_id.value(i),
+            label_seq_id: ptnr1_label_seq_id.value(i),
+            label_alt_id: pdbx_ptnr1_label_alt_id.value(i),
+            ins_code: pdbx_ptnr1_PDB_ins_code.value(i),
+            operator_name: ptnr1_symmetry.value(i) ?? '1_555'
+        };
 
-        const la = getSurroundingResidueLabel(a), lb = getSurroundingResidueLabel(b);
+        const b: ResidueSetEntry = {
+            label_asym_id: ptnr2_label_asym_id.value(i),
+            label_comp_id: ptnr2_label_comp_id.value(i),
+            label_seq_id: ptnr2_label_seq_id.value(i),
+            label_alt_id: pdbx_ptnr2_label_alt_id.value(i),
+            ins_code: pdbx_ptnr2_PDB_ins_code.value(i),
+            operator_name: ptnr2_symmetry.value(i) ?? '1_555'
+        };
+
+        residues.add(a);
+        residues.add(b);
+
+        const la = residues.getLabel(a), lb = residues.getLabel(b);
 
         graph.addVertex(la, a);
         graph.addVertex(lb, b);
         graph.addEdge(la, lb);
     }
-    return graph;
+    return { graph, residues };
 }
 
 // TODO: unionBy (skip this one?), cluster
