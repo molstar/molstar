@@ -43,10 +43,6 @@ export class ResidueSet {
         return false;
     }
 
-    getLabel(entry: ResidueSetEntry) {
-        return `${entry.label_asym_id} ${entry.label_comp_id} ${entry.label_seq_id}:${entry.ins_code}:${entry.label_alt_id}${this.checkOperator ? ' ' + (entry.operator_name ?? '1_555') : ''}`;
-    }
-
     hasLabelAsymId(asym_id: string) {
         return this.index.has(asym_id);
     }
@@ -70,6 +66,10 @@ export class ResidueSet {
 
             return e;
         }
+    }
+
+    static getLabel(entry: ResidueSetEntry, checkOperator = false) {
+        return `${entry.label_asym_id} ${entry.label_comp_id} ${entry.label_seq_id}:${entry.ins_code}:${entry.label_alt_id}${checkOperator ? ' ' + (entry.operator_name ?? '1_555') : ''}`;
     }
 
     static getEntryFromLocation(loc: StructureElement.Location): ResidueSetEntry {

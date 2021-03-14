@@ -11,12 +11,11 @@ import { StructureSelection } from '../selection';
 import { UniqueStructuresBuilder } from '../utils/builders';
 import { StructureUniqueSubsetBuilder } from '../../structure/util/unique-subset-builder';
 import { QueryContext, QueryFn } from '../context';
-import { structureIntersect, structureSubtract } from '../utils/structure-set';
+import { structureIntersect, structureSubtract, structureUnion } from '../utils/structure-set';
 import { UniqueArray } from '../../../../mol-data/generic';
 import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
 import { StructureElement } from '../../structure/element';
 import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
-import { UndirectedGraph } from '../../../../mol-math/graph/undirected-graph';
 import { ResidueSet, ResidueSetEntry } from '../../model/properties/utils/residue-set';
 import { StructureProperties } from '../../structure/properties';
 import { arraySetAdd } from '../../../../mol-util/array';
@@ -449,19 +448,18 @@ export interface SurroundingLigandsParams {
 /**
  * Includes expanded surrounding ligands based on radius from the source, struct_conn entries & pdbx_molecule entries.
  */
-export function surroundingLigands({ query, radius }: SurroundingLigandsParams): StructureQuery {
+export function surroundingLigands({ query, radius, includeWater }: SurroundingLigandsParams): StructureQuery {
     return function query_surroundingLigands(ctx) {
 
-        const source = StructureSelection.unionStructure(query(ctx));
-        const surroundings = getWholeResidues(ctx, ctx.inputStructure, getIncludeSurroundings(ctx, ctx.inputStructure, source, { radius }));
+        const inner = StructureSelection.unionStructure(query(ctx));
+        const surroundings = getWholeResidues(ctx, ctx.inputStructure, getIncludeSurroundings(ctx, ctx.inputStructure, inner, { radius }));
 
         const prd = getPrdAsymIdx(ctx.inputStructure);
-        const { residues, graph } = getStructConnInfo(ctx.inputStructure);
+        const graph = getStructConnInfo(ctx.inputStructure);
 
         const l = StructureElement.Location.create(surroundings);
 
         const includedPrdChains = new Map<string, string[]>();
-        const includedComponents = new Set<string>();
 
         const componentResidues = new ResidueSet({ checkOperator: true });
 
@@ -500,25 +498,7 @@ export function surroundingLigands({ query, radius }: SurroundingLigandsParams):
                 while (residuesIt.hasNext) {
                     const residueSegment = residuesIt.move();
                     l.element = elements[residueSegment.start];
-
-                    const connEntry = residues.has(l);
-                    if (connEntry) {
-                        const { pivot, component } = graph.getComponent(residues.getLabel(connEntry));
-
-                        if (includedComponents.has(pivot)) continue;
-
-                        includedComponents.add(pivot);
-
-                        for (const v of component) {
-                            const entry = graph.vertices.get(v)!;
-                            if (!prd.has(entry?.label_asym_id)) {
-                                componentResidues.add(entry);
-                            }
-                        }
-                    } else {
-                        const entry = ResidueSet.getEntryFromLocation(l);
-                        componentResidues.add(entry);
-                    }
+                    graph.addComponent(ResidueSet.getEntryFromLocation(l), componentResidues);
                 }
             }
 
@@ -568,25 +548,34 @@ export function surroundingLigands({ query, radius }: SurroundingLigandsParams):
             ctx.throwIfTimedOut();
         }
 
-        const components = builder.getStructure();
+        const components = structureUnion(ctx.inputStructure, [builder.getStructure(), inner]);
 
-        // const builder = new StructureUniqueSubsetBuilder(source);
-        // const lookup = source.lookup3d;
-        // const r = params.radius;
+        // add water
+        if (includeWater) {
+            const finalBuilder = new StructureUniqueSubsetBuilder(ctx.inputStructure);
+            const lookup = ctx.inputStructure.lookup3d;
+            for (const unit of components.units) {
+                const { x, y, z } = unit.conformation;
+                const elements = unit.elements;
+                for (let i = 0, _i = elements.length; i < _i; i++) {
+                    const e = elements[i];
+                    lookup.findIntoBuilderIf(x(e), y(e), z(e), radius, finalBuilder, testIsWater);
+                    finalBuilder.addToUnit(unit.id, e);
+                }
 
-        // for (const unit of structure.units) {
-        //     const { x, y, z } = unit.conformation;
-        //     const elements = unit.elements;
-        //     for (let i = 0, _i = elements.length; i < _i; i++) {
-        //         const e = elements[i];
-        //         lookup.findIntoBuilder(x(e), y(e), z(e), r, builder);
-        //     }
+                ctx.throwIfTimedOut();
+            }
 
-        //     ctx.throwIfTimedOut();
-        // }
-
-        return StructureSelection.Sequence(ctx.inputStructure, [components]);
+            return StructureSelection.Sequence(ctx.inputStructure, [finalBuilder.getStructure()]);
+        } else {
+            return StructureSelection.Sequence(ctx.inputStructure, [components]);
+        }
     };
+}
+
+const _entity_type = StructureProperties.entity.type;
+function testIsWater(l: StructureElement.Location) {
+    return _entity_type(l) === 'water';
 }
 
 function getPrdAsymIdx(structure: Structure) {
@@ -602,10 +591,9 @@ function getPrdAsymIdx(structure: Structure) {
 
 function getStructConnInfo(structure: Structure) {
     const model = structure.models[0];
-    const graph = new UndirectedGraph<string, ResidueSetEntry>();
-    const residues = new ResidueSet({ checkOperator: true });
+    const graph = new StructConnGraph();
 
-    if (!MmcifFormat.is(model.sourceData)) return { graph, residues };
+    if (!MmcifFormat.is(model.sourceData)) return graph;
 
     const struct_conn = model.sourceData.data.db.struct_conn;
     const { conn_type_id } = struct_conn;
@@ -634,16 +622,69 @@ function getStructConnInfo(structure: Structure) {
             operator_name: ptnr2_symmetry.value(i) ?? '1_555'
         };
 
-        residues.add(a);
-        residues.add(b);
-
-        const la = residues.getLabel(a), lb = residues.getLabel(b);
-
-        graph.addVertex(la, a);
-        graph.addVertex(lb, b);
-        graph.addEdge(la, lb);
+        graph.addEdge(a, b);
     }
-    return { graph, residues };
+
+    return graph;
+}
+
+class StructConnGraph {
+    vertices = new Map<string, ResidueSetEntry>();
+    edges = new Map<string, string[]>();
+
+    private addVertex(e: ResidueSetEntry, label: string) {
+        if (this.vertices.has(label)) return;
+        this.vertices.set(label, e);
+        this.edges.set(label, []);
+    }
+
+    addEdge(a: ResidueSetEntry, b: ResidueSetEntry) {
+        const al = ResidueSet.getLabel(a);
+        const bl = ResidueSet.getLabel(b);
+        this.addVertex(a, al);
+        this.addVertex(b, bl);
+        arraySetAdd(this.edges.get(al)!, bl);
+        arraySetAdd(this.edges.get(bl)!, al);
+    }
+
+    addComponent(start: ResidueSetEntry, set: ResidueSet) {
+        const startLabel = ResidueSet.getLabel(start);
+
+        if (!this.vertices.has(startLabel)) {
+            set.add(start);
+            return;
+        }
+
+        const visited = new Set<string>();
+        const added = new Set<string>();
+        const stack = [startLabel];
+
+        added.add(startLabel);
+        set.add(start);
+
+        while (stack.length > 0) {
+            const a = stack.pop()!;
+            visited.add(a);
+
+            const u = this.vertices.get(a)!;
+
+            for (const b of this.edges.get(a)!) {
+                if (visited.has(b)) continue;
+                stack.push(b);
+
+                if (added.has(b)) continue;
+                added.add(b);
+
+                const v = this.vertices.get(b)!;
+                if (u.operator_name === v.operator_name) {
+                    set.add({ ...v, operator_name: start.operator_name });
+                } else {
+                    set.add(v);
+                }
+
+            }
+        }
+    }
 }
 
 // TODO: unionBy (skip this one?), cluster

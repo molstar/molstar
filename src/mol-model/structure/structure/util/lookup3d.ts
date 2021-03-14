@@ -94,6 +94,36 @@ export class StructureLookup3D {
         }
     }
 
+    findIntoBuilderIf(x: number, y: number, z: number, radius: number, builder: StructureUniqueSubsetBuilder, test: (l: StructureElement.Location) => boolean) {
+        const { units } = this.structure;
+        const closeUnits = this.unitLookup.find(x, y, z, radius);
+        if (closeUnits.count === 0) return;
+
+        const loc = StructureElement.Location.create(this.structure);
+
+        for (let t = 0, _t = closeUnits.count; t < _t; t++) {
+            const unit = units[closeUnits.indices[t]];
+            Vec3.set(this.pivot, x, y, z);
+            if (!unit.conformation.operator.isIdentity) {
+                Vec3.transformMat4(this.pivot, this.pivot, unit.conformation.operator.inverse);
+            }
+            const unitLookup = unit.lookup3d;
+            const groupResult = unitLookup.find(this.pivot[0], this.pivot[1], this.pivot[2], radius);
+            if (groupResult.count === 0) continue;
+
+            const elements = unit.elements;
+            loc.unit = unit;
+            builder.beginUnit(unit.id);
+            for (let j = 0, _j = groupResult.count; j < _j; j++) {
+                loc.element = elements[groupResult.indices[j]];
+                if (test(loc)) {
+                    builder.addElement(loc.element);
+                }
+            }
+            builder.commitUnit();
+        }
+    }
+
     findIntoBuilderWithRadius(x: number, y: number, z: number, pivotR: number, maxRadius: number, radius: number, eRadius: StructureElement.Property<number>, builder: StructureUniqueSubsetBuilder) {
         const { units } = this.structure;
         const closeUnits = this.unitLookup.find(x, y, z, radius);
