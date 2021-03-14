@@ -23,7 +23,7 @@ import { Carbohydrates } from './carbohydrates/data';
 import { computeCarbohydrates } from './carbohydrates/compute';
 import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { idFactory } from '../../../mol-util/id-factory';
-import { Box3D, GridLookup3D } from '../../../mol-math/geometry';
+import { GridLookup3D } from '../../../mol-math/geometry';
 import { UUID } from '../../../mol-util';
 import { CustomProperties } from '../../custom-property';
 import { AtomicHierarchy } from '../model/properties/atomic';
@@ -50,7 +50,6 @@ class Structure {
         interUnitBonds?: InterUnitBonds,
         unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
         unitSymmetryGroupsIndexMap?: IntMap<number>,
-        unitsSortedByVolume?: ReadonlyArray<Unit>;
         carbohydrates?: Carbohydrates,
         models?: ReadonlyArray<Model>,
         model?: Model,
@@ -266,13 +265,6 @@ class Structure {
         return this._props.unitSymmetryGroupsIndexMap;
     }
 
-    /** Array of all units in the structure, sorted by their boundary volume */
-    get unitsSortedByVolume(): ReadonlyArray<Unit> {
-        if (this._props.unitsSortedByVolume) return this._props.unitsSortedByVolume;
-        this._props.unitsSortedByVolume = getUnitsSortedByVolume(this);
-        return this._props.unitsSortedByVolume;
-    }
-
     get carbohydrates(): Carbohydrates {
         if (this._props.carbohydrates) return this._props.carbohydrates;
         this._props.carbohydrates = computeCarbohydrates(this);
@@ -438,24 +430,6 @@ class Structure {
 function cmpUnits(units: ArrayLike<Unit>, i: number, j: number) {
     return units[i].id - units[j].id;
 
-}
-function cmpUnitGroupVolume(units: ArrayLike<[index: number, volume: number]>, i: number, j: number) {
-    const d = units[i][1] - units[j][1];
-    if (d === 0) return units[i][0] - units[j][0];
-    return d;
-}
-
-function getUnitsSortedByVolume(structure: Structure) {
-    const { unitSymmetryGroups } = structure;
-    const groups = unitSymmetryGroups.map((g, i) => [i, Box3D.volume(g.units[0].lookup3d.boundary.box)] as [number, number]);
-    sort(groups, 0, groups.length, cmpUnitGroupVolume, arraySwap);
-    const ret: Unit[] = [];
-    for (const [i] of groups) {
-        for (const u of unitSymmetryGroups[i].units) {
-            ret.push(u);
-        }
-    }
-    return ret;
 }
 
 function getModels(s: Structure) {
