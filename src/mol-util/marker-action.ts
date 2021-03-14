@@ -54,16 +54,15 @@ export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: Ma
     if (Interval.is(set)) {
         const start = Interval.start(set);
         const end = Interval.end(set);
-        const view = new Uint32Array(array.buffer, 0, Math.floor(array.buffer.byteLength / 4));
-        const viewStart = Math.ceil(start / 4);
-        const viewEnd = Math.min(view.length, Math.floor(end / 4));
+        const view = new Uint32Array(array.buffer, 0, array.buffer.byteLength >> 2);
 
-        const middleStart = viewStart * 4;
-        const middleEnd = viewEnd * 4;
+        const viewStart = (start + 3) >> 2;
+        const viewEnd = viewStart + ((end - start) >> 2);
+
         const frontStart = start;
-        const frontEnd = frontStart === middleStart ? frontStart : middleStart;
+        const frontEnd =  Math.min(4 * viewStart, end);
+        const backStart = Math.max(start, 4 * viewEnd);
         const backEnd = end;
-        const backStart = backEnd === middleEnd ? backEnd : middleEnd;
 
         switch (action) {
             case MarkerAction.Highlight:
@@ -82,7 +81,7 @@ export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: Ma
                 for (let i = viewStart; i < viewEnd; ++i) view[i] ^= 0x02020202;
                 break;
             case MarkerAction.Clear:
-                view.fill(0);
+                for (let i = viewStart; i < viewEnd; ++i) view[i] = 0;
                 break;
             default:
                 assertUnreachable(action);
