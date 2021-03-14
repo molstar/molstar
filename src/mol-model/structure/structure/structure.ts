@@ -69,6 +69,7 @@ class Structure {
         uniqueElementCount: number,
         atomicResidueCount: number,
         polymerResidueCount: number,
+        polymerGapCount: number,
         polymerUnitCount: number,
         coordinateSystem: SymmetryOperator,
         label: string,
@@ -82,6 +83,7 @@ class Structure {
         uniqueElementCount: -1,
         atomicResidueCount: -1,
         polymerResidueCount: -1,
+        polymerGapCount: -1,
         polymerUnitCount: -1,
         coordinateSystem: SymmetryOperator.Default,
         label: ''
@@ -134,6 +136,14 @@ class Structure {
             this._props.polymerResidueCount = getPolymerResidueCount(this);
         }
         return this._props.polymerResidueCount;
+    }
+
+    /** Count of all polymer gaps in the structure */
+    get polymerGapCount() {
+        if (this._props.polymerGapCount === -1) {
+            this._props.polymerGapCount = getPolymerGapCount(this);
+        }
+        return this._props.polymerGapCount;
     }
 
     get polymerUnitCount() {
@@ -566,6 +576,15 @@ function getPolymerResidueCount(structure: Structure): number {
         polymerResidueCount += units[i].polymerElements.length;
     }
     return polymerResidueCount;
+}
+
+function getPolymerGapCount(structure: Structure): number {
+    const { units } = structure;
+    let polymerGapCount = 0;
+    for (let i = 0, _i = units.length; i < _i; i++) {
+        polymerGapCount += units[i].gapElements.length / 2;
+    }
+    return polymerGapCount;
 }
 
 function getPolymerUnitCount(structure: Structure): number {

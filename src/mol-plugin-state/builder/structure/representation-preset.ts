@@ -23,6 +23,7 @@ import { OperatorNameColorThemeProvider } from '../../../mol-theme/color/operato
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { StructConn } from '../../../mol-model-formats/structure/property/bonds/struct_conn';
 import { StructureRepresentationRegistry } from '../../../mol-repr/structure/registry';
+import { assertUnreachable } from '../../../mol-util/type-helpers';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -111,6 +112,8 @@ const auto = StructureRepresentationPresetProvider({
         const thresholds = plugin.config.get(PluginConfig.Structure.SizeThresholds) || Structure.DefaultSizeThresholds;
         const size = Structure.getSize(structure, thresholds);
 
+        const gapFraction = structure.polymerResidueCount / structure.polymerGapCount;
+
         switch (size) {
             case Structure.Size.Gigantic:
             case Structure.Size.Huge:
@@ -118,10 +121,14 @@ const auto = StructureRepresentationPresetProvider({
             case Structure.Size.Large:
                 return polymerCartoon.apply(ref, params, plugin);
             case Structure.Size.Medium:
-                return polymerAndLigand.apply(ref, params, plugin);
+                if (gapFraction > 3) {
+                    return polymerAndLigand.apply(ref, params, plugin);
+                } // else fall through
             case Structure.Size.Small:
-                // `showCarbohydrateSymbol: true` is nice e.g. for PDB 1aga
+                // `showCarbohydrateSymbol: true` is nice, e.g., for PDB 1aga
                 return atomicDetail.apply(ref, { ...params, showCarbohydrateSymbol: true }, plugin);
+            default:
+                assertUnreachable(size);
         }
     }
 });
