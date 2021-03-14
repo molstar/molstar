@@ -57,7 +57,7 @@ export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: Ma
         const view = new Uint32Array(array.buffer, 0, array.buffer.byteLength >> 2);
 
         const viewStart = (start + 3) >> 2;
-        const viewEnd = viewStart + ((end - start) >> 2);
+        const viewEnd = viewStart + ((end - 4 * viewStart) >> 2);
 
         const frontStart = start;
         const frontEnd =  Math.min(4 * viewStart, end);
