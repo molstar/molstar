@@ -15,6 +15,8 @@ import { structureIntersect, structureSubtract } from '../utils/structure-set';
 import { UniqueArray } from '../../../../mol-data/generic';
 import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
 import { StructureElement } from '../../structure/element';
+import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
+import { UndirectedGraph } from '../../../../mol-math/graph/undirected-graph';
 
 function getWholeResidues(ctx: QueryContext, source: Structure, structure: Structure) {
     const builder = source.subsetBuilder(true);
@@ -433,6 +435,76 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
     }
 
     return builder.getStructure();
+}
+
+export interface SurroundingLigandsParams {
+    query: StructureQuery,
+    radius: number,
+    computedExpand: boolean
+}
+
+/**
+ * Includes expanded surrounding ligands based on radius from the source, struct_conn entries & pdbx_molecule entries.
+ */
+export function surroundingLigands({ query, radius }: SurroundingLigandsParams): StructureQuery {
+    return function query_surroundingLigands(ctx) {
+
+        const source = StructureSelection.unionStructure(query(ctx));
+        const surroundings = getWholeResidues(ctx, ctx.inputStructure, getIncludeSurroundings(ctx, ctx.inputStructure, source, { radius }));
+
+        // find ligand component pivots
+        //   - keep non-polymers & non-waters
+
+        // expand ligand components
+        //   - expand PRD chains
+        //   - expand components based on struct_conn
+
+        // add waters
+
+        return 0 as any;
+    };
+}
+
+function getPrdAsymcIdx(structure: Structure) {
+    const model = structure.models[0];
+    const ids = new Set<string>();
+    if (!MmcifFormat.is(model.sourceData)) return ids;
+    const { _rowCount, asym_id } = model.sourceData.data.db.pdbx_molecule;
+    for (let i = 0; i < _rowCount; i++) {
+        ids.add(asym_id.value(i));
+    }
+    return ids;
+}
+
+type SurroudingResidue = [asym_id:string, comp_id:string, seq_id:number, alt_id: string, ins_code: string, symmetry:string]
+
+function getSurroundingResidueLabel(r: SurroudingResidue) {
+    return `${r[0]} ${r[1]} ${r[2]} ${r[3]} ${r[4]} ${r[5]}`;
+}
+
+function structConnGraph(structure: Structure): UndirectedGraph<string, SurroudingResidue> {
+    const model = structure.models[0];
+    const graph = new UndirectedGraph<string, SurroudingResidue>();
+    if (!MmcifFormat.is(model.sourceData)) return graph;
+
+    const struct_conn = model.sourceData.data.db.struct_conn;
+    const { conn_type_id } = struct_conn;
+    const { ptnr1_label_asym_id, ptnr1_label_comp_id, ptnr1_label_seq_id, ptnr1_symmetry, pdbx_ptnr1_label_alt_id, pdbx_ptnr1_PDB_ins_code } = struct_conn;
+    const { ptnr2_label_asym_id, ptnr2_label_comp_id, ptnr2_label_seq_id, ptnr2_symmetry, pdbx_ptnr2_label_alt_id, pdbx_ptnr2_PDB_ins_code } = struct_conn;
+    for (let i = 0; i < struct_conn._rowCount; i++) {
+        const bondType = conn_type_id.value(i);
+        if (bondType !== 'covale' && bondType !== 'metalc') continue;
+
+        const a: SurroudingResidue = [ptnr1_label_asym_id.value(i), ptnr1_label_comp_id.value(i), ptnr1_label_seq_id.value(i), pdbx_ptnr1_label_alt_id.value(i), pdbx_ptnr1_PDB_ins_code.value(i), ptnr1_symmetry.value(i) ?? '1_555'];
+        const b: SurroudingResidue = [ptnr2_label_asym_id.value(i), ptnr2_label_comp_id.value(i), ptnr2_label_seq_id.value(i), pdbx_ptnr2_label_alt_id.value(i), pdbx_ptnr2_PDB_ins_code.value(i), ptnr2_symmetry.value(i) ?? '1_555'];
+
+        const la = getSurroundingResidueLabel(a), lb = getSurroundingResidueLabel(b);
+
+        graph.addVertex(la, a);
+        graph.addVertex(lb, b);
+        graph.addEdge(la, lb);
+    }
+    return graph;
 }
 
 // TODO: unionBy (skip this one?), cluster
