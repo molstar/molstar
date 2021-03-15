@@ -455,6 +455,14 @@ namespace Canvas3D {
 
             const boundingSphere = scene.boundingSphereVisible;
             const { center, radius } = boundingSphere;
+
+            const autoAdjustControls = controls.props.autoAdjustMinMaxDistance;
+            if (autoAdjustControls.name === 'on') {
+                const minDistance = autoAdjustControls.params.minDistanceFactor * radius + autoAdjustControls.params.minDistancePadding;
+                const maxDistance = Math.max(autoAdjustControls.params.maxDistanceFactor * radius, autoAdjustControls.params.maxDistanceMin);
+                controls.setProps({ minDistance, maxDistance });
+            }
+
             if (radius > 0) {
                 const duration = nextCameraResetDuration === undefined ? p.cameraResetDurationMs : nextCameraResetDuration;
                 const focus = camera.getFocus(center, radius);

@@ -49,7 +49,21 @@ export const TrackballControlsParams = {
     minDistance: PD.Numeric(0.01, {}, { isHidden: true }),
     maxDistance: PD.Numeric(1e150, {}, { isHidden: true }),
 
-    bindings: PD.Value(DefaultTrackballBindings, { isHidden: true })
+    bindings: PD.Value(DefaultTrackballBindings, { isHidden: true }),
+
+    /**
+     * minDistance = minDistanceFactor * boundingSphere.radius + minDistancePadding
+     * maxDistance = max(maxDistanceFactor * boundingSphere.radius, maxDistanceMin)
+     */
+    autoAdjustMinMaxDistance: PD.MappedStatic('on', {
+        off: PD.EmptyGroup(),
+        on: PD.Group({
+            minDistanceFactor: PD.Numeric(0),
+            minDistancePadding: PD.Numeric(5),
+            maxDistanceFactor: PD.Numeric(10),
+            maxDistanceMin: PD.Numeric(20)
+        })
+    }, { isHidden: true })
 };
 export type TrackballControlsProps = PD.Values<typeof TrackballControlsParams>
 
