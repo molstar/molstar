@@ -9,6 +9,7 @@ import { Mat4, Vec3, Vec4, EPSILON } from '../mol-math/linear-algebra';
 import { Viewport, cameraProject, cameraUnproject } from './camera/util';
 import { CameraTransitionManager } from './camera/transition';
 import { BehaviorSubject } from 'rxjs';
+import { Scene } from '../mol-gl/scene';
 
 export { ICamera, Camera };
 
@@ -149,6 +150,8 @@ class Camera implements ICamera {
 
 namespace Camera {
     export type Mode = 'perspective' | 'orthographic'
+
+    export type SnapshotProvider = Partial<Snapshot> | ((scene: Scene, camera: Camera) => Partial<Snapshot>)
 
     /**
      * Sets an offseted view in a larger frustum. This is useful for
