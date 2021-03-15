@@ -127,6 +127,23 @@ class Camera implements ICamera {
         return state;
     }
 
+    getInvariantFocus(target: Vec3, radius: number, up: Vec3, dir: Vec3): Partial<Camera.Snapshot> {
+        const r = Math.max(radius, 0.01);
+        const targetDistance = this.getTargetDistance(r);
+
+        Vec3.copy(this.deltaDirection, dir);
+        Vec3.setMagnitude(this.deltaDirection, this.deltaDirection, targetDistance);
+        Vec3.sub(this.newPosition, target, this.deltaDirection);
+
+        const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state);
+        state.target = Vec3.clone(target);
+        state.radius = r;
+        state.position = Vec3.clone(this.newPosition);
+        Vec3.copy(state.up, up);
+
+        return state;
+    }
+
     focus(target: Vec3, radius: number, durationMs?: number, up?: Vec3, dir?: Vec3) {
         if (radius > 0) {
             this.setState(this.getFocus(target, radius, up, dir), durationMs);

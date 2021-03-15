@@ -590,6 +590,9 @@ namespace Vec3 {
     export const unitX: ReadonlyVec3 = create(1, 0, 0);
     export const unitY: ReadonlyVec3 = create(0, 1, 0);
     export const unitZ: ReadonlyVec3 = create(0, 0, 1);
+    export const negUnitX: ReadonlyVec3 = create(-1, 0, 0);
+    export const negUnitY: ReadonlyVec3 = create(0, -1, 0);
+    export const negUnitZ: ReadonlyVec3 = create(0, 0, -1);
 }
 
 export { Vec3 };

@@ -11,6 +11,8 @@ import { PluginBehavior } from '../behavior';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
 import { Binding } from '../../../mol-util/binding';
 import { PluginCommands } from '../../commands';
+import { CameraHelperAxis, isCameraAxesLoci } from '../../../mol-canvas3d/helper/camera-helper';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
@@ -62,4 +64,58 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
     },
     params: () => FocusLociParams,
     display: { name: 'Camera Focus Loci on Canvas' }
+});
+
+export const CameraAxisHelper = PluginBehavior.create<{}>({
+    name: 'camera-axis-helper',
+    category: 'interaction',
+    ctor: class extends PluginBehavior.Handler<{}> {
+        register(): void {
+
+            let lastPlane = CameraHelperAxis.None;
+            let state = 0;
+
+            this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current }) => {
+                if (!this.ctx.canvas3d || !isCameraAxesLoci(current.loci)) return;
+
+                const axis = current.loci.elements[0].groupId;
+                if (axis === CameraHelperAxis.None) {
+                    lastPlane = CameraHelperAxis.None;
+                    state = 0;
+                    return;
+                } else if (axis >= CameraHelperAxis.X && axis <= CameraHelperAxis.Z) {
+                    lastPlane = CameraHelperAxis.None;
+                    state = 0;
+                    const up = Vec3();
+                    up[axis - 1] = 1;
+                    this.ctx.canvas3d.requestCameraReset({ snapshot: { up } });
+                } else {
+                    if (lastPlane === axis) {
+                        state = (state + 1) % 2;
+                    } else {
+                        lastPlane = axis;
+                        state = 0;
+                    }
+
+                    let up: Vec3, dir: Vec3;
+                    if (axis === CameraHelperAxis.XY) {
+                        up = state ? Vec3.unitX : Vec3.unitY;
+                        dir = Vec3.negUnitZ;
+                    } else if (axis === CameraHelperAxis.XZ) {
+                        up = state ? Vec3.unitX : Vec3.unitZ;
+                        dir = Vec3.negUnitY;
+                    } else {
+                        up = state ? Vec3.unitY : Vec3.unitZ;
+                        dir = Vec3.negUnitX;
+                    }
+
+                    this.ctx.canvas3d.requestCameraReset({
+                        snapshot: (scene, camera) => camera.getInvariantFocus(scene.boundingSphereVisible.center, scene.boundingSphereVisible.radius, up, dir)
+                    });
+                }
+            });
+        }
+    },
+    params: () => ({}),
+    display: { name: 'Camera Axis Helper' }
 });
