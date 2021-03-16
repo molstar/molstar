@@ -1,10 +1,11 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import produce from 'immer';
+import { Interval } from '../../mol-data/int/interval';
 import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
 import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
@@ -17,7 +18,9 @@ import { Sphere3D } from '../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { DataLoci, EmptyLoci, Loci } from '../../mol-model/loci';
 import { Shape } from '../../mol-model/shape';
+import { Visual } from '../../mol-repr/visual';
 import { ColorNames } from '../../mol-util/color/names';
+import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Camera, ICamera } from '../camera';
 import { Viewport } from '../camera/util';
@@ -93,6 +96,26 @@ export class CameraHelper {
         const { objectId, groupId, instanceId } = pickingId;
         if (!this.renderObject || objectId !== this.renderObject.id || groupId === CameraHelperAxis.None) return EmptyLoci;
         return CameraAxesLoci(this, groupId, instanceId);
+    }
+
+    private eachGroup = (loci: Loci, apply: (interval: Interval) => boolean): boolean => {
+        if (!this.renderObject) return false;
+        if (!isCameraAxesLoci(loci)) return false;
+        let changed = false;
+        const groupCount = this.renderObject.values.uGroupCount.ref.value;
+        const { elements } = loci;
+        for (const { groupId, instanceId } of elements) {
+            const idx = instanceId * groupCount + groupId;
+            if (apply(Interval.ofSingleton(idx))) changed = true;
+        }
+        return changed;
+    }
+
+    mark(loci: Loci, action: MarkerAction) {
+        if (!MarkerActions.is(MarkerActions.Highlighting, action)) return false;
+        if (!isCameraAxesLoci(loci)) return false;
+        if (loci.data !== this) return false;
+        return Visual.mark(this.renderObject, loci, action, this.eachGroup);
     }
 
     update(camera: ICamera) {

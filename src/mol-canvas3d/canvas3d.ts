@@ -331,11 +331,13 @@ namespace Canvas3D {
                 changed = repr.mark(loci, action);
             } else {
                 changed = helper.handle.mark(loci, action);
+                changed = helper.camera.mark(loci, action) || changed;
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed; });
             }
             if (changed) {
                 scene.update(void 0, true);
                 helper.handle.scene.update(void 0, true);
+                helper.camera.scene.update(void 0, true);
                 const prevPickDirty = pickHelper.dirty;
                 draw(true);
                 pickHelper.dirty = prevPickDirty; // marking does not change picking buffers

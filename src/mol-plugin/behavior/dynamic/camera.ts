@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -83,12 +83,22 @@ export const CameraAxisHelper = PluginBehavior.create<{}>({
                     lastPlane = CameraHelperAxis.None;
                     state = 0;
                     return;
-                } else if (axis >= CameraHelperAxis.X && axis <= CameraHelperAxis.Z) {
+                }
+
+                const { camera } = this.ctx.canvas3d;
+                let dir: Vec3, up: Vec3;
+
+                if (axis >= CameraHelperAxis.X && axis <= CameraHelperAxis.Z) {
                     lastPlane = CameraHelperAxis.None;
                     state = 0;
-                    const up = Vec3();
+
+                    const d = Vec3.sub(Vec3(), camera.target, camera.position);
+                    const c = Vec3.cross(Vec3(), d, camera.up);
+
+                    up = Vec3();
                     up[axis - 1] = 1;
-                    this.ctx.canvas3d.requestCameraReset({ snapshot: { up } });
+                    dir = Vec3.cross(Vec3(), up, c);
+                    if (Vec3.magnitude(dir) === 0) dir = d;
                 } else {
                     if (lastPlane === axis) {
                         state = (state + 1) % 2;
@@ -97,7 +107,6 @@ export const CameraAxisHelper = PluginBehavior.create<{}>({
                         state = 0;
                     }
 
-                    let up: Vec3, dir: Vec3;
                     if (axis === CameraHelperAxis.XY) {
                         up = state ? Vec3.unitX : Vec3.unitY;
                         dir = Vec3.negUnitZ;
@@ -108,11 +117,11 @@ export const CameraAxisHelper = PluginBehavior.create<{}>({
                         up = state ? Vec3.unitY : Vec3.unitZ;
                         dir = Vec3.negUnitX;
                     }
-
-                    this.ctx.canvas3d.requestCameraReset({
-                        snapshot: (scene, camera) => camera.getInvariantFocus(scene.boundingSphereVisible.center, scene.boundingSphereVisible.radius, up, dir)
-                    });
                 }
+
+                this.ctx.canvas3d.requestCameraReset({
+                    snapshot: (scene, camera) => camera.getInvariantFocus(scene.boundingSphereVisible.center, scene.boundingSphereVisible.radius, up, dir)
+                });
             });
         }
     },
