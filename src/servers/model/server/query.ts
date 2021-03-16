@@ -248,7 +248,7 @@ async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, enc
 
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter(entry.queryDefinition.filter);
         if (result.length > 0) encode_mmCIF_categories(encoder, result, { copyAllCategories: entry.copyAllCategories });
-        else ConsoleLogger.logId(entry.job.id, 'Query', `Empty result for ${entry.key}/${entry.queryDefinition.name}`);
+        else ConsoleLogger.logId(entry.job.id, 'Warning', `Empty result for Query ${entry.key}/${entry.queryDefinition.name}`);
         if (entry.transform && !Mat4.isIdentity(entry.transform)) GlobalModelTransformInfo.writeMmCif(encoder, entry.transform);
         if (!entry.copyAllCategories && entry.queryDefinition.filter) encoder.setFilter();
         perf.end('encode');
