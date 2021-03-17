@@ -12,13 +12,13 @@ export function setCanvasSize(canvas: HTMLCanvasElement, width: number, height: 
 }
 
 /** Resize canvas to container element taking `devicePixelRatio` into account */
-export function resizeCanvas (canvas: HTMLCanvasElement, container: Element, scale = 1) {
+export function resizeCanvas (canvas: HTMLCanvasElement, container: HTMLElement, scale = 1) {
     let width = window.innerWidth;
     let height = window.innerHeight;
     if (container !== document.body) {
-        let bounds = container.getBoundingClientRect();
-        width = bounds.right - bounds.left;
-        height = bounds.bottom - bounds.top;
+        // fixes issue #molstar/molstar#147, offsetWidth/offsetHeight is correct size when css transform:scale is used
+        width = container.offsetWidth;
+        height = container.offsetHeight;
     }
     setCanvasSize(canvas, width, height, scale);
 }
