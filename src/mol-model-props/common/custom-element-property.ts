@@ -61,7 +61,7 @@ namespace CustomElementProperty {
             type: builder.type || 'dynamic',
             defaultParams: {},
             getParams: (data: Model) => ({}),
-            isApplicable: (data: Model) => !!builder.isApplicable?.(data),
+            isApplicable: (data: Model) => !builder.isApplicable || !!builder.isApplicable(data),
             obtain: async (ctx: CustomProperty.Context, data: Model) => {
                 return await builder.getData(data, ctx);
             }
