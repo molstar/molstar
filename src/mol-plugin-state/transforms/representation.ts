@@ -36,6 +36,10 @@ import { DihedralParams, DihedralRepresentation } from '../../mol-repr/shape/loc
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 import { Clipping } from '../../mol-theme/clipping';
 import { ObjectKeys } from '../../mol-util/type-helpers';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { getBoxMesh } from './shape';
+import { Shape } from '../../mol-model/shape';
+import { Box3D } from '../../mol-math/geometry';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -730,6 +734,41 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams };
             const data = getUnitcellData(a.data, symmetry, props);
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
+            b.data.source = a;
+            return StateTransformer.UpdateResult.Updated;
+        });
+    }
+});
+
+export { StructureBoundingBox3D };
+type StructureBoundingBox3D = typeof StructureBoundingBox3D
+const StructureBoundingBox3D = PluginStateTransform.BuiltIn({
+    name: 'structure-bounding-box-3d',
+    display: 'Bounding Box',
+    from: SO.Molecule.Structure,
+    to: SO.Shape.Representation3D,
+    params: {
+        radius: PD.Numeric(0.05, { min: 0.01, max: 4, step: 0.01 }, { isEssential: true }),
+        color: PD.Color(ColorNames.red, { isEssential: true }),
+        ...Mesh.Params,
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Bounding Box', async ctx => {
+            const repr = ShapeRepresentation((_, data: { box: Box3D, radius: number, color: Color }, __, shape) => {
+                const mesh = getBoxMesh(data.box, data.radius, shape?.geometry);
+                return Shape.create('Bouding Box', data, mesh, () => data.color, () => 1, () => 'Bounding Box');
+            }, Mesh.Utils);
+            await repr.createOrUpdate(params, { box: a.data.boundary.box, radius: params.radius, color: params.color }).runInContext(ctx);
+            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Bounding Box` });
+        });
+    },
+    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+        return Task.create('Bounding Box', async ctx => {
+            await b.data.repr.createOrUpdate(newParams, { box: a.data.boundary.box, radius: newParams.radius, color: newParams.color }).runInContext(ctx);
             b.data.source = a;
             return StateTransformer.UpdateResult.Updated;
         });

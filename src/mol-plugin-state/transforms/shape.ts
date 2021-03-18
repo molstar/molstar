@@ -7,7 +7,7 @@
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { BoxCage } from '../../mol-geo/primitive/box';
-import { Sphere3D } from '../../mol-math/geometry';
+import { Box3D, Sphere3D } from '../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { Shape } from '../../mol-model/shape';
 import { Task } from '../../mol-task';
@@ -39,23 +39,7 @@ const BoxShape3D = PluginStateTransform.BuiltIn({
                 data: params,
                 params: Mesh.Params,
                 getShape: (_, data: typeof params) => {
-
-                    const diag = Vec3.sub(Vec3(), data.topRight, data.bottomLeft);
-                    const translateUnit = Mat4.fromTranslation(Mat4(), Vec3.create(0.5, 0.5, 0.5));
-                    const scale = Mat4.fromScaling(Mat4(), diag);
-                    const translate = Mat4.fromTranslation(Mat4(), data.bottomLeft);
-                    const transform = Mat4.mul3(Mat4(), translate, scale, translateUnit);
-
-                    // TODO: optimize
-                    const state = MeshBuilder.createState(256, 128);
-                    state.currentGroup = 1;
-                    MeshBuilder.addCage(state, transform, BoxCage(), data.radius, 2, 20);
-                    const mesh = MeshBuilder.getMesh(state);
-
-                    const center = Vec3.scaleAndAdd(Vec3(), data.bottomLeft, diag, 0.5);
-                    const radius = Vec3.distance(data.bottomLeft, center);
-                    mesh.setBoundingSphere(Sphere3D.create(center, radius));
-
+                    const mesh = getBoxMesh(Box3D.create(params.bottomLeft, params.topRight), params.radius);
                     return Shape.create('Box', data, mesh, () => data.color, () => 1, () => 'Box');
                 },
                 geometryUtils: Mesh.Utils
@@ -63,3 +47,23 @@ const BoxShape3D = PluginStateTransform.BuiltIn({
         });
     }
 });
+
+export function getBoxMesh(box: Box3D, radius: number, oldMesh?: Mesh) {
+    const diag = Vec3.sub(Vec3(), box.max, box.min);
+    const translateUnit = Mat4.fromTranslation(Mat4(), Vec3.create(0.5, 0.5, 0.5));
+    const scale = Mat4.fromScaling(Mat4(), diag);
+    const translate = Mat4.fromTranslation(Mat4(), box.min);
+    const transform = Mat4.mul3(Mat4(), translate, scale, translateUnit);
+
+    // TODO: optimize?
+    const state = MeshBuilder.createState(256, 128, oldMesh);
+    state.currentGroup = 1;
+    MeshBuilder.addCage(state, transform, BoxCage(), radius, 2, 20);
+    const mesh = MeshBuilder.getMesh(state);
+
+    const center = Vec3.scaleAndAdd(Vec3(), box.min, diag, 0.5);
+    const sphereRadius = Vec3.distance(box.min, center);
+    mesh.setBoundingSphere(Sphere3D.create(center, sphereRadius));
+
+    return mesh;
+}
