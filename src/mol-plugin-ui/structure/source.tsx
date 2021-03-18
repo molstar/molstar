@@ -195,12 +195,27 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
     get presetActions() {
         const actions: ActionMenu.Item[] = [];
         const { trajectories } = this.plugin.managers.structure.hierarchy.selection;
-        if (trajectories.length !== 1) return actions;
+        if (trajectories.length === 0) return actions;
 
-        const providers = this.plugin.builders.structure.hierarchy.getPresets(trajectories[0].cell.obj);
+        let providers = this.plugin.builders.structure.hierarchy.getPresets(trajectories[0].cell.obj);
+
+        if (trajectories.length > 1) {
+            const providerSet = new Set(providers);
+            for (let i = 1; i < trajectories.length; i++) {
+                const providers = this.plugin.builders.structure.hierarchy.getPresets(trajectories[i].cell.obj);
+                const current = new Set(providers);
+
+                for (const p of providers) {
+                    if (!current.has(p)) providerSet.delete(p);
+                }
+            }
+            providers = providers.filter(p => providerSet.has(p));
+        }
+
         for (const p of providers) {
             actions.push(ActionMenu.Item(p.display.name, p, { description: p.display.description }));
         }
+
         return actions;
     }
 
