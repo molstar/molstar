@@ -1,3 +1,6 @@
+# 0.9.7
+* add Surrounding Ligands query
+
 # 0.9.6
 * optional download parameter
 
