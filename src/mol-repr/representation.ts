@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,9 +24,6 @@ import { Visual } from './visual';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { Clipping } from '../mol-theme/clipping';
 
-// export interface RepresentationProps {
-//     visuals?: string[]
-// }
 export type RepresentationProps = { [k: string]: any }
 
 export interface RepresentationContext {
@@ -54,6 +51,8 @@ export interface RepresentationProvider<D = any, P extends PD.Params = any, S ex
         attach: (ctx: CustomProperty.Context, data: D) => Promise<void>,
         detach: (data: D) => void
     }
+    readonly getData?: (data: D, props: PD.Values<P>) => D
+    readonly mustRecreate?: (oldProps: PD.Values<P>, newProps: PD.Values<P>) => boolean
 }
 
 export namespace RepresentationProvider {
@@ -66,7 +65,7 @@ export namespace RepresentationProvider {
 
 export type AnyRepresentationProvider = RepresentationProvider<any, {}, Representation.State>
 
-export const EmptyRepresentationProvider = {
+const EmptyRepresentationProvider = {
     label: '',
     description: '',
     factory: () => Representation.Empty,

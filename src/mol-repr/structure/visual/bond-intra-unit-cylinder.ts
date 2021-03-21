@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -21,14 +21,12 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
+import { SortedArray } from '../../../mol-data/int';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const isBondType = BondType.is;
 
 function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondCylinderParams>) {
-    const locE = StructureElement.Location.create(structure, unit);
-    const locB = Bond.Location(structure, unit, undefined, structure, unit, undefined);
-
     const elements = unit.elements;
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
@@ -37,6 +35,24 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
 
     const vRef = Vec3(), delta = Vec3();
     const pos = unit.conformation.invariantPosition;
+
+    let stub: undefined | ((edgeIndex: number) => boolean);
+
+    const locE = StructureElement.Location.create(structure, unit);
+    const locB = Bond.Location(structure, unit, undefined, structure, unit, undefined);
+
+    if (props.includeParent) {
+        const child = Structure.WithChild.getChild(structure);
+        if (!child) throw new Error('expected child to exist');
+        const childUnit = child.unitMap.get(unit.id);
+        if (!childUnit) throw new Error('expected childUnit to exist');
+
+        stub = (edgeIndex: number) => {
+            const eA = elements[a[edgeIndex]];
+            const eB = elements[b[edgeIndex]];
+            return SortedArray.has(childUnit.elements, eA) && !SortedArray.has(childUnit.elements, eB);
+        };
+    }
 
     const radius = (edgeIndex: number) => {
         locB.aIndex = a[edgeIndex];
@@ -105,7 +121,8 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
         radius: (edgeIndex: number) => {
             return radius(edgeIndex) * sizeAspectRatio;
         },
-        ignore: makeIntraBondIgnoreTest(unit, props)
+        ignore: makeIntraBondIgnoreTest(structure, unit, props),
+        stub
     };
 }
 
@@ -113,10 +130,14 @@ function createIntraUnitBondCylinderImpostors(ctx: VisualContext, unit: Unit, st
     if (!Unit.isAtomic(unit)) return Cylinders.createEmpty(cylinders);
     if (!unit.bonds.edgeCount) return Cylinders.createEmpty(cylinders);
 
+    const child = Structure.WithChild.getChild(structure);
+    const childUnit = child?.unitMap.get(unit.id);
+    if (child && !childUnit) return Cylinders.createEmpty(cylinders);
+
     const builderProps = getIntraUnitBondCylinderBuilderProps(unit, structure, theme, props);
     const c = createLinkCylinderImpostors(ctx, builderProps, props, cylinders);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
+    const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * props.sizeFactor);
     c.setBoundingSphere(sphere);
 
     return c;
@@ -126,10 +147,14 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
     if (!unit.bonds.edgeCount) return Mesh.createEmpty(mesh);
 
+    const child = Structure.WithChild.getChild(structure);
+    const childUnit = child?.unitMap.get(unit.id);
+    if (child && !childUnit) return Mesh.createEmpty(mesh);
+
     const builderProps = getIntraUnitBondCylinderBuilderProps(unit, structure, theme, props);
     const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
+    const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * props.sizeFactor);
     m.setBoundingSphere(sphere);
 
     return m;
@@ -142,6 +167,7 @@ export const IntraUnitBondCylinderParams = {
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
     tryUseImpostor: PD.Boolean(true),
+    includeParent: PD.Boolean(false),
 };
 export type IntraUnitBondCylinderParams = typeof IntraUnitBondCylinderParams
 
@@ -167,6 +193,7 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.dashScale !== currentProps.dashScale ||
                 newProps.dashCap !== currentProps.dashCap ||
+                newProps.stubCap !== currentProps.stubCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );
@@ -207,6 +234,7 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.dashScale !== currentProps.dashScale ||
                 newProps.dashCap !== currentProps.dashCap ||
+                newProps.stubCap !== currentProps.stubCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );

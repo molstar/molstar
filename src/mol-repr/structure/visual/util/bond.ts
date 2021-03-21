@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,7 +13,7 @@ import { LinkCylinderParams, LinkLineParams } from './link';
 import { ObjectKeys } from '../../../../mol-util/type-helpers';
 import { PickingId } from '../../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../../mol-model/loci';
-import { Interval, OrderedSet } from '../../../../mol-data/int';
+import { Interval, OrderedSet, SortedArray } from '../../../../mol-data/int';
 import { isH, isHydrogen } from './common';
 
 export const BondParams = {
@@ -42,7 +42,7 @@ export function ignoreBondType(include: BondType.Flag, exclude: BondType.Flag, f
     return !BondType.is(include, f) || BondType.is(exclude, f);
 }
 
-export function makeIntraBondIgnoreTest(unit: Unit.Atomic, props: BondProps): undefined | ((edgeIndex: number) => boolean) {
+export function makeIntraBondIgnoreTest(structure: Structure, unit: Unit.Atomic, props: BondProps): undefined | ((edgeIndex: number) => boolean) {
     const elements = unit.elements;
     const { atomicNumber } = unit.model.atomicHierarchy.derived.atom;
     const bonds = unit.bonds;
@@ -53,16 +53,21 @@ export function makeIntraBondIgnoreTest(unit: Unit.Atomic, props: BondProps): un
 
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
-
     const allBondTypes = BondType.isAll(include) && BondType.Flag.None === exclude;
 
-    if (!allBondTypes && ignoreHydrogens) {
-        return (edgeIndex: number) => isH(atomicNumber, elements[a[edgeIndex]]) || isH(atomicNumber, elements[b[edgeIndex]]) || ignoreBondType(include, exclude, _flags[edgeIndex]);
-    } else if (!allBondTypes) {
-        return (edgeIndex: number) => ignoreBondType(include, exclude, _flags[edgeIndex]);
-    } else if (ignoreHydrogens) {
-        return (edgeIndex: number) => isH(atomicNumber, elements[a[edgeIndex]]) || isH(atomicNumber, elements[b[edgeIndex]]);
-    }
+    const child = Structure.WithChild.getChild(structure);
+    const childUnit = child?.unitMap.get(unit.id);
+    if (child && !childUnit) throw new Error('expected childUnit to exist if child exists');
+
+    if (allBondTypes && !ignoreHydrogens && !child) return;
+
+    return (edgeIndex: number) => {
+        return (
+            (!!childUnit && !SortedArray.has(childUnit.elements, elements[a[edgeIndex]])) ||
+            (ignoreHydrogens && (isH(atomicNumber, elements[a[edgeIndex]]) || isH(atomicNumber, elements[b[edgeIndex]]))) ||
+            (!allBondTypes && ignoreBondType(include, exclude, _flags[edgeIndex]))
+        );
+    };
 }
 
 export function makeInterBondIgnoreTest(structure: Structure, props: BondProps): undefined | ((edgeIndex: number) => boolean) {
@@ -73,34 +78,45 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
 
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
-
     const allBondTypes = BondType.isAll(include) && BondType.Flag.None === exclude;
 
-    const ignoreHydrogen = (edgeIndex: number) => {
-        const b = edges[edgeIndex];
-        const uA = structure.unitMap.get(b.unitA);
-        const uB = structure.unitMap.get(b.unitB);
-        return isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB]);
-    };
+    const child = Structure.WithChild.getChild(structure);
 
-    if (!allBondTypes && ignoreHydrogens) {
-        return (edgeIndex: number) => ignoreHydrogen(edgeIndex) || ignoreBondType(include, exclude, edges[edgeIndex].props.flag);
-    } else if (!allBondTypes) {
-        return (edgeIndex: number) => ignoreBondType(include, exclude, edges[edgeIndex].props.flag);
-    } else if (ignoreHydrogens) {
-        return (edgeIndex: number) => ignoreHydrogen(edgeIndex);
-    }
+    if (allBondTypes && !ignoreHydrogens && !child) return;
+
+    return (edgeIndex: number) => {
+        if (child) {
+            const b = edges[edgeIndex];
+            const childUnitA = child.unitMap.get(b.unitA);
+            if (!childUnitA) return true;
+
+            const unitA = structure.unitMap.get(b.unitA);
+            const eA = unitA.elements[b.indexA];
+            if (!SortedArray.has(childUnitA.elements, eA)) return true;
+        }
+
+        if (ignoreHydrogens) {
+            const b = edges[edgeIndex];
+            const uA = structure.unitMap.get(b.unitA);
+            const uB = structure.unitMap.get(b.unitB);
+            if(isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB])) return true;
+        }
+
+        if (!allBondTypes) {
+            if (ignoreBondType(include, exclude, edges[edgeIndex].props.flag)) return true;
+        }
+
+        return false;
+    };
 }
 
 export namespace BondIterator {
     export function fromGroup(structureGroup: StructureGroup): LocationIterator {
         const { group, structure } = structureGroup;
-        const unit = group.units[0];
+        const unit = group.units[0] as Unit.Atomic;
         const groupCount = Unit.isAtomic(unit) ? unit.bonds.edgeCount * 2 : 0;
         const instanceCount = group.units.length;
-        const location = Bond.Location();
-        location.aStructure = structure;
-        location.bStructure = structure;
+        const location = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex] as Unit.Atomic;
             location.aUnit = unit;
@@ -115,9 +131,7 @@ export namespace BondIterator {
     export function fromStructure(structure: Structure): LocationIterator {
         const groupCount = structure.interUnitBonds.edgeCount;
         const instanceCount = 1;
-        const location = Bond.Location();
-        location.aStructure = structure;
-        location.bStructure = structure;
+        const location = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
         const getLocation = (groupIndex: number) => {
             const bond = structure.interUnitBonds.edges[groupIndex];
             location.aUnit = structure.unitMap.get(bond.unitA);
@@ -138,15 +152,12 @@ export function getIntraBondLoci(pickingId: PickingId, structureGroup: Structure
         const { structure, group } = structureGroup;
         const unit = group.units[instanceId];
         if (Unit.isAtomic(unit)) {
-            return Bond.Loci(structure, [
-                Bond.Location(
-                    structure, unit, unit.bonds.a[groupId] as StructureElement.UnitIndex,
-                    structure, unit, unit.bonds.b[groupId] as StructureElement.UnitIndex
-                ),
-                Bond.Location(
-                    structure, unit, unit.bonds.b[groupId] as StructureElement.UnitIndex,
-                    structure, unit, unit.bonds.a[groupId] as StructureElement.UnitIndex
-                )
+            const target = Structure.WithChild.getTarget(structure);
+            const iA = unit.bonds.a[groupId];
+            const iB = unit.bonds.b[groupId];
+            return Bond.Loci(target, [
+                Bond.Location(target, unit, iA, target, unit, iB),
+                Bond.Location(target, unit, iB, target, unit, iA)
             ]);
         }
     }
@@ -199,12 +210,13 @@ export function eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply:
 export function getInterBondLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
+        const target = Structure.WithChild.getTarget(structure);
         const b = structure.interUnitBonds.edges[groupId];
         const uA = structure.unitMap.get(b.unitA);
         const uB = structure.unitMap.get(b.unitB);
-        return Bond.Loci(structure, [
-            Bond.Location(structure, uA, b.indexA, structure, uB, b.indexB),
-            Bond.Location(structure, uB, b.indexB, structure, uA, b.indexA)
+        return Bond.Loci(target, [
+            Bond.Location(target, uA, b.indexA, target, uB, b.indexB),
+            Bond.Location(target, uB, b.indexB, target, uA, b.indexA)
         ]);
     }
     return EmptyLoci;

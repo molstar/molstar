@@ -267,7 +267,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
         const transform = structure?.models.length === 0 ? void 0 : GlobalModelTransformInfo.get(structure?.models[0]!);
         await repr.createOrUpdate(props, channel.data).runInContext(ctx);
         if (transform) repr.setState({ transform });
-        return new SO.Volume.Representation3D({ repr, source: a }, { label: `${Math.round(channel.isoValue.relativeValue * 100) / 100} σ [${srcParams.channel}]` });
+        return new SO.Volume.Representation3D({ repr, sourceData: channel.data }, { label: `${Math.round(channel.isoValue.relativeValue * 100) / 100} σ [${srcParams.channel}]` });
     }),
     update: ({ a, b, newParams, spine }, plugin: PluginContext) => Task.create('Volume Representation', async ctx => {
         // TODO : check if params/underlying data/etc have changed; maybe will need to export "data" or some other "tag" in the Representation for this to work
@@ -280,6 +280,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
         const props = { ...b.data.repr.props, ...params.type.params };
         b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params));
         await b.data.repr.createOrUpdate(props, channel.data).runInContext(ctx);
+        b.data.sourceData = channel.data;
 
         // TODO: set the transform here as well in case the structure moves?
         //       doing this here now breaks the code for some reason...

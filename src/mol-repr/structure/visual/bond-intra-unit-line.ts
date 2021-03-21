@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,6 +24,15 @@ const isBondType = BondType.is;
 
 function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondLineParams>, lines?: Lines) {
     if (!Unit.isAtomic(unit)) return Lines.createEmpty(lines);
+
+    const child = Structure.WithChild.getChild(structure);
+    const childUnit = child?.unitMap.get(unit.id);
+    if (child && !childUnit) return Lines.createEmpty(lines);
+
+    if (props.includeParent) {
+        const child = Structure.WithChild.getChild(structure);
+        if (!child) throw new Error('expected child to exist');
+    }
 
     const location = StructureElement.Location.create(structure, unit);
 
@@ -82,12 +91,12 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
             const sizeB = theme.size.size(location);
             return Math.min(sizeA, sizeB) * sizeFactor;
         },
-        ignore: makeIntraBondIgnoreTest(unit, props)
+        ignore: makeIntraBondIgnoreTest(structure, unit, props)
     };
 
     const l = createLinkLines(ctx, builderProps, props, lines);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * sizeFactor);
+    const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * sizeFactor);
     l.setBoundingSphere(sphere);
 
     return l;
@@ -96,6 +105,7 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
 export const IntraUnitBondLineParams = {
     ...UnitsLinesParams,
     ...BondLineParams,
+    includeParent: PD.Boolean(false),
 };
 export type IntraUnitBondLineParams = typeof IntraUnitBondLineParams
 

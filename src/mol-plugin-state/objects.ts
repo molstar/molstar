@@ -41,8 +41,8 @@ export namespace PluginStateObject {
         return !!o && o.type.typeClass === 'Behavior';
     }
 
-    export interface Representation3DData<T extends Representation.Any, S extends StateObject = StateObject> { repr: T, source: S }
-    export function CreateRepresentation3D<T extends Representation.Any, S extends StateObject = StateObject>(type: { name: string }) {
+    export interface Representation3DData<T extends Representation.Any, S = any> { repr: T, sourceData: S }
+    export function CreateRepresentation3D<T extends Representation.Any, S = any>(type: { name: string }) {
         return Create<Representation3DData<T, S>>({ ...type, typeClass: 'Representation3D' });
     }
 
@@ -102,10 +102,10 @@ export namespace PluginStateObject {
         export class Structure extends Create<_Structure>({ name: 'Structure', typeClass: 'Object' }) { }
 
         export namespace Structure {
-            export class Representation3D extends CreateRepresentation3D<StructureRepresentation<any> | ShapeRepresentation<any, any, any>, Structure>({ name: 'Structure 3D' }) { }
+            export class Representation3D extends CreateRepresentation3D<StructureRepresentation<any>, _Structure>({ name: 'Structure 3D' }) { }
 
             export interface Representation3DStateData {
-                source: Representation3D,
+                repr: StructureRepresentation<any>,
                 /** used to restore state when the obj is removed */
                 initialState: Partial<StructureRepresentationState>,
                 state: Partial<StructureRepresentationState>,
@@ -120,12 +120,12 @@ export namespace PluginStateObject {
 
     export namespace Volume {
         export class Data extends Create<_Volume>({ name: 'Volume', typeClass: 'Object' }) { }
-        export class Representation3D extends CreateRepresentation3D<VolumeRepresentation<any>>({ name: 'Volume 3D' }) { }
+        export class Representation3D extends CreateRepresentation3D<VolumeRepresentation<any>, _Volume>({ name: 'Volume 3D' }) { }
     }
 
     export namespace Shape {
         export class Provider extends Create<ShapeProvider<any, any, any>>({ name: 'Shape Provider', typeClass: 'Object' }) { }
-        export class Representation3D extends CreateRepresentation3D<ShapeRepresentation<any, any, any>>({ name: 'Shape 3D' }) { }
+        export class Representation3D extends CreateRepresentation3D<ShapeRepresentation<any, any, any>, unknown>({ name: 'Shape 3D' }) { }
     }
 }
 

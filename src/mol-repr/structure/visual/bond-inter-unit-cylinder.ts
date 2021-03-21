@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,6 +19,7 @@ import { BondCylinderParams, BondIterator, getInterBondLoci, eachInterBond, make
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
+import { SortedArray } from '../../../mol-data/int/sorted-array';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator();
 function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
@@ -42,6 +43,29 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
     const { sizeFactor, sizeAspectRatio } = props;
 
     const delta = Vec3();
+
+    let stub: undefined | ((edgeIndex: number) => boolean);
+
+    if (props.includeParent) {
+        const child = Structure.WithChild.getChild(structure);
+        if (!child) throw new Error('expected child to exist');
+
+        stub = (edgeIndex: number) => {
+            const b = edges[edgeIndex];
+            const childUnitA = child.unitMap.get(b.unitA);
+            const childUnitB = child.unitMap.get(b.unitB);
+
+            const unitA = structure.unitMap.get(b.unitA);
+            const eA = unitA.elements[b.indexA];
+            const unitB = structure.unitMap.get(b.unitB);
+            const eB = unitB.elements[b.indexB];
+
+            return (
+                childUnitA && SortedArray.has(childUnitA.elements, eA) &&
+                (!childUnitB || !SortedArray.has(childUnitB.elements, eB))
+            );
+        };
+    }
 
     const radius = (edgeIndex: number) => {
         const b = edges[edgeIndex];
@@ -123,7 +147,8 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
         radius: (edgeIndex: number) => {
             return radius(edgeIndex) * sizeAspectRatio;
         },
-        ignore: makeInterBondIgnoreTest(structure, props)
+        ignore: makeInterBondIgnoreTest(structure, props),
+        stub
     };
 }
 
@@ -133,7 +158,8 @@ function createInterUnitBondCylinderImpostors(ctx: VisualContext, structure: Str
     const builderProps = getInterUnitBondCylinderBuilderProps(structure, theme, props);
     const m = createLinkCylinderImpostors(ctx, builderProps, props, cylinders);
 
-    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * props.sizeFactor);
+    const child = Structure.WithChild.getChild(structure);
+    const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
     m.setBoundingSphere(sphere);
 
     return m;
@@ -145,7 +171,8 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
     const builderProps = getInterUnitBondCylinderBuilderProps(structure, theme, props);
     const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
 
-    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * props.sizeFactor);
+    const child = Structure.WithChild.getChild(structure);
+    const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
     m.setBoundingSphere(sphere);
 
     return m;
@@ -158,6 +185,7 @@ export const InterUnitBondCylinderParams = {
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
     tryUseImpostor: PD.Boolean(true),
+    includeParent: PD.Boolean(false),
 };
 export type InterUnitBondCylinderParams = typeof InterUnitBondCylinderParams
 
@@ -183,6 +211,7 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.dashScale !== currentProps.dashScale ||
                 newProps.dashCap !== currentProps.dashCap ||
+                newProps.stubCap !== currentProps.stubCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );
@@ -212,6 +241,7 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.dashScale !== currentProps.dashScale ||
                 newProps.dashCap !== currentProps.dashCap ||
+                newProps.stubCap !== currentProps.stubCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );

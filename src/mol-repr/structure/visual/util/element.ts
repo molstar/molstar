@@ -8,7 +8,7 @@
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { Unit, StructureElement, Structure, ElementIndex } from '../../../../mol-model/structure';
 import { Loci, EmptyLoci } from '../../../../mol-model/loci';
-import { Interval, OrderedSet } from '../../../../mol-data/int';
+import { Interval, OrderedSet, SortedArray } from '../../../../mol-data/int';
 import { Mesh } from '../../../../mol-geo/geometry/mesh/mesh';
 import { sphereVertexCount } from '../../../../mol-geo/primitive/sphere';
 import { MeshBuilder } from '../../../../mol-geo/geometry/mesh/mesh-builder';
@@ -36,22 +36,32 @@ export type ElementSphereMeshProps = {
     sizeFactor: number,
 } & ElementProps
 
-export function makeElementIgnoreTest(unit: Unit, props: ElementProps): undefined | ((unit: Unit, i: ElementIndex) => boolean) {
+export function makeElementIgnoreTest(structure: Structure, unit: Unit, props: ElementProps): undefined | ((i: ElementIndex) => boolean) {
     const { ignoreHydrogens, traceOnly } = props;
 
     const { atomicNumber } = unit.model.atomicHierarchy.derived.atom;
     const isCoarse = Unit.isCoarse(unit);
 
-    if (!isCoarse && ignoreHydrogens && traceOnly) {
-        return (unit: Unit, element: ElementIndex) => isH(atomicNumber, element) && !isTrace(unit, element);
-    } else if (!isCoarse && ignoreHydrogens) {
-        return (unit: Unit, element: ElementIndex) => isH(atomicNumber, element);
-    } else if (!isCoarse && traceOnly) {
-        return (unit: Unit, element: ElementIndex) => !isTrace(unit, element);
-    }
+    const child = Structure.WithChild.getChild(structure);
+    const childUnit = child?.unitMap.get(unit.id);
+    if (child && !childUnit) throw new Error('expected childUnit to exist if child exists');
+
+    if (!child && ((!ignoreHydrogens && !traceOnly) || traceOnly)) return;
+
+    return (element: ElementIndex) => {
+        return (
+            (!!childUnit && !SortedArray.has(childUnit.elements, element)) ||
+            (!isCoarse && ignoreHydrogens && isH(atomicNumber, element)) ||
+            (traceOnly && !isTrace(unit, element))
+        );
+    };
 }
 
 export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereMeshProps, mesh?: Mesh): Mesh {
+    const child = Structure.WithChild.getChild(structure);
+    const childUnit = child?.unitMap.get(unit.id);
+    if (child && !childUnit) return Mesh.createEmpty(mesh);
+
     const { detail, sizeFactor } = props;
 
     const { elements } = unit;
@@ -61,7 +71,7 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
 
     const v = Vec3();
     const pos = unit.conformation.invariantPosition;
-    const ignore = makeElementIgnoreTest(unit, props);
+    const ignore = makeElementIgnoreTest(structure, unit, props);
     const l = StructureElement.Location.create(structure, unit);
     const themeSize = theme.size.size;
     const center = Vec3();
@@ -69,7 +79,7 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     let count = 0;
 
     for (let i = 0; i < elementCount; i++) {
-        if (ignore && ignore(unit, elements[i])) continue;
+        if (ignore && ignore(elements[i])) continue;
 
         l.element = elements[i];
         pos(elements[i], v);
@@ -89,7 +99,7 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     if (mesh && Vec3.distance(center, mesh.boundingSphere.center) / mesh.boundingSphere.radius < 1.0) {
         boundingSphere = Sphere3D.clone(mesh.boundingSphere);
     } else {
-        boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxSize * sizeFactor + 0.05);
+        boundingSphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, maxSize * sizeFactor + 0.05);
     }
 
     const m = MeshBuilder.getMesh(builderState);
@@ -103,13 +113,17 @@ export type ElementSphereImpostorProps = {
 } & ElementProps
 
 export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereImpostorProps, spheres?: Spheres): Spheres {
+    const child = Structure.WithChild.getChild(structure);
+    const childUnit = child?.unitMap.get(unit.id);
+    if (child && !childUnit) return Spheres.createEmpty(spheres);
+
     const { elements } = unit;
     const elementCount = elements.length;
     const builder = SpheresBuilder.create(elementCount, elementCount / 2, spheres);
 
     const v = Vec3();
     const pos = unit.conformation.invariantPosition;
-    const ignore = makeElementIgnoreTest(unit, props);
+    const ignore = makeElementIgnoreTest(structure, unit, props);
 
     const l = StructureElement.Location.create(structure, unit);
     const themeSize = theme.size.size;
@@ -118,7 +132,7 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     let count = 0;
 
     for (let i = 0; i < elementCount; i++) {
-        if (ignore?.(unit, elements[i])) continue;
+        if (ignore?.(elements[i])) continue;
 
         pos(elements[i], v);
         builder.add(v[0], v[1], v[2], i);
@@ -136,7 +150,7 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     if (spheres && Vec3.distance(center, spheres.boundingSphere.center) / spheres.boundingSphere.radius < 1.0) {
         boundingSphere = Sphere3D.clone(spheres.boundingSphere);
     } else {
-        boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxSize * props.sizeFactor + 0.05);
+        boundingSphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, maxSize * props.sizeFactor + 0.05);
     }
 
     const s = builder.getSpheres();
@@ -180,7 +194,10 @@ export function getElementLoci(pickingId: PickingId, structureGroup: StructureGr
         const { structure, group } = structureGroup;
         const unit = group.units[instanceId];
         const indices = OrderedSet.ofSingleton(groupId as StructureElement.UnitIndex);
-        return StructureElement.Loci(structure, [{ unit, indices }]);
+        return StructureElement.Loci(
+            Structure.WithChild.getTarget(structure),
+            [{ unit, indices }]
+        );
     }
     return EmptyLoci;
 }

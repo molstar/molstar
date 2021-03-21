@@ -645,7 +645,7 @@ namespace Structure {
         representativeModel?: Model
     }
 
-    /** Serial index of an element in the structure accross all units */
+    /** Serial index of an element in the structure across all units */
     export type SerialIndex = { readonly '@type': 'serial-index' } & number
 
     /** Represents a single structure */
@@ -1227,6 +1227,34 @@ namespace Structure {
 
     export type Index = number;
     export const Index = CustomStructureProperty.createSimple<Index>('index', 'root');
+
+    export const WithChild = {
+        getChild(structure: Structure): Structure | undefined {
+            return (structure as any).__child;
+        },
+        /** Get the proxy target. Usefull for equality checks. */
+        getTarget(structure: Structure): Structure {
+            return (structure as any).__parent || structure;
+        },
+        /**
+         * For `structure` with `parent` this returns a proxy that
+         * targets `parent` and has `structure` attached as a child.
+         */
+        fromStructure(structure: Structure): Structure {
+            if (!structure.parent) return structure;
+
+            return new Proxy(structure.parent, {
+                get: function(target, prop, receiver) {
+                    if (prop === '__child') {
+                        return structure;
+                    } else if (prop === '__parent') {
+                        return structure.parent;
+                    }
+                    return Reflect.get(target, prop, receiver);
+                }
+            });
+        }
+    };
 }
 
 export { Structure };

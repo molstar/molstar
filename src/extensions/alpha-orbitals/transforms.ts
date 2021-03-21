@@ -190,7 +190,7 @@ export const CreateOrbitalRepresentation3D = PluginStateTransform.BuiltIn({
             repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, params));
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             repr.setState({ pickable: srcParams.pickable });
-            return new PluginStateObject.Volume.Representation3D({ repr, source: a }, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
+            return new PluginStateObject.Volume.Representation3D({ repr, sourceData: a.data }, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
         });
     },
     update({ a, b, newParams: srcParams }, plugin: PluginContext) {
@@ -200,6 +200,7 @@ export const CreateOrbitalRepresentation3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams.type.params };
             b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
+            b.data.sourceData = a.data;
             b.data.repr.setState({ pickable: srcParams.pickable });
             b.description = VolumeRepresentation3DHelpers.getDescription(props);
             return StateTransformer.UpdateResult.Updated;

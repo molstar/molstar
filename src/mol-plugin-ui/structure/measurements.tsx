@@ -216,7 +216,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
     }
 
     get selections() {
-        return this.props.cell.obj?.data.source as PluginStateObject.Molecule.Structure.Selections | undefined;
+        return this.props.cell.obj?.data.sourceData as ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry> | undefined;
     }
 
     delete = () => {
@@ -234,7 +234,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         if (!selections) return;
 
         this.plugin.managers.interactivity.lociHighlights.clearHighlights();
-        for (const d of selections.data) {
+        for (const d of selections) {
             this.plugin.managers.interactivity.lociHighlights.highlight({ loci: d.loci }, false);
         }
         this.plugin.managers.interactivity.lociHighlights.highlight({ loci: this.props.cell.obj?.data.repr.getLoci()! }, false);
@@ -250,7 +250,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         const selections = this.selections;
         if (!selections) return;
 
-        const sphere = Loci.getBundleBoundingSphere(toLociBundle(selections.data));
+        const sphere = Loci.getBundleBoundingSphere(toLociBundle(selections));
         if (sphere) {
             this.plugin.managers.camera.focusSphere(sphere);
         }
@@ -258,11 +258,11 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
 
     get label() {
         const selections = this.selections;
-        switch (selections?.data.length) {
-            case 1: return lociLabel(selections.data[0].loci, { condensed: true });
-            case 2: return distanceLabel(toLociBundle(selections.data), { condensed: true, unitLabel: this.plugin.managers.structure.measurement.state.options.distanceUnitLabel });
-            case 3: return angleLabel(toLociBundle(selections.data), { condensed: true });
-            case 4: return dihedralLabel(toLociBundle(selections.data), { condensed: true });
+        switch (selections?.length) {
+            case 1: return lociLabel(selections[0].loci, { condensed: true });
+            case 2: return distanceLabel(toLociBundle(selections), { condensed: true, unitLabel: this.plugin.managers.structure.measurement.state.options.distanceUnitLabel });
+            case 3: return angleLabel(toLociBundle(selections), { condensed: true });
+            case 4: return dihedralLabel(toLociBundle(selections), { condensed: true });
             default: return '';
         }
     }

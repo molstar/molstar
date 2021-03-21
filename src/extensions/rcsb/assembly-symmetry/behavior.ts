@@ -124,7 +124,7 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
             const repr = AssemblySymmetryRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => AssemblySymmetryParams);
             await repr.createOrUpdate(params, a.data).runInContext(ctx);
             const { type, kind, symbol } = assemblySymmetry;
-            return new PluginStateObject.Shape.Representation3D({ repr, source: a }, { label: kind, description: `${type} (${symbol})` });
+            return new PluginStateObject.Shape.Representation3D({ repr, sourceData: a.data }, { label: kind, description: `${type} (${symbol})` });
         });
     },
     update({ a, b, newParams }, plugin: PluginContext) {
@@ -138,6 +138,7 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
             }
             const props = { ...b.data.repr.props, ...newParams };
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
+            b.data.sourceData = a.data;
             const { type, kind, symbol } = assemblySymmetry;
             b.label = kind;
             b.description = `${type} (${symbol})`;

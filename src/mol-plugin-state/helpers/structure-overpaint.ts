@@ -22,7 +22,7 @@ export async function setStructureOverpaint(plugin: PluginContext, components: S
     await eachRepr(plugin, components, async (update, repr, overpaintCell) => {
         if (types && types.length > 0 && !types.includes(repr.params!.values.type.name)) return;
 
-        const structure = repr.obj!.data.source.data;
+        const structure = repr.obj!.data.sourceData;
         // always use the root structure to get the loci so the overpaint
         // stays applicable as long as the root structure does not change
         const loci = await lociGetter(structure.root);
