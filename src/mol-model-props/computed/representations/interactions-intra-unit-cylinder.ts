@@ -64,7 +64,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
 
     const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * sizeFactor);
+    const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * sizeFactor);
     m.setBoundingSphere(sphere);
 
     return m;
