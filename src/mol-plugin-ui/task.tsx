@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as React from 'react';
 import { PluginUIComponent } from './base';
 import { OrderedMap } from 'immutable';
 import { TaskManager } from '../mol-plugin/util/task-manager';

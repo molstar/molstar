@@ -4,24 +4,23 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as React from 'react';
-import { PluginUIComponent } from '../../mol-plugin-ui/base';
-import { Viewport, ViewportControls } from '../../mol-plugin-ui/viewport';
-import { BackgroundTaskProgress } from '../../mol-plugin-ui/task';
-import { LociLabels } from '../../mol-plugin-ui/controls';
-import { Toasts } from '../../mol-plugin-ui/toast';
-import { Button } from '../../mol-plugin-ui/controls/common';
-import { StructureRepresentationPresetProvider, presetStaticComponent } from '../../mol-plugin-state/builder/structure/representation-preset';
-import { StateObjectRef } from '../../mol-state';
-import { StructureSelectionQueries, StructureSelectionQuery } from '../../mol-plugin-state/helpers/structure-selection-query';
-import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { InteractionsRepresentationProvider } from '../../mol-model-props/computed/representations/interactions';
 import { InteractionTypeColorThemeProvider } from '../../mol-model-props/computed/themes/interaction-type';
-import { PluginCommands } from '../../mol-plugin/commands';
-import { PluginContext } from '../../mol-plugin/context';
+import { presetStaticComponent, StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
+import { StructureSelectionQueries, StructureSelectionQuery } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
-import { Color } from '../../mol-util/color';
+import { PluginUIComponent } from '../../mol-plugin-ui/base';
+import { LociLabels } from '../../mol-plugin-ui/controls';
+import { Button } from '../../mol-plugin-ui/controls/common';
+import { BackgroundTaskProgress } from '../../mol-plugin-ui/task';
+import { Toasts } from '../../mol-plugin-ui/toast';
+import { Viewport, ViewportControls } from '../../mol-plugin-ui/viewport';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
+import { PluginContext } from '../../mol-plugin/context';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
+import { StateObjectRef } from '../../mol-state';
+import { Color } from '../../mol-util/color';
 
 function shinyStyle(plugin: PluginContext) {
     return PluginCommands.Canvas3D.SetSettings(plugin, { settings: {

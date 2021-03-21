@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as React from 'react';
 import { PluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { Button } from '../controls/common';

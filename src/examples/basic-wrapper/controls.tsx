@@ -5,7 +5,6 @@
  */
 
 import { PluginUIComponent } from '../../mol-plugin-ui/base';
-import * as React from 'react';
 
 export class CustomToastMessage extends PluginUIComponent {
     render() {

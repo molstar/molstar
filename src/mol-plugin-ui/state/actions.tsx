@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as React from 'react';
 import { State } from '../../mol-state';
 import { PluginUIComponent } from '../base';
 import { Icon, CodeSvg } from '../controls/icons';

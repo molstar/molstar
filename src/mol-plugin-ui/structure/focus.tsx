@@ -4,7 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as React from 'react';
 import { OrderedSet, SortedArray } from '../../mol-data/int';
 import { Structure, StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { UnitIndex } from '../../mol-model/structure/structure/element/element';

@@ -6,7 +6,6 @@
  */
 
 import { produce } from 'immer';
-import * as React from 'react';
 import { Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateTransform } from '../../mol-state';

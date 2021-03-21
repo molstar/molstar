@@ -4,7 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as React from 'react';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
 import { Icon, ArrowUpwardSvg, ArrowDownwardSvg, DeleteOutlinedSvg, HelpOutlineSvg, TuneSvg, SuperposeAtomsSvg, SuperposeChainsSvg, SuperpositionSvg } from '../controls/icons';
 import { Button, ToggleButton, IconButton } from '../controls/common';

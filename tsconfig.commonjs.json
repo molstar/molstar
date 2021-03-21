@@ -14,7 +14,7 @@
         "moduleResolution": "node",
         "importHelpers": true,
         "noEmitHelpers": true,
-        "jsx": "react",
+        "jsx": "react-jsx",
         "lib": [ "es6", "dom", "esnext.asynciterable", "es2016" ],
         "rootDir": "src",
         "outDir": "lib/commonjs"

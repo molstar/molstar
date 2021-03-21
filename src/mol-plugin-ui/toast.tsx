@@ -6,7 +6,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as React from 'react';
 import { PluginUIComponent } from './base';
 import { PluginToastManager } from '../mol-plugin/util/toast';
 import { IconButton } from './controls/common';

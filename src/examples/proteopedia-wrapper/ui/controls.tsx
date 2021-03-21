@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { PluginUIContext } from '../../../mol-plugin-ui/context';
 import { PluginContextContainer } from '../../../mol-plugin-ui/plugin';

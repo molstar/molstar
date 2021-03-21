@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { AlphaOrbitalsExample } from '.';
 import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';

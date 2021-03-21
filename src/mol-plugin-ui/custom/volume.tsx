@@ -6,7 +6,6 @@
 
 import { PluginUIComponent } from '../base';
 import { StateTransformParameters } from '../state/common';
-import * as React from 'react';
 import { VolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
 import { ExpandableControlRow, IconButton } from '../controls/common';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';

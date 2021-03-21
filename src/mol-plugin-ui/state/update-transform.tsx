@@ -8,7 +8,6 @@ import { State, StateTransform, StateTransformer } from '../../mol-state';
 import { memoizeLatest } from '../../mol-util/memoize';
 import { StateTransformParameters, TransformControlBase } from './common';
 import { Observable } from 'rxjs';
-import * as React from 'react';
 import { PluginUIComponent } from '../base';
 
 export { UpdateTransformControl, TransformUpdaterControl };

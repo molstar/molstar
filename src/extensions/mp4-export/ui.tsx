@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import React from 'react';
 import { merge } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base';

@@ -4,7 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as React from 'react';
 import { CollapsableState, CollapsableControls } from '../../../mol-plugin-ui/base';
 import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
 import { InitAssemblySymmetry3D, AssemblySymmetry3D, AssemblySymmetryPreset, tryCreateAssemblySymmetry } from './behavior';

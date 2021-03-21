@@ -5,7 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as React from 'react';
 import { Model } from '../../mol-model/structure';
 import { ModelRef, StructureHierarchyRef, TrajectoryRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
