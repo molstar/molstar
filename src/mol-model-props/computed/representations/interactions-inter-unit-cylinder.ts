@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,7 +15,7 @@ import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../../../mo
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
-import { Interval, OrderedSet } from '../../../mol-data/int';
+import { Interval, OrderedSet, SortedArray } from '../../../mol-data/int';
 import { Interactions } from '../interactions/interactions';
 import { InteractionsProvider } from '../interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
@@ -34,6 +34,8 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
     const { sizeFactor } = props;
 
     if (!edgeCount) return Mesh.createEmpty(mesh);
+
+    const { child } = structure;
 
     const builderProps = {
         linkCount: edgeCount,
@@ -63,7 +65,23 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
             const sizeB = theme.size.size(l);
             return Math.min(sizeA, sizeB) * sizeFactor;
         },
-        ignore: (edgeIndex: number) => edges[edgeIndex].props.flag === InteractionFlag.Filtered
+        ignore: (edgeIndex: number) => {
+            if (edges[edgeIndex].props.flag === InteractionFlag.Filtered) return true;
+
+            if (child) {
+                const b = edges[edgeIndex];
+                const childUnitA = child.unitMap.get(b.unitA);
+                if (!childUnitA) return true;
+
+                const unitA = structure.unitMap.get(b.unitA);
+                const fA = unitsFeatures.get(b.unitA);
+                // TODO: check all members
+                const eA = unitA.elements[fA.members[fA.offsets[b.indexA]]];
+                if (!SortedArray.has(childUnitA.elements, eA)) return true;
+            }
+
+            return false;
+        }
     };
 
     const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
@@ -80,6 +98,7 @@ export const InteractionsInterUnitParams = {
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     dashCount: PD.Numeric(6, { min: 2, max: 10, step: 2 }),
     dashScale: PD.Numeric(0.4, { min: 0, max: 2, step: 0.1 }),
+    includeParent: PD.Boolean(false),
 };
 export type InteractionsInterUnitParams = typeof InteractionsInterUnitParams
 
