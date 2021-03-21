@@ -35,6 +35,39 @@ import { Trajectory } from '../trajectory';
 import { RuntimeContext, Task } from '../../../mol-task';
 import { computeStructureBoundary } from './util/boundary';
 
+/** Internal structure state */
+type State = {
+    parent?: Structure,
+    boundary?: Boundary,
+    lookup3d?: StructureLookup3D,
+    interUnitBonds?: InterUnitBonds,
+    unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
+    unitSymmetryGroupsIndexMap?: IntMap<number>,
+    unitsSortedByVolume?: ReadonlyArray<Unit>;
+    carbohydrates?: Carbohydrates,
+    models?: ReadonlyArray<Model>,
+    model?: Model,
+    masterModel?: Model,
+    representativeModel?: Model,
+    uniqueResidueNames?: Set<string>,
+    uniqueElementSymbols?: Set<ElementSymbol>,
+    entityIndices?: ReadonlyArray<EntityIndex>,
+    uniqueAtomicResidueIndices?: ReadonlyMap<UUID, ReadonlyArray<ResidueIndex>>,
+    serialMapping?: SerialMapping,
+    hashCode: number,
+    transformHash: number,
+    elementCount: number,
+    bondCount: number,
+    uniqueElementCount: number,
+    atomicResidueCount: number,
+    polymerResidueCount: number,
+    polymerUnitCount: number,
+    coordinateSystem: SymmetryOperator,
+    label: string,
+    propertyData?: any,
+    customProps?: CustomProperties
+}
+
 class Structure {
     subsetBuilder(isSorted: boolean) {
         return new StructureSubsetBuilder(this, isSorted);
@@ -338,9 +371,7 @@ class Structure {
      * targets `parent` and has `structure` attached as a child.
      */
     asParent(): Structure {
-        return this.parent
-            ? new Structure(this.parent.state, { child: this, target: this.parent })
-            : this;
+        return this.parent ? new Structure(this.units, this.unitMap, this.unitIndexMap, this.parent.state, { child: this, target: this.parent }) : this;
     }
 
     get child(): Structure | undefined {
@@ -352,22 +383,12 @@ class Structure {
         return this._target ?? this;
     }
 
-    /** Maps unit.id to unit */
-    get unitMap(): IntMap<Unit> {
-        return this.state.unitMap;
-    }
-
-    /** Maps unit.id to index of unit in units array */
-    get unitIndexMap(): IntMap<number> {
-        return this.state.unitIndexMap;
-    }
-
-    /** Array of all units in the structure, sorted by unit.id */
-    get units(): ReadonlyArray<Unit> {
-        return this.state.units;
-    }
-
-    constructor(readonly state: Structure.State, asParent?: { child: Structure, target: Structure }) {
+    /**
+     * @param units Array of all units in the structure, sorted by unit.id
+     * @param unitMap Maps unit.id to index of unit in units array
+     * @param unitIndexMap Array of all units in the structure, sorted by unit.id
+     */
+    constructor(readonly units: ReadonlyArray<Unit>, readonly unitMap: IntMap<Unit>, readonly unitIndexMap: IntMap<number>, private readonly state: State, asParent?: { child: Structure, target: Structure }) {
         if (asParent) {
             this._child = asParent.child;
             this._target = asParent.target;
@@ -636,42 +657,6 @@ namespace Structure {
         return Loci(structure);
     }
 
-    export type State = {
-        unitMap: IntMap<Unit>;
-        unitIndexMap: IntMap<number>;
-        units: ReadonlyArray<Unit>;
-
-        parent?: Structure,
-        boundary?: Boundary,
-        lookup3d?: StructureLookup3D,
-        interUnitBonds?: InterUnitBonds,
-        unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
-        unitSymmetryGroupsIndexMap?: IntMap<number>,
-        unitsSortedByVolume?: ReadonlyArray<Unit>;
-        carbohydrates?: Carbohydrates,
-        models?: ReadonlyArray<Model>,
-        model?: Model,
-        masterModel?: Model,
-        representativeModel?: Model,
-        uniqueResidueNames?: Set<string>,
-        uniqueElementSymbols?: Set<ElementSymbol>,
-        entityIndices?: ReadonlyArray<EntityIndex>,
-        uniqueAtomicResidueIndices?: ReadonlyMap<UUID, ReadonlyArray<ResidueIndex>>,
-        serialMapping?: SerialMapping,
-        hashCode: number,
-        transformHash: number,
-        elementCount: number,
-        bondCount: number,
-        uniqueElementCount: number,
-        atomicResidueCount: number,
-        polymerResidueCount: number,
-        polymerUnitCount: number,
-        coordinateSystem: SymmetryOperator,
-        label: string,
-        propertyData?: any,
-        customProps?: CustomProperties
-    }
-
     export function create(units: ReadonlyArray<Unit>, props: Props = {}): Structure {
         // init units
         const unitMap = IntMap.Mutable<Unit>();
@@ -692,11 +677,7 @@ namespace Structure {
         }
 
         // initial state
-        const state: Structure.State = {
-            units,
-            unitMap,
-            unitIndexMap,
-
+        const state: State = {
             hashCode: -1,
             transformHash: -1,
             elementCount,
@@ -725,7 +706,7 @@ namespace Structure {
         if (props.representativeModel) state.representativeModel = props.representativeModel;
         else if (props.parent) state.representativeModel = props.parent.representativeModel;
 
-        return new Structure(state);
+        return new Structure(units, unitMap, unitIndexMap, state);
     }
 
     export async function ofTrajectory(trajectory: Trajectory, ctx: RuntimeContext): Promise<Structure> {
