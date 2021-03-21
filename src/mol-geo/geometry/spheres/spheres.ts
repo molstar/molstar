@@ -177,7 +177,7 @@ export namespace Spheres {
 
         const counts = { drawCount: spheres.sphereCount * 2 * 3, vertexCount: spheres.sphereCount * 4, groupCount, instanceCount };
 
-        const padding = getMaxSize(size) * props.sizeFactor;
+        const padding = spheres.boundingSphere.radius ? getMaxSize(size) * props.sizeFactor : 0;
         const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), spheres.boundingSphere, padding);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
@@ -222,7 +222,9 @@ export namespace Spheres {
     }
 
     function updateBoundingSphere(values: SpheresValues, spheres: Spheres) {
-        const padding = getMaxSize(values) * values.uSizeFactor.ref.value;
+        const padding = spheres.boundingSphere.radius
+            ? getMaxSize(values) * values.uSizeFactor.ref.value
+            : 0;
         const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), spheres.boundingSphere, padding);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value);
 
