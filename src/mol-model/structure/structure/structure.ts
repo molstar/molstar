@@ -371,7 +371,7 @@ class Structure {
      * targets `parent` and has `structure` attached as a child.
      */
     asParent(): Structure {
-        return this.parent ? new Structure(this.units, this.unitMap, this.unitIndexMap, this.parent.state, { child: this, target: this.parent }) : this;
+        return this.parent ? new Structure(this.parent.units, this.parent.unitMap, this.parent.unitIndexMap, this.parent.state, { child: this, target: this.parent }) : this;
     }
 
     get child(): Structure | undefined {
@@ -389,10 +389,9 @@ class Structure {
      * @param unitIndexMap Array of all units in the structure, sorted by unit.id
      */
     constructor(readonly units: ReadonlyArray<Unit>, readonly unitMap: IntMap<Unit>, readonly unitIndexMap: IntMap<number>, private readonly state: State, asParent?: { child: Structure, target: Structure }) {
-        if (asParent) {
-            this._child = asParent.child;
-            this._target = asParent.target;
-        }
+        // always assign to ensure object shape
+        this._child = asParent?.child;
+        this._target = asParent?.target;
     }
 }
 
