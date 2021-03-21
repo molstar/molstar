@@ -240,8 +240,8 @@ function renderSimple(options: { props: ParamProps<any>, state: { showHelp: bool
     const help = props.param.help
         ? props.param.help(props.value)
         : { description: props.param.description, legend: props.param.legend };
-    const desc = props.param.description;
     const hasHelp = help.description || help.legend;
+    const desc = label + (hasHelp ? '. Click for help.' : '');
     return <>
         <ControlRow
             className={className}
