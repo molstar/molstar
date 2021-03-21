@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,6 +22,7 @@ import { equalEps } from '../../../mol-math/linear-algebra/3d/common';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
+import { SortedArray } from '../../../mol-data/int/sorted-array';
 
 export const EllipsoidMeshParams = {
     ...UnitsMeshParams,
@@ -57,7 +58,11 @@ export interface EllipsoidMeshProps {
 }
 
 export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: EllipsoidMeshProps, mesh?: Mesh): Mesh {
-    const { detail, sizeFactor } = props;
+    const child = Structure.WithChild.getChild(structure);
+    const childUnit = child?.unitMap.get(unit.id);
+    if (child && !childUnit) return Mesh.createEmpty(mesh);
+
+    const { detail, sizeFactor, ignoreHydrogens } = props;
 
     const { elements, model } = unit;
     const { atomicNumber } = unit.model.atomicHierarchy.derived.atom;
@@ -84,7 +89,8 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
         const ei = elements[i];
         const ai = elementToAnsiotrop[ei];
         if (ai === -1) continue;
-        if (props.ignoreHydrogens && isH(atomicNumber, ei)) continue;
+        if (((!!childUnit && !SortedArray.has(childUnit.elements, ei))) ||
+            (ignoreHydrogens && isH(atomicNumber, ei))) continue;
 
         l.element = ei;
         pos(ei, v);
@@ -111,7 +117,7 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
 
     const m = MeshBuilder.getMesh(builderState);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * sizeFactor);
+    const sphere = Sphere3D.expand(Sphere3D(), (childUnit || unit).boundary.sphere, 1 * sizeFactor);
     m.setBoundingSphere(sphere);
 
     return m;
