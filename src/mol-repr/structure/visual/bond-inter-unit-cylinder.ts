@@ -40,7 +40,7 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
 
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
-    const { sizeFactor, sizeAspectRatio } = props;
+    const { sizeFactor, sizeAspectRatio, adjustCylinderLength } = props;
 
     const delta = Vec3();
 
@@ -116,19 +116,20 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
             const uA = structure.unitMap.get(b.unitA);
             const uB = structure.unitMap.get(b.unitB);
 
-            const rA = radiusA(edgeIndex), rB = radiusB(edgeIndex);
-            const r = Math.min(rA, rB) * sizeAspectRatio;
-            const oA = Math.sqrt(Math.max(0, rA * rA - r * r)) - 0.05;
-            const oB = Math.sqrt(Math.max(0, rB * rB - r * r)) - 0.05;
-
             uA.conformation.position(uA.elements[b.indexA], posA);
             uB.conformation.position(uB.elements[b.indexB], posB);
 
-            if (oA <= 0.01 && oB <= 0.01) return;
+            if (adjustCylinderLength) {
+                const rA = radiusA(edgeIndex), rB = radiusB(edgeIndex);
+                const r = Math.min(rA, rB) * sizeAspectRatio;
+                const oA = Math.sqrt(Math.max(0, rA * rA - r * r)) - 0.05;
+                const oB = Math.sqrt(Math.max(0, rB * rB - r * r)) - 0.05;
+                if (oA <= 0.01 && oB <= 0.01) return;
 
-            Vec3.normalize(delta, Vec3.sub(delta, posB, posA));
-            Vec3.scaleAndAdd(posA, posA, delta, oA);
-            Vec3.scaleAndAdd(posB, posB, delta, -oB);
+                Vec3.normalize(delta, Vec3.sub(delta, posB, posA));
+                Vec3.scaleAndAdd(posA, posA, delta, oA);
+                Vec3.scaleAndAdd(posB, posB, delta, -oB);
+            }
         },
         style: (edgeIndex: number) => {
             const o = edges[edgeIndex].props.order;
@@ -213,7 +214,8 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
                 newProps.dashCap !== currentProps.dashCap ||
                 newProps.stubCap !== currentProps.stubCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
-                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
+                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
+                newProps.adjustCylinderLength !== currentProps.adjustCylinderLength
             );
         },
         mustRecreate: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
@@ -243,7 +245,8 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
                 newProps.dashCap !== currentProps.dashCap ||
                 newProps.stubCap !== currentProps.stubCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
-                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
+                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
+                newProps.adjustCylinderLength !== currentProps.adjustCylinderLength
             );
         },
         mustRecreate: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {

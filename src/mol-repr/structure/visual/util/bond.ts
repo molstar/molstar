@@ -26,7 +26,8 @@ export type BondProps = typeof DefaultBondProps
 
 export const BondCylinderParams = {
     ...LinkCylinderParams,
-    ...BondParams
+    ...BondParams,
+    adjustCylinderLength: PD.Boolean(true, { description: 'Shorten cylinders to reduce overlap with spheres.' })
 };
 export const DefaultBondCylinderProps = PD.getDefaultValues(BondCylinderParams);
 export type BondCylinderProps = typeof DefaultBondCylinderProps

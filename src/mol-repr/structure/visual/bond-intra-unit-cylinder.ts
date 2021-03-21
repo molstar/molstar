@@ -31,7 +31,7 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
     const { order: _order, flags: _flags } = edgeProps;
-    const { sizeFactor, sizeAspectRatio } = props;
+    const { sizeFactor, sizeAspectRatio, adjustCylinderLength } = props;
 
     const vRef = Vec3(), delta = Vec3();
     const pos = unit.conformation.invariantPosition;
@@ -90,19 +90,20 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
             return null;
         },
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
-            const rA = radiusA(edgeIndex), rB = radiusB(edgeIndex);
-            const r = Math.min(rA, rB) * sizeAspectRatio;
-            const oA = Math.sqrt(Math.max(0, rA * rA - r * r)) - 0.05;
-            const oB = Math.sqrt(Math.max(0, rB * rB - r * r)) - 0.05;
-
             pos(elements[a[edgeIndex]], posA);
             pos(elements[b[edgeIndex]], posB);
 
-            if (oA <= 0.01 && oB <= 0.01) return;
+            if (adjustCylinderLength) {
+                const rA = radiusA(edgeIndex), rB = radiusB(edgeIndex);
+                const r = Math.min(rA, rB) * sizeAspectRatio;
+                const oA = Math.sqrt(Math.max(0, rA * rA - r * r)) - 0.05;
+                const oB = Math.sqrt(Math.max(0, rB * rB - r * r)) - 0.05;
+                if (oA <= 0.01 && oB <= 0.01) return;
 
-            Vec3.normalize(delta, Vec3.sub(delta, posB, posA));
-            Vec3.scaleAndAdd(posA, posA, delta, oA);
-            Vec3.scaleAndAdd(posB, posB, delta, -oB);
+                Vec3.normalize(delta, Vec3.sub(delta, posB, posA));
+                Vec3.scaleAndAdd(posA, posA, delta, oA);
+                Vec3.scaleAndAdd(posB, posB, delta, -oB);
+            }
         },
         style: (edgeIndex: number) => {
             const o = _order[edgeIndex];
@@ -195,7 +196,8 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 newProps.dashCap !== currentProps.dashCap ||
                 newProps.stubCap !== currentProps.stubCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
-                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
+                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
+                newProps.adjustCylinderLength !== currentProps.adjustCylinderLength
             );
 
             const newUnit = newStructureGroup.group.units[0];
@@ -236,7 +238,8 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
                 newProps.dashCap !== currentProps.dashCap ||
                 newProps.stubCap !== currentProps.stubCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
-                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
+                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
+                newProps.adjustCylinderLength !== currentProps.adjustCylinderLength
             );
 
             const newUnit = newStructureGroup.group.units[0];
