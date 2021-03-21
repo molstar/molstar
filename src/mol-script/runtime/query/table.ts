@@ -258,6 +258,13 @@ const symbols = [
             elementRadius: xs['atom-radius']
         })(ctx);
     }),
+    D(MolScript.structureQuery.modifier.surroundingLigands, function structureQuery_modifier_includeSurroundingLigands(ctx, xs) {
+        return Queries.modifiers.surroundingLigands({
+            query: xs[0] as any,
+            radius: xs['radius'](ctx),
+            includeWater: !!(xs['include-water'] && xs['include-water'](ctx)),
+        })(ctx);
+    }),
     D(MolScript.structureQuery.modifier.wholeResidues, function structureQuery_modifier_wholeResidues(ctx, xs) { return Queries.modifiers.wholeResidues(xs[0] as any)(ctx); }),
     D(MolScript.structureQuery.modifier.union, function structureQuery_modifier_union(ctx, xs) { return Queries.modifiers.union(xs[0] as any)(ctx); }),
     D(MolScript.structureQuery.modifier.expandProperty, function structureQuery_modifier_expandProperty(ctx, xs) { return Queries.modifiers.expandProperty(xs[0] as any, xs['property'])(ctx); }),

@@ -229,7 +229,7 @@ interface Canvas3D {
     /** performs handleResize on the next animation frame */
     requestResize(): void
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
-    requestCameraReset(options?: { durationMs?: number, snapshot?: Partial<Camera.Snapshot> }): void
+    requestCameraReset(options?: { durationMs?: number, snapshot?: Camera.SnapshotProvider }): void
     readonly camera: Camera
     readonly boundingSphere: Readonly<Sphere3D>
     setProps(props: PartialCanvas3DProps | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void), doNotRequestDraw?: boolean /* = false */): void
@@ -296,7 +296,7 @@ namespace Canvas3D {
         let drawPending = false;
         let cameraResetRequested = false;
         let nextCameraResetDuration: number | undefined = void 0;
-        let nextCameraResetSnapshot: Partial<Camera.Snapshot> | undefined = void 0;
+        let nextCameraResetSnapshot: Camera.SnapshotProvider | undefined = void 0;
         let resizeRequested = false;
 
         let notifyDidDraw = true;
@@ -305,7 +305,11 @@ namespace Canvas3D {
             let loci: Loci = EmptyLoci;
             let repr: Representation.Any = Representation.Empty;
             if (pickingId) {
+                const cameraHelperLoci = helper.camera.getLoci(pickingId);
+                if (cameraHelperLoci !== EmptyLoci) return { loci: cameraHelperLoci, repr };
+
                 loci = helper.handle.getLoci(pickingId);
+
                 reprRenderObjects.forEach((_, _repr) => {
                     const _loci = _repr.getLoci(pickingId);
                     if (!isEmptyLoci(_loci)) {
@@ -327,11 +331,13 @@ namespace Canvas3D {
                 changed = repr.mark(loci, action);
             } else {
                 changed = helper.handle.mark(loci, action);
+                changed = helper.camera.mark(loci, action) || changed;
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed; });
             }
             if (changed) {
                 scene.update(void 0, true);
                 helper.handle.scene.update(void 0, true);
+                helper.camera.scene.update(void 0, true);
                 const prevPickDirty = pickHelper.dirty;
                 draw(true);
                 pickHelper.dirty = prevPickDirty; // marking does not change picking buffers
@@ -453,11 +459,21 @@ namespace Canvas3D {
         function resolveCameraReset() {
             if (!cameraResetRequested) return;
 
-            const { center, radius } = scene.boundingSphereVisible;
+            const boundingSphere = scene.boundingSphereVisible;
+            const { center, radius } = boundingSphere;
+
+            const autoAdjustControls = controls.props.autoAdjustMinMaxDistance;
+            if (autoAdjustControls.name === 'on') {
+                const minDistance = autoAdjustControls.params.minDistanceFactor * radius + autoAdjustControls.params.minDistancePadding;
+                const maxDistance = Math.max(autoAdjustControls.params.maxDistanceFactor * radius, autoAdjustControls.params.maxDistanceMin);
+                controls.setProps({ minDistance, maxDistance });
+            }
+
             if (radius > 0) {
                 const duration = nextCameraResetDuration === undefined ? p.cameraResetDurationMs : nextCameraResetDuration;
                 const focus = camera.getFocus(center, radius);
-                const snapshot = nextCameraResetSnapshot ? { ...focus, ...nextCameraResetSnapshot } : focus;
+                const next = typeof nextCameraResetSnapshot === 'function' ? nextCameraResetSnapshot(scene, camera) : nextCameraResetSnapshot;
+                const snapshot = next ? { ...focus, ...next } : focus;
                 camera.setState({ ...snapshot, radiusMax: scene.boundingSphere.radius }, duration);
             }
 

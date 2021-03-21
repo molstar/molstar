@@ -53,6 +53,7 @@ export const indexTemplate = `<!DOCTYPE html>
                         SwaggerUIBundle.presets.apis,
                         SwaggerUIStandalonePreset
                     ],
+                    syntaxHighlight: { activated: false, theme: 'agate' },
                     plugins: [
                         SwaggerUIBundle.plugins.DownloadUrl,
                         HidePlugin

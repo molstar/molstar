@@ -32,7 +32,7 @@ function handleMolecule(tokenizer: Tokenizer): XyzFile['molecules'][number] {
     const type_symbol = new Array<string>(count);
 
     for (let i = 0; i < count; ++i) {
-        const line = Tokenizer.readLine(tokenizer);
+        const line = Tokenizer.readLineTrim(tokenizer);
         const fields = line.split(/\s+/g);
         type_symbol[i] = fields[0];
         x[i] = +fields[1];

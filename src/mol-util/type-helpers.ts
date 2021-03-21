@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -26,3 +26,7 @@ export function ObjectKeys<T extends object>(o: T) {
     return Object.keys(o) as (keyof T)[];
 }
 export interface FiniteArray<T, L extends number = number> extends ReadonlyArray<T> { length: L };
+
+export function assertUnreachable(x: never): never {
+    throw new Error('unreachable');
+}

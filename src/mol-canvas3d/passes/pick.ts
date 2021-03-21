@@ -66,14 +66,20 @@ export class PickPass {
     private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: GraphicsRenderVariant) {
         const depth = this.drawPass.depthTexturePrimitives;
         renderer.clear(false);
+
+        renderer.update(camera);
         renderer.renderPick(scene.primitives, camera, variant, null);
         renderer.renderPick(scene.volumes, camera, variant, depth);
         renderer.renderPick(helper.handle.scene, camera, variant, null);
+
+        if (helper.camera.isEnabled) {
+            helper.camera.update(camera);
+            renderer.update(helper.camera.camera);
+            renderer.renderPick(helper.camera.scene, helper.camera.camera, variant, null);
+        }
     }
 
     render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper) {
-        renderer.update(camera);
-
         this.objectPickTarget.bind();
         this.renderVariant(renderer, camera, scene, helper, 'pickObject');
 

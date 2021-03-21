@@ -138,6 +138,7 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.modifier.union, 'sel.atom.union'),
             Alias(MolScript.structureQuery.modifier.cluster, 'sel.atom.cluster'),
             Alias(MolScript.structureQuery.modifier.includeSurroundings, 'sel.atom.include-surroundings'),
+            Alias(MolScript.structureQuery.modifier.surroundingLigands, 'sel.atom.surrounding-ligands'),
             Alias(MolScript.structureQuery.modifier.includeConnected, 'sel.atom.include-connected'),
             Alias(MolScript.structureQuery.modifier.expandProperty, 'sel.atom.expand-property'),
 

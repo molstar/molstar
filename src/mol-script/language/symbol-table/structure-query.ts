@@ -155,6 +155,12 @@ const modifier = {
         'as-whole-residues': Argument(Type.Bool, { isOptional: true })
     }), Types.ElementSelectionQuery, 'For each atom set in the selection, include all surrouding atoms/residues that are within the specified radius.'),
 
+    surroundingLigands: symbol(Arguments.Dictionary({
+        0: Argument(Types.ElementSelectionQuery),
+        radius: Argument(Type.Num),
+        'include-water': Argument(Type.Bool, { isOptional: true, defaultValue: true })
+    }), Types.ElementSelectionQuery, 'Find all ligands components around the source query.'),
+
     includeConnected: symbol(Arguments.Dictionary({
         0: Argument(Types.ElementSelectionQuery),
         'bond-test': Argument(Type.Bool, { isOptional: true, defaultValue: 'true for covalent bonds' as any }),

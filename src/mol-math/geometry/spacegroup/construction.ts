@@ -111,33 +111,41 @@ namespace Spacegroup {
 
     const _translationRef = Vec3();
     const _translationRefSymop = Vec3();
+    const _translationRefOffset = Vec3();
     const _translationSymop = Vec3();
-    export function setOperatorMatrixRef(spacegroup: Spacegroup, index: number, i: number, j: number, k: number, ref: Vec3, target: Mat4) {
-        Vec3.set(_ijkVec, i, j, k);
-        Vec3.floor(_translationRef, ref);
-
-        Mat4.copy(target, spacegroup.operators[index]);
-
-        Vec3.floor(_translationRefSymop, Vec3.transformMat4(_translationRefSymop, ref, target));
-
-        Mat4.getTranslation(_translationSymop, target);
-        Vec3.sub(_translationSymop, _translationSymop, _translationRefSymop);
-        Vec3.add(_translationSymop, _translationSymop, _translationRef);
-        Vec3.add(_translationSymop, _translationSymop, _ijkVec);
-
-        Mat4.setTranslation(target, _translationSymop);
-        Mat4.mul(target, spacegroup.cell.fromFractional, target);
-        Mat4.mul(target, target, spacegroup.cell.toFractional);
-        return target;
-    }
 
     /**
      * Get Symmetry operator for transformation around the given
      * reference point `ref` in fractional coordinates
      */
     export function getSymmetryOperatorRef(spacegroup: Spacegroup, spgrOp: number, i: number, j: number, k: number, ref: Vec3) {
-        const operator = setOperatorMatrixRef(spacegroup, spgrOp, i, j, k, ref, Mat4.zero());
-        return SymmetryOperator.create(`${spgrOp + 1}_${5 + i}${5 + j}${5 + k}`, operator, { hkl: Vec3.create(i, j, k), spgrOp });
+
+        const operator =  Mat4.zero();
+
+        Vec3.set(_ijkVec, i, j, k);
+        Vec3.floor(_translationRef, ref);
+
+        Mat4.copy(operator, spacegroup.operators[spgrOp]);
+
+        Vec3.floor(_translationRefSymop, Vec3.transformMat4(_translationRefSymop, ref, operator));
+
+        Mat4.getTranslation(_translationSymop, operator);
+        Vec3.sub(_translationSymop, _translationSymop, _translationRefSymop);
+        Vec3.add(_translationSymop, _translationSymop, _translationRef);
+        Vec3.add(_translationSymop, _translationSymop, _ijkVec);
+
+        Mat4.setTranslation(operator, _translationSymop);
+        Mat4.mul(operator, spacegroup.cell.fromFractional, operator);
+        Mat4.mul(operator, operator, spacegroup.cell.toFractional);
+
+        Vec3.sub(_translationRefOffset, _translationRefSymop, _translationRef);
+
+        const _i = i - _translationRefOffset[0];
+        const _j = j - _translationRefOffset[1];
+        const _k = k - _translationRefOffset[2];
+
+        // const operator = setOperatorMatrixRef(spacegroup, spgrOp, i, j, k, ref, Mat4.zero());
+        return SymmetryOperator.create(`${spgrOp + 1}_${5 + _i}${5 + _j}${5 + _k}`, operator, { hkl: Vec3.create(_i, _j, _k), spgrOp });
     }
 
     function getOperatorMatrix(ids: number[]) {

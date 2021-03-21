@@ -136,6 +136,13 @@ const AssemblyNameParam: QueryParamInfo = {
     description: 'Assembly name. If none is provided, crystal symmetry (where available) or deposited model is used.'
 };
 
+const OmitWaterParam: QueryParamInfo = {
+    name: 'omit_water',
+    type: QueryParamType.Boolean,
+    required: false,
+    defaultValue: false
+};
+
 function Q<Params = any>(definition: Partial<QueryDefinition<Params>>) {
     return definition;
 }
@@ -223,7 +230,28 @@ const QueryMap = {
         jsonParams: [ AtomSiteTestJsonParam, RadiusParam ],
         restParams: [ ...AtomSiteTestRestParams, RadiusParam ],
         filter: QuerySchemas.interaction
-    })
+    }),
+    'surroundingLigands': Q<{ atom_site: AtomSiteSchema, radius: number, assembly_name: string, omit_water: boolean }>({
+        niceName: 'Surrounding Ligands',
+        description: 'Identifies (complete) ligands within the given radius from the source atom set. Takes crystal symmetry into account.',
+        query(p) {
+            const tests = getAtomsTests(p.atom_site);
+            const center = Queries.combinators.merge(tests.map(test => Queries.generators.atoms({
+                ...test,
+                entityTest: test.entityTest
+                    ? ctx => test.entityTest!(ctx) && ctx.element.unit.conformation.operator.isIdentity
+                    : ctx => ctx.element.unit.conformation.operator.isIdentity
+            })));
+            return Queries.modifiers.surroundingLigands({ query: center, radius: p.radius !== void 0 ? p.radius : 5, includeWater: !p.omit_water });
+        },
+        structureTransform(p, s) {
+            if (p.assembly_name) return StructureSymmetry.buildAssembly(s, '' + p.assembly_name).run();
+            return StructureSymmetry.builderSymmetryMates(s, p.radius !== void 0 ? p.radius : 5).run();
+        },
+        jsonParams: [ AtomSiteTestJsonParam, RadiusParam, OmitWaterParam, AssemblyNameParam ],
+        restParams: [ ...AtomSiteTestRestParams, RadiusParam, OmitWaterParam, AssemblyNameParam ],
+        filter: QuerySchemas.interaction
+    }),
 };
 
 export type QueryName = keyof typeof QueryMap

@@ -37,9 +37,10 @@ export interface DataLoci<T = unknown, E = unknown> {
     readonly kind: 'data-loci',
     readonly tag: string
     readonly data: T,
-    readonly elements: ReadonlyArray<E>
+    readonly elements: ReadonlyArray<E>,
 
-    getBoundingSphere(boundingSphere: Sphere3D): Sphere3D
+    /** if undefined, won't zoom */
+    getBoundingSphere?(boundingSphere: Sphere3D): Sphere3D
     getLabel(): string
 }
 export function isDataLoci(x?: Loci): x is DataLoci {
@@ -159,7 +160,7 @@ namespace Loci {
         } else if (loci.kind === 'group-loci') {
             return ShapeGroup.getBoundingSphere(loci, boundingSphere);
         } else if (loci.kind === 'data-loci') {
-            return loci.getBoundingSphere(boundingSphere);
+            return loci.getBoundingSphere?.(boundingSphere);
         } else if (loci.kind === 'volume-loci') {
             return Volume.getBoundingSphere(loci.volume, boundingSphere);
         } else if (loci.kind === 'isosurface-loci') {

@@ -23,7 +23,7 @@ import { Carbohydrates } from './carbohydrates/data';
 import { computeCarbohydrates } from './carbohydrates/compute';
 import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { idFactory } from '../../../mol-util/id-factory';
-import { Box3D, GridLookup3D } from '../../../mol-math/geometry';
+import { GridLookup3D } from '../../../mol-math/geometry';
 import { UUID } from '../../../mol-util';
 import { CustomProperties } from '../../custom-property';
 import { AtomicHierarchy } from '../model/properties/atomic';
@@ -61,6 +61,7 @@ type State = {
     uniqueElementCount: number,
     atomicResidueCount: number,
     polymerResidueCount: number,
+    polymerGapCount: number,
     polymerUnitCount: number,
     coordinateSystem: SymmetryOperator,
     label: string,
@@ -116,6 +117,14 @@ class Structure {
             this.state.polymerResidueCount = getPolymerResidueCount(this);
         }
         return this.state.polymerResidueCount;
+    }
+
+    /** Count of all polymer gaps in the structure */
+    get polymerGapCount() {
+        if (this.state.polymerGapCount === -1) {
+            this.state.polymerGapCount = getPolymerGapCount(this);
+        }
+        return this.state.polymerGapCount;
     }
 
     get polymerUnitCount() {
@@ -236,13 +245,6 @@ class Structure {
         if (this.state.unitSymmetryGroupsIndexMap) return this.state.unitSymmetryGroupsIndexMap;
         this.state.unitSymmetryGroupsIndexMap = Unit.SymmetryGroup.getUnitSymmetryGroupsIndexMap(this.unitSymmetryGroups);
         return this.state.unitSymmetryGroupsIndexMap;
-    }
-
-    /** Array of all units in the structure, sorted by their boundary volume */
-    get unitsSortedByVolume(): ReadonlyArray<Unit> {
-        if (this.state.unitsSortedByVolume) return this.state.unitsSortedByVolume;
-        this.state.unitsSortedByVolume = getUnitsSortedByVolume(this);
-        return this.state.unitsSortedByVolume;
     }
 
     get carbohydrates(): Carbohydrates {
@@ -399,24 +401,6 @@ function cmpUnits(units: ArrayLike<Unit>, i: number, j: number) {
     return units[i].id - units[j].id;
 
 }
-function cmpUnitGroupVolume(units: ArrayLike<[index: number, volume: number]>, i: number, j: number) {
-    const d = units[i][1] - units[j][1];
-    if (d === 0) return units[i][0] - units[j][0];
-    return d;
-}
-
-function getUnitsSortedByVolume(structure: Structure) {
-    const { unitSymmetryGroups } = structure;
-    const groups = unitSymmetryGroups.map((g, i) => [i, Box3D.volume(g.units[0].lookup3d.boundary.box)] as [number, number]);
-    sort(groups, 0, groups.length, cmpUnitGroupVolume, arraySwap);
-    const ret: Unit[] = [];
-    for (const [i] of groups) {
-        for (const u of unitSymmetryGroups[i].units) {
-            ret.push(u);
-        }
-    }
-    return ret;
-}
 
 function getModels(s: Structure) {
     const { units } = s;
@@ -536,6 +520,15 @@ function getPolymerResidueCount(structure: Structure): number {
         polymerResidueCount += units[i].polymerElements.length;
     }
     return polymerResidueCount;
+}
+
+function getPolymerGapCount(structure: Structure): number {
+    const { units } = structure;
+    let polymerGapCount = 0;
+    for (let i = 0, _i = units.length; i < _i; i++) {
+        polymerGapCount += units[i].gapElements.length / 2;
+    }
+    return polymerGapCount;
 }
 
 function getPolymerUnitCount(structure: Structure): number {
@@ -684,6 +677,7 @@ namespace Structure {
             uniqueElementCount: -1,
             atomicResidueCount: -1,
             polymerResidueCount: -1,
+            polymerGapCount: -1,
             polymerUnitCount: -1,
             coordinateSystem: SymmetryOperator.Default,
             label: ''

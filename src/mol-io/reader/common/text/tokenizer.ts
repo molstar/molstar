@@ -91,9 +91,18 @@ namespace Tokenizer {
         return eatLine(state);
     }
 
-    /** Advance the state by the given number of lines and return line as string. */
+    /** Advance the state and return line as string. */
     export function readLine(state: Tokenizer): string {
         markLine(state);
+        return getTokenString(state);
+    }
+
+    /** Advance the state and return trimmed line as string. */
+    export function readLineTrim(state: Tokenizer): string {
+        markLine(state);
+        const position = state.position;
+        trim(state, state.tokenStart, state.tokenEnd);
+        state.position = position;
         return getTokenString(state);
     }
 

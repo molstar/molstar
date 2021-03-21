@@ -9,6 +9,7 @@ import { Mat4, Vec3, Vec4, EPSILON } from '../mol-math/linear-algebra';
 import { Viewport, cameraProject, cameraUnproject } from './camera/util';
 import { CameraTransitionManager } from './camera/transition';
 import { BehaviorSubject } from 'rxjs';
+import { Scene } from '../mol-gl/scene';
 
 export { ICamera, Camera };
 
@@ -126,6 +127,23 @@ class Camera implements ICamera {
         return state;
     }
 
+    getInvariantFocus(target: Vec3, radius: number, up: Vec3, dir: Vec3): Partial<Camera.Snapshot> {
+        const r = Math.max(radius, 0.01);
+        const targetDistance = this.getTargetDistance(r);
+
+        Vec3.copy(this.deltaDirection, dir);
+        Vec3.setMagnitude(this.deltaDirection, this.deltaDirection, targetDistance);
+        Vec3.sub(this.newPosition, target, this.deltaDirection);
+
+        const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state);
+        state.target = Vec3.clone(target);
+        state.radius = r;
+        state.position = Vec3.clone(this.newPosition);
+        Vec3.copy(state.up, up);
+
+        return state;
+    }
+
     focus(target: Vec3, radius: number, durationMs?: number, up?: Vec3, dir?: Vec3) {
         if (radius > 0) {
             this.setState(this.getFocus(target, radius, up, dir), durationMs);
@@ -149,6 +167,8 @@ class Camera implements ICamera {
 
 namespace Camera {
     export type Mode = 'perspective' | 'orthographic'
+
+    export type SnapshotProvider = Partial<Snapshot> | ((scene: Scene, camera: Camera) => Partial<Snapshot>)
 
     /**
      * Sets an offseted view in a larger frustum. This is useful for

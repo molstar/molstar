@@ -93,6 +93,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Representation.StructureSelectionsLabel3D),
         PluginSpec.Action(StateTransforms.Representation.StructureSelectionsOrientation3D),
         PluginSpec.Action(StateTransforms.Representation.ModelUnitcell3D),
+        PluginSpec.Action(StateTransforms.Representation.StructureBoundingBox3D),
         PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.OverpaintStructureRepresentation3DFromScript),
@@ -111,6 +112,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
         PluginSpec.Behavior(PluginBehaviors.Representation.FocusLoci),
         PluginSpec.Behavior(PluginBehaviors.Camera.FocusLoci),
+        PluginSpec.Behavior(PluginBehaviors.Camera.CameraAxisHelper),
         PluginSpec.Behavior(StructureFocusRepresentation),
 
         PluginSpec.Behavior(PluginBehaviors.CustomProps.StructureInfo),

@@ -122,12 +122,11 @@ function applyMarkerAtomic(e: StructureElement.Loci.Element, action: MarkerActio
     const { index: residueIndex } = model.atomicHierarchy.residueAtomSegments;
     const { label_seq_id } = model.atomicHierarchy.residues;
 
-    let changed = false;
     OrderedSet.forEachSegment(e.indices, i => residueIndex[elements[i]], rI => {
         const seqId = label_seq_id.value(rI);
-        changed = applyMarkerActionAtPosition(markerArray, index(seqId), action) || changed;
+        applyMarkerActionAtPosition(markerArray, index(seqId), action);
     });
-    return changed;
+    return true;
 }
 
 function applyMarkerCoarse(e: StructureElement.Loci.Element, action: MarkerAction, markerArray: Uint8Array, index: (seqId: number) => number) {
@@ -135,12 +134,11 @@ function applyMarkerCoarse(e: StructureElement.Loci.Element, action: MarkerActio
     const begin = Unit.isSpheres(e.unit) ? model.coarseHierarchy.spheres.seq_id_begin : model.coarseHierarchy.gaussians.seq_id_begin;
     const end = Unit.isSpheres(e.unit) ? model.coarseHierarchy.spheres.seq_id_end : model.coarseHierarchy.gaussians.seq_id_end;
 
-    let changed = false;
     OrderedSet.forEach(e.indices, i => {
         const eI = elements[i];
         for (let s = index(begin.value(eI)), e = index(end.value(eI)); s <= e; s++) {
-            changed = applyMarkerActionAtPosition(markerArray, s, action) || changed;
+            applyMarkerActionAtPosition(markerArray, s, action);
         }
     });
-    return changed;
+    return true;
 }

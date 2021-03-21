@@ -7,8 +7,10 @@
 
 
 import { StateTransformParameters } from '../mol-plugin-ui/state/common';
+import { CreateVolumeStreamingBehavior } from '../mol-plugin/behavior/dynamic/volume-streaming/transformers';
 import { DefaultPluginSpec, PluginSpec } from '../mol-plugin/spec';
 import { StateAction, StateTransformer } from '../mol-state';
+import { VolumeStreamingCustomControls } from './custom/volume';
 
 export { PluginUISpec };
 
@@ -37,4 +39,7 @@ namespace PluginUISpec {
 
 export const DefaultPluginUISpec = (): PluginUISpec => ({
     ...DefaultPluginSpec(),
+    customParamEditors: [
+        [CreateVolumeStreamingBehavior, VolumeStreamingCustomControls]
+    ],
 });

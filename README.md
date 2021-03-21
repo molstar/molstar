@@ -5,15 +5,12 @@
 
 # Mol*
 
-The goal of **Mol\*** (*/'mol-star/*) is to provide a technology stack that will serve as a basis for the next-generation data delivery and analysis tools for macromolecular structure data. This is a collaboration between PDBe and RCSB PDB teams and the development will be open-source and available to anyone who wants to use it for developing visualization tools for macromolecular structure data available from [PDB](https://www.wwpdb.org/) and other institutions.
+The goal of **Mol\*** (*/'mol-star/*) is to provide a technology stack that serves as a basis for the next-generation data delivery and analysis tools for (not only) macromolecular structure data. Mol* development was jointly initiated by PDBe and RCSB PDB to combine and build on the strengths of [LiteMol](https://litemol.org) (developed by PDBe) and [NGL](https://nglviewer.org) (developed by RCSB PDB) viewers.
 
-This particular project is the implementation of this technology (still under development).
 
-*If you are looking for the "MOLeculAR structure annoTator", that package is now available on NPM as [MolArt](https://www.npmjs.com/package/molart).*
+## Project Structure Overview
 
-## Project Overview
-
-The core of Mol* currently consists of these modules (see under `src/`):
+The core of Mol* consists of these modules (see under `src/`):
 
 - `mol-task` Computation abstraction with progress tracking and cancellation support.
 - `mol-data` Collections (integer-based sets, interface to columns/tables, etc.)
@@ -29,7 +26,6 @@ The core of Mol* currently consists of these modules (see under `src/`):
 - `mol-gl` A wrapper around WebGL.
 - `mol-canvas3d` A low-level 3d view component. Uses `mol-geo` to generate geometries.
 - `mol-state` State representation tree with state saving and automatic updates.
-- `mol-app` Components for building UIs.
 - `mol-plugin` Allow to define modular Mol* plugin instances utilizing `mol-state` and `mol-canvas3d`.
 - `mol-plugin-state` State transformations, builders, and managers.
 - `mol-plugin-ui` React-based user interface for the Mol* plugin. Some components of the UI are usable outside the main plugin and can be integrated into 3rd party solutions.
@@ -41,7 +37,7 @@ Moreover, the project contains the implementation of `servers`, including
 - `servers/volume` A tool for accessing volumetric experimental data related to molecular structures.
 - `servers/plugin-state` A basic server to store Mol* Plugin states.
 
-The project also contains performance tests (`perf-tests`), `examples`, and basic proof of concept `cli` apps (CIF to BinaryCIF converter and JSON domain annotation to CIF converter).
+The project also contains performance tests (`perf-tests`), `examples`, and `cli` apps (CIF to BinaryCIF converter and JSON domain annotation to CIF converter).
 
 ## Previous Work
 This project builds on experience from previous solutions:
@@ -168,9 +164,6 @@ To get syntax highlighting for shader and graphql files add the following to Vis
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.
-
-## Roadmap
-Continually develop this prototype project. As individual modules become stable, make them into standalone libraries.
 
 ## Funding
 Funding sources include but are not limited to:

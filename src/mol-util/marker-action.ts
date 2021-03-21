@@ -1,11 +1,12 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { OrderedSet, Interval } from '../mol-data/int';
 import { BitFlags } from './bit-flags';
+import { assertUnreachable } from './type-helpers';
 
 export enum MarkerAction {
     None = 0x0,
@@ -37,50 +38,85 @@ export namespace MarkerActions {
 }
 
 export function applyMarkerActionAtPosition(array: Uint8Array, i: number, action: MarkerAction) {
-    let v = array[i];
     switch (action) {
-        case MarkerAction.Highlight:
-            if (v % 2 === 0) {
-                array[i] = v + 1;
-                return true;
-            }
-            return false;
-        case MarkerAction.RemoveHighlight:
-            if (v % 2 !== 0) {
-                array[i] = v - 1;
-                return true;
-            }
-            return false;
-        case MarkerAction.Select:
-            if (v < 2) {
-                array[i] = v + 2;
-                return true;
-            }
-            return false;
-        case MarkerAction.Deselect:
-            array[i] = v % 2;
-            return array[i] !== v;
-        case MarkerAction.Toggle:
-            if (v >= 2) array[i] = v - 2;
-            else array[i] = v + 2;
-            return true;
-        case MarkerAction.Clear:
-            array[i] = 0;
-            return v !== 0;
+        case MarkerAction.Highlight: array[i] |= 1; break;
+        case MarkerAction.RemoveHighlight: array[i] &= ~1; break;
+        case MarkerAction.Select: array[i] |= 2; break;
+        case MarkerAction.Deselect: array[i] &= ~2; break;
+        case MarkerAction.Toggle: array[i] ^= 2; break;
+        case MarkerAction.Clear: array[i] = 0; break;
     }
-    return false;
 }
 
 export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: MarkerAction) {
-    let changed = false;
+    if (action === MarkerAction.None) return false;
+
     if (Interval.is(set)) {
-        for (let i = Interval.start(set), _i = Interval.end(set); i < _i; i++) {
-            changed = applyMarkerActionAtPosition(array, i, action) || changed;
+        const start = Interval.start(set);
+        const end = Interval.end(set);
+        const view = new Uint32Array(array.buffer, 0, array.buffer.byteLength >> 2);
+
+        const viewStart = (start + 3) >> 2;
+        const viewEnd = viewStart + ((end - 4 * viewStart) >> 2);
+
+        const frontStart = start;
+        const frontEnd =  Math.min(4 * viewStart, end);
+        const backStart = Math.max(start, 4 * viewEnd);
+        const backEnd = end;
+
+        switch (action) {
+            case MarkerAction.Highlight:
+                for (let i = viewStart; i < viewEnd; ++i) view[i] |= 0x01010101;
+                break;
+            case MarkerAction.RemoveHighlight:
+                for (let i = viewStart; i < viewEnd; ++i) view[i] &= ~0x01010101;
+                break;
+            case MarkerAction.Select:
+                for (let i = viewStart; i < viewEnd; ++i) view[i] |= 0x02020202;
+                break;
+            case MarkerAction.Deselect:
+                for (let i = viewStart; i < viewEnd; ++i) view[i] &= ~0x02020202;
+                break;
+            case MarkerAction.Toggle:
+                for (let i = viewStart; i < viewEnd; ++i) view[i] ^= 0x02020202;
+                break;
+            case MarkerAction.Clear:
+                for (let i = viewStart; i < viewEnd; ++i) view[i] = 0;
+                break;
+            default:
+                assertUnreachable(action);
+        }
+
+        for (let i = frontStart; i < frontEnd; ++i) {
+            applyMarkerActionAtPosition(array, i, action);
+        }
+
+        for (let i = backStart; i < backEnd; ++i) {
+            applyMarkerActionAtPosition(array, i, action);
         }
     } else {
-        for (let i = 0, _i = set.length; i < _i; i++) {
-            changed = applyMarkerActionAtPosition(array, set[i], action) || changed;
+        switch (action) {
+            case MarkerAction.Highlight:
+                for (let i = 0, il = set.length; i < il; ++i) array[set[i]] |= 1;
+                break;
+            case MarkerAction.RemoveHighlight:
+                for (let i = 0, il = set.length; i < il; ++i) array[set[i]] &= ~1;
+                break;
+            case MarkerAction.Select:
+                for (let i = 0, il = set.length; i < il; ++i) array[set[i]] |= 2;
+                break;
+            case MarkerAction.Deselect:
+                for (let i = 0, il = set.length; i < il; ++i) array[set[i]] &= ~2;
+                break;
+            case MarkerAction.Toggle:
+                for (let i = 0, il = set.length; i < il; ++i) array[set[i]] ^= 2;
+                break;
+            case MarkerAction.Clear:
+                for (let i = 0, il = set.length; i < il; ++i) array[set[i]] = 0;
+                break;
+            default:
+                assertUnreachable(action);
         }
     }
-    return changed;
+    return true;
 }
