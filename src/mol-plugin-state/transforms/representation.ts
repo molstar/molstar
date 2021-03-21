@@ -130,14 +130,15 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Structure Representation', async ctx => {
             const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
             const provider = plugin.representation.structure.registry.get(params.type.name);
-            if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
+            const data = provider.getData?.(a.data, params.type.params) || a.data;
+            if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, data);
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, provider.getParams);
-            await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, params);
-            repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, params));
+            await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: data }, params);
+            repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: data }, params));
 
             const props = params.type.params || {};
-            await repr.createOrUpdate(props, a.data).runInContext(ctx);
-            return new SO.Molecule.Structure.Representation3D({ repr, source: a }, { label: provider.label });
+            await repr.createOrUpdate(props, data).runInContext(ctx);
+            return new SO.Molecule.Structure.Representation3D({ repr, sourceData: a.data }, { label: provider.label });
         });
     },
     update({ a, b, oldParams, newParams, cache }, plugin: PluginContext) {
@@ -145,26 +146,28 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
 
             const provider = plugin.representation.structure.registry.get(newParams.type.name);
+            if (provider.mustRecreate?.(oldParams.type.params, newParams.type.params)) return StateTransformer.UpdateResult.Recreate;
+
+            const data = provider.getData?.(a.data, newParams.type.params) || a.data;
             const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
-            if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
+            if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, data);
 
             // TODO: if themes had a .needsUpdate method the following block could
             //       be optimized and only executed conditionally
-            // dispose isn't called on update so we need to handle it manually
-            Theme.releaseDependencies(plugin.representation.structure.themes, { structure: b.data.source.data }, oldParams);
-            await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: a.data }, newParams);
-            b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: a.data }, newParams));
+            Theme.releaseDependencies(plugin.representation.structure.themes, { structure: b.data.sourceData }, oldParams);
+            await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: data }, newParams);
+            b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: data }, newParams));
 
             const props = { ...b.data.repr.props, ...newParams.type.params };
-            await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
-            b.data.source = a;
+            await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
+            b.data.sourceData = a.data;
             return StateTransformer.UpdateResult.Updated;
         });
     },
     dispose({ b, params }, plugin: PluginContext) {
         if (!b || !params) return;
 
-        const structure = b.data.source.data;
+        const structure = b.data.sourceData;
         const provider = plugin.representation.structure.registry.get(params.type.name);
         if (provider.ensureCustomProperties) provider.ensureCustomProperties.detach(structure);
         Theme.releaseDependencies(plugin.representation.structure.themes, { structure }, params);
@@ -195,26 +198,26 @@ const UnwindStructureAssemblyRepresentation3D = PluginStateTransform.BuiltIn({
         return true;
     },
     apply({ a, params }) {
-        const structure = a.data.source.data;
+        const structure = a.data.sourceData;
         const unitTransforms = new StructureUnitTransforms(structure);
         unwindStructureAssembly(structure, unitTransforms, params.t);
         return new SO.Molecule.Structure.Representation3DState({
             state: { unitTransforms },
             initialState: { unitTransforms: new StructureUnitTransforms(structure) },
             info: structure,
-            source: a
+            repr: a.data.repr
         }, { label: `Unwind T = ${params.t.toFixed(2)}` });
     },
     update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure;
-        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
-        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.sourceData !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
         const unitTransforms = b.data.state.unitTransforms!;
         unwindStructureAssembly(structure, unitTransforms, newParams.t);
         b.label = `Unwind T = ${newParams.t.toFixed(2)}`;
-        b.data.source = a;
+        b.data.repr = a.data.repr;
         return StateTransformer.UpdateResult.Updated;
     }
 });
@@ -232,26 +235,26 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
         return true;
     },
     apply({ a, params }) {
-        const structure = a.data.source.data;
+        const structure = a.data.sourceData;
         const unitTransforms = new StructureUnitTransforms(structure.root);
         explodeStructure(structure, unitTransforms, params.t);
         return new SO.Molecule.Structure.Representation3DState({
             state: { unitTransforms },
             initialState: { unitTransforms: new StructureUnitTransforms(structure.root) },
             info: structure.root,
-            source: a
+            repr: a.data.repr
         }, { label: `Explode T = ${params.t.toFixed(2)}` });
     },
     update({ a, b, newParams, oldParams }) {
-        const structure = a.data.source.data;
+        const structure = a.data.sourceData;
         if (b.data.info !== structure.root) return StateTransformer.UpdateResult.Recreate;
-        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
         const unitTransforms = b.data.state.unitTransforms!;
         explodeStructure(structure.root, unitTransforms, newParams.t);
         b.label = `Explode T = ${newParams.t.toFixed(2)}`;
-        b.data.source = a;
+        b.data.repr = a.data.repr;
         return StateTransformer.UpdateResult.Updated;
     }
 });
@@ -280,28 +283,28 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
         return true;
     },
     apply({ a, params }) {
-        const structure = a.data.source.data;
+        const structure = a.data.sourceData;
         const overpaint = Overpaint.ofScript(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { overpaint },
             initialState: { overpaint: Overpaint.Empty },
             info: structure,
-            source: a
+            repr: a.data.repr
         }, { label: `Overpaint (${overpaint.layers.length} Layers)` });
     },
     update({ a, b, newParams, oldParams }) {
         const oldStructure = b.data.info as Structure;
-        const newStructure = a.data.source.data;
+        const newStructure = a.data.sourceData;
         if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate;
-        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         const oldOverpaint = b.data.state.overpaint!;
         const newOverpaint = Overpaint.ofScript(newParams.layers, newStructure);
         if (Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.overpaint = newOverpaint;
-        b.data.source = a;
+        b.data.repr = a.data.repr;
         b.label = `Overpaint (${newOverpaint.layers.length} Layers)`;
         return StateTransformer.UpdateResult.Updated;
     }
@@ -332,28 +335,28 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
         return true;
     },
     apply({ a, params }) {
-        const structure = a.data.source.data;
+        const structure = a.data.sourceData;
         const overpaint = Overpaint.ofBundle(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { overpaint },
             initialState: { overpaint: Overpaint.Empty },
             info: structure,
-            source: a
+            repr: a.data.repr
         }, { label: `Overpaint (${overpaint.layers.length} Layers)` });
     },
     update({ a, b, newParams, oldParams }) {
         const oldStructure = b.data.info as Structure;
-        const newStructure = a.data.source.data;
+        const newStructure = a.data.sourceData;
         if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate;
-        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         const oldOverpaint = b.data.state.overpaint!;
         const newOverpaint = Overpaint.ofBundle(newParams.layers, newStructure);
         if (Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.overpaint = newOverpaint;
-        b.data.source = a;
+        b.data.repr = a.data.repr;
         b.label = `Overpaint (${newOverpaint.layers.length} Layers)`;
         return StateTransformer.UpdateResult.Updated;
     }
@@ -381,27 +384,27 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
         return true;
     },
     apply({ a, params }) {
-        const structure = a.data.source.data;
+        const structure = a.data.sourceData;
         const transparency = Transparency.ofScript(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { transparency },
             initialState: { transparency: Transparency.Empty },
             info: structure,
-            source: a
+            repr: a.data.repr
         }, { label: `Transparency (${transparency.layers.length} Layers)` });
     },
     update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure;
-        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
-        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.sourceData !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         const oldTransparency = b.data.state.transparency!;
         const newTransparency = Transparency.ofScript(newParams.layers, structure);
         if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.transparency = newTransparency;
-        b.data.source = a;
+        b.data.repr = a.data.repr;
         b.label = `Transparency (${newTransparency.layers.length} Layers)`;
         return StateTransformer.UpdateResult.Updated;
     }
@@ -430,27 +433,27 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
         return true;
     },
     apply({ a, params }) {
-        const structure = a.data.source.data;
+        const structure = a.data.sourceData;
         const transparency = Transparency.ofBundle(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { transparency },
             initialState: { transparency: Transparency.Empty },
             info: structure,
-            source: a
+            repr: a.data.repr
         }, { label: `Transparency (${transparency.layers.length} Layers)` });
     },
     update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure;
-        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
-        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.sourceData !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         const oldTransparency = b.data.state.transparency!;
         const newTransparency = Transparency.ofBundle(newParams.layers, structure);
         if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.transparency = newTransparency;
-        b.data.source = a;
+        b.data.repr = a.data.repr;
         b.label = `Transparency (${newTransparency.layers.length} Layers)`;
         return StateTransformer.UpdateResult.Updated;
     }
@@ -478,27 +481,27 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
         return true;
     },
     apply({ a, params }) {
-        const structure = a.data.source.data;
+        const structure = a.data.sourceData;
         const clipping = Clipping.ofScript(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { clipping },
             initialState: { clipping: Clipping.Empty },
             info: structure,
-            source: a
+            repr: a.data.repr
         }, { label: `Clipping (${clipping.layers.length} Layers)` });
     },
     update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure;
-        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
-        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.sourceData !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         const oldClipping = b.data.state.clipping!;
         const newClipping = Clipping.ofScript(newParams.layers, structure);
         if (Clipping.areEqual(oldClipping, newClipping)) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.clipping = newClipping;
-        b.data.source = a;
+        b.data.repr = a.data.repr;
         b.label = `Clipping (${newClipping.layers.length} Layers)`;
         return StateTransformer.UpdateResult.Updated;
     }
@@ -527,27 +530,27 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
         return true;
     },
     apply({ a, params }) {
-        const structure = a.data.source.data;
+        const structure = a.data.sourceData;
         const clipping = Clipping.ofBundle(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { clipping },
             initialState: { clipping: Clipping.Empty },
             info: structure,
-            source: a
+            repr: a.data.repr
         }, { label: `Clipping (${clipping.layers.length} Layers)` });
     },
     update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure;
-        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
-        if (a.data.repr !== b.data.source.data.repr) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.sourceData !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         const oldClipping = b.data.state.clipping!;
         const newClipping = Clipping.ofBundle(newParams.layers, structure);
         if (Clipping.areEqual(oldClipping, newClipping)) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.clipping = newClipping;
-        b.data.source = a;
+        b.data.repr = a.data.repr;
         b.label = `Clipping (${newClipping.layers.length} Layers)`;
         return StateTransformer.UpdateResult.Updated;
     }
@@ -650,7 +653,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
 
             const props = params.type.params || {};
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
-            return new SO.Volume.Representation3D({ repr, source: a }, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
+            return new SO.Volume.Representation3D({ repr, sourceData: a.data }, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
@@ -663,6 +666,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams.type.params };
             b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
+            b.data.sourceData = a.data;
             b.description = VolumeRepresentation3DHelpers.getDescription(props);
             return StateTransformer.UpdateResult.Updated;
         });
@@ -690,13 +694,14 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
             const props = { ...PD.getDefaultValues(a.data.params), ...params };
             const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils);
             await repr.createOrUpdate(props, a.data.data).runInContext(ctx);
-            return new SO.Shape.Representation3D({ repr, source: a }, { label: a.data.label });
+            return new SO.Shape.Representation3D({ repr, sourceData: a.data }, { label: a.data.label });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Shape Representation', async ctx => {
             const props = { ...b.data.repr.props, ...newParams };
             await b.data.repr.createOrUpdate(props, a.data.data).runInContext(ctx);
+            b.data.sourceData = a.data;
             return StateTransformer.UpdateResult.Updated;
         });
     }
@@ -724,7 +729,7 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
             const data = getUnitcellData(a.data, symmetry, params);
             const repr = UnitcellRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => UnitcellParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
-            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Unit Cell`, description: symmetry.spacegroup.name });
+            return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Unit Cell`, description: symmetry.spacegroup.name });
         });
     },
     update({ a, b, newParams }) {
@@ -734,7 +739,7 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams };
             const data = getUnitcellData(a.data, symmetry, props);
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
-            b.data.source = a;
+            b.data.sourceData = data;
             return StateTransformer.UpdateResult.Updated;
         });
     }
@@ -763,13 +768,13 @@ const StructureBoundingBox3D = PluginStateTransform.BuiltIn({
                 return Shape.create('Bouding Box', data, mesh, () => data.color, () => 1, () => 'Bounding Box');
             }, Mesh.Utils);
             await repr.createOrUpdate(params, { box: a.data.boundary.box, radius: params.radius, color: params.color }).runInContext(ctx);
-            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Bounding Box` });
+            return new SO.Shape.Representation3D({ repr, sourceData: a.data }, { label: `Bounding Box` });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Bounding Box', async ctx => {
             await b.data.repr.createOrUpdate(newParams, { box: a.data.boundary.box, radius: newParams.radius, color: newParams.color }).runInContext(ctx);
-            b.data.source = a;
+            b.data.sourceData = a.data;
             return StateTransformer.UpdateResult.Updated;
         });
     }
@@ -794,7 +799,7 @@ const StructureSelectionsDistance3D = PluginStateTransform.BuiltIn({
             const data = getDistanceDataFromStructureSelections(a.data);
             const repr = DistanceRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => DistanceParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
-            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Distance` });
+            return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Distance` });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
@@ -802,7 +807,7 @@ const StructureSelectionsDistance3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams };
             const data = getDistanceDataFromStructureSelections(a.data);
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
-            b.data.source = a;
+            b.data.sourceData = data;
             return StateTransformer.UpdateResult.Updated;
         });
     },
@@ -827,7 +832,7 @@ const StructureSelectionsAngle3D = PluginStateTransform.BuiltIn({
             const data = getAngleDataFromStructureSelections(a.data);
             const repr = AngleRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => AngleParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
-            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Angle` });
+            return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Angle` });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
@@ -835,7 +840,7 @@ const StructureSelectionsAngle3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams };
             const data = getAngleDataFromStructureSelections(a.data);
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
-            b.data.source = a;
+            b.data.sourceData = data;
             return StateTransformer.UpdateResult.Updated;
         });
     },
@@ -860,7 +865,7 @@ const StructureSelectionsDihedral3D = PluginStateTransform.BuiltIn({
             const data = getDihedralDataFromStructureSelections(a.data);
             const repr = DihedralRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => DihedralParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
-            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Dihedral` });
+            return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Dihedral` });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
@@ -868,7 +873,7 @@ const StructureSelectionsDihedral3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams };
             const data = getDihedralDataFromStructureSelections(a.data);
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
-            b.data.source = a;
+            b.data.sourceData = data;
             return StateTransformer.UpdateResult.Updated;
         });
     },
@@ -893,7 +898,7 @@ const StructureSelectionsLabel3D = PluginStateTransform.BuiltIn({
             const data = getLabelDataFromStructureSelections(a.data);
             const repr = LabelRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => LabelParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
-            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Label` });
+            return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Label` });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
@@ -901,7 +906,7 @@ const StructureSelectionsLabel3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams };
             const data = getLabelDataFromStructureSelections(a.data);
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
-            b.data.source = a;
+            b.data.sourceData = data;
             return StateTransformer.UpdateResult.Updated;
         });
     },
@@ -926,7 +931,7 @@ const StructureSelectionsOrientation3D = PluginStateTransform.BuiltIn({
             const data = getOrientationDataFromStructureSelections(a.data);
             const repr = OrientationRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => OrientationParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
-            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Orientation` });
+            return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Orientation` });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
@@ -934,7 +939,7 @@ const StructureSelectionsOrientation3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams };
             const data = getOrientationDataFromStructureSelections(a.data);
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
-            b.data.source = a;
+            b.data.sourceData = data;
             return StateTransformer.UpdateResult.Updated;
         });
     },

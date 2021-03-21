@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Loci, EmptyLoci } from '../../../mol-model/loci';
-import { Interval, OrderedSet } from '../../../mol-data/int';
+import { Interval, OrderedSet, SortedArray } from '../../../mol-data/int';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { PickingId } from '../../../mol-geo/geometry/picking';
@@ -24,6 +24,10 @@ import { Sphere3D } from '../../../mol-math/geometry';
 
 async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<InteractionsIntraUnitParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
+
+    const { child } = structure;
+    const childUnit = child?.unitMap.get(unit.id);
+    if (child && !childUnit) return Mesh.createEmpty(mesh);
 
     const location = StructureElement.Location.create(structure, unit);
 
@@ -51,12 +55,16 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
             const sizeB = theme.size.size(location);
             return Math.min(sizeA, sizeB) * sizeFactor;
         },
-        ignore: (edgeIndex: number) => flag[edgeIndex] === InteractionFlag.Filtered
+        ignore: (edgeIndex: number) => (
+            flag[edgeIndex] === InteractionFlag.Filtered ||
+            // TODO: check all members
+            (!!childUnit && !SortedArray.has(childUnit.elements, unit.elements[members[offsets[a[edgeIndex]]]]))
+        )
     };
 
     const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * sizeFactor);
+    const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * sizeFactor);
     m.setBoundingSphere(sphere);
 
     return m;
@@ -68,6 +76,7 @@ export const InteractionsIntraUnitParams = {
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     dashCount: PD.Numeric(6, { min: 2, max: 10, step: 2 }),
     dashScale: PD.Numeric(0.4, { min: 0, max: 2, step: 0.1 }),
+    includeParent: PD.Boolean(false),
 };
 export type InteractionsIntraUnitParams = typeof InteractionsIntraUnitParams
 
@@ -147,7 +156,7 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
         const { offset } = contacts;
         const { offsets: fOffsets, indices: fIndices } = features.elementsIndex;
 
-        // TODO when isMarking, all elements of contact features need to be in the loci
+        // TODO: when isMarking, all elements of contact features need to be in the loci
         for (const e of loci.elements) {
             const unitIdx = group.unitIndexMap.get(e.unit.id);
             if (unitIdx !== undefined) continue;

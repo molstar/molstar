@@ -24,6 +24,7 @@ const BallAndStickVisuals = {
 
 export const BallAndStickParams = {
     ...ElementSphereParams,
+    traceOnly: PD.Boolean(false, { isHidden: true }), // not useful here
     ...IntraUnitBondCylinderParams,
     ...InterUnitBondCylinderParams,
     unitKinds: getUnitKindsParam(['atomic']),
@@ -50,5 +51,11 @@ export const BallAndStickRepresentationProvider = StructureRepresentationProvide
     defaultValues: PD.getDefaultValues(BallAndStickParams),
     defaultColorTheme: { name: 'element-symbol' },
     defaultSizeTheme: { name: 'physical' },
-    isApplicable: (structure: Structure) => structure.elementCount > 0
+    isApplicable: (structure: Structure) => structure.elementCount > 0,
+    getData: (structure: Structure, props: PD.Values<BallAndStickParams>) => {
+        return props.includeParent ? structure.asParent() : structure;
+    },
+    mustRecreate: (oldProps: PD.Values<BallAndStickParams>, newProps: PD.Values<BallAndStickParams>) => {
+        return oldProps.includeParent !== newProps.includeParent;
+    }
 });

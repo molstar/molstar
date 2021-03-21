@@ -121,7 +121,7 @@ const MembraneOrientation3D = PluginStateTransform.BuiltIn({
             await MembraneOrientationProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset }, a.data);
             const repr = MembraneOrientationRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => MembraneOrientationParams);
             await repr.createOrUpdate(params, a.data).runInContext(ctx);
-            return new PluginStateObject.Shape.Representation3D({ repr, source: a }, { label: 'Membrane Orientation' });
+            return new PluginStateObject.Shape.Representation3D({ repr, sourceData: a.data }, { label: 'Membrane Orientation' });
         });
     },
     update({ a, b, newParams }, plugin: PluginContext) {
@@ -129,6 +129,7 @@ const MembraneOrientation3D = PluginStateTransform.BuiltIn({
             await MembraneOrientationProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset }, a.data);
             const props = { ...b.data.repr.props, ...newParams };
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
+            b.data.sourceData = a.data;
             return StateTransformer.UpdateResult.Updated;
         });
     },

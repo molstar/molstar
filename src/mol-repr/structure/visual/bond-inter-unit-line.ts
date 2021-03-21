@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -97,7 +97,8 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
 
     const l = createLinkLines(ctx, builderProps, props, lines);
 
-    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * sizeFactor);
+    const { child } = structure;
+    const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
     l.setBoundingSphere(sphere);
 
     return l;
@@ -106,6 +107,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
 export const InterUnitBondLineParams = {
     ...ComplexLinesParams,
     ...BondLineParams,
+    includeParent: PD.Boolean(false),
 };
 export type InterUnitBondLineParams = typeof InterUnitBondLineParams
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -50,5 +50,11 @@ export const InteractionsRepresentationProvider = StructureRepresentationProvide
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, structure: Structure) => InteractionsProvider.attach(ctx, structure, void 0, true),
         detach: (data) => InteractionsProvider.ref(data, false)
+    },
+    getData: (structure: Structure, props: PD.Values<InteractionsParams>) => {
+        return props.includeParent ? structure.asParent() : structure;
+    },
+    mustRecreate: (oldProps: PD.Values<InteractionsParams>, newProps: PD.Values<InteractionsParams>) => {
+        return oldProps.includeParent !== newProps.includeParent;
     }
 });

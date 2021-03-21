@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,6 +24,7 @@ export const LinkCylinderParams = {
     dashCount: PD.Numeric(4, { min: 2, max: 10, step: 2 }),
     dashScale: PD.Numeric(0.8, { min: 0, max: 2, step: 0.1 }),
     dashCap: PD.Boolean(true),
+    stubCap: PD.Boolean(true),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
 };
 export const DefaultLinkCylinderProps = PD.getDefaultValues(LinkCylinderParams);
@@ -75,6 +76,7 @@ export interface LinkBuilderProps {
     referencePosition?: (edgeIndex: number) => Vec3 | null
     style?: (edgeIndex: number) => LinkStyle
     ignore?: (edgeIndex: number) => boolean
+    stub?: (edgeIndex: number) => boolean
 }
 
 export const enum LinkStyle {
@@ -97,11 +99,11 @@ const v3dot = Vec3.dot;
  * the half closer to the first vertex, i.e. vertex a.
  */
 export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkCylinderProps, mesh?: Mesh) {
-    const { linkCount, referencePosition, position, style, radius, ignore } = linkBuilder;
+    const { linkCount, referencePosition, position, style, radius, ignore, stub } = linkBuilder;
 
     if (!linkCount) return Mesh.createEmpty(mesh);
 
-    const { linkScale, linkSpacing, radialSegments, linkCap, dashCount, dashScale, dashCap } = props;
+    const { linkScale, linkSpacing, radialSegments, linkCap, dashCount, dashScale, dashCap, stubCap } = props;
 
     const vertexCountEstimate = radialSegments * 2 * linkCount * 2;
     const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 4, mesh);
@@ -127,7 +129,8 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
 
         const linkRadius = radius(edgeIndex);
         const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
-        const [topCap, bottomCap] = (v3dot(tmpV12, up) > 0) ? [false, linkCap] : [linkCap, false];
+        const linkStub = stubCap && (stub ? stub(edgeIndex) : false);
+        const [topCap, bottomCap] = (v3dot(tmpV12, up) > 0) ? [linkStub, linkCap] : [linkCap, linkStub];
         builderState.currentGroup = edgeIndex;
 
         if (linkStyle === LinkStyle.Solid) {
@@ -176,11 +179,11 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
  * the half closer to the first vertex, i.e. vertex a.
  */
 export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkCylinderProps, cylinders?: Cylinders) {
-    const { linkCount, referencePosition, position, style, radius, ignore } = linkBuilder;
+    const { linkCount, referencePosition, position, style, radius, ignore, stub } = linkBuilder;
 
     if (!linkCount) return Cylinders.createEmpty(cylinders);
 
-    const { linkScale, linkSpacing, linkCap, dashCount, dashScale, dashCap } = props;
+    const { linkScale, linkSpacing, linkCap, dashCount, dashScale, dashCap, stubCap } = props;
 
     const cylindersCountEstimate = linkCount * 2;
     const builder = CylindersBuilder.create(cylindersCountEstimate, cylindersCountEstimate / 4, cylinders);
@@ -200,10 +203,11 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
 
         const linkRadius = radius(edgeIndex);
         const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
+        const linkStub = stubCap && (stub ? stub(edgeIndex) : false);
 
         if (linkStyle === LinkStyle.Solid) {
             v3scale(vb, v3add(vb, va, vb), 0.5);
-            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], 1, linkCap, false, edgeIndex);
+            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], 1, linkCap, linkStub, edgeIndex);
         } else if (linkStyle === LinkStyle.Dashed) {
             v3scale(tmpV12, v3sub(tmpV12, vb, va), lengthScale);
             v3sub(vb, vb, tmpV12);
@@ -218,14 +222,14 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
             v3setMagnitude(vShift, vShift, absOffset);
 
             if (order === 3) builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], multiScale, linkCap, false, edgeIndex);
-            builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vb[0] + vShift[0], vb[1] + vShift[1], vb[2] + vShift[2], multiScale, linkCap, false, edgeIndex);
-            builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vb[0] - vShift[0], vb[1] - vShift[1], vb[2] - vShift[2], multiScale, linkCap, false, edgeIndex);
+            builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vb[0] + vShift[0], vb[1] + vShift[1], vb[2] + vShift[2], multiScale, linkCap, linkStub, edgeIndex);
+            builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vb[0] - vShift[0], vb[1] - vShift[1], vb[2] - vShift[2], multiScale, linkCap, linkStub, edgeIndex);
         } else if (linkStyle === LinkStyle.Disk) {
             v3scale(tmpV12, v3sub(tmpV12, vb, va), 0.475);
             v3add(va, va, tmpV12);
             v3sub(vb, vb, tmpV12);
 
-            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], 1, linkCap, false, edgeIndex);
+            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], 1, linkCap, linkStub, edgeIndex);
         }
     }
 

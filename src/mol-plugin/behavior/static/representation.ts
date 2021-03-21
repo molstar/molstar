@@ -54,20 +54,20 @@ export function SyncStructureRepresentation3DState(ctx: PluginContext) {
     events.object.created.subscribe(e => {
         if (!SO.Molecule.Structure.Representation3DState.is(e.obj)) return;
         const data = e.obj.data as SO.Molecule.Structure.Representation3DStateData;
-        data.source.data.repr.setState(data.state);
-        ctx.canvas3d?.update(data.source.data.repr);
+        data.repr.setState(data.state);
+        ctx.canvas3d?.update(data.repr);
     });
     events.object.updated.subscribe(e => {
         if (!SO.Molecule.Structure.Representation3DState.is(e.obj)) return;
         const data = e.obj.data as SO.Molecule.Structure.Representation3DStateData;
-        data.source.data.repr.setState(data.state);
-        ctx.canvas3d?.update(data.source.data.repr);
+        data.repr.setState(data.state);
+        ctx.canvas3d?.update(data.repr);
     });
     events.object.removed.subscribe(e => {
         if (!SO.Molecule.Structure.Representation3DState.is(e.obj)) return;
         const data = e.obj.data as SO.Molecule.Structure.Representation3DStateData;
-        data.source.data.repr.setState(data.initialState);
-        ctx.canvas3d?.update(data.source.data.repr);
+        data.repr.setState(data.initialState);
+        ctx.canvas3d?.update(data.repr);
     });
 }
 
